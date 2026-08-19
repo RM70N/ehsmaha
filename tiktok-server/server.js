@@ -113,9 +113,12 @@ function extractUser(user) {
   };
 }
 
+// data.content مو data.comment — تحقق فعلي من بث لايف حقيقي (WebcastChatMessage
+// بالمكتبة المثبتة يستخدم content). هذا الحقل هو الأهم بكل الملف لأن كل لعبة
+// تقرأ نص الشات منه لمطابقة الكلمات/الأوامر.
 function buildComment(data) {
   const user = extractUser(data.user);
-  const text = data.comment || '';
+  const text = data.content || data.comment || '';
   return { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
 }
 
