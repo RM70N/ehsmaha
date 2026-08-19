@@ -85,18 +85,22 @@ function log(level, msg) {
 }
 
 // ------------------------------------------------------------------ بناء الأحداث الموحّدة (مطابقة لما تتوقعه الألعاب)
-// أسماء الحقول هنا مطابقة تماماً لتعريفات tiktok-live-proto (User/WebcastGiftMessage/
-// FollowInfo/ProfilePicture) — تم التحقق منها من node_modules/tiktok-live-proto
-// مباشرة، وليس تخميناً، لأن هذه الحقول تغيّرت بين إصدارات المكتبة سابقاً.
+// أسماء الحقول هنا تم التحقق منها فعلياً من بيانات خام حقيقية (bridge status
+// وحدث CHAT حقيقي من بث لايف فعلي)، وليس من توثيق/تخمين — راجع
+// tiktok-server/_inspect_user.js. النسخة المثبتة من tiktok-live-connector
+// (2.4.x) لا تحتوي uniqueId إطلاقاً؛ اليوزرنيم الحقيقي في displayId. الصورة
+// في avatarThumb.urlList (مو profilePicture.urls). followStatus يرجع كنص
+// ("0"/"1"/"2")، فالمقارنة الرقمية المباشرة كانت تفشل دائماً حتى للمتابعين
+// الحقيقيين.
 function extractUser(user) {
   if (!user) {
     return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followInfo: { followStatus: 0 } };
   }
-  const uniqueId = user.uniqueId || user.userId || '?';
+  const uniqueId = user.displayId || user.uniqueId || user.userId || user.id || '?';
   const nickname = user.nickname || uniqueId;
-  const avatar = (user.profilePicture && Array.isArray(user.profilePicture.urls) && user.profilePicture.urls[0]) || '';
+  const avatar = (user.avatarThumb && Array.isArray(user.avatarThumb.urlList) && user.avatarThumb.urlList[0]) || '';
 
-  const followStatus = (user.followInfo && user.followInfo.followStatus) || 0;
+  const followStatus = Number((user.followInfo && user.followInfo.followStatus) || 0);
   const following = followStatus === 1 || followStatus === 2;
 
   return {
@@ -115,13 +119,15 @@ function buildComment(data) {
   return { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
 }
 
+// data.gift (مو data.giftDetails — تحقق من tiktok-live-proto v3 WebcastGiftMessage
+// أعلاه: الحقل الصحيح gift: Gift، وGift.name/diamondCount/type).
 function buildGift(data) {
   const user = extractUser(data.user);
-  const details = data.giftDetails || {};
+  const gift = data.gift || {};
   return {
     type: 'WebcastGiftMessage',
-    giftName: details.giftName || 'هدية',
-    diamondCount: details.diamondCount || 0,
+    giftName: gift.name || 'هدية',
+    diamondCount: gift.diamondCount || 0,
     repeatCount: data.repeatCount || 1,
     giftId: data.giftId || 0,
     user,
@@ -134,9 +140,11 @@ function buildFollow(data) {
   return { type: 'WebcastSocialMessage', displayType: 'follow', user, timestamp: Date.now() };
 }
 
+// data.count/data.total (مو likeCount/totalLikeCount — تحقق فعلي من بث لايف
+// حقيقي، راجع تعليق extractUser أعلاه لنفس السبب).
 function buildLike(data) {
   const user = extractUser(data.user);
-  return { type: 'WebcastLikeMessage', likeCount: data.likeCount || 0, totalLikeCount: data.totalLikeCount || 0, user, timestamp: Date.now() };
+  return { type: 'WebcastLikeMessage', likeCount: Number(data.count) || 0, totalLikeCount: Number(data.total) || 0, user, timestamp: Date.now() };
 }
 
 function buildViewer(count) {
@@ -247,10 +255,11 @@ class Room {
     });
 
     conn.on(WebcastEvent.GIFT, (data) => {
-      // الهدايا القابلة للتتابع (streak, giftType===1) ترسل عدة أحداث أثناء التتابع؛
+      // الهدايا القابلة للتتابع (streak, gift.type===1) ترسل عدة أحداث أثناء التتابع؛
       // repeatEnd (0/1) يشير لآخر حدث بالتتابع — نبث مرة وحدة فقط عند انتهائه حتى لا
       // تُحتسب الهدية مضاعفة بالألعاب. الهدايا غير القابلة للتتابع تُبث فوراً.
-      const giftType = data.giftDetails && data.giftDetails.giftType;
+      // (data.gift.type مو data.giftDetails.giftType — راجع تعليق buildGift أعلاه.)
+      const giftType = data.gift && data.gift.type;
       if (giftType === 1 && !data.repeatEnd) return;
       this.broadcast({ messages: [buildGift(data)] });
     });
@@ -264,7 +273,9 @@ class Room {
     });
 
     conn.on(WebcastEvent.ROOM_USER, (data) => {
-      this.broadcast({ messages: [buildViewer(data.viewerCount)] });
+      // data.totalUser مو data.viewerCount — تحقق فعلي من بث لايف حقيقي (راجع
+      // تعليق extractUser أعلاه).
+      this.broadcast({ messages: [buildViewer(data.totalUser)] });
     });
 
     conn.on(WebcastEvent.STREAM_END, () => {
