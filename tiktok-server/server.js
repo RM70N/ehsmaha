@@ -41,7 +41,16 @@ const EULER_SIGN_API_KEY = process.env.EULER_SIGN_API_KEY || '';
 const PORT = process.env.PORT || 8080;
 const RECONNECT_DELAY_MS = 5000;
 const NOT_LIVE_RETRY_DELAY_MS = 20000;
+// عند رد 429 (تجاوز حد خدمة التوقيع EulerStream) يجب التراجع مدة طويلة بدل
+// الدق كل 5ث — لأن كل محاولة إضافية تُشبع الحد أكثر وتطيل الحظر (حلقة موت
+// rate-limit). راجع handleConnectError. الحل الجذري هو ضبط EULER_SIGN_API_KEY
+// كمتغيّر بيئة، وهذا التراجع يمنع تفاقم المشكلة حتى مع المفتاح.
+const RATE_LIMIT_BACKOFF_MS = 60000;
 const ROOM_IDLE_GRACE_MS = 5000; // مهلة قبل إغلاق الغرفة بعد خروج آخر عميل (يتجنب فتح/إغلاق سريع عند إعادة تحميل الصفحة)
+
+// jitter عشوائي يُضاف لكل تأخير إعادة محاولة حتى لا تُعيد كل الغرف الاتصال في
+// نفس اللحظة (thundering herd) فتضرب خدمة التوقيع دفعة واحدة وتستهلك الحد.
+function withJitter(base) { return base + Math.floor(Math.random() * 4000); }
 
 // ------------------------------------------------------------------ Firestore (تفعيل/تعطيل الستريمرز)
 // نفس مشروع فايربيس الذي يستخدمه index.html (streamgame-180b8). نقرأ فقط
@@ -194,6 +203,9 @@ class Room {
     if (state === 'error' && extra && extra.code === 'user_not_found') {
       return '@' + this.uniqueId + ' — يوزرنيم غير موجود، تأكد من كتابته صح';
     }
+    if (state === 'error' && extra && extra.code === 'rate_limited') {
+      return 'المنصة مزدحمة مؤقتاً على خدمة تيك توك — سنعيد المحاولة تلقائياً بعد قليل، ابقَ في الصفحة';
+    }
     const map = {
       connecting: 'جاري الاتصال بـ @' + this.uniqueId + '…',
       connected: 'متصل بالبث المباشر ✅',
@@ -246,7 +258,7 @@ class Room {
       log('info', '@' + this.uniqueId + ' — انفصل');
       if (this.stopped) return;
       this.setState('reconnecting');
-      this.scheduleReconnect(RECONNECT_DELAY_MS);
+      this.scheduleReconnect(withJitter(RECONNECT_DELAY_MS));
     });
 
     conn.on(WebcastEvent.CHAT, (data) => {
@@ -285,7 +297,7 @@ class Room {
       log('info', '@' + this.uniqueId + ' — انتهى البث');
       if (this.stopped) return;
       this.setState('not_live');
-      this.scheduleReconnect(NOT_LIVE_RETRY_DELAY_MS);
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
     });
 
     try {
@@ -300,14 +312,33 @@ class Room {
       log('info', '@' + this.uniqueId + ' — غير مباشر حالياً');
       this.notLiveRetries++;
       this.setState('not_live');
-      this.scheduleReconnect(NOT_LIVE_RETRY_DELAY_MS);
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
+      return;
+    }
+    const msg = (err && err.message) || String(err);
+    const low = msg.toLowerCase();
+    // تجاوز حد خدمة التوقيع (EulerStream 429). ملاحظة مهمة: النسخة 2.4.x من
+    // tiktok-live-connector فيها باگ — عند رد 429 تمرّر response.data بدل
+    // response لباني SignatureRateLimitError، فيُرمى بدلاً منه استثناء نصّه
+    // "Cannot read properties of undefined (reading 'retry-after')". لذلك نميّز
+    // الـ rate limit من هذا النص تحديداً (لا يقرأ 'retry-after' أي مسار آخر
+    // بالمكتبة) بالإضافة للأنماط المعتادة. عند اكتشافه: تراجع طويل + رسالة
+    // صادقة، لا "خطأ مؤقت" مضلّلة ولا دقّ كل 5ث يفاقم الحظر.
+    const looksLikeRateLimit = (
+      low.includes('retry-after') ||
+      low.includes('rate limit') || low.includes('ratelimit') ||
+      low.includes('too many') || low.includes(' 429') || low.includes('429 ') ||
+      low.includes('sign server') && low.includes('limit')
+    );
+    if (looksLikeRateLimit) {
+      log('warn', '@' + this.uniqueId + ' — تجاوز حد خدمة التوقيع (429/rate limit) — تراجع ' + Math.round(RATE_LIMIT_BACKOFF_MS / 1000) + 'ث. الحل الجذري: اضبط EULER_SIGN_API_KEY. التفاصيل: ' + msg);
+      this.setState('error', { code: 'rate_limited' });
+      this.scheduleReconnect(withJitter(RATE_LIMIT_BACKOFF_MS));
       return;
     }
     // لا يوجد صنف خطأ مخصص لـ"يوزرنيم غير موجود" بالمكتبة الحالية — نميّزه
     // من نص الرسالة (فشل جلب room id / room info من TikTok لحساب غير موجود
     // يختلف نصياً عن أخطاء الشبكة أو خدمة التوقيع).
-    const msg = (err && err.message) || String(err);
-    const low = msg.toLowerCase();
     const looksLikeMissingUser = (
       low.includes('failed to retrieve room id') ||
       low.includes('failed to fetch room id') ||
@@ -319,12 +350,12 @@ class Room {
     if (looksLikeMissingUser) {
       log('info', '@' + this.uniqueId + ' — يوزرنيم غير موجود (على الأغلب): ' + msg);
       this.setState('error', { code: 'user_not_found' });
-      this.scheduleReconnect(NOT_LIVE_RETRY_DELAY_MS);
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
       return;
     }
     log('warn', '@' + this.uniqueId + ' — خطأ اتصال: ' + msg);
     this.setState('error', { code: 'connect_failed' });
-    this.scheduleReconnect(RECONNECT_DELAY_MS);
+    this.scheduleReconnect(withJitter(RECONNECT_DELAY_MS));
   }
 
   scheduleReconnect(delay) {
@@ -403,9 +434,33 @@ wss.on('connection', async (ws, req) => {
   });
 });
 
+// ------------------------------------------------------------------ Keep-Alive (منع خمول خطة Render المجانية)
+// خطة Render المجانية توقف الخدمة (Spin down) بعد ~15 دقيقة بلا طلبات واردة،
+// فأول اتصال بعدها يأخذ Cold Start ~30-60ث. Render يوفّر RENDER_EXTERNAL_URL
+// تلقائياً؛ نطلب /healthz دورياً (كل 10 دقائق < 15) لإبقاء الخدمة مستيقظة ما
+// دامت حيّة. ملاحظة: هذا يمنع الخمول ولا يوقظ خدمة نائمة أصلاً — لضمان أقوى
+// أضِف مُراقِباً خارجياً (cron-job.org / UptimeRobot) يطلب نفس المسار.
+function startKeepAlive() {
+  const base = (process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+  if (!base) { log('info', 'Keep-Alive غير مفعّل (RENDER_EXTERNAL_URL غير متاح)'); return; }
+  const url = base + '/healthz';
+  const intervalMs = 10 * 60 * 1000;
+  const https = require('https');
+  const timer = setInterval(() => {
+    try {
+      const req = https.get(url, (res) => { res.resume(); });
+      req.on('error', () => {});
+      req.setTimeout(15000, () => { try { req.destroy(); } catch (e) {} });
+    } catch (e) { /* best-effort */ }
+  }, intervalMs);
+  timer.unref();
+  log('info', 'Keep-Alive مفعّل — ' + url + ' كل 10 دقائق');
+}
+
 initFirestore();
 server.listen(PORT, () => {
   log('info', 'خادم جسر تيك توك يعمل على المنفذ ' + PORT + ' (WebSocket: /ws?u=username)');
+  startKeepAlive();
 });
 
 process.on('SIGTERM', () => {
