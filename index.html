@@ -18249,6 +18249,234 @@ function setDotById(id, state) {
 }
 </script>
 
+<!-- ==================== ROUND SCREEN — NEW DESIGN (شاشات الراوند: حرب الدول / دائرة الإقصاء / الكرسي المتحرك) ==================== -->
+<style>
+/* مسرح الراوند (9:16) — منسوخ كما هو من ملف "شاشات الراوند" */
+.rd-stage{position:relative;height:min(66vh,860px);aspect-ratio:9/16;max-width:100%;margin:0 auto;container-type:size;overflow:hidden;background:#0d0620;box-shadow:0 0 12vh rgba(0,0,0,.9);direction:rtl;font-family:'Tajawal',system-ui,sans-serif;flex:0 0 auto;}
+.rd-stage *{box-sizing:border-box;}
+/* أثناء الراوند يختفي عنوان اللعبة الكبير ليأخذ مسرح الراوند المساحة كاملة */
+.page.rd-live .game-title-header{display:none;}
+.rd-l1{position:absolute;inset:0;background:radial-gradient(120% 60% at 50% 0%,#241245 0%,#150a2c 45%,#0d0620 100%);}
+.rd-l2{position:absolute;inset:0;background:radial-gradient(50% 30% at 50% 82%,rgba(232,160,200,.13),transparent 70%);}
+.rd-l3{position:absolute;inset:0;opacity:.5;background-image:linear-gradient(rgba(227,195,106,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(227,195,106,.045) 1px,transparent 1px);background-size:6cqw 6cqw;}
+.rd-inner{position:absolute;inset:0;display:flex;flex-direction:column;padding:3.5cqw 3.5cqw 4cqw;gap:2.4cqw;}
+
+.rd-head{display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;padding:0 1cqw;}
+.rd-head-side{display:flex;align-items:baseline;gap:1.6cqw;}
+.rd-num-gold{font-family:'Amiri',serif;font-size:9cqw;font-weight:700;color:#E3C36A;line-height:1;text-shadow:0 0 4cqw rgba(227,195,106,.45);}
+.rd-num-pink{font-family:'Amiri',serif;font-size:9cqw;font-weight:700;color:#E8A0C8;line-height:1;}
+.rd-head-lbl{font-size:3.4cqw;font-weight:700;color:#C9B7E8;}
+
+.rd-body{flex:1;display:flex;flex-direction:column;gap:2.6cqw;min-height:0;}
+
+/* ===== منشور القرعة (حرب الدول) ===== */
+.rd-lens{position:relative;height:30cqw;flex:0 0 auto;border-radius:4cqw;overflow:hidden;background:linear-gradient(180deg,#150a2c,#20103f 50%,#150a2c);border:.5cqw solid rgba(227,195,106,.28);box-shadow:inset 0 0 8cqw rgba(0,0,0,.75),0 0 6cqw rgba(227,195,106,.12);}
+.rd-lens-view{position:absolute;inset:0;overflow:hidden;}
+.rd-lens-track{will-change:transform;}
+.rd-lens-row{height:30cqw;display:flex;align-items:center;justify-content:center;gap:3cqw;}
+.rd-lens-chip{width:14cqw;height:14cqw;border-radius:3.6cqw;display:grid;place-items:center;font-family:'Amiri',serif;font-size:8cqw;color:#150a2c;font-weight:700;box-shadow:0 .8cqw 3cqw rgba(0,0,0,.5);flex:0 0 auto;}
+.rd-lens-name{font-family:'Amiri',serif;font-size:11cqw;font-weight:700;color:#F6EBD0;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62cqw;}
+.rd-lens-vig{position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,6,32,.95),transparent 26%,transparent 74%,rgba(13,6,32,.95));pointer-events:none;}
+.rd-lens-line{position:absolute;left:0;right:0;top:50%;height:.35cqw;transform:translateY(-50%);background:linear-gradient(90deg,transparent,#E3C36A,transparent);opacity:.9;}
+.rd-beam{position:absolute;top:0;bottom:0;width:1.6cqw;animation:rdBeam 1.6s ease-in-out infinite;}
+.rd-beam.l{left:0;background:linear-gradient(90deg,rgba(232,160,200,.85),transparent);}
+.rd-beam.r{right:0;background:linear-gradient(-90deg,rgba(232,160,200,.85),transparent);}
+.rd-scan{position:absolute;left:0;right:0;height:6cqw;background:linear-gradient(180deg,transparent,rgba(227,195,106,.16),transparent);animation:rdScanline 2.2s linear infinite;pointer-events:none;}
+.rd-lens-tag{position:absolute;top:1.4cqw;right:2.4cqw;font-size:2.8cqw;font-weight:700;letter-spacing:.2cqw;color:rgba(227,195,106,.75);}
+
+/* ===== شبكة الدول (حرب الدول) ===== */
+.rd-cgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:min-content;gap:1.8cqw;align-content:center;overflow-y:auto;overflow-x:hidden;}
+.rd-ccard{position:relative;border-radius:2.6cqw;padding:1.8cqw .6cqw;display:flex;flex-direction:column;align-items:center;gap:1cqw;background:#1a0d33;border:.4cqw solid rgba(227,195,106,.16);cursor:pointer;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
+.rd-ccard .rd-chip{width:9.4cqw;height:9.4cqw;border-radius:2.6cqw;display:grid;place-items:center;font-family:'Amiri',serif;font-size:5.6cqw;font-weight:700;color:#150a2c;box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.45);overflow:hidden;flex:0 0 auto;}
+.rd-ccard .cw-flag-img{width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:2.6cqw;box-shadow:none;}
+.rd-ccard .cw-country-flag{font-size:6cqw;line-height:1;}
+.rd-cname{font-size:3.1cqw;font-weight:700;color:#F6EBD0;text-align:center;line-height:1.1;}
+.rd-ccard-aim{position:absolute;inset:-.4cqw;border-radius:3.2cqw;border:.6cqw solid #E8A0C8;box-shadow:0 0 6cqw rgba(232,160,200,.8);opacity:0;transition:opacity .2s ease;pointer-events:none;}
+.rd-ccard.aim{transform:scale(1.1);}
+.rd-ccard.aim .rd-ccard-aim{opacity:1;}
+.rd-ccard.eliminated{opacity:.28;filter:grayscale(1);cursor:not-allowed;}
+
+/* ===== لوحة اللاعبين وأرقامهم (دائرة الإقصاء) ===== */
+.rd-roster{flex:0 0 auto;border-radius:3.4cqw;padding:2.2cqw 2cqw;background:#1a0d33;border:.45cqw solid rgba(227,195,106,.26);box-shadow:inset 0 0 6cqw rgba(0,0,0,.55),0 1cqw 4cqw rgba(0,0,0,.45);}
+.rd-roster-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.6cqw;padding:0 .6cqw;}
+.rd-roster-t1{font-size:3cqw;font-weight:700;color:rgba(227,195,106,.8);}
+.rd-roster-t2{font-size:2.8cqw;font-weight:700;color:#8E77BC;}
+.rd-roster-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:1.2cqw;max-height:44cqw;overflow-y:auto;overflow-x:hidden;}
+.rd-roster-grid::-webkit-scrollbar,.rd-cgrid::-webkit-scrollbar{width:.8cqw;}
+.rd-roster-grid::-webkit-scrollbar-thumb,.rd-cgrid::-webkit-scrollbar-thumb{background:rgba(227,195,106,.25);border-radius:1cqw;}
+.rd-rcell{display:flex;flex-direction:column;align-items:center;gap:.4cqw;padding:1.2cqw .2cqw;border-radius:2.2cqw;background:rgba(13,6,32,.55);border:.4cqw solid rgba(227,195,106,.16);transition:background .25s ease,border-color .25s ease;min-width:0;}
+.rd-rcell-chip{width:8cqw;height:8cqw;border-radius:50%;display:grid;place-items:center;font-family:'Amiri',serif;font-size:4.6cqw;font-weight:700;color:#150a2c;flex:0 0 auto;}
+.rd-rcell-num{font-family:'Amiri',serif;font-size:6.4cqw;font-weight:700;line-height:1;color:#E3C36A;}
+.rd-rcell-name{font-size:2.5cqw;font-weight:700;color:#C9B7E8;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+.rd-rcell.chooser{background:linear-gradient(160deg,rgba(227,195,106,.34),rgba(227,195,106,.1));border-color:#E3C36A;}
+.rd-rcell.chooser .rd-rcell-num{color:#FFF3D4;}
+.rd-rcell.aim{background:linear-gradient(160deg,rgba(232,160,200,.42),rgba(232,160,200,.14));border-color:#E8A0C8;}
+.rd-rcell.aim .rd-rcell-num{color:#FFE2F1;}
+
+/* ===== حلقة الطاقة (دائرة الإقصاء) ===== */
+.rd-chooser{display:none;flex:0 0 auto;border-radius:3cqw;padding:2cqw 3cqw;background:linear-gradient(90deg,rgba(227,195,106,.18),rgba(232,160,200,.14));border:.4cqw solid rgba(227,195,106,.55);align-items:center;justify-content:center;gap:2.4cqw;transform-origin:top;}
+.rd-chooser.show{display:flex;animation:rdBannerIn .45s cubic-bezier(.16,1,.3,1) both;}
+.rd-chooser-lbl{font-size:3.6cqw;font-weight:700;color:#C9B7E8;flex:0 0 auto;}
+.rd-chooser-name{font-family:'Amiri',serif;font-size:9cqw;font-weight:700;color:#FFF3D4;line-height:1;text-shadow:0 0 5cqw rgba(227,195,106,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rd-circle{flex:1;position:relative;min-height:0;display:flex;align-items:center;justify-content:center;}
+.rd-circle-box{position:relative;aspect-ratio:1;height:min(78cqw,100%);max-width:100%;}
+.rd-ring-in{position:absolute;inset:6cqw;border-radius:50%;border:.4cqw solid rgba(227,195,106,.16);}
+.rd-ring-dash{position:absolute;inset:0;border-radius:50%;border:.35cqw dashed rgba(232,160,200,.2);}
+.rd-ring{position:absolute;inset:2cqw;border-radius:50%;will-change:transform;}
+.rd-ring-grad{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(227,195,106,0) 0deg,rgba(227,195,106,0) 300deg,rgba(232,160,200,.35) 336deg,rgba(227,195,106,.95) 358deg,rgba(255,255,255,.9) 360deg);-webkit-mask:radial-gradient(circle,transparent 0 41%,#000 41.5% 50%,transparent 50.5%);mask:radial-gradient(circle,transparent 0 41%,#000 41.5% 50%,transparent 50.5%);filter:blur(.2cqw);}
+.rd-ring-dot{position:absolute;left:50%;top:0;width:3.2cqw;height:3.2cqw;margin-left:-1.6cqw;margin-top:-1.6cqw;border-radius:50%;background:#FFF6DE;box-shadow:0 0 6cqw 1.4cqw rgba(227,195,106,.8);}
+.rd-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;}
+.rd-center-num{font-family:'Amiri',serif;font-size:22cqw;font-weight:700;line-height:.9;color:#E3C36A;text-shadow:0 0 7cqw rgba(227,195,106,.45);}
+.rd-center-lbl{font-size:3.4cqw;font-weight:700;color:#C9B7E8;letter-spacing:.3cqw;}
+.rd-pnode{position:absolute;transform:translate(-50%,-50%) scale(1);display:flex;flex-direction:column;align-items:center;gap:.8cqw;transition:transform .3s cubic-bezier(.16,1,.3,1);}
+.rd-pnode-av{position:relative;width:calc(12.4cqw * var(--rd-ns,1));height:calc(12.4cqw * var(--rd-ns,1));border-radius:50%;display:grid;place-items:center;font-family:'Amiri',serif;font-size:calc(7.2cqw * var(--rd-ns,1));font-weight:700;color:#150a2c;box-shadow:0 .8cqw 3cqw rgba(0,0,0,.5);}
+.rd-pnode-glow{position:absolute;inset:-1cqw;border-radius:50%;border:.7cqw solid #FFF3D4;box-shadow:0 0 6cqw rgba(227,195,106,.9);opacity:0;}
+.rd-pnode-name{font-size:calc(3cqw * var(--rd-ns,1));font-weight:700;color:#F6EBD0;background:rgba(13,6,32,.75);padding:.3cqw 1.4cqw;border-radius:2cqw;white-space:nowrap;max-width:26cqw;overflow:hidden;text-overflow:ellipsis;}
+.rd-pnode.live{transform:translate(-50%,-50%) scale(1.2);z-index:2;}
+.rd-pnode.live .rd-pnode-glow{opacity:1;}
+
+/* ===== تذييل المسرح: التلميح + زر البدء ===== */
+.rd-foot{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:1.6cqw;}
+.rd-hint{font-size:3.2cqw;font-weight:700;color:#C9B7E8;min-height:4cqw;text-align:center;}
+.rd-cta{width:100%;display:flex;align-items:center;justify-content:center;}
+.rd-btn{display:inline-flex;align-items:center;justify-content:center;gap:2cqw;font-family:'Tajawal',sans-serif;font-weight:700;border-radius:999px;cursor:pointer;transition:transform .12s cubic-bezier(.22,1,.36,1),filter .12s cubic-bezier(.22,1,.36,1);padding:0 8cqw;font-size:5cqw;height:13cqw;background:#C9A84C;color:#0D0D14;border:.3cqw solid #C9A84C;box-shadow:0 0 0 .8cqw rgba(201,168,76,.2);white-space:nowrap;}
+.rd-btn:hover:not(:disabled){filter:brightness(1.06);transform:translateY(-.3cqw);}
+.rd-btn:disabled{opacity:.45;cursor:not-allowed;}
+
+/* ===== سجل الإقصاء أسفل المسرح (يبقى كما هو وظيفياً بألوان التصميم الجديد) ===== */
+#cw-elim-log,#rou-elim-log{width:min(100%,520px);margin:14px auto 0;gap:6px;}
+#cw-elim-log .cw-elim-item,#rou-elim-log .elim-item{background:rgba(26,13,51,.85);border:1px solid rgba(232,160,200,.35);border-radius:12px;box-shadow:none;padding:8px 14px;}
+#cw-elim-log .cw-elim-text,#rou-elim-log .elim-text{color:#F6EBD0;font-size:13px;}
+#cw-elim-log .cw-elim-sub,#rou-elim-log .elim-sub{color:#8E77BC;}
+
+/* ===== طبقة الإقصاء (نفس أنيميشن التصميم الجديد) ===== */
+.rd-ov{position:absolute;inset:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 46%,rgba(58,26,86,.94),rgba(9,4,22,.985));backdrop-filter:blur(1.8cqw);animation:rdOvBack 2.2s linear both;z-index:6;}
+.rd-ov-card{position:relative;width:100%;display:flex;flex-direction:column;align-items:center;gap:2cqw;animation:rdOvCard 2.2s cubic-bezier(.16,1,.3,1) both;}
+.rd-ov-stage{position:relative;width:100%;height:40cqw;display:grid;place-items:center;}
+.rd-shock{position:absolute;width:34cqw;height:34cqw;border-radius:50%;border:.8cqw solid rgba(227,195,106,.9);animation:rdShock 2.2s ease-out both;}
+.rd-shock2{position:absolute;width:34cqw;height:34cqw;border-radius:50%;border:.6cqw solid rgba(232,160,200,.8);animation:rdShock2 2.2s ease-out both;}
+.rd-sparks{position:absolute;display:grid;place-items:center;width:0;height:0;}
+.rd-spark{position:absolute;}
+.rd-spark i{display:block;width:1.2cqw;height:4cqw;border-radius:1cqw;background:linear-gradient(180deg,#FFF3D4,rgba(232,160,200,0));}
+.rd-clapL{position:absolute;animation:rdClapL 2.2s cubic-bezier(.2,.9,.25,1) both;}
+.rd-clapR{position:absolute;animation:rdClapR 2.2s cubic-bezier(.2,.9,.25,1) both;}
+.rd-hand{position:relative;width:16cqw;height:19cqw;}
+.rd-hand i{position:absolute;display:block;}
+.rd-hand .p{bottom:0;left:0;width:16cqw;height:13cqw;border-radius:46% 54% 38% 62%/58% 42% 62% 38%;box-shadow:0 1cqw 4cqw rgba(0,0,0,.5);}
+.rd-hand .f1{top:1.2cqw;left:1.4cqw;width:3cqw;height:8cqw;border-radius:2cqw;transform:rotate(-14deg);}
+.rd-hand .f2{top:0;left:5cqw;width:3.2cqw;height:9.5cqw;border-radius:2cqw;transform:rotate(-5deg);}
+.rd-hand .f3{top:.6cqw;left:8.8cqw;width:3.2cqw;height:9cqw;border-radius:2cqw;transform:rotate(4deg);}
+.rd-hand .f4{top:2.4cqw;left:12.2cqw;width:3cqw;height:7.4cqw;border-radius:2cqw;transform:rotate(12deg);}
+.rd-hand .th{bottom:1.4cqw;right:-2.2cqw;width:6.4cqw;height:3.4cqw;border-radius:2cqw;transform:rotate(-30deg);}
+.rd-hand.gold .p{background:linear-gradient(150deg,#F6E0AE,#C9A84C);}
+.rd-hand.gold .f1{background:linear-gradient(180deg,#F6E0AE,#D8B85F);}
+.rd-hand.gold .f2{background:linear-gradient(180deg,#F9E9C4,#D8B85F);}
+.rd-hand.gold .f3{background:linear-gradient(180deg,#F6E0AE,#D8B85F);}
+.rd-hand.gold .f4{background:linear-gradient(180deg,#EFD79E,#C9A84C);}
+.rd-hand.gold .th{background:linear-gradient(90deg,#EFD79E,#C9A84C);}
+.rd-hand.pink .p{background:linear-gradient(150deg,#F6C9DF,#C97FA8);}
+.rd-hand.pink .f1{background:linear-gradient(180deg,#F6C9DF,#D492B6);}
+.rd-hand.pink .f2{background:linear-gradient(180deg,#FBDDEC,#D492B6);}
+.rd-hand.pink .f3{background:linear-gradient(180deg,#F6C9DF,#D492B6);}
+.rd-hand.pink .f4{background:linear-gradient(180deg,#F0BBD5,#C97FA8);}
+.rd-hand.pink .th{background:linear-gradient(90deg,#F0BBD5,#C97FA8);}
+.rd-fly{position:absolute;left:14cqw;animation:rdFlyOut 2.2s cubic-bezier(.32,.02,.2,1) both;}
+.rd-fly-av{width:22cqw;height:22cqw;border-radius:50%;display:grid;place-items:center;overflow:hidden;font-family:'Amiri',serif;font-size:12cqw;font-weight:700;color:#150a2c;box-shadow:0 0 8cqw rgba(232,160,200,.6),0 1.2cqw 4cqw rgba(0,0,0,.6);border:.7cqw solid rgba(255,243,212,.9);}
+.rd-fly-av img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.rd-ov-name{font-family:'Amiri',serif;font-size:19cqw;font-weight:700;line-height:1;color:#FFF3D4;text-shadow:0 0 9cqw rgba(232,160,200,.65);animation:rdBigIn 2.2s cubic-bezier(.16,1,.3,1) both;text-align:center;padding:0 4cqw;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rd-ov-out{font-family:'Amiri',serif;font-size:13cqw;font-weight:700;line-height:1;color:#E8A0C8;letter-spacing:1cqw;animation:rdBigIn 2.2s cubic-bezier(.16,1,.3,1) .06s both;}
+.rd-ov-sub{font-size:4cqw;font-weight:700;color:#C9B7E8;animation:rdSubIn 2.2s ease both;text-align:center;padding:0 6cqw;}
+
+/* ===== الكراسي المخفيّة (الكرسي المتحرك) ===== */
+.rd-chairs-hidden{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34cqw;height:34cqw;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,rgba(227,195,106,.2),rgba(13,6,32,0) 70%);border:.5cqw solid rgba(227,195,106,.25);}
+.rd-chairs-hidden span{font-family:'Amiri',serif;font-size:7cqw;font-weight:700;color:#E3C36A;text-align:center;line-height:1.2;animation:rdGoldPulse 1.8s ease-in-out infinite;}
+
+@keyframes rdOvBack{0%{opacity:0}6%{opacity:1}86%{opacity:1}100%{opacity:0}}
+@keyframes rdOvCard{0%{opacity:0;transform:scale(.72)}10%{opacity:1;transform:scale(1.06)}17%{transform:scale(1)}86%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.9)}}
+@keyframes rdClapL{0%{transform:translateX(-52cqw) rotate(-34deg);opacity:0}10%{opacity:1}17%{transform:translateX(-1cqw) rotate(-4deg)}24%{transform:translateX(-10cqw) rotate(-18deg)}32%{transform:translateX(-1cqw) rotate(-4deg)}40%{transform:translateX(-7cqw) rotate(-13deg)}47%{transform:translateX(-2cqw) rotate(-6deg)}72%{opacity:1;transform:translateX(-4cqw) rotate(-9deg)}100%{opacity:0;transform:translateX(-14cqw) rotate(-16deg)}}
+@keyframes rdClapR{0%{transform:translateX(52cqw) rotate(34deg) scaleX(-1);opacity:0}10%{opacity:1}17%{transform:translateX(1cqw) rotate(4deg) scaleX(-1)}24%{transform:translateX(10cqw) rotate(18deg) scaleX(-1)}32%{transform:translateX(1cqw) rotate(4deg) scaleX(-1)}40%{transform:translateX(7cqw) rotate(13deg) scaleX(-1)}47%{transform:translateX(2cqw) rotate(6deg) scaleX(-1)}72%{opacity:1;transform:translateX(4cqw) rotate(9deg) scaleX(-1)}100%{opacity:0;transform:translateX(14cqw) rotate(16deg) scaleX(-1)}}
+@keyframes rdShock{0%,15%{transform:scale(.15);opacity:0}18%{opacity:.85}30%{transform:scale(2.6);opacity:0}31%,100%{opacity:0}}
+@keyframes rdShock2{0%,29%{transform:scale(.15);opacity:0}33%{opacity:.6}44%{transform:scale(2.1);opacity:0}45%,100%{opacity:0}}
+@keyframes rdFlyOut{0%,26%{transform:translate(0,0) rotate(0deg);opacity:1}33%{transform:translate(-5cqw,-2cqw) rotate(-10deg);opacity:1}72%{transform:translate(120cqw,14cqw) rotate(46deg);opacity:0}100%{transform:translate(120cqw,14cqw) rotate(46deg);opacity:0}}
+@keyframes rdBigIn{0%{opacity:0;transform:translateY(5cqw) scale(.86)}13%{opacity:1;transform:translateY(0) scale(1.03)}19%{transform:translateY(0) scale(1)}84%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-4cqw) scale(.97)}}
+@keyframes rdSubIn{0%,12%{opacity:0;transform:translateY(2cqw)}22%{opacity:1;transform:translateY(0)}84%{opacity:1}100%{opacity:0}}
+@keyframes rdSpark{0%,15%{transform:translateY(0) scale(0);opacity:0}19%{opacity:1;transform:translateY(-7cqw) scale(1)}46%{transform:translateY(-30cqw) scale(.15);opacity:0}100%{opacity:0}}
+@keyframes rdGoldPulse{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes rdScanline{0%{transform:translateY(-120%)}100%{transform:translateY(520%)}}
+@keyframes rdBannerIn{0%{opacity:0;transform:translateY(-2.5cqw) scaleY(.72)}60%{opacity:1;transform:translateY(0) scaleY(1.04)}100%{opacity:1;transform:translateY(0) scaleY(1)}}
+@keyframes rdChairDrop{0%{transform:translateY(-16cqw) scale(.55);opacity:0}55%{transform:translateY(1.2cqw) scale(1.08);opacity:1}78%{transform:translateY(0) scale(.97)}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes rdClaimPop{0%{transform:scale(0);opacity:0}62%{transform:scale(1.18);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes rdBeam{0%,100%{opacity:.18}50%{opacity:.55}}
+@keyframes rdWinRise{0%{opacity:0;transform:translateY(4cqw) scale(.9)}100%{opacity:1;transform:none}}
+</style>
+
+<script>
+/* ==================== ROUND SCREEN — NEW DESIGN (أدوات مشتركة) ====================
+   أدوات صغيرة يستخدمها تصميم شاشة الراوند الجديد للألعاب الثلاث فقط:
+   حرب الدول / دائرة الإقصاء / الكرسي المتحرك. */
+const RD_HUES = [45, 300, 275, 330, 38, 285, 262, 320];
+function rdGrad(i) {
+  const h = RD_HUES[((i % RD_HUES.length) + RD_HUES.length) % RD_HUES.length];
+  return 'linear-gradient(145deg,hsl(' + h + ' 72% 78%),hsl(' + (h + 18) + ' 58% 52%))';
+}
+function rdAr(n) { return String(n).replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[+d]); }
+function rdLetter(name) {
+  const s = String(name == null ? '' : name).replace(/^@/, '').trim() || '؟';
+  const core = s.startsWith('ال') ? s.slice(2) : s;
+  return core[0] || '؟';
+}
+function rdHash(str) {
+  let h = 0; str = String(str || '');
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+// طبقة الإقصاء — نفس أنيميشن ملف التصميم (تصفيق + طيران اللاعب + اسمه ثم "خــرج").
+// تُركّب داخل مسرح الراوند نفسه، وتُزال تلقائياً بعد 2.25 ثانية.
+function rdElimOverlay(stageId, user, sub, soundId) {
+  try {
+    const stage = document.getElementById(stageId);
+    if (!stage) return;
+    const nickname = (user && user.nickname) ? String(user.nickname) : '؟';
+    const avatar = (user && user.avatar) ? String(user.avatar) : '';
+    const letter = esc(rdLetter(nickname));
+    const grad = rdGrad(rdHash(nickname));
+    const prev = stage.querySelector('.rd-ov');
+    if (prev) prev.remove();
+    let sparks = '';
+    for (let i = 0; i < 12; i++) {
+      sparks += '<div class="rd-spark" style="transform:rotate(' + (i * 30) + 'deg)">' +
+                '<i style="animation:rdSpark 2.2s cubic-bezier(.16,1,.3,1) ' + ((i % 4) * 0.03) + 's both"></i></div>';
+    }
+    const hand = c => '<div class="rd-hand ' + c + '"><i class="p"></i><i class="f1"></i><i class="f2"></i><i class="f3"></i><i class="f4"></i><i class="th"></i></div>';
+    const face = avatar
+      ? '<img src="' + esc(avatar) + '" alt="" onerror="this.parentNode.textContent=\'' + letter + '\'">'
+      : letter;
+    const ov = document.createElement('div');
+    ov.className = 'rd-ov';
+    ov.innerHTML =
+      '<div class="rd-ov-card">' +
+        '<div class="rd-ov-stage">' +
+          '<div class="rd-shock"></div><div class="rd-shock2"></div>' +
+          '<div class="rd-sparks">' + sparks + '</div>' +
+          '<div class="rd-clapL">' + hand('gold') + '</div>' +
+          '<div class="rd-clapR">' + hand('pink') + '</div>' +
+          '<div class="rd-fly"><div class="rd-fly-av" style="background:' + grad + '">' + face + '</div></div>' +
+        '</div>' +
+        '<div class="rd-ov-name">' + esc(nickname) + '</div>' +
+        '<div class="rd-ov-out">خــرج</div>' +
+        '<div class="rd-ov-sub">' + esc(sub || '') + '</div>' +
+      '</div>';
+    stage.appendChild(ov);
+    // الصوت يتزامن مع لحظة التقاء الكفين (17% من 2.2 ثانية)
+    setTimeout(function () {
+      try { fxPlaySlapSound((window.soundManager && soundId) ? soundManager.gain(soundId) : 1); } catch (e) {}
+    }, 380);
+    setTimeout(function () { if (ov.parentNode) ov.parentNode.removeChild(ov); }, 2250);
+  } catch (e) {}
+}
+</script>
+
 <!-- ==================== ROULETTE ==================== -->
 <style>
 /* ===== ROULETTE SETUP ===== */
@@ -18259,9 +18487,8 @@ function setDotById(id, state) {
 .roulette-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
 .roulette-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
 
-/* Canvas wrapper */
-.roulette-canvas-wrap{position:relative;width:420px;height:420px;margin:0 auto 20px;flex-shrink:0;border-radius:50%;box-shadow:0 0 50px rgba(124,58,237,.3);}
-#roulette-canvas{border-radius:50%;display:block;}
+/* حاوية عُقد اللاعبين حول حلقة الطاقة — تصميم شاشة الراوند الجديد */
+#rou-nodes{position:absolute;inset:0;}
 .roulette-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));pointer-events:none;}
 
 /* Spin button */
@@ -18277,7 +18504,8 @@ function setDotById(id, state) {
 .elim-sub{font-size:11px;color:var(--muted);}
 
 /* Spin result banner */
-.spin-result{width:100%;max-width:520px;padding:14px 20px;border-radius:12px;background:rgba(239,68,68,.15);border:1px solid var(--red);font-size:16px;font-weight:800;color:var(--red);text-align:center;display:none;animation:popIn .3s ease;margin-bottom:12px;}
+/* سطر التلميح داخل مسرح الراوند الجديد (نفس عنصر النتيجة السابق) */
+.spin-result{display:none;font-size:3.2cqw;font-weight:700;color:#C9B7E8;text-align:center;line-height:1.35;min-height:4cqw;padding:0 2cqw;}
 .spin-result.show{display:block;}
 </style>
 
@@ -18402,14 +18630,45 @@ function setDotById(id, state) {
         <button class="btn-kick" onclick="rouOpenKickModal()">🚫 اطرد لاعب</button>
       </div>
 
-      <!-- Roulette wheel (hidden until round starts) -->
+      <!-- ===== شاشة الراوند — التصميم الجديد ===== -->
       <div id="rou-wheel-section" style="display:none;width:100%;flex-direction:column;align-items:center;gap:16px;">
-        <div class="roulette-canvas-wrap">
-          <div class="roulette-pointer">🎯</div>
-          <canvas id="roulette-canvas" width="420" height="420"></canvas>
+        <div class="rd-stage" id="rou-stage">
+          <div class="rd-l1"></div>
+          <div class="rd-l2"></div>
+          <div class="rd-l3"></div>
+          <div class="rd-inner">
+            <div class="rd-head">
+              <div class="rd-head-side"><span class="rd-num-gold" id="rou-remain-num">٠</span><span class="rd-head-lbl">متبقّون</span></div>
+              <div class="rd-head-side"><span class="rd-head-lbl">الجولة</span><span class="rd-num-pink" id="rou-round-num">١</span></div>
+            </div>
+            <div class="rd-body">
+              <div class="rd-roster">
+                <div class="rd-roster-head">
+                  <div class="rd-roster-t1">اللاعبون وأرقامهم</div>
+                  <div class="rd-roster-t2">اكتب الرقم في الشات</div>
+                </div>
+                <div class="rd-roster-grid" id="rou-roster"></div>
+              </div>
+              <div class="rd-chooser" id="rou-chooser">
+                <span class="rd-chooser-lbl">الدور عليه</span>
+                <span class="rd-chooser-name" id="rou-chooser-name">—</span>
+              </div>
+              <div class="rd-circle">
+                <div class="rd-circle-box" id="rou-circle-box">
+                  <div class="rd-ring-in"></div>
+                  <div class="rd-ring-dash"></div>
+                  <div class="rd-ring" id="rou-ring"><div class="rd-ring-grad"></div><div class="rd-ring-dot"></div></div>
+                  <div class="rd-center"><div class="rd-center-num" id="rou-center-num">٠</div><div class="rd-center-lbl">داخل الدائرة</div></div>
+                  <div id="rou-nodes"></div>
+                </div>
+              </div>
+            </div>
+            <div class="rd-foot">
+              <div class="spin-result" id="spin-result"></div>
+              <div class="rd-cta"><button class="rd-btn" id="btn-spin" onclick="spinRoulette()">ابدأ الاختيار</button></div>
+            </div>
+          </div>
         </div>
-        <div class="spin-result" id="spin-result"></div>
-        <button class="btn-spin" id="btn-spin" onclick="spinRoulette()">🎯 ابدأ الاختيار</button>
         <div class="elim-log" id="rou-elim-log"></div>
       </div>
     </div>
@@ -18459,6 +18718,7 @@ let rouRevivalUnsub = null;
 let rouPlayerNumbers = new Map();  // uniqueId -> رقم ثابت يُعطى عند الانضمام
 let rouNextPlayerNumber = 1;
 let rouActivePlayers = [];         // array of nicknames still in wheel
+let rouRoundNo = 1;                // رقم الجولة المعروض في شاشة الراوند الجديدة
 let rouSpinning = false;
 let rouPendingMention = null;      // { loserName, loserIdx } — ينتظر منشن من الخاسر
 let rouConnectedOnce = false;
@@ -18525,6 +18785,11 @@ function initRouletteDashboard() {
   document.getElementById('spin-result').textContent = '';
   const ws = document.getElementById('rou-wheel-section');
   ws.style.display = 'none';
+  const __rouPBox0 = document.querySelector('#pg-roulette .participants-overlay');
+  if (__rouPBox0) __rouPBox0.style.display = '';
+  document.getElementById('pg-roulette').classList.remove('rd-live');
+  rouRoundNo = 1;
+  __rouStageSig = null;
   rouParticipants.clear();
   rouPendingFollowers.clear();
   rouKickedDuringRound.clear();
@@ -18828,75 +19093,103 @@ function startRouletteRound() {
     toast('🛡️ ' + rouImmuneName + ' محصّن هالراوند — ينجو من أول محاولة إقصاء له!');
   }
 
+  rouRoundNo = 1;
   document.getElementById('rou-wheel-section').style.display = 'flex';
   document.getElementById('rou-btn-round').disabled = true;
   document.getElementById('rou-btn-round').textContent = '⏸ الراوند شغال...';
+  // شاشة الانتظار تختفي أثناء الراوند — لوحة اللاعبين وأرقامهم صارت داخل مسرح الراوند
+  const __rouPBox = document.querySelector('#pg-roulette .participants-overlay');
+  if (__rouPBox) __rouPBox.style.display = 'none';
+  document.getElementById('pg-roulette').classList.add('rd-live');
+  __rouStageSig = null;
   drawWheel(0);
+  const __rouHint = document.getElementById('spin-result');
+  __rouHint.textContent = 'اضغط لإطلاق حلقة الطاقة';
+  __rouHint.className = 'spin-result show';
   toast('🎯 الدائرة جاهزة — اضغط ابدأ!');
 }
 
-// ==================== WHEEL DRAWING ====================
+// ==================== حلقة الطاقة — رسم شاشة الراوند الجديدة ====================
+// نفس مدخل الدالة القديمة (زاوية بالراديان) لكن بدل كانفس العجلة نحرّك حلقة
+// الطاقة في التصميم الجديد: العلامة المضيئة أعلى الحلقة هي التي تختار اللاعب.
+let __rouStageSig = null;
+
 function drawWheel(rotationAngle) {
-  const canvas = document.getElementById('roulette-canvas');
-  const ctx = canvas.getContext('2d');
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const r = cx - 8;
+  const ring = document.getElementById('rou-ring');
+  if (!ring) return;
   const n = rouActivePlayers.length;
   if (n === 0) return;
+  const step = 360 / n;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const sig = rouActivePlayers.join('|') + '#' + (rouPendingMention ? rouPendingMention.loserName : '');
+  if (sig !== __rouStageSig) { __rouStageSig = sig; rouRenderStage(); }
 
-  const sliceAngle = (2 * Math.PI) / n;
+  const deg = -rotationAngle * 180 / Math.PI - step / 2;
+  ring.style.transform = 'rotate(' + deg.toFixed(2) + 'deg)';
 
-  rouActivePlayers.forEach((name, i) => {
-    const startAngle = rotationAngle + i * sliceAngle - Math.PI / 2;
-    const endAngle = startAngle + sliceAngle;
-
-    // Slice
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.closePath();
-    ctx.fillStyle = rouPalette[i % rouPalette.length];
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Text
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(startAngle + sliceAngle / 2);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.max(12, Math.min(18, 260 / n))}px Tajawal, sans-serif`;
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 4;
-    const maxLen = 10;
-    const label = name.length > maxLen ? name.substring(0, maxLen) + '…' : name;
-    ctx.fillText(label, r - 12, 5);
-    ctx.restore();
-  });
-
-  // Center circle
-  ctx.beginPath();
-  ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
-  ctx.fillStyle = '#0a0a0f';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(168,85,247,0.6)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Border ring
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.strokeStyle = 'rgba(168,85,247,0.4)';
-  ctx.lineWidth = 4;
-  ctx.stroke();
+  const live = (((Math.round(deg / step) % n) + n) % n);
+  const lit = rouSpinning || !!rouPendingMention;
+  const nodes = document.getElementById('rou-nodes');
+  if (nodes) {
+    const kids = nodes.children;
+    for (let i = 0; i < kids.length; i++) kids[i].classList.toggle('live', lit && i === live);
+  }
 }
 
-// ==================== SPIN ====================
+// يبني لوحة اللاعبين وأرقامهم + عُقد اللاعبين حول الحلقة + لافتة صاحب الدور
+function rouRenderStage() {
+  const roster = document.getElementById('rou-roster');
+  const nodes = document.getElementById('rou-nodes');
+  const box = document.getElementById('rou-circle-box');
+  if (!roster || !nodes || !box) return;
+
+  const chooserName = rouPendingMention ? rouPendingMention.loserName : null;
+  const numByName = new Map();
+  rouParticipants.forEach((u, uid) => { numByName.set(normalize(u.nickname), rouPlayerNumbers.get(uid)); });
+
+  let rhtml = '', nhtml = '';
+  const n = rouActivePlayers.length;
+  const step = 360 / Math.max(1, n);
+  const ns = n <= 12 ? 1 : Math.max(0.45, 12 / n);
+  box.style.setProperty('--rd-ns', ns.toFixed(2));
+
+  rouActivePlayers.forEach((nm, i) => {
+    const num = numByName.get(normalize(nm));
+    const numAr = rdAr(num == null ? (i + 1) : num);
+    const isChooser = chooserName && normalize(nm) === normalize(chooserName);
+    rhtml += '<div class="rd-rcell' + (isChooser ? ' chooser' : '') + '">' +
+               '<div class="rd-rcell-chip" style="background:' + rdGrad(i) + '">' + esc(rdLetter(nm)) + '</div>' +
+               '<div class="rd-rcell-num">' + numAr + '</div>' +
+               '<div class="rd-rcell-name">' + esc(nm) + '</div>' +
+             '</div>';
+    const a = (i * step - 90) * Math.PI / 180;
+    const x = 50 + 42 * Math.cos(a);
+    const y = 50 + 40 * Math.sin(a);
+    nhtml += '<div class="rd-pnode" style="left:' + x.toFixed(2) + '%;top:' + y.toFixed(2) + '%">' +
+               '<div class="rd-pnode-av" style="background:' + rdGrad(i) + '">' +
+                 '<div class="rd-pnode-glow"></div>' + numAr +
+               '</div>' +
+               '<div class="rd-pnode-name">' + esc(nm) + '</div>' +
+             '</div>';
+  });
+  roster.innerHTML = rhtml;
+  nodes.innerHTML = nhtml;
+
+  const cn = document.getElementById('rou-center-num'); if (cn) cn.textContent = rdAr(n);
+  const rn = document.getElementById('rou-remain-num'); if (rn) rn.textContent = rdAr(n);
+  const rr = document.getElementById('rou-round-num'); if (rr) rr.textContent = rdAr(rouRoundNo);
+
+  const cb = document.getElementById('rou-chooser');
+  if (cb) {
+    if (chooserName) {
+      document.getElementById('rou-chooser-name').textContent = chooserName;
+      cb.className = 'rd-chooser show';
+    } else {
+      cb.className = 'rd-chooser';
+    }
+  }
+}
+
 function spinRoulette() {
   if (isGamePausedForRevival('rou')) { toast('⏸️ الجولة متوقفة مؤقتاً بسبب إنعاش لاعب...'); return; } // الجولة مجمّدة أثناء أنيميشن الإنعاش
   if (rouSpinning) return;
@@ -18952,6 +19245,11 @@ function spinRoulette() {
       result.textContent = `🎯 ${loserName} — ${actionHint}${doubleMsg}`;
       result.className = 'spin-result show';
 
+      // حفظ الخاسر في الانتظار قبل تحديث المسرح ليظهر باللافتة والتظليل
+      rouPendingMention = { loserName, loserIdx };
+      __rouStageSig = null;
+      drawWheel(finalAngle);
+
       // انتقال تلقائي لعرض لوحة اللاعبين لحظة ما تقف العجلة على شخص
       const pOverlay = document.querySelector('#pg-roulette .participants-overlay');
       if (pOverlay) {
@@ -18961,8 +19259,6 @@ function spinRoulette() {
         pOverlay.classList.add('rou-landed-flash');
       }
 
-      // حفظ الخاسر في الانتظار
-      rouPendingMention = { loserName, loserIdx };
     }
   }
 
@@ -19038,8 +19334,9 @@ function rouEliminateByMention(loserName, mentionedNames) {
   // مؤثر كف عند حدوث إقصاء فعلي (لاعب واحد أو أكثر) — بطاقة أفتار+يوزر تيك توك
   // تنعرض لكل مطرود (بفاصل يكفي لانتهاء الأنيميشن السابق تماماً لو إقصاء مزدوج) بدل مؤثر المسدس العام
   eliminatedUsers.forEach((u, i) => {
-    setTimeout(() => { try { fxSlapEliminatePlayer(u, 'roulette_slap'); } catch (e) {} }, i * 2700);
+    setTimeout(() => { try { rdElimOverlay('rou-stage', u, 'اختاره ' + loserName, 'roulette_slap'); } catch (e) {} }, i * 2700);
   });
+  if (eliminatedNames.length) rouRoundNo++;
 
   const result = document.getElementById('spin-result');
   if (eliminatedNames.length === 0 && savedNames.length > 0) {
@@ -19054,8 +19351,8 @@ function rouEliminateByMention(loserName, mentionedNames) {
   }
   result.className = 'spin-result show';
 
-  // إعادة رسم الروليت
-  if (rouActivePlayers.length > 0) drawWheel(0);
+  // إعادة رسم شاشة الراوند
+  if (rouActivePlayers.length > 0) { __rouStageSig = null; drawWheel(0); }
 
   // فحص الفائز
   if (rouActivePlayers.length === 1) {
@@ -28313,14 +28610,8 @@ function drawAddChatMsg(user, text) {
 .cw-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
 .cw-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(52,211,153,.10) 0%, transparent 55%),var(--bg);}
 
-/* Roulette wheel reused style */
-.cw-wheel-wrap{position:relative;width:420px;height:420px;margin:0 auto 20px;flex-shrink:0;filter:drop-shadow(0 0 32px rgba(52,211,153,.22));}
-#cw-canvas{border-radius:50%;display:block;}
-.cw-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));pointer-events:none;}
-.btn-cw-spin{background:linear-gradient(135deg,var(--brand-green),#16a34a);color:#fff;border:none;border-radius:999px;padding:14px 48px;font-family:var(--font);font-size:18px;font-weight:900;cursor:pointer;transition:all .25s;box-shadow:0 4px 22px rgba(52,211,153,.4);}
-.btn-cw-spin:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 30px rgba(52,211,153,.55);}
-.btn-cw-spin:disabled{opacity:.5;cursor:not-allowed;transform:none;}
-.cw-spin-result{width:100%;max-width:520px;padding:14px 20px;border-radius:14px;background:rgba(52,211,153,.12);border:1px solid var(--green);box-shadow:0 0 18px rgba(52,211,153,.18);font-size:16px;font-weight:800;color:#4ade80;text-align:center;display:none;animation:popIn .3s ease;margin-bottom:12px;}
+/* سطر التلميح داخل مسرح الراوند الجديد (نفس عنصر النتيجة السابق) */
+.cw-spin-result{display:none;font-size:3.2cqw;font-weight:700;color:#C9B7E8;text-align:center;line-height:1.35;min-height:4cqw;padding:0 2cqw;}
 .cw-spin-result.show{display:block;}
 
 /* Countries grid */
@@ -28339,12 +28630,11 @@ function drawAddChatMsg(user, text) {
 .cw-country-card.eliminated{opacity:.25;cursor:not-allowed;filter:grayscale(1);}
 .cw-country-card.eliminated::after{content:'💀';position:absolute;top:6px;left:6px;font-size:14px;}
 
-/* Elimination turn banner */
-.cw-turn-banner{width:100%;max-width:760px;background:linear-gradient(160deg, rgba(52,211,153,.14), rgba(124,58,237,.08));border:2px solid var(--green);border-radius:18px;padding:14px 20px;text-align:center;margin-bottom:14px;display:none;box-shadow:0 0 24px rgba(52,211,153,.18);}
-.cw-turn-banner.show{display:block;}
-.cw-turn-title{font-size:13px;color:var(--muted);font-weight:700;margin-bottom:4px;}
-.cw-turn-name{font-size:20px;font-weight:900;color:#4ade80;}
-.cw-turn-hint{font-size:12px;color:var(--muted);margin-top:6px;}
+/* لافتة صاحب الدور — تصميم شاشة الراوند الجديد */
+.cw-turn-banner{display:none;flex:0 0 auto;border-radius:3cqw;padding:2.4cqw 3cqw;background:linear-gradient(90deg,rgba(227,195,106,.16),rgba(232,160,200,.14));border:.4cqw solid rgba(227,195,106,.5);align-items:center;justify-content:center;gap:3cqw;transform-origin:top;}
+.cw-turn-banner.show{display:flex;animation:rdBannerIn .5s cubic-bezier(.16,1,.3,1) both;}
+.cw-turn-title{font-size:4cqw;font-weight:700;color:#C9B7E8;flex:0 0 auto;}
+.cw-turn-name{font-family:'Amiri',serif;font-size:10cqw;font-weight:700;color:#FFF3D4;line-height:1;text-shadow:0 0 5cqw rgba(227,195,106,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 /* Elim log */
 .cw-elim-log{width:100%;max-width:760px;margin-top:18px;display:flex;flex-direction:column;gap:8px;}
@@ -28478,28 +28768,43 @@ function drawAddChatMsg(user, text) {
         <button class="btn-kick" onclick="cwOpenKickModal()">🚫 اطرد لاعب</button>
       </div>
 
-      <!-- Roulette wheel (shown to pick whose turn it is to eliminate) -->
+      <!-- ===== شاشة الراوند — التصميم الجديد ===== -->
       <div id="cw-wheel-section" style="display:none;width:100%;flex-direction:column;align-items:center;gap:16px;">
-        <div class="cw-wheel-wrap">
-          <div class="cw-pointer">🎯</div>
-          <canvas id="cw-canvas" width="420" height="420"></canvas>
+        <div class="rd-stage" id="cw-stage">
+          <div class="rd-l1"></div>
+          <div class="rd-l2"></div>
+          <div class="rd-l3"></div>
+          <div class="rd-inner">
+            <div class="rd-head">
+              <div class="rd-head-side"><span class="rd-num-gold" id="cw-remain-num">٠</span><span class="rd-head-lbl">متبقّون</span></div>
+              <div class="rd-head-side"><span class="rd-head-lbl">الجولة</span><span class="rd-num-pink" id="cw-round-num">١</span></div>
+            </div>
+            <div class="rd-body">
+              <div class="rd-lens">
+                <div class="rd-lens-view"><div class="rd-lens-track" id="cw-lens-track"></div></div>
+                <div class="rd-lens-vig"></div>
+                <div class="rd-lens-line"></div>
+                <div class="rd-beam l"></div>
+                <div class="rd-beam r"></div>
+                <div class="rd-scan"></div>
+                <div class="rd-lens-tag">منشور القرعة</div>
+              </div>
+              <div class="cw-turn-banner" id="cw-turn-banner">
+                <div class="cw-turn-title">الدور على</div>
+                <div class="cw-turn-name" id="cw-turn-name">—</div>
+              </div>
+              <div class="rd-cgrid" id="cw-countries-grid"></div>
+            </div>
+            <div class="rd-foot">
+              <div class="cw-spin-result" id="cw-spin-result"></div>
+              <div class="rd-cta"><button class="rd-btn" id="btn-cw-spin" onclick="spinCountryWarWheel()">ابدأ الاختيار</button></div>
+            </div>
+          </div>
         </div>
-        <div class="cw-spin-result" id="cw-spin-result"></div>
-        <button class="btn-cw-spin" id="btn-cw-spin" onclick="spinCountryWarWheel()">🎯 ابدأ الاختيار — مين يقصي؟</button>
+
+        <!-- Elimination log -->
+        <div class="cw-elim-log" id="cw-elim-log"></div>
       </div>
-
-      <!-- Turn banner: shown once someone is picked, before they eliminate -->
-      <div class="cw-turn-banner" id="cw-turn-banner">
-        <div class="cw-turn-title">🎯 دور:</div>
-        <div class="cw-turn-name" id="cw-turn-name">—</div>
-        <div class="cw-turn-hint">اكتب اسم الدولة اللي تبي تقصيها بالشات — أو اضغط عليها من الشاشة (ممكن تقصي نفسك!)</div>
-      </div>
-
-      <!-- Countries grid -->
-      <div class="cw-countries-grid" id="cw-countries-grid"></div>
-
-      <!-- Elimination log -->
-      <div class="cw-elim-log" id="cw-elim-log"></div>
     </div>
 
     <div class="panel panel-right">
@@ -28675,6 +28980,7 @@ function initCWDashboard() {
   document.getElementById('cw-turn-banner').className = 'cw-turn-banner';
   document.getElementById('cw-wheel-section').style.display = 'none';
   document.getElementById('cw-participants-box').style.display = 'flex';
+  document.getElementById('pg-countrywar').classList.remove('rd-live');
   cwParticipants.clear();
   cwPendingFollowers.clear();
   cwKickedDuringRound.clear();
@@ -29007,11 +29313,15 @@ function startCountryWarRound() {
 
   document.getElementById('cw-participants-box').style.display = 'none';
   document.getElementById('cw-wheel-section').style.display = 'flex';
+  document.getElementById('pg-countrywar').classList.add('rd-live');
   document.getElementById('cw-btn-round').disabled = true;
   document.getElementById('cw-btn-round').textContent = '⏸ الراوند شغال...';
 
   renderCWCountriesGrid();
   drawCWWheel(0);
+  const __cwHint = document.getElementById('cw-spin-result');
+  __cwHint.textContent = 'اضغط لتدوير منشور القرعة';
+  __cwHint.className = 'cw-spin-result show';
   toast('🌍 تم توزيع الدول سراً على الجميع! اضغط ابدأ الاختيار لتحديد من يقصي');
 }
 
@@ -29037,17 +29347,20 @@ function renderCWCountriesGrid() {
   grid.innerHTML = '';
   // ابني الشبكة من الدول الموزعة فعلياً باللعبة (نشطة + مُقصاة)
   const allInGame = [...cwActiveCountries.map(c => c.name), ...cwEliminatedNames];
+  let __cwCardIdx = 0;
   cwCountryBank.filter(c => allInGame.includes(c.name)).forEach(c => {
     const eliminated = cwEliminatedNames.has(c.name);
     const card = document.createElement('div');
-    card.className = 'cw-country-card' + (eliminated ? ' eliminated' : '');
+    card.className = 'rd-ccard' + (eliminated ? ' eliminated' : '');
     card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_');
-    card.innerHTML = `${cwFlagImg(c)}<div class="cw-country-name">${esc(c.name)}</div>`;
+    card.innerHTML = `<div class="rd-ccard-aim"></div><div class="rd-chip" style="background:${rdGrad(__cwCardIdx)}">${cwFlagImg(c)}</div><div class="rd-cname">${esc(c.name)}</div>`;
+    __cwCardIdx++;
     if (!eliminated) {
       card.onclick = () => cwStreamerEliminate(c.name);
     }
     grid.appendChild(card);
   });
+  cwUpdateStageHead();
 }
 
 // ==================== SPIN — PICK WHOSE TURN ====================
@@ -29113,65 +29426,48 @@ function spinCountryWarWheel() {
   requestAnimationFrame(animate);
 }
 
-// ==================== WHEEL DRAWING (names of participants still alive) ====================
+// ==================== منشور القرعة — رسم شاشة الراوند الجديدة ====================
+// نفس مدخل الدالة القديمة (زاوية بالراديان) لكن بدل رسم كانفس نحرّك "منشور
+// القرعة" في التصميم الجديد: الصف المتمركز على الخط الذهبي هو صاحب الدور.
 function drawCWWheel(rotationAngle) {
-  const canvas = document.getElementById('cw-canvas');
-  const ctx = canvas.getContext('2d');
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  const r = cx - 8;
+  const track = document.getElementById('cw-lens-track');
+  if (!track) return;
   const n = cwActiveCountries.length;
-  if (n === 0) return;
+  if (n === 0) { track.innerHTML = ''; return; }
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   const sliceAngle = (2 * Math.PI) / n;
+  const pos = rotationAngle === 0 ? 0 : (-rotationAngle / sliceAngle) - 0.5;
+  const base = Math.floor(pos);
+  const frac = pos - base;
 
-  cwActiveCountries.forEach((entry, i) => {
-    const startAngle = rotationAngle + i * sliceAngle - Math.PI / 2;
-    const endAngle = startAngle + sliceAngle;
-    const user = cwParticipants.get(entry.uid);
-    const label = user ? user.nickname : entry.uid;
-
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.arc(cx, cy, r, startAngle, endAngle);
-    ctx.closePath();
-    ctx.fillStyle = cwPalette[i % cwPalette.length];
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(startAngle + sliceAngle / 2);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.max(10, Math.min(15, 220 / n))}px Tajawal, sans-serif`;
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 4;
-    const maxLen = 10;
-    const lbl = String(label).length > maxLen ? String(label).substring(0, maxLen) + '…' : String(label);
-    ctx.fillText(lbl, r - 12, 5);
-    ctx.restore();
-  });
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, 22, 0, 2 * Math.PI);
-  ctx.fillStyle = '#0a0a0f';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(34,197,94,0.6)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.strokeStyle = 'rgba(34,197,94,0.4)';
-  ctx.lineWidth = 4;
-  ctx.stroke();
+  if (track.dataset.base !== String(base) || track.dataset.count !== String(n)) {
+    track.dataset.base = String(base);
+    track.dataset.count = String(n);
+    let html = '';
+    for (let i = -1; i <= 2; i++) {
+      const idx = (((base + i) % n) + n) % n;
+      const entry = cwActiveCountries[idx];
+      const user = cwParticipants.get(entry.uid);
+      const nm = user ? (user.nickname || user.uniqueId) : entry.uid;
+      html += '<div class="rd-lens-row">' +
+                '<div class="rd-lens-chip" style="background:' + rdGrad(idx) + '">' + esc(rdLetter(nm)) + '</div>' +
+                '<div class="rd-lens-name">' + esc(nm) + '</div>' +
+              '</div>';
+    }
+    track.innerHTML = html;
+  }
+  track.style.transform = 'translateY(' + (-(frac + 1) * 30).toFixed(3) + 'cqw)';
+  cwUpdateStageHead();
 }
 
-// ==================== ELIMINATION (shared by chat + streamer click) ====================
+// يحدّث عدّاد المتبقّين ورقم الجولة أعلى مسرح الراوند
+function cwUpdateStageHead() {
+  const r = document.getElementById('cw-remain-num');
+  if (r) r.textContent = rdAr(cwActiveCountries.length);
+  const n = document.getElementById('cw-round-num');
+  if (n) n.textContent = rdAr(cwEliminatedNames.size + 1);
+}
+
 function cwStreamerEliminate(countryName) {
   if (cwGameStatus !== 'active' || !cwTurnUid) { toast('⚠️ انتظر دور اللف أولاً'); return; }
   const targetCountry = cwActiveCountries.find(c => c.name === countryName);
@@ -29258,7 +29554,10 @@ function cwEliminateCountry(countryName, source, force) {
   }
 
   // مؤثر إقصاء: بطاقة أفتار+يوزر تيك توك للاعب صاحب الدولة المقصية + صوت كف + اهتزاز الشبكة
-  try { fxSlapEliminatePlayer(eliminatedUser || { nickname: countryName, avatar: '' }, 'cw_slap'); } catch (e) {}
+  try {
+    rdElimOverlay('cw-stage', eliminatedUser || { nickname: countryName, avatar: '' },
+      isSelfElim ? (byName + ' أقصى نفسه') : ('أقصاها ' + byName + ' · ' + countryName), 'cw_slap');
+  } catch (e) {}
   const __cwGrid = document.getElementById('cw-countries-grid');
   if (__cwGrid) { __cwGrid.classList.remove('fx-shake'); void __cwGrid.offsetWidth; __cwGrid.classList.add('fx-shake'); }
 
@@ -30151,39 +30450,47 @@ function csAddChatMsg(user, text) {
 .chairs-round-bar{width:100%;max-width:640px;background:var(--surface2);border:1px dashed var(--border);border-radius:14px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:var(--muted);text-align:center;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;}
 .chairs-round-bar b{color:var(--accent2);}
 
-/* Chairs stay fixed in the center; usernames orbit around them via CSS transform */
-.chairs-circle-wrap{position:relative;width:440px;height:440px;margin:6px auto 18px;display:none;}
+/* ===== شاشة الراوند — التصميم الجديد (الكرسي المتحرك) ===== */
+#chairs-stage{display:none;}
+#pg-chairs.rd-live #chairs-stage{display:block;}
+#chairs-stage .rd-inner{gap:2cqw;}
+.chairs-circle-wrap{position:relative;width:auto;height:min(90cqw,100%);aspect-ratio:1;max-width:100%;margin:0;display:none;}
 .chairs-circle-wrap.show{display:block;}
+.chairs-circle-wrap::after{content:'';position:absolute;inset:0;border-radius:50%;border:.35cqw dashed rgba(232,160,200,.22);pointer-events:none;}
+.chairs-circle-wrap.spinning::before{display:none;}
 .chairs-circle{position:absolute;inset:0;transform:rotate(0deg);}
 .chairs-avatar-slot{position:absolute;top:0;left:0;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;}
-.chairs-username-tag{background:var(--surface);border:2px solid var(--accent2);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:800;color:var(--text);white-space:nowrap;box-shadow:0 0 14px rgba(168,85,247,.4);}
-.chairs-username-tag.immune{border-color:var(--gold);box-shadow:0 0 14px rgba(245,158,11,.5);}
+.chairs-username-tag{display:flex;align-items:center;gap:1.2cqw;background:rgba(26,13,51,.9);border:.35cqw solid rgba(232,160,200,.22);border-radius:6cqw;padding:.9cqw 2cqw .9cqw .9cqw;font-size:3.4cqw;font-weight:700;color:#F6EBD0;white-space:nowrap;box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.5);transform:var(--rd-counter,none);}
+.chairs-username-tag .rd-chip{width:8cqw;height:8cqw;border-radius:50%;display:grid;place-items:center;font-family:'Amiri',serif;font-size:4.6cqw;font-weight:700;color:#150a2c;flex:0 0 auto;}
+.chairs-username-tag.claimed{border-color:rgba(227,195,106,.85);}
+.chairs-username-tag.immune{border-color:#E3C36A;box-shadow:0 0 4cqw rgba(227,195,106,.6);}
 .chairs-username-tag.immune::before{content:'🛡️ ';}
 
-/* Chairs reveal grid — fixed dead-center of the circle, never rotates, no timer */
-.chairs-reveal-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:220px;flex-direction:column;align-items:center;}
+/* شبكة الكراسي — ثابتة في منتصف الدائرة تماماً ولا تدور */
+.chairs-reveal-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;flex-direction:column;align-items:center;z-index:2;}
 .chairs-reveal-wrap.show{display:flex;}
-.chairs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;width:100%;justify-items:center;}
-.chair-cell{background:linear-gradient(160deg, rgba(124,58,237,.08), var(--surface));border:2px solid var(--border);border-radius:14px;padding:10px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:all .2s;animation:popIn .3s ease;width:100%;}
-.chair-cell-emoji{font-size:22px;}
-.chair-cell-num{font-size:17px;font-weight:900;color:var(--text);}
-.chair-cell-name{font-size:10px;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.chair-cell.claimed{border-color:var(--green);background:rgba(52,211,153,.14);box-shadow:0 0 16px rgba(52,211,153,.25);}
-.chair-cell.claimed .chair-cell-name{color:var(--green);font-weight:700;}
-.chair-cell.golden{border-color:var(--gold);box-shadow:0 0 16px rgba(245,158,11,.45);}
-.chair-cell.golden .chair-cell-num{color:var(--gold);}
-.chair-cell.golden.claimed{background:rgba(245,158,11,.16);}
+.chairs-reveal-wrap.show ~ .rd-chairs-hidden{display:none;}
+.chairs-grid{display:grid;gap:1.6cqw;justify-content:center;width:auto;}
+.chair-cell{position:relative;background:#1a0d33;border:.5cqw solid rgba(227,195,106,.22);border-radius:3.2cqw;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4cqw;box-shadow:inset 0 0 4cqw rgba(0,0,0,.6);}
+.chair-cell-num{font-family:'Amiri',serif;font-weight:700;line-height:1;color:#8E77BC;}
+.chair-cell-name{font-weight:700;color:#C9B7E8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chair-cell.claimed{background:linear-gradient(160deg,rgba(227,195,106,.28),rgba(232,160,200,.14));border-color:#E3C36A;box-shadow:0 0 5cqw rgba(227,195,106,.55);}
+.chair-cell.claimed .chair-cell-num{color:#FFF3D4;}
+.chair-cell.claimed .chair-cell-name{color:#150a2c;background:#E3C36A;padding:.2cqw 1.2cqw;border-radius:2cqw;animation:rdClaimPop .32s cubic-bezier(.34,1.56,.64,1) both;}
+.chair-cell.golden{border-color:#FFD98A;box-shadow:0 0 6cqw rgba(255,217,138,.6);}
+.chair-cell.golden .chair-cell-num{color:#FFD98A;}
+.chair-visual{display:none;}
 
 /* Elimination overlay */
-.chairs-elim-overlay{position:fixed;inset:0;background:rgba(10,10,15,.88);display:none;align-items:center;justify-content:center;z-index:500;}
+.chairs-elim-overlay{position:fixed;inset:0;background:rgba(9,4,22,.9);display:none;align-items:center;justify-content:center;z-index:500;}
 .chairs-elim-overlay.show{display:flex;}
-.chairs-elim-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:28px 32px;text-align:center;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 0 40px rgba(124,58,237,.18);}
-.chairs-elim-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:6px;}
-.chairs-elim-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
-.chairs-elim-list{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
-.chairs-elim-item{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:12px;background:var(--surface2);border:1px solid rgba(239,68,68,.3);animation:popIn .25s ease;}
-.chairs-elim-icon{font-size:16px;}
-.chairs-elim-name{font-size:13px;font-weight:700;color:var(--text);}
+.chairs-elim-box{background:linear-gradient(160deg,#2a1450,#150a2c);border:3px solid rgba(232,160,200,.55);border-radius:22px;padding:26px 24px;text-align:center;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 0 60px rgba(232,160,200,.3),0 12px 45px rgba(0,0,0,.75);}
+.chairs-elim-title{font-size:24px;font-weight:900;color:#E8A0C8;letter-spacing:2px;margin-bottom:6px;}
+.chairs-elim-sub{font-size:13px;color:#8E77BC;margin-bottom:16px;}
+.chairs-elim-list{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;}
+.chairs-elim-item{display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:16px;background:rgba(13,6,32,.72);border:1px solid rgba(227,195,106,.25);animation:popIn .25s ease;}
+.chairs-elim-icon{font-size:18px;}
+.chairs-elim-name{font-family:'Amiri',serif;font-size:20px;font-weight:700;color:#FFF3D4;}
 
 #pg-chairs-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.20) 0%,var(--bg) 70%);}
 
@@ -30245,7 +30552,7 @@ function csAddChatMsg(user, text) {
 /* توهّج حماسي حول دائرة الأسماء أثناء الدوران */
 .chairs-circle-wrap.spinning::before{content:'';position:absolute;inset:-16px;border-radius:50%;background:conic-gradient(from 0deg,rgba(124,58,237,0),rgba(168,85,247,.5),rgba(124,58,237,0));animation:fxSpinGlow 1s linear infinite;pointer-events:none;z-index:-1;}
 @keyframes fxSpinGlow{to{transform:rotate(360deg)}}
-.chairs-circle-wrap.spinning .chairs-username-tag{box-shadow:0 0 18px rgba(168,85,247,.75);}
+.chairs-circle-wrap.spinning .chairs-username-tag{box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.5);}
 </style>
 
 <script>
@@ -30757,12 +31064,30 @@ function fxSlapEliminatePlayer(user, soundId){
         <button class="btn-kick" onclick="chairsOpenKickModal()">🚫 اطرد لاعب</button>
       </div>
 
-      <!-- Chairs fixed in the center; usernames spin around them in a circle -->
-      <div class="chairs-circle-wrap" id="chairs-circle-wrap">
-        <div class="chairs-circle" id="chairs-circle"></div>
-        <!-- Chairs reveal — stays fixed in the exact center, never rotates, no timer -->
-        <div class="chairs-reveal-wrap" id="chairs-reveal-wrap">
-          <div class="chairs-grid" id="chairs-grid"></div>
+      <!-- ===== شاشة الراوند — التصميم الجديد ===== -->
+      <div class="rd-stage" id="chairs-stage">
+        <div class="rd-l1"></div>
+        <div class="rd-l2"></div>
+        <div class="rd-l3"></div>
+        <div class="rd-inner">
+          <div class="rd-head">
+            <div class="rd-head-side"><span class="rd-num-gold" id="chairs-remain-num">٠</span><span class="rd-head-lbl">متبقّون</span></div>
+            <div class="rd-head-side"><span class="rd-head-lbl">الجولة</span><span class="rd-num-pink" id="chairs-stage-round">١</span></div>
+          </div>
+          <div class="rd-circle">
+            <!-- Chairs fixed in the center; usernames spin around them in a circle -->
+            <div class="chairs-circle-wrap" id="chairs-circle-wrap">
+              <div class="chairs-circle" id="chairs-circle"></div>
+              <!-- Chairs reveal — stays fixed in the exact center, never rotates, no timer -->
+              <div class="chairs-reveal-wrap" id="chairs-reveal-wrap">
+                <div class="chairs-grid" id="chairs-grid"></div>
+              </div>
+              <div class="rd-chairs-hidden"><span>الكراسي<br>مخفيّة</span></div>
+            </div>
+          </div>
+          <div class="rd-foot">
+            <div class="rd-hint" id="chairs-stage-hint"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -32670,6 +32995,7 @@ function initChairsDashboard() {
   document.getElementById('chairs-participants-box').style.display = 'flex';
   document.getElementById('chairs-round-bar').style.display = 'none';
   document.getElementById('chairs-circle-wrap').className = 'chairs-circle-wrap';
+  document.getElementById('pg-chairs').classList.remove('rd-live');
   document.getElementById('chairs-circle').innerHTML = '';
   document.getElementById('chairs-reveal-wrap').className = 'chairs-reveal-wrap';
   document.getElementById('chairs-grid').innerHTML = '';
@@ -33024,6 +33350,7 @@ function chairsStartRoundClick() {
   document.getElementById('chairs-round-survivors').textContent = playerCount;
   document.getElementById('chairs-elim-overlay').classList.remove('show');
   document.getElementById('chairs-btn-round').disabled = true;
+  document.getElementById('pg-chairs').classList.add('rd-live');
 
   chairsGameStatus = 'spinning';
   chairsSetGameStatus('spinning');
@@ -33047,19 +33374,22 @@ function chairsSpin(chairCount) {
 
   const players = [...chairsParticipants.values()];
   const n = players.length;
-  const radius = 190;
   players.forEach((user, i) => {
-    const angle = (2 * Math.PI * i) / n;
-    const x = 220 + radius * Math.cos(angle);
-    const y = 220 + radius * Math.sin(angle);
+    const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+    const x = 50 + 41 * Math.cos(angle);
+    const y = 50 + 44 * Math.sin(angle);
     const slot = document.createElement('div');
     slot.className = 'chairs-avatar-slot';
     slot.id = 'chairs-slot-' + user.uniqueId;
-    slot.style.left = x + 'px';
-    slot.style.top = y + 'px';
-    slot.innerHTML = '<div class="chairs-username-tag">' + esc(user.nickname || user.uniqueId) + '</div>';
+    slot.style.left = x.toFixed(2) + '%';
+    slot.style.top = y.toFixed(2) + '%';
+    const nm = user.nickname || user.uniqueId;
+    slot.innerHTML = '<div class="chairs-username-tag"><span class="rd-chip" style="background:' + rdGrad(i) + '">' +
+                     esc(rdLetter(nm)) + '</span><span>' + esc(nm) + '</span></div>';
     circle.appendChild(slot);
   });
+  chairsUpdateStageHead();
+  chairsSetStageHint('الأسماء تدور… انتظر ظهور الكراسي');
 
   const extraSpins = (5 + Math.floor(Math.random() * 4)) * 360;
   const finalAngle = extraSpins + Math.random() * 360;
@@ -33073,6 +33403,8 @@ function chairsSpin(chairCount) {
     const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
     const currentAngle = finalAngle * eased;
     circle.style.transform = 'rotate(' + currentAngle + 'deg)';
+    // بطاقات الأسماء تبقى معتدلة (لا تميل مع دوران الدائرة) — مثل التصميم
+    circle.style.setProperty('--rd-counter', 'rotate(' + (-currentAngle).toFixed(2) + 'deg)');
 
     // طقطقة روليت: صوت خفيف كل 30° — يتباعد تلقائيًا كل ما بطّأ الدوران (إحساس تشويقي)
     const seg = Math.floor(currentAngle / 30);
@@ -33087,6 +33419,18 @@ function chairsSpin(chairCount) {
     }
   }
   requestAnimationFrame(animate);
+}
+
+// يحدّث عدّاد المتبقّين ورقم الجولة أعلى مسرح الراوند الجديد
+function chairsUpdateStageHead() {
+  const r = document.getElementById('chairs-remain-num');
+  if (r) r.textContent = rdAr(chairsParticipants.size);
+  const n = document.getElementById('chairs-stage-round');
+  if (n) n.textContent = rdAr(Math.max(1, chairsRoundNum));
+}
+function chairsSetStageHint(txt) {
+  const el = document.getElementById('chairs-stage-hint');
+  if (el) el.textContent = txt || '';
 }
 
 // ==================== CHAIRS REVEAL + CLAIM WINDOW ====================
@@ -33119,16 +33463,23 @@ function chairsRevealChairs(chairCount) {
     chairsGoldenChairNumber = chairsActiveChairNumbers[Math.floor(Math.random() * chairsActiveChairNumbers.length)];
   }
 
+  // مقاسات الكراسي محسوبة كما في ملف التصميم: أعمدة = جذر العدد، والحجم يصغر كلما زادت
+  const __chCols = Math.max(1, Math.ceil(Math.sqrt(chairsActiveChairNumbers.length)));
+  const __chSize = Math.min(20, (46 - (__chCols - 1) * 1.6) / __chCols);
+  const __chNumFs = (__chSize * 0.52).toFixed(2) + 'cqw';
+  const __chTagFs = Math.max(2.1, __chSize * 0.17).toFixed(2) + 'cqw';
+  const __chBox = __chSize.toFixed(2) + 'cqw';
   const grid = document.getElementById('chairs-grid');
-  grid.innerHTML = chairsActiveChairNumbers.map(num => `
-    <div class="chair-cell${num === chairsGoldenChairNumber ? ' golden' : ''}" id="chair-cell-${num}">
-      <div class="chair-visual"><span class="chair-back"></span><span class="chair-seat"></span><span class="chair-leg l"></span><span class="chair-leg r"></span></div>
-      <div class="chair-cell-num">${num === chairsGoldenChairNumber ? '⭐ ' : ''}${num}</div>
-      <div class="chair-cell-name">شاغر</div>
+  grid.style.gridTemplateColumns = 'repeat(' + __chCols + ',max-content)';
+  grid.innerHTML = chairsActiveChairNumbers.map((num, i) => `
+    <div class="chair-cell${num === chairsGoldenChairNumber ? ' golden' : ''}" id="chair-cell-${num}" style="width:${__chBox};height:${__chBox};animation:rdChairDrop .62s cubic-bezier(.16,1,.3,1) ${(i * 0.07).toFixed(2)}s both">
+      <div class="chair-cell-num" style="font-size:${__chNumFs}">${num === chairsGoldenChairNumber ? '⭐' : ''}${rdAr(num)}</div>
+      <div class="chair-cell-name" style="font-size:${__chTagFs}">شاغر</div>
     </div>
   `).join('');
 
   document.getElementById('chairs-reveal-wrap').classList.add('show');
+  chairsSetStageHint('اكتب رقم الكرسي في الشات الآن');
   chairsGameStatus = 'claiming';
   chairsSetGameStatus('claiming');
   toast('🪑 اكتبوا رقم كرسيكم بالشات بسرعة! ' + chairCount + ' كرسي متاح فقط' + (chairsGoldenChairNumber ? ' — كرسي ' + chairsGoldenChairNumber + ' ذهبي ⭐' : ''));
@@ -33161,6 +33512,11 @@ function chairsProcessClaim(user, text) {
   if (cell) {
     cell.classList.add('claimed');
     cell.querySelector('.chair-cell-name').textContent = user.nickname || user.uniqueId;
+  }
+  const __claimSlot = document.getElementById('chairs-slot-' + user.uniqueId);
+  if (__claimSlot) {
+    const __tag = __claimSlot.querySelector('.chairs-username-tag');
+    if (__tag) __tag.classList.add('claimed');
   }
   try { sfx.pop(soundManager.gain('chairs_claim')); } catch (e) {}
   toastFast('🪑 ' + (user.nickname || user.uniqueId) + ' حجز الكرسي رقم ' + num + '!');
@@ -33216,6 +33572,7 @@ function chairsResolveRound() {
 
   document.getElementById('chairs-circle-wrap').classList.remove('show');
   document.getElementById('chairs-reveal-wrap').classList.remove('show');
+  document.getElementById('pg-chairs').classList.remove('rd-live');
 
   if (eliminated.length) chairsShowElimOverlay(eliminated);
 
