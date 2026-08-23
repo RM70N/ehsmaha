@@ -71,37 +71,39 @@
     return avatarMem.get(userId) || fallbackUrl || '';
   }
 
-  /** عنصر أفتار: صورة حقيقية مع بديل ملوّن مشتق من userId عند الفشل. */
+  /** بديل ملوّن ثابت مشتق من userId — يُستخدم عند غياب الصورة أو فشلها. */
+  function buildAvatarFallback(player, cls) {
+    var fb = document.createElement('div');
+    fb.className = cls + ' vl-avatar-fb';
+    fb.style.background = VL.colorForUserId(player.userId);
+    fb.textContent = VL.initialsForNickname(player.nickname);
+    return fb;
+  }
+
+  /**
+   * عنصر أفتار: صورة تيك توك الحقيقية، وعند فشلها تُعاد المحاولة عبر وسيط
+   * الموقع نفسه، وعند فشله يظهر البديل الملوّن. اللعبة لا تتعطل بسبب صورة.
+   */
   function buildAvatar(player, cls) {
     var url = avatarUrlFor(player.userId, player.avatarUrl);
-    var initials = VL.initialsForNickname(player.nickname);
-    if (!url) {
-      var fb = document.createElement('div');
-      fb.className = cls;
-      fb.style.background = VL.colorForUserId(player.userId);
-      fb.textContent = initials;
-      return fb;
-    }
+    if (!url) return buildAvatarFallback(player, cls);
+
     var img = document.createElement('img');
     img.className = cls;
     img.alt = player.nickname;
     img.referrerPolicy = 'no-referrer';
-    img.src = url;
     img.setAttribute('data-stage', 'direct');
+    // المعالج يُربط قبل src دائماً: ضبطه بعده قد يفوّت حدث الفشل.
     img.onerror = function () {
-      var stage = img.getAttribute('data-stage');
-      if (stage === 'direct' && typeof avatarProxyUrl === 'function') {
+      if (img.getAttribute('data-stage') === 'direct' && typeof avatarProxyUrl === 'function') {
         img.setAttribute('data-stage', 'proxy');
-        img.src = avatarProxyUrl(url);           // نفس وسيط الموقع المستخدم بكل الألعاب
+        img.src = avatarProxyUrl(url);     // نفس وسيط الموقع المستخدم بكل الألعاب
         return;
       }
-      // فشل الوسيط أيضاً → بديل ملوّن. اللعبة لا تتعطل بسبب صورة أبداً.
-      var fb2 = document.createElement('div');
-      fb2.className = cls;
-      fb2.style.background = VL.colorForUserId(player.userId);
-      fb2.textContent = initials;
-      if (img.parentNode) img.parentNode.replaceChild(fb2, img);
+      var fb = buildAvatarFallback(player, cls);
+      if (img.parentNode) img.parentNode.replaceChild(fb, img);
     };
+    img.src = url;
     return img;
   }
 
@@ -344,14 +346,14 @@
     var urgent = remaining <= 5 && phase === 'QUESTION';
     if (timer) timer.classList.toggle('vl-urgent', urgent);
 
-    // حلقة العدّاد تفرغ تدريجياً وتتحول للأحمر آخر 5 ثوانٍ
-    var ring = $(TAG + '-ring-live');
-    if (ring) {
+    // شريط العدّاد الأفقي فوق السؤال — يفرغ تدريجياً ويتحوّل للأحمر آخر 5 ثوانٍ
+    var bar = $(TAG + '-timebar');
+    if (bar) {
       var total = engine.getSettings().roundSeconds;
-      var frac = phase === 'QUESTION' ? Math.max(0, remaining / total) : 0;
-      ring.setAttribute('stroke-dashoffset', String((100 * (1 - frac)).toFixed(2)));
-      ring.setAttribute('stroke', urgent ? '#FF5A1F' : '#C9A84C');
-      ring.classList.toggle('vl-urgent', urgent);
+      var frac = phase === 'QUESTION' ? Math.max(0, Math.min(1, remaining / total)) : 0;
+      var pct = (frac * 100).toFixed(2) + '%';
+      if (bar.style.width !== pct) bar.style.width = pct;
+      bar.classList.toggle('vl-urgent', urgent);
     }
 
     // الخيارات — تُبنى مرة لكل سؤال ثم تُحدَّث حالتها فقط
@@ -780,6 +782,26 @@
     });
   }
 
+  /**
+   * أفتار وهمي مضمّن كـdata URI — بلا أي طلب شبكة ولا أصل خارجي. الغرض أن
+   * يمرّ اللاعب الوهمي على نفس مسار <img> الذي تمرّ عليه صورة تيك توك
+   * الحقيقية، فيُختبر المسار فعلاً بدل أن يقع دائماً على البديل الملوّن.
+   */
+  function simAvatar(i) {
+    var hues = [12, 42, 88, 140, 190, 232, 276, 318];
+    var h = hues[i % hues.length];
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + h + ',70%,58%)"/>' +
+      '<stop offset="1" stop-color="hsl(' + ((h + 40) % 360) + ',65%,38%)"/>' +
+      '</linearGradient></defs>' +
+      '<rect width="96" height="96" fill="url(#g)"/>' +
+      '<circle cx="48" cy="38" r="16" fill="rgba(255,255,255,.92)"/>' +
+      '<path d="M18 92c4-19 16-28 30-28s26 9 30 28z" fill="rgba(255,255,255,.92)"/>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
   /** محاكاة 20 لاعباً وهمياً — تمرّ بنفس مسار الشات الحقيقي تماماً. */
   function vlSimulatePlayers() {
     if (!engine) return;
@@ -788,7 +810,7 @@
     var kw = engine.getSettings().joinKeyword;
     names.forEach(function (nickname, i) {
       engine.enqueueChat({
-        userId: 'sim_' + i, nickname: nickname, avatarUrl: '',
+        userId: 'sim_' + i, nickname: nickname, avatarUrl: simAvatar(i),
         comment: kw, timestamp: Date.now() + i,
       });
     });

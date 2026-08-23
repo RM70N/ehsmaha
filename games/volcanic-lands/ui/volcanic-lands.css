@@ -134,6 +134,14 @@
 .vl-towers[data-dense="2"] .vl-avatar { width: 36px; height: 36px; font-size: 12px; }
 .vl-towers[data-dense="3"] .vl-avatar { width: 28px; height: 28px; font-size: 10px; }
 
+/* البديل الملوّن يجب أن يطابق مقاس الصورة تماماً في كل مكان تظهر فيه */
+.vl-avatar-fb {
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; line-height: 1;
+  font-weight: 800; color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
 .vl-name { font-size: 13px; color: rgba(255, 255, 255, .6); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vl-towers[data-dense="2"] .vl-name,
 .vl-towers[data-dense="3"] .vl-name { display: none; }
@@ -269,15 +277,34 @@
   border: 1px solid rgba(201, 168, 76, .3);
   box-shadow: 0 30px 90px rgba(0, 0, 0, .6), 0 0 90px rgba(255, 90, 31, .15);
 }
-/* حلقة العدّاد حول الكرت */
-.vl-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.vl-ring rect { fill: none; stroke-width: 5; stroke-linecap: round; }
-.vl-ring-track { stroke: rgba(255, 255, 255, .07); }
-.vl-ring-live { transition: stroke-dashoffset 1s linear, stroke .3s ease; }
-.vl-ring-live.vl-urgent { animation: lv-ringPulse 1s ease-in-out infinite; }
-
-.vl-card-inner { position: relative; display: flex; flex-direction: column; gap: 18px; }
+.vl-card-inner { position: relative; display: flex; flex-direction: column; gap: 16px; }
 .vl-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vl-card-top-end { display: flex; align-items: center; gap: 14px; }
+
+/* شريط العدّاد الأفقي — فوق السؤال مباشرة، يفرغ تدريجياً ويتحوّل للأحمر
+   آخر 5 ثوانٍ. الاتجاه RTL فالتعبئة مثبّتة يميناً وتنحسر لليسار تلقائياً. */
+.vl-timebar {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(201, 168, 76, .18);
+  overflow: hidden;
+  margin-top: -4px;
+}
+.vl-timebar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vl-gold-soft), var(--vl-gold));
+  box-shadow: 0 0 16px rgba(201, 168, 76, .55);
+  transition: width 1s linear, background .3s ease, box-shadow .3s ease;
+}
+.vl-timebar-fill.vl-urgent {
+  background: linear-gradient(90deg, var(--vl-flame-light), var(--vl-flame));
+  box-shadow: 0 0 22px rgba(255, 90, 31, .75);
+  animation: lv-ringPulse 1s ease-in-out infinite;
+}
 .vl-bank-badge {
   padding: 7px 16px; border-radius: 999px;
   background: rgba(201, 168, 76, .14);

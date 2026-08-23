@@ -2367,6 +2367,14 @@ body{padding-top:64px;}
 .vl-towers[data-dense="2"] .vl-avatar { width: 36px; height: 36px; font-size: 12px; }
 .vl-towers[data-dense="3"] .vl-avatar { width: 28px; height: 28px; font-size: 10px; }
 
+/* البديل الملوّن يجب أن يطابق مقاس الصورة تماماً في كل مكان تظهر فيه */
+.vl-avatar-fb {
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; line-height: 1;
+  font-weight: 800; color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
 .vl-name { font-size: 13px; color: rgba(255, 255, 255, .6); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vl-towers[data-dense="2"] .vl-name,
 .vl-towers[data-dense="3"] .vl-name { display: none; }
@@ -2502,15 +2510,34 @@ body{padding-top:64px;}
   border: 1px solid rgba(201, 168, 76, .3);
   box-shadow: 0 30px 90px rgba(0, 0, 0, .6), 0 0 90px rgba(255, 90, 31, .15);
 }
-/* حلقة العدّاد حول الكرت */
-.vl-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-.vl-ring rect { fill: none; stroke-width: 5; stroke-linecap: round; }
-.vl-ring-track { stroke: rgba(255, 255, 255, .07); }
-.vl-ring-live { transition: stroke-dashoffset 1s linear, stroke .3s ease; }
-.vl-ring-live.vl-urgent { animation: lv-ringPulse 1s ease-in-out infinite; }
-
-.vl-card-inner { position: relative; display: flex; flex-direction: column; gap: 18px; }
+.vl-card-inner { position: relative; display: flex; flex-direction: column; gap: 16px; }
 .vl-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vl-card-top-end { display: flex; align-items: center; gap: 14px; }
+
+/* شريط العدّاد الأفقي — فوق السؤال مباشرة، يفرغ تدريجياً ويتحوّل للأحمر
+   آخر 5 ثوانٍ. الاتجاه RTL فالتعبئة مثبّتة يميناً وتنحسر لليسار تلقائياً. */
+.vl-timebar {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(201, 168, 76, .18);
+  overflow: hidden;
+  margin-top: -4px;
+}
+.vl-timebar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vl-gold-soft), var(--vl-gold));
+  box-shadow: 0 0 16px rgba(201, 168, 76, .55);
+  transition: width 1s linear, background .3s ease, box-shadow .3s ease;
+}
+.vl-timebar-fill.vl-urgent {
+  background: linear-gradient(90deg, var(--vl-flame-light), var(--vl-flame));
+  box-shadow: 0 0 22px rgba(255, 90, 31, .75);
+  animation: lv-ringPulse 1s ease-in-out infinite;
+}
 .vl-bank-badge {
   padding: 7px 16px; border-radius: 999px;
   background: rgba(201, 168, 76, .14);
@@ -48233,19 +48260,16 @@ function privacyBack(){
 
           <div class="vl-card-overlay" id="volcanic-lands-card" style="display:none">
             <div class="vl-card">
-              <svg class="vl-ring" id="volcanic-lands-ring" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true">
-                <rect class="vl-ring-track" x="4" y="4" width="892" height="412" rx="28" vector-effect="non-scaling-stroke"></rect>
-                <rect class="vl-ring-live" id="volcanic-lands-ring-live" x="4" y="4" width="892" height="412" rx="28"
-                      stroke="#C9A84C" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"
-                      vector-effect="non-scaling-stroke"></rect>
-              </svg>
               <div class="vl-card-inner">
                 <div class="vl-card-top">
                   <div class="vl-bank-badge" id="volcanic-lands-bank">معلومات عامة</div>
-                  <div style="display:flex;align-items:center;gap:14px">
+                  <div class="vl-card-top-end">
                     <div class="vl-answered-count" id="volcanic-lands-answered">أجاب 0 لاعب</div>
                     <div class="vl-timer" id="volcanic-lands-timer">20</div>
                   </div>
+                </div>
+                <div class="vl-timebar" id="volcanic-lands-timebar-track">
+                  <div class="vl-timebar-fill" id="volcanic-lands-timebar" style="width:100%"></div>
                 </div>
                 <div class="vl-question" id="volcanic-lands-question">—</div>
                 <div class="vl-options" id="volcanic-lands-options"></div>
@@ -48385,37 +48409,39 @@ function privacyBack(){
     return avatarMem.get(userId) || fallbackUrl || '';
   }
 
-  /** عنصر أفتار: صورة حقيقية مع بديل ملوّن مشتق من userId عند الفشل. */
+  /** بديل ملوّن ثابت مشتق من userId — يُستخدم عند غياب الصورة أو فشلها. */
+  function buildAvatarFallback(player, cls) {
+    var fb = document.createElement('div');
+    fb.className = cls + ' vl-avatar-fb';
+    fb.style.background = VL.colorForUserId(player.userId);
+    fb.textContent = VL.initialsForNickname(player.nickname);
+    return fb;
+  }
+
+  /**
+   * عنصر أفتار: صورة تيك توك الحقيقية، وعند فشلها تُعاد المحاولة عبر وسيط
+   * الموقع نفسه، وعند فشله يظهر البديل الملوّن. اللعبة لا تتعطل بسبب صورة.
+   */
   function buildAvatar(player, cls) {
     var url = avatarUrlFor(player.userId, player.avatarUrl);
-    var initials = VL.initialsForNickname(player.nickname);
-    if (!url) {
-      var fb = document.createElement('div');
-      fb.className = cls;
-      fb.style.background = VL.colorForUserId(player.userId);
-      fb.textContent = initials;
-      return fb;
-    }
+    if (!url) return buildAvatarFallback(player, cls);
+
     var img = document.createElement('img');
     img.className = cls;
     img.alt = player.nickname;
     img.referrerPolicy = 'no-referrer';
-    img.src = url;
     img.setAttribute('data-stage', 'direct');
+    // المعالج يُربط قبل src دائماً: ضبطه بعده قد يفوّت حدث الفشل.
     img.onerror = function () {
-      var stage = img.getAttribute('data-stage');
-      if (stage === 'direct' && typeof avatarProxyUrl === 'function') {
+      if (img.getAttribute('data-stage') === 'direct' && typeof avatarProxyUrl === 'function') {
         img.setAttribute('data-stage', 'proxy');
-        img.src = avatarProxyUrl(url);           // نفس وسيط الموقع المستخدم بكل الألعاب
+        img.src = avatarProxyUrl(url);     // نفس وسيط الموقع المستخدم بكل الألعاب
         return;
       }
-      // فشل الوسيط أيضاً → بديل ملوّن. اللعبة لا تتعطل بسبب صورة أبداً.
-      var fb2 = document.createElement('div');
-      fb2.className = cls;
-      fb2.style.background = VL.colorForUserId(player.userId);
-      fb2.textContent = initials;
-      if (img.parentNode) img.parentNode.replaceChild(fb2, img);
+      var fb = buildAvatarFallback(player, cls);
+      if (img.parentNode) img.parentNode.replaceChild(fb, img);
     };
+    img.src = url;
     return img;
   }
 
@@ -48658,14 +48684,14 @@ function privacyBack(){
     var urgent = remaining <= 5 && phase === 'QUESTION';
     if (timer) timer.classList.toggle('vl-urgent', urgent);
 
-    // حلقة العدّاد تفرغ تدريجياً وتتحول للأحمر آخر 5 ثوانٍ
-    var ring = $(TAG + '-ring-live');
-    if (ring) {
+    // شريط العدّاد الأفقي فوق السؤال — يفرغ تدريجياً ويتحوّل للأحمر آخر 5 ثوانٍ
+    var bar = $(TAG + '-timebar');
+    if (bar) {
       var total = engine.getSettings().roundSeconds;
-      var frac = phase === 'QUESTION' ? Math.max(0, remaining / total) : 0;
-      ring.setAttribute('stroke-dashoffset', String((100 * (1 - frac)).toFixed(2)));
-      ring.setAttribute('stroke', urgent ? '#FF5A1F' : '#C9A84C');
-      ring.classList.toggle('vl-urgent', urgent);
+      var frac = phase === 'QUESTION' ? Math.max(0, Math.min(1, remaining / total)) : 0;
+      var pct = (frac * 100).toFixed(2) + '%';
+      if (bar.style.width !== pct) bar.style.width = pct;
+      bar.classList.toggle('vl-urgent', urgent);
     }
 
     // الخيارات — تُبنى مرة لكل سؤال ثم تُحدَّث حالتها فقط
@@ -49094,6 +49120,26 @@ function privacyBack(){
     });
   }
 
+  /**
+   * أفتار وهمي مضمّن كـdata URI — بلا أي طلب شبكة ولا أصل خارجي. الغرض أن
+   * يمرّ اللاعب الوهمي على نفس مسار <img> الذي تمرّ عليه صورة تيك توك
+   * الحقيقية، فيُختبر المسار فعلاً بدل أن يقع دائماً على البديل الملوّن.
+   */
+  function simAvatar(i) {
+    var hues = [12, 42, 88, 140, 190, 232, 276, 318];
+    var h = hues[i % hues.length];
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + h + ',70%,58%)"/>' +
+      '<stop offset="1" stop-color="hsl(' + ((h + 40) % 360) + ',65%,38%)"/>' +
+      '</linearGradient></defs>' +
+      '<rect width="96" height="96" fill="url(#g)"/>' +
+      '<circle cx="48" cy="38" r="16" fill="rgba(255,255,255,.92)"/>' +
+      '<path d="M18 92c4-19 16-28 30-28s26 9 30 28z" fill="rgba(255,255,255,.92)"/>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
   /** محاكاة 20 لاعباً وهمياً — تمرّ بنفس مسار الشات الحقيقي تماماً. */
   function vlSimulatePlayers() {
     if (!engine) return;
@@ -49102,7 +49148,7 @@ function privacyBack(){
     var kw = engine.getSettings().joinKeyword;
     names.forEach(function (nickname, i) {
       engine.enqueueChat({
-        userId: 'sim_' + i, nickname: nickname, avatarUrl: '',
+        userId: 'sim_' + i, nickname: nickname, avatarUrl: simAvatar(i),
         comment: kw, timestamp: Date.now() + i,
       });
     });
