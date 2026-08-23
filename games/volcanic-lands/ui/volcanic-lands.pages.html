@@ -1,0 +1,248 @@
+<!-- ====== الأراضي البركانية — شاشة الإعداد ====== -->
+<div id="pg-setup-volcanic-lands" class="page">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('home')">← رجوع</button>
+    <div class="setup-title">🌋 إعداد لعبة الأراضي البركانية</div>
+    <div class="setup-sub">كل مشارك يبني برجه بالإجابات الصحيحة — واللافا تصعد كل جولة حتى يبقى واحد!</div>
+
+    <div class="legacy-connect-box">
+      <div class="platform-toggle">
+        <button type="button" class="ptab active" id="volcanic-lands-tab-tiktok" onclick="setPlatform('volcanic-lands','tiktok')">📱 تيك توك</button>
+        <button type="button" class="ptab" id="volcanic-lands-tab-twitch" onclick="setPlatform('volcanic-lands','twitch')">🟣 تويتش</button>
+        <button type="button" class="ptab plat-kick" id="volcanic-lands-tab-kick" onclick="setPlatform('volcanic-lands','kick')">🟢 كيك</button>
+        <button type="button" class="ptab plat-youtube" id="volcanic-lands-tab-youtube" onclick="setPlatform('volcanic-lands','youtube')">▶️ يوتيوب</button>
+      </div>
+
+      <div class="api-section" id="volcanic-lands-tiktok-section">
+        <div class="api-section-title">🔑 مفتاح API — تيك توك</div>
+        <div class="field-hint" id="volcanic-lands-tiktok-apikey-hint" style="margin-bottom:0;font-size:13px;">
+          اربط مفتاح تيك توك مرة وحدة من <b>بروفايلي</b> (اضغط اسم حسابك فوق بالزاوية اليمنى) وبيشتغل تلقائياً هنا وبكل الألعاب.
+        </div>
+      </div>
+      <div class="api-section" id="volcanic-lands-twitch-section" style="display:none">
+        <div class="api-section-title">🟣 ربط بث تويتش — بدون مفتاح!</div>
+        <div class="api-steps">
+          <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على تويتش الآن</span></div>
+          <div class="api-step"><div class="api-step-num">2</div><span>اكتب اسم قناتك بالضبط في الحقل تحت (نفس اللي بعد twitch.tv/)</span></div>
+          <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key!</span></div>
+        </div>
+      </div>
+      <div class="api-section" id="volcanic-lands-kick-section" style="display:none">
+        <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
+        <div class="api-steps">
+          <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b></span></div>
+          <div class="api-step"><div class="api-step-num">2</div><span>دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
+          <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة</span></div>
+        </div>
+      </div>
+      <div class="api-section" id="volcanic-lands-youtube-section" style="display:none">
+        <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+        <div class="api-steps">
+          <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com</a> وفعّل <b>YouTube Data API v3</b></span></div>
+          <div class="api-step"><div class="api-step-num">2</div><span>أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
+          <div class="api-step"><div class="api-step-num">3</div><span>انسخ رابط البث المباشر (أو رقم الفيديو) والصقه بالحقل تحت</span></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label id="volcanic-lands-user-label">يوزر تيك توك (بدون @)</label>
+        <input type="text" id="volcanic-lands-user" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+        <div class="field-hint">يوزر حسابك على تيك توك</div>
+      </div>
+      <div class="field" id="volcanic-lands-kick-field" style="display:none">
+        <label>🔢 Chatroom ID (رقم شات كيك)</label>
+        <input type="text" id="volcanic-lands-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
+        <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      </div>
+      <div class="field" id="volcanic-lands-youtube-field" style="display:none">
+        <label>🔑 YouTube API Key</label>
+        <input type="password" id="volcanic-lands-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
+        <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
+        <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
+        <input type="text" id="volcanic-lands-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
+        <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>كلمة الانضمام</label>
+      <input type="text" id="volcanic-lands-join-kw" placeholder="مثال: بركان" value="بركان" maxlength="14" />
+      <div class="field-hint">المتابع يكتبها مرة واحدة بالشات للانضمام للعبة</div>
+    </div>
+
+    <div class="field">
+      <label>مدة السؤال (بالثواني)</label>
+      <input type="number" id="volcanic-lands-duration" min="10" max="60" step="5" value="20" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">الوقت المتاح للمشاهدين لكتابة رقم الإجابة — الافتراضي 20 ثانية</div>
+    </div>
+
+    <div class="field">
+      <label>مستوى الصعوبة (سرعة صعود اللافا)</label>
+      <select id="volcanic-lands-difficulty">
+        <option value="easy">سهل — اللافا تصعد ببطء، مباريات أطول</option>
+        <option value="normal" selected>عادي — متوازن (موصى به: 5–8 جولات)</option>
+        <option value="hell">جحيم — اللافا تلتهم الجميع بسرعة</option>
+      </select>
+      <div class="field-hint">يؤثر فقط على سرعة صعود اللافا، لا على صعوبة الأسئلة</div>
+    </div>
+
+    <div class="field">
+      <label>الحد الأقصى للاعبين</label>
+      <input type="number" id="volcanic-lands-maxplayers" min="2" max="60" step="1" value="60" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">أقصى عدد مسموح 60 لاعباً</div>
+    </div>
+
+    <div class="api-section-title" style="margin-top:6px">⚙️ خيارات إضافية (اختيارية)</div>
+    <div class="dev-visuals-toggle-row">
+      <label class="dev-visuals-toggle-label" for="volcanic-lands-opt-latejoin">🚪 السماح بالانضمام أثناء الجولة — المتأخر يبدأ فوق مستوى اللافا الحالي مباشرة</label>
+      <label class="mod-toggle">
+        <input type="checkbox" id="volcanic-lands-opt-latejoin" checked>
+        <span class="mod-toggle-slider"></span>
+      </label>
+    </div>
+    <div class="dev-visuals-toggle-row">
+      <label class="dev-visuals-toggle-label" for="volcanic-lands-opt-sound">🔊 المؤثرات الصوتية — هدير عند صعود اللافا ونغمة عند كشف الإجابة</label>
+      <label class="mod-toggle">
+        <input type="checkbox" id="volcanic-lands-opt-sound" checked>
+        <span class="mod-toggle-slider"></span>
+      </label>
+    </div>
+
+    <button class="btn-primary" id="btn-volcanic-lands-launch" onclick="launchVolcanicLands()">🚀 ابدأ اللعبة</button>
+    <div class="status-msg" id="volcanic-lands-status"></div>
+  </div>
+</div>
+
+<!-- ====== الأراضي البركانية — لوحة الستريمر ====== -->
+<div id="pg-volcanic-lands" class="page">
+  <div class="vl-layout">
+    <div class="panel vl-center">
+      <div class="top-bar">
+        <div class="room-info">
+          <div class="dot connecting" id="volcanic-lands-live-dot"></div>
+          <div class="room-username" id="volcanic-lands-live-user">@username</div>
+        </div>
+        <div class="vl-session-chip" id="volcanic-lands-session-info">أسئلة مستخدَمة في هذه الجلسة: 0/300</div>
+      </div>
+
+      <div class="game-title-header">
+        <div class="gth-icon">🌋</div>
+        <div class="gth-name">الأراضي البركانية</div>
+        <div class="gth-desc">اكتبوا رقم الإجابة بالشات — الإجابة الصحيحة والسريعة ترفع برجك، واللافا تصعد كل جولة!</div>
+      </div>
+
+      <div class="status-strip waiting" id="volcanic-lands-status-strip">
+        ⏳ في انتظار الانضمام — اكتبوا كلمة الانضمام بالشات
+      </div>
+
+      <div class="vl-play-row">
+        <!-- ===== الساحة ===== -->
+        <div class="vl-stage" id="volcanic-lands-stage">
+          <div class="vl-towers" id="volcanic-lands-towers"></div>
+
+          <div class="vl-lava" id="volcanic-lands-lava" style="height:0px"></div>
+          <div class="vl-fog" id="volcanic-lands-fog" style="bottom:0px"></div>
+          <div class="vl-embers" id="volcanic-lands-embers" style="bottom:0px"></div>
+
+          <div class="vl-hud">
+            <div style="display:flex;gap:10px">
+              <div class="vl-chip"><div class="vl-chip-label">الجولة</div><div class="vl-chip-value" id="volcanic-lands-round">0</div></div>
+              <div class="vl-chip"><div class="vl-chip-label">الصامدون</div><div class="vl-chip-value vl-white" id="volcanic-lands-alive">0</div></div>
+            </div>
+            <div class="vl-title-mid">
+              <div class="vl-title">الأراضي البركانية</div>
+              <div class="vl-lava-warn" id="volcanic-lands-lava-warn">اللافا سترتفع 2 بلوكات</div>
+            </div>
+            <div class="vl-chip">
+              <div class="vl-chip-label">كلمة الانضمام</div>
+              <div class="vl-chip-value" id="volcanic-lands-kw-chip">بركان</div>
+            </div>
+          </div>
+
+          <div class="vl-lobby" id="volcanic-lands-lobby">
+            <div class="vl-lobby-kw">
+              <span class="vl-lobby-kw-side">اكتب في الشات</span>
+              <span class="vl-lobby-kw-word" id="volcanic-lands-lobby-kw">بركان</span>
+              <span class="vl-lobby-kw-side">للانضمام</span>
+            </div>
+            <div class="vl-lobby-grid" id="volcanic-lands-lobby-grid"></div>
+          </div>
+
+          <div class="vl-banner-center" id="volcanic-lands-banner" style="display:none"></div>
+
+          <div class="vl-card-overlay" id="volcanic-lands-card" style="display:none">
+            <div class="vl-card">
+              <svg class="vl-ring" id="volcanic-lands-ring" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true">
+                <rect class="vl-ring-track" x="4" y="4" width="892" height="412" rx="28"></rect>
+                <rect class="vl-ring-live" id="volcanic-lands-ring-live" x="4" y="4" width="892" height="412" rx="28"
+                      stroke="#C9A84C" stroke-dasharray="2600" stroke-dashoffset="0" transform="rotate(-90 450 210)"></rect>
+              </svg>
+              <div class="vl-card-inner">
+                <div class="vl-card-top">
+                  <div class="vl-bank-badge" id="volcanic-lands-bank">معلومات عامة</div>
+                  <div style="display:flex;align-items:center;gap:14px">
+                    <div class="vl-answered-count" id="volcanic-lands-answered">أجاب 0 لاعب</div>
+                    <div class="vl-timer" id="volcanic-lands-timer">20</div>
+                  </div>
+                </div>
+                <div class="vl-question" id="volcanic-lands-question">—</div>
+                <div class="vl-options" id="volcanic-lands-options"></div>
+                <div class="vl-card-hint">اكتب رقم الإجابة في الشات</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="vl-burned-strip" id="volcanic-lands-burned" style="display:none">
+            <span class="vl-burned-label">احترق</span>
+            <span class="vl-burned-sep"></span>
+            <span class="vl-burned-names" id="volcanic-lands-burned-names"></span>
+          </div>
+
+          <div class="vl-winner" id="volcanic-lands-winner" style="display:none"></div>
+        </div>
+
+        <!-- ===== الشريط الجانبي ===== -->
+        <div class="vl-side">
+          <div class="vl-side-card">
+            <div class="vl-side-title">حالة الجولة</div>
+            <div class="vl-side-stats">
+              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-alive">0</div><div class="vl-side-stat-l">صامدون</div></div>
+              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-lava">0</div><div class="vl-side-stat-l">اللافا</div></div>
+              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-round">0</div><div class="vl-side-stat-l">الجولة</div></div>
+            </div>
+          </div>
+          <div class="vl-side-card vl-side-board">
+            <div class="vl-side-title">أفضل 5</div>
+            <div id="volcanic-lands-leaderboard" class="vl-lb-scroll"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="game-bottom-row">
+        <button class="btn-start-round" id="volcanic-lands-btn-start" onclick="vlStart()">▶ ابدأ اللعبة</button>
+        <button class="btn-reset" id="volcanic-lands-btn-pause" onclick="vlTogglePause()">⏸ إيقاف مؤقت</button>
+        <button class="btn-reset" id="volcanic-lands-btn-skip" onclick="vlSkipQuestion()">⏭ تخطّي السؤال</button>
+        <button class="btn-reset" id="volcanic-lands-btn-endround" onclick="vlEndRoundEarly()">⏹ إنهاء الجولة</button>
+        <button class="btn-reset" onclick="vlRestart()">🔄 إعادة تشغيل</button>
+        <button class="btn-reset" id="volcanic-lands-btn-newsession" onclick="vlNewSession()">🆕 جلسة جديدة</button>
+        <button class="btn-kick" onclick="vlOpenKickModal()">🚫 اطرد لاعب</button>
+        <button class="btn-home" onclick="vlGoHome()">🏠 رئيسية</button>
+      </div>
+
+      <div class="game-bottom-row vl-bottom-extra">
+        <label class="vl-inline-toggle" for="volcanic-lands-live-latejoin">
+          <input type="checkbox" id="volcanic-lands-live-latejoin" checked onchange="vlToggleLateJoin(this.checked)">
+          <span>🚪 السماح بالمتأخرين</span>
+        </label>
+        <button class="btn-reset" id="volcanic-lands-btn-sim" onclick="vlSimulatePlayers()">🧪 محاكاة 20 لاعباً</button>
+      </div>
+    </div>
+
+    <div class="panel panel-right">
+      <div class="panel-head"><div class="panel-label">شات البث</div><button type="button" class="chat-toggle-btn" onclick="toggleGameChatPanel(this)" title="إخفاء شات البث">◀</button></div>
+      <div class="chat-scroll" id="volcanic-lands-chat-list">
+        <div class="empty"><div class="empty-icon">💬</div><div class="empty-txt">الشات سيظهر هنا</div></div>
+      </div>
+    </div>
+  </div>
+</div>
