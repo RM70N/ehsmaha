@@ -1,0 +1,4518 @@
+{
+  "name": "بنك أسئلة طوفان اللافا",
+  "version": "1.0.0",
+  "language": "ar",
+  "total": 300,
+  "schema": {
+    "id": "معرّف فريد",
+    "category": "math | general",
+    "subcategory": "التصنيف الفرعي للعرض",
+    "difficulty": "1 سهل | 2 متوسط | 3 صعب",
+    "text": "نص السؤال",
+    "options": "أربعة خيارات بالترتيب 1،2،3،4 كما تُعرض",
+    "correctIndex": "فهرس الإجابة الصحيحة (0-3) — رقم الشات = correctIndex + 1",
+    "answer": "نص الإجابة الصحيحة للتحقق البشري"
+  },
+  "questions": [
+    {
+      "id": "gk_001",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة اليابان؟",
+      "options": [
+        "أوساكا",
+        "بكين",
+        "طوكيو",
+        "سيول"
+      ],
+      "correctIndex": 2,
+      "answer": "طوكيو"
+    },
+    {
+      "id": "gk_002",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة فرنسا؟",
+      "options": [
+        "مرسيليا",
+        "نيس",
+        "ليون",
+        "باريس"
+      ],
+      "correctIndex": 3,
+      "answer": "باريس"
+    },
+    {
+      "id": "gk_003",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة إيطاليا؟",
+      "options": [
+        "ميلان",
+        "نابولي",
+        "روما",
+        "تورينو"
+      ],
+      "correctIndex": 2,
+      "answer": "روما"
+    },
+    {
+      "id": "gk_004",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما هي عاصمة المغرب؟",
+      "options": [
+        "الدار البيضاء",
+        "مراكش",
+        "الرباط",
+        "طنجة"
+      ],
+      "correctIndex": 2,
+      "answer": "الرباط"
+    },
+    {
+      "id": "gk_005",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة الأردن؟",
+      "options": [
+        "الزرقاء",
+        "العقبة",
+        "عمّان",
+        "إربد"
+      ],
+      "correctIndex": 2,
+      "answer": "عمّان"
+    },
+    {
+      "id": "gk_006",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما هي عاصمة تركيا؟",
+      "options": [
+        "إزمير",
+        "إسطنبول",
+        "بورصة",
+        "أنقرة"
+      ],
+      "correctIndex": 3,
+      "answer": "أنقرة"
+    },
+    {
+      "id": "gk_007",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما هي عاصمة كندا؟",
+      "options": [
+        "أوتاوا",
+        "مونتريال",
+        "فانكوفر",
+        "تورنتو"
+      ],
+      "correctIndex": 0,
+      "answer": "أوتاوا"
+    },
+    {
+      "id": "gk_008",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما هي عاصمة أستراليا؟",
+      "options": [
+        "كانبرا",
+        "بيرث",
+        "ملبورن",
+        "سيدني"
+      ],
+      "correctIndex": 0,
+      "answer": "كانبرا"
+    },
+    {
+      "id": "gk_009",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما هي عاصمة البرازيل؟",
+      "options": [
+        "سلفادور",
+        "ريو دي جانيرو",
+        "ساو باولو",
+        "برازيليا"
+      ],
+      "correctIndex": 3,
+      "answer": "برازيليا"
+    },
+    {
+      "id": "gk_010",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة إسبانيا؟",
+      "options": [
+        "فالنسيا",
+        "إشبيلية",
+        "برشلونة",
+        "مدريد"
+      ],
+      "correctIndex": 3,
+      "answer": "مدريد"
+    },
+    {
+      "id": "gk_011",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة ألمانيا؟",
+      "options": [
+        "هامبورغ",
+        "برلين",
+        "ميونخ",
+        "فرانكفورت"
+      ],
+      "correctIndex": 1,
+      "answer": "برلين"
+    },
+    {
+      "id": "gk_012",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما هي عاصمة الصين؟",
+      "options": [
+        "هونغ كونغ",
+        "شنزن",
+        "شنغهاي",
+        "بكين"
+      ],
+      "correctIndex": 3,
+      "answer": "بكين"
+    },
+    {
+      "id": "gk_013",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما أكبر قارة في العالم من حيث المساحة؟",
+      "options": [
+        "أوروبا",
+        "أفريقيا",
+        "أمريكا الشمالية",
+        "آسيا"
+      ],
+      "correctIndex": 3,
+      "answer": "آسيا"
+    },
+    {
+      "id": "gk_014",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما أصغر قارة في العالم؟",
+      "options": [
+        "أستراليا",
+        "أمريكا الجنوبية",
+        "أوروبا",
+        "أنتاركتيكا"
+      ],
+      "correctIndex": 0,
+      "answer": "أستراليا"
+    },
+    {
+      "id": "gk_015",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "كم عدد قارات العالم؟",
+      "options": [
+        "5",
+        "8",
+        "6",
+        "7"
+      ],
+      "correctIndex": 3,
+      "answer": "7"
+    },
+    {
+      "id": "gk_016",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما أكبر محيط في العالم؟",
+      "options": [
+        "الهادي",
+        "الهندي",
+        "المتجمد الشمالي",
+        "الأطلسي"
+      ],
+      "correctIndex": 0,
+      "answer": "الهادي"
+    },
+    {
+      "id": "gk_017",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما أطول نهر في أفريقيا؟",
+      "options": [
+        "الكونغو",
+        "النيجر",
+        "الزامبيزي",
+        "النيل"
+      ],
+      "correctIndex": 3,
+      "answer": "النيل"
+    },
+    {
+      "id": "gk_018",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما أكبر دولة في العالم من حيث المساحة؟",
+      "options": [
+        "كندا",
+        "الصين",
+        "روسيا",
+        "أمريكا"
+      ],
+      "correctIndex": 2,
+      "answer": "روسيا"
+    },
+    {
+      "id": "gk_019",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما أكبر صحراء حارة في العالم؟",
+      "options": [
+        "صحراء كالاهاري",
+        "صحراء جوبي",
+        "صحراء الربع الخالي",
+        "الصحراء الكبرى"
+      ],
+      "correctIndex": 3,
+      "answer": "الصحراء الكبرى"
+    },
+    {
+      "id": "gk_020",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما أعلى قمة جبلية في العالم؟",
+      "options": [
+        "إفرست",
+        "مونت بلان",
+        "كي 2",
+        "كليمنجارو"
+      ],
+      "correctIndex": 0,
+      "answer": "إفرست"
+    },
+    {
+      "id": "gk_021",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما أكبر جزيرة في العالم؟",
+      "options": [
+        "بورنيو",
+        "مدغشقر",
+        "غينيا الجديدة",
+        "جرينلاند"
+      ],
+      "correctIndex": 3,
+      "answer": "جرينلاند"
+    },
+    {
+      "id": "gk_022",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "في أي قارة تقع مصر؟",
+      "options": [
+        "آسيا",
+        "أستراليا",
+        "أفريقيا",
+        "أوروبا"
+      ],
+      "correctIndex": 2,
+      "answer": "أفريقيا"
+    },
+    {
+      "id": "gk_023",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "قناة السويس تربط البحر الأحمر بأي بحر؟",
+      "options": [
+        "بحر قزوين",
+        "البحر الأسود",
+        "البحر المتوسط",
+        "بحر العرب"
+      ],
+      "correctIndex": 2,
+      "answer": "البحر المتوسط"
+    },
+    {
+      "id": "gk_024",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما البحر الذي يفصل بين مصر والسعودية؟",
+      "options": [
+        "البحر الأحمر",
+        "البحر المتوسط",
+        "بحر العرب",
+        "الخليج العربي"
+      ],
+      "correctIndex": 0,
+      "answer": "البحر الأحمر"
+    },
+    {
+      "id": "gk_025",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "أين يقع برج إيفل؟",
+      "options": [
+        "باريس",
+        "روما",
+        "لندن",
+        "برلين"
+      ],
+      "correctIndex": 0,
+      "answer": "باريس"
+    },
+    {
+      "id": "gk_026",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "في أي دولة يقع سور الصين العظيم؟",
+      "options": [
+        "الصين",
+        "اليابان",
+        "منغوليا",
+        "كوريا"
+      ],
+      "correctIndex": 0,
+      "answer": "الصين"
+    },
+    {
+      "id": "gk_027",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما أكبر بحيرة مغلقة في العالم؟",
+      "options": [
+        "بحيرة بايكال",
+        "بحيرة فيكتوريا",
+        "بحر قزوين",
+        "البحيرة العظمى"
+      ],
+      "correctIndex": 2,
+      "answer": "بحر قزوين"
+    },
+    {
+      "id": "gk_028",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما الدولة التي تُلقب ببلاد الشمس المشرقة؟",
+      "options": [
+        "تايلاند",
+        "الصين",
+        "اليابان",
+        "كوريا"
+      ],
+      "correctIndex": 2,
+      "answer": "اليابان"
+    },
+    {
+      "id": "gk_029",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما أعمق نقطة في المحيطات؟",
+      "options": [
+        "خندق بورتوريكو",
+        "خندق التونغا",
+        "خندق ماريانا",
+        "خندق جاوة"
+      ],
+      "correctIndex": 2,
+      "answer": "خندق ماريانا"
+    },
+    {
+      "id": "gk_030",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما العملة الرسمية لليابان؟",
+      "options": [
+        "الروبية",
+        "الوون",
+        "اليوان",
+        "الين"
+      ],
+      "correctIndex": 3,
+      "answer": "الين"
+    },
+    {
+      "id": "gk_031",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "ما العملة الرسمية لبريطانيا؟",
+      "options": [
+        "اليورو",
+        "الدولار",
+        "الفرنك",
+        "الجنيه الإسترليني"
+      ],
+      "correctIndex": 3,
+      "answer": "الجنيه الإسترليني"
+    },
+    {
+      "id": "gk_032",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 2,
+      "text": "كم عدد الدول الأعضاء في مجلس التعاون الخليجي؟",
+      "options": [
+        "7",
+        "5",
+        "6",
+        "4"
+      ],
+      "correctIndex": 2,
+      "answer": "6"
+    },
+    {
+      "id": "gk_033",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 3,
+      "text": "ما أكبر مدينة في العالم من حيث عدد السكان تقليدياً؟",
+      "options": [
+        "نيويورك",
+        "القاهرة",
+        "طوكيو",
+        "لندن"
+      ],
+      "correctIndex": 2,
+      "answer": "طوكيو"
+    },
+    {
+      "id": "gk_034",
+      "category": "general",
+      "subcategory": "جغرافيا",
+      "difficulty": 1,
+      "text": "ما القارة التي تُعرف بالقارة المتجمدة؟",
+      "options": [
+        "أمريكا الشمالية",
+        "أنتاركتيكا",
+        "آسيا",
+        "أوروبا"
+      ],
+      "correctIndex": 1,
+      "answer": "أنتاركتيكا"
+    },
+    {
+      "id": "gk_035",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما الرمز الكيميائي للماء؟",
+      "options": [
+        "H2O",
+        "NaCl",
+        "CO2",
+        "O2"
+      ],
+      "correctIndex": 0,
+      "answer": "H2O"
+    },
+    {
+      "id": "gk_036",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما الغاز الذي يحتاجه الإنسان للتنفس؟",
+      "options": [
+        "الأكسجين",
+        "النيتروجين",
+        "الهيدروجين",
+        "الهيليوم"
+      ],
+      "correctIndex": 0,
+      "answer": "الأكسجين"
+    },
+    {
+      "id": "gk_037",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما الغاز الذي تمتصه النباتات في النهار؟",
+      "options": [
+        "النيتروجين",
+        "ثاني أكسيد الكربون",
+        "الميثان",
+        "الأكسجين"
+      ],
+      "correctIndex": 1,
+      "answer": "ثاني أكسيد الكربون"
+    },
+    {
+      "id": "gk_038",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما اسم عملية صنع النبات لغذائه؟",
+      "options": [
+        "التخمر",
+        "التنفس",
+        "البناء الضوئي",
+        "النتح"
+      ],
+      "correctIndex": 2,
+      "answer": "البناء الضوئي"
+    },
+    {
+      "id": "gk_039",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما درجة غليان الماء بالمئوية عند مستوى سطح البحر؟",
+      "options": [
+        "120",
+        "50",
+        "100",
+        "80"
+      ],
+      "correctIndex": 2,
+      "answer": "100"
+    },
+    {
+      "id": "gk_040",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما درجة تجمد الماء بالمئوية؟",
+      "options": [
+        "-10",
+        "0",
+        "10",
+        "5"
+      ],
+      "correctIndex": 1,
+      "answer": "0"
+    },
+    {
+      "id": "gk_041",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما أصلب مادة طبيعية معروفة؟",
+      "options": [
+        "الألماس",
+        "الذهب",
+        "الجرانيت",
+        "الحديد"
+      ],
+      "correctIndex": 0,
+      "answer": "الألماس"
+    },
+    {
+      "id": "gk_042",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما الرمز الكيميائي للذهب؟",
+      "options": [
+        "Au",
+        "Fe",
+        "Ag",
+        "Go"
+      ],
+      "correctIndex": 0,
+      "answer": "Au"
+    },
+    {
+      "id": "gk_043",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما المعدن الذي يكون سائلاً في درجة الحرارة العادية؟",
+      "options": [
+        "الألمنيوم",
+        "الزئبق",
+        "الرصاص",
+        "النحاس"
+      ],
+      "correctIndex": 1,
+      "answer": "الزئبق"
+    },
+    {
+      "id": "gk_044",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "كم عدد ألوان قوس قزح؟",
+      "options": [
+        "5",
+        "6",
+        "8",
+        "7"
+      ],
+      "correctIndex": 3,
+      "answer": "7"
+    },
+    {
+      "id": "gk_045",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "من صاحب النظرية النسبية؟",
+      "options": [
+        "هوكينج",
+        "أينشتاين",
+        "نيوتن",
+        "جاليليو"
+      ],
+      "correctIndex": 1,
+      "answer": "أينشتاين"
+    },
+    {
+      "id": "gk_046",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "من اكتشف قانون الجاذبية؟",
+      "options": [
+        "كوبرنيكوس",
+        "أينشتاين",
+        "أرخميدس",
+        "نيوتن"
+      ],
+      "correctIndex": 3,
+      "answer": "نيوتن"
+    },
+    {
+      "id": "gk_047",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "من اخترع المصباح الكهربائي؟",
+      "options": [
+        "إديسون",
+        "تسلا",
+        "فرانكلين",
+        "بيل"
+      ],
+      "correctIndex": 0,
+      "answer": "إديسون"
+    },
+    {
+      "id": "gk_048",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "من اخترع الهاتف؟",
+      "options": [
+        "جراهام بيل",
+        "ماركوني",
+        "مورس",
+        "إديسون"
+      ],
+      "correctIndex": 0,
+      "answer": "جراهام بيل"
+    },
+    {
+      "id": "gk_049",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 3,
+      "text": "من اكتشف البنسلين؟",
+      "options": [
+        "كوخ",
+        "ألكسندر فليمنج",
+        "جينر",
+        "باستور"
+      ],
+      "correctIndex": 1,
+      "answer": "ألكسندر فليمنج"
+    },
+    {
+      "id": "gk_050",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما أقرب كوكب إلى الشمس؟",
+      "options": [
+        "عطارد",
+        "المريخ",
+        "الزهرة",
+        "الأرض"
+      ],
+      "correctIndex": 0,
+      "answer": "عطارد"
+    },
+    {
+      "id": "gk_051",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما الكوكب الذي يُلقب بالكوكب الأحمر؟",
+      "options": [
+        "الزهرة",
+        "عطارد",
+        "المشتري",
+        "المريخ"
+      ],
+      "correctIndex": 3,
+      "answer": "المريخ"
+    },
+    {
+      "id": "gk_052",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما أكبر كوكب في المجموعة الشمسية؟",
+      "options": [
+        "نبتون",
+        "زحل",
+        "المشتري",
+        "أورانوس"
+      ],
+      "correctIndex": 2,
+      "answer": "المشتري"
+    },
+    {
+      "id": "gk_053",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما الكوكب المشهور بحلقاته؟",
+      "options": [
+        "نبتون",
+        "زحل",
+        "أورانوس",
+        "المشتري"
+      ],
+      "correctIndex": 1,
+      "answer": "زحل"
+    },
+    {
+      "id": "gk_054",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "كم عدد كواكب المجموعة الشمسية؟",
+      "options": [
+        "7",
+        "8",
+        "9",
+        "10"
+      ],
+      "correctIndex": 1,
+      "answer": "8"
+    },
+    {
+      "id": "gk_055",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "الشمس هي:",
+      "options": [
+        "نجم",
+        "مذنب",
+        "كوكب",
+        "قمر"
+      ],
+      "correctIndex": 0,
+      "answer": "نجم"
+    },
+    {
+      "id": "gk_056",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "حول أي جرم يدور القمر؟",
+      "options": [
+        "الشمس",
+        "المشتري",
+        "الأرض",
+        "المريخ"
+      ],
+      "correctIndex": 2,
+      "answer": "الأرض"
+    },
+    {
+      "id": "gk_057",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 3,
+      "text": "ما وحدة قياس القوة في النظام الدولي؟",
+      "options": [
+        "النيوتن",
+        "الواط",
+        "الجول",
+        "الأمبير"
+      ],
+      "correctIndex": 0,
+      "answer": "النيوتن"
+    },
+    {
+      "id": "gk_058",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 3,
+      "text": "ما وحدة قياس شدة التيار الكهربائي؟",
+      "options": [
+        "الأوم",
+        "الفولت",
+        "الواط",
+        "الأمبير"
+      ],
+      "correctIndex": 3,
+      "answer": "الأمبير"
+    },
+    {
+      "id": "gk_059",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "ما أسرع شيء في الكون؟",
+      "options": [
+        "الصوت",
+        "الضوء",
+        "الطائرة",
+        "الرياح"
+      ],
+      "correctIndex": 1,
+      "answer": "الضوء"
+    },
+    {
+      "id": "gk_060",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 1,
+      "text": "في أي حالة يكون الماء ثلجاً؟",
+      "options": [
+        "سائلة",
+        "غازية",
+        "صلبة",
+        "بلازما"
+      ],
+      "correctIndex": 2,
+      "answer": "صلبة"
+    },
+    {
+      "id": "gk_061",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما الغاز المسؤول عن الاحتباس الحراري بشكل رئيسي؟",
+      "options": [
+        "النيتروجين",
+        "الأرجون",
+        "الأكسجين",
+        "ثاني أكسيد الكربون"
+      ],
+      "correctIndex": 3,
+      "answer": "ثاني أكسيد الكربون"
+    },
+    {
+      "id": "gk_062",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 3,
+      "text": "ما العنصر الأكثر وفرة في الغلاف الجوي للأرض؟",
+      "options": [
+        "النيتروجين",
+        "الأكسجين",
+        "الهيدروجين",
+        "الأرجون"
+      ],
+      "correctIndex": 0,
+      "answer": "النيتروجين"
+    },
+    {
+      "id": "gk_063",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 2,
+      "text": "ما الجهاز الذي يقيس درجة الحرارة؟",
+      "options": [
+        "الأنيمومتر",
+        "البارومتر",
+        "السيزموغراف",
+        "الترمومتر"
+      ],
+      "correctIndex": 3,
+      "answer": "الترمومتر"
+    },
+    {
+      "id": "gk_064",
+      "category": "general",
+      "subcategory": "علوم",
+      "difficulty": 3,
+      "text": "ما الجهاز الذي يقيس شدة الزلازل؟",
+      "options": [
+        "الترمومتر",
+        "السيزموغراف",
+        "البارومتر",
+        "الرادار"
+      ],
+      "correctIndex": 1,
+      "answer": "السيزموغراف"
+    },
+    {
+      "id": "gk_065",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "ما أكبر عضو في جسم الإنسان؟",
+      "options": [
+        "الجلد",
+        "القلب",
+        "الكبد",
+        "الرئة"
+      ],
+      "correctIndex": 0,
+      "answer": "الجلد"
+    },
+    {
+      "id": "gk_066",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 3,
+      "text": "كم عدد عظام جسم الإنسان البالغ؟",
+      "options": [
+        "186",
+        "246",
+        "226",
+        "206"
+      ],
+      "correctIndex": 3,
+      "answer": "206"
+    },
+    {
+      "id": "gk_067",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "كم عدد حجرات القلب؟",
+      "options": [
+        "2",
+        "4",
+        "5",
+        "3"
+      ],
+      "correctIndex": 1,
+      "answer": "4"
+    },
+    {
+      "id": "gk_068",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 1,
+      "text": "ما العضو المسؤول عن ضخ الدم؟",
+      "options": [
+        "الرئة",
+        "الكبد",
+        "القلب",
+        "الكلية"
+      ],
+      "correctIndex": 2,
+      "answer": "القلب"
+    },
+    {
+      "id": "gk_069",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 1,
+      "text": "ما العضو المسؤول عن التنفس؟",
+      "options": [
+        "الطحال",
+        "الرئتان",
+        "الكبد",
+        "المعدة"
+      ],
+      "correctIndex": 1,
+      "answer": "الرئتان"
+    },
+    {
+      "id": "gk_070",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "ما العضو الذي يُسمى مصفاة الجسم؟",
+      "options": [
+        "الكبد",
+        "القلب",
+        "الكليتان",
+        "الرئة"
+      ],
+      "correctIndex": 2,
+      "answer": "الكليتان"
+    },
+    {
+      "id": "gk_071",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 3,
+      "text": "ما أكبر غدة في جسم الإنسان؟",
+      "options": [
+        "الكبد",
+        "الغدة الدرقية",
+        "البنكرياس",
+        "الطحال"
+      ],
+      "correctIndex": 0,
+      "answer": "الكبد"
+    },
+    {
+      "id": "gk_072",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 1,
+      "text": "كم عدد الحواس الأساسية عند الإنسان؟",
+      "options": [
+        "4",
+        "5",
+        "6",
+        "3"
+      ],
+      "correctIndex": 1,
+      "answer": "5"
+    },
+    {
+      "id": "gk_073",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 1,
+      "text": "ما الحاسة المرتبطة بالأنف؟",
+      "options": [
+        "السمع",
+        "التذوق",
+        "اللمس",
+        "الشم"
+      ],
+      "correctIndex": 3,
+      "answer": "الشم"
+    },
+    {
+      "id": "gk_074",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 3,
+      "text": "كم عدد الأسنان اللبنية عند الطفل؟",
+      "options": [
+        "20",
+        "16",
+        "28",
+        "24"
+      ],
+      "correctIndex": 0,
+      "answer": "20"
+    },
+    {
+      "id": "gk_075",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "أي فيتامين يحصل عليه الجسم من أشعة الشمس؟",
+      "options": [
+        "ج",
+        "د",
+        "أ",
+        "ب"
+      ],
+      "correctIndex": 1,
+      "answer": "د"
+    },
+    {
+      "id": "gk_076",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "أي فيتامين يوجد بكثرة في البرتقال؟",
+      "options": [
+        "ك",
+        "د",
+        "أ",
+        "ج"
+      ],
+      "correctIndex": 3,
+      "answer": "ج"
+    },
+    {
+      "id": "gk_077",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 1,
+      "text": "ما العضو المسؤول عن التفكير والتحكم بالجسم؟",
+      "options": [
+        "الدماغ",
+        "الكبد",
+        "القلب",
+        "النخاع"
+      ],
+      "correctIndex": 0,
+      "answer": "الدماغ"
+    },
+    {
+      "id": "gk_078",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "ما المعدن المهم لبناء العظام؟",
+      "options": [
+        "الصوديوم",
+        "الحديد",
+        "البوتاسيوم",
+        "الكالسيوم"
+      ],
+      "correctIndex": 3,
+      "answer": "الكالسيوم"
+    },
+    {
+      "id": "gk_079",
+      "category": "general",
+      "subcategory": "جسم الإنسان",
+      "difficulty": 2,
+      "text": "ما اسم خلايا الدم التي تحارب الأمراض؟",
+      "options": [
+        "البلازما",
+        "البيضاء",
+        "الصفائح",
+        "الحمراء"
+      ],
+      "correctIndex": 1,
+      "answer": "البيضاء"
+    },
+    {
+      "id": "gk_080",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "ما أسرع حيوان بري في العالم؟",
+      "options": [
+        "الغزال",
+        "الأسد",
+        "الحصان",
+        "الفهد"
+      ],
+      "correctIndex": 3,
+      "answer": "الفهد"
+    },
+    {
+      "id": "gk_081",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "ما أكبر حيوان على وجه الأرض؟",
+      "options": [
+        "الحوت الأزرق",
+        "الفيل",
+        "القرش",
+        "الزرافة"
+      ],
+      "correctIndex": 0,
+      "answer": "الحوت الأزرق"
+    },
+    {
+      "id": "gk_082",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "ما أطول حيوان في العالم؟",
+      "options": [
+        "الزرافة",
+        "الحصان",
+        "الجمل",
+        "الفيل"
+      ],
+      "correctIndex": 0,
+      "answer": "الزرافة"
+    },
+    {
+      "id": "gk_083",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "أي حيوان يُلقب بسفينة الصحراء؟",
+      "options": [
+        "الحمار",
+        "الغزال",
+        "الحصان",
+        "الجمل"
+      ],
+      "correctIndex": 3,
+      "answer": "الجمل"
+    },
+    {
+      "id": "gk_084",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "أي حيوان يغيّر لونه ليتمويه؟",
+      "options": [
+        "السحلية",
+        "الحرباء",
+        "الضفدع",
+        "الأفعى"
+      ],
+      "correctIndex": 1,
+      "answer": "الحرباء"
+    },
+    {
+      "id": "gk_085",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "ما أكبر طائر في العالم؟",
+      "options": [
+        "النعامة",
+        "النسر",
+        "البجع",
+        "الصقر"
+      ],
+      "correctIndex": 0,
+      "answer": "النعامة"
+    },
+    {
+      "id": "gk_086",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "أي طائر لا يستطيع الطيران ويعيش في القطب الجنوبي؟",
+      "options": [
+        "البطريق",
+        "البجعة",
+        "الصقر",
+        "النورس"
+      ],
+      "correctIndex": 0,
+      "answer": "البطريق"
+    },
+    {
+      "id": "gk_087",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "كم عدد أرجل العنكبوت؟",
+      "options": [
+        "10",
+        "12",
+        "8",
+        "6"
+      ],
+      "correctIndex": 2,
+      "answer": "8"
+    },
+    {
+      "id": "gk_088",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "كم عدد أرجل الحشرة؟",
+      "options": [
+        "10",
+        "6",
+        "4",
+        "8"
+      ],
+      "correctIndex": 1,
+      "answer": "6"
+    },
+    {
+      "id": "gk_089",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "ما اسم صغير البقرة؟",
+      "options": [
+        "العجل",
+        "الحمل",
+        "الجدي",
+        "المهر"
+      ],
+      "correctIndex": 0,
+      "answer": "العجل"
+    },
+    {
+      "id": "gk_090",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "ما اسم صغير الحصان؟",
+      "options": [
+        "المهر",
+        "العجل",
+        "الحمل",
+        "الجدي"
+      ],
+      "correctIndex": 0,
+      "answer": "المهر"
+    },
+    {
+      "id": "gk_091",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "أي حيوان بحري يُعرف بذكائه الشديد؟",
+      "options": [
+        "الدلفين",
+        "القرش",
+        "السلحفاة",
+        "الأخطبوط"
+      ],
+      "correctIndex": 0,
+      "answer": "الدلفين"
+    },
+    {
+      "id": "gk_092",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "أي حشرة تنتج العسل؟",
+      "options": [
+        "النحلة",
+        "النملة",
+        "الفراشة",
+        "الجرادة"
+      ],
+      "correctIndex": 0,
+      "answer": "النحلة"
+    },
+    {
+      "id": "gk_093",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 3,
+      "text": "ما أكبر أنواع السنوريات (القطط البرية)؟",
+      "options": [
+        "النمر",
+        "الأسد",
+        "الفهد",
+        "الوشق"
+      ],
+      "correctIndex": 0,
+      "answer": "النمر"
+    },
+    {
+      "id": "gk_094",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "أي حيوان ثديي يستطيع الطيران؟",
+      "options": [
+        "السنجاب",
+        "الخفاش",
+        "النعامة",
+        "البطريق"
+      ],
+      "correctIndex": 1,
+      "answer": "الخفاش"
+    },
+    {
+      "id": "gk_095",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "أي حيوان يبدّل جلده؟",
+      "options": [
+        "الكلب",
+        "الأرنب",
+        "القط",
+        "الثعبان"
+      ],
+      "correctIndex": 3,
+      "answer": "الثعبان"
+    },
+    {
+      "id": "gk_096",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 1,
+      "text": "ما الحيوان الذي يُعرف بملك الغابة؟",
+      "options": [
+        "الأسد",
+        "الدب",
+        "الفيل",
+        "النمر"
+      ],
+      "correctIndex": 0,
+      "answer": "الأسد"
+    },
+    {
+      "id": "gk_097",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "أين تحمل الكنغر صغارها؟",
+      "options": [
+        "تحت جناحها",
+        "في جيب بطنها",
+        "في فمها",
+        "على ظهرها"
+      ],
+      "correctIndex": 1,
+      "answer": "في جيب بطنها"
+    },
+    {
+      "id": "gk_098",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 2,
+      "text": "ما الحيوان الذي ينام واقفاً؟",
+      "options": [
+        "الحصان",
+        "الأرنب",
+        "القط",
+        "الكلب"
+      ],
+      "correctIndex": 0,
+      "answer": "الحصان"
+    },
+    {
+      "id": "gk_099",
+      "category": "general",
+      "subcategory": "حيوانات",
+      "difficulty": 3,
+      "text": "كم قلباً للأخطبوط؟",
+      "options": [
+        "4",
+        "3",
+        "2",
+        "1"
+      ],
+      "correctIndex": 1,
+      "answer": "3"
+    },
+    {
+      "id": "gk_100",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "كم عدد أركان الإسلام؟",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "6"
+      ],
+      "correctIndex": 2,
+      "answer": "5"
+    },
+    {
+      "id": "gk_101",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "كم عدد الصلوات المفروضة في اليوم؟",
+      "options": [
+        "4",
+        "6",
+        "5",
+        "3"
+      ],
+      "correctIndex": 2,
+      "answer": "5"
+    },
+    {
+      "id": "gk_102",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "كم عدد ركعات صلاة المغرب؟",
+      "options": [
+        "2",
+        "4",
+        "5",
+        "3"
+      ],
+      "correctIndex": 3,
+      "answer": "3"
+    },
+    {
+      "id": "gk_103",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "كم عدد ركعات صلاة الفجر؟",
+      "options": [
+        "2",
+        "5",
+        "4",
+        "3"
+      ],
+      "correctIndex": 0,
+      "answer": "2"
+    },
+    {
+      "id": "gk_104",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "كم عدد أجزاء القرآن الكريم؟",
+      "options": [
+        "20",
+        "30",
+        "40",
+        "25"
+      ],
+      "correctIndex": 1,
+      "answer": "30"
+    },
+    {
+      "id": "gk_105",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 2,
+      "text": "ما أطول سورة في القرآن الكريم؟",
+      "options": [
+        "المائدة",
+        "آل عمران",
+        "البقرة",
+        "النساء"
+      ],
+      "correctIndex": 2,
+      "answer": "البقرة"
+    },
+    {
+      "id": "gk_106",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "ما السورة التي تُفتتح بها المصاحف؟",
+      "options": [
+        "الإخلاص",
+        "الناس",
+        "الفاتحة",
+        "البقرة"
+      ],
+      "correctIndex": 2,
+      "answer": "الفاتحة"
+    },
+    {
+      "id": "gk_107",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "في أي شهر يصوم المسلمون؟",
+      "options": [
+        "شوال",
+        "شعبان",
+        "محرم",
+        "رمضان"
+      ],
+      "correctIndex": 3,
+      "answer": "رمضان"
+    },
+    {
+      "id": "gk_108",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "ما قبلة المسلمين في الصلاة؟",
+      "options": [
+        "جبل عرفة",
+        "الكعبة",
+        "المسجد الأقصى",
+        "المسجد النبوي"
+      ],
+      "correctIndex": 1,
+      "answer": "الكعبة"
+    },
+    {
+      "id": "gk_109",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 2,
+      "text": "كم شوطاً يطوف الحاج حول الكعبة؟",
+      "options": [
+        "9",
+        "5",
+        "7",
+        "3"
+      ],
+      "correctIndex": 2,
+      "answer": "7"
+    },
+    {
+      "id": "gk_110",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 2,
+      "text": "كم عدد أركان الإيمان؟",
+      "options": [
+        "6",
+        "7",
+        "5",
+        "4"
+      ],
+      "correctIndex": 0,
+      "answer": "6"
+    },
+    {
+      "id": "gk_111",
+      "category": "general",
+      "subcategory": "إسلاميات",
+      "difficulty": 1,
+      "text": "في أي مدينة تقع الكعبة المشرفة؟",
+      "options": [
+        "المدينة المنورة",
+        "الطائف",
+        "مكة المكرمة",
+        "جدة"
+      ],
+      "correctIndex": 2,
+      "answer": "مكة المكرمة"
+    },
+    {
+      "id": "gk_112",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 2,
+      "text": "كم عدد حروف اللغة العربية؟",
+      "options": [
+        "30",
+        "28",
+        "29",
+        "26"
+      ],
+      "correctIndex": 1,
+      "answer": "28"
+    },
+    {
+      "id": "gk_113",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "ما جمع كلمة (كتاب)؟",
+      "options": [
+        "مكاتب",
+        "كتّاب",
+        "كتابات",
+        "كتب"
+      ],
+      "correctIndex": 3,
+      "answer": "كتب"
+    },
+    {
+      "id": "gk_114",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 2,
+      "text": "ما مؤنث كلمة (أسد)؟",
+      "options": [
+        "ذئبة",
+        "لبؤة",
+        "قطة",
+        "نمرة"
+      ],
+      "correctIndex": 1,
+      "answer": "لبؤة"
+    },
+    {
+      "id": "gk_115",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم عدد أيام الأسبوع؟",
+      "options": [
+        "5",
+        "7",
+        "8",
+        "6"
+      ],
+      "correctIndex": 1,
+      "answer": "7"
+    },
+    {
+      "id": "gk_116",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم عدد أشهر السنة الميلادية؟",
+      "options": [
+        "12",
+        "13",
+        "10",
+        "11"
+      ],
+      "correctIndex": 0,
+      "answer": "12"
+    },
+    {
+      "id": "gk_117",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم عدد فصول السنة؟",
+      "options": [
+        "4",
+        "2",
+        "5",
+        "3"
+      ],
+      "correctIndex": 0,
+      "answer": "4"
+    },
+    {
+      "id": "gk_118",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 2,
+      "text": "كم يوماً في السنة الكبيسة؟",
+      "options": [
+        "367",
+        "364",
+        "365",
+        "366"
+      ],
+      "correctIndex": 3,
+      "answer": "366"
+    },
+    {
+      "id": "gk_119",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 2,
+      "text": "كم يوماً في شهر فبراير في السنة الكبيسة؟",
+      "options": [
+        "30",
+        "29",
+        "28",
+        "31"
+      ],
+      "correctIndex": 1,
+      "answer": "29"
+    },
+    {
+      "id": "gk_120",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم ثانية في الدقيقة الواحدة؟",
+      "options": [
+        "90",
+        "60",
+        "30",
+        "100"
+      ],
+      "correctIndex": 1,
+      "answer": "60"
+    },
+    {
+      "id": "gk_121",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم دقيقة في الساعة الواحدة؟",
+      "options": [
+        "100",
+        "60",
+        "45",
+        "30"
+      ],
+      "correctIndex": 1,
+      "answer": "60"
+    },
+    {
+      "id": "gk_122",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "كم ساعة في اليوم؟",
+      "options": [
+        "18",
+        "12",
+        "24",
+        "36"
+      ],
+      "correctIndex": 2,
+      "answer": "24"
+    },
+    {
+      "id": "gk_123",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 3,
+      "text": "من هو شاعر النيل؟",
+      "options": [
+        "أحمد شوقي",
+        "البحتري",
+        "حافظ إبراهيم",
+        "المتنبي"
+      ],
+      "correctIndex": 2,
+      "answer": "حافظ إبراهيم"
+    },
+    {
+      "id": "gk_124",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 3,
+      "text": "من هو الملقب بأمير الشعراء؟",
+      "options": [
+        "نزار قباني",
+        "حافظ إبراهيم",
+        "أحمد شوقي",
+        "المتنبي"
+      ],
+      "correctIndex": 2,
+      "answer": "أحمد شوقي"
+    },
+    {
+      "id": "gk_125",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 1,
+      "text": "ما ضد كلمة (كريم)؟",
+      "options": [
+        "شجاع",
+        "بخيل",
+        "جواد",
+        "حكيم"
+      ],
+      "correctIndex": 1,
+      "answer": "بخيل"
+    },
+    {
+      "id": "gk_126",
+      "category": "general",
+      "subcategory": "لغة",
+      "difficulty": 2,
+      "text": "ما مرادف كلمة (شجاع)؟",
+      "options": [
+        "جبان",
+        "كسول",
+        "مقدام",
+        "بخيل"
+      ],
+      "correctIndex": 2,
+      "answer": "مقدام"
+    },
+    {
+      "id": "gk_127",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 1,
+      "text": "كم عدد لاعبي فريق كرة القدم داخل الملعب؟",
+      "options": [
+        "12",
+        "11",
+        "10",
+        "9"
+      ],
+      "correctIndex": 1,
+      "answer": "11"
+    },
+    {
+      "id": "gk_128",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 2,
+      "text": "كم عدد لاعبي فريق كرة السلة داخل الملعب؟",
+      "options": [
+        "5",
+        "6",
+        "7",
+        "4"
+      ],
+      "correctIndex": 0,
+      "answer": "5"
+    },
+    {
+      "id": "gk_129",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 2,
+      "text": "كم عدد لاعبي فريق الكرة الطائرة داخل الملعب؟",
+      "options": [
+        "5",
+        "8",
+        "6",
+        "7"
+      ],
+      "correctIndex": 2,
+      "answer": "6"
+    },
+    {
+      "id": "gk_130",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 1,
+      "text": "كل كم سنة تُقام بطولة كأس العالم لكرة القدم؟",
+      "options": [
+        "5",
+        "2",
+        "4",
+        "3"
+      ],
+      "correctIndex": 2,
+      "answer": "4"
+    },
+    {
+      "id": "gk_131",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 2,
+      "text": "كل كم سنة تُقام الألعاب الأولمبية الصيفية؟",
+      "options": [
+        "4",
+        "5",
+        "3",
+        "2"
+      ],
+      "correctIndex": 0,
+      "answer": "4"
+    },
+    {
+      "id": "gk_132",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 2,
+      "text": "كم عدد حلقات العلم الأولمبي؟",
+      "options": [
+        "6",
+        "5",
+        "3",
+        "4"
+      ],
+      "correctIndex": 1,
+      "answer": "5"
+    },
+    {
+      "id": "gk_133",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 2,
+      "text": "في أي دولة نشأت رياضة الجودو؟",
+      "options": [
+        "تايلاند",
+        "اليابان",
+        "كوريا",
+        "الصين"
+      ],
+      "correctIndex": 1,
+      "answer": "اليابان"
+    },
+    {
+      "id": "gk_134",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 3,
+      "text": "كم عدد الأشواط في مباراة كرة السلة النظامية؟",
+      "options": [
+        "5",
+        "4",
+        "2",
+        "3"
+      ],
+      "correctIndex": 1,
+      "answer": "4"
+    },
+    {
+      "id": "gk_135",
+      "category": "general",
+      "subcategory": "رياضة",
+      "difficulty": 1,
+      "text": "ما مدة الشوط الواحد في كرة القدم؟",
+      "options": [
+        "45 دقيقة",
+        "90 دقيقة",
+        "30 دقيقة",
+        "60 دقيقة"
+      ],
+      "correctIndex": 0,
+      "answer": "45 دقيقة"
+    },
+    {
+      "id": "gk_136",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 1,
+      "text": "من هو مؤسس شركة مايكروسوفت؟",
+      "options": [
+        "إيلون ماسك",
+        "بيل غيتس",
+        "مارك زوكربيرغ",
+        "ستيف جوبز"
+      ],
+      "correctIndex": 1,
+      "answer": "بيل غيتس"
+    },
+    {
+      "id": "gk_137",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 1,
+      "text": "من هو أحد مؤسسي شركة آبل؟",
+      "options": [
+        "ستيف جوبز",
+        "لاري بيج",
+        "جيف بيزوس",
+        "بيل غيتس"
+      ],
+      "correctIndex": 0,
+      "answer": "ستيف جوبز"
+    },
+    {
+      "id": "gk_138",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 2,
+      "text": "ماذا يُسمى عقل الحاسب الآلي؟",
+      "options": [
+        "الشاشة",
+        "المعالج",
+        "القرص الصلب",
+        "الذاكرة"
+      ],
+      "correctIndex": 1,
+      "answer": "المعالج"
+    },
+    {
+      "id": "gk_139",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 2,
+      "text": "أي وحدة تخزين أكبر؟",
+      "options": [
+        "ميجابايت",
+        "كيلوبايت",
+        "بايت",
+        "جيجابايت"
+      ],
+      "correctIndex": 3,
+      "answer": "جيجابايت"
+    },
+    {
+      "id": "gk_140",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 2,
+      "text": "ما لغة البرمجة التي تحمل اسم ثعبان؟",
+      "options": [
+        "سي",
+        "روبي",
+        "جافا",
+        "بايثون"
+      ],
+      "correctIndex": 3,
+      "answer": "بايثون"
+    },
+    {
+      "id": "gk_141",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 3,
+      "text": "ماذا تعني الأحرف WWW؟",
+      "options": [
+        "نظام تشغيل عالمي",
+        "بروتوكول نقل الملفات",
+        "شبكة عالمية للحاسبات",
+        "الشبكة العنكبوتية العالمية"
+      ],
+      "correctIndex": 3,
+      "answer": "الشبكة العنكبوتية العالمية"
+    },
+    {
+      "id": "gk_142",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 2,
+      "text": "ما الجهاز الذي يُدخل الصور إلى الحاسب من ورق؟",
+      "options": [
+        "السماعة",
+        "الطابعة",
+        "الماسح الضوئي",
+        "الشاشة"
+      ],
+      "correctIndex": 2,
+      "answer": "الماسح الضوئي"
+    },
+    {
+      "id": "gk_143",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 1,
+      "text": "ما اسم الشبكة العالمية التي تربط الحواسيب؟",
+      "options": [
+        "الإنترنت",
+        "الإنترانت",
+        "الواي فاي",
+        "البلوتوث"
+      ],
+      "correctIndex": 0,
+      "answer": "الإنترنت"
+    },
+    {
+      "id": "gk_144",
+      "category": "general",
+      "subcategory": "تقنية",
+      "difficulty": 3,
+      "text": "من اخترع الطباعة الحديثة؟",
+      "options": [
+        "إديسون",
+        "بيل",
+        "جوتنبرج",
+        "نيوتن"
+      ],
+      "correctIndex": 2,
+      "answer": "جوتنبرج"
+    },
+    {
+      "id": "gk_145",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "من أي نبات يُستخرج السكر بشكل رئيسي؟",
+      "options": [
+        "الذرة",
+        "الأرز",
+        "القمح",
+        "قصب السكر"
+      ],
+      "correctIndex": 3,
+      "answer": "قصب السكر"
+    },
+    {
+      "id": "gk_146",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما لون السماء في يوم صافٍ؟",
+      "options": [
+        "أزرق",
+        "أخضر",
+        "أصفر",
+        "بنفسجي"
+      ],
+      "correctIndex": 0,
+      "answer": "أزرق"
+    },
+    {
+      "id": "gk_147",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما اللون الناتج عن خلط الأزرق والأصفر؟",
+      "options": [
+        "البني",
+        "البرتقالي",
+        "البنفسجي",
+        "الأخضر"
+      ],
+      "correctIndex": 3,
+      "answer": "الأخضر"
+    },
+    {
+      "id": "gk_148",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما اللون الناتج عن خلط الأحمر والأصفر؟",
+      "options": [
+        "الرمادي",
+        "البنفسجي",
+        "البرتقالي",
+        "الأخضر"
+      ],
+      "correctIndex": 2,
+      "answer": "البرتقالي"
+    },
+    {
+      "id": "gk_149",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "ما اللون الناتج عن خلط الأحمر والأزرق؟",
+      "options": [
+        "البرتقالي",
+        "الأخضر",
+        "البنفسجي",
+        "الأصفر"
+      ],
+      "correctIndex": 2,
+      "answer": "البنفسجي"
+    },
+    {
+      "id": "gk_150",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "كم عدد الألوان في العلم السعودي؟",
+      "options": [
+        "4",
+        "1",
+        "3",
+        "2"
+      ],
+      "correctIndex": 3,
+      "answer": "2"
+    },
+    {
+      "id": "gk_151",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ماذا يُستخرج من الزيتون؟",
+      "options": [
+        "الدقيق",
+        "السكر",
+        "الزيت",
+        "الملح"
+      ],
+      "correctIndex": 2,
+      "answer": "الزيت"
+    },
+    {
+      "id": "gk_152",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "ما المادة التي تُصنع منها الأواني الزجاجية أساساً؟",
+      "options": [
+        "الحديد",
+        "الخشب",
+        "الرمل",
+        "الطين"
+      ],
+      "correctIndex": 2,
+      "answer": "الرمل"
+    },
+    {
+      "id": "gk_153",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "ما الشيء الذي كلما أخذت منه كبر؟",
+      "options": [
+        "البحر",
+        "الجبل",
+        "الحفرة",
+        "البئر"
+      ],
+      "correctIndex": 2,
+      "answer": "الحفرة"
+    },
+    {
+      "id": "gk_154",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما الأداة المستخدمة لقياس الوقت؟",
+      "options": [
+        "البوصلة",
+        "الساعة",
+        "المسطرة",
+        "الميزان"
+      ],
+      "correctIndex": 1,
+      "answer": "الساعة"
+    },
+    {
+      "id": "gk_155",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما الأداة التي تحدد الاتجاهات؟",
+      "options": [
+        "البوصلة",
+        "الساعة",
+        "المسطرة",
+        "الميزان"
+      ],
+      "correctIndex": 0,
+      "answer": "البوصلة"
+    },
+    {
+      "id": "gk_156",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما مصدر الطاقة الرئيسي للأرض؟",
+      "options": [
+        "البراكين",
+        "القمر",
+        "الرياح",
+        "الشمس"
+      ],
+      "correctIndex": 3,
+      "answer": "الشمس"
+    },
+    {
+      "id": "gk_157",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 2,
+      "text": "ما نوع الطاقة التي تنتجها الألواح الشمسية؟",
+      "options": [
+        "حرارية",
+        "نووية",
+        "كهربائية",
+        "كيميائية"
+      ],
+      "correctIndex": 2,
+      "answer": "كهربائية"
+    },
+    {
+      "id": "gk_158",
+      "category": "general",
+      "subcategory": "عام",
+      "difficulty": 1,
+      "text": "ما الرقم الذي إذا ضربته في أي عدد يبقى الناتج صفراً؟",
+      "options": [
+        "10",
+        "1",
+        "100",
+        "0"
+      ],
+      "correctIndex": 3,
+      "answer": "0"
+    },
+    {
+      "id": "mt_001",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "ما متوسط الأعداد: 20، 25، 30 ؟",
+      "options": [
+        "25",
+        "22",
+        "20",
+        "30"
+      ],
+      "correctIndex": 0,
+      "answer": "25"
+    },
+    {
+      "id": "mt_002",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 144 ؟",
+      "options": [
+        "13",
+        "15",
+        "16",
+        "12"
+      ],
+      "correctIndex": 3,
+      "answer": "12"
+    },
+    {
+      "id": "mt_003",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 8 أقلام بمبلغ 48 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "12 ريال",
+        "1 ريال",
+        "6 ريال",
+        "11 ريال"
+      ],
+      "correctIndex": 2,
+      "answer": "6 ريال"
+    },
+    {
+      "id": "mt_004",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 186 + 29 ؟",
+      "options": [
+        "217",
+        "210",
+        "215",
+        "216"
+      ],
+      "correctIndex": 2,
+      "answer": "215"
+    },
+    {
+      "id": "mt_005",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 299 − 35 ؟",
+      "options": [
+        "264",
+        "269",
+        "275",
+        "260"
+      ],
+      "correctIndex": 0,
+      "answer": "264"
+    },
+    {
+      "id": "mt_006",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 286 ؟",
+      "options": [
+        "153",
+        "143",
+        "150",
+        "146"
+      ],
+      "correctIndex": 1,
+      "answer": "143"
+    },
+    {
+      "id": "mt_007",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 3، 10، 17، 24، ؟",
+      "options": [
+        "31",
+        "24",
+        "26",
+        "35"
+      ],
+      "correctIndex": 0,
+      "answer": "31"
+    },
+    {
+      "id": "mt_008",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان خمس العدد يساوي 10، فما العدد؟",
+      "options": [
+        "59",
+        "55",
+        "52",
+        "50"
+      ],
+      "correctIndex": 3,
+      "answer": "50"
+    },
+    {
+      "id": "mt_009",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 36 + 2 × 2 ؟",
+      "options": [
+        "30",
+        "40",
+        "44",
+        "41"
+      ],
+      "correctIndex": 1,
+      "answer": "40"
+    },
+    {
+      "id": "mt_010",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 7، 13، 19، 25، ؟",
+      "options": [
+        "26",
+        "29",
+        "39",
+        "31"
+      ],
+      "correctIndex": 3,
+      "answer": "31"
+    },
+    {
+      "id": "mt_011",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 37 + 6 × 6 ؟",
+      "options": [
+        "73",
+        "77",
+        "71",
+        "64"
+      ],
+      "correctIndex": 0,
+      "answer": "73"
+    },
+    {
+      "id": "mt_012",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 66 ؟",
+      "options": [
+        "134",
+        "130",
+        "133",
+        "132"
+      ],
+      "correctIndex": 3,
+      "answer": "132"
+    },
+    {
+      "id": "mt_013",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 78 ؟",
+      "options": [
+        "160",
+        "161",
+        "154",
+        "156"
+      ],
+      "correctIndex": 3,
+      "answer": "156"
+    },
+    {
+      "id": "mt_014",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 40 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "8 ريال",
+        "2 ريال",
+        "3 ريال",
+        "9 ريال"
+      ],
+      "correctIndex": 0,
+      "answer": "8 ريال"
+    },
+    {
+      "id": "mt_015",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 242 ؟",
+      "options": [
+        "121",
+        "120",
+        "129",
+        "126"
+      ],
+      "correctIndex": 0,
+      "answer": "121"
+    },
+    {
+      "id": "mt_016",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 27 ؟",
+      "options": [
+        "54",
+        "51",
+        "61",
+        "44"
+      ],
+      "correctIndex": 0,
+      "answer": "54"
+    },
+    {
+      "id": "mt_017",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 100 ؟",
+      "options": [
+        "9",
+        "10",
+        "11",
+        "15"
+      ],
+      "correctIndex": 1,
+      "answer": "10"
+    },
+    {
+      "id": "mt_018",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 324 ؟",
+      "options": [
+        "18",
+        "21",
+        "20",
+        "23"
+      ],
+      "correctIndex": 0,
+      "answer": "18"
+    },
+    {
+      "id": "mt_019",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 289 ؟",
+      "options": [
+        "18",
+        "17",
+        "19",
+        "15"
+      ],
+      "correctIndex": 1,
+      "answer": "17"
+    },
+    {
+      "id": "mt_020",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 146 − 41 ؟",
+      "options": [
+        "98",
+        "105",
+        "115",
+        "107"
+      ],
+      "correctIndex": 1,
+      "answer": "105"
+    },
+    {
+      "id": "mt_021",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 6، 10، 14، 18، ؟",
+      "options": [
+        "29",
+        "22",
+        "16",
+        "25"
+      ],
+      "correctIndex": 1,
+      "answer": "22"
+    },
+    {
+      "id": "mt_022",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 36 ؟",
+      "options": [
+        "2",
+        "6",
+        "1",
+        "10"
+      ],
+      "correctIndex": 1,
+      "answer": "6"
+    },
+    {
+      "id": "mt_023",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 241 − 78 ؟",
+      "options": [
+        "171",
+        "163",
+        "155",
+        "175"
+      ],
+      "correctIndex": 1,
+      "answer": "163"
+    },
+    {
+      "id": "mt_024",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 256 ؟",
+      "options": [
+        "16",
+        "20",
+        "14",
+        "19"
+      ],
+      "correctIndex": 0,
+      "answer": "16"
+    },
+    {
+      "id": "mt_025",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 274 ؟",
+      "options": [
+        "132",
+        "129",
+        "137",
+        "128"
+      ],
+      "correctIndex": 2,
+      "answer": "137"
+    },
+    {
+      "id": "mt_026",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 8 × 7 ؟",
+      "options": [
+        "48",
+        "52",
+        "51",
+        "56"
+      ],
+      "correctIndex": 3,
+      "answer": "56"
+    },
+    {
+      "id": "mt_027",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 56 ؟",
+      "options": [
+        "118",
+        "106",
+        "112",
+        "104"
+      ],
+      "correctIndex": 2,
+      "answer": "112"
+    },
+    {
+      "id": "mt_028",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 106 ؟",
+      "options": [
+        "50",
+        "53",
+        "60",
+        "59"
+      ],
+      "correctIndex": 1,
+      "answer": "53"
+    },
+    {
+      "id": "mt_029",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 218 ؟",
+      "options": [
+        "100",
+        "109",
+        "114",
+        "112"
+      ],
+      "correctIndex": 1,
+      "answer": "109"
+    },
+    {
+      "id": "mt_030",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 169 ؟",
+      "options": [
+        "13",
+        "15",
+        "12",
+        "16"
+      ],
+      "correctIndex": 0,
+      "answer": "13"
+    },
+    {
+      "id": "mt_031",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 5، 10، 15، 20، ؟",
+      "options": [
+        "33",
+        "21",
+        "17",
+        "25"
+      ],
+      "correctIndex": 3,
+      "answer": "25"
+    },
+    {
+      "id": "mt_032",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 3، 12، 21، 30، ؟",
+      "options": [
+        "40",
+        "49",
+        "36",
+        "39"
+      ],
+      "correctIndex": 3,
+      "answer": "39"
+    },
+    {
+      "id": "mt_033",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 147 − 26 ؟",
+      "options": [
+        "117",
+        "124",
+        "132",
+        "121"
+      ],
+      "correctIndex": 3,
+      "answer": "121"
+    },
+    {
+      "id": "mt_034",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 10٪ من 80 ؟",
+      "options": [
+        "8",
+        "7",
+        "5",
+        "9"
+      ],
+      "correctIndex": 0,
+      "answer": "8"
+    },
+    {
+      "id": "mt_035",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 166 + 67 ؟",
+      "options": [
+        "245",
+        "225",
+        "233",
+        "232"
+      ],
+      "correctIndex": 2,
+      "answer": "233"
+    },
+    {
+      "id": "mt_036",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 9، 18، 27، 36، ؟",
+      "options": [
+        "50",
+        "39",
+        "45",
+        "38"
+      ],
+      "correctIndex": 2,
+      "answer": "45"
+    },
+    {
+      "id": "mt_037",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 2، 7، 12، 17، ؟",
+      "options": [
+        "28",
+        "30",
+        "22",
+        "20"
+      ],
+      "correctIndex": 2,
+      "answer": "22"
+    },
+    {
+      "id": "mt_038",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 25 ؟",
+      "options": [
+        "5",
+        "6",
+        "0",
+        "9"
+      ],
+      "correctIndex": 0,
+      "answer": "5"
+    },
+    {
+      "id": "mt_039",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 4 × 12 ؟",
+      "options": [
+        "51",
+        "55",
+        "48",
+        "45"
+      ],
+      "correctIndex": 2,
+      "answer": "48"
+    },
+    {
+      "id": "mt_040",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 150 ؟",
+      "options": [
+        "70",
+        "74",
+        "76",
+        "75"
+      ],
+      "correctIndex": 3,
+      "answer": "75"
+    },
+    {
+      "id": "mt_041",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 4 أقلام بمبلغ 28 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "3 ريال",
+        "7 ريال",
+        "13 ريال",
+        "11 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "7 ريال"
+    },
+    {
+      "id": "mt_042",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 8، 13، 18، 23، ؟",
+      "options": [
+        "30",
+        "26",
+        "28",
+        "35"
+      ],
+      "correctIndex": 2,
+      "answer": "28"
+    },
+    {
+      "id": "mt_043",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 186 + 133 ؟",
+      "options": [
+        "319",
+        "313",
+        "316",
+        "321"
+      ],
+      "correctIndex": 0,
+      "answer": "319"
+    },
+    {
+      "id": "mt_044",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 66 ؟",
+      "options": [
+        "33",
+        "29",
+        "31",
+        "32"
+      ],
+      "correctIndex": 0,
+      "answer": "33"
+    },
+    {
+      "id": "mt_045",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 45 ؟",
+      "options": [
+        "96",
+        "91",
+        "83",
+        "90"
+      ],
+      "correctIndex": 3,
+      "answer": "90"
+    },
+    {
+      "id": "mt_046",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 169 − 51 ؟",
+      "options": [
+        "119",
+        "130",
+        "112",
+        "118"
+      ],
+      "correctIndex": 3,
+      "answer": "118"
+    },
+    {
+      "id": "mt_047",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 5، 11، 17، 23، ؟",
+      "options": [
+        "25",
+        "36",
+        "29",
+        "32"
+      ],
+      "correctIndex": 2,
+      "answer": "29"
+    },
+    {
+      "id": "mt_048",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 94 ؟",
+      "options": [
+        "188",
+        "189",
+        "186",
+        "195"
+      ],
+      "correctIndex": 0,
+      "answer": "188"
+    },
+    {
+      "id": "mt_049",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 12 × 10 ؟",
+      "options": [
+        "116",
+        "120",
+        "119",
+        "112"
+      ],
+      "correctIndex": 1,
+      "answer": "120"
+    },
+    {
+      "id": "mt_050",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 249 − 40 ؟",
+      "options": [
+        "200",
+        "209",
+        "198",
+        "204"
+      ],
+      "correctIndex": 1,
+      "answer": "209"
+    },
+    {
+      "id": "mt_051",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 37 ؟",
+      "options": [
+        "67",
+        "84",
+        "75",
+        "74"
+      ],
+      "correctIndex": 3,
+      "answer": "74"
+    },
+    {
+      "id": "mt_052",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان سدس العدد يساوي 2، فما العدد؟",
+      "options": [
+        "12",
+        "11",
+        "7",
+        "15"
+      ],
+      "correctIndex": 0,
+      "answer": "12"
+    },
+    {
+      "id": "mt_053",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 3 أقلام بمبلغ 36 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "8 ريال",
+        "12 ريال",
+        "10 ريال",
+        "17 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "12 ريال"
+    },
+    {
+      "id": "mt_054",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثمن العدد يساوي 15، فما العدد؟",
+      "options": [
+        "113",
+        "119",
+        "121",
+        "120"
+      ],
+      "correctIndex": 3,
+      "answer": "120"
+    },
+    {
+      "id": "mt_055",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 34 ؟",
+      "options": [
+        "17",
+        "23",
+        "26",
+        "22"
+      ],
+      "correctIndex": 0,
+      "answer": "17"
+    },
+    {
+      "id": "mt_056",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 25٪ من 200 ؟",
+      "options": [
+        "44",
+        "61",
+        "50",
+        "57"
+      ],
+      "correctIndex": 2,
+      "answer": "50"
+    },
+    {
+      "id": "mt_057",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 7، 14، 21، 28، ؟",
+      "options": [
+        "45",
+        "33",
+        "35",
+        "27"
+      ],
+      "correctIndex": 2,
+      "answer": "35"
+    },
+    {
+      "id": "mt_058",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 8، 14، 20، 26، ؟",
+      "options": [
+        "28",
+        "35",
+        "32",
+        "30"
+      ],
+      "correctIndex": 2,
+      "answer": "32"
+    },
+    {
+      "id": "mt_059",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 10٪ من 40 ؟",
+      "options": [
+        "7",
+        "2",
+        "5",
+        "4"
+      ],
+      "correctIndex": 3,
+      "answer": "4"
+    },
+    {
+      "id": "mt_060",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 9 × 3 ؟",
+      "options": [
+        "27",
+        "35",
+        "21",
+        "24"
+      ],
+      "correctIndex": 0,
+      "answer": "27"
+    },
+    {
+      "id": "mt_061",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 4 أقلام بمبلغ 32 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "13 ريال",
+        "2 ريال",
+        "5 ريال",
+        "8 ريال"
+      ],
+      "correctIndex": 3,
+      "answer": "8 ريال"
+    },
+    {
+      "id": "mt_062",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 90 ؟",
+      "options": [
+        "45",
+        "44",
+        "35",
+        "54"
+      ],
+      "correctIndex": 0,
+      "answer": "45"
+    },
+    {
+      "id": "mt_063",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 16 + 9 × 5 ؟",
+      "options": [
+        "52",
+        "54",
+        "71",
+        "61"
+      ],
+      "correctIndex": 3,
+      "answer": "61"
+    },
+    {
+      "id": "mt_064",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 4 أقلام بمبلغ 16 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "1 ريال",
+        "10 ريال",
+        "0 ريال",
+        "4 ريال"
+      ],
+      "correctIndex": 3,
+      "answer": "4 ريال"
+    },
+    {
+      "id": "mt_065",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 173 − 65 ؟",
+      "options": [
+        "108",
+        "114",
+        "107",
+        "98"
+      ],
+      "correctIndex": 0,
+      "answer": "108"
+    },
+    {
+      "id": "mt_066",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 5، 12، 19، 26، ؟",
+      "options": [
+        "31",
+        "39",
+        "35",
+        "33"
+      ],
+      "correctIndex": 3,
+      "answer": "33"
+    },
+    {
+      "id": "mt_067",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 60 + 5 × 3 ؟",
+      "options": [
+        "75",
+        "73",
+        "82",
+        "67"
+      ],
+      "correctIndex": 0,
+      "answer": "75"
+    },
+    {
+      "id": "mt_068",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 3 أقلام بمبلغ 21 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "7 ريال",
+        "1 ريال",
+        "11 ريال",
+        "5 ريال"
+      ],
+      "correctIndex": 0,
+      "answer": "7 ريال"
+    },
+    {
+      "id": "mt_069",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 116 − 20 ؟",
+      "options": [
+        "100",
+        "96",
+        "108",
+        "93"
+      ],
+      "correctIndex": 1,
+      "answer": "96"
+    },
+    {
+      "id": "mt_070",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثمن العدد يساوي 4، فما العدد؟",
+      "options": [
+        "32",
+        "31",
+        "30",
+        "27"
+      ],
+      "correctIndex": 0,
+      "answer": "32"
+    },
+    {
+      "id": "mt_071",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثمن العدد يساوي 13، فما العدد؟",
+      "options": [
+        "104",
+        "99",
+        "96",
+        "95"
+      ],
+      "correctIndex": 0,
+      "answer": "104"
+    },
+    {
+      "id": "mt_072",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 7 أقلام بمبلغ 105 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "19 ريال",
+        "15 ريال",
+        "12 ريال",
+        "13 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "15 ريال"
+    },
+    {
+      "id": "mt_073",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 361 ؟",
+      "options": [
+        "18",
+        "19",
+        "14",
+        "17"
+      ],
+      "correctIndex": 1,
+      "answer": "19"
+    },
+    {
+      "id": "mt_074",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 2، 11، 20، 29، ؟",
+      "options": [
+        "28",
+        "41",
+        "38",
+        "44"
+      ],
+      "correctIndex": 2,
+      "answer": "38"
+    },
+    {
+      "id": "mt_075",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 43 + 7 × 7 ؟",
+      "options": [
+        "92",
+        "102",
+        "89",
+        "93"
+      ],
+      "correctIndex": 0,
+      "answer": "92"
+    },
+    {
+      "id": "mt_076",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 123 + 109 ؟",
+      "options": [
+        "232",
+        "238",
+        "230",
+        "226"
+      ],
+      "correctIndex": 0,
+      "answer": "232"
+    },
+    {
+      "id": "mt_077",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 11 × 10 ؟",
+      "options": [
+        "110",
+        "104",
+        "118",
+        "115"
+      ],
+      "correctIndex": 0,
+      "answer": "110"
+    },
+    {
+      "id": "mt_078",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 28 + 9 × 5 ؟",
+      "options": [
+        "69",
+        "68",
+        "73",
+        "81"
+      ],
+      "correctIndex": 2,
+      "answer": "73"
+    },
+    {
+      "id": "mt_079",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 50٪ من 80 ؟",
+      "options": [
+        "50",
+        "31",
+        "40",
+        "38"
+      ],
+      "correctIndex": 2,
+      "answer": "40"
+    },
+    {
+      "id": "mt_080",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 196 ؟",
+      "options": [
+        "18",
+        "14",
+        "13",
+        "11"
+      ],
+      "correctIndex": 1,
+      "answer": "14"
+    },
+    {
+      "id": "mt_081",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 226 ؟",
+      "options": [
+        "113",
+        "109",
+        "120",
+        "118"
+      ],
+      "correctIndex": 0,
+      "answer": "113"
+    },
+    {
+      "id": "mt_082",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 27 + 3 × 3 ؟",
+      "options": [
+        "41",
+        "36",
+        "43",
+        "26"
+      ],
+      "correctIndex": 1,
+      "answer": "36"
+    },
+    {
+      "id": "mt_083",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 8، 17، 26، 35، ؟",
+      "options": [
+        "44",
+        "34",
+        "51",
+        "46"
+      ],
+      "correctIndex": 0,
+      "answer": "44"
+    },
+    {
+      "id": "mt_084",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 212 ؟",
+      "options": [
+        "97",
+        "102",
+        "106",
+        "115"
+      ],
+      "correctIndex": 2,
+      "answer": "106"
+    },
+    {
+      "id": "mt_085",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 4 × 5 ؟",
+      "options": [
+        "18",
+        "23",
+        "26",
+        "20"
+      ],
+      "correctIndex": 3,
+      "answer": "20"
+    },
+    {
+      "id": "mt_086",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 8 أقلام بمبلغ 160 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "26 ريال",
+        "20 ريال",
+        "22 ريال",
+        "24 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "20 ريال"
+    },
+    {
+      "id": "mt_087",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ربع العدد يساوي 6، فما العدد؟",
+      "options": [
+        "26",
+        "23",
+        "24",
+        "29"
+      ],
+      "correctIndex": 2,
+      "answer": "24"
+    },
+    {
+      "id": "mt_088",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 78 ؟",
+      "options": [
+        "43",
+        "39",
+        "47",
+        "41"
+      ],
+      "correctIndex": 1,
+      "answer": "39"
+    },
+    {
+      "id": "mt_089",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 4، 10، 16، 22، ؟",
+      "options": [
+        "36",
+        "23",
+        "28",
+        "32"
+      ],
+      "correctIndex": 2,
+      "answer": "28"
+    },
+    {
+      "id": "mt_090",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 152 ؟",
+      "options": [
+        "79",
+        "76",
+        "85",
+        "74"
+      ],
+      "correctIndex": 1,
+      "answer": "76"
+    },
+    {
+      "id": "mt_091",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثمن العدد يساوي 8، فما العدد؟",
+      "options": [
+        "56",
+        "62",
+        "64",
+        "58"
+      ],
+      "correctIndex": 2,
+      "answer": "64"
+    },
+    {
+      "id": "mt_092",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 7 × 7 ؟",
+      "options": [
+        "49",
+        "52",
+        "44",
+        "54"
+      ],
+      "correctIndex": 0,
+      "answer": "49"
+    },
+    {
+      "id": "mt_093",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 25٪ من 60 ؟",
+      "options": [
+        "13",
+        "10",
+        "12",
+        "15"
+      ],
+      "correctIndex": 3,
+      "answer": "15"
+    },
+    {
+      "id": "mt_094",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 9 × 6 ؟",
+      "options": [
+        "46",
+        "62",
+        "57",
+        "54"
+      ],
+      "correctIndex": 3,
+      "answer": "54"
+    },
+    {
+      "id": "mt_095",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 10٪ من 200 ؟",
+      "options": [
+        "20",
+        "16",
+        "25",
+        "17"
+      ],
+      "correctIndex": 0,
+      "answer": "20"
+    },
+    {
+      "id": "mt_096",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "ما متوسط الأعداد: 17، 22، 24 ؟",
+      "options": [
+        "27",
+        "25",
+        "21",
+        "15"
+      ],
+      "correctIndex": 2,
+      "answer": "21"
+    },
+    {
+      "id": "mt_097",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 72 ؟",
+      "options": [
+        "140",
+        "142",
+        "144",
+        "147"
+      ],
+      "correctIndex": 2,
+      "answer": "144"
+    },
+    {
+      "id": "mt_098",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 2، 5، 8، 11، ؟",
+      "options": [
+        "14",
+        "11",
+        "9",
+        "8"
+      ],
+      "correctIndex": 0,
+      "answer": "14"
+    },
+    {
+      "id": "mt_099",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان خمس العدد يساوي 6، فما العدد؟",
+      "options": [
+        "25",
+        "35",
+        "30",
+        "24"
+      ],
+      "correctIndex": 2,
+      "answer": "30"
+    },
+    {
+      "id": "mt_100",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 25 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "6 ريال",
+        "2 ريال",
+        "5 ريال",
+        "0 ريال"
+      ],
+      "correctIndex": 2,
+      "answer": "5 ريال"
+    },
+    {
+      "id": "mt_101",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 7 × 4 ؟",
+      "options": [
+        "30",
+        "21",
+        "28",
+        "34"
+      ],
+      "correctIndex": 2,
+      "answer": "28"
+    },
+    {
+      "id": "mt_102",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 144 + 146 ؟",
+      "options": [
+        "290",
+        "292",
+        "295",
+        "286"
+      ],
+      "correctIndex": 0,
+      "answer": "290"
+    },
+    {
+      "id": "mt_103",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 91 + 73 ؟",
+      "options": [
+        "152",
+        "172",
+        "164",
+        "162"
+      ],
+      "correctIndex": 2,
+      "answer": "164"
+    },
+    {
+      "id": "mt_104",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 57 + 150 ؟",
+      "options": [
+        "199",
+        "196",
+        "207",
+        "202"
+      ],
+      "correctIndex": 2,
+      "answer": "207"
+    },
+    {
+      "id": "mt_105",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 35 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "12 ريال",
+        "2 ريال",
+        "6 ريال",
+        "7 ريال"
+      ],
+      "correctIndex": 3,
+      "answer": "7 ريال"
+    },
+    {
+      "id": "mt_106",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 6 أقلام بمبلغ 90 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "20 ريال",
+        "15 ريال",
+        "13 ريال",
+        "19 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "15 ريال"
+    },
+    {
+      "id": "mt_107",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 9 × 12 ؟",
+      "options": [
+        "108",
+        "104",
+        "111",
+        "107"
+      ],
+      "correctIndex": 0,
+      "answer": "108"
+    },
+    {
+      "id": "mt_108",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 100 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "14 ريال",
+        "20 ريال",
+        "25 ريال",
+        "15 ريال"
+      ],
+      "correctIndex": 1,
+      "answer": "20 ريال"
+    },
+    {
+      "id": "mt_109",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 59 + 7 × 5 ؟",
+      "options": [
+        "102",
+        "97",
+        "94",
+        "88"
+      ],
+      "correctIndex": 2,
+      "answer": "94"
+    },
+    {
+      "id": "mt_110",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "كم ناتج 33 + 6 × 9 ؟",
+      "options": [
+        "87",
+        "83",
+        "81",
+        "85"
+      ],
+      "correctIndex": 0,
+      "answer": "87"
+    },
+    {
+      "id": "mt_111",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما الجذر التربيعي للعدد 225 ؟",
+      "options": [
+        "13",
+        "15",
+        "16",
+        "19"
+      ],
+      "correctIndex": 1,
+      "answer": "15"
+    },
+    {
+      "id": "mt_112",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 144 + 116 ؟",
+      "options": [
+        "262",
+        "250",
+        "267",
+        "260"
+      ],
+      "correctIndex": 3,
+      "answer": "260"
+    },
+    {
+      "id": "mt_113",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 50٪ من 40 ؟",
+      "options": [
+        "14",
+        "25",
+        "18",
+        "20"
+      ],
+      "correctIndex": 3,
+      "answer": "20"
+    },
+    {
+      "id": "mt_114",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 20 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "0 ريال",
+        "5 ريال",
+        "4 ريال",
+        "10 ريال"
+      ],
+      "correctIndex": 2,
+      "answer": "4 ريال"
+    },
+    {
+      "id": "mt_115",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 18 ؟",
+      "options": [
+        "36",
+        "35",
+        "40",
+        "41"
+      ],
+      "correctIndex": 0,
+      "answer": "36"
+    },
+    {
+      "id": "mt_116",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 182 ؟",
+      "options": [
+        "85",
+        "99",
+        "91",
+        "100"
+      ],
+      "correctIndex": 2,
+      "answer": "91"
+    },
+    {
+      "id": "mt_117",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 10٪ من 120 ؟",
+      "options": [
+        "11",
+        "16",
+        "12",
+        "10"
+      ],
+      "correctIndex": 2,
+      "answer": "12"
+    },
+    {
+      "id": "mt_118",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 7 × 12 ؟",
+      "options": [
+        "79",
+        "76",
+        "84",
+        "78"
+      ],
+      "correctIndex": 2,
+      "answer": "84"
+    },
+    {
+      "id": "mt_119",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 8 × 8 ؟",
+      "options": [
+        "64",
+        "71",
+        "61",
+        "66"
+      ],
+      "correctIndex": 0,
+      "answer": "64"
+    },
+    {
+      "id": "mt_120",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثلث العدد يساوي 2، فما العدد؟",
+      "options": [
+        "8",
+        "6",
+        "1",
+        "9"
+      ],
+      "correctIndex": 1,
+      "answer": "6"
+    },
+    {
+      "id": "mt_121",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 90 ؟",
+      "options": [
+        "175",
+        "180",
+        "185",
+        "189"
+      ],
+      "correctIndex": 1,
+      "answer": "180"
+    },
+    {
+      "id": "mt_122",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 68 + 75 ؟",
+      "options": [
+        "139",
+        "145",
+        "143",
+        "138"
+      ],
+      "correctIndex": 2,
+      "answer": "143"
+    },
+    {
+      "id": "mt_123",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 8، 16، 24، 32، ؟",
+      "options": [
+        "51",
+        "40",
+        "48",
+        "34"
+      ],
+      "correctIndex": 1,
+      "answer": "40"
+    },
+    {
+      "id": "mt_124",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 100 + 129 ؟",
+      "options": [
+        "217",
+        "234",
+        "229",
+        "220"
+      ],
+      "correctIndex": 2,
+      "answer": "229"
+    },
+    {
+      "id": "mt_125",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 256 − 65 ؟",
+      "options": [
+        "186",
+        "192",
+        "191",
+        "202"
+      ],
+      "correctIndex": 2,
+      "answer": "191"
+    },
+    {
+      "id": "mt_126",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان سدس العدد يساوي 7، فما العدد؟",
+      "options": [
+        "41",
+        "42",
+        "37",
+        "39"
+      ],
+      "correctIndex": 1,
+      "answer": "42"
+    },
+    {
+      "id": "mt_127",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 213 − 60 ؟",
+      "options": [
+        "147",
+        "165",
+        "153",
+        "141"
+      ],
+      "correctIndex": 2,
+      "answer": "153"
+    },
+    {
+      "id": "mt_128",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 219 − 48 ؟",
+      "options": [
+        "178",
+        "159",
+        "171",
+        "164"
+      ],
+      "correctIndex": 2,
+      "answer": "171"
+    },
+    {
+      "id": "mt_129",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 133 + 78 ؟",
+      "options": [
+        "209",
+        "211",
+        "215",
+        "199"
+      ],
+      "correctIndex": 1,
+      "answer": "211"
+    },
+    {
+      "id": "mt_130",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 50٪ من 160 ؟",
+      "options": [
+        "66",
+        "103",
+        "80",
+        "59"
+      ],
+      "correctIndex": 2,
+      "answer": "80"
+    },
+    {
+      "id": "mt_131",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "ما العدد التالي في المتتالية: 2، 9، 16، 23، ؟",
+      "options": [
+        "35",
+        "30",
+        "32",
+        "22"
+      ],
+      "correctIndex": 1,
+      "answer": "30"
+    },
+    {
+      "id": "mt_132",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم نصف العدد 156 ؟",
+      "options": [
+        "70",
+        "74",
+        "78",
+        "87"
+      ],
+      "correctIndex": 2,
+      "answer": "78"
+    },
+    {
+      "id": "mt_133",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 184 + 171 ؟",
+      "options": [
+        "357",
+        "346",
+        "343",
+        "355"
+      ],
+      "correctIndex": 3,
+      "answer": "355"
+    },
+    {
+      "id": "mt_134",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 27 + 83 ؟",
+      "options": [
+        "110",
+        "105",
+        "112",
+        "116"
+      ],
+      "correctIndex": 0,
+      "answer": "110"
+    },
+    {
+      "id": "mt_135",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان ثمن العدد يساوي 12، فما العدد؟",
+      "options": [
+        "96",
+        "108",
+        "94",
+        "92"
+      ],
+      "correctIndex": 0,
+      "answer": "96"
+    },
+    {
+      "id": "mt_136",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 6 × 11 ؟",
+      "options": [
+        "59",
+        "58",
+        "66",
+        "63"
+      ],
+      "correctIndex": 2,
+      "answer": "66"
+    },
+    {
+      "id": "mt_137",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "ما ضعف العدد 39 ؟",
+      "options": [
+        "78",
+        "80",
+        "79",
+        "73"
+      ],
+      "correctIndex": 0,
+      "answer": "78"
+    },
+    {
+      "id": "mt_138",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 187 + 132 ؟",
+      "options": [
+        "328",
+        "309",
+        "310",
+        "319"
+      ],
+      "correctIndex": 3,
+      "answer": "319"
+    },
+    {
+      "id": "mt_139",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "اشترى شخص 5 أقلام بمبلغ 75 ريال، فكم سعر القلم الواحد؟",
+      "options": [
+        "17 ريال",
+        "13 ريال",
+        "15 ريال",
+        "10 ريال"
+      ],
+      "correctIndex": 2,
+      "answer": "15 ريال"
+    },
+    {
+      "id": "mt_140",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 2,
+      "text": "كم يساوي 25٪ من 240 ؟",
+      "options": [
+        "42",
+        "60",
+        "44",
+        "41"
+      ],
+      "correctIndex": 1,
+      "answer": "60"
+    },
+    {
+      "id": "mt_141",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 3,
+      "text": "إذا كان خمس العدد يساوي 11، فما العدد؟",
+      "options": [
+        "49",
+        "55",
+        "50",
+        "62"
+      ],
+      "correctIndex": 1,
+      "answer": "55"
+    },
+    {
+      "id": "mt_142",
+      "category": "math",
+      "subcategory": "رياضيات",
+      "difficulty": 1,
+      "text": "كم ناتج 154 − 47 ؟",
+      "options": [
+        "103",
+        "107",
+        "100",
+        "111"
+      ],
+      "correctIndex": 1,
+      "answer": "107"
+    }
+  ]
+}
