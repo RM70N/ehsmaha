@@ -49,6 +49,16 @@ export const VOLCANIC_LANDS_CONFIG = {
   lateJoinLavaMargin: 2,
   maxPlayers: 60,
 
+  /** الإنعاش بهدايا تيك توك — يُفعّله الستريمر من الخيارات الإضافية. */
+  revive: {
+    /** أقل عدد عملات (diamonds) تقبله اللعبة كهدية إنعاش. */
+    minDiamonds: 1,
+    /** يعود اللاعب فوق سطح اللافا الحالي بهذا العدد من البلوكات. */
+    heightAboveLava: 2,
+    /** أقصى عدد مرات إنعاش لكل لاعب في المباراة الواحدة. */
+    maxPerPlayer: 1,
+  } as const,
+
   // ---- مدد الحالات بالملّي ثانية — §4 ----
   timings: {
     COUNTDOWN: 3000,
@@ -103,6 +113,8 @@ export interface StreamerSettings {
   difficulty: DifficultyMode;
   maxPlayers: number;
   allowLateJoin: boolean;
+  /** إنعاش اللاعب المحترق عند إرسال هدية تيك توك. */
+  reviveOnGift: boolean;
 }
 
 export function defaultStreamerSettings(): StreamerSettings {
@@ -112,6 +124,7 @@ export function defaultStreamerSettings(): StreamerSettings {
     difficulty: VOLCANIC_LANDS_CONFIG.difficulty,
     maxPlayers: VOLCANIC_LANDS_CONFIG.maxPlayers,
     allowLateJoin: VOLCANIC_LANDS_CONFIG.allowLateJoin,
+    reviveOnGift: false,
   };
 }
 

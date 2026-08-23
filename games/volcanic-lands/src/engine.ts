@@ -3,7 +3,8 @@
 // المباراة كاملةً قابلة للمحاكاة بلا واجهة (§13).
 
 import type {
-  AnswerChoice, ChatEvent, ChatOutcome, GamePhase, LeaderboardRow, Player, PresentedQuestion,
+  AnswerChoice, ChatEvent, ChatOutcome, GamePhase, GiftEvent, LeaderboardRow, Player,
+  PresentedQuestion, ReviveOutcome,
 } from './types.js';
 import type { StreamerSettings } from './config.js';
 import { VOLCANIC_LANDS_CONFIG, defaultStreamerSettings, lavaRiseForRound } from './config.js';
@@ -30,6 +31,8 @@ export interface EngineEvents {
   onBuild?: (results: readonly RoundResultEntry[]) => void;
   onLavaRise?: (newLevel: number, rise: number) => void;
   onBurn?: (burned: readonly Player[]) => void;
+  /** أُنعش لاعب محترق بهدية تيك توك. */
+  onRevive?: (player: Player, gift: GiftEvent) => void;
   onGameOver?: (leaderboard: readonly LeaderboardRow[]) => void;
   /** انقطاع الشات — تنبيه للستريمر فقط (§12). */
   onChatDisconnect?: () => void;
@@ -171,6 +174,7 @@ export class VolcanicLandsEngine {
       p.joinedAtRound = 0;
       p.correctAnswers = 0;
       p.totalAnswerTime = 0;
+      p.revivedCount = 0;
       this.resetRoundState(p);
     }
     this.machine.go('LOBBY');
@@ -278,9 +282,43 @@ export class VolcanicLandsEngine {
       choice: null,
       totalAnswerTime: 0,
       correctAnswers: 0,
+      revivedCount: 0,
     };
     this.players.set(player.userId, player);
     return player;
+  }
+
+  /**
+   * إنعاش لاعب محترق بهدية تيك توك — §11.
+   * يعود فوق سطح اللافا الحالي مباشرة فلا يحترق فوراً في نفس الجولة، ويُقيَّد
+   * بعدد مرات ثابت لكل لاعب حتى لا تتحول المباراة إلى بقاء بالدفع بلا نهاية.
+   */
+  reviveByGift(gift: GiftEvent): ReviveOutcome {
+    if (!this.settings.reviveOnGift) return { kind: 'rejected', reason: 'disabled' };
+    const phase = this.machine.current;
+    if (phase === 'GAME_OVER' || phase === 'IDLE' || phase === 'LOBBY') {
+      return { kind: 'rejected', reason: 'match-over' };
+    }
+    const player = this.players.get(gift.userId);
+    if (!player) return { kind: 'rejected', reason: 'not-playing' };
+    if (player.alive) return { kind: 'rejected', reason: 'still-alive' };
+    if (gift.diamonds < VOLCANIC_LANDS_CONFIG.revive.minDiamonds) {
+      return { kind: 'rejected', reason: 'too-few-diamonds' };
+    }
+    if (player.revivedCount >= VOLCANIC_LANDS_CONFIG.revive.maxPerPlayer) {
+      return { kind: 'rejected', reason: 'limit-reached' };
+    }
+
+    player.alive = true;
+    player.burnedAtRound = null;
+    player.revivedCount += 1;
+    player.height = this.lavaLevel + VOLCANIC_LANDS_CONFIG.revive.heightAboveLava;
+    // لا يُحتسب له إجابة في الجولة الجارية — يبدأ من الجولة التالية نظيفاً.
+    this.resetRoundState(player);
+    if (gift.avatarUrl && !player.avatarUrl) player.avatarUrl = gift.avatarUrl;
+
+    this.events.onRevive?.(player, gift);
+    return { kind: 'revived', player };
   }
 
   /** «اطرد لاعب» — نفس نمط بقية الألعاب في الموقع. */
@@ -418,4 +456,4 @@ export class VolcanicLandsEngine {
   }
 }
 
-export type { AnswerChoice, ChatEvent, LeaderboardRow, Player, PresentedQuestion };
+export type { AnswerChoice, ChatEvent, GiftEvent, LeaderboardRow, Player, PresentedQuestion, ReviveOutcome };

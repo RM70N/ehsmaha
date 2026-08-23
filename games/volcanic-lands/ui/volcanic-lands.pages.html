@@ -101,6 +101,13 @@
       </label>
     </div>
     <div class="dev-visuals-toggle-row">
+      <label class="dev-visuals-toggle-label" for="volcanic-lands-opt-revive">🎁 الإنعاش بهدايا تيك توك — أي مشاهد يرسل هدية يعود لاعبه المحترق فوق سطح اللافا مباشرة (مرة واحدة لكل لاعب)</label>
+      <label class="mod-toggle">
+        <input type="checkbox" id="volcanic-lands-opt-revive">
+        <span class="mod-toggle-slider"></span>
+      </label>
+    </div>
+    <div class="dev-visuals-toggle-row">
       <label class="dev-visuals-toggle-label" for="volcanic-lands-opt-sound">🔊 المؤثرات الصوتية — هدير عند صعود اللافا ونغمة عند كشف الإجابة</label>
       <label class="mod-toggle">
         <input type="checkbox" id="volcanic-lands-opt-sound" checked>
@@ -199,21 +206,6 @@
           <div class="vl-winner" id="volcanic-lands-winner" style="display:none"></div>
         </div>
 
-        <!-- ===== الشريط الجانبي ===== -->
-        <div class="vl-side">
-          <div class="vl-side-card">
-            <div class="vl-side-title">حالة الجولة</div>
-            <div class="vl-side-stats">
-              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-alive">0</div><div class="vl-side-stat-l">صامدون</div></div>
-              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-lava">0</div><div class="vl-side-stat-l">اللافا</div></div>
-              <div class="vl-side-stat"><div class="vl-side-stat-v" id="volcanic-lands-stat-round">0</div><div class="vl-side-stat-l">الجولة</div></div>
-            </div>
-          </div>
-          <div class="vl-side-card vl-side-board">
-            <div class="vl-side-title">أفضل 5</div>
-            <div id="volcanic-lands-leaderboard" class="vl-lb-scroll"></div>
-          </div>
-        </div>
       </div>
 
       <div class="game-bottom-row">
@@ -232,7 +224,12 @@
           <input type="checkbox" id="volcanic-lands-live-latejoin" checked onchange="vlToggleLateJoin(this.checked)">
           <span>🚪 السماح بالمتأخرين</span>
         </label>
+        <label class="vl-inline-toggle" for="volcanic-lands-live-revive">
+          <input type="checkbox" id="volcanic-lands-live-revive" onchange="vlToggleRevive(this.checked)">
+          <span>🎁 الإنعاش بالهدايا</span>
+        </label>
         <button class="btn-reset" id="volcanic-lands-btn-sim" onclick="vlSimulatePlayers()">🧪 محاكاة 20 لاعباً</button>
+        <button class="btn-reset" id="volcanic-lands-btn-simgift" onclick="vlSimulateGift()">🎁 محاكاة هدية</button>
       </div>
     </div>
 

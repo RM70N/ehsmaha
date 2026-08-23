@@ -19,7 +19,8 @@
   var lowFxSince = 0;
   var lowFxActive = false;
   var streamerUser = '';
-  var blockHeightPx = 44;        // يُقاس من DOM فعلياً عند أول رسم
+  var blockHeightPx = 44;        // يُحسب في layoutTowers حسب عرض الساحة
+  var lastHudHeight = 0;
 
   // ------------------------------------------------------------------ أدوات
   function $(id) { return document.getElementById(id); }
@@ -128,6 +129,7 @@
   function sfxBuild() { tone(880, 130, 'sine', 0.045); }
   function sfxLava() { tone(70, 900, 'sawtooth', 0.09); }
   function sfxBurn() { tone(140, 500, 'square', 0.05); }
+  function sfxRevive() { tone(700, 160, 'sine', 0.06); setTimeout(function () { tone(1050, 260, 'sine', 0.06); }, 170); }
   function sfxWin() { tone(523, 180, 'sine', 0.07); setTimeout(function () { tone(784, 320, 'sine', 0.07); }, 190); }
 
   // ------------------------------------------------------------------ الأرقام
@@ -145,11 +147,48 @@
     return Math.min(stageHeight() - 40, level * (blockHeightPx + 4));
   }
 
-  function densityLevel(count) {
-    if (count <= 12) return 0;
-    if (count <= 24) return 1;
-    if (count <= 40) return 2;
-    return 3;
+  /**
+   * يوزّع العرض المتاح على كل اللاعبين فيظهر الجميع دائماً — مهما كان العدد
+   * أو حجم الشاشة. إغلاق شات البث يوسّع الساحة فتكبر الأبراج تلقائياً في
+   * الإطار التالي لأن الحساب يعتمد على العرض الفعلي لا على عدد ثابت.
+   */
+  function layoutTowers(count) {
+    var host = $(TAG + '-towers');
+    var stage = $(TAG + '-stage');
+    if (!host || !stage || count <= 0) return;
+
+    var avail = Math.max(120, stage.clientWidth - 24);
+    var gap = count > 34 ? 3 : count > 22 ? 5 : count > 12 ? 12 : 24;
+    var w = Math.floor((avail - gap * (count - 1)) / count);
+    w = Math.max(10, Math.min(96, w));
+
+    // لو ضاقت الأبراج أكثر من اللازم نضيّق الفجوة أولاً بدل تصغيرها أكثر.
+    if (w <= 14 && gap > 2) {
+      gap = 2;
+      w = Math.max(10, Math.min(96, Math.floor((avail - gap * (count - 1)) / count)));
+    }
+
+    var blockH = Math.max(7, Math.min(40, Math.round(w * 0.46)));
+    var av = Math.max(14, Math.min(62, Math.round(w * 0.66)));
+
+    host.style.setProperty('--vl-tower-w', w + 'px');
+    host.style.setProperty('--vl-gap', gap + 'px');
+    host.style.setProperty('--vl-block-h', blockH + 'px');
+    host.style.setProperty('--vl-av', av + 'px');
+    host.setAttribute('data-compact', av < 26 ? '1' : '0');
+    blockHeightPx = blockH;
+  }
+
+  /** حشو اللوبي العلوي = ارتفاع الشريط العلوي الفعلي، فلا يتداخلان. */
+  function syncHudHeight() {
+    var hud = document.querySelector('#pg-' + TAG + ' .vl-hud');
+    var stage = $(TAG + '-stage');
+    if (!hud || !stage) return;
+    var h = Math.round(hud.getBoundingClientRect().height);
+    if (h > 0 && h !== lastHudHeight) {
+      lastHudHeight = h;
+      stage.style.setProperty('--vl-hud-h', h + 'px');
+    }
   }
 
   function buildTowerNode(player) {
@@ -221,10 +260,8 @@
         host.appendChild(node.root);
       });
       renderedRoster = fingerprint;
-      var d = densityLevel(players.length);
-      host.setAttribute('data-dense', String(d));
-      host.classList.toggle('vl-two-rows', players.length > 20);
     }
+    layoutTowers(players.length);
 
     var phase = engine.phase;
     var lava = engine.lava;
@@ -388,46 +425,11 @@
   function renderHud() {
     setText(TAG + '-round', num(engine.currentRound));
     setText(TAG + '-alive', num(engine.alivePlayers().length));
-    setText(TAG + '-stat-alive', num(engine.alivePlayers().length));
-    setText(TAG + '-stat-lava', num(engine.lava));
-    setText(TAG + '-stat-round', num(engine.currentRound));
     setText(TAG + '-lava-warn', 'اللافا سترتفع ' + num(engine.nextLavaRise()) + ' بلوكات');
     setText(TAG + '-kw-chip', engine.getSettings().joinKeyword);
     setText(TAG + '-lobby-kw', engine.getSettings().joinKeyword);
     var info = $(TAG + '-session-info');
     if (info) info.textContent = 'أسئلة مستخدَمة في هذه الجلسة: ' + engine.usedQuestionCount + '/300';
-  }
-
-  function renderLeaderboard() {
-    var host = $(TAG + '-leaderboard');
-    if (!host) return;
-    var rows = engine.top(5);
-    var sig = rows.map(function (r) { return r.userId + ':' + r.points + ':' + r.height + ':' + r.alive; }).join('|');
-    if (host.getAttribute('data-sig') === sig) return;
-    host.setAttribute('data-sig', sig);
-    host.textContent = '';
-    rows.forEach(function (r) {
-      var row = document.createElement('div');
-      row.className = 'vl-lb-row' + (r.alive ? '' : ' vl-lb-dead');
-      var rank = document.createElement('div');
-      rank.className = 'vl-lb-rank';
-      rank.textContent = num(r.rank);
-      row.appendChild(rank);
-      row.appendChild(buildAvatar(r, 'vl-lb-avatar'));
-      var nm = document.createElement('div');
-      nm.className = 'vl-lb-name';
-      nm.textContent = r.nickname;
-      row.appendChild(nm);
-      var pts = document.createElement('div');
-      pts.className = 'vl-lb-pts';
-      pts.textContent = num(r.points);
-      row.appendChild(pts);
-      var h = document.createElement('div');
-      h.className = 'vl-lb-h';
-      h.textContent = '▲' + num(r.height);
-      row.appendChild(h);
-      host.appendChild(row);
-    });
   }
 
   function renderBanner() {
@@ -575,13 +577,13 @@
     trackFps(now);
     // طابور الشات يُفرَّغ مرة كل إطار — لا معالجة داخل حلقة الرسم نفسها (§6)
     engine.drainChat();
+    syncHudHeight();
     renderHud();
     renderLobby();
     renderTowers();
     renderLava();
     renderCard();
     renderBanner();
-    renderLeaderboard();
     renderWinner();
     updateCamera();
   }
@@ -601,6 +603,16 @@
     for (var i = 0; i < messages.length; i++) {
       var msg = messages[i];
       var type = msg.type || msg.event;
+      // ---- هدايا تيك توك: إنعاش اللاعب المحترق ----
+      if (type === 'WebcastGiftMessage' || type === 'gift') {
+        var giver = extractUser(msg);
+        rememberAvatar(giver.uniqueId, giver.avatar);
+        var giftName = msg.giftName || (msg.gift && msg.gift.name) || (msg.data && msg.data.giftName) || 'هدية';
+        var diamondCount = Number(msg.diamondCount || (msg.gift && msg.gift.diamond_count) || (msg.data && msg.data.diamondCount) || 0) || 0;
+        var repeatCount = Number(msg.repeatCount || (msg.data && msg.data.repeatCount) || 1) || 1;
+        applyGift(giver, giftName, diamondCount * repeatCount);
+        continue;
+      }
       if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') continue;
       var user = extractUser(msg);
       var text = String(msg.comment || msg.content || (msg.data && msg.data.comment) || '').trim();
@@ -614,6 +626,40 @@
         comment: text,
         timestamp: Date.now(),
       });
+    }
+  }
+
+  /**
+   * هدية واحدة = محاولة إنعاش واحدة. المحرّك هو من يقرر القبول أو الرفض
+   * (المفتاح مطفأ، اللاعب حيّ، الهدية صغيرة، تجاوز الحد، المباراة انتهت)،
+   * والواجهة تكتفي بعرض النتيجة للستريمر.
+   */
+  function applyGift(giver, giftName, diamonds) {
+    if (!engine) return;
+    var out = engine.reviveByGift({
+      userId: giver.uniqueId,
+      nickname: giver.nickname,
+      avatarUrl: giver.avatar,
+      giftName: giftName,
+      diamonds: diamonds,
+    });
+    if (out.kind === 'revived') return;             // onRevive يتكفّل بالإشعار
+    // نُعلم الستريمر فقط بالحالات التي يهمّه يعرفها.
+    if (out.reason === 'disabled' && typeof toast === 'function') {
+      toast('🎁 ' + giver.nickname + ' أرسل «' + giftName + '» — فعّل «الإنعاش بالهدايا» ليعود اللاعبون');
+    } else if (out.reason === 'too-few-diamonds' && typeof toast === 'function') {
+      toast('🎁 هدية «' + giftName + '» صغيرة جداً للإنعاش');
+    } else if (out.reason === 'limit-reached' && typeof toast === 'function') {
+      toast('🎁 ' + giver.nickname + ' استهلك إنعاشه في هذه المباراة');
+    }
+  }
+
+  function onRevive(player, gift) {
+    renderedRoster = '';                            // يُعاد بناء برجه من جديد
+    towerNodes.delete(player.userId);
+    sfxRevive();
+    if (typeof toast === 'function') {
+      toast('🎁✨ ' + player.nickname + ' عاد للعبة بهدية «' + gift.giftName + '»!');
     }
   }
 
@@ -769,6 +815,28 @@
     if (typeof toast === 'function') toast(checked ? '🚪 الانضمام المتأخر مسموح' : '🚪 الانضمام المتأخر متوقف');
   }
 
+  function vlToggleRevive(checked) {
+    if (engine) engine.updateSettings({ reviveOnGift: !!checked });
+    var setupBox = $(TAG + '-opt-revive');
+    if (setupBox) setupBox.checked = !!checked;
+    if (typeof toast === 'function') {
+      toast(checked ? '🎁 الإنعاش بالهدايا مفعّل' : '🎁 الإنعاش بالهدايا متوقف');
+    }
+  }
+
+  /** يحاكي هدية حقيقية لأول لاعب محترق — للتجربة قبل البث. */
+  function vlSimulateGift() {
+    if (!engine) return;
+    var dead = engine.allPlayers().filter(function (p) { return !p.alive; });
+    if (dead.length === 0) {
+      if (typeof toast === 'function') toast('🎁 ما فيه لاعب محترق حالياً لتجربة الإنعاش');
+      return;
+    }
+    var target = dead[0];
+    applyGift({ uniqueId: target.userId, nickname: target.nickname, avatar: target.avatarUrl },
+              'وردة', 5);
+  }
+
   function vlOpenKickModal() {
     if (!engine || typeof kickModalOpen !== 'function') return;
     var map = new Map();
@@ -877,6 +945,7 @@
     var maxPlayers = parseInt($(TAG + '-maxplayers').value, 10);
     var difficulty = $(TAG + '-difficulty').value;
     var allowLateJoin = $(TAG + '-opt-latejoin').checked;
+    var reviveOnGift = $(TAG + '-opt-revive').checked;
     soundOn = $(TAG + '-opt-sound').checked;
 
     if (!joinKeyword || joinKeyword.length > 14) { vlSetStatus('err', '⚠️ كلمة الانضمام لازم تكون 1–14 حرفاً'); return; }
@@ -892,6 +961,7 @@
       onPhaseChange: onPhaseChange,
       onBurn: onBurn,
       onBuild: onBuild,
+      onRevive: onRevive,
       onChatDisconnect: function () { if (typeof toast === 'function') toast('⚠️ انقطع الشات — اللعبة مستمرة'); },
     }, {
       roundSeconds: roundSeconds,
@@ -899,10 +969,13 @@
       difficulty: difficulty,
       maxPlayers: maxPlayers,
       allowLateJoin: allowLateJoin,
+      reviveOnGift: reviveOnGift,
     });
 
     var liveToggle = $(TAG + '-live-latejoin');
     if (liveToggle) liveToggle.checked = allowLateJoin;
+    var reviveToggle = $(TAG + '-live-revive');
+    if (reviveToggle) reviveToggle.checked = reviveOnGift;
 
     if (typeof ownerRegisterActiveStreamer === 'function') {
       ownerRegisterActiveStreamer(TAG, streamerUser, (typeof gamePlatform === 'object' ? gamePlatform[TAG] : 'tiktok'), 'الأراضي البركانية');
@@ -916,6 +989,12 @@
     if (dot) dot.className = 'dot on';
 
     show(TAG);
+    // على الجوال نبدأ والشات مطويّ حتى تأخذ الساحة الشاشة كاملة؛ زر 💬 الذي
+    // ينشئه الموقع يفتحه كلوح سفلي عند الحاجة.
+    if (window.innerWidth <= 900 && typeof collapseGameChat === 'function') {
+      var layoutEl = document.querySelector('#pg-' + TAG + ' .vl-layout');
+      if (layoutEl) collapseGameChat(layoutEl, true);
+    }
     seedLavaDecor();
     engine.openLobby();
     homeRegisterGameListener(TAG, vlHandleEvent);
@@ -953,6 +1032,8 @@
   window.vlToggleLateJoin = vlToggleLateJoin;
   window.vlOpenKickModal = vlOpenKickModal;
   window.vlSimulatePlayers = vlSimulatePlayers;
+  window.vlToggleRevive = vlToggleRevive;
+  window.vlSimulateGift = vlSimulateGift;
   window.vlGoHome = vlGoHome;
   window.vlTeardown = teardown;
 

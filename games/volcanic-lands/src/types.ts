@@ -82,7 +82,25 @@ export interface Player {
   /** مجموع أزمنة الإجابة الصحيحة — لفض التعادل. */
   totalAnswerTime: number;
   correctAnswers: number;
+  /** كم مرة أُنعش هذا اللاعب بهدية — يحدّه maxRevivesPerPlayer. */
+  revivedCount: number;
 }
+
+/** حدث هدية تيك توك موحَّد كما يصل من جسر البث. */
+export interface GiftEvent {
+  readonly userId: string;
+  readonly nickname: string;
+  readonly avatarUrl: string;
+  readonly giftName: string;
+  /** إجمالي العملات = diamondCount × repeatCount. */
+  readonly diamonds: number;
+}
+
+/** نتيجة محاولة إنعاش بهدية. */
+export type ReviveOutcome =
+  | { readonly kind: 'revived'; readonly player: Player }
+  | { readonly kind: 'rejected'; readonly reason:
+      'disabled' | 'not-playing' | 'still-alive' | 'too-few-diamonds' | 'limit-reached' | 'match-over' };
 
 /** حدث شات موحَّد كما يصل من جسر البث (نفس شكل extractUser في الموقع). */
 export interface ChatEvent {

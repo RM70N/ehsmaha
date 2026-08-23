@@ -22,6 +22,12 @@
   --vl-lava-deep: #c4290b;
   --vl-lava-core: #7d1505;
   --vl-display: 'Amiri', serif;
+  /* قيم افتراضية للمقاسات الديناميكية — لازمة لأن .vl-avatar يُستخدم أيضاً
+     خارج .vl-towers (اللوبي)، وبدونها يصير العرض غير معرَّف ويتضخّم. */
+  --vl-tower-w: 92px;
+  --vl-block-h: 44px;
+  --vl-av: 62px;
+  --vl-gap: 30px;
 }
 
 /* ------------------------------------------------------------------ الساحة */
@@ -58,60 +64,57 @@
 .vl-quake { animation: lv-quake .5s ease-in-out 4; }
 
 /* ------------------------------------------------------------------ الأبراج */
+/* المقاسات تُحسب في JS من عرض الساحة ÷ عدد اللاعبين، فيظهر الجميع دائماً
+   مهما كان العدد أو حجم الشاشة. القيم هنا مجرد قيم بدء. */
 .vl-towers {
   position: absolute;
   left: 0; right: 0; bottom: 0;
+  --vl-tower-w: 92px;
+  --vl-block-h: 44px;
+  --vl-av: 62px;
+  --vl-gap: 30px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 30px;
-  padding: 0 70px;
-  transition: transform .8s cubic-bezier(.3, .8, .3, 1);
+  gap: var(--vl-gap);
+  padding: 0 12px;
+  transition: transform .6s cubic-bezier(.3, .8, .3, 1);
   transform-origin: bottom center;
 }
-/* صفّان بعمق مختلف عند تجاوز 20 لاعباً — §8 */
-.vl-towers.vl-two-rows { flex-wrap: wrap-reverse; gap: 18px 22px; }
-.vl-towers.vl-two-rows .vl-tower:nth-child(even) { opacity: .82; filter: brightness(.86); }
 
 .vl-tower {
-  flex: 1;
-  max-width: 112px;
-  min-width: 26px;
+  flex: 0 0 var(--vl-tower-w);
+  width: var(--vl-tower-w);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
+  min-width: 0;
 }
-/* تصغير عرض البرج تلقائياً حتى 60 لاعباً */
-.vl-towers[data-dense="1"] .vl-tower { max-width: 74px; }
-.vl-towers[data-dense="2"] .vl-tower { max-width: 52px; }
-.vl-towers[data-dense="3"] .vl-tower { max-width: 38px; }
 
 .vl-tower-blocks {
   display: flex;
   flex-direction: column-reverse;
   align-items: center;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 3px;
+  margin-top: 6px;
+  width: 100%;
 }
 
 .vl-block {
-  width: 92px;
-  height: 44px;
+  width: 100%;
+  height: var(--vl-block-h);
   border-radius: 8px;
   box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 8px 18px rgba(0, 0, 0, .45);
 }
-.vl-towers[data-dense="1"] .vl-block { width: 64px; height: 30px; }
-.vl-towers[data-dense="2"] .vl-block { width: 46px; height: 22px; }
-.vl-towers[data-dense="3"] .vl-block { width: 34px; height: 16px; }
 
 .vl-block-new { animation: lv-blockDrop .72s cubic-bezier(.2, .9, .25, 1) both; }
 
 /* أطلال البرج بعد الاحتراق — يبقى ظاهراً ولا يختفي فجأة */
 .vl-ruin {
-  width: 86px;
-  height: 22px;
-  margin-bottom: 6px;
+  width: 92%;
+  height: calc(var(--vl-block-h) * .5);
+  margin-bottom: 5px;
   border-radius: 6px 6px 0 0;
   background: linear-gradient(180deg, #2a1a2e, #170d1c);
   border: 1px solid rgba(255, 255, 255, .06);
@@ -121,18 +124,16 @@
 .vl-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 7px; }
 
 .vl-avatar {
-  width: 62px; height: 62px;
+  width: var(--vl-av); height: var(--vl-av);
+  flex: none;
   border-radius: 999px;
   object-fit: cover;
   border: 2px solid var(--vl-gold);
   box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
   background: var(--vl-violet);
   display: flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: 20px; color: #fff;
+  font-weight: 800; font-size: calc(var(--vl-av) * .34); color: #fff;
 }
-.vl-towers[data-dense="1"] .vl-avatar { width: 46px; height: 46px; font-size: 15px; }
-.vl-towers[data-dense="2"] .vl-avatar { width: 36px; height: 36px; font-size: 12px; }
-.vl-towers[data-dense="3"] .vl-avatar { width: 28px; height: 28px; font-size: 10px; }
 
 /* البديل الملوّن يجب أن يطابق مقاس الصورة تماماً في كل مكان تظهر فيه */
 .vl-avatar-fb {
@@ -142,9 +143,13 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
 }
 
-.vl-name { font-size: 13px; color: rgba(255, 255, 255, .6); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vl-towers[data-dense="2"] .vl-name,
-.vl-towers[data-dense="3"] .vl-name { display: none; }
+.vl-name {
+  font-size: clamp(9px, calc(var(--vl-av) * .22), 13px);
+  color: rgba(255, 255, 255, .6);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* عند الازدحام الشديد تُخفى الأسماء ويبقى الأفتار — يُضبط من JS */
+.vl-towers[data-compact="1"] .vl-name { display: none; }
 
 /* حالات اللاعب أثناء الجولة */
 .vl-p-answered .vl-avatar { box-shadow: 0 0 0 3px rgba(201, 168, 76, .5), 0 0 24px rgba(201, 168, 76, .4); }
@@ -228,9 +233,11 @@
 .vl-hud {
   position: absolute; top: 0; left: 0; right: 0;
   display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 20px 26px;
+  padding: 14px 16px 10px;
   pointer-events: none;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 5;
 }
 .vl-chip {
   display: flex; flex-direction: column; gap: 3px;
@@ -260,17 +267,22 @@
 /* ------------------------------------------------------------------ كرت السؤال */
 .vl-card-overlay {
   position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;                /* الكرت أطول من الساحة على الجوال */
   background: rgba(8, 3, 20, .42);
   backdrop-filter: blur(9px);
   -webkit-backdrop-filter: blur(9px);
   animation: lv-cardIn .62s cubic-bezier(.2, .9, .25, 1) both;
   z-index: 6;
-  padding: 16px;
+  padding: 10px;
 }
 .vl-card {
+  /* margin:auto يوسّط رأسياً بلا قصّ الأعلى عند الفيضان — بخلاف
+     align-items:center الذي يقصّ الجزء العلوي فيختفي العدّاد والشارة. */
+  margin: auto;
   position: relative;
-  width: min(900px, 96%);
+  width: min(900px, 100%);
   padding: 30px 34px 26px;
   border-radius: 30px;
   background: linear-gradient(165deg, rgba(26, 13, 51, .93), rgba(13, 6, 32, .95));
@@ -394,20 +406,7 @@
 .vl-burned-names { font-size: 18px; color: rgba(255, 255, 255, .85); overflow: hidden; text-overflow: ellipsis; }
 
 /* ------------------------------------------------------------------ الشريط الجانبي */
-.vl-side {
-  width: 260px; flex: none;
-  display: flex; flex-direction: column; gap: 10px;
-}
-.vl-side-card {
-  padding: 14px 16px; border-radius: var(--radius-md);
-  background: rgba(13, 6, 32, .72);
-  border: 1px solid rgba(201, 168, 76, .24);
-}
-.vl-side-title { font-size: 14px; color: var(--vl-gold); font-weight: 800; margin-bottom: 10px; }
-.vl-side-stats { display: flex; gap: 8px; }
-.vl-side-stat { flex: 1; text-align: center; padding: 9px 4px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
-.vl-side-stat-v { font-family: var(--vl-display); font-size: 22px; color: #fff; line-height: 1; }
-.vl-side-stat-l { font-size: 11px; color: rgba(255, 255, 255, .5); margin-top: 3px; }
+/* (حُذف العمود الجانبي — الشريط العلوي داخل الساحة يعرض نفس الأرقام) */
 
 .vl-lb-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
 .vl-lb-row:last-child { border-bottom: 0; }
@@ -419,9 +418,18 @@
 .vl-lb-h { font-size: 11px; color: rgba(255, 255, 255, .45); }
 
 /* ------------------------------------------------------------------ اللوبي */
-.vl-lobby { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 28px 30px 0; z-index: 4; }
+/* الحشو العلوي يساوي ارتفاع الشريط العلوي الفعلي (يُقاس في JS) فلا يتداخل
+   صندوق كلمة الانضمام مع الشرائح مهما ضاقت الشاشة. */
+.vl-lobby {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: calc(var(--vl-hud-h, 92px) + 8px) 12px 0;
+  z-index: 4;
+  pointer-events: none;
+}
 .vl-lobby-kw {
   align-self: center;
+  pointer-events: auto;
   display: flex; align-items: center; gap: 18px;
   padding: 14px 34px; border-radius: 22px;
   background: rgba(13, 6, 32, .66);
@@ -437,11 +445,22 @@
 }
 .vl-lobby-grid {
   flex: 1; display: flex; flex-wrap: wrap;
-  justify-content: center; align-content: flex-end;
-  gap: 18px 26px; padding-bottom: 120px; overflow: hidden;
+  justify-content: center; align-content: flex-start;
+  gap: 12px 18px; padding: 14px 0 24px; overflow-y: auto;
+  pointer-events: auto;
 }
-.vl-lobby-player { display: flex; flex-direction: column; align-items: center; gap: 7px; animation: lv-drop .62s cubic-bezier(.2, .9, .25, 1) both; }
-.vl-lobby-player .vl-avatar { animation: lv-glow 2.8s ease-in-out infinite; }
+.vl-lobby-player {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: lv-drop .62s cubic-bezier(.2, .9, .25, 1) both;
+  width: var(--vl-lobby-av, 58px);
+}
+.vl-lobby-player .vl-avatar {
+  width: var(--vl-lobby-av, 58px);
+  height: var(--vl-lobby-av, 58px);
+  font-size: calc(var(--vl-lobby-av, 58px) * .34);
+  animation: lv-glow 2.8s ease-in-out infinite;
+}
+.vl-lobby-player .vl-name { font-size: 11px; max-width: 100%; }
 
 /* ------------------------------------------------------------------ التتويج */
 /* المنصة ثابتة والقائمة وحدها تتمرّر — الفائز يجب ألا يخرج خارج الشاشة
@@ -478,55 +497,121 @@
 }
 
 /* ------------------------------------------------------------------ التخطيط */
-/* نفس شبكة بقية ألعاب الموقع: مركز مرن + عمود شات يمين يُطوى */
+/* نفس شبكة بقية ألعاب الموقع. إغلاق الشات يطبّق .chat-collapsed التي يعرّفها
+   الموقع (grid-template-columns:1fr) فتتّسع الساحة تلقائياً. */
 .vl-layout {
   display: grid;
   grid-template-columns: 1fr 280px;
   height: 100vh; height: 100dvh;
   overflow: hidden;
 }
+/* قاعدة الموقع للطيّ هي [class$="-layout"].chat-collapsed — ومحدِّد السمة
+   يطابق فقط إذا انتهت سلسلة الكلاس كاملةً بـ«-layout»؛ وبمجرد إضافة
+   chat-collapsed تنتهي السلسلة بها هي، فتتوقف القاعدة عن المطابقة. نعرّف
+   قاعدتنا الخاصة المقيَّدة بلعبتنا وحدها بدل تعديل قاعدة مشتركة. */
+.vl-layout.chat-collapsed { grid-template-columns: 1fr !important; }
+.vl-layout.chat-collapsed > .panel-right { display: none !important; }
+
 .vl-center {
   flex-direction: column;
   align-items: center;
-  padding: 16px 18px 12px;
+  padding: 10px 12px 10px;
   overflow-y: auto;
+  min-width: 0;
   background:
     radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124, 58, 237, .14) 0%, transparent 55%),
     var(--bg);
 }
 
-/* صف اللعب: الساحة + الشريط الجانبي */
+/* الساحة تملأ العرض المتاح كاملاً — لا عمود جانبي يزاحمها */
 .vl-play-row {
   width: 100%;
-  max-width: 1320px;
   flex: 1;
-  min-height: 420px;
+  min-height: 300px;
   display: flex;
-  gap: 12px;
-  margin-top: 10px;
+  margin-top: 8px;
 }
-.vl-side { width: 244px; flex: none; display: flex; flex-direction: column; gap: 10px; }
-.vl-side-board { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
-.vl-lb-scroll { overflow-y: auto; flex: 1; }
+.vl-play-row > .vl-stage { flex: 1; min-width: 0; }
 
 .vl-session-chip { font-size: 12px; color: var(--muted); }
 
 .vl-inline-toggle {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
   font-size: 13px; color: var(--muted); cursor: pointer;
+  white-space: nowrap;
 }
 .vl-bottom-extra { margin-top: 4px; }
 
 /* مرساة أرقام النقاط الطائرة فوق كل برج */
-.vl-float-slot { position: relative; height: 34px; display: flex; align-items: flex-end; justify-content: center; }
+.vl-float-slot { position: relative; height: 26px; display: flex; align-items: flex-end; justify-content: center; }
 
+/* ------------------------------------------------------------------ الجوال */
+/* عمود واحد، والشات يُفتح فوق المحتوى بدل مزاحمته. */
 @media (max-width: 900px) {
   .vl-layout { grid-template-columns: 1fr; }
-  .vl-play-row { flex-direction: column; min-height: 360px; }
-  .vl-side { width: auto; flex-direction: row; flex-wrap: wrap; }
-  .vl-side-card { flex: 1; min-width: 170px; }
-  .vl-hud { padding: 12px 14px; }
-  .vl-title { font-size: 22px; }
+  /* الشات لوح سفلي يُفتح فوق اللعبة ولا يسرق ارتفاعها. اللعبة تبدأ
+     والشات مطويّ (يُضبط من JS) فتأخذ الساحة الشاشة كاملة. */
+  .vl-layout > .panel-right {
+    position: fixed; inset: auto 0 0 0; height: 52vh; z-index: 60;
+    background: var(--surface);
+    border-top: 1px solid var(--border-strong);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .55);
+  }
+  .vl-center { padding: 8px 8px 10px; }
+  .vl-play-row { min-height: 300px; }
+  .vl-lobby-player { --vl-lobby-av: 44px; }
+  .vl-lobby-grid { gap: 8px 10px; }
+
+  /* ضغط رأس الصفحة ليكسب الملعب ارتفاعاً — مقيّد بصفحة اللعبة فقط، بلا أي
+     أثر على بقية ألعاب الموقع. */
+  #pg-volcanic-lands .game-title-header { margin-bottom: 4px; }
+  #pg-volcanic-lands .gth-desc { display: none; }
+  #pg-volcanic-lands .gth-icon { font-size: 22px; }
+  #pg-volcanic-lands .gth-name { font-size: 17px; }
+  #pg-volcanic-lands .top-bar { margin-bottom: 6px; }
+  #pg-volcanic-lands .status-strip { padding: 7px 10px; font-size: 12px; }
+  #pg-volcanic-lands .vl-session-chip { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* الشريط العلوي داخل الساحة يتراص بدل ما يتداخل مع صندوق كلمة الانضمام */
+  .vl-hud { padding: 8px 8px 6px; gap: 6px; align-items: flex-start; }
+  .vl-hud .vl-title { display: none; }          /* العنوان موجود برأس الصفحة */
+  .vl-chip { padding: 5px 9px; border-radius: 11px; }
+  .vl-chip-label { font-size: 9px; }
+  .vl-chip-value { font-size: 15px; }
+  .vl-lava-warn { font-size: 10px; padding: 4px 9px; gap: 5px; }
+  .vl-lobby-kw { gap: 8px; padding: 8px 14px; border-radius: 14px; }
+  .vl-lobby-kw-side { font-size: 12px; }
+  .vl-lobby-kw-word { font-size: 30px; letter-spacing: 3px; }
+  .vl-card { padding: 12px 12px 10px; border-radius: 18px; }
+  .vl-card-inner { gap: 8px; }
+  .vl-options { gap: 8px; }
+  .vl-question { font-size: clamp(17px, 4.6vw, 26px); line-height: 1.3; }
+  .vl-option { padding: 7px 9px; gap: 8px; border-radius: 11px; }
+  .vl-option-num { width: 30px; height: 30px; border-radius: 9px; font-size: 17px; }
+  .vl-option-text { font-size: clamp(15px, 4vw, 24px); }
+  .vl-card-hint { font-size: 13px; }
+  .vl-timer { font-size: 26px; }
+  .vl-answered-count { font-size: 12px; }
+  .vl-bank-badge { font-size: 11px; padding: 4px 10px; }
+  .vl-countdown { font-size: 88px; }
+  .vl-round-banner { font-size: 38px; }
+  .vl-round-sub { font-size: 14px; }
+  .vl-burned-strip { padding: 8px 14px; gap: 8px; bottom: 12px; }
+  .vl-burned-label, .vl-burned-names { font-size: 13px; }
+  .vl-winner-name { font-size: 26px; }
+  .vl-winner-avatar { width: 62px; height: 62px; font-size: 22px; }
+  .vl-winner-crown { font-size: 22px; }
+  .vl-winner-sub, .vl-winner-tie { font-size: 12px; }
+  .game-bottom-row { gap: 6px; }
+}
+
+/* شاشات قصيرة جداً بالعرض الأفقي */
+@media (max-height: 520px) {
+  .vl-hud .vl-title { display: none; }
+  .vl-play-row { min-height: 200px; }
 }
 
 /* وضع الأداء المنخفض — §12: يوقف الحركات الثقيلة تلقائياً */

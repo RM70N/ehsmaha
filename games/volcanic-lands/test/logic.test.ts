@@ -17,7 +17,7 @@ function makePlayer(over: Partial<Player> & { userId: string }): Player {
   return {
     nickname: over.userId, avatarUrl: '', height: 5, points: 0, alive: true,
     burnedAtRound: null, joinedAtRound: 0, answeredThisRound: false,
-    answerTime: null, choice: null, totalAnswerTime: 0, correctAnswers: 0,
+    answerTime: null, choice: null, totalAnswerTime: 0, correctAnswers: 0, revivedCount: 0,
     ...over,
   };
 }
