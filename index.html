@@ -2650,30 +2650,38 @@ body{padding-top:64px;}
 .vl-lobby-player .vl-avatar { animation: lv-glow 2.8s ease-in-out infinite; }
 
 /* ------------------------------------------------------------------ التتويج */
+/* المنصة ثابتة والقائمة وحدها تتمرّر — الفائز يجب ألا يخرج خارج الشاشة
+   مهما طال الترتيب. */
 .vl-winner {
   position: absolute; inset: 0; z-index: 8;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 14px; padding: 24px;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 6px; padding: 14px 20px 16px;
   background: radial-gradient(120% 90% at 50% 118%, #b3300c 0%, #5a1330 26%, #1a0d33 58%, #0d0620 100%);
   animation: lv-fadeUp .6s ease-out both;
-  overflow-y: auto;
+  overflow: hidden;
 }
-.vl-winner-crown { font-size: 54px; animation: lv-breathe 3s ease-in-out infinite; }
+.vl-winner-crown { font-size: 30px; line-height: 1; animation: lv-breathe 3s ease-in-out infinite; }
 .vl-winner-avatar {
-  width: 128px; height: 128px; border-radius: 999px; object-fit: cover;
-  border: 4px solid var(--vl-gold);
-  box-shadow: 0 0 60px rgba(201, 168, 76, .6);
+  width: 84px; height: 84px; flex: none; border-radius: 999px; object-fit: cover;
+  border: 3px solid var(--vl-gold);
+  box-shadow: 0 0 46px rgba(201, 168, 76, .6);
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; font-weight: 900; color: #fff; background: var(--vl-violet);
+  font-size: 30px; font-weight: 900; color: #fff; background: var(--vl-violet);
 }
-.vl-winner-name { font-family: var(--vl-display); font-size: 52px; color: #fff; text-shadow: 0 0 44px rgba(255, 90, 31, .45); }
-.vl-winner-sub { font-size: 18px; color: var(--vl-gold-soft); }
+.vl-winner-name { font-family: var(--vl-display); font-size: 38px; line-height: 1.1; color: #fff; text-shadow: 0 0 44px rgba(255, 90, 31, .45); }
+.vl-winner-sub { font-size: 15px; color: var(--vl-gold-soft); }
 .vl-winner-tie {
-  padding: 8px 20px; border-radius: 999px;
+  padding: 6px 16px; border-radius: 999px;
   background: rgba(255, 90, 31, .16); border: 1px solid rgba(255, 90, 31, .5);
-  font-size: 16px; color: var(--vl-flame-light);
+  font-size: 14px; color: var(--vl-flame-light);
 }
-.vl-winner-board { width: min(560px, 96%); margin-top: 8px; }
+.vl-winner-board {
+  width: min(560px, 96%);
+  margin-top: 6px;
+  min-height: 0; flex: 1;
+  overflow-y: auto;
+  padding-inline: 8px;
+}
 
 /* ------------------------------------------------------------------ التخطيط */
 /* نفس شبكة بقية ألعاب الموقع: مركز مرن + عمود شات يمين يُطوى */
@@ -48226,9 +48234,10 @@ function privacyBack(){
           <div class="vl-card-overlay" id="volcanic-lands-card" style="display:none">
             <div class="vl-card">
               <svg class="vl-ring" id="volcanic-lands-ring" viewBox="0 0 900 420" preserveAspectRatio="none" aria-hidden="true">
-                <rect class="vl-ring-track" x="4" y="4" width="892" height="412" rx="28"></rect>
+                <rect class="vl-ring-track" x="4" y="4" width="892" height="412" rx="28" vector-effect="non-scaling-stroke"></rect>
                 <rect class="vl-ring-live" id="volcanic-lands-ring-live" x="4" y="4" width="892" height="412" rx="28"
-                      stroke="#C9A84C" stroke-dasharray="2600" stroke-dashoffset="0" transform="rotate(-90 450 210)"></rect>
+                      stroke="#C9A84C" pathLength="100" stroke-dasharray="100" stroke-dashoffset="0"
+                      vector-effect="non-scaling-stroke"></rect>
               </svg>
               <div class="vl-card-inner">
                 <div class="vl-card-top">
@@ -48638,7 +48647,9 @@ function privacyBack(){
     if (!q) return;
 
     setText(TAG + '-question', q.text);
-    setText(TAG + '-bank', q.category === 'math' ? 'رياضيات · ' + q.subcategory : q.subcategory);
+    var bankLabel = q.category === 'math' ? 'رياضيات' : 'معلومات عامة';
+    if (q.subcategory && q.subcategory !== bankLabel) bankLabel += ' · ' + q.subcategory;
+    setText(TAG + '-bank', bankLabel);
     setText(TAG + '-answered', 'أجاب ' + num(engine.answered) + ' لاعب');
 
     var remaining = engine.remainingSeconds();
@@ -48652,7 +48663,7 @@ function privacyBack(){
     if (ring) {
       var total = engine.getSettings().roundSeconds;
       var frac = phase === 'QUESTION' ? Math.max(0, remaining / total) : 0;
-      ring.setAttribute('stroke-dashoffset', String(Math.round(2600 * (1 - frac))));
+      ring.setAttribute('stroke-dashoffset', String((100 * (1 - frac)).toFixed(2)));
       ring.setAttribute('stroke', urgent ? '#FF5A1F' : '#C9A84C');
       ring.classList.toggle('vl-urgent', urgent);
     }

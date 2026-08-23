@@ -333,7 +333,9 @@
     if (!q) return;
 
     setText(TAG + '-question', q.text);
-    setText(TAG + '-bank', q.category === 'math' ? 'رياضيات · ' + q.subcategory : q.subcategory);
+    var bankLabel = q.category === 'math' ? 'رياضيات' : 'معلومات عامة';
+    if (q.subcategory && q.subcategory !== bankLabel) bankLabel += ' · ' + q.subcategory;
+    setText(TAG + '-bank', bankLabel);
     setText(TAG + '-answered', 'أجاب ' + num(engine.answered) + ' لاعب');
 
     var remaining = engine.remainingSeconds();
@@ -347,7 +349,7 @@
     if (ring) {
       var total = engine.getSettings().roundSeconds;
       var frac = phase === 'QUESTION' ? Math.max(0, remaining / total) : 0;
-      ring.setAttribute('stroke-dashoffset', String(Math.round(2600 * (1 - frac))));
+      ring.setAttribute('stroke-dashoffset', String((100 * (1 - frac)).toFixed(2)));
       ring.setAttribute('stroke', urgent ? '#FF5A1F' : '#C9A84C');
       ring.classList.toggle('vl-urgent', urgent);
     }
