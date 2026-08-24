@@ -152,31 +152,72 @@
    * أو حجم الشاشة. إغلاق شات البث يوسّع الساحة فتكبر الأبراج تلقائياً في
    * الإطار التالي لأن الحساب يعتمد على العرض الفعلي لا على عدد ثابت.
    */
-  function layoutTowers(count) {
+  /** أقل عرض برج نعتبره مقروءاً قبل اللجوء لصفّ إضافي. */
+  var TOWER_TARGET_W = 54;
+  var MAX_ROWS = 3;
+
+  /** عدد الصفوف اللازم ليبقى كل لاعب مقروءاً ضمن العرض المتاح. */
+  function rowsNeeded(count, availW) {
+    var perRow = Math.max(1, Math.floor(availW / TOWER_TARGET_W));
+    return Math.max(1, Math.min(MAX_ROWS, Math.ceil(count / perRow)));
+  }
+
+  /**
+   * يوزّع اللاعبين على صف أو أكثر ويحسب المقاسات من العرض والارتفاع معاً.
+   * الصفوف الخلفية ترتفع قليلاً وتصغر (عمق) — فتتضاعف المساحة المتاحة لكل
+   * لاعب بدل أن ينكمش الجميع إلى شرائط غير مقروءة. قمم الأبراج الخلفية تبقى
+   * أعلى من الأمامية دائماً لأن قاعدتها أعلى، فلا تحجبها الأمامية.
+   */
+  function layoutTowers(count, tallest) {
     var host = $(TAG + '-towers');
     var stage = $(TAG + '-stage');
-    if (!host || !stage || count <= 0) return;
+    if (!host || !stage || count <= 0) return { rows: 1, perRow: count };
 
-    var avail = Math.max(120, stage.clientWidth - 24);
-    var gap = count > 34 ? 3 : count > 22 ? 5 : count > 12 ? 12 : 24;
-    var w = Math.floor((avail - gap * (count - 1)) / count);
-    w = Math.max(10, Math.min(96, w));
+    var availW = Math.max(120, stage.clientWidth - 16);
+    var availH = Math.max(140, stage.clientHeight);
 
-    // لو ضاقت الأبراج أكثر من اللازم نضيّق الفجوة أولاً بدل تصغيرها أكثر.
-    if (w <= 14 && gap > 2) {
+    var rows = rowsNeeded(count, availW);
+    var perRow = Math.ceil(count / rows);
+
+    var gap = perRow > 22 ? 4 : perRow > 14 ? 6 : perRow > 8 ? 10 : 18;
+    var w = Math.floor((availW - gap * (perRow - 1)) / perRow);
+    if (w < 16 && gap > 2) {
       gap = 2;
-      w = Math.max(10, Math.min(96, Math.floor((avail - gap * (count - 1)) / count)));
+      w = Math.floor((availW - gap * (perRow - 1)) / perRow);
     }
+    w = Math.max(10, Math.min(150, w));
 
-    var blockH = Math.max(7, Math.min(40, Math.round(w * 0.46)));
-    var av = Math.max(14, Math.min(62, Math.round(w * 0.66)));
+    // المساحة الرأسية المتاحة للصف الأمامي (الصفوف الخلفية ترتفع فوقه).
+    var depthStep = rows > 1 ? Math.round(Math.min(120, availH * 0.2)) : 0;
+    var head = Math.round(w * 0.95) + 26;
+    var usableH = availH - depthStep * (rows - 1);
+    var stack = Math.max(1, tallest || 1);
+    var fitH = Math.floor((usableH - head - 14) / stack) - 3;
+
+    var blockH = Math.min(Math.round(w * 1.05), fitH);
+    blockH = Math.max(5, Math.min(58, blockH));
+    var av = Math.max(16, Math.min(96, Math.round(w * 0.95)));
 
     host.style.setProperty('--vl-tower-w', w + 'px');
     host.style.setProperty('--vl-gap', gap + 'px');
     host.style.setProperty('--vl-block-h', blockH + 'px');
     host.style.setProperty('--vl-av', av + 'px');
-    host.setAttribute('data-compact', av < 26 ? '1' : '0');
+    host.setAttribute('data-compact', av < 30 ? '1' : '0');
+    host.setAttribute('data-rows', String(rows));
     blockHeightPx = blockH;
+
+    // وضع كل صف: الأمامي بالأسفل بحجم كامل، وكل صف خلفه أعلى وأصغر وأخفت.
+    var rowEls = host.querySelectorAll('.vl-trow');
+    for (var i = 0; i < rowEls.length; i++) {
+      var el = rowEls[i];
+      var depth = rowEls.length - 1 - i;      // 0 = الصف الأمامي
+      el.style.bottom = (depth * depthStep) + 'px';
+      el.style.transform = 'scale(' + (1 - depth * 0.13).toFixed(3) + ')';
+      el.style.zIndex = String(10 - depth);
+      el.style.opacity = String(1 - depth * 0.1);
+      el.style.filter = depth ? 'brightness(' + (1 - depth * 0.12).toFixed(2) + ')' : 'none';
+    }
+    return { rows: rows, perRow: perRow };
   }
 
   /** حشو اللوبي العلوي = ارتفاع الشريط العلوي الفعلي، فلا يتداخلان. */
@@ -251,17 +292,39 @@
     var players = engine.allPlayers();
     var fingerprint = players.map(function (p) { return p.userId; }).join('|');
 
-    if (fingerprint !== renderedRoster) {
+    var tallest = 0;
+    for (var t = 0; t < players.length; t++) {
+      if (players[t].height > tallest) tallest = players[t].height;
+    }
+
+    // عدد الصفوف قد يتغيّر مع تغيّر العدد أو عرض الساحة (فتح/إغلاق الشات،
+    // تدوير الجوال)، فندخله في البصمة حتى يُعاد التوزيع عند تغيّره.
+    var availW = Math.max(120, ($(TAG + '-stage') ? $(TAG + '-stage').clientWidth : 600) - 16);
+    var wantRows = rowsNeeded(players.length, availW);
+    var fingerprint2 = fingerprint + '#' + wantRows;
+
+    if (fingerprint2 !== renderedRoster) {
       host.textContent = '';
       towerNodes.clear();
-      players.forEach(function (p) {
+      var perRow = Math.ceil(players.length / wantRows) || 1;
+      var rowEls = [];
+      for (var r = 0; r < wantRows; r++) {
+        var row = document.createElement('div');
+        row.className = 'vl-trow';
+        rowEls.push(row);
+        host.appendChild(row);
+      }
+      players.forEach(function (p, idx) {
         var node = buildTowerNode(p);
         towerNodes.set(p.userId, node);
-        host.appendChild(node.root);
+        // الصف الأخير في DOM هو الأمامي؛ نملأ من الخلف للأمام حتى يظهر
+        // أوائل المنضمّين في الصف الأمامي.
+        var rowIdx = wantRows - 1 - Math.floor(idx / perRow);
+        (rowEls[Math.max(0, rowIdx)] || rowEls[0]).appendChild(node.root);
       });
-      renderedRoster = fingerprint;
+      renderedRoster = fingerprint2;
     }
-    layoutTowers(players.length);
+    layoutTowers(players.length, tallest);
 
     var phase = engine.phase;
     var lava = engine.lava;
@@ -533,9 +596,9 @@
     if (!host) return;
     var tallest = 0;
     engine.allPlayers().forEach(function (p) { if (p.height > tallest) tallest = p.height; });
-    var neededPx = (tallest + 2) * (blockHeightPx + 4) + 140;
+    var neededPx = (tallest + 1) * (blockHeightPx + 3) + 110;
     var available = stageHeight();
-    var scale = neededPx > available ? Math.max(0.34, available / neededPx) : 1;
+    var scale = neededPx > available ? Math.max(0.4, available / neededPx) : 1;
     var want = 'scale(' + scale.toFixed(3) + ')';
     if (host.style.transform !== want) host.style.transform = want;
   }

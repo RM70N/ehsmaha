@@ -68,18 +68,27 @@
    مهما كان العدد أو حجم الشاشة. القيم هنا مجرد قيم بدء. */
 .vl-towers {
   position: absolute;
-  left: 0; right: 0; bottom: 0;
+  inset: 0;
   --vl-tower-w: 92px;
   --vl-block-h: 44px;
   --vl-av: 62px;
   --vl-gap: 30px;
+  transition: transform .6s cubic-bezier(.3, .8, .3, 1);
+  transform-origin: bottom center;
+  pointer-events: none;
+}
+
+/* كل صف مرساة عند القاع؛ الصفوف الخلفية تُرفع وتُصغَّر من JS لإيحاء العمق. */
+.vl-trow {
+  position: absolute;
+  left: 0; right: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   gap: var(--vl-gap);
-  padding: 0 12px;
-  transition: transform .6s cubic-bezier(.3, .8, .3, 1);
+  padding: 0 8px;
   transform-origin: bottom center;
+  transition: bottom .5s ease, transform .5s ease;
 }
 
 .vl-tower {
@@ -97,7 +106,7 @@
   flex-direction: column-reverse;
   align-items: center;
   gap: 3px;
-  margin-top: 6px;
+  margin-top: 5px;
   width: 100%;
 }
 
@@ -527,7 +536,7 @@
 .vl-play-row {
   width: 100%;
   flex: 1;
-  min-height: 300px;
+  min-height: 420px;
   display: flex;
   margin-top: 8px;
 }
