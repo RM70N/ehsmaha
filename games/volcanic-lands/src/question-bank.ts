@@ -5,12 +5,17 @@
 // مرتبطاً بحساب الستريمر لا بجولة اللعب الواحدة، و usedQuestionIds تُحدَّث
 // بمجرد عرض السؤال (لا بعد الإجابة) وتُحفظ فوراً.
 
-import type { PresentedQuestion, QuestionCategory, QuestionDifficulty, RawQuestion } from './types.js';
+import type { DifficultyLevel, PresentedQuestion, QuestionCategory, QuestionDifficultyName, RawQuestion } from './types.js';
 import type { KeyValueStorage } from './storage.js';
 import { type RandomFn, shuffle, systemRandom } from './random.js';
 import { VOLCANIC_LANDS_CONFIG, difficultyForRound } from './config.js';
 
 const STORAGE_PREFIX = 'volcanicLands';
+
+/** الصعوبة في الملف نصّية؛ تصاعد الجولات يحتاجها رقمية. */
+const LEVEL_OF: Readonly<Record<QuestionDifficultyName, DifficultyLevel>> = {
+  easy: 1, medium: 2, hard: 3,
+};
 
 interface PersistedSession {
   sessionId: string;
@@ -28,8 +33,8 @@ function newSessionId(rand: RandomFn): string {
 }
 
 /** ترتيب الصعوبات الأقرب للصعوبة المطلوبة — لا تكرار عند نفاد صعوبة (§9). */
-function difficultiesByProximity(target: QuestionDifficulty): QuestionDifficulty[] {
-  const all: QuestionDifficulty[] = [1, 2, 3];
+function difficultiesByProximity(target: DifficultyLevel): DifficultyLevel[] {
+  const all: DifficultyLevel[] = [1, 2, 3];
   return all
     .filter((d) => d !== target)
     .sort((a, b) => {
@@ -57,7 +62,7 @@ export class QuestionBank {
     randFactory: () => RandomFn = () => systemRandom,
   ) {
     this.all = questions;
-    this.byId = new Map(questions.map((q) => [q.id, q]));
+    this.byId = new Map(questions.map((q) => [String(q.id), q]));
     this.storage = storage;
     this.streamerId = streamerId;
     this.randFactory = randFactory;
@@ -146,9 +151,9 @@ export class QuestionBank {
     return recent.slice(-limit).every((c) => c === category);
   }
 
-  private unusedAtDifficulty(difficulty: QuestionDifficulty): RawQuestion[] {
+  private unusedAtDifficulty(difficulty: DifficultyLevel): RawQuestion[] {
     const used = new Set(this.session.usedQuestionIds);
-    return this.all.filter((q) => q.difficulty === difficulty && !used.has(q.id));
+    return this.all.filter((q) => LEVEL_OF[q.difficulty] === difficulty && !used.has(String(q.id)));
   }
 
   /**
@@ -157,7 +162,7 @@ export class QuestionBank {
    */
   private eligiblePool(round: number): RawQuestion[] {
     const target = difficultyForRound(round);
-    const ladder: QuestionDifficulty[] = [target, ...difficultiesByProximity(target)];
+    const ladder: DifficultyLevel[] = [target, ...difficultiesByProximity(target)];
     for (const difficulty of ladder) {
       const pool = this.unusedAtDifficulty(difficulty);
       if (pool.length === 0) continue;
@@ -187,7 +192,7 @@ export class QuestionBank {
     // مولّد عشوائي جديد في كل اختيار — لا ترتيب ملف ولا تسلسل ثابت.
     const picked = shuffle(pool, this.randFactory())[0] as RawQuestion;
 
-    this.session.usedQuestionIds.push(picked.id);
+    this.session.usedQuestionIds.push(String(picked.id));
     this.session.recentCategories.push(picked.category);
     const keep = VOLCANIC_LANDS_CONFIG.maxSameCategoryStreak + 1;
     if (this.session.recentCategories.length > keep) {
@@ -206,15 +211,15 @@ export class QuestionBank {
 export function presentQuestion(question: RawQuestion, rand: RandomFn): PresentedQuestion {
   const indexed = question.options.map((text, index) => ({ text, index }));
   const shuffled = shuffle(indexed, rand);
-  const correctIndex = shuffled.findIndex((o) => o.index === question.correctIndex);
+  const correctIndex = shuffled.findIndex((o) => o.index === question.correct_index);
   return {
-    id: question.id,
+    id: String(question.id),
     category: question.category,
-    subcategory: question.subcategory,
-    difficulty: question.difficulty,
-    text: question.text,
+    difficulty: LEVEL_OF[question.difficulty],
+    difficultyName: question.difficulty,
+    text: question.question,
     options: shuffled.map((o) => o.text),
     correctIndex,
-    answer: question.answer,
+    answer: question.correct_answer,
   };
 }

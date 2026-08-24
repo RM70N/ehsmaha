@@ -215,7 +215,7 @@ describe('خلط الخيارات للعرض', () => {
       const shown = presentQuestion(raw, seededRandom(seed));
       expect(shown.options).toHaveLength(4);
       expect([...shown.options].sort()).toEqual([...raw.options].sort());
-      expect(shown.options[shown.correctIndex]).toBe(raw.answer);
+      expect(shown.options[shown.correctIndex]).toBe(raw.correct_answer);
     }
   });
 
@@ -224,21 +224,54 @@ describe('خلط الخيارات للعرض', () => {
     const before = raw.options.join('|');
     presentQuestion(raw, seededRandom(9));
     expect(raw.options.join('|')).toBe(before);
-    expect(raw.options[raw.correctIndex]).toBe(raw.answer);
+    expect(raw.options[raw.correct_index]).toBe(raw.correct_answer);
+  });
+
+  it('يطبّع الحقول: معرّف نصّي، ونصّ السؤال، وصعوبة رقمية', () => {
+    const raw = BANK.questions[3]!;
+    const shown = presentQuestion(raw, seededRandom(4));
+    expect(shown.id).toBe(String(raw.id));
+    expect(shown.text).toBe(raw.question);
+    expect(shown.answer).toBe(raw.correct_answer);
+    expect(shown.category).toBe(raw.category);
+    expect(shown.difficultyName).toBe(raw.difficulty);
+    expect({ easy: 1, medium: 2, hard: 3 }[raw.difficulty]).toBe(shown.difficulty);
   });
 });
 
 describe('سلامة بنك الأسئلة', () => {
-  it('300 سؤالاً بمعرّفات فريدة وبنية صحيحة', () => {
-    expect(BANK.questions).toHaveLength(300);
-    expect(new Set(BANK.questions.map((q) => q.id)).size).toBe(300);
+  it('500 سؤال بمعرّفات فريدة وبنية صحيحة', () => {
+    expect(BANK.total_questions).toBe(500);
+    expect(BANK.questions).toHaveLength(500);
+    expect(new Set(BANK.questions.map((q) => q.id)).size).toBe(500);
     for (const q of BANK.questions) {
       expect(q.options).toHaveLength(4);
-      expect(q.correctIndex).toBeGreaterThanOrEqual(0);
-      expect(q.correctIndex).toBeLessThanOrEqual(3);
-      expect(q.options[q.correctIndex]).toBe(q.answer);
-      expect([1, 2, 3]).toContain(q.difficulty);
-      expect(['math', 'general']).toContain(q.category);
+      expect(q.correct_index).toBeGreaterThanOrEqual(0);
+      expect(q.correct_index).toBeLessThanOrEqual(3);
+      expect(q.options[q.correct_index]).toBe(q.correct_answer);
+      expect(['easy', 'medium', 'hard']).toContain(q.difficulty);
+      expect(typeof q.category).toBe('string');
+      expect(q.category.length).toBeGreaterThan(0);
+      expect(typeof q.question).toBe('string');
+      expect(q.question.length).toBeGreaterThan(0);
     }
+  });
+
+  it('لا أثر لمخطّط البنك القديم', () => {
+    for (const q of BANK.questions) {
+      const raw = q as unknown as Record<string, unknown>;
+      expect(raw['text']).toBeUndefined();
+      expect(raw['answer']).toBeUndefined();
+      expect(raw['correctIndex']).toBeUndefined();
+      expect(raw['subcategory']).toBeUndefined();
+    }
+  });
+
+  it('كل صعوبة فيها مخزون كافٍ لجولات المباراة', () => {
+    const byLevel = { easy: 0, medium: 0, hard: 0 };
+    for (const q of BANK.questions) byLevel[q.difficulty] += 1;
+    expect(byLevel.easy).toBeGreaterThan(50);
+    expect(byLevel.medium).toBeGreaterThan(50);
+    expect(byLevel.hard).toBeGreaterThan(50);
   });
 });

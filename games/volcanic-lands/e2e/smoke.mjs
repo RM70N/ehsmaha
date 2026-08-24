@@ -124,7 +124,8 @@ if (newPage) console.log('PAGEERROR:\n  ' + pageErrors.slice(baseline.page).join
 await browser.close();
 await new Promise((ok) => server.close(ok));
 
-const ok = loaded.hasLogic && loaded.hasLaunch && loaded.hasSetupPage && loaded.hasDashPage
+const ok = loaded.hasLogic && loaded.questions === 500
+  && loaded.hasLaunch && loaded.hasSetupPage && loaded.hasDashPage
   && loaded.hasCard && loaded.registered && afterLaunch.active && lobbyCount === 20
   && midMatch.options === 4 && midMatch.towers === 20 && final.winnerShown
   && newConsole === 0 && newPage === 0;

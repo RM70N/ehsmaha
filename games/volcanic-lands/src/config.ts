@@ -1,6 +1,6 @@
 // ملف الإعدادات الوحيد — §5. لا رقم واحد من أرقام اللعبة مكتوب خارج هذا الملف.
 
-import type { AnswerChoice, ScoreTier } from './types.js';
+import type { AnswerChoice, DifficultyLevel, ScoreTier } from './types.js';
 
 /** معرّف مستوى الصعوبة الذي يضبطه الستريمر. */
 export type DifficultyMode = 'easy' | 'normal' | 'hell';
@@ -79,12 +79,12 @@ export const VOLCANIC_LANDS_CONFIG = {
   } as const,
 
   // ---- ربط الصعوبة بالجولات — §9 ----
-  /** جولات 1-2 صعوبة 1، 3-4 صعوبة 2، 5+ صعوبة 3. */
+  /** جولات 1-2 سهل، 3-4 متوسط، 5+ صعب (easy/medium/hard في الملف). */
   difficultyByRound: [
     { untilRound: 2, difficulty: 1 },
     { untilRound: 4, difficulty: 2 },
     { untilRound: Infinity, difficulty: 3 },
-  ] as readonly { readonly untilRound: number; readonly difficulty: 1 | 2 | 3 }[],
+  ] as readonly { readonly untilRound: number; readonly difficulty: DifficultyLevel }[],
   /** لا فئة (رياضيات/عام) تتكرر أكثر من هذا العدد من الجولات متتالية. */
   maxSameCategoryStreak: 2,
 
@@ -129,7 +129,7 @@ export function defaultStreamerSettings(): StreamerSettings {
 }
 
 /** صعوبة السؤال المطلوبة في الجولة r — §9. */
-export function difficultyForRound(round: number): 1 | 2 | 3 {
+export function difficultyForRound(round: number): DifficultyLevel {
   for (const band of VOLCANIC_LANDS_CONFIG.difficultyByRound) {
     if (round <= band.untilRound) return band.difficulty;
   }

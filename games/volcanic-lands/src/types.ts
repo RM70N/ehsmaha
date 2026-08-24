@@ -1,46 +1,53 @@
 // أنواع لعبة «الأراضي البركانية» — مصدر الحقيقة الوحيد لكل شكل بيانات.
 
-/** فئة السؤال كما هي في data/questions.ar.json — لا تُعدَّل. */
-export type QuestionCategory = 'math' | 'general';
+/**
+ * فئة السؤال كما هي في data/questions.ar.json — نص عربي حر (ديني، جغرافيا،
+ * رياضة، …). لا تُقيَّد بقائمة ثابتة حتى لا يكسر الكودُ الملفَّ إذا أُضيفت فئة.
+ */
+export type QuestionCategory = string;
 
-/** مستوى صعوبة السؤال كما هو في الملف: 1 سهل، 2 متوسط، 3 صعب. */
-export type QuestionDifficulty = 1 | 2 | 3;
+/** مستوى الصعوبة كما هو مكتوب في الملف. */
+export type QuestionDifficultyName = 'easy' | 'medium' | 'hard';
 
-/** سؤال خام كما يُقرأ من الملف — بنفس الحقول تماماً. */
+/** المستوى الرقمي الداخلي المستخدم في تصاعد الجولات: 1 سهل، 2 متوسط، 3 صعب. */
+export type DifficultyLevel = 1 | 2 | 3;
+
+/**
+ * سؤال خام بنفس حقول الملف حرفياً (snake_case ومعرّف رقمي) — الملف هو مصدر
+ * الحقيقة ولا يُعدَّل إطلاقاً؛ التطبيع يحدث في presentQuestion فقط.
+ */
 export interface RawQuestion {
-  readonly id: string;
-  readonly category: QuestionCategory;
-  readonly subcategory: string;
-  readonly difficulty: QuestionDifficulty;
-  readonly text: string;
+  readonly id: number;
+  readonly question: string;
   readonly options: readonly string[];
-  /** فهرس الإجابة الصحيحة داخل options الأصلية (0..3). */
-  readonly correctIndex: number;
-  readonly answer: string;
+  readonly correct_answer: string;
+  /** فهرس الإجابة الصحيحة داخل options الأصلية (0-3). */
+  readonly correct_index: number;
+  readonly difficulty: QuestionDifficultyName;
+  readonly category: QuestionCategory;
 }
 
 /** ملف بنك الأسئلة بالكامل. */
 export interface QuestionBankFile {
-  readonly name: string;
-  readonly version: string;
-  readonly language: string;
-  readonly total: number;
+  readonly total_questions: number;
   readonly questions: readonly RawQuestion[];
 }
 
 /**
- * سؤال بعد خلط مواضع الخيارات للعرض. الملف الأصلي لا يُمسّ إطلاقاً —
+ * سؤال بعد التطبيع وخلط مواضع الخيارات للعرض. الملف الأصلي لا يُمسّ إطلاقاً —
  * الخلط يحدث على نسخة، و`correctIndex` هنا هو الفهرس بعد الخلط.
  */
 export interface PresentedQuestion {
+  /** معرّف نصّي (من الرقم في الملف) — التخزين ومنع التكرار يعملان على نصوص. */
   readonly id: string;
   readonly category: QuestionCategory;
-  readonly subcategory: string;
-  readonly difficulty: QuestionDifficulty;
+  readonly difficulty: DifficultyLevel;
+  /** الصعوبة كما وردت في الملف — للعرض والتشخيص. */
+  readonly difficultyName: QuestionDifficultyName;
   readonly text: string;
   /** الخيارات بترتيب العرض (مخلوطة). */
   readonly options: readonly string[];
-  /** فهرس الإجابة الصحيحة بعد الخلط (0..3). رقم الشات = correctIndex + 1. */
+  /** فهرس الإجابة الصحيحة بعد الخلط (0-3). رقم الشات = correctIndex + 1. */
   readonly correctIndex: number;
   readonly answer: string;
 }

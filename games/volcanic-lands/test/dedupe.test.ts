@@ -126,19 +126,21 @@ describe('الصعوبة والفئات', () => {
 
   it('يسحب من الصعوبة الأقرب بدل التكرار عند نفاد صعوبة', () => {
     const bank = makeBank(new MemoryStorage(), 'drain', 7);
-    // صعوبة 3 فيها 45 سؤالاً فقط؛ نطلب 60 جولة كلها من الجولة 5+.
+    // نحسب مخزون الصعبة من الملف نفسه بدل رقم مكتوب يدوياً، ثم نطلب أكثر منه.
+    const hardStock = BANK.questions.filter((q) => q.difficulty === 'hard').length;
+    const asked = hardStock + 20;
     const seen = new Set<string>();
     const difficulties: number[] = [];
-    for (let i = 0; i < 60; i++) {
-      const q = bank.next(5); // كل الجولات تطلب صعوبة 3
+    for (let i = 0; i < asked; i++) {
+      const q = bank.next(5); // كل الجولات تطلب الصعوبة القصوى
       expect(seen.has(q.id)).toBe(false);
       seen.add(q.id);
       difficulties.push(q.difficulty);
     }
-    expect(difficulties.filter((d) => d === 3)).toHaveLength(45);
+    expect(difficulties.filter((d) => d === 3)).toHaveLength(hardStock);
     // الباقي جاء من الصعوبة الأقرب (2) لا من تكرار.
     expect(difficulties.filter((d) => d === 2).length).toBeGreaterThan(0);
-    expect(seen.size).toBe(60);
+    expect(seen.size).toBe(asked);
   });
 
   it('لا تتكرر فئة واحدة أكثر من جولتين متتاليتين', () => {
@@ -156,19 +158,20 @@ describe('الصعوبة والفئات', () => {
   });
 });
 
-describe('إعادة التدوير بعد استهلاك الـ300 كاملة', () => {
+describe('إعادة التدوير بعد استهلاك البنك كاملاً', () => {
   it('لا تحدث قبل استهلاك الملف بالكامل، ثم تبدأ بترتيب عشوائي جديد', () => {
     const bank = makeBank(new MemoryStorage(), 'recycle', 4);
+    const total = BANK.questions.length;
     const seen = new Set<string>();
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < total; i++) {
       const q = bank.next((i % 12) + 1);
       expect(seen.has(q.id)).toBe(false);
       seen.add(q.id);
     }
-    expect(seen.size).toBe(300);
+    expect(seen.size).toBe(total);
     expect(bank.recycleCount).toBe(0);
 
-    // السؤال 301 هو أول إعادة تدوير مسموحة.
+    // السؤال التالي مباشرة هو أول إعادة تدوير مسموحة.
     bank.next(1);
     expect(bank.recycleCount).toBe(1);
     expect(bank.usedCount).toBe(1);
@@ -187,10 +190,10 @@ describe('صمود التخزين', () => {
   it('يتجاهل المعرّفات التي لم تعد موجودة في الملف', () => {
     const storage = new MemoryStorage();
     storage.setItem('volcanicLands:session:streamer-1', JSON.stringify({
-      sessionId: 'old', usedQuestionIds: ['gk_001', 'لا-وجود-له'], recentCategories: [], recycleCount: 0,
+      sessionId: 'old', usedQuestionIds: ['1', 'لا-وجود-له'], recentCategories: [], recycleCount: 0,
     }));
     const bank = reopen(storage, 1);
     expect(bank.usedCount).toBe(1);
-    expect(bank.usedIds()).toEqual(['gk_001']);
+    expect(bank.usedIds()).toEqual(['1']);
   });
 });

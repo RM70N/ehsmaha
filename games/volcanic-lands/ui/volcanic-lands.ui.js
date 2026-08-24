@@ -437,9 +437,8 @@
     if (!q) return;
 
     setText(TAG + '-question', q.text);
-    var bankLabel = q.category === 'math' ? 'رياضيات' : 'معلومات عامة';
-    if (q.subcategory && q.subcategory !== bankLabel) bankLabel += ' · ' + q.subcategory;
-    setText(TAG + '-bank', bankLabel);
+    // الفئة تأتي من الملف نصّاً عربياً جاهزاً للعرض (ديني، جغرافيا، رياضة، …).
+    setText(TAG + '-bank', q.category || '');
     setText(TAG + '-answered', 'أجاب ' + num(engine.answered) + ' لاعب');
 
     var remaining = engine.remainingSeconds();
@@ -494,7 +493,7 @@
     setText(TAG + '-kw-chip', engine.getSettings().joinKeyword);
     setText(TAG + '-lobby-kw', engine.getSettings().joinKeyword);
     var info = $(TAG + '-session-info');
-    if (info) info.textContent = 'أسئلة مستخدَمة في هذه الجلسة: ' + engine.usedQuestionCount + '/300';
+    if (info) info.textContent = 'أسئلة مستخدَمة في هذه الجلسة: ' + engine.usedQuestionCount + '/' + VL.questions.questions.length;
   }
 
   function renderBanner() {
