@@ -1,0 +1,652 @@
+/* ============================================================================
+   الأراضي البركانية — الأنماط البصرية
+   مطابقة للتصميم المرفق (أراضي اللافا standalone): نفس التدرجات والألوان
+   والحركات. الخطوط والأزرار العامة من توكنز الموقع (Tajawal/Amiri محمّلان
+   أصلاً في <head>).
+   ============================================================================ */
+
+#pg-volcanic-lands {
+  /* لوحة ألوان التصميم المرفق — لا لون خارجها */
+  --vl-void: #080314;
+  --vl-deep: #0d0620;
+  --vl-violet: #1a0d33;
+  --vl-plum: #5a1330;
+  --vl-ember: #b3300c;
+  --vl-gold: #C9A84C;
+  --vl-gold-soft: #E6D08A;
+  --vl-flame: #FF5A1F;
+  --vl-flame-light: #FF8A3D;
+  --vl-rose: #E8A0C8;
+  --vl-lava-top: #ff8a2b;
+  --vl-lava-mid: #f2620f;
+  --vl-lava-deep: #c4290b;
+  --vl-lava-core: #7d1505;
+  --vl-display: 'Amiri', serif;
+  /* قيم افتراضية للمقاسات الديناميكية — لازمة لأن .vl-avatar يُستخدم أيضاً
+     خارج .vl-towers (اللوبي)، وبدونها يصير العرض غير معرَّف ويتضخّم. */
+  --vl-tower-w: 92px;
+  --vl-block-h: 44px;
+  --vl-av: 62px;
+  --vl-gap: 30px;
+}
+
+/* ------------------------------------------------------------------ الساحة */
+.vl-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(201, 168, 76, .22);
+  background: radial-gradient(130% 100% at 50% 125%, #a82b08 0%, #56122b 22%, #1a0d33 55%, #0d0620 100%);
+}
+
+/* جدران الكهف — نفس الخطوط القُطرية في التصميم */
+.vl-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(98deg, transparent 0 66px, rgba(201, 168, 76, .05) 66px 67px, transparent 67px 140px);
+}
+
+/* ضباب أحمر خفيف فوق اللافا */
+.vl-fog {
+  position: absolute;
+  left: 0; right: 0;
+  height: 130px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 90, 31, 0), rgba(255, 120, 40, .42));
+  animation: lv-lavaPulse 4s ease-in-out infinite;
+  transition: bottom 2.6s cubic-bezier(.4, 0, .3, 1);
+}
+
+.vl-quake { animation: lv-quake .5s ease-in-out 4; }
+
+/* ------------------------------------------------------------------ الأبراج */
+/* المقاسات تُحسب في JS من عرض الساحة ÷ عدد اللاعبين، فيظهر الجميع دائماً
+   مهما كان العدد أو حجم الشاشة. القيم هنا مجرد قيم بدء. */
+.vl-towers {
+  position: absolute;
+  inset: 0;
+  --vl-tower-w: 92px;
+  --vl-block-h: 44px;
+  --vl-av: 62px;
+  --vl-gap: 30px;
+  transition: transform .6s cubic-bezier(.3, .8, .3, 1);
+  transform-origin: bottom center;
+  pointer-events: none;
+}
+
+/* كل صف مرساة عند القاع؛ الصفوف الخلفية تُرفع وتُصغَّر من JS لإيحاء العمق. */
+.vl-trow {
+  position: absolute;
+  left: 0; right: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--vl-gap);
+  padding: 0 8px;
+  transform-origin: bottom center;
+  transition: bottom .5s ease, transform .5s ease;
+}
+
+.vl-tower {
+  flex: 0 0 var(--vl-tower-w);
+  width: var(--vl-tower-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.vl-tower-blocks {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 3px;
+  margin-top: 5px;
+  width: 100%;
+}
+
+.vl-block {
+  width: 100%;
+  height: var(--vl-block-h);
+  border-radius: 8px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), 0 8px 18px rgba(0, 0, 0, .45);
+}
+
+.vl-block-new { animation: lv-blockDrop .72s cubic-bezier(.2, .9, .25, 1) both; }
+
+/* أطلال البرج بعد الاحتراق — يبقى ظاهراً ولا يختفي فجأة */
+.vl-ruin {
+  width: 92%;
+  height: calc(var(--vl-block-h) * .5);
+  margin-bottom: 5px;
+  border-radius: 6px 6px 0 0;
+  background: linear-gradient(180deg, #2a1a2e, #170d1c);
+  border: 1px solid rgba(255, 255, 255, .06);
+}
+
+/* ------------------------------------------------------------------ اللاعب */
+.vl-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+
+.vl-avatar {
+  width: var(--vl-av); height: var(--vl-av);
+  flex: none;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid var(--vl-gold);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
+  background: var(--vl-violet);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: calc(var(--vl-av) * .34); color: #fff;
+}
+
+/* البديل الملوّن يجب أن يطابق مقاس الصورة تماماً في كل مكان تظهر فيه */
+.vl-avatar-fb {
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; line-height: 1;
+  font-weight: 800; color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
+.vl-name {
+  font-size: clamp(9px, calc(var(--vl-av) * .22), 13px);
+  color: rgba(255, 255, 255, .6);
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* عند الازدحام الشديد تُخفى الأسماء ويبقى الأفتار — يُضبط من JS */
+.vl-towers[data-compact="1"] .vl-name { display: none; }
+
+/* حالات اللاعب أثناء الجولة */
+.vl-p-answered .vl-avatar { box-shadow: 0 0 0 3px rgba(201, 168, 76, .5), 0 0 24px rgba(201, 168, 76, .4); }
+.vl-p-correct { animation: lv-hop .7s ease-in-out both; }
+.vl-p-correct .vl-avatar { animation: lv-glow 1.1s ease-in-out infinite; }
+.vl-p-correct .vl-name { color: var(--vl-gold-soft); }
+.vl-p-wrong { animation: lv-shake .55s ease-in-out 2 both; }
+.vl-p-wrong .vl-avatar { filter: grayscale(.75); border-color: rgba(200, 30, 30, .6); box-shadow: 0 0 0 2px rgba(200, 30, 30, .5), 0 0 26px rgba(200, 30, 30, .35); }
+.vl-p-burning { animation: lv-sink 2.6s ease-in both; }
+/* ارتجاف عند اقتراب اللافا */
+.vl-p-danger .vl-avatar { animation: lv-shake 1.4s ease-in-out infinite; }
+
+.vl-answered-tick {
+  position: absolute; top: -8px; inset-inline-end: -6px;
+  width: 20px; height: 20px; border-radius: 999px;
+  background: var(--vl-gold); color: var(--vl-deep);
+  font-size: 13px; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.vl-smoke {
+  position: absolute; top: -40px;
+  width: 56px; height: 56px; border-radius: 999px;
+  background: radial-gradient(circle, rgba(180, 170, 190, .7), transparent 70%);
+  animation: lv-smoke 2.2s ease-out infinite;
+  pointer-events: none;
+}
+
+.vl-points-float {
+  font-family: var(--vl-display);
+  font-size: 30px;
+  color: var(--vl-gold);
+  text-shadow: 0 0 20px rgba(201, 168, 76, .8);
+  animation: lv-float 1.8s ease-out both;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ اللافا */
+.vl-lava {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  transition: height 2.6s cubic-bezier(.4, 0, .3, 1);
+  background: linear-gradient(180deg, rgba(255, 150, 50, .92) 0%, var(--vl-lava-mid) 22%, var(--vl-lava-deep) 70%, var(--vl-lava-core) 100%);
+  box-shadow: 0 -22px 70px rgba(255, 90, 31, .6), inset 0 3px 0 rgba(255, 225, 160, .6);
+  pointer-events: none;
+}
+/* قشرة سوداء متشققة على السطح */
+.vl-lava::before {
+  content: '';
+  position: absolute; left: 0; right: 0; top: 0; height: 14px;
+  background: repeating-linear-gradient(78deg, rgba(0, 0, 0, .45) 0 12px, transparent 12px 34px);
+  opacity: .7;
+}
+/* فقاعات تنفجر عشوائياً */
+.vl-bubble {
+  position: absolute;
+  border-radius: 999px;
+  background: radial-gradient(circle at 40% 35%, #ffd9a0, #ff8a2b 60%, transparent 72%);
+  animation: vl-bubble 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes vl-bubble {
+  0%, 100% { transform: scale(.4); opacity: 0; }
+  40% { transform: scale(1); opacity: .85; }
+  70% { transform: scale(1.25); opacity: 0; }
+}
+
+.vl-embers {
+  position: absolute; left: 0; right: 0;
+  display: flex; justify-content: space-around;
+  pointer-events: none;
+  transition: bottom 2.6s cubic-bezier(.4, 0, .3, 1);
+}
+.vl-ember {
+  border-radius: 999px;
+  background: #ffb066;
+  box-shadow: 0 0 14px #ff7a24;
+  animation: lv-emberRise linear infinite;
+}
+
+/* ------------------------------------------------------------------ الشريط العلوي */
+.vl-hud {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 14px 16px 10px;
+  pointer-events: none;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 5;
+}
+.vl-chip {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 10px 18px; border-radius: 16px;
+  background: rgba(13, 6, 32, .7);
+  border: 1px solid rgba(201, 168, 76, .28);
+}
+.vl-chip-label { font-size: 12px; color: rgba(255, 255, 255, .5); }
+.vl-chip-value { font-family: var(--vl-display); font-size: 26px; line-height: 1; color: var(--vl-gold); }
+.vl-chip-value.vl-white { color: #fff; }
+
+.vl-title-mid { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.vl-title {
+  font-family: var(--vl-display);
+  font-size: 30px; color: #fff;
+  text-shadow: 0 0 30px rgba(255, 90, 31, .45);
+  white-space: nowrap;
+}
+.vl-lava-warn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 18px; border-radius: 999px;
+  background: rgba(255, 90, 31, .12);
+  border: 1px solid rgba(255, 90, 31, .4);
+  font-size: 14px; color: rgba(255, 180, 140, .95);
+}
+
+/* ------------------------------------------------------------------ كرت السؤال */
+.vl-card-overlay {
+  position: absolute; inset: 0;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;                /* الكرت أطول من الساحة على الجوال */
+  background: rgba(8, 3, 20, .42);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  animation: lv-cardIn .62s cubic-bezier(.2, .9, .25, 1) both;
+  z-index: 6;
+  padding: 10px;
+}
+.vl-card {
+  /* margin:auto يوسّط رأسياً بلا قصّ الأعلى عند الفيضان — بخلاف
+     align-items:center الذي يقصّ الجزء العلوي فيختفي العدّاد والشارة. */
+  margin: auto;
+  position: relative;
+  width: min(900px, 100%);
+  padding: 30px 34px 26px;
+  border-radius: 30px;
+  background: linear-gradient(165deg, rgba(26, 13, 51, .93), rgba(13, 6, 32, .95));
+  border: 1px solid rgba(201, 168, 76, .3);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, .6), 0 0 90px rgba(255, 90, 31, .15);
+}
+.vl-card-inner { position: relative; display: flex; flex-direction: column; gap: 16px; }
+.vl-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vl-card-top-end { display: flex; align-items: center; gap: 14px; }
+
+/* شريط العدّاد الأفقي — فوق السؤال مباشرة، يفرغ تدريجياً ويتحوّل للأحمر
+   آخر 5 ثوانٍ. الاتجاه RTL فالتعبئة مثبّتة يميناً وتنحسر لليسار تلقائياً. */
+.vl-timebar {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .07);
+  border: 1px solid rgba(201, 168, 76, .18);
+  overflow: hidden;
+  margin-top: -4px;
+}
+.vl-timebar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vl-gold-soft), var(--vl-gold));
+  box-shadow: 0 0 16px rgba(201, 168, 76, .55);
+  transition: width 1s linear, background .3s ease, box-shadow .3s ease;
+}
+.vl-timebar-fill.vl-urgent {
+  background: linear-gradient(90deg, var(--vl-flame-light), var(--vl-flame));
+  box-shadow: 0 0 22px rgba(255, 90, 31, .75);
+  animation: lv-ringPulse 1s ease-in-out infinite;
+}
+.vl-bank-badge {
+  padding: 7px 16px; border-radius: 999px;
+  background: rgba(201, 168, 76, .14);
+  border: 1px solid rgba(201, 168, 76, .35);
+  font-size: 14px; color: var(--vl-gold-soft);
+}
+.vl-answered-count { font-size: 15px; color: rgba(255, 255, 255, .55); }
+.vl-timer { font-family: var(--vl-display); font-size: 38px; line-height: 1; color: var(--vl-gold); }
+.vl-timer.vl-urgent { color: var(--vl-flame); }
+
+.vl-question {
+  font-family: var(--vl-display);
+  font-size: clamp(26px, 3.2vw, 46px);
+  line-height: 1.28; color: #fff;
+  text-wrap: pretty;
+}
+.vl-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 720px) { .vl-options { grid-template-columns: 1fr; } }
+
+.vl-option {
+  display: flex; align-items: center; gap: 14px;
+  padding: 15px 18px; border-radius: 18px;
+  background: rgba(255, 255, 255, .04);
+  border: 1px solid rgba(201, 168, 76, .18);
+  transition: all .5s ease;
+}
+.vl-option-num {
+  flex: none;
+  width: 46px; height: 46px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--vl-display); font-size: 26px;
+  color: var(--vl-gold); background: rgba(201, 168, 76, .16);
+}
+.vl-option-text { font-family: var(--vl-display); font-size: clamp(20px, 2.4vw, 38px); color: #fff; }
+/* عند الكشف */
+.vl-option.vl-right {
+  background: rgba(52, 211, 153, .14);
+  border-color: rgba(52, 211, 153, .65);
+  box-shadow: 0 0 40px rgba(52, 211, 153, .28);
+}
+.vl-option.vl-right .vl-option-num { background: rgba(52, 211, 153, .3); color: #eafff6; }
+.vl-option.vl-dim { opacity: .32; filter: grayscale(.6); }
+
+.vl-card-hint {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: rgba(255, 255, 255, .75);
+  padding-top: 2px;
+}
+
+/* ------------------------------------------------------------------ بانرات */
+.vl-banner-center {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  pointer-events: none; z-index: 5;
+}
+.vl-countdown {
+  font-family: var(--vl-display);
+  font-size: 160px; line-height: 1; color: #fff;
+  text-shadow: 0 0 70px rgba(255, 90, 31, .8);
+  animation: lv-cardIn .5s cubic-bezier(.2, .9, .25, 1) both;
+}
+.vl-round-banner {
+  font-family: var(--vl-display);
+  font-size: 76px; color: #fff;
+  text-shadow: 0 0 50px rgba(255, 90, 31, .55);
+  animation: lv-fadeUp .5s ease-out both;
+}
+.vl-round-sub {
+  font-size: 22px; color: var(--vl-flame-light);
+  animation: lv-fadeUp .6s ease-out both;
+}
+
+.vl-burned-strip {
+  position: absolute; bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 26px; border-radius: 20px;
+  background: rgba(13, 6, 32, .88);
+  border: 1px solid rgba(255, 90, 31, .5);
+  box-shadow: 0 0 60px rgba(255, 90, 31, .35);
+  animation: lv-fadeUp .55s ease-out both;
+  z-index: 7; max-width: 90%;
+}
+.vl-burned-label { font-size: 18px; color: var(--vl-flame-light); font-weight: 700; white-space: nowrap; }
+.vl-burned-sep { width: 1px; height: 20px; background: rgba(255, 255, 255, .18); }
+.vl-burned-names { font-size: 18px; color: rgba(255, 255, 255, .85); overflow: hidden; text-overflow: ellipsis; }
+
+/* ------------------------------------------------------------------ الشريط الجانبي */
+/* (حُذف العمود الجانبي — الشريط العلوي داخل الساحة يعرض نفس الأرقام) */
+
+.vl-lb-row { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid rgba(255, 255, 255, .05); }
+.vl-lb-row:last-child { border-bottom: 0; }
+.vl-lb-rank { flex: none; width: 20px; font-family: var(--vl-display); font-size: 16px; color: var(--vl-gold); }
+.vl-lb-avatar { flex: none; width: 30px; height: 30px; border-radius: 999px; object-fit: cover; border: 1px solid rgba(201, 168, 76, .5); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; }
+.vl-lb-name { flex: 1; font-size: 13px; color: rgba(255, 255, 255, .85); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-lb-dead { opacity: .45; }
+.vl-lb-pts { font-size: 13px; color: var(--vl-gold-soft); font-weight: 700; }
+.vl-lb-h { font-size: 11px; color: rgba(255, 255, 255, .45); }
+
+/* ------------------------------------------------------------------ اللوبي */
+/* الحشو العلوي يساوي ارتفاع الشريط العلوي الفعلي (يُقاس في JS) فلا يتداخل
+   صندوق كلمة الانضمام مع الشرائح مهما ضاقت الشاشة. */
+.vl-lobby {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  padding: calc(var(--vl-hud-h, 92px) + 8px) 12px 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.vl-lobby-kw {
+  align-self: center;
+  pointer-events: auto;
+  display: flex; align-items: center; gap: 18px;
+  padding: 14px 34px; border-radius: 22px;
+  background: rgba(13, 6, 32, .66);
+  border: 1px solid rgba(201, 168, 76, .32);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .5);
+  margin-top: 10px;
+}
+.vl-lobby-kw-side { font-size: 18px; color: rgba(255, 255, 255, .6); }
+.vl-lobby-kw-word {
+  font-family: var(--vl-display); font-size: 54px; line-height: 1;
+  color: var(--vl-gold); letter-spacing: 6px;
+  text-shadow: 0 0 34px rgba(201, 168, 76, .5);
+}
+.vl-lobby-grid {
+  flex: 1; display: flex; flex-wrap: wrap;
+  justify-content: center; align-content: flex-start;
+  gap: 12px 18px; padding: 14px 0 24px; overflow-y: auto;
+  pointer-events: auto;
+}
+.vl-lobby-player {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  animation: lv-drop .62s cubic-bezier(.2, .9, .25, 1) both;
+  width: var(--vl-lobby-av, 58px);
+}
+.vl-lobby-player .vl-avatar {
+  width: var(--vl-lobby-av, 58px);
+  height: var(--vl-lobby-av, 58px);
+  font-size: calc(var(--vl-lobby-av, 58px) * .34);
+  animation: lv-glow 2.8s ease-in-out infinite;
+}
+.vl-lobby-player .vl-name { font-size: 11px; max-width: 100%; }
+
+/* ------------------------------------------------------------------ التتويج */
+/* المنصة ثابتة والقائمة وحدها تتمرّر — الفائز يجب ألا يخرج خارج الشاشة
+   مهما طال الترتيب. */
+.vl-winner {
+  position: absolute; inset: 0; z-index: 8;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+  gap: 6px; padding: 14px 20px 16px;
+  background: radial-gradient(120% 90% at 50% 118%, #b3300c 0%, #5a1330 26%, #1a0d33 58%, #0d0620 100%);
+  animation: lv-fadeUp .6s ease-out both;
+  overflow: hidden;
+}
+.vl-winner-crown { font-size: 30px; line-height: 1; animation: lv-breathe 3s ease-in-out infinite; }
+.vl-winner-avatar {
+  width: 84px; height: 84px; flex: none; border-radius: 999px; object-fit: cover;
+  border: 3px solid var(--vl-gold);
+  box-shadow: 0 0 46px rgba(201, 168, 76, .6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 30px; font-weight: 900; color: #fff; background: var(--vl-violet);
+}
+.vl-winner-name { font-family: var(--vl-display); font-size: 38px; line-height: 1.1; color: #fff; text-shadow: 0 0 44px rgba(255, 90, 31, .45); }
+.vl-winner-sub { font-size: 15px; color: var(--vl-gold-soft); }
+.vl-winner-tie {
+  padding: 6px 16px; border-radius: 999px;
+  background: rgba(255, 90, 31, .16); border: 1px solid rgba(255, 90, 31, .5);
+  font-size: 14px; color: var(--vl-flame-light);
+}
+.vl-winner-board {
+  width: min(560px, 96%);
+  margin-top: 6px;
+  min-height: 0; flex: 1;
+  overflow-y: auto;
+  padding-inline: 8px;
+}
+
+/* ------------------------------------------------------------------ التخطيط */
+/* نفس شبكة بقية ألعاب الموقع. إغلاق الشات يطبّق .chat-collapsed التي يعرّفها
+   الموقع (grid-template-columns:1fr) فتتّسع الساحة تلقائياً. */
+.vl-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  height: 100vh; height: 100dvh;
+  overflow: hidden;
+}
+/* قاعدة الموقع للطيّ هي [class$="-layout"].chat-collapsed — ومحدِّد السمة
+   يطابق فقط إذا انتهت سلسلة الكلاس كاملةً بـ«-layout»؛ وبمجرد إضافة
+   chat-collapsed تنتهي السلسلة بها هي، فتتوقف القاعدة عن المطابقة. نعرّف
+   قاعدتنا الخاصة المقيَّدة بلعبتنا وحدها بدل تعديل قاعدة مشتركة. */
+.vl-layout.chat-collapsed { grid-template-columns: 1fr !important; }
+.vl-layout.chat-collapsed > .panel-right { display: none !important; }
+
+.vl-center {
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 12px 10px;
+  overflow-y: auto;
+  min-width: 0;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124, 58, 237, .14) 0%, transparent 55%),
+    var(--bg);
+}
+
+/* الساحة تملأ العرض المتاح كاملاً — لا عمود جانبي يزاحمها */
+.vl-play-row {
+  width: 100%;
+  flex: 1;
+  min-height: 420px;
+  display: flex;
+  margin-top: 8px;
+}
+.vl-play-row > .vl-stage { flex: 1; min-width: 0; }
+
+.vl-session-chip { font-size: 12px; color: var(--muted); }
+
+.vl-inline-toggle {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--muted); cursor: pointer;
+  white-space: nowrap;
+}
+.vl-bottom-extra { margin-top: 4px; }
+
+/* مرساة أرقام النقاط الطائرة فوق كل برج */
+.vl-float-slot { position: relative; height: 26px; display: flex; align-items: flex-end; justify-content: center; }
+
+/* ------------------------------------------------------------------ الجوال */
+/* عمود واحد، والشات يُفتح فوق المحتوى بدل مزاحمته. */
+@media (max-width: 900px) {
+  .vl-layout { grid-template-columns: 1fr; }
+  /* الشات لوح سفلي يُفتح فوق اللعبة ولا يسرق ارتفاعها. اللعبة تبدأ
+     والشات مطويّ (يُضبط من JS) فتأخذ الساحة الشاشة كاملة. */
+  .vl-layout > .panel-right {
+    position: fixed; inset: auto 0 0 0; height: 52vh; z-index: 60;
+    background: var(--surface);
+    border-top: 1px solid var(--border-strong);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, .55);
+  }
+  .vl-center { padding: 8px 8px 10px; }
+  .vl-play-row { min-height: 300px; }
+  .vl-lobby-player { --vl-lobby-av: 44px; }
+  .vl-lobby-grid { gap: 8px 10px; }
+
+  /* ضغط رأس الصفحة ليكسب الملعب ارتفاعاً — مقيّد بصفحة اللعبة فقط، بلا أي
+     أثر على بقية ألعاب الموقع. */
+  #pg-volcanic-lands .game-title-header { margin-bottom: 4px; }
+  #pg-volcanic-lands .gth-desc { display: none; }
+  #pg-volcanic-lands .gth-icon { font-size: 22px; }
+  #pg-volcanic-lands .gth-name { font-size: 17px; }
+  #pg-volcanic-lands .top-bar { margin-bottom: 6px; }
+  #pg-volcanic-lands .status-strip { padding: 7px 10px; font-size: 12px; }
+  #pg-volcanic-lands .vl-session-chip { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* الشريط العلوي داخل الساحة يتراص بدل ما يتداخل مع صندوق كلمة الانضمام */
+  .vl-hud { padding: 8px 8px 6px; gap: 6px; align-items: flex-start; }
+  .vl-hud .vl-title { display: none; }          /* العنوان موجود برأس الصفحة */
+  .vl-chip { padding: 5px 9px; border-radius: 11px; }
+  .vl-chip-label { font-size: 9px; }
+  .vl-chip-value { font-size: 15px; }
+  .vl-lava-warn { font-size: 10px; padding: 4px 9px; gap: 5px; }
+  .vl-lobby-kw { gap: 8px; padding: 8px 14px; border-radius: 14px; }
+  .vl-lobby-kw-side { font-size: 12px; }
+  .vl-lobby-kw-word { font-size: 30px; letter-spacing: 3px; }
+  .vl-card { padding: 12px 12px 10px; border-radius: 18px; }
+  .vl-card-inner { gap: 8px; }
+  .vl-options { gap: 8px; }
+  .vl-question { font-size: clamp(17px, 4.6vw, 26px); line-height: 1.3; }
+  .vl-option { padding: 7px 9px; gap: 8px; border-radius: 11px; }
+  .vl-option-num { width: 30px; height: 30px; border-radius: 9px; font-size: 17px; }
+  .vl-option-text { font-size: clamp(15px, 4vw, 24px); }
+  .vl-card-hint { font-size: 13px; }
+  .vl-timer { font-size: 26px; }
+  .vl-answered-count { font-size: 12px; }
+  .vl-bank-badge { font-size: 11px; padding: 4px 10px; }
+  .vl-countdown { font-size: 88px; }
+  .vl-round-banner { font-size: 38px; }
+  .vl-round-sub { font-size: 14px; }
+  .vl-burned-strip { padding: 8px 14px; gap: 8px; bottom: 12px; }
+  .vl-burned-label, .vl-burned-names { font-size: 13px; }
+  .vl-winner-name { font-size: 26px; }
+  .vl-winner-avatar { width: 62px; height: 62px; font-size: 22px; }
+  .vl-winner-crown { font-size: 22px; }
+  .vl-winner-sub, .vl-winner-tie { font-size: 12px; }
+  .game-bottom-row { gap: 6px; }
+}
+
+/* شاشات قصيرة جداً بالعرض الأفقي */
+@media (max-height: 520px) {
+  .vl-hud .vl-title { display: none; }
+  .vl-play-row { min-height: 200px; }
+}
+
+/* وضع الأداء المنخفض — §12: يوقف الحركات الثقيلة تلقائياً */
+#pg-volcanic-lands.vl-lowfx .vl-ember,
+#pg-volcanic-lands.vl-lowfx .vl-bubble,
+#pg-volcanic-lands.vl-lowfx .vl-smoke { display: none; }
+#pg-volcanic-lands.vl-lowfx .vl-card-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(8, 3, 20, .82); }
+#pg-volcanic-lands.vl-lowfx * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  #pg-volcanic-lands * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* ------------------------------------------------------------------ الحركات (من التصميم المرفق حرفياً) */
+@keyframes lv-drop { 0% { opacity: 0; transform: translateY(-70px) scale(.86); } 60% { opacity: 1; transform: translateY(6px) scale(1.02); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes lv-cardIn { 0% { opacity: 0; transform: translateY(-90px) scale(.94); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes lv-fadeUp { 0% { opacity: 0; transform: translateY(16px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes lv-blockDrop { 0% { opacity: 0; transform: translateY(-320px); } 70% { opacity: 1; transform: translateY(0); } 82% { transform: translateY(-14px); } 92% { transform: translateY(0); } 100% { transform: translateY(0); } }
+@keyframes lv-hop { 0% { transform: translateY(0); } 35% { transform: translateY(-34px); } 70% { transform: translateY(0); } 100% { transform: translateY(0); } }
+@keyframes lv-glow { 0%, 100% { box-shadow: 0 0 0 3px rgba(201, 168, 76, .45), 0 0 34px rgba(201, 168, 76, .35); } 50% { box-shadow: 0 0 0 7px rgba(201, 168, 76, .28), 0 0 60px rgba(201, 168, 76, .6); } }
+@keyframes lv-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px) rotate(-3deg); } 40% { transform: translateX(6px) rotate(3deg); } 60% { transform: translateX(-4px) rotate(-2deg); } 80% { transform: translateX(3px); } }
+@keyframes lv-sink { 0% { transform: translateY(0); filter: none; opacity: 1; } 35% { transform: translateY(6px); filter: sepia(.7) saturate(3) hue-rotate(-25deg); } 100% { transform: translateY(78px); filter: sepia(.9) saturate(4) hue-rotate(-30deg) brightness(.6); opacity: 0; } }
+@keyframes lv-smoke { 0% { opacity: 0; transform: translateY(10px) scale(.7); } 30% { opacity: .55; } 100% { opacity: 0; transform: translateY(-120px) scale(1.8); } }
+@keyframes lv-float { 0% { opacity: 0; transform: translateY(6px) scale(.8); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-90px) scale(1.05); } }
+@keyframes lv-breathe { 0%, 100% { box-shadow: 0 0 26px rgba(255, 90, 31, .28); transform: scale(1); } 50% { box-shadow: 0 0 60px rgba(255, 90, 31, .5); transform: scale(1.015); } }
+@keyframes lv-emberRise { 0% { opacity: 0; transform: translateY(0) scale(.6); } 20% { opacity: .9; } 100% { opacity: 0; transform: translateY(-330px) scale(1.15); } }
+@keyframes lv-lavaPulse { 0%, 100% { opacity: .55; } 50% { opacity: .95; } }
+@keyframes lv-quake { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-3px, 2px); } 40% { transform: translate(3px, -2px); } 60% { transform: translate(-2px, -1px); } 80% { transform: translate(2px, 1px); } }
+@keyframes lv-ringPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }

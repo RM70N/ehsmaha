@@ -125,10 +125,36 @@ function extractUser(user) {
 // data.content مو data.comment — تحقق فعلي من بث لايف حقيقي (WebcastChatMessage
 // بالمكتبة المثبتة يستخدم content). هذا الحقل هو الأهم بكل الملف لأن كل لعبة
 // تقرأ نص الشات منه لمطابقة الكلمات/الأوامر.
+// createTime الأصلي من بروتوكول Webcast = لحظة *إرسال* المتابع للرسالة على
+// جهازه، لا لحظة وصولها للسيرفر. لعبة "الضوء الأخضر · الضوء الأحمر" تستعمله
+// (resolveMoveEligibility بالواجهة) كي تعرف إن أمر المشي صدر وقت الضوء الأخضر
+// حتى لو تأخّرت الرسالة بالشبكة ووصلت بعد التحوّل للأحمر — فتمنع القصف الظالم.
+// المكتبة تضعه أحياناً بالمستوى الأعلى وأحياناً داخل common، وبالثواني أو
+// بالملي ثانية، ولذلك نبحث بالاثنين ونترك التطبيع النهائي للواجهة.
+function extractCreateTime(data) {
+  const candidates = [
+    data && data.createTime,
+    data && data.common && data.common.createTime,
+    data && data.common && data.common.create_time,
+    data && data.create_time,
+  ];
+  for (const c of candidates) {
+    if (c === undefined || c === null || c === '') continue;
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
 function buildComment(data) {
   const user = extractUser(data.user);
   const text = data.content || data.comment || '';
-  return { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
+  const createTime = extractCreateTime(data);
+  const msg = { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
+  // نمرّره فقط عند توفّره كي تعرف الواجهة أن الغياب = "لا توقيت موثوق"
+  // فتسقط تلقائياً لنافذة السماح بدل الاعتماد على وقت وصول خاطئ.
+  if (createTime !== null) msg.createTime = createTime;
+  return msg;
 }
 
 // data.gift (مو data.giftDetails — تحقق من tiktok-live-proto v3 WebcastGiftMessage

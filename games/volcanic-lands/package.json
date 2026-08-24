@@ -1,0 +1,21 @@
+{
+  "name": "volcanic-lands",
+  "version": "1.0.0",
+  "private": true,
+  "description": "منطق لعبة «الأراضي البركانية» — TypeScript صارم، يُبنى لملف JS واحد يُحقن في index.html",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build.mjs",
+    "inject": "node scripts/inject.mjs",
+    "sim": "vitest run test/simulation.test.ts --reporter=verbose",
+    "e2e": "node e2e/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright": "^1.62.1",
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.0"
+  }
+}

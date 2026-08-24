@@ -1,0 +1,1112 @@
+// ============================================================================
+// الأراضي البركانية — طبقة الواجهة
+// المنطق كله في window.VolcanicLands (مبني من TypeScript). هذا الملف يربطه
+// بالـDOM وبمسار شات البث المشترك في الموقع — بلا أي اتصال جديد.
+// ============================================================================
+(function () {
+  'use strict';
+
+  var TAG = 'volcanic-lands';
+  var VL = null;                 // window.VolcanicLands (يُقرأ عند الإقلاع)
+  var engine = null;
+  var rafId = null;
+  var lastPhase = null;
+  var towerNodes = new Map();    // userId -> {root, blocks, avatarWrap}
+  var renderedRoster = '';       // بصمة قائمة اللاعبين لتفادي إعادة البناء
+  var soundOn = true;
+  var audioCtx = null;
+  var fpsSamples = [];
+  var lowFxSince = 0;
+  var lowFxActive = false;
+  var streamerUser = '';
+  var blockHeightPx = 44;        // يُحسب في layoutTowers حسب عرض الساحة
+  var lastHudHeight = 0;
+
+  // ------------------------------------------------------------------ أدوات
+  function $(id) { return document.getElementById(id); }
+  function page() { return $('pg-' + TAG); }
+
+  function setText(id, value) {
+    var node = $(id);
+    if (node && node.textContent !== String(value)) node.textContent = String(value);
+  }
+
+  // ------------------------------------------------------------------ الأفتارات
+  // الموقع أصلاً يحل مشكلة CORS عبر avatarProxyUrl()/avatarOnErrorHandler()
+  // (وسيط images.weserv.nl + بديل ملوّن عند الفشل). نضيف فوقها طبقة كاش
+  // بالذاكرة + localStorage حسب userId حتى لا يُعاد الجلب لكل إطار ولا عند
+  // إعادة تحميل الصفحة — روابط تيك توك تنتهي صلاحيتها بسرعة.
+  var AVATAR_CACHE_KEY = 'volcanicLands:avatars';
+  var avatarMem = new Map();
+
+  function avatarCacheLoad() {
+    try {
+      var raw = localStorage.getItem(AVATAR_CACHE_KEY);
+      if (!raw) return;
+      var obj = JSON.parse(raw);
+      Object.keys(obj).forEach(function (k) { avatarMem.set(k, obj[k]); });
+    } catch (e) { /* كاش تالف أو تخزين معطّل — نتجاهله بصمت */ }
+  }
+
+  var avatarSaveTimer = null;
+  function avatarCacheSave() {
+    if (avatarSaveTimer) return;               // تجميع الكتابات — لا كتابة لكل لاعب
+    avatarSaveTimer = setTimeout(function () {
+      avatarSaveTimer = null;
+      try {
+        var obj = {};
+        avatarMem.forEach(function (v, k) { obj[k] = v; });
+        localStorage.setItem(AVATAR_CACHE_KEY, JSON.stringify(obj));
+      } catch (e) { /* امتلاء التخزين لا يوقف اللعبة */ }
+    }, 1200);
+  }
+
+  function rememberAvatar(userId, url) {
+    if (!userId || !url) return;
+    if (avatarMem.get(userId) === url) return;
+    avatarMem.set(userId, url);
+    avatarCacheSave();
+  }
+
+  function avatarUrlFor(userId, fallbackUrl) {
+    return avatarMem.get(userId) || fallbackUrl || '';
+  }
+
+  /** بديل ملوّن ثابت مشتق من userId — يُستخدم عند غياب الصورة أو فشلها. */
+  function buildAvatarFallback(player, cls) {
+    var fb = document.createElement('div');
+    fb.className = cls + ' vl-avatar-fb';
+    fb.style.background = VL.colorForUserId(player.userId);
+    fb.textContent = VL.initialsForNickname(player.nickname);
+    return fb;
+  }
+
+  /**
+   * عنصر أفتار: صورة تيك توك الحقيقية، وعند فشلها تُعاد المحاولة عبر وسيط
+   * الموقع نفسه، وعند فشله يظهر البديل الملوّن. اللعبة لا تتعطل بسبب صورة.
+   */
+  function buildAvatar(player, cls) {
+    var url = avatarUrlFor(player.userId, player.avatarUrl);
+    if (!url) return buildAvatarFallback(player, cls);
+
+    var img = document.createElement('img');
+    img.className = cls;
+    img.alt = player.nickname;
+    img.referrerPolicy = 'no-referrer';
+    img.setAttribute('data-stage', 'direct');
+    // المعالج يُربط قبل src دائماً: ضبطه بعده قد يفوّت حدث الفشل.
+    img.onerror = function () {
+      if (img.getAttribute('data-stage') === 'direct' && typeof avatarProxyUrl === 'function') {
+        img.setAttribute('data-stage', 'proxy');
+        img.src = avatarProxyUrl(url);     // نفس وسيط الموقع المستخدم بكل الألعاب
+        return;
+      }
+      var fb = buildAvatarFallback(player, cls);
+      if (img.parentNode) img.parentNode.replaceChild(fb, img);
+    };
+    img.src = url;
+    return img;
+  }
+
+  // ------------------------------------------------------------------ الصوت
+  // مؤثرات مولّدة بـWebAudio — بلا أي ملف صوتي خارجي (الموقع بلا أصول خارجية).
+  function tone(freq, durMs, type, gainValue) {
+    if (!soundOn) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      var osc = audioCtx.createOscillator();
+      var gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(gainValue || 0.05, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + durMs / 1000);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); osc.stop(audioCtx.currentTime + durMs / 1000);
+    } catch (e) { /* الصوت ترفيه لا أكثر — فشله لا يعني شيئاً */ }
+  }
+  function sfxReveal() { tone(660, 220, 'triangle', 0.06); }
+  function sfxBuild() { tone(880, 130, 'sine', 0.045); }
+  function sfxLava() { tone(70, 900, 'sawtooth', 0.09); }
+  function sfxBurn() { tone(140, 500, 'square', 0.05); }
+  function sfxRevive() { tone(700, 160, 'sine', 0.06); setTimeout(function () { tone(1050, 260, 'sine', 0.06); }, 170); }
+  function sfxWin() { tone(523, 180, 'sine', 0.07); setTimeout(function () { tone(784, 320, 'sine', 0.07); }, 190); }
+
+  // ------------------------------------------------------------------ الأرقام
+  // الموقع يستخدم الأرقام اللاتينية في كل نص وظيفي، فنلتزم بها (§10).
+  function num(n) { return String(n); }
+
+  // ------------------------------------------------------------------ الرسم
+  function stageHeight() {
+    var stage = $(TAG + '-stage');
+    return stage ? stage.clientHeight : 600;
+  }
+
+  /** بكسلات ارتفاع اللافا مقابل مستواها بالبلوكات. */
+  function lavaPx(level) {
+    return Math.min(stageHeight() - 40, level * (blockHeightPx + 4));
+  }
+
+  /**
+   * يوزّع العرض المتاح على كل اللاعبين فيظهر الجميع دائماً — مهما كان العدد
+   * أو حجم الشاشة. إغلاق شات البث يوسّع الساحة فتكبر الأبراج تلقائياً في
+   * الإطار التالي لأن الحساب يعتمد على العرض الفعلي لا على عدد ثابت.
+   */
+  /** أقل عرض برج نعتبره مقروءاً قبل اللجوء لصفّ إضافي. */
+  var TOWER_TARGET_W = 54;
+  var MAX_ROWS = 3;
+
+  /** عدد الصفوف اللازم ليبقى كل لاعب مقروءاً ضمن العرض المتاح. */
+  function rowsNeeded(count, availW) {
+    var perRow = Math.max(1, Math.floor(availW / TOWER_TARGET_W));
+    return Math.max(1, Math.min(MAX_ROWS, Math.ceil(count / perRow)));
+  }
+
+  /**
+   * يوزّع اللاعبين على صف أو أكثر ويحسب المقاسات من العرض والارتفاع معاً.
+   * الصفوف الخلفية ترتفع قليلاً وتصغر (عمق) — فتتضاعف المساحة المتاحة لكل
+   * لاعب بدل أن ينكمش الجميع إلى شرائط غير مقروءة. قمم الأبراج الخلفية تبقى
+   * أعلى من الأمامية دائماً لأن قاعدتها أعلى، فلا تحجبها الأمامية.
+   */
+  function layoutTowers(count, tallest) {
+    var host = $(TAG + '-towers');
+    var stage = $(TAG + '-stage');
+    if (!host || !stage || count <= 0) return { rows: 1, perRow: count };
+
+    var availW = Math.max(120, stage.clientWidth - 16);
+    // نخصم ارتفاع الشريط العلوي: الأبراج صارت أطول بعد ضبط الارتفاع، فبدون
+    // هذا الخصم تمرّ قمم الصفوف الخلفية تحت شرائح الشريط وتتداخل الأسماء معها.
+    var availH = Math.max(140, stage.clientHeight - (lastHudHeight || 0) - 6);
+
+    var rows = rowsNeeded(count, availW);
+    var perRow = Math.ceil(count / rows);
+
+    var gap = perRow > 22 ? 4 : perRow > 14 ? 6 : perRow > 8 ? 10 : 18;
+    var w = Math.floor((availW - gap * (perRow - 1)) / perRow);
+    if (w < 16 && gap > 2) {
+      gap = 2;
+      w = Math.floor((availW - gap * (perRow - 1)) / perRow);
+    }
+    w = Math.max(10, Math.min(150, w));
+
+    // المساحة الرأسية المتاحة للصف الأمامي (الصفوف الخلفية ترتفع فوقه).
+    var depthStep = rows > 1 ? Math.round(Math.min(120, availH * 0.2)) : 0;
+    var head = Math.round(w * 0.95) + 26;
+    var usableH = availH - depthStep * (rows - 1);
+    var stack = Math.max(1, tallest || 1);
+    var fitH = Math.floor((usableH - head - 14) / stack) - 3;
+
+    var blockH = Math.min(Math.round(w * 1.05), fitH);
+    blockH = Math.max(5, Math.min(58, blockH));
+    var av = Math.max(16, Math.min(96, Math.round(w * 0.95)));
+
+    host.style.setProperty('--vl-tower-w', w + 'px');
+    host.style.setProperty('--vl-gap', gap + 'px');
+    host.style.setProperty('--vl-block-h', blockH + 'px');
+    host.style.setProperty('--vl-av', av + 'px');
+    host.setAttribute('data-compact', av < 30 ? '1' : '0');
+    host.setAttribute('data-rows', String(rows));
+    blockHeightPx = blockH;
+
+    // وضع كل صف: الأمامي بالأسفل بحجم كامل، وكل صف خلفه أعلى وأصغر وأخفت.
+    var rowEls = host.querySelectorAll('.vl-trow');
+    for (var i = 0; i < rowEls.length; i++) {
+      var el = rowEls[i];
+      var depth = rowEls.length - 1 - i;      // 0 = الصف الأمامي
+      el.style.bottom = (depth * depthStep) + 'px';
+      el.style.transform = 'scale(' + (1 - depth * 0.13).toFixed(3) + ')';
+      el.style.zIndex = String(10 - depth);
+      el.style.opacity = String(1 - depth * 0.1);
+      el.style.filter = depth ? 'brightness(' + (1 - depth * 0.12).toFixed(2) + ')' : 'none';
+    }
+    return { rows: rows, perRow: perRow };
+  }
+
+  /** حشو اللوبي العلوي = ارتفاع الشريط العلوي الفعلي، فلا يتداخلان. */
+  function syncHudHeight() {
+    var hud = document.querySelector('#pg-' + TAG + ' .vl-hud');
+    var stage = $(TAG + '-stage');
+    if (!hud || !stage) return;
+    var h = Math.round(hud.getBoundingClientRect().height);
+    if (h > 0 && h !== lastHudHeight) {
+      lastHudHeight = h;
+      stage.style.setProperty('--vl-hud-h', h + 'px');
+    }
+  }
+
+  function buildTowerNode(player) {
+    var root = document.createElement('div');
+    root.className = 'vl-tower';
+
+    var floatSlot = document.createElement('div');
+    floatSlot.className = 'vl-float-slot';
+
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'vl-avatar-wrap';
+    avatarWrap.style.position = 'relative';
+
+    var name = document.createElement('div');
+    name.className = 'vl-name';
+    name.textContent = player.nickname;
+
+    avatarWrap.appendChild(name);
+    avatarWrap.appendChild(buildAvatar(player, 'vl-avatar'));
+
+    var blocks = document.createElement('div');
+    blocks.className = 'vl-tower-blocks';
+
+    root.appendChild(floatSlot);
+    root.appendChild(avatarWrap);
+    root.appendChild(blocks);
+    return { root: root, blocks: blocks, avatarWrap: avatarWrap, floatSlot: floatSlot, lastHeight: 0 };
+  }
+
+  function syncBlocks(node, player) {
+    var want = Math.max(0, player.height);
+    var have = node.blocks.children.length;
+    if (want === have) return;
+    if (want < have) {
+      while (node.blocks.children.length > want) node.blocks.removeChild(node.blocks.lastChild);
+      return;
+    }
+    var color = VL.colorForUserId(player.userId);
+    for (var i = have; i < want; i++) {
+      var b = document.createElement('div');
+      b.className = 'vl-block';
+      // لون مميز لكل لاعب مشتق من userId — ثابت عبر الجلسات
+      b.style.background = 'linear-gradient(180deg, ' + color + ', rgba(0,0,0,.55))';
+      b.style.border = '1px solid rgba(255,255,255,.14)';
+      if (have > 0) {
+        b.classList.add('vl-block-new');
+        // تتابع 60ms بين اللاعبين حتى تبان الحركة (§8)
+        b.style.animationDelay = (node.staggerIndex || 0) * 60 + 'ms';
+      }
+      node.blocks.appendChild(b);
+    }
+    if (node.blocks.firstChild && !blockHeightPx) {
+      blockHeightPx = node.blocks.firstChild.offsetHeight || 44;
+    }
+  }
+
+  function renderTowers() {
+    var host = $(TAG + '-towers');
+    if (!host) return;
+    var players = engine.allPlayers();
+    var fingerprint = players.map(function (p) { return p.userId; }).join('|');
+
+    var tallest = 0;
+    for (var t = 0; t < players.length; t++) {
+      if (players[t].height > tallest) tallest = players[t].height;
+    }
+
+    // عدد الصفوف قد يتغيّر مع تغيّر العدد أو عرض الساحة (فتح/إغلاق الشات،
+    // تدوير الجوال)، فندخله في البصمة حتى يُعاد التوزيع عند تغيّره.
+    var availW = Math.max(120, ($(TAG + '-stage') ? $(TAG + '-stage').clientWidth : 600) - 16);
+    var wantRows = rowsNeeded(players.length, availW);
+    var fingerprint2 = fingerprint + '#' + wantRows;
+
+    if (fingerprint2 !== renderedRoster) {
+      host.textContent = '';
+      towerNodes.clear();
+      var perRow = Math.ceil(players.length / wantRows) || 1;
+      var rowEls = [];
+      for (var r = 0; r < wantRows; r++) {
+        var row = document.createElement('div');
+        row.className = 'vl-trow';
+        rowEls.push(row);
+        host.appendChild(row);
+      }
+      players.forEach(function (p, idx) {
+        var node = buildTowerNode(p);
+        towerNodes.set(p.userId, node);
+        // الصف الأخير في DOM هو الأمامي؛ نملأ من الخلف للأمام حتى يظهر
+        // أوائل المنضمّين في الصف الأمامي.
+        var rowIdx = wantRows - 1 - Math.floor(idx / perRow);
+        (rowEls[Math.max(0, rowIdx)] || rowEls[0]).appendChild(node.root);
+      });
+      renderedRoster = fingerprint2;
+    }
+    layoutTowers(players.length, tallest);
+
+    var phase = engine.phase;
+    var lava = engine.lava;
+    players.forEach(function (p, i) {
+      var node = towerNodes.get(p.userId);
+      if (!node) return;
+      node.staggerIndex = i;
+      syncBlocks(node, p);
+
+      var cls = 'vl-avatar-wrap';
+      if (!p.alive) {
+        cls += ' vl-p-burning';
+      } else if (phase === 'REVEAL' || phase === 'BUILD') {
+        var correct = engine.question && p.choice !== null && (p.choice - 1) === engine.question.correctIndex;
+        cls += correct ? ' vl-p-correct' : (p.answeredThisRound ? ' vl-p-wrong' : '');
+      } else if (phase === 'QUESTION' && p.answeredThisRound) {
+        cls += ' vl-p-answered';
+      }
+      // ارتجاف عند اقتراب اللافا (بلوكان أو أقل)
+      if (p.alive && p.height - lava <= 2) cls += ' vl-p-danger';
+      if (node.avatarWrap.className !== cls) node.avatarWrap.className = cls;
+
+      // أطلال البرج بعد الاحتراق
+      if (!p.alive && !node.ruined) {
+        node.ruined = true;
+        var ruin = document.createElement('div');
+        ruin.className = 'vl-ruin';
+        node.root.insertBefore(ruin, node.blocks);
+        var smoke = document.createElement('div');
+        smoke.className = 'vl-smoke';
+        node.avatarWrap.appendChild(smoke);
+      }
+    });
+  }
+
+  function renderLava() {
+    var px = lavaPx(engine.lava);
+    var lava = $(TAG + '-lava');
+    var fog = $(TAG + '-fog');
+    var embers = $(TAG + '-embers');
+    if (lava) lava.style.height = px + 'px';
+    if (fog) fog.style.bottom = px + 'px';
+    if (embers) embers.style.bottom = px + 'px';
+  }
+
+  function seedLavaDecor() {
+    var lava = $(TAG + '-lava');
+    var embers = $(TAG + '-embers');
+    if (lava && !lava.querySelector('.vl-bubble')) {
+      for (var i = 0; i < 10; i++) {
+        var b = document.createElement('div');
+        b.className = 'vl-bubble';
+        var size = 8 + Math.random() * 18;
+        b.style.width = size + 'px';
+        b.style.height = size + 'px';
+        b.style.left = (Math.random() * 96) + '%';
+        b.style.top = (4 + Math.random() * 40) + '%';
+        b.style.animationDelay = (Math.random() * 2.4) + 's';
+        lava.appendChild(b);
+      }
+    }
+    if (embers && !embers.querySelector('.vl-ember')) {
+      for (var j = 0; j < 14; j++) {
+        var e = document.createElement('span');
+        e.className = 'vl-ember';
+        var s = 3 + Math.random() * 5;
+        e.style.width = s + 'px';
+        e.style.height = s + 'px';
+        e.style.animationDuration = (3 + Math.random() * 3.4) + 's';
+        e.style.animationDelay = (Math.random() * 3) + 's';
+        embers.appendChild(e);
+      }
+    }
+  }
+
+  function renderLobby() {
+    var lobby = $(TAG + '-lobby');
+    var grid = $(TAG + '-lobby-grid');
+    if (!lobby || !grid) return;
+    var show = engine.phase === 'LOBBY';
+    lobby.style.display = show ? 'flex' : 'none';
+    if (!show) return;
+
+    var players = engine.allPlayers();
+    if (grid.childElementCount === players.length) return;   // لا إعادة بناء بلا داعٍ
+    grid.textContent = '';
+    players.forEach(function (p) {
+      var wrap = document.createElement('div');
+      wrap.className = 'vl-lobby-player';
+      wrap.appendChild(buildAvatar(p, 'vl-avatar'));
+      var nm = document.createElement('div');
+      nm.className = 'vl-name';
+      nm.textContent = p.nickname;
+      wrap.appendChild(nm);
+      grid.appendChild(wrap);
+    });
+  }
+
+  function renderCard() {
+    var card = $(TAG + '-card');
+    if (!card) return;
+    var phase = engine.phase;
+    var visible = phase === 'QUESTION' || phase === 'REVEAL';
+    card.style.display = visible ? 'flex' : 'none';
+    if (!visible) return;
+
+    var q = engine.question;
+    if (!q) return;
+
+    setText(TAG + '-question', q.text);
+    var bankLabel = q.category === 'math' ? 'رياضيات' : 'معلومات عامة';
+    if (q.subcategory && q.subcategory !== bankLabel) bankLabel += ' · ' + q.subcategory;
+    setText(TAG + '-bank', bankLabel);
+    setText(TAG + '-answered', 'أجاب ' + num(engine.answered) + ' لاعب');
+
+    var remaining = engine.remainingSeconds();
+    setText(TAG + '-timer', num(remaining));
+    var timer = $(TAG + '-timer');
+    var urgent = remaining <= 5 && phase === 'QUESTION';
+    if (timer) timer.classList.toggle('vl-urgent', urgent);
+
+    // شريط العدّاد الأفقي فوق السؤال — يفرغ تدريجياً ويتحوّل للأحمر آخر 5 ثوانٍ
+    var bar = $(TAG + '-timebar');
+    if (bar) {
+      var total = engine.getSettings().roundSeconds;
+      var frac = phase === 'QUESTION' ? Math.max(0, Math.min(1, remaining / total)) : 0;
+      var pct = (frac * 100).toFixed(2) + '%';
+      if (bar.style.width !== pct) bar.style.width = pct;
+      bar.classList.toggle('vl-urgent', urgent);
+    }
+
+    // الخيارات — تُبنى مرة لكل سؤال ثم تُحدَّث حالتها فقط
+    var box = $(TAG + '-options');
+    if (box && box.getAttribute('data-qid') !== q.id) {
+      box.setAttribute('data-qid', q.id);
+      box.textContent = '';
+      q.options.forEach(function (text, i) {
+        var opt = document.createElement('div');
+        opt.className = 'vl-option';
+        var n = document.createElement('span');
+        n.className = 'vl-option-num';
+        n.textContent = num(i + 1);
+        var t = document.createElement('span');
+        t.className = 'vl-option-text';
+        t.textContent = text;
+        opt.appendChild(n);
+        opt.appendChild(t);
+        box.appendChild(opt);
+      });
+    }
+    if (box) {
+      var reveal = phase === 'REVEAL';
+      for (var i = 0; i < box.children.length; i++) {
+        var el = box.children[i];
+        el.classList.toggle('vl-right', reveal && i === q.correctIndex);
+        el.classList.toggle('vl-dim', reveal && i !== q.correctIndex);
+      }
+    }
+  }
+
+  function renderHud() {
+    setText(TAG + '-round', num(engine.currentRound));
+    setText(TAG + '-alive', num(engine.alivePlayers().length));
+    setText(TAG + '-lava-warn', 'اللافا سترتفع ' + num(engine.nextLavaRise()) + ' بلوكات');
+    setText(TAG + '-kw-chip', engine.getSettings().joinKeyword);
+    setText(TAG + '-lobby-kw', engine.getSettings().joinKeyword);
+    var info = $(TAG + '-session-info');
+    if (info) info.textContent = 'أسئلة مستخدَمة في هذه الجلسة: ' + engine.usedQuestionCount + '/300';
+  }
+
+  function renderBanner() {
+    var banner = $(TAG + '-banner');
+    if (!banner) return;
+    var phase = engine.phase;
+    if (phase === 'COUNTDOWN') {
+      var left = Math.max(1, 3 - Math.floor((Date.now() - countdownStart) / 1000));
+      banner.style.display = 'flex';
+      if (banner.getAttribute('data-c') !== String(left)) {
+        banner.setAttribute('data-c', String(left));
+        banner.textContent = '';
+        var c = document.createElement('div');
+        c.className = 'vl-countdown';
+        c.textContent = num(left);
+        banner.appendChild(c);
+      }
+      return;
+    }
+    if (phase === 'ROUND_INTRO') {
+      banner.style.display = 'flex';
+      var key = 'r' + engine.currentRound;
+      if (banner.getAttribute('data-c') !== key) {
+        banner.setAttribute('data-c', key);
+        banner.textContent = '';
+        var t = document.createElement('div');
+        t.className = 'vl-round-banner';
+        t.textContent = 'الجولة ' + num(engine.currentRound);
+        var s = document.createElement('div');
+        s.className = 'vl-round-sub';
+        s.textContent = '⚠ اللافا سترتفع ' + num(engine.nextLavaRise()) + ' بلوكات';
+        banner.appendChild(t);
+        banner.appendChild(s);
+      }
+      return;
+    }
+    banner.style.display = 'none';
+    banner.removeAttribute('data-c');
+  }
+
+  function renderWinner() {
+    var host = $(TAG + '-winner');
+    if (!host) return;
+    if (engine.phase !== 'GAME_OVER') { host.style.display = 'none'; host.textContent = ''; return; }
+    if (host.style.display === 'flex') return;   // بُنيت مرة واحدة
+    host.style.display = 'flex';
+    host.textContent = '';
+
+    var champ = engine.winner();
+    var crown = document.createElement('div');
+    crown.className = 'vl-winner-crown';
+    crown.textContent = '👑';
+    host.appendChild(crown);
+
+    if (champ) {
+      host.appendChild(buildAvatar(champ, 'vl-winner-avatar'));
+      var nm = document.createElement('div');
+      nm.className = 'vl-winner-name';
+      nm.textContent = champ.nickname;
+      host.appendChild(nm);
+      var sub = document.createElement('div');
+      sub.className = 'vl-winner-sub';
+      sub.textContent = champ.points + ' نقطة · صمد ' + engine.currentRound + ' جولات';
+      host.appendChild(sub);
+    }
+
+    if (engine.endedInTie()) {
+      var tie = document.createElement('div');
+      tie.className = 'vl-winner-tie';
+      tie.textContent = 'تعادل — حسمتها النقاط';
+      host.appendChild(tie);
+    }
+
+    var board = document.createElement('div');
+    board.className = 'vl-winner-board';
+    engine.leaderboard().slice(0, 10).forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'vl-lb-row' + (r.alive ? '' : ' vl-lb-dead');
+      var rank = document.createElement('div');
+      rank.className = 'vl-lb-rank';
+      rank.textContent = num(r.rank);
+      row.appendChild(rank);
+      row.appendChild(buildAvatar(r, 'vl-lb-avatar'));
+      var nm2 = document.createElement('div');
+      nm2.className = 'vl-lb-name';
+      nm2.textContent = r.nickname;
+      row.appendChild(nm2);
+      var pts = document.createElement('div');
+      pts.className = 'vl-lb-pts';
+      pts.textContent = num(r.points);
+      row.appendChild(pts);
+      board.appendChild(row);
+    });
+    host.appendChild(board);
+  }
+
+  // ------------------------------------------------------------------ الكاميرا
+  // لا كاميرا حقيقية في 2D — نحاكيها بتصغير الأبراج تدريجياً كلما ارتفعت.
+  function updateCamera() {
+    var host = $(TAG + '-towers');
+    if (!host) return;
+    var tallest = 0;
+    engine.allPlayers().forEach(function (p) { if (p.height > tallest) tallest = p.height; });
+    var neededPx = (tallest + 1) * (blockHeightPx + 3) + 110;
+    var available = stageHeight();
+    var scale = neededPx > available ? Math.max(0.4, available / neededPx) : 1;
+    var want = 'scale(' + scale.toFixed(3) + ')';
+    if (host.style.transform !== want) host.style.transform = want;
+  }
+
+  function shakeStage() {
+    var stage = $(TAG + '-stage');
+    if (!stage || lowFxActive) return;
+    stage.classList.remove('vl-quake');
+    void stage.offsetWidth;                    // إعادة تشغيل الحركة
+    stage.classList.add('vl-quake');
+  }
+
+  // ------------------------------------------------------------------ الأداء
+  // يُفعَّل وضع منخفض المؤثرات إذا نزلت الإطارات تحت 30 لمدة 5 ثوانٍ (§8/§12).
+  function trackFps(now) {
+    fpsSamples.push(now);
+    while (fpsSamples.length > 0 && now - fpsSamples[0] > 1000) fpsSamples.shift();
+    var fps = fpsSamples.length;
+    var cfg = VL.CONFIG.perf;
+    if (fps > 0 && fps < cfg.fallbackFpsThreshold) {
+      if (!lowFxSince) lowFxSince = now;
+      else if (!lowFxActive && now - lowFxSince >= cfg.fallbackFpsDurationMs) {
+        lowFxActive = true;
+        var pg = page();
+        if (pg) pg.classList.add('vl-lowfx');
+        if (typeof toast === 'function') toast('⚡ خُفّضت المؤثرات تلقائياً للحفاظ على سلاسة العرض');
+      }
+    } else {
+      lowFxSince = 0;
+    }
+  }
+
+  // ------------------------------------------------------------------ الحلقة
+  var countdownStart = 0;
+
+  function loop(now) {
+    rafId = requestAnimationFrame(loop);
+    if (!engine) return;
+    trackFps(now);
+    // طابور الشات يُفرَّغ مرة كل إطار — لا معالجة داخل حلقة الرسم نفسها (§6)
+    engine.drainChat();
+    syncHudHeight();
+    renderHud();
+    renderLobby();
+    renderTowers();
+    renderLava();
+    renderCard();
+    renderBanner();
+    renderWinner();
+    updateCamera();
+  }
+
+  function startLoop() {
+    if (rafId === null) rafId = requestAnimationFrame(loop);
+  }
+  function stopLoop() {
+    if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  // ------------------------------------------------------------------ الشات
+  /** يُسجَّل في ناقل أحداث الموقع المشترك — بلا اتصال WebSocket جديد. */
+  function vlHandleEvent(data) {
+    if (!engine) return;
+    var messages = (data && data.messages) || (data && data.type ? [data] : []);
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+      var type = msg.type || msg.event;
+      // ---- هدايا تيك توك: إنعاش اللاعب المحترق ----
+      if (type === 'WebcastGiftMessage' || type === 'gift') {
+        var giver = extractUser(msg);
+        rememberAvatar(giver.uniqueId, giver.avatar);
+        var giftName = msg.giftName || (msg.gift && msg.gift.name) || (msg.data && msg.data.giftName) || 'هدية';
+        var diamondCount = Number(msg.diamondCount || (msg.gift && msg.gift.diamond_count) || (msg.data && msg.data.diamondCount) || 0) || 0;
+        var repeatCount = Number(msg.repeatCount || (msg.data && msg.data.repeatCount) || 1) || 1;
+        applyGift(giver, giftName, diamondCount * repeatCount);
+        continue;
+      }
+      if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') continue;
+      var user = extractUser(msg);
+      var text = String(msg.comment || msg.content || (msg.data && msg.data.comment) || '').trim();
+      if (!text) continue;
+      rememberAvatar(user.uniqueId, user.avatar);
+      vlAddChatMsg(user, text);
+      engine.enqueueChat({
+        userId: user.uniqueId,
+        nickname: user.nickname,
+        avatarUrl: user.avatar,
+        comment: text,
+        timestamp: Date.now(),
+      });
+    }
+  }
+
+  /**
+   * هدية واحدة = محاولة إنعاش واحدة. المحرّك هو من يقرر القبول أو الرفض
+   * (المفتاح مطفأ، اللاعب حيّ، الهدية صغيرة، تجاوز الحد، المباراة انتهت)،
+   * والواجهة تكتفي بعرض النتيجة للستريمر.
+   */
+  function applyGift(giver, giftName, diamonds) {
+    if (!engine) return;
+    var out = engine.reviveByGift({
+      userId: giver.uniqueId,
+      nickname: giver.nickname,
+      avatarUrl: giver.avatar,
+      giftName: giftName,
+      diamonds: diamonds,
+    });
+    if (out.kind === 'revived') return;             // onRevive يتكفّل بالإشعار
+    // نُعلم الستريمر فقط بالحالات التي يهمّه يعرفها.
+    if (out.reason === 'disabled' && typeof toast === 'function') {
+      toast('🎁 ' + giver.nickname + ' أرسل «' + giftName + '» — فعّل «الإنعاش بالهدايا» ليعود اللاعبون');
+    } else if (out.reason === 'too-few-diamonds' && typeof toast === 'function') {
+      toast('🎁 هدية «' + giftName + '» صغيرة جداً للإنعاش');
+    } else if (out.reason === 'limit-reached' && typeof toast === 'function') {
+      toast('🎁 ' + giver.nickname + ' استهلك إنعاشه في هذه المباراة');
+    }
+  }
+
+  function onRevive(player, gift) {
+    renderedRoster = '';                            // يُعاد بناء برجه من جديد
+    towerNodes.delete(player.userId);
+    sfxRevive();
+    if (typeof toast === 'function') {
+      toast('🎁✨ ' + player.nickname + ' عاد للعبة بهدية «' + gift.giftName + '»!');
+    }
+  }
+
+  function vlAddChatMsg(user, text) {
+    var list = $(TAG + '-chat-list');
+    if (!list) return;
+    var empty = list.querySelector('.empty');
+    if (empty) empty.remove();
+    var item = document.createElement('div');
+    item.className = 'chat-item';
+    item.innerHTML = avatarHTML(user, 'chat-av') +
+      '<div class="chat-bubble"><div class="chat-name">' + esc(user.nickname) +
+      '</div><div class="chat-txt">' + esc(text) + '</div></div>';
+    list.appendChild(item);
+    list.scrollTop = list.scrollHeight;
+    while (list.children.length > 120) list.removeChild(list.firstChild);
+  }
+
+  // ------------------------------------------------------------------ الأحداث
+  function onPhaseChange(to, from) {
+    lastPhase = from;
+    var strip = $(TAG + '-status-strip');
+    var labels = {
+      IDLE: 'جاهز', LOBBY: 'في انتظار اللاعبين…', COUNTDOWN: 'تبدأ الجولة…',
+      ROUND_INTRO: 'الجولة ' + engine.currentRound, QUESTION: 'السؤال معروض — اكتبوا رقم الإجابة',
+      REVEAL: 'كشف الإجابة', BUILD: 'بناء الأبراج', LAVA_RISE: 'اللافا تصعد!',
+      BURN: 'الاحتراق', GAME_OVER: 'انتهت المباراة',
+    };
+    if (strip) {
+      strip.textContent = labels[to] || to;
+      strip.className = 'status-strip ' + (to === 'GAME_OVER' ? 'finished' : (to === 'LOBBY' || to === 'IDLE' ? 'waiting' : 'active'));
+    }
+    if (to === 'COUNTDOWN') countdownStart = Date.now();
+    if (to === 'REVEAL') sfxReveal();
+    if (to === 'BUILD') sfxBuild();
+    if (to === 'LAVA_RISE') { sfxLava(); shakeStage(); }
+    if (to === 'BURN') sfxBurn();
+    if (to === 'GAME_OVER') { sfxWin(); onGameOver(); }
+    syncControlButtons();
+  }
+
+  function onGameOver() {
+    try { if (typeof fxCelebrate === 'function') fxCelebrate(); } catch (e) { /* الاحتفال ترفيهي */ }
+    var champ = engine.winner();
+    if (champ && typeof recordWin === 'function') {
+      try {
+        recordWin({ uniqueId: champ.userId, nickname: champ.nickname, avatar: champ.avatarUrl }, 'الأراضي البركانية');
+      } catch (e) { /* تسجيل الفوز لا يعطل شاشة التتويج */ }
+    }
+  }
+
+  function onBurn(burned) {
+    var strip = $(TAG + '-burned');
+    var names = $(TAG + '-burned-names');
+    if (!strip || !names) return;
+    if (!burned || burned.length === 0) { strip.style.display = 'none'; return; }
+    names.textContent = burned.map(function (p) { return p.nickname; }).join('، ');
+    strip.style.display = 'flex';
+    setTimeout(function () { strip.style.display = 'none'; }, 4200);
+  }
+
+  function onBuild(results) {
+    // أرقام النقاط الطائرة فوق كل ناجح
+    results.forEach(function (r, i) {
+      if (!r.correct) return;
+      var node = towerNodes.get(r.userId);
+      if (!node || !node.floatSlot) return;
+      setTimeout(function () {
+        var f = document.createElement('div');
+        f.className = 'vl-points-float';
+        f.textContent = '+' + num(r.blocks);
+        node.floatSlot.appendChild(f);
+        setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 1900);
+      }, i * VL.CONFIG.perf.buildStaggerMs);
+    });
+  }
+
+  // ------------------------------------------------------------------ أزرار الستريمر
+  function syncControlButtons() {
+    var phase = engine ? engine.phase : 'IDLE';
+    var inMatch = phase !== 'LOBBY' && phase !== 'IDLE' && phase !== 'GAME_OVER';
+    var startBtn = $(TAG + '-btn-start');
+    if (startBtn) {
+      startBtn.disabled = phase !== 'LOBBY';
+      startBtn.textContent = phase === 'GAME_OVER' ? '▶ ابدأ اللعبة' : '▶ ابدأ اللعبة';
+    }
+    var pauseBtn = $(TAG + '-btn-pause');
+    if (pauseBtn) {
+      pauseBtn.disabled = !inMatch;
+      pauseBtn.textContent = engine && engine.isPaused ? '▶ استئناف' : '⏸ إيقاف مؤقت';
+    }
+    var skip = $(TAG + '-btn-skip');
+    if (skip) skip.disabled = phase !== 'QUESTION';
+    var endRound = $(TAG + '-btn-endround');
+    if (endRound) endRound.disabled = phase !== 'QUESTION' && phase !== 'REVEAL';
+  }
+
+  function vlStart() {
+    if (!engine) return;
+    if (engine.allPlayers().length < 2) {
+      if (typeof toast === 'function') toast('⚠️ لازم لاعبان على الأقل لبدء المباراة');
+      return;
+    }
+    if (!engine.start()) { if (typeof toast === 'function') toast('⚠️ ما نقدر نبدأ الآن'); return; }
+    var winner = $(TAG + '-winner');
+    if (winner) { winner.style.display = 'none'; winner.textContent = ''; }
+    syncControlButtons();
+  }
+
+  function vlTogglePause() {
+    if (!engine) return;
+    if (engine.isPaused) { engine.resume(); if (typeof toast === 'function') toast('▶ استُؤنفت اللعبة'); }
+    else { engine.pause(); if (typeof toast === 'function') toast('⏸ اللعبة متوقفة مؤقتاً'); }
+    syncControlButtons();
+  }
+
+  function vlSkipQuestion() {
+    if (engine && engine.skipQuestion()) { if (typeof toast === 'function') toast('⏭ تم تخطّي السؤال'); }
+  }
+
+  function vlEndRoundEarly() {
+    if (engine && engine.endRoundEarly()) { if (typeof toast === 'function') toast('⏹ أُنهيت الجولة مبكراً'); }
+  }
+
+  function vlRestart() {
+    if (!engine) return;
+    engine.restart();
+    renderedRoster = '';
+    towerNodes.clear();
+    var winner = $(TAG + '-winner');
+    if (winner) { winner.style.display = 'none'; winner.textContent = ''; }
+    var grid = $(TAG + '-lobby-grid');
+    if (grid) grid.textContent = '';
+    if (typeof toast === 'function') toast('🔄 أُعيد ضبط اللعبة — الأسئلة المستخدَمة محفوظة');
+    syncControlButtons();
+  }
+
+  function vlNewSession() {
+    if (!engine) return;
+    engine.startNewSession();
+    renderedRoster = '';
+    towerNodes.clear();
+    var grid = $(TAG + '-lobby-grid');
+    if (grid) grid.textContent = '';
+    var winner = $(TAG + '-winner');
+    if (winner) { winner.style.display = 'none'; winner.textContent = ''; }
+    if (typeof toast === 'function') toast('🆕 جلسة جديدة — بنك الأسئلة صُفِّر بالكامل');
+    syncControlButtons();
+  }
+
+  function vlToggleLateJoin(checked) {
+    if (engine) engine.updateSettings({ allowLateJoin: !!checked });
+    if (typeof toast === 'function') toast(checked ? '🚪 الانضمام المتأخر مسموح' : '🚪 الانضمام المتأخر متوقف');
+  }
+
+  function vlToggleRevive(checked) {
+    if (engine) engine.updateSettings({ reviveOnGift: !!checked });
+    var setupBox = $(TAG + '-opt-revive');
+    if (setupBox) setupBox.checked = !!checked;
+    if (typeof toast === 'function') {
+      toast(checked ? '🎁 الإنعاش بالهدايا مفعّل' : '🎁 الإنعاش بالهدايا متوقف');
+    }
+  }
+
+  /** يحاكي هدية حقيقية لأول لاعب محترق — للتجربة قبل البث. */
+  function vlSimulateGift() {
+    if (!engine) return;
+    var dead = engine.allPlayers().filter(function (p) { return !p.alive; });
+    if (dead.length === 0) {
+      if (typeof toast === 'function') toast('🎁 ما فيه لاعب محترق حالياً لتجربة الإنعاش');
+      return;
+    }
+    var target = dead[0];
+    applyGift({ uniqueId: target.userId, nickname: target.nickname, avatar: target.avatarUrl },
+              'وردة', 5);
+  }
+
+  function vlOpenKickModal() {
+    if (!engine || typeof kickModalOpen !== 'function') return;
+    var map = new Map();
+    engine.allPlayers().forEach(function (p) {
+      map.set(p.userId, { uid: p.userId, uniqueId: p.userId, nickname: p.nickname, avatar: p.avatarUrl });
+    });
+    kickModalOpen(TAG, map, function (uid) {
+      engine.removePlayer(uid);
+      renderedRoster = '';
+      if (typeof toast === 'function') toast('🚫 طُرد اللاعب');
+    });
+  }
+
+  /**
+   * أفتار وهمي مضمّن كـdata URI — بلا أي طلب شبكة ولا أصل خارجي. الغرض أن
+   * يمرّ اللاعب الوهمي على نفس مسار <img> الذي تمرّ عليه صورة تيك توك
+   * الحقيقية، فيُختبر المسار فعلاً بدل أن يقع دائماً على البديل الملوّن.
+   */
+  function simAvatar(i) {
+    var hues = [12, 42, 88, 140, 190, 232, 276, 318];
+    var h = hues[i % hues.length];
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96">' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+      '<stop offset="0" stop-color="hsl(' + h + ',70%,58%)"/>' +
+      '<stop offset="1" stop-color="hsl(' + ((h + 40) % 360) + ',65%,38%)"/>' +
+      '</linearGradient></defs>' +
+      '<rect width="96" height="96" fill="url(#g)"/>' +
+      '<circle cx="48" cy="38" r="16" fill="rgba(255,255,255,.92)"/>' +
+      '<path d="M18 92c4-19 16-28 30-28s26 9 30 28z" fill="rgba(255,255,255,.92)"/>' +
+      '</svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
+  /** محاكاة 20 لاعباً وهمياً — تمرّ بنفس مسار الشات الحقيقي تماماً. */
+  function vlSimulatePlayers() {
+    if (!engine) return;
+    var names = ['سلطان', 'نورة', 'فهد', 'ريم', 'تركي', 'لمى', 'عبدالله', 'جواهر', 'بدر', 'هيا',
+                 'ماجد', 'دانة', 'سارة', 'خالد', 'منى', 'طلال', 'رهف', 'يوسف', 'شهد', 'عمر'];
+    var kw = engine.getSettings().joinKeyword;
+    names.forEach(function (nickname, i) {
+      engine.enqueueChat({
+        userId: 'sim_' + i, nickname: nickname, avatarUrl: simAvatar(i),
+        comment: kw, timestamp: Date.now() + i,
+      });
+    });
+    engine.drainChat();
+    if (typeof toast === 'function') toast('🧪 أُضيف 20 لاعباً وهمياً — اضغط «ابدأ اللعبة»');
+    startSimAnswers();
+  }
+
+  // اللاعبون الوهميون يجيبون تلقائياً كل جولة حتى تُختبر المباراة كاملة.
+  var simTimer = null;
+  function startSimAnswers() {
+    if (simTimer) return;
+    simTimer = setInterval(function () {
+      if (!engine || engine.phase !== 'QUESTION') return;
+      var q = engine.question;
+      if (!q) return;
+      engine.allPlayers().forEach(function (p) {
+        if (!p.alive || p.answeredThisRound) return;
+        if (p.userId.indexOf('sim_') !== 0) return;
+        if (Math.random() > 0.35) return;                     // يجيبون تدريجياً لا دفعة واحدة
+        var correct = Math.random() < 0.68;
+        var choice = correct ? q.correctIndex + 1 : ((q.correctIndex + 1 + Math.floor(Math.random() * 3)) % 4) + 1;
+        engine.enqueueChat({
+          userId: p.userId, nickname: p.nickname, avatarUrl: '',
+          comment: String(choice), timestamp: Date.now(),
+        });
+      });
+    }, 900);
+  }
+  function stopSimAnswers() {
+    if (simTimer) { clearInterval(simTimer); simTimer = null; }
+  }
+
+  function vlGoHome() {
+    teardown();
+    if (typeof goHome === 'function') goHome(); else if (typeof show === 'function') show('home');
+  }
+
+  // ------------------------------------------------------------------ الإقلاع
+  function goSetupVolcanicLands() { show('setup-' + TAG); }
+
+  function vlSetStatus(kind, msg) {
+    var node = $(TAG + '-status');
+    if (!node) return;
+    node.className = 'status-msg ' + (kind || '');
+    node.textContent = msg || '';
+  }
+
+  function launchVolcanicLands() {
+    VL = window.VolcanicLands;
+    if (!VL) { vlSetStatus('err', '⚠️ تعذّر تحميل منطق اللعبة — أعد تحميل الصفحة'); return; }
+
+    streamerUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
+    if (typeof gamePlatform === 'object') {
+      gamePlatform[TAG] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform[TAG];
+    }
+    if (typeof homeHasActiveConnection === 'function' && (!homeHasActiveConnection() || !streamerUser)) {
+      vlSetStatus('err', '⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
+      return;
+    }
+
+    var joinKeyword = ($(TAG + '-join-kw').value || '').trim() || VL.CONFIG.joinKeyword;
+    var roundSeconds = parseInt($(TAG + '-duration').value, 10);
+    var maxPlayers = parseInt($(TAG + '-maxplayers').value, 10);
+    var difficulty = $(TAG + '-difficulty').value;
+    var allowLateJoin = $(TAG + '-opt-latejoin').checked;
+    var reviveOnGift = $(TAG + '-opt-revive').checked;
+    soundOn = $(TAG + '-opt-sound').checked;
+
+    if (!joinKeyword || joinKeyword.length > 14) { vlSetStatus('err', '⚠️ كلمة الانضمام لازم تكون 1–14 حرفاً'); return; }
+    if (!(roundSeconds >= 10 && roundSeconds <= 60)) { vlSetStatus('err', '⚠️ مدة السؤال لازم بين 10 و60 ثانية'); return; }
+    if (!(maxPlayers >= 2 && maxPlayers <= 60)) { vlSetStatus('err', '⚠️ عدد اللاعبين لازم بين 2 و60'); return; }
+
+    avatarCacheLoad();
+
+    // الجلسة مرتبطة بحساب الستريمر لا بجولة اللعب — فتُستأنف تلقائياً
+    // بأسئلتها المستخدَمة عند الرجوع للعبة (§9).
+    var bank = VL.createBank(streamerUser || 'anon');
+    engine = new VL.Engine(bank, {
+      onPhaseChange: onPhaseChange,
+      onBurn: onBurn,
+      onBuild: onBuild,
+      onRevive: onRevive,
+      onChatDisconnect: function () { if (typeof toast === 'function') toast('⚠️ انقطع الشات — اللعبة مستمرة'); },
+    }, {
+      roundSeconds: roundSeconds,
+      joinKeyword: joinKeyword,
+      difficulty: difficulty,
+      maxPlayers: maxPlayers,
+      allowLateJoin: allowLateJoin,
+      reviveOnGift: reviveOnGift,
+    });
+
+    var liveToggle = $(TAG + '-live-latejoin');
+    if (liveToggle) liveToggle.checked = allowLateJoin;
+    var reviveToggle = $(TAG + '-live-revive');
+    if (reviveToggle) reviveToggle.checked = reviveOnGift;
+
+    if (typeof ownerRegisterActiveStreamer === 'function') {
+      ownerRegisterActiveStreamer(TAG, streamerUser, (typeof gamePlatform === 'object' ? gamePlatform[TAG] : 'tiktok'), 'الأراضي البركانية');
+    }
+    if (typeof contestNoteActivity === 'function') contestNoteActivity();
+    if (typeof liveCommandsBoot === 'function') liveCommandsBoot(TAG, {});
+    if (typeof scoreCurrentStreamer !== 'undefined') { try { scoreCurrentStreamer = streamerUser; } catch (e) { /* اختياري */ } }
+
+    setText(TAG + '-live-user', '@' + streamerUser);
+    var dot = $(TAG + '-live-dot');
+    if (dot) dot.className = 'dot on';
+
+    show(TAG);
+    // على الجوال نبدأ والشات مطويّ حتى تأخذ الساحة الشاشة كاملة؛ زر 💬 الذي
+    // ينشئه الموقع يفتحه كلوح سفلي عند الحاجة.
+    if (window.innerWidth <= 900 && typeof collapseGameChat === 'function') {
+      var layoutEl = document.querySelector('#pg-' + TAG + ' .vl-layout');
+      if (layoutEl) collapseGameChat(layoutEl, true);
+    }
+    seedLavaDecor();
+    engine.openLobby();
+    homeRegisterGameListener(TAG, vlHandleEvent);
+    startLoop();
+    syncControlButtons();
+    vlSetStatus('', '');
+  }
+
+  /** تنظيف كامل عند مغادرة اللعبة — §13. */
+  function teardown() {
+    stopLoop();
+    stopSimAnswers();
+    if (typeof homeUnregisterGameListener === 'function') homeUnregisterGameListener(TAG);
+    if (engine) { engine.dispose(); engine = null; }
+    towerNodes.clear();
+    renderedRoster = '';
+    lowFxActive = false;
+    lowFxSince = 0;
+    fpsSamples = [];
+    var pg = page();
+    if (pg) pg.classList.remove('vl-lowfx');
+    if (audioCtx && audioCtx.state !== 'closed') { try { audioCtx.close(); } catch (e) { /* لا يهم */ } audioCtx = null; }
+  }
+
+  // ------------------------------------------------------------------ التصدير
+  window.goSetupVolcanicLands = goSetupVolcanicLands;
+  window.launchVolcanicLands = launchVolcanicLands;
+  window.vlHandleEvent = vlHandleEvent;
+  window.vlStart = vlStart;
+  window.vlTogglePause = vlTogglePause;
+  window.vlSkipQuestion = vlSkipQuestion;
+  window.vlEndRoundEarly = vlEndRoundEarly;
+  window.vlRestart = vlRestart;
+  window.vlNewSession = vlNewSession;
+  window.vlToggleLateJoin = vlToggleLateJoin;
+  window.vlOpenKickModal = vlOpenKickModal;
+  window.vlSimulatePlayers = vlSimulatePlayers;
+  window.vlToggleRevive = vlToggleRevive;
+  window.vlSimulateGift = vlSimulateGift;
+  window.vlGoHome = vlGoHome;
+  window.vlTeardown = teardown;
+
+  // تسجيل اللعبة في محاكي المطوّر الموجود أصلاً — إضافة لا تعديل.
+  if (typeof TST_GAME_REGISTRY === 'object' && TST_GAME_REGISTRY) {
+    TST_GAME_REGISTRY[TAG] = {
+      pageId: TAG, participantsVar: null, joinFn: null,
+      handleFn: 'vlHandleEvent', name: 'الأراضي البركانية',
+    };
+  }
+})();
