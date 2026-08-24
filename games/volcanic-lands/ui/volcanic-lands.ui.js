@@ -174,7 +174,9 @@
     if (!host || !stage || count <= 0) return { rows: 1, perRow: count };
 
     var availW = Math.max(120, stage.clientWidth - 16);
-    var availH = Math.max(140, stage.clientHeight);
+    // نخصم ارتفاع الشريط العلوي: الأبراج صارت أطول بعد ضبط الارتفاع، فبدون
+    // هذا الخصم تمرّ قمم الصفوف الخلفية تحت شرائح الشريط وتتداخل الأسماء معها.
+    var availH = Math.max(140, stage.clientHeight - (lastHudHeight || 0) - 6);
 
     var rows = rowsNeeded(count, availW);
     var perRow = Math.ceil(count / rows);

@@ -87,7 +87,9 @@ const midMatch = await page.evaluate(() => {
     options: document.getElementById('volcanic-lands-options').childElementCount,
     timer: document.getElementById('volcanic-lands-timer').textContent,
     answered: document.getElementById('volcanic-lands-answered').textContent,
-    towers: document.getElementById('volcanic-lands-towers').childElementCount,
+    // .vl-tower لا الأبناء المباشرين: الأبناء صاروا حاويات صفوف
+    towers: document.querySelectorAll('#volcanic-lands-towers .vl-tower').length,
+    rows: document.querySelectorAll('#volcanic-lands-towers .vl-trow').length,
     round: document.getElementById('volcanic-lands-round').textContent,
   };
 });
@@ -124,6 +126,7 @@ await new Promise((ok) => server.close(ok));
 
 const ok = loaded.hasLogic && loaded.hasLaunch && loaded.hasSetupPage && loaded.hasDashPage
   && loaded.hasCard && loaded.registered && afterLaunch.active && lobbyCount === 20
-  && midMatch.options === 4 && final.winnerShown && newConsole === 0 && newPage === 0;
+  && midMatch.options === 4 && midMatch.towers === 20 && final.winnerShown
+  && newConsole === 0 && newPage === 0;
 console.log(ok ? '\n✅ نجح الاختبار الشامل' : '\n❌ فشل الاختبار الشامل');
 process.exit(ok ? 0 : 1);
