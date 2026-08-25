@@ -1,0 +1,383 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner() {
+      return request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    function currentUsernameLower() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
+        : null;
+    }
+
+    match /users/{uid} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null
+                    && (request.auth.uid == uid || request.auth.token.email == 'malshaifan1@gmail.com');
+      allow delete: if false;
+    }
+
+    match /usernames/{usernameLower} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /gameBadges/{gameTag} {
+      allow read: if true;
+
+      allow create: if isOwner()
+                    && request.resource.data.badge in ['new', 'update', 'none', 'maintenance']
+                    && request.resource.data.keys().hasOnly(['badge']);
+
+      allow update: if isOwner()
+                    && request.resource.data.badge in ['new', 'update', 'none', 'maintenance']
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['badge']);
+
+      allow delete: if isOwner();
+    }
+
+    match /activeStreamers/{gameTag} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /playEvents/{eventId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /presence/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /siteUpdates/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /moderators/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /devSpecial/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /alfawzanSpecial/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /ghnamSpecial/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /moderatorSettings/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+
+    match /personalMessages/{usernameLower} {
+      allow read: if true;
+      allow create, update: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow delete: if request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower == usernameLower;
+    }
+
+    match /broadcastMessages/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /liveCommands/{gameTag}/cmds/{cmdId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow update: if false;
+      allow delete: if request.auth != null;
+    }
+
+    match /liveRounds/{gameTag} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /friendships/{pairId} {
+      allow read: if request.auth != null && (
+        request.auth.uid in pairId.split('_') ||
+        (resource.data != null && request.auth.uid in resource.data.uids)
+      );
+      allow create: if request.auth != null && request.auth.uid in request.resource.data.uids
+                    && request.resource.data.uids.size() == 2
+                    && pairId == request.resource.data.uids[0] + '_' + request.resource.data.uids[1];
+      allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
+      allow update: if false;
+    }
+
+    match /friendRequests/{reqId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.fromUid
+                    && request.resource.data.status == 'pending';
+      allow read: if request.auth != null
+                  && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+      allow update: if request.auth != null && request.auth.uid == resource.data.toUid;
+      allow delete: if request.auth != null
+                    && (request.auth.uid == resource.data.fromUid || request.auth.uid == resource.data.toUid);
+    }
+
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.hostUid;
+      allow update: if request.auth != null;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.hostUid;
+
+      match /members/{memberUid} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && (
+          request.auth.uid == memberUid ||
+          request.auth.uid == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid
+        );
+        allow update: if request.auth != null && request.auth.uid == memberUid;
+        allow delete: if request.auth != null && (
+          request.auth.uid == memberUid ||
+          (resource.data.lastSeen != null && request.time.toMillis() - resource.data.lastSeen.toMillis() > 60000)
+        );
+      }
+
+      match /game/{doc} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update: if request.auth != null && (
+          request.auth.uid == resource.data.authorityUid ||
+          request.auth.uid == resource.data.holderUid ||
+          (resource.data.participants != null && request.auth.uid in resource.data.participants.keys()) ||
+          !exists(/databases/$(database)/documents/rooms/$(roomId)/members/$(resource.data.authorityUid))
+        );
+      }
+    }
+
+    match /matchmakingQueue/{uid} {
+      allow read: if request.auth != null;
+      allow create, delete: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && (
+        request.auth.uid == uid ||
+        (resource.data.status == 'waiting' && request.resource.data.status == 'matched'
+         && request.resource.data.uid == resource.data.uid)
+      );
+    }
+
+    match /notifications/{recipientUid}/items/{itemId} {
+      allow read, update, delete: if request.auth != null && request.auth.uid == recipientUid;
+      allow create: if request.auth != null
+                    && request.resource.data.read == false
+                    && (
+                      (request.resource.data.fromUid == request.auth.uid
+                        && request.resource.data.type in ['friendRequest', 'gameInvite'])
+                      || (request.resource.data.type == 'immunityGrant'
+                        && request.auth.token.email == 'malshaifan1@gmail.com')
+                    );
+    }
+
+    match /eventAccess/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /leaderboards/{streamerUsername} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // نظام المستويات (levels/{key}) — نفس نموذج الثقة المستخدم بـleaderboards:
+    // متصفح الستريمر المسجّل دخوله هو اللي يسجّل راوندات متابعيه، فأي حساب
+    // مسجّل يقدر يكتب سجل أي شخص. الفرق أننا هنا نقيّد شكل المستند نفسه: أسماء
+    // الحقول محصورة، والأرقام لازم تكون أرقام غير سالبة، والحذف للمالك فقط.
+    match /levels/{levelKey} {
+      allow read: if request.auth != null;
+
+      allow create, update: if request.auth != null
+                    && request.resource.data.keys().hasOnly([
+                         'key', 'username', 'avatar',
+                         'xp', 'level', 'roundsPlayed',
+                         'isRegistered', 'isStreamer', 'isViewer', 'uid',
+                         'createdAt', 'updatedAt'
+                       ])
+                    && request.resource.data.xp is number
+                    && request.resource.data.xp >= 0
+                    && request.resource.data.level is number
+                    && request.resource.data.level >= 1
+                    && request.resource.data.roundsPlayed is number
+                    && request.resource.data.roundsPlayed >= 0;
+
+      allow delete: if isOwner();
+    }
+
+    match /shopProducts/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /activeImmunities/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    match /activeRetries/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    match /activeDoublePoints/{docId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null;
+    }
+
+    match /storeNewAnnouncements/current {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /storeSales/{docId} {
+      allow read: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    match /event100/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+
+      match /streamers/{uniqueIdLower} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null;
+      }
+
+      match /grid/{docId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+
+      match /participants/{uniqueIdLower} {
+        allow read: if request.auth != null;
+        allow create, update: if request.auth != null;
+        allow delete: if false;
+      }
+    }
+
+    match /event100Rewards/{docId} {
+      allow read: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    match /strongestStreamer/current {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /streamerBroadcastMessages/current {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /f100WinMultiplier/current {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /f100OnlinePointsMultiplier/current {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /secrets/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /botRoster/{botId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /feedback/{docId} {
+      allow read: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+
+    match /userGames/{gameId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow update: if request.auth != null && request.auth.uid == resource.data.uid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
+    }
+
+    match /ahsemhaEditors/{usernameLower} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /ahsemhaCategories/{catId} {
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.token.email == 'malshaifan1@gmail.com' ||
+        (currentUsernameLower() != null && exists(/databases/$(database)/documents/ahsemhaEditors/$(currentUsernameLower())))
+      );
+    }
+
+    match /ahsemhaSettings/{settingsDocId} {
+      allow read: if true;
+      allow write: if request.auth != null && (
+        request.auth.token.email == 'malshaifan1@gmail.com' ||
+        (currentUsernameLower() != null && exists(/databases/$(database)/documents/ahsemhaEditors/$(currentUsernameLower())))
+      );
+    }
+
+    match /streamerEvents/{eventId} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow update: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow delete: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+
+      match /sessions/{streamerKeyLower} {
+        allow read: if true;
+        allow create: if true;
+        allow update: if request.auth != null;
+        allow delete: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      }
+    }
+
+    match /streamerEventAnnouncements/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /gameOrder/{sectionKey} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+    }
+
+    match /bridgeStreamers/{uniqueIdLower} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
