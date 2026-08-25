@@ -18080,14 +18080,41 @@ async function playerTiktokLinkBoot() {
 
 // يجلب أفتار/اسم الحساب من المسار العام. يرجّع null عند أي فشل — والاستدعاء
 // يكمّل الحفظ بأفتار افتراضي بدل ما يتعطّل الربط.
+// المهلة ضرورية: fetch بلا مهلة يقدر يعلّق للأبد لو السيرفر نايم (خطة Render
+// المجانية تنيّم الخدمة بعد ~15 دقيقة، وأول طلب بعدها ياخذ 30–60 ثانية) أو لو
+// الشبكة تعلّقت — وكانت النتيجة زر معطّل ما يرجع يشتغل أبداً.
+const PLAYER_TIKTOK_FETCH_TIMEOUT_MS = 25000;
+
 async function playerTiktokFetchProfile(cleanUsername) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PLAYER_TIKTOK_FETCH_TIMEOUT_MS);
   try {
-    const resp = await fetch(TIKTOK_PROFILE_API_URL + '?u=' + encodeURIComponent(cleanUsername), { cache: 'no-store' });
+    const resp = await fetch(TIKTOK_PROFILE_API_URL + '?u=' + encodeURIComponent(cleanUsername), {
+      cache: 'no-store', signal: controller.signal,
+    });
     if (!resp.ok) return null;
     const data = await resp.json();
     if (!data || !data.ok || !data.avatar) return null;
     return { avatar: String(data.avatar), nickname: String(data.nickname || cleanUsername) };
-  } catch (err) { return null; }
+  } catch (err) { return null; } finally { clearTimeout(timer); }
+}
+
+// كتابة فايرستور ما تُحسم إلا لما يأكّدها السيرفر. على شبكة جوال ضعيفة تقدر
+// تبقى معلّقة بلا نهاية (الـSDK يحفظها بطابوره ويرسلها لما ترجع الشبكة) — فلو
+// انتظرناها بـawait عادي يتجمّد الزر. ننتظرها مهلة قصيرة فقط والواجهة ما
+// تتعلّق عليها؛ الكتابة تكمل بالخلفية بأي حال.
+const PLAYER_TIKTOK_SAVE_TIMEOUT_MS = 10000;
+
+function playerTiktokSaveToAccount(link) {
+  if (!fb || !currentUser) return Promise.resolve('no-account');
+  const write = fb.setDoc(fb.doc(fb.db, 'users', currentUser.uid), {
+    linkedTiktokUsername: link.username,
+    linkedTiktokNickname: link.nickname,
+    linkedTiktokAvatar: link.avatar,
+    linkedTiktokAt: fb.serverTimestamp(),
+  }, { merge: true }).then(() => 'saved').catch(() => 'failed');
+  const timeout = new Promise(resolve => setTimeout(() => resolve('pending'), PLAYER_TIKTOK_SAVE_TIMEOUT_MS));
+  return Promise.race([write, timeout]);
 }
 
 // ---- المودال ----
@@ -18161,40 +18188,39 @@ async function playerTiktokRefreshLink() {
 async function playerTiktokPersist(cleanUsername, okVerb) {
   const btn = document.getElementById('player-tiktok-save-btn');
   if (btn) btn.disabled = true;
-  playerTiktokSetStatus('', '⏳ جاري جلب بيانات الحساب...');
+  // 'load' لازم تكون هنا: .status-msg بدون كلاس حالة = display:none، فرسالة
+  // الانتظار كانت تُكتب وما تظهر إطلاقاً، والمستخدم يشوف زر رمادي بلا أي خبر.
+  playerTiktokSetStatus('load', '⏳ جاري جلب بيانات الحساب... (أول مرة قد تأخذ حتى دقيقة)');
 
-  const fetched = await playerTiktokFetchProfile(cleanUsername);
-  const link = {
-    username: cleanUsername,
-    nickname: (fetched && fetched.nickname) || cleanUsername,
-    avatar: (fetched && fetched.avatar) || '',
-    at: Date.now(),
-  };
+  try {
+    const fetched = await playerTiktokFetchProfile(cleanUsername);
+    const link = {
+      username: cleanUsername,
+      nickname: (fetched && fetched.nickname) || cleanUsername,
+      avatar: (fetched && fetched.avatar) || '',
+      at: Date.now(),
+    };
 
-  let saved = true;
-  if (fb && currentUser) {
-    try {
-      await fb.setDoc(fb.doc(fb.db, 'users', currentUser.uid), {
-        linkedTiktokUsername: link.username,
-        linkedTiktokNickname: link.nickname,
-        linkedTiktokAvatar: link.avatar,
-        linkedTiktokAt: fb.serverTimestamp(),
-      }, { merge: true });
-    } catch (err) { saved = false; }
-  }
+    // نحفظ محلياً ونحدّث الواجهة فوراً — قبل انتظار فايرستور، عشان الربط يبان
+    // للمستخدم حتى لو الشبكة بطيئة.
+    playerTiktokLinkStore(link);
+    playerTiktokRenderCurrent();
 
-  playerTiktokLinkStore(link);
-  playerTiktokRenderCurrent();
-  if (btn) btn.disabled = false;
+    const outcome = await playerTiktokSaveToAccount(link);
+    const avatarNote = fetched ? '' : ' — ما قدرنا نجيب صورة الحساب فراح يظهر أفتار افتراضي، جرّب "تحديث الربط" لاحقاً';
 
-  if (!saved) {
-    playerTiktokSetStatus('err', '⚠️ ' + okVerb + ' على هذا الجهاز، لكن تعذّر حفظه بحسابك — جرّب مرة ثانية');
-  } else if (!fetched) {
-    // فشل جلب الصورة ما يوقف الربط إطلاقاً — نحفظ اليوزر ونستخدم أفتار البديل
-    // الملوّن المولّد من نفس المعرّف (نفس أسلوب بقية أفتارات الموقع).
-    playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — ما قدرنا نجيب صورة الحساب، فراح يظهر أفتار افتراضي. تقدر تضغط "تحديث الربط" لاحقاً.');
-  } else {
-    playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — من الحين XP ولفلك يتجمعون بسجل واحد');
+    if (outcome === 'failed') {
+      playerTiktokSetStatus('err', '⚠️ ' + okVerb + ' على هذا الجهاز، لكن تعذّر حفظه بحسابك — جرّب مرة ثانية');
+    } else if (outcome === 'pending') {
+      playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — الشبكة بطيئة فالحفظ بحسابك يكمل بالخلفية' + avatarNote);
+    } else {
+      playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — من الحين XP ولفلك يتجمعون بسجل واحد' + avatarNote);
+    }
+  } catch (err) {
+    playerTiktokSetStatus('err', '⚠️ صار خطأ غير متوقع — جرّب مرة ثانية');
+  } finally {
+    // مهما صار فوق، الزر لازم يرجع يشتغل.
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -18207,7 +18233,9 @@ function profilePlayerLinkRefresh() {
     el.textContent = 'مربوط بـ@' + link.username;
     el.className = 'status-msg ok';
   } else {
-    el.textContent = 'ما ربطت حسابك بتيك توك بعد';
+    // .status-msg بلا كلاس حالة مخفية أصلاً، فما فيه فايدة من نص هنا — الوصف
+    // تحت الزر يشرح الميزة، فنكتفي بإخفاء السطر لين يصير فيه ربط فعلي.
+    el.textContent = '';
     el.className = 'status-msg';
   }
 }
