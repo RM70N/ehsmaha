@@ -8455,6 +8455,7 @@ function profileSetStatus(type, msg) {
 // عدّاد soloWinCount بحساب المستخدم المسجّل دخول، بدون أي تأثير على منطق
 // اللعبة نفسها لو فشل الطلب (best-effort).
 function soloRecordCompletion() {
+  levelsNoteSoloRound(); // نظام المستويات — إكمال لعبة فردية = راوند
   if (!fb || !currentUser) return;
   fb.updateDoc(fb.doc(fb.db, 'users', currentUser.uid), { soloWinCount: fb.increment(1) }).catch(() => {});
 }
@@ -14125,6 +14126,7 @@ function tstShowErrorLog() {
 // source of truth for "how many people played in the last 24h/7d/30d";
 // activeStreamers only holds the current live snapshot, no history.
 async function ownerLogPlayEvent(type, gameTag, gameName, username, platform) {
+  levelsNotePlayEvent(gameTag, platform); // نظام المستويات — مباراة جمعات = راوند لصاحب الجهاز
   if (!fb) return;
   try {
     await fb.setDoc(fb.doc(fb.collection(fb.db, 'playEvents')), {
@@ -17986,10 +17988,13 @@ function toastFast(msg) {
 // عدّل هنا فقط: قيمة XP الراوند، مكافأة الفوز، ومنحنى الصعوبة. ما فيه أي رقم
 // من هذي مكرر بأي مكان ثاني بالملف.
 const LEVELS_CONFIG = {
-  XP_PER_ROUND: 10,        // XP لكل راوند يلعبه أي شخص
+  XP_PER_ROUND: 10,        // راوند لعبة ستريمر (بث)
+  XP_PER_ROUND_SOLO: 8,    // إكمال لعبة فردية (فوز أو خسارة)
+  XP_PER_ROUND_PARTY: 12,  // مباراة ألعاب جمعات
+  XP_PER_ROUND_ONLINE: 15, // مباراة ألعاب أونلاين (لكل لاعب بالغرفة)
   XP_WIN_BONUS: 15,        // XP إضافي فوق راوند الفوز (يُمنح مع recordWin)
-  XP_PER_ROUND_BY_GAME: {  // استثناءات اختيارية حسب gameTag (فاضي = الكل بنفس القيمة)
-    // 'bomb': 12,
+  XP_PER_ROUND_BY_GAME: {  // استثناء اختياري لأي gameTag — يسبق كل القيم فوق
+    // 'bomb': 12, 'obomb': 20, 'gwsolo': 6,
   },
   BASE_XP: 30,             // معامل المنحنى
   CURVE_EXPONENT: 1.5,     // requiredXP(level) = BASE_XP * level^CURVE_EXPONENT
@@ -18129,8 +18134,27 @@ function levelsEnsureDoc(identity, extraPatch) {
 //   contestNoteRoundStarted(gameTag) → لحظة "الراوند صار نشط"
 //   liveRoundsMirror(gameTag, map)   → لحظة تغيّر قائمة المشاركين
 // فما احتجنا نلمس منطق أي لعبة على حدة.
-let levelsRoundSessions = {};    // gameTag -> { open, awarded:Set }
+let levelsRoundSessions = {};    // sessionTag -> { open, awarded:Set }
 let levelsLastParticipants = {}; // gameTag -> [user, ...] آخر قائمة مشاركين معروفة
+let levelsRoundStartedAt = {};   // sessionTag -> آخر لحظة بدأ فيها راوند بهالوسم
+const LEVELS_MIN_ROUND_GAP_MS = 3000; // ضغطتان على "ابدأ" بنفس اللحظة = راوند واحد
+
+// يفتح جلسة راوند جديدة لوسم معيّن. لو انبدأ راوند بنفس الوسم قبل أقل من
+// LEVELS_MIN_ROUND_GAP_MS نعتبرها نفس البداية (ضغطة مكررة) ونرجّع الجلسة
+// القائمة — فالشخص اللي انمنح ما ينمنح مرتين، والراوند الحقيقي التالي (اللي
+// يجي بعد ثواني على الأقل) ياخذ جلسة نظيفة.
+function levelsBeginRoundSession(sessionTag) {
+  const now = Date.now();
+  const prev = levelsRoundSessions[sessionTag];
+  if (prev && levelsRoundStartedAt[sessionTag] && (now - levelsRoundStartedAt[sessionTag]) < LEVELS_MIN_ROUND_GAP_MS) {
+    prev.open = true;
+    return prev;
+  }
+  levelsRoundStartedAt[sessionTag] = now;
+  const session = { open: true, awarded: new Set() };
+  levelsRoundSessions[sessionTag] = session;
+  return session;
+}
 
 // يبني كائن الهوية اللي يُخزَّن — المتابع بلا حساب دائم يتحدد بمعرّفه من
 // المنصة (تيك توك/كيك/يوتيوب) بالضبط زي لوحة الفائزين.
@@ -18139,27 +18163,36 @@ function levelsIdentityFromUser(u) {
   return { uniqueId: u.uniqueId, nickname: u.nickname || u.uniqueId, avatar: u.avatar || '' };
 }
 
-function levelsAwardRoundTo(user, gameTag, session, asStreamer) {
+// role: 'streamer' (شغّل الراوند ببثه) | 'viewer' (متابع لعب ببث) |
+//       'player' (حساب دائم بلعبة فردية/جمعات/أونلاين)
+function levelsAwardRoundTo(user, gameTag, session, role, xpOverride) {
   const identity = levelsIdentityFromUser(user);
-  if (!identity) return;
+  if (!identity || !session) return;
   const key = levelsKey(identity.uniqueId);
   if (!key || session.awarded.has(key)) return; // راوند واحد = منحة وحدة لكل شخص
   session.awarded.add(key);
-  const perRound = LEVELS_CONFIG.XP_PER_ROUND_BY_GAME[gameTag];
-  const xp = (perRound === undefined) ? LEVELS_CONFIG.XP_PER_ROUND : perRound;
-  const isStreamerHere = !!asStreamer || (!!scoreCurrentStreamer && key === levelsKey(scoreCurrentStreamer));
-  levelsQueue(identity, xp, 1, isStreamerHere ? { isStreamer: true } : { isViewer: true });
+  const byGame = LEVELS_CONFIG.XP_PER_ROUND_BY_GAME[gameTag];
+  const xp = (byGame !== undefined) ? byGame
+           : ((xpOverride === undefined) ? LEVELS_CONFIG.XP_PER_ROUND : xpOverride);
+  const patch = (role === 'streamer') ? { isStreamer: true }
+              : ((role === 'player') ? { isRegistered: true } : { isViewer: true });
+  levelsQueue(identity, xp, 1, patch);
 }
 
 // يُستدعى من contestNoteRoundStarted — يفتح جلسة راوند جديدة ويمنح كل من كان
 // داخل الراوند لحظة انطلاقه.
 function levelsNoteRoundStarted(gameTag) {
-  const session = { open: true, awarded: new Set() };
-  levelsRoundSessions[gameTag] = session;
-  (levelsLastParticipants[gameTag] || []).forEach(u => levelsAwardRoundTo(u, gameTag, session));
+  const session = levelsBeginRoundSession(gameTag);
+  (levelsLastParticipants[gameTag] || []).forEach(u => levelsAwardRoundTo(u, gameTag, session, levelsRoleForParticipant(u)));
   if (LEVELS_CONFIG.COUNT_ROUND_FOR_STREAMER && scoreCurrentStreamer) {
-    levelsAwardRoundTo({ uniqueId: scoreCurrentStreamer, nickname: scoreCurrentStreamer, avatar: '' }, gameTag, session, true);
+    levelsAwardRoundTo({ uniqueId: scoreCurrentStreamer, nickname: scoreCurrentStreamer, avatar: '' }, gameTag, session, 'streamer');
   }
+}
+
+// الستريمر لما يلعب براوند بثه نفسه ينحسب ستريمر مو متابع.
+function levelsRoleForParticipant(user) {
+  const key = levelsKey(user && user.uniqueId);
+  return (scoreCurrentStreamer && key === levelsKey(scoreCurrentStreamer)) ? 'streamer' : 'viewer';
 }
 
 // يُستدعى من liveRoundsMirror — يحدّث آخر قائمة مشاركين معروفة، ويمنح
@@ -18171,7 +18204,7 @@ function levelsNoteParticipants(gameTag, participantsMap) {
       .filter(u => u && u.uniqueId);
     levelsLastParticipants[gameTag] = list;
     const session = levelsRoundSessions[gameTag];
-    if (session && session.open) list.forEach(u => levelsAwardRoundTo(u, gameTag, session));
+    if (session && session.open) list.forEach(u => levelsAwardRoundTo(u, gameTag, session, levelsRoleForParticipant(u)));
   } catch (err) { /* best-effort — never block game logic */ }
 }
 
@@ -18179,6 +18212,57 @@ function levelsNoteParticipants(gameTag, participantsMap) {
 function levelsNoteHome() {
   Object.keys(levelsRoundSessions).forEach(tag => { levelsRoundSessions[tag].open = false; });
   levelsLastParticipants = {};
+}
+
+// ---- ألعاب فردية / جمعات / أونلاين ----
+// الثلاثة أقسام ما فيها بث ولا شات، واللي يلعبها حسابات دائمة بالموقع، فتُسجَّل
+// كلها بدور 'player'. ألعاب الجمعات تُلعب بأسماء محلية مكتوبة على نفس الجهاز
+// (pcwPlayers/fastansPlayers/… كلها [{ name }] بلا حسابات)، فالمباراة تُحتسب
+// لصاحب الحساب المفتوح على الجهاز — ما نصنع سجلات لأسماء محلية لأنها بلا هوية
+// بقاعدة البيانات وممكن تتصادم مع يوزرات حقيقية.
+
+function levelsAwardSelfRound(sessionTag, gameTag, xp) {
+  if (!currentUsername) return;
+  const session = levelsBeginRoundSession(sessionTag);
+  levelsAwardRoundTo(
+    { uniqueId: currentUsername, nickname: currentUsername },
+    gameTag || sessionTag, session, 'player', xp
+  );
+}
+
+// يُستدعى من soloRecordCompletion — نقطة النهاية الموحّدة لكل الألعاب الفردية
+// (تُنادى بكل إكمال جولة، فوز أو خسارة).
+function levelsNoteSoloRound() {
+  levelsAwardSelfRound('solo', 'solo', LEVELS_CONFIG.XP_PER_ROUND_SOLO);
+}
+
+// يُستدعى من ownerLogPlayEvent — كل ألعاب الجمعات الخمس تسجّل حدث بدء المباراة
+// هناك بقسم 'party' بعد ما تتحقق من الأسماء، فنقطة وحدة تغطيها كلها.
+function levelsNotePlayEvent(gameTag, section) {
+  if (section !== 'party') return;
+  levelsAwardSelfRound('party:' + (gameTag || ''), gameTag || 'party', LEVELS_CONFIG.XP_PER_ROUND_PARTY);
+}
+
+// بوتات "الحماية" تدخل غرف المطابقة العشوائية كأعضاء عاديين — نستثنيها من
+// المستويات عشان ما تظهر بالقائمة كأنها لاعبين.
+let levelsOnlineBotUids = new Set();
+function levelsNoteOnlineBots(botRows) {
+  (botRows || []).forEach(b => { if (b && b.uid) levelsOnlineBotUids.add(b.uid); });
+}
+
+// يُستدعى من بدء أي مباراة أونلاين (غرفة أصدقاء أو مطابقة عشوائية) — متصفح
+// المضيف/المنظّم هو الوحيد اللي ينفّذها، فيكتب راوند لكل أعضاء الغرفة مرة وحدة.
+function levelsNoteOnlineRound(gameTag, members) {
+  if (!members || !members.length) return;
+  const session = levelsBeginRoundSession('online:' + (gameTag || ''));
+  members.forEach(m => {
+    if (!m || !m.username) return;
+    if (m.uid && levelsOnlineBotUids.has(m.uid)) return;
+    levelsAwardRoundTo(
+      { uniqueId: m.username, nickname: m.username },
+      gameTag || 'online', session, 'player', LEVELS_CONFIG.XP_PER_ROUND_ONLINE
+    );
+  });
 }
 
 // مكافأة الفوز — تُنادى من recordWin بعد نفس شروطه (مو أثناء تجميد فعالية).
@@ -39096,7 +39180,10 @@ let rmLastSweepAt = 0;
 const rmGameEntryHandlers = {};
 function rmStartRoundForCurrentGame() {
   const starter = rmGameStartHandlers[rmCurrentGameTag];
-  if (starter) starter();
+  if (!starter) return;
+  // نظام المستويات — راوند لكل أعضاء الغرفة (متصفح المضيف وحده ينفّذ هذا)
+  levelsNoteOnlineRound(rmCurrentGameTag, rmMembersCache);
+  starter();
 }
 const rmGameStartHandlers = {};
 
@@ -39626,6 +39713,11 @@ async function mmFinalizeMatch(gameTag) {
       lastSeen: fb.serverTimestamp(), isHost: false
     });
   }
+  // نظام المستويات — راوند لكل لاعب حقيقي بالمباراة. نناديها قبل دمج البوتات
+  // عشان rows هنا لاعبين حقيقيين فقط، ونسجّل معرّفات البوتات لتُستثنى لو وصلت
+  // لاحقاً عبر قائمة أعضاء الغرفة.
+  levelsNoteOnlineBots(botRows);
+  levelsNoteOnlineRound(gameTag, rows);
   rows = rows.concat(botRows);
 
   // المطابقة العشوائية ما فيها "مضيف" طبيعي يعرف يضغط "ابدأ الجولة" — المنظّم
