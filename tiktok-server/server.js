@@ -390,13 +390,120 @@ function getOrCreateRoom(uniqueId) {
   return room;
 }
 
+// ------------------------------------------------------------------ بروفايل عام (أفتار اللاعب)
+// GET /profile?u=<username>  ->  { ok, uniqueId, nickname, avatar }
+//
+// خاص بميزة "ربط حسابي بتيك توك" في صفحة البروفايل بالموقع: اللاعب العادي
+// يكتب يوزره مرة وحدة عشان نعرف هويته ونجيب صورته. هذا المسار **لا يفتح أي
+// اتصال بث** ولا ينشئ Room ولا يلمس TikTokLiveConnection إطلاقاً — فقط قراءة
+// صفحة البروفايل العامة واستخراج الصورة والاسم المعروض منها. الحساب ما يحتاج
+// يكون لايف، ولا له أي علاقة بمسار الستريمر (‎/ws).
+//
+// النتيجة تُخزَّن بالذاكرة مدة PROFILE_CACHE_TTL_MS حتى ما نطلب من تيك توك
+// نفس اليوزر مرة بعد مرة (الربط يصير مرة واحدة لكل لاعب أصلاً).
+const PROFILE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const PROFILE_FETCH_TIMEOUT_MS = 8000;
+const PROFILE_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+const profileCache = new Map(); // uniqueId -> { at, data }
+
+function profileCorsHeaders(extra) {
+  return Object.assign({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Cache-Control': 'public, max-age=3600',
+  }, extra || {});
+}
+
+// تيك توك يحقن بيانات الصفحة كـJSON داخل وسم <script id="__UNIVERSAL_DATA_FOR_REHYDRATION__">.
+// نقرأ منه userInfo.user (avatarLarger/avatarMedium/nickname). لو تغيّر الشكل
+// عند تيك توك، نرجع لبحث نصي بسيط عن أول رابط صورة بروفايل — وإن فشل الاثنان
+// نرجّع ok:false والموقع يكمّل بأفتار افتراضي بدون ما تتعطل عملية الربط.
+function extractProfileFromHtml(html) {
+  try {
+    const m = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
+    if (m) {
+      const data = JSON.parse(m[1]);
+      const scope = data && data.__DEFAULT_SCOPE__;
+      const detail = scope && scope['webapp.user-detail'];
+      const user = detail && detail.userInfo && detail.userInfo.user;
+      if (user) {
+        return {
+          nickname: user.nickname || user.uniqueId || '',
+          avatar: user.avatarLarger || user.avatarMedium || user.avatarThumb || '',
+        };
+      }
+    }
+  } catch (err) { /* نكمّل للبديل النصي */ }
+  // البديل النصي: نفكّ تهريب الشرطات (\\/ داخل JSON) أول شي ثم نبحث عن أول
+  // رابط صورة على شبكة تيك توك — أبسط وأصمد أمام أي تغيّر بشكل الصفحة.
+  const flat = html.replace(/\\\//g, '/');
+  const direct = flat.match(/https:\/\/[^"'\s]*tiktokcdn[^"'\s]*?\.(?:jpeg|jpg|webp)[^"'\s]*/);
+  if (direct) return { nickname: '', avatar: direct[0] };
+  return null;
+}
+
+async function fetchPublicProfile(uniqueId) {
+  const cached = profileCache.get(uniqueId);
+  if (cached && (Date.now() - cached.at) < PROFILE_CACHE_TTL_MS) return cached.data;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PROFILE_FETCH_TIMEOUT_MS);
+  try {
+    const resp = await fetch('https://www.tiktok.com/@' + encodeURIComponent(uniqueId), {
+      headers: { 'User-Agent': PROFILE_UA, 'Accept-Language': 'ar,en;q=0.9' },
+      signal: controller.signal,
+    });
+    if (!resp.ok) throw new Error('http ' + resp.status);
+    const html = await resp.text();
+    const found = extractProfileFromHtml(html);
+    if (!found || !found.avatar) throw new Error('no-avatar');
+    const data = { ok: true, uniqueId, nickname: found.nickname || uniqueId, avatar: found.avatar };
+    profileCache.set(uniqueId, { at: Date.now(), data });
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ------------------------------------------------------------------ خادم HTTP + WebSocket
-const server = http.createServer((req, res) => {
-  if (req.url === '/healthz') {
+const server = http.createServer(async (req, res) => {
+  const path = (req.url || '').split('?')[0];
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, profileCorsHeaders());
+    res.end();
+    return;
+  }
+
+  if (path === '/healthz') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
     return;
   }
+
+  if (path === '/profile') {
+    const uniqueId = (new URL(req.url, 'http://localhost').searchParams.get('u') || '')
+      .trim().replace(/^@/, '').toLowerCase();
+    const headers = profileCorsHeaders({ 'Content-Type': 'application/json; charset=utf-8' });
+    if (!uniqueId || !/^[a-z0-9._]{2,24}$/.test(uniqueId)) {
+      res.writeHead(400, headers);
+      res.end(JSON.stringify({ ok: false, reason: 'bad-username' }));
+      return;
+    }
+    try {
+      const data = await fetchPublicProfile(uniqueId);
+      res.writeHead(200, headers);
+      res.end(JSON.stringify(data));
+    } catch (err) {
+      // تيك توك رفض/حجب/تغيّر شكله — الموقع يكمّل الربط بأفتار افتراضي.
+      log('info', '@' + uniqueId + ' — تعذّر جلب البروفايل العام: ' + (err && err.message));
+      res.writeHead(200, headers);
+      res.end(JSON.stringify({ ok: false, uniqueId, reason: 'fetch-failed' }));
+    }
+    return;
+  }
+
   res.writeHead(404);
   res.end('not found');
 });
