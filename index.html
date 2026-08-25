@@ -18063,21 +18063,26 @@ function playerTiktokLinkStore(link) {
 // يُستدعى من authRunPostAuthBootChain — فايرستور هو المرجع، والنسخة المحلية
 // مجرد كاش للعرض الفوري قبل ما يرد.
 async function playerTiktokLinkBoot() {
-  playerTiktokLinkGet();       // اعرض المحفوظ محلياً فوراً
+  const local = playerTiktokLinkGet();   // اعرض المحفوظ محلياً فوراً
   profilePlayerLinkRefresh();
+  playerAvatarRefreshAll();
   if (!fb || !currentUser) return;
   try {
     const snap = await fb.getDoc(fb.doc(fb.db, 'users', currentUser.uid));
     const v = snap.exists() ? (snap.data() || {}) : {};
     if (v.linkedTiktokUsername) {
+      // فايرستور عنده ربط — نعتمده (يجيب الربط لأي جهاز جديد).
       playerTiktokLinkStore({
         username: v.linkedTiktokUsername,
         nickname: v.linkedTiktokNickname || v.linkedTiktokUsername,
         avatar: v.linkedTiktokAvatar || '',
         at: v.linkedTiktokAt || null,
       });
-    } else if (playerTiktokLink) {
-      playerTiktokLinkStore(null); // الحساب ما عنده ربط — ننظّف كاش جهاز ثاني
+    } else if (local && local.username) {
+      // فايرستور ما عنده ربط بينما الجهاز عنده: معناها كتابة الحفظ ما وصلت
+      // (شبكة انقطعت، أو القراءة رجعت من الكاش قبل ما تُرسَل). نرفع المحلي
+      // بدل ما نمسحه — المسح يصير فقط لما يضغط اللاعب زر إلغاء الربط.
+      playerTiktokSaveToAccount(local);
     }
   } catch (err) { /* best-effort — النسخة المحلية تكفي للعرض */ }
 }
@@ -18165,8 +18170,46 @@ function playerTiktokRenderCurrent() {
         '<span class="lb-row-name">' + esc(link.nickname || link.username) + '</span>' +
         '<span class="lvl-rounds" dir="ltr">@' + esc(link.username) + '</span>' +
       '</div></div>' +
+      '<button type="button" class="owner-modal-close" onclick="playerTiktokUnlink()" title="إلغاء الربط" aria-label="إلغاء الربط">✕</button>' +
     '</div>' +
     '<button type="button" class="btn-primary" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-bottom:16px;" onclick="playerTiktokRefreshLink()">↻ تحديث الربط (جلب الاسم والصورة من جديد)</button>';
+}
+
+// إلغاء الربط — الطريقة الوحيدة لمسحه. يمسح النسخة المحلية وحقول فايرستور
+// معاً، فلا يرجع الربط عند الإقلاع الجاي من أي جهة.
+async function playerTiktokUnlink() {
+  const link = playerTiktokLinkGet();
+  if (!link || !link.username) return;
+  if (!confirm('إلغاء ربط حسابك بـ@' + link.username + '؟\n\nXP ولفلك المحفوظين ما ينحذفون — بس ألعابك الجديدة راح تُسجَّل باسم حسابك بالموقع بدل يوزر تيك توك.')) return;
+
+  const btn = document.getElementById('player-tiktok-save-btn');
+  if (btn) btn.disabled = true;
+  playerTiktokSetStatus('load', '⏳ جاري إلغاء الربط...');
+  try {
+    playerTiktokLinkStore(null);
+    playerTiktokRenderCurrent();
+    const input = document.getElementById('player-tiktok-username');
+    if (input) input.value = '';
+
+    let ok = true;
+    if (fb && currentUser) {
+      const clear = fb.setDoc(fb.doc(fb.db, 'users', currentUser.uid), {
+        linkedTiktokUsername: fb.deleteField(),
+        linkedTiktokNickname: fb.deleteField(),
+        linkedTiktokAvatar: fb.deleteField(),
+        linkedTiktokAt: fb.deleteField(),
+      }, { merge: true }).then(() => true).catch(() => false);
+      const timeout = new Promise(resolve => setTimeout(() => resolve('pending'), PLAYER_TIKTOK_SAVE_TIMEOUT_MS));
+      ok = await Promise.race([clear, timeout]);
+    }
+    playerTiktokSetStatus('ok', ok === false
+      ? '✅ أُلغي الربط على هذا الجهاز — الحذف من حسابك يكمل بالخلفية'
+      : '✅ أُلغي الربط');
+  } catch (err) {
+    playerTiktokSetStatus('err', '⚠️ صار خطأ غير متوقع — جرّب مرة ثانية');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 // الحفظ الأول أو تغيير اليوزر المربوط.
