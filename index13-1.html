@@ -11701,6 +11701,73 @@ let ownerUnsubGameOrder = null;
 let ownerOrderState = {}; // sectionKey -> { tags: [tag, ...] } — ترتيب الألعاب المحفوظ لكل قسم
 let ownerBadgeState = {}; // gameTag -> 'new' | 'update' | 'none' | 'maintenance'
 
+// ==================== BADGES: مصدر واحد موثوق ====================
+// كان في السابق مستمعان (onSnapshot) منفصلان على نفس كولكشن gameBadges: واحد
+// داخل لوحة المالك وواحد داخل publicBadgesBoot، وكلاهما يمسح ownerBadgeState
+// ويعيد بناءه من لقطته الخاصة ثم يرسم. بترتيب وصول غير مضمون (لقطة محلية
+// pending مقابل لقطة سيرفر) كان أحدهما يطغى على الآخر، ولأن ownerSetBadge ما
+// كان يسوي أي تحديث محلي متفائل، أي رفض للكتابة (قواعد أمان) كان يرجّع الزر
+// بصمت لآخر قيمة مخزّنة - فتبان اللعبة "صيانة" رغم إن المالك ضغط شي ثاني.
+//
+// الحين: مستمع واحد فقط + حالة سيرفر منفصلة + طبقة كتابات معلّقة فوقها،
+// و ownerBadgeState صار قيمة محسوبة (derived) ما أحد يكتب عليها إلا badgesRecompute.
+const BADGE_VALUES = ['new', 'update', 'none', 'maintenance'];
+let badgesUnsub = null;
+let badgesListenerStarted = false;
+let badgesGuardAttached = false;
+let badgesServerState = {};        // آخر حالة مؤكدة من Firestore
+const ownerBadgePending = new Map(); // tag -> قيمة ضغطها المالك ولسا ما تأكدت
+
+// الحالة المعروضة = حالة السيرفر + الكتابات المعلّقة فوقها. أي لقطة متأخرة من
+// السيرفر ما تقدر تدهس ضغطة المالك اللي لسا بالطريق، لأن المعلّق يُطبَّق آخر شي.
+function badgesRecompute() {
+  const merged = Object.assign({}, badgesServerState);
+  ownerBadgePending.forEach((badge, tag) => { merged[tag] = badge; });
+  ownerBadgeState = merged;
+  ownerApplyBadgesToHome();
+  ownerSyncGamesTabBadges();
+}
+
+function badgesSubscribe() {
+  if (badgesListenerStarted || !fb) return;
+  badgesListenerStarted = true;
+  // حارس الصيانة يُركّب مرة وحدة بعمره - لو تعطّل المستمع وأعدنا الاشتراك ما
+  // نبي نركّب نفس المستمع على .games-grid مرتين.
+  if (!badgesGuardAttached) { badgesGuardAttached = true; ownerGuardMaintenanceClicks(); }
+  badgesUnsub = fb.onSnapshot(fb.collection(fb.db, 'gameBadges'), (snap) => {
+    const next = {};
+    snap.forEach(d => {
+      const data = d.data() || {};
+      // أي قيمة غير معروفة تُعامل كـ none بدل ما تنتشر لبقية الواجهة
+      next[d.id] = BADGE_VALUES.includes(data.badge) ? data.badge : 'none';
+    });
+    badgesServerState = next;
+    // كل كتابة معلّقة وصل تأكيدها من السيرفر تُشال من قائمة الانتظار
+    ownerBadgePending.forEach((badge, tag) => {
+      if ((next[tag] || 'none') === badge) ownerBadgePending.delete(tag);
+    });
+    badgesRecompute();
+  }, (err) => {
+    badgesListenerStarted = false; // نسمح بإعادة المحاولة عند إعادة فتح اللوحة
+    ownerRenderGamesTab();
+    toast('⚠️ تعذّر تحميل حالة الشارات: ' + (err.code || err.message));
+  });
+}
+
+// تحديث خفيف لحالة أزرار الشارة داخل لوحة المالك: يبدّل class="active" فقط
+// على الأزرار الموجودة أصلاً بدل ما يعيد بناء innerHTML للقائمة كاملة.
+// إعادة البناء الكامل عند كل لقطة كانت تحذف الزر من تحت إصبع المالك بين
+// mousedown و mouseup، فالمتصفح ما يطلق حدث click أصلاً وتضيع الضغطة - وهذا
+// اللي كان يخلي الضغط السريع المتكرر "ما ينحفظ".
+function ownerSyncGamesTabBadges() {
+  const list = document.getElementById('owner-games-list');
+  if (!list) return;
+  list.querySelectorAll('.owner-badge-btn[data-tag]').forEach(btn => {
+    const state = ownerBadgeState[btn.dataset.tag] || 'none';
+    btn.classList.toggle('active', btn.dataset.badge === state);
+  });
+}
+
 // كل قسم مربوط بصفحته الرئيسية وعنوان عرض بالعربي — نفس البنية تُستخدم لتجميع
 // قائمة الألعاب بلوحة المالك تحت عناوين أقسام، ولفلترة أزرار الصيانة بالصفحة.
 const OWNER_GAME_SECTIONS = [
@@ -11714,13 +11781,23 @@ function ownerGetGameCards() {
   // Read directly from the DOM so any gcard added to pg-home, pg-solo-home,
   // or pg-party-home in the future (with a data-tag attribute) is
   // automatically picked up — no separate hardcoded game list to maintain.
-  return OWNER_GAME_SECTIONS.flatMap(section =>
+  const cards = OWNER_GAME_SECTIONS.flatMap(section =>
     Array.from(document.querySelectorAll(section.selector)).map(card => ({
       tag: card.getAttribute('data-tag'),
-      name: card.querySelector('.gcard-name').textContent.trim(),
+      name: (card.querySelector('.gcard-name') || {}).textContent ? card.querySelector('.gcard-name').textContent.trim() : (card.getAttribute('data-tag') || '—'),
       section: section.key
     }))
   );
+  // كل tag هو معرّف مستند بـ gameBadges/gameOrder، فتكرار نفس الـ tag بين قسمين
+  // يعني لعبتين تتشاركان نفس الحالة وتدهسان بعض. ننبّه بالكونسول بدل ما تنكشف
+  // المشكلة لاحقاً كـ"شارة لعبة تغيّرت لوحدها".
+  const seen = new Set();
+  cards.forEach(c => {
+    if (!c.tag) { console.warn('[badges] gcard بدون data-tag - تم تجاهلها'); return; }
+    if (seen.has(c.tag)) console.warn('[badges] data-tag مكرر بين قسمين:', c.tag);
+    seen.add(c.tag);
+  });
+  return cards;
 }
 
 function ownerOpenPanel() {
@@ -11897,17 +11974,10 @@ function ownerBoot() {
   });
 
   // ---- Games tab: badge control per game, read from the DOM's gcards ----
-  ownerUnsubBadges = fb.onSnapshot(fb.collection(fb.db, 'gameBadges'), (snap) => {
-    ownerBadgeState = {};
-    snap.forEach(d => { ownerBadgeState[d.id] = d.data().badge || 'none'; });
-    ownerRenderGamesTab();
-    ownerApplyBadgesToHome();
-  }, (err) => {
-    // Still render the game list (with default "none" badges) even if the
-    // badges collection can't be read yet — e.g. missing Firestore rules.
-    ownerRenderGamesTab();
-    toast('⚠️ تعذّر تحميل حالة الشارات: ' + err.message);
-  });
+  // ما نفتح مستمع خاص باللوحة على gameBadges - مستمع واحد مشترك
+  // (badgesSubscribe) يخدم المالك والزائر معاً. وجود مستمعين على نفس الكولكشن
+  // كان يخلّي كل واحد منهما يعيد بناء ownerBadgeState من الصفر بترتيب غير مضمون.
+  badgesSubscribe();
 
   // ---- Games tab: saved display order per section (top/bottom/up/down) ----
   ownerUnsubGameOrder = fb.onSnapshot(fb.collection(fb.db, 'gameOrder'), (snap) => {
@@ -11935,8 +12005,15 @@ function ownerSortGamesBySection(sectionGames, sectionKey) {
   });
 }
 
+// أي tag يُحقن داخل سمة HTML يمر من هنا. الـ tags الحالية كلها حروف لاتينية
+// فقط، لكن أي علامة اقتباس بـ tag مستقبلي كانت تكسر الـ onclick وتخلي الزر
+// يستدعي دالة بمعاملات غلط - وهذا نوع الأعطال اللي "يقلب" حالة لعبة على ثانية.
+function tagAttr(value) {
+  return ownerEscape(value).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function ownerRenderGamesTab() {
-  const games = ownerGetGameCards();
+  const games = ownerGetGameCards().filter(g => g.tag);
   const list = document.getElementById('owner-games-list');
   if (!games.length) {
     list.innerHTML = '<div class="owner-empty">ما فيه ألعاب</div>';
@@ -11952,17 +12029,17 @@ function ownerRenderGamesTab() {
       return `
         <div class="owner-game-row">
           <div class="owner-order-btns">
-            <button type="button" class="owner-order-btn" title="نقل لأعلى الكل" onclick="ownerMoveGame('${section.key}','${g.tag}','top')" ${isFirst ? 'disabled' : ''}>⏫</button>
-            <button type="button" class="owner-order-btn" title="نقل لأعلى" onclick="ownerMoveGame('${section.key}','${g.tag}','up')" ${isFirst ? 'disabled' : ''}>▲</button>
-            <button type="button" class="owner-order-btn" title="نقل لأسفل" onclick="ownerMoveGame('${section.key}','${g.tag}','down')" ${isLast ? 'disabled' : ''}>▼</button>
-            <button type="button" class="owner-order-btn" title="نقل لأسفل الكل" onclick="ownerMoveGame('${section.key}','${g.tag}','bottom')" ${isLast ? 'disabled' : ''}>⏬</button>
+            <button type="button" class="owner-order-btn" title="نقل لأعلى الكل" data-section="${tagAttr(section.key)}" data-tag="${tagAttr(g.tag)}" onclick="ownerMoveGame(this.dataset.section, this.dataset.tag, 'top')" ${isFirst ? 'disabled' : ''}>⏫</button>
+            <button type="button" class="owner-order-btn" title="نقل لأعلى" data-section="${tagAttr(section.key)}" data-tag="${tagAttr(g.tag)}" onclick="ownerMoveGame(this.dataset.section, this.dataset.tag, 'up')" ${isFirst ? 'disabled' : ''}>▲</button>
+            <button type="button" class="owner-order-btn" title="نقل لأسفل" data-section="${tagAttr(section.key)}" data-tag="${tagAttr(g.tag)}" onclick="ownerMoveGame(this.dataset.section, this.dataset.tag, 'down')" ${isLast ? 'disabled' : ''}>▼</button>
+            <button type="button" class="owner-order-btn" title="نقل لأسفل الكل" data-section="${tagAttr(section.key)}" data-tag="${tagAttr(g.tag)}" onclick="ownerMoveGame(this.dataset.section, this.dataset.tag, 'bottom')" ${isLast ? 'disabled' : ''}>⏬</button>
           </div>
           <div class="owner-game-name">${ownerEscape(g.name)}</div>
           <div class="owner-badge-btns">
-            <button type="button" class="owner-badge-btn b-new ${state === 'new' ? 'active' : ''}" onclick="ownerSetBadge('${g.tag}','new')">جديد</button>
-            <button type="button" class="owner-badge-btn b-update ${state === 'update' ? 'active' : ''}" onclick="ownerSetBadge('${g.tag}','update')">تحديث جديد</button>
-            <button type="button" class="owner-badge-btn b-none ${state === 'none' ? 'active' : ''}" onclick="ownerSetBadge('${g.tag}','none')">ولا شيء</button>
-            <button type="button" class="owner-badge-btn b-maintenance ${state === 'maintenance' ? 'active' : ''}" onclick="ownerSetBadge('${g.tag}','maintenance')">🚧 صيانة</button>
+            <button type="button" class="owner-badge-btn b-new ${state === 'new' ? 'active' : ''}" data-tag="${tagAttr(g.tag)}" data-badge="new" onclick="ownerSetBadge(this.dataset.tag, this.dataset.badge)">جديد</button>
+            <button type="button" class="owner-badge-btn b-update ${state === 'update' ? 'active' : ''}" data-tag="${tagAttr(g.tag)}" data-badge="update" onclick="ownerSetBadge(this.dataset.tag, this.dataset.badge)">تحديث جديد</button>
+            <button type="button" class="owner-badge-btn b-none ${state === 'none' ? 'active' : ''}" data-tag="${tagAttr(g.tag)}" data-badge="none" onclick="ownerSetBadge(this.dataset.tag, this.dataset.badge)">ولا شيء</button>
+            <button type="button" class="owner-badge-btn b-maintenance ${state === 'maintenance' ? 'active' : ''}" data-tag="${tagAttr(g.tag)}" data-badge="maintenance" onclick="ownerSetBadge(this.dataset.tag, this.dataset.badge)">🚧 صيانة</button>
           </div>
         </div>
       `;
@@ -13378,10 +13455,30 @@ async function ownerRoundsPickWinner(gameTag, uniqueId) {
 }
 
 async function ownerSetBadge(tag, badge) {
+  if (!tag || !BADGE_VALUES.includes(badge)) return;
+  if (!fb) { toast('⚠️ الاتصال بقاعدة البيانات مو جاهز بعد'); return; }
+
+  // تحديث محلي متفائل (optimistic) قبل أي رد من Firestore - نفس أسلوب
+  // ownerMoveGame. بدونه كانت الواجهة تنتظر رجعة السيرفر، ولو انرفضت الكتابة
+  // يرجع الزر لآخر قيمة مخزّنة بصمت - وهذا بالضبط ما كان يبان كأن اللعبة "انقلبت صيانة".
+  ownerBadgePending.set(tag, badge);
+  badgesRecompute();
+
   try {
     await fb.setDoc(fb.doc(fb.db, 'gameBadges', tag), { badge }, { merge: true });
+    // وعد setDoc ينحلّ بعد تأكيد السيرفر، فلو ما زالت نفس القيمة هي المعلّقة
+    // (يعني ما ضغط المالك زر ثاني بعدها) نشيلها ونعتمد على حالة السيرفر.
+    if (ownerBadgePending.get(tag) === badge) {
+      ownerBadgePending.delete(tag);
+      badgesServerState[tag] = badge;
+      badgesRecompute();
+    }
   } catch (err) {
-    toast('⚠️ تعذّر حفظ حالة الشارة');
+    ownerBadgePending.delete(tag);
+    badgesRecompute();
+    // نعرض السبب الحقيقي (مثلاً permission-denied من قواعد أمان Firestore)
+    // بدل رسالة عامة تخلي الرفض يبان وكأنه "الحالة انقلبت لوحدها".
+    toast('⚠️ تعذّر حفظ حالة الشارة: ' + (err.code || err.message || err));
   }
 }
 
@@ -13390,7 +13487,8 @@ function ownerApplyBadgesToHome() {
     document.querySelectorAll(section.selector).forEach(card => {
       const tag = card.getAttribute('data-tag');
       const slot = card.querySelector('[data-badge-slot]');
-      const state = ownerBadgeState[tag] || 'none';
+      const raw = ownerBadgeState[tag] || 'none';
+      const state = BADGE_VALUES.includes(raw) ? raw : 'none';
       card.classList.toggle('disabled', state === 'maintenance');
       if (!slot) return;
       slot.className = 'badge' + (state === 'new' ? ' new' : state === 'update' ? ' update' : state === 'maintenance' ? ' maintenance' : '');
@@ -13490,16 +13588,8 @@ function ownerEscape(str) {
 
 // Anyone (owner or not) should see the badges chosen by the owner, so keep a
 // lightweight read-only listener running for every signed-in user.
-let publicBadgesListenerStarted = false;
 function publicBadgesBoot() {
-  if (publicBadgesListenerStarted) return;
-  publicBadgesListenerStarted = true;
-  ownerGuardMaintenanceClicks();
-  fb.onSnapshot(fb.collection(fb.db, 'gameBadges'), (snap) => {
-    ownerBadgeState = {};
-    snap.forEach(d => { ownerBadgeState[d.id] = d.data().badge || 'none'; });
-    ownerApplyBadgesToHome();
-  });
+  badgesSubscribe();
 }
 
 // نفس أسلوب publicBadgesBoot لكن لترتيب الألعاب — أي زائر (مالك أو غيره) لازم
