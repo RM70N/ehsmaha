@@ -10553,7 +10553,6 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   frnBoot();
   notifBoot();
   scoreFirestoreBoot();
-  levelsBoot();
   sevtActiveEventBoot();
   sevtAnnounceBoot();
   homeEventWinnersCheckAndShow();
@@ -18093,6 +18092,10 @@ async function levelsCommit(key, p) {
   await fb.runTransaction(fb.db, async (tx) => {
     const snap = await tx.get(ref);
     const prev = snap.exists() ? (snap.data() || {}) : null;
+    // ما ننشئ سجلاً جديداً إلا براوند فعلي. مكافأة الفوز وحدها (rounds = 0) ما
+    // تكفي لإنشاء سجل — الفوز أصلاً ما يصير إلا داخل راوند انحسب قبله، فلو
+    // وصلنا هنا بلا سجل سابق معناها الراوند ما انسجّل ولا نبي سجلاً بصفر راوند.
+    if (!prev && p.rounds < 1) return;
     const prevXp = Math.max(0, Number(prev && prev.xp) || 0);
     const prevLevel = Math.max(LEVELS_CONFIG.START_LEVEL, Number(prev && prev.level) || LEVELS_CONFIG.START_LEVEL);
     const xp = prevXp + p.xp;
@@ -18121,12 +18124,6 @@ async function levelsCommit(key, p) {
   if (leveledUpTo && LEVELS_CONFIG.ANNOUNCE_LEVEL_UP) {
     toast('⭐ ' + displayName + ' وصل لفل ' + leveledUpTo + '!');
   }
-}
-
-// يضمن وجود سجل لشخص بدون منح أي XP — يُستخدم لتسجيل الحسابات الدائمة
-// والستريمرز اللي ما لعبوا راوند بعد، عشان يظهرون بالقائمة بحالة "بداية".
-function levelsEnsureDoc(identity, extraPatch) {
-  levelsQueue(identity, 0, 0, extraPatch);
 }
 
 // ---- ربط النظام براوندات الألعاب ----
@@ -18272,18 +18269,6 @@ function levelsAwardWin(user) {
   levelsQueue(identity, LEVELS_CONFIG.XP_WIN_BONUS, 0, { isViewer: true });
 }
 
-// يُستدعى من authRunPostAuthBootChain — يسجّل صاحب الحساب الحالي بتجميعة
-// levels عشان كل لاعب مسجّل بالموقع يظهر بالقائمة حتى لو ما لعب راوند بعد.
-let levelsSelfRegistered = false;
-function levelsBoot() {
-  if (!fb || !currentUser || !currentUsername || levelsSelfRegistered) return;
-  levelsSelfRegistered = true;
-  levelsEnsureDoc(
-    { uniqueId: currentUsername, nickname: currentUsername },
-    { isRegistered: true, uid: currentUser.uid }
-  );
-}
-
 // ==================== LEVELS PAGE (عرض صفحة المستوى) ====================
 // تجمع ثلاث تجميعات بنفس المفتاح المنظّف (levelsKey):
 //   levels          — كل من لعب فعلاً (متابعين + ستريمرز + لاعبين مسجّلين)
@@ -18343,9 +18328,9 @@ function levelsRowHtml(row) {
   const role = levelsRowRole(row);
   const roleLabel = role === 'streamers' ? '📡 ستريمر' : (role === 'players' ? '👤 لاعب' : '👁 متابع');
   // "بيانات غير كافية بعد" — ما لعب ولا راوند، أو راوند واحد فقط.
-  const fresh = (row.roundsPlayed || 0) <= 1;
+  const fresh = (row.roundsPlayed || 0) <= 1; // راوند واحد فقط = لسا ما فيه بيانات كافية
   const meta = fresh
-    ? '<span class="lvl-fresh-note">' + (row.roundsPlayed ? '🌱 أول راوند — لسا بالبداية' : '🌱 ما لعب راوند بعد') + '</span>' +
+    ? '<span class="lvl-fresh-note">🌱 أول راوند — لسا بالبداية</span>' +
       '<span class="lvl-meta-next">' + (p.isMax ? 'أعلى لفل' : (p.xpForNextLevel - p.xpIntoLevel) + ' XP للفل ' + (p.level + 1)) + '</span>'
     : '<span class="lvl-meta-xp">' + p.xpIntoLevel + ' / ' + p.xpForNextLevel + ' XP</span>' +
       '<span class="lvl-meta-next">' + (p.isMax ? 'أعلى لفل' : 'باقي ' + (p.xpForNextLevel - p.xpIntoLevel) + ' للفل ' + (p.level + 1)) + '</span>';
@@ -18381,6 +18366,7 @@ function levelsRender() {
   });
 
   const rows = [...levelsRows.values()]
+    .filter(r => (r.roundsPlayed || 0) >= 1) // ما يظهر إلا من لعب راوند فعلاً
     .filter(r => levelsFilter === 'all' || levelsRowRole(r) === levelsFilter)
     .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.roundsPlayed || 0) - (a.roundsPlayed || 0));
 
@@ -18392,7 +18378,7 @@ function levelsRender() {
       ? 'جاري تحميل المستويات… ⏳'
       : (levelsRows.size
         ? 'ما فيه أحد بفئة "' + (LEVELS_FILTER_LABELS[levelsFilter] || 'الكل') + '" بعد ⭐<br><span style="font-size:12.5px;">جرّب فلتر ثاني، أو العب راوند وبتظهر البطاقات هنا</span>'
-        : 'ما فيه بيانات مستوى بعد ⭐<br><span style="font-size:12.5px;">أول ما تنلعب راوندات بأي بث، تظهر هنا بطاقة لكل واحد مع لفله وشريط تقدمه</span>');
+        : 'ما فيه بيانات مستوى بعد ⭐<br><span style="font-size:12.5px;">أول ما أي أحد يلعب راوند — ببث، أو لعبة فردية، أو جمعات، أو أونلاين — تنحفظ بطاقته هنا تلقائياً مع لفله وشريط تقدمه</span>');
     empty.classList.add('visible');
     return;
   }
@@ -18410,14 +18396,17 @@ async function levelsLoadAll() {
   if (!levelsUnsub) {
     try {
       levelsUnsub = fb.onSnapshot(fb.collection(fb.db, 'levels'), (snap) => {
+        levelsRows.clear(); // اللقطة هي كامل التجميعة — نعيد بناء القائمة منها كل مرة
         snap.forEach(d => {
           const v = d.data() || {};
+          const roundsPlayed = Math.max(0, Number(v.roundsPlayed) || 0);
+          if (roundsPlayed < 1) return; // ما لعب ولا راوند = ما له مكان بالقائمة
           levelsUpsertRow(d.id, {
             username: v.username || d.id,
             avatar: v.avatar || '',
             xp: Math.max(0, Number(v.xp) || 0),
             level: Math.max(LEVELS_CONFIG.START_LEVEL, Number(v.level) || LEVELS_CONFIG.START_LEVEL),
-            roundsPlayed: Math.max(0, Number(v.roundsPlayed) || 0),
+            roundsPlayed: roundsPlayed,
             isRegistered: !!v.isRegistered,
             isStreamer: !!v.isStreamer,
             isViewer: !!v.isViewer
@@ -18425,34 +18414,31 @@ async function levelsLoadAll() {
         });
         levelsPageLoading = false;
         levelsRender();
+        levelsCleanupEmptyDocs(snap);
       }, (err) => { levelsPageLoading = false; levelsRender(); });
     } catch (err) { /* best-effort */ }
   }
 
-  // كل حساب دائم بالموقع يظهر بالقائمة حتى لو ما لعب ولا راوند.
-  try {
-    const usersSnap = await fb.getDocs(fb.collection(fb.db, 'users'));
-    usersSnap.forEach(d => {
-      const v = d.data() || {};
-      const key = levelsKey(v.usernameLower || v.username);
-      if (!key) return;
-      levelsUpsertRow(key, { username: v.username || key, isRegistered: true });
-    });
-  } catch (err) { /* best-effort — القائمة تظهر بمن توفّر */ }
-
-  // كل ستريمر شغّل لعبة، حتى لو ما له سجل levels بعد.
-  try {
-    const strSnap = await fb.getDocs(fb.collection(fb.db, 'activeStreamers'));
-    strSnap.forEach(d => {
-      const v = d.data() || {};
-      const key = levelsKey(v.username);
-      if (!key) return;
-      levelsUpsertRow(key, { username: v.username || key, isStreamer: true });
-    });
-  } catch (err) { /* best-effort */ }
-
   levelsPageLoading = false;
   levelsRender();
+}
+
+// تنظيف لمرة وحدة لسجلات قديمة انكتبت بصفر راوند (لما كانت القائمة تُبنى من
+// تجميعة users وقت تسجيل الدخول). الحذف محصور بحساب المالك (نفس ما تسمح به
+// قواعد Firestore) وبالسجلات اللي فعلاً صفر راوند وصفر XP — أي سجل فيه لعب
+// حقيقي ما ينمس أبداً.
+let levelsCleanupDone = false;
+async function levelsCleanupEmptyDocs(snap) {
+  if (levelsCleanupDone || !fb || !isOwnerAccount()) return;
+  levelsCleanupDone = true;
+  const dead = [];
+  snap.forEach(d => {
+    const v = d.data() || {};
+    if ((Number(v.roundsPlayed) || 0) < 1 && (Number(v.xp) || 0) < 1) dead.push(d.id);
+  });
+  for (const id of dead) {
+    try { await fb.deleteDoc(fb.doc(fb.db, 'levels', id)); } catch (err) { /* best-effort */ }
+  }
 }
 
 function levelsSetFilter(filter) {
