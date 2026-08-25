@@ -3108,6 +3108,38 @@ if (location.hostname === 'streamgame1.netlify.app') {
   </div>
 </div>
 
+<!-- ====== PLAYER TIKTOK LINK MODAL (ربط حساب اللاعب — منفصل تماماً عن ربط البث) ======
+     مودال ربط البث فوق (#tiktok-apikey-modal-overlay) يفتح WebSocket ويحتاج
+     الحساب يكون لايف فعلاً ويحفظ بـSTREAMER_USER_STORAGE_KEY. هذا المودال شيء
+     مختلف كلياً: يحدّد هوية اللاعب العادي فقط، بلا أي اتصال بث، ويُخزَّن على
+     users/{uid} بفايرستور. ما فيه أي كود مشترك بينهما. -->
+<div class="owner-modal-overlay" id="player-tiktok-modal-overlay" onclick="if(event.target===this) playerTiktokModalClose()">
+  <div class="owner-modal rounds-pickwinner-modal">
+    <div class="owner-modal-head">
+      <div class="owner-modal-title">🔗 ربط حسابي بتيك توك</div>
+      <button class="owner-modal-close" onclick="playerTiktokModalClose()">✕</button>
+    </div>
+    <div style="padding:20px;overflow-y:auto;flex:1;min-height:0;">
+      <p class="help-text" style="margin-bottom:16px;">
+        هذا الربط لتحديد <b>هويتك كلاعب</b> فقط — ما يفتح أي بث ولا يحتاج حسابك
+        يكون لايف. فايدته إن XP ولفلك اللي تجمعهم وأنت تلعب بشات بثوث الستريمرز
+        يتجمعون مع ألعابك الفردية والجمعات والأونلاين في <b>سجل واحد</b> بدل
+        سجلين منفصلين.
+      </p>
+
+      <div id="player-tiktok-current" style="display:none;"></div>
+
+      <div class="field">
+        <label>يوزر تيك توك (بدون @)</label>
+        <input type="text" id="player-tiktok-username" placeholder="username123" autocomplete="off" dir="ltr" style="direction:ltr;text-align:right" />
+        <div class="field-hint">أحرف إنجليزية وأرقام و _ و . فقط، بين 2 و24 حرف</div>
+      </div>
+      <button type="button" class="btn-primary mod-add-btn" id="player-tiktok-save-btn" onclick="playerTiktokSave()">🔗 حفظ الربط</button>
+      <div class="status-msg" id="player-tiktok-status"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ====== ONLINE POINTS PANEL (fixed) ======
      لوحة الفائزين المصغّرة انحذفت من هنا نهائياً — صارت صفحة مستقلة
      (#pg-leaderboard) تُفتح من القائمة الجانبية. #left-panels بقي فقط لعدّاد
@@ -3504,6 +3536,11 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <div class="profile-avatar-big" id="profile-avatar-big">؟</div>
           <div class="profile-username-big" id="profile-username-big">—</div>
         </div>
+
+        <div class="profile-section-label">حسابك كلاعب</div>
+        <div class="status-msg" id="profile-playerlink-status" style="margin-bottom:10px;"></div>
+        <button type="button" class="btn-primary" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);" onclick="playerTiktokModalOpen()">🔗 ربط حسابي بتيك توك</button>
+        <div class="field-hint" style="margin-top:6px;">لتحديد هويتك كلاعب فقط — يوحّد XP ولفلك بين ألعاب البث وألعابك الفردية والجمعات والأونلاين. ما له علاقة بربط البث تحت.</div>
 
         <div class="profile-section-label">تغيير اليوزر</div>
         <div class="field">
@@ -8467,6 +8504,7 @@ async function profileOpen() {
   document.getElementById('profile-username-big').textContent = currentUsername;
   document.getElementById('profile-avatar-big').textContent = currentUsername.charAt(0).toUpperCase();
   document.getElementById('profile-new-username').value = '';
+  profilePlayerLinkRefresh();
   profileSetStatus('', '');
   document.getElementById('profile-stat-solo').textContent = '0';
   document.getElementById('profile-stat-online').textContent = '0';
@@ -10553,6 +10591,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   frnBoot();
   notifBoot();
   scoreFirestoreBoot();
+  playerTiktokLinkBoot();
   sevtActiveEventBoot();
   sevtAnnounceBoot();
   homeEventWinnersCheckAndShow();
@@ -17957,6 +17996,222 @@ function toastFast(msg) {
   toastT = setTimeout(() => t.classList.remove('show'), 900);
 }
 
+// ==================== ربط حساب اللاعب بتيك توك (منفصل تماماً عن ربط البث) ====================
+// فرق جوهري عن tiktokConnectModal* فوق: ذاك يفتح WebSocket على سيرفر الجسر،
+// يحتاج الحساب يكون لايف فعلاً، ويحفظ بـSTREAMER_USER_STORAGE_KEY لتشغيل
+// ألعاب الستريمر. هذا هنا لا يفتح أي اتصال بث إطلاقاً — يحدّد فقط "مين هذا
+// اللاعب على تيك توك" عشان يوزره يصير هو نفسه مفتاح سجل المستويات.
+//
+// ليش هذا مهم: راوندات البث تُسجَّل بمعرّف تيك توك للمتابع، بينما ألعابه
+// الفردية/الجمعات/الأونلاين كانت تُسجَّل بيوزر حسابه بالموقع — فنفس الشخص
+// ينقسم لسجلَّي XP/لفل. الربط يوحّدهما (انظر levelsSelfIdentity).
+//
+// التخزين: users/{uid}.linkedTiktokUsername / linkedTiktokNickname /
+// linkedTiktokAvatar / linkedTiktokAt بفايرستور، + نسخة محلية للعرض الفوري.
+// القيمة ثابتة بعد الحفظ — ما فيه أي مزامنة تلقائية مع تيك توك. لو غيّر
+// المستخدم يوزره أو صورته هناك، تبقى المحفوظة عندنا كما هي حتى يفتح المودال
+// بنفسه ويضغط "تحديث الربط".
+const PLAYER_TIKTOK_LINK_KEY = 'playerTiktokLink';
+
+// نفس مضيف سيرفر الجسر المستضاف، بمسار HTTP خفيف (‎/profile) أضيف له خصيصاً
+// لهذا الغرض: يقرأ صفحة البروفايل العامة ويرجّع الأفتار والاسم فقط، بدون أي
+// اتصال بث ولا Room ولا حاجة الحساب يكون لايف.
+const TIKTOK_PROFILE_API_URL = TIKTOK_BRIDGE_SERVER_URL
+  .replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/ws$/, '/profile');
+
+let playerTiktokLink = null; // { username, nickname, avatar, at }
+
+// يوزر تيك توك: أحرف/أرقام/شرطة سفلية/نقطة، 2–24 — نفس ما يقبله تيك توك نفسه.
+function playerTiktokValidate(username) {
+  return /^[a-zA-Z0-9._]{2,24}$/.test(username || '');
+}
+
+// ينظّف ما يكتبه المستخدم قبل تمريره لـlevelsKey: كثير ناس يلصقون رابط
+// البروفايل كامل أو يكتبون @ قبل اليوزر. نشيل الرابط والـ@ أولاً، وبعدها
+// levelsKey يتكفّل بالباقي (بادئة المنصة + الأحرف الصغيرة) — فالنتيجة تطابق
+// حرفياً مفتاح سجل المستويات المستخدم براوندات البث.
+function playerTiktokCleanInput(raw) {
+  let v = String(raw || '').trim();
+  const url = v.match(/tiktok\.com\/@?([^/?#\s]+)/i);
+  if (url) v = url[1];
+  v = v.replace(/^@+/, '');
+  return levelsKey(v);
+}
+
+function playerTiktokLinkGet() {
+  if (playerTiktokLink && playerTiktokLink.username) return playerTiktokLink;
+  try {
+    const raw = JSON.parse(localStorage.getItem(PLAYER_TIKTOK_LINK_KEY) || 'null');
+    if (raw && raw.username) { playerTiktokLink = raw; return raw; }
+  } catch (e) { /* تخزين تالف — نتجاهله */ }
+  return null;
+}
+
+function playerTiktokLinkStore(link) {
+  playerTiktokLink = link;
+  try {
+    if (link) localStorage.setItem(PLAYER_TIKTOK_LINK_KEY, JSON.stringify(link));
+    else localStorage.removeItem(PLAYER_TIKTOK_LINK_KEY);
+  } catch (e) { /* الحفظ المحلي للعرض الفوري فقط — فشله ما يمنع شيء */ }
+  profilePlayerLinkRefresh();
+}
+
+// يُستدعى من authRunPostAuthBootChain — فايرستور هو المرجع، والنسخة المحلية
+// مجرد كاش للعرض الفوري قبل ما يرد.
+async function playerTiktokLinkBoot() {
+  playerTiktokLinkGet();       // اعرض المحفوظ محلياً فوراً
+  profilePlayerLinkRefresh();
+  if (!fb || !currentUser) return;
+  try {
+    const snap = await fb.getDoc(fb.doc(fb.db, 'users', currentUser.uid));
+    const v = snap.exists() ? (snap.data() || {}) : {};
+    if (v.linkedTiktokUsername) {
+      playerTiktokLinkStore({
+        username: v.linkedTiktokUsername,
+        nickname: v.linkedTiktokNickname || v.linkedTiktokUsername,
+        avatar: v.linkedTiktokAvatar || '',
+        at: v.linkedTiktokAt || null,
+      });
+    } else if (playerTiktokLink) {
+      playerTiktokLinkStore(null); // الحساب ما عنده ربط — ننظّف كاش جهاز ثاني
+    }
+  } catch (err) { /* best-effort — النسخة المحلية تكفي للعرض */ }
+}
+
+// يجلب أفتار/اسم الحساب من المسار العام. يرجّع null عند أي فشل — والاستدعاء
+// يكمّل الحفظ بأفتار افتراضي بدل ما يتعطّل الربط.
+async function playerTiktokFetchProfile(cleanUsername) {
+  try {
+    const resp = await fetch(TIKTOK_PROFILE_API_URL + '?u=' + encodeURIComponent(cleanUsername), { cache: 'no-store' });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data || !data.ok || !data.avatar) return null;
+    return { avatar: String(data.avatar), nickname: String(data.nickname || cleanUsername) };
+  } catch (err) { return null; }
+}
+
+// ---- المودال ----
+function playerTiktokModalOpen() {
+  if (!currentUser || !currentUsername) { toast('⚠️ سجّل دخولك أولاً'); return; }
+  playerTiktokLinkGet();
+  const input = document.getElementById('player-tiktok-username');
+  if (input) input.value = (playerTiktokLink && playerTiktokLink.username) || '';
+  playerTiktokSetStatus('', '');
+  playerTiktokRenderCurrent();
+  document.getElementById('player-tiktok-modal-overlay').classList.add('visible');
+}
+
+function playerTiktokModalClose() {
+  document.getElementById('player-tiktok-modal-overlay').classList.remove('visible');
+}
+
+function playerTiktokSetStatus(kind, msg) {
+  const el = document.getElementById('player-tiktok-status');
+  if (!el) return;
+  el.className = 'status-msg' + (kind ? ' ' + kind : '');
+  el.textContent = msg || '';
+}
+
+// كتلة "ربطك الحالي" — تظهر فقط لو فيه ربط سابق، وفيها زر التحديث اليدوي.
+function playerTiktokRenderCurrent() {
+  const box = document.getElementById('player-tiktok-current');
+  if (!box) return;
+  const link = playerTiktokLinkGet();
+  if (!link || !link.username) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const color = participantChipColor(link.username);
+  const fallback = '<div class="lvl-avatar-fb" style="background:' + color + '">' +
+    esc((link.nickname || link.username).charAt(0).toUpperCase()) + '</div>';
+  const avatar = link.avatar
+    ? '<img class="lvl-avatar" src="' + esc(link.avatar) + '" data-avatar-src="' + esc(link.avatar) +
+      '" data-avatar-fallback="' + escAttr(fallback) + '" referrerpolicy="no-referrer" style="background:' + color +
+      '" onerror="avatarOnErrorHandler(this)" />'
+    : fallback;
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div class="profile-section-label" style="margin-top:0;">ربطك الحالي</div>' +
+    '<div class="lb-row lvl-row" style="margin-bottom:10px;">' + avatar +
+      '<div class="lvl-main"><div class="lvl-top">' +
+        '<span class="lb-row-name">' + esc(link.nickname || link.username) + '</span>' +
+        '<span class="lvl-rounds" dir="ltr">@' + esc(link.username) + '</span>' +
+      '</div></div>' +
+    '</div>' +
+    '<button type="button" class="btn-primary" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-bottom:16px;" onclick="playerTiktokRefreshLink()">↻ تحديث الربط (جلب الاسم والصورة من جديد)</button>';
+}
+
+// الحفظ الأول أو تغيير اليوزر المربوط.
+async function playerTiktokSave() {
+  const input = document.getElementById('player-tiktok-username');
+  const raw = (input && input.value) || '';
+  const clean = playerTiktokCleanInput(raw); // ينتهي بـlevelsKey — نفس مفتاح سجل المستويات بالضبط
+  if (!playerTiktokValidate(clean)) {
+    playerTiktokSetStatus('err', '⚠️ يوزر غير صالح — أحرف إنجليزية وأرقام و _ و . فقط، بين 2 و24 حرف');
+    return;
+  }
+  await playerTiktokPersist(clean, 'حُفظ الربط');
+}
+
+// زر "تحديث الربط" — يعيد جلب الاسم والصورة لنفس اليوزر المحفوظ. هذي الطريقة
+// الوحيدة لتحديث القيم: ما فيه أي مزامنة تلقائية.
+async function playerTiktokRefreshLink() {
+  const link = playerTiktokLinkGet();
+  if (!link || !link.username) return;
+  await playerTiktokPersist(link.username, 'حُدّث الربط');
+}
+
+async function playerTiktokPersist(cleanUsername, okVerb) {
+  const btn = document.getElementById('player-tiktok-save-btn');
+  if (btn) btn.disabled = true;
+  playerTiktokSetStatus('', '⏳ جاري جلب بيانات الحساب...');
+
+  const fetched = await playerTiktokFetchProfile(cleanUsername);
+  const link = {
+    username: cleanUsername,
+    nickname: (fetched && fetched.nickname) || cleanUsername,
+    avatar: (fetched && fetched.avatar) || '',
+    at: Date.now(),
+  };
+
+  let saved = true;
+  if (fb && currentUser) {
+    try {
+      await fb.setDoc(fb.doc(fb.db, 'users', currentUser.uid), {
+        linkedTiktokUsername: link.username,
+        linkedTiktokNickname: link.nickname,
+        linkedTiktokAvatar: link.avatar,
+        linkedTiktokAt: fb.serverTimestamp(),
+      }, { merge: true });
+    } catch (err) { saved = false; }
+  }
+
+  playerTiktokLinkStore(link);
+  playerTiktokRenderCurrent();
+  if (btn) btn.disabled = false;
+
+  if (!saved) {
+    playerTiktokSetStatus('err', '⚠️ ' + okVerb + ' على هذا الجهاز، لكن تعذّر حفظه بحسابك — جرّب مرة ثانية');
+  } else if (!fetched) {
+    // فشل جلب الصورة ما يوقف الربط إطلاقاً — نحفظ اليوزر ونستخدم أفتار البديل
+    // الملوّن المولّد من نفس المعرّف (نفس أسلوب بقية أفتارات الموقع).
+    playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — ما قدرنا نجيب صورة الحساب، فراح يظهر أفتار افتراضي. تقدر تضغط "تحديث الربط" لاحقاً.');
+  } else {
+    playerTiktokSetStatus('ok', '✅ ' + okVerb + ' باسم @' + cleanUsername + ' — من الحين XP ولفلك يتجمعون بسجل واحد');
+  }
+}
+
+// سطر الحالة تحت زر البروفايل.
+function profilePlayerLinkRefresh() {
+  const el = document.getElementById('profile-playerlink-status');
+  if (!el) return;
+  const link = playerTiktokLinkGet();
+  if (link && link.username) {
+    el.textContent = 'مربوط بـ@' + link.username;
+    el.className = 'status-msg ok';
+  } else {
+    el.textContent = 'ما ربطت حسابك بتيك توك بعد';
+    el.className = 'status-msg';
+  }
+}
+
 // ==================== LEVELS SYSTEM (نظام المستويات) ====================
 // نظام مستقل تماماً عن لوحة الفائزين (wins) — يقيس "كم لعبت" مو "كم فزت".
 // كل شخص يظهر بالقائمة له مستند واحد بتجميعة levels بنفس قاعدة بيانات
@@ -18218,13 +18473,36 @@ function levelsNoteHome() {
 // لصاحب الحساب المفتوح على الجهاز — ما نصنع سجلات لأسماء محلية لأنها بلا هوية
 // بقاعدة البيانات وممكن تتصادم مع يوزرات حقيقية.
 
+// هوية صاحب الحساب بنظام المستويات. لو ربط حسابه بتيك توك (زر "ربط حسابي
+// بتيك توك" بصفحة البروفايل) نستخدم يوزر تيك توك — وهو نفس المفتاح اللي
+// تُسجَّل فيه راوندات البث — فتروح راوندات الفردية/الجمعات/الأونلاين لنفس
+// السجل بدل ما ينقسم الشخص لسجلَّين. بدون ربط: نفس السلوك القديم بالضبط.
+function levelsSelfIdentity() {
+  if (!currentUsername) return null;
+  const link = (typeof playerTiktokLinkGet === 'function') ? playerTiktokLinkGet() : null;
+  if (link && link.username) {
+    return { uniqueId: link.username, nickname: link.nickname || link.username, avatar: link.avatar || '' };
+  }
+  return { uniqueId: currentUsername, nickname: currentUsername, avatar: '' };
+}
+
+// تنبيه لطيف مرة وحدة بالجلسة للاعب اللي ما ربط حسابه — عشان ما تضيع عليه
+// راوندات البث من سجله.
+let levelsLinkHintShown = false;
+function levelsHintLinkIfNeeded() {
+  if (levelsLinkHintShown || !currentUsername) return;
+  const link = (typeof playerTiktokLinkGet === 'function') ? playerTiktokLinkGet() : null;
+  if (link && link.username) return;
+  levelsLinkHintShown = true;
+  toast('🔗 اربط حسابك بتيك توك من البروفايل عشان XP بثوث الستريمرز يتجمع مع ألعابك هنا');
+}
+
 function levelsAwardSelfRound(sessionTag, gameTag, xp) {
-  if (!currentUsername) return;
+  const identity = levelsSelfIdentity();
+  if (!identity) return;
+  levelsHintLinkIfNeeded();
   const session = levelsBeginRoundSession(sessionTag);
-  levelsAwardRoundTo(
-    { uniqueId: currentUsername, nickname: currentUsername },
-    gameTag || sessionTag, session, 'player', xp
-  );
+  levelsAwardRoundTo(identity, gameTag || sessionTag, session, 'player', xp);
 }
 
 // يُستدعى من soloRecordCompletion — نقطة النهاية الموحّدة لكل الألعاب الفردية
@@ -18255,11 +18533,40 @@ function levelsNoteOnlineRound(gameTag, members) {
   members.forEach(m => {
     if (!m || !m.username) return;
     if (m.uid && levelsOnlineBotUids.has(m.uid)) return;
-    levelsAwardRoundTo(
-      { uniqueId: m.username, nickname: m.username },
-      gameTag || 'online', session, 'player', LEVELS_CONFIG.XP_PER_ROUND_ONLINE
-    );
+    // كل عضو يُسجَّل بهويته الموحّدة (يوزر تيك توك المربوط إن وُجد) مو بيوزر
+    // حسابه بالموقع — وإلا انقسم سجل الأونلاين عن سجل البث لكل لاعب بالغرفة.
+    levelsResolveIdentityForUid(m.uid, m.username).then(identity => {
+      levelsAwardRoundTo(identity, gameTag || 'online', session, 'player', LEVELS_CONFIG.XP_PER_ROUND_ONLINE);
+    }).catch(() => { /* best-effort — راوند واحد ضايع أهون من كسر المباراة */ });
   });
+}
+
+// يحوّل عضو غرفة أونلاين (uid + يوزر الموقع) لهوية المستويات الموحّدة. هويتي
+// أنا تُقرأ من الذاكرة مباشرة؛ وبقية الأعضاء نقرأ users/{uid} مرة وحدة لكل
+// حساب ونخزّنها بالذاكرة (الغرف صغيرة والقراءة تصير مرة بالجلسة). أي فشل
+// يرجّع للسلوك القديم (يوزر الموقع) بدون كسر أي شيء.
+const levelsIdentityCache = new Map(); // uid -> identity
+async function levelsResolveIdentityForUid(uid, username) {
+  const fallback = { uniqueId: username, nickname: username, avatar: '' };
+  if (!uid) return fallback;
+  if (currentUser && uid === currentUser.uid) return levelsSelfIdentity() || fallback;
+  if (levelsIdentityCache.has(uid)) return levelsIdentityCache.get(uid);
+  let identity = fallback;
+  if (fb) {
+    try {
+      const snap = await fb.getDoc(fb.doc(fb.db, 'users', uid));
+      const v = snap.exists() ? (snap.data() || {}) : {};
+      if (v.linkedTiktokUsername) {
+        identity = {
+          uniqueId: v.linkedTiktokUsername,
+          nickname: v.linkedTiktokNickname || v.linkedTiktokUsername,
+          avatar: v.linkedTiktokAvatar || '',
+        };
+      }
+    } catch (err) { /* best-effort */ }
+  }
+  levelsIdentityCache.set(uid, identity);
+  return identity;
 }
 
 // مكافأة الفوز — تُنادى من recordWin بعد نفس شروطه (مو أثناء تجميد فعالية).
