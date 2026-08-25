@@ -1957,6 +1957,55 @@ body{padding-top:64px;}
   .lb-row-name{font-size:13px;}
 }
 
+/* ===== LEVELS PAGE (صفحة المستوى — نفس مكوّنات لوحة الفائزين حرفياً) =====
+   #pg-levels يستخدم نفس خلفية/هيدر/فلاتر/بطاقات #pg-leaderboard بالضبط
+   (lb-wrap / lb-back / lb-header / lb-title / lb-sub / lb-filters /
+   lb-filter-btn / lb-list / lb-row / lb-row-name / lb-empty) — ما انبنى أي
+   ستايل صفحة جديد. الكلاسات تحت إضافات فقط للعناصر اللي ما لها مقابل بلوحة
+   الفائزين: أفاتار داخل الصف، عدد الراوندات، شريط تقدم XP، ورقم اللفل. */
+#pg-levels{align-items:center;padding:26px 16px 60px;overflow-y:auto;background:radial-gradient(ellipse 900px 560px at 50% -6%,rgba(124,58,237,.34),transparent 62%),var(--bg);}
+
+.lvl-row{align-items:center;gap:11px;}
+.lvl-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;object-fit:cover;border:2px solid rgba(255,255,255,.14);box-shadow:0 2px 14px rgba(124,58,237,.35);}
+.lvl-avatar-fb{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#fff;border:2px solid rgba(255,255,255,.14);box-shadow:0 2px 14px rgba(124,58,237,.35);}
+
+.lvl-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.lvl-top{display:flex;align-items:center;gap:8px;min-width:0;}
+.lvl-rounds{flex-shrink:0;font-size:12px;font-weight:900;color:var(--accent2);direction:ltr;background:rgba(167,139,255,.14);border-radius:var(--radius-pill,999px);padding:3px 9px;}
+.lvl-tag{flex-shrink:0;font-size:10.5px;font-weight:900;border-radius:var(--radius-pill,999px);padding:3px 8px;border:1px solid var(--border);color:var(--muted);}
+.lvl-tag-streamer{color:var(--gold);border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.12);}
+.lvl-tag-player{color:var(--accent2);border-color:var(--border-strong);background:rgba(167,139,255,.12);}
+.lvl-tag-viewer{color:var(--brand-cyan);border-color:rgba(34,211,238,.35);background:rgba(34,211,238,.10);}
+
+.lvl-bar{position:relative;height:9px;border-radius:var(--radius-pill,999px);background:var(--surface2);border:1px solid var(--border);overflow:hidden;}
+.lvl-bar-fill{height:100%;border-radius:inherit;background:linear-gradient(100deg,var(--accent-light),var(--accent2),var(--gold));transition:width .45s cubic-bezier(.22,.61,.36,1);}
+.lvl-bar-max .lvl-bar-fill{background:linear-gradient(100deg,#FFD97A,var(--gold));}
+.lvl-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:800;color:var(--muted);}
+.lvl-meta-xp{direction:ltr;}
+.lvl-meta-next{color:var(--accent2);}
+
+/* رقم اللفل — العنصر الأبرز بصرياً بالبطاقة (بجانب الشريط مباشرة) */
+.lvl-badge{flex-shrink:0;width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:15px;padding:7px 4px;background:linear-gradient(170deg,rgba(245,158,11,.20),var(--surface2));border:1px solid var(--gold);box-shadow:0 10px 28px rgba(245,158,11,.18);}
+.lvl-badge-lbl{font-size:9.5px;font-weight:900;color:var(--gold);letter-spacing:.5px;line-height:1;}
+.lvl-badge-num{font-size:27px;font-weight:900;line-height:1;color:var(--text);direction:ltr;text-shadow:0 2px 12px rgba(245,158,11,.45);}
+.lvl-row-max .lvl-badge{background:linear-gradient(170deg,rgba(245,158,11,.34),var(--surface2));}
+
+/* حالة "لسا ما عنده بيانات كافية" — متابع لعب راوند واحد أو حساب ما لعب بعد.
+   نفس البطاقة بالضبط، بس بحدّ متقطّع خفيف وشارة صغيرة بدل أرقام فاضية. */
+.lvl-row-fresh{border-style:dashed;}
+.lvl-row-fresh .lvl-badge{border-color:var(--border-strong);background:var(--surface2);box-shadow:none;}
+.lvl-row-fresh .lvl-badge-lbl{color:var(--muted);}
+.lvl-fresh-note{font-size:11px;font-weight:800;color:var(--muted);}
+
+@media (max-width:480px){
+  .lvl-row{gap:8px;padding:10px 11px;}
+  .lvl-avatar,.lvl-avatar-fb{width:38px;height:38px;font-size:15px;}
+  .lvl-badge{width:50px;border-radius:13px;padding:6px 3px;}
+  .lvl-badge-num{font-size:22px;}
+  .lvl-rounds{font-size:11px;padding:2px 7px;}
+  .lvl-meta{font-size:10px;}
+}
+
 /* ===== PROFILE PAGE (صفحة البروفايل المستقلة) ===== */
 #pg-profile{align-items:center;padding:26px 16px 60px;overflow-y:auto;background:radial-gradient(ellipse 900px 560px at 50% -6%,rgba(124,58,237,.30),transparent 62%),var(--bg);}
 .profile-page-wrap{width:100%;max-width:560px;display:flex;flex-direction:column;}
@@ -3203,6 +3252,9 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="drawer-item" onclick="sideDrawerGoLeaderboard()">
         <span class="drawer-ic">🏆</span><span class="drawer-item-label">لوحة الفائزين</span>
       </button>
+      <button type="button" class="drawer-item" onclick="sideDrawerGoLevels()">
+        <span class="drawer-ic">⭐</span><span class="drawer-item-label">المستوى</span>
+      </button>
       <button type="button" class="drawer-item" onclick="sideDrawerRunFeedback()">
         <span class="drawer-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/></svg></span>
         <span class="drawer-item-label">اقتراح أو مشكلة واجهتني</span>
@@ -3501,6 +3553,29 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <div class="lb-podium" id="lb-podium"></div>
     <div class="lb-list" id="lb-list"></div>
     <div class="lb-empty" id="lb-empty">لا توجد فوزات بعد 🎮<br><span style="font-size:12.5px;">العب أي لعبة وبتظهر الأسماء هنا</span></div>
+  </div>
+</div>
+
+<!-- ====== LEVELS PAGE (صفحة المستوى — تُفتح من القائمة الجانبية) ======
+     نفس مكوّنات لوحة الفائزين بالضبط (lb-wrap / lb-back / lb-header /
+     lb-title / lb-sub / lb-filters / lb-list / lb-empty) — ما انبنى أي ستايل
+     صفحة جديد. مصدر البيانات: تجميعة levels بفايرستور + users
+     (الحسابات الدائمة) + activeStreamers (الستريمرز). -->
+<div id="pg-levels" class="page">
+  <div class="lb-wrap">
+    <button type="button" class="lb-back" onclick="levelsBack()">↩ رجوع</button>
+    <header class="lb-header">
+      <div class="lb-title">⭐ المستوى</div>
+      <div class="lb-sub" id="lvl-scope">الكل</div>
+    </header>
+    <div class="lb-filters">
+      <button type="button" class="lb-filter-btn active" id="lvl-filter-all" onclick="levelsSetFilter('all')">الكل</button>
+      <button type="button" class="lb-filter-btn" id="lvl-filter-players" onclick="levelsSetFilter('players')">لاعبين</button>
+      <button type="button" class="lb-filter-btn" id="lvl-filter-streamers" onclick="levelsSetFilter('streamers')">ستريمرز</button>
+      <button type="button" class="lb-filter-btn" id="lvl-filter-viewers" onclick="levelsSetFilter('viewers')">متابعين</button>
+    </div>
+    <div class="lb-list" id="lvl-list"></div>
+    <div class="lb-empty" id="lvl-empty">ما فيه بيانات مستوى بعد ⭐<br><span style="font-size:12.5px;">أول ما تنلعب راوندات بأي بث، تظهر هنا بطاقة لكل واحد مع لفله وشريط تقدمه</span></div>
   </div>
 </div>
 
@@ -10477,6 +10552,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   frnBoot();
   notifBoot();
   scoreFirestoreBoot();
+  levelsBoot();
   sevtActiveEventBoot();
   sevtAnnounceBoot();
   homeEventWinnersCheckAndShow();
@@ -10982,6 +11058,7 @@ function contestNoteActivity() {
 let contestLocalActiveRound = null; // { streamerKey, gameTag } أو null لو مافيه راوند شغّال
 
 function contestNoteRoundStarted(gameTag) {
+  levelsNoteRoundStarted(gameTag); // نظام المستويات — يمنح راوند/XP لكل من داخل الراوند لحظة انطلاقه
   // نسجّل الراوند محلياً دايماً (حتى بدون فعالية) عشان التسجيل بأثر رجعي
   if (scoreCurrentStreamer) {
     contestLocalActiveRound = { streamerKey: scoreCurrentStreamer, gameTag: gameTag };
@@ -11028,6 +11105,7 @@ function contestRegisterOngoingRoundIfAny() {
 // راوند شغّال. لا يبدأ أي مؤقّت هنا؛ contestTick (Cloud Function) هو من يقرر
 // لاحقاً إن مرّت 5 دقائق بدون بدء راوند جديد فعلي.
 function contestNoteHome() {
+  levelsNoteHome(); // نظام المستويات — ما فيه راوند شغّال، فما فيه منح جديد لحد راوند جاي
   contestLocalActiveRound = null; // مافيه راوند شغّال محلياً بعد الآن
   if (!contestActiveEventId || !fb || !scoreCurrentStreamer) return;
   const key = contestNormalizeKey(scoreCurrentStreamer);
@@ -13714,6 +13792,7 @@ function liveCommandsBoot(gameTag, handlers) {
 // user object OR a wrapper like sniper's { user, cell }; both are handled
 // transparently by unwrapping .user when present.
 function liveRoundsMirror(gameTag, participantsMap) {
+  levelsNoteParticipants(gameTag, participantsMap); // نظام المستويات — يلتقط الداخلين وسط الراوند كمان
   if (!fb) return;
   try {
     const list = [...participantsMap.values()].map(v => {
@@ -14966,7 +15045,7 @@ function updateHelpFabsVisibility(page) {
 // آخر صفحة "عادية" وقف عندها المستخدم قبل ما يفتح البروفايل/لوحة الفائزين —
 // عشان زر الرجوع بهاتين الصفحتين يرجّعه لمكانه الصحيح بدل الرئيسية دايماً.
 let navLastMainPage = 'home';
-const NAV_SUB_PAGES = ['profile', 'leaderboard'];
+const NAV_SUB_PAGES = ['profile', 'leaderboard', 'levels'];
 
 function navGoBackFromSubPage() {
   const target = NAV_SUB_PAGES.includes(navLastMainPage) ? 'home' : (navLastMainPage || 'home');
@@ -17665,6 +17744,7 @@ function recordWin(user, gameName, count) {
   // على أي لعبة فردية (evtFrozen/evtScoreMultiplier/evtMysteryBonusActive/
   // evtShadowRoundActive مُعرَّفة بكتلة evt* بأسفل الملف).
   if (evtFrozen) return;
+  levelsAwardWin(user); // نظام المستويات — مكافأة XP للفوز (منفصلة عن wins بلوحة الفائزين)
   let n = count || 1; // مود المكافأة (مثل أول إجابة سريعة بلعبة "من أنا") يمرر 2 بدل 1
   if (evtMysteryBonusActive) {
     n = Math.floor(Math.random() * 5) + 1;
@@ -17875,6 +17955,438 @@ function toastFast(msg) {
   if (toastT) clearTimeout(toastT);
   toastT = setTimeout(() => t.classList.remove('show'), 900);
 }
+
+// ==================== LEVELS SYSTEM (نظام المستويات) ====================
+// نظام مستقل تماماً عن لوحة الفائزين (wins) — يقيس "كم لعبت" مو "كم فزت".
+// كل شخص يظهر بالقائمة له مستند واحد بتجميعة levels بنفس قاعدة بيانات
+// الموقع (Firestore، streamgame-180b8):
+//
+//   levels/{key} = {
+//     key,            // نفس معرّف المستند (يوزر منظّف: بدون بادئة منصة/@ وبأحرف صغيرة)
+//     username,       // آخر اسم/نك معروف للعرض
+//     avatar,         // آخر رابط أفتار معروف (نفس مصدر extractUser المستخدم بشاشات الانتظار)
+//     xp,             // XP تراكمي
+//     level,          // اللفل المحفوظ — يُحدَّث ويُكتب لحظة كل منح XP، مو عند فتح الصفحة
+//     roundsPlayed,   // عدد الراوندات اللي لعبها فعلياً
+//     isRegistered,   // له حساب دائم بالموقع (users/{uid})
+//     isStreamer,     // ظهر كستريمر (شغّل راوند ببثه)
+//     isViewer,       // متابع لعب ببث ستريمر (حتى بدون حساب دائم)
+//     uid,            // Firebase uid لو له حساب دائم، وإلا null
+//     createdAt, updatedAt
+//   }
+//
+// المعرّف هو نفسه uniqueId المستخدم بلوحة الفائزين وبكل الألعاب، فاللاعب
+// الواحد ما ينقسم لسجلين بين النظامين.
+//
+// ملاحظة نشر: قواعد Firestore لازم تسمح بقراءة/كتابة تجميعة levels لأي حساب
+// مسجّل دخول (متصفح الستريمر هو اللي يكتب سجلات متابعيه). كل الكتابات هنا
+// best-effort ومحاطة بـcatch — لو رفضتها القواعد، ما ينكسر أي شيء بالموقع.
+
+// ---- كل الأرقام القابلة للتعديل بمكان واحد ----
+// عدّل هنا فقط: قيمة XP الراوند، مكافأة الفوز، ومنحنى الصعوبة. ما فيه أي رقم
+// من هذي مكرر بأي مكان ثاني بالملف.
+const LEVELS_CONFIG = {
+  XP_PER_ROUND: 10,        // XP لكل راوند يلعبه أي شخص
+  XP_WIN_BONUS: 15,        // XP إضافي فوق راوند الفوز (يُمنح مع recordWin)
+  XP_PER_ROUND_BY_GAME: {  // استثناءات اختيارية حسب gameTag (فاضي = الكل بنفس القيمة)
+    // 'bomb': 12,
+  },
+  BASE_XP: 30,             // معامل المنحنى
+  CURVE_EXPONENT: 1.5,     // requiredXP(level) = BASE_XP * level^CURVE_EXPONENT
+  MAX_LEVEL: 100,          // الحد الأقصى (بعده يوقف تراكم اللفل، وXP يستمر)
+  START_LEVEL: 1,
+  COUNT_ROUND_FOR_STREAMER: true, // الستريمر نفسه ياخذ راوند/XP عن كل راوند يشغّله ببثه
+  ANNOUNCE_LEVEL_UP: true, // toast لحظة ارتفاع لفل أي مشارك
+  FLUSH_DELAY_MS: 1200     // تجميع كتابات نفس الراوند بدل كتابة لكل لاعب على حدة
+};
+
+// XP المطلوب للانتقال من level إلى level+1 — يزيد كل ما ارتفع اللفل.
+function levelsRequiredXpFor(level) {
+  return Math.max(1, Math.round(LEVELS_CONFIG.BASE_XP * Math.pow(Math.max(1, level), LEVELS_CONFIG.CURVE_EXPONENT)));
+}
+
+// يحوّل XP التراكمي للفل + تقدّمه داخل اللفل الحالي. الحلقة محدودة بـMAX_LEVEL
+// فتكلفتها ثابتة مهما كبر الرقم.
+function levelsProgressFromXp(totalXp) {
+  const xp = Math.max(0, Number(totalXp) || 0);
+  let level = LEVELS_CONFIG.START_LEVEL;
+  let spent = 0;
+  while (level < LEVELS_CONFIG.MAX_LEVEL) {
+    const need = levelsRequiredXpFor(level);
+    if ((xp - spent) < need) break;
+    spent += need;
+    level++;
+  }
+  const isMax = level >= LEVELS_CONFIG.MAX_LEVEL;
+  const into = xp - spent;
+  const need = isMax ? 0 : levelsRequiredXpFor(level);
+  return {
+    level: level,
+    xp: xp,
+    xpIntoLevel: into,
+    xpForNextLevel: need,
+    percent: isMax ? 100 : Math.max(0, Math.min(100, Math.round((into / need) * 100))),
+    isMax: isMax
+  };
+}
+
+// نفس تنظيف المعرّف المستخدم بـisDeveloperUser بالضبط (بادئة المنصة + @ +
+// أحرف صغيرة) — عشان نفس الشخص ما ينقسم لسجلين بين وضع منصة واحدة ووضع
+// "أكثر من منصة".
+function levelsKey(idOrUsername) {
+  if (!idOrUsername) return '';
+  return String(idOrUsername)
+    .replace(/^(tiktok|twitch|kick|youtube):/, '')
+    .trim().toLowerCase().replace(/^@/, '');
+}
+
+// ---- طابور الكتابة ----
+// كل راوند يمنح XP لكل مشاركيه دفعة وحدة؛ نجمّعهم بذاكرة الصفحة ونكتبهم
+// بعد FLUSH_DELAY_MS كمعاملة (transaction) لكل شخص. المعاملة تقرأ XP الحالي
+// وتكتب xp+level+roundsPlayed معاً، فاللفل ينحفظ فوراً بقاعدة البيانات ولا
+// يُحسب عند العرض فقط.
+const levelsPending = new Map(); // key -> { xp, rounds, patch }
+let levelsFlushTimer = null;
+let levelsFlushRunning = false;
+
+function levelsQueue(identity, xpGain, roundGain, extraPatch) {
+  if (!fb) return;
+  const key = levelsKey(identity && (identity.uniqueId || identity.username));
+  if (!key) return;
+  let p = levelsPending.get(key);
+  if (!p) { p = { xp: 0, rounds: 0, patch: {} }; levelsPending.set(key, p); }
+  p.xp += Math.max(0, Number(xpGain) || 0);
+  p.rounds += Math.max(0, Number(roundGain) || 0);
+  const nick = identity && (identity.nickname || identity.username || identity.uniqueId);
+  if (nick) p.patch.username = String(nick);
+  if (identity && identity.avatar) p.patch.avatar = String(identity.avatar);
+  Object.assign(p.patch, extraPatch || {});
+  if (!levelsFlushTimer) levelsFlushTimer = setTimeout(levelsFlush, LEVELS_CONFIG.FLUSH_DELAY_MS);
+}
+
+async function levelsFlush() {
+  levelsFlushTimer = null;
+  if (levelsFlushRunning || !fb || !levelsPending.size) return;
+  levelsFlushRunning = true;
+  const batch = [...levelsPending.entries()];
+  levelsPending.clear();
+  for (const [key, p] of batch) {
+    try {
+      await levelsCommit(key, p);
+    } catch (err) { /* best-effort — راوند واحد ضايع أهون من كسر اللعبة */ }
+  }
+  levelsFlushRunning = false;
+  if (levelsPending.size && !levelsFlushTimer) levelsFlushTimer = setTimeout(levelsFlush, LEVELS_CONFIG.FLUSH_DELAY_MS);
+}
+
+// معاملة واحدة لكل شخص: تقرأ سجله، تضيف XP والراوندات، تعيد حساب اللفل من
+// الإجمالي الجديد، وتكتب الثلاثة معاً. لو ارتفع اللفل تطلق toast (اختياري).
+async function levelsCommit(key, p) {
+  const ref = fb.doc(fb.db, 'levels', key);
+  let leveledUpTo = 0;
+  let displayName = key;
+  await fb.runTransaction(fb.db, async (tx) => {
+    const snap = await tx.get(ref);
+    const prev = snap.exists() ? (snap.data() || {}) : null;
+    const prevXp = Math.max(0, Number(prev && prev.xp) || 0);
+    const prevLevel = Math.max(LEVELS_CONFIG.START_LEVEL, Number(prev && prev.level) || LEVELS_CONFIG.START_LEVEL);
+    const xp = prevXp + p.xp;
+    const roundsPlayed = Math.max(0, Number(prev && prev.roundsPlayed) || 0) + p.rounds;
+    const level = levelsProgressFromXp(xp).level;
+    displayName = p.patch.username || (prev && prev.username) || key;
+    if (level > prevLevel) leveledUpTo = level;
+    const doc = Object.assign({
+      key: key,
+      xp: xp,
+      level: level,
+      roundsPlayed: roundsPlayed,
+      updatedAt: fb.serverTimestamp()
+    }, p.patch);
+    if (!prev) {
+      doc.createdAt = fb.serverTimestamp();
+      if (doc.isRegistered === undefined) doc.isRegistered = false;
+      if (doc.isStreamer === undefined) doc.isStreamer = false;
+      if (doc.isViewer === undefined) doc.isViewer = false;
+      if (doc.uid === undefined) doc.uid = null;
+      if (doc.username === undefined) doc.username = key;
+      if (doc.avatar === undefined) doc.avatar = '';
+    }
+    tx.set(ref, doc, { merge: true });
+  });
+  if (leveledUpTo && LEVELS_CONFIG.ANNOUNCE_LEVEL_UP) {
+    toast('⭐ ' + displayName + ' وصل لفل ' + leveledUpTo + '!');
+  }
+}
+
+// يضمن وجود سجل لشخص بدون منح أي XP — يُستخدم لتسجيل الحسابات الدائمة
+// والستريمرز اللي ما لعبوا راوند بعد، عشان يظهرون بالقائمة بحالة "بداية".
+function levelsEnsureDoc(identity, extraPatch) {
+  levelsQueue(identity, 0, 0, extraPatch);
+}
+
+// ---- ربط النظام براوندات الألعاب ----
+// نقطتا الربط الوحيدتان بكل الملف (كلاهما تُنادى أصلاً من كل لعبة ستريمر):
+//   contestNoteRoundStarted(gameTag) → لحظة "الراوند صار نشط"
+//   liveRoundsMirror(gameTag, map)   → لحظة تغيّر قائمة المشاركين
+// فما احتجنا نلمس منطق أي لعبة على حدة.
+let levelsRoundSessions = {};    // gameTag -> { open, awarded:Set }
+let levelsLastParticipants = {}; // gameTag -> [user, ...] آخر قائمة مشاركين معروفة
+
+// يبني كائن الهوية اللي يُخزَّن — المتابع بلا حساب دائم يتحدد بمعرّفه من
+// المنصة (تيك توك/كيك/يوتيوب) بالضبط زي لوحة الفائزين.
+function levelsIdentityFromUser(u) {
+  if (!u || !u.uniqueId) return null;
+  return { uniqueId: u.uniqueId, nickname: u.nickname || u.uniqueId, avatar: u.avatar || '' };
+}
+
+function levelsAwardRoundTo(user, gameTag, session, asStreamer) {
+  const identity = levelsIdentityFromUser(user);
+  if (!identity) return;
+  const key = levelsKey(identity.uniqueId);
+  if (!key || session.awarded.has(key)) return; // راوند واحد = منحة وحدة لكل شخص
+  session.awarded.add(key);
+  const perRound = LEVELS_CONFIG.XP_PER_ROUND_BY_GAME[gameTag];
+  const xp = (perRound === undefined) ? LEVELS_CONFIG.XP_PER_ROUND : perRound;
+  const isStreamerHere = !!asStreamer || (!!scoreCurrentStreamer && key === levelsKey(scoreCurrentStreamer));
+  levelsQueue(identity, xp, 1, isStreamerHere ? { isStreamer: true } : { isViewer: true });
+}
+
+// يُستدعى من contestNoteRoundStarted — يفتح جلسة راوند جديدة ويمنح كل من كان
+// داخل الراوند لحظة انطلاقه.
+function levelsNoteRoundStarted(gameTag) {
+  const session = { open: true, awarded: new Set() };
+  levelsRoundSessions[gameTag] = session;
+  (levelsLastParticipants[gameTag] || []).forEach(u => levelsAwardRoundTo(u, gameTag, session));
+  if (LEVELS_CONFIG.COUNT_ROUND_FOR_STREAMER && scoreCurrentStreamer) {
+    levelsAwardRoundTo({ uniqueId: scoreCurrentStreamer, nickname: scoreCurrentStreamer, avatar: '' }, gameTag, session, true);
+  }
+}
+
+// يُستدعى من liveRoundsMirror — يحدّث آخر قائمة مشاركين معروفة، ويمنح
+// المتأخرين اللي دخلوا بعد انطلاق الراوند (كثير ألعاب تسمح بالدخول أثناءه).
+function levelsNoteParticipants(gameTag, participantsMap) {
+  try {
+    const list = [...participantsMap.values()]
+      .map(v => (v && v.user) ? v.user : v)   // نفس فك التغليف المستخدم بـliveRoundsMirror
+      .filter(u => u && u.uniqueId);
+    levelsLastParticipants[gameTag] = list;
+    const session = levelsRoundSessions[gameTag];
+    if (session && session.open) list.forEach(u => levelsAwardRoundTo(u, gameTag, session));
+  } catch (err) { /* best-effort — never block game logic */ }
+}
+
+// يُستدعى من contestNoteHome — رجع الستريمر للرئيسية، فما فيه راوند شغّال.
+function levelsNoteHome() {
+  Object.keys(levelsRoundSessions).forEach(tag => { levelsRoundSessions[tag].open = false; });
+  levelsLastParticipants = {};
+}
+
+// مكافأة الفوز — تُنادى من recordWin بعد نفس شروطه (مو أثناء تجميد فعالية).
+function levelsAwardWin(user) {
+  const identity = levelsIdentityFromUser(user);
+  if (!identity || !LEVELS_CONFIG.XP_WIN_BONUS) return;
+  levelsQueue(identity, LEVELS_CONFIG.XP_WIN_BONUS, 0, { isViewer: true });
+}
+
+// يُستدعى من authRunPostAuthBootChain — يسجّل صاحب الحساب الحالي بتجميعة
+// levels عشان كل لاعب مسجّل بالموقع يظهر بالقائمة حتى لو ما لعب راوند بعد.
+let levelsSelfRegistered = false;
+function levelsBoot() {
+  if (!fb || !currentUser || !currentUsername || levelsSelfRegistered) return;
+  levelsSelfRegistered = true;
+  levelsEnsureDoc(
+    { uniqueId: currentUsername, nickname: currentUsername },
+    { isRegistered: true, uid: currentUser.uid }
+  );
+}
+
+// ==================== LEVELS PAGE (عرض صفحة المستوى) ====================
+// تجمع ثلاث تجميعات بنفس المفتاح المنظّف (levelsKey):
+//   levels          — كل من لعب فعلاً (متابعين + ستريمرز + لاعبين مسجّلين)
+//   users           — كل حساب دائم بالموقع، حتى لو ما لعب راوند بعد
+//   activeStreamers — كل ستريمر شغّل لعبة، حتى لو ما له سجل levels بعد
+// الدمج مو استبدال: بيانات levels (xp/level/roundsPlayed) هي المرجع، والباقي
+// يضيف الأشخاص الناقصين ويكمّل الأدوار (مسجّل/ستريمر) فقط.
+
+let levelsFilter = 'all';        // all | players | streamers | viewers
+let levelsRows = new Map();      // key -> row
+let levelsUnsub = null;          // مستمع حيّ على تجميعة levels
+let levelsPageLoading = false;
+
+const LEVELS_FILTER_LABELS = {
+  all: 'الكل', players: 'لاعبين مسجّلين', streamers: 'ستريمرز', viewers: 'متابعين'
+};
+
+function levelsBlankRow(key) {
+  return {
+    key: key, username: key, avatar: '', xp: 0, level: LEVELS_CONFIG.START_LEVEL,
+    roundsPlayed: 0, isRegistered: false, isStreamer: false, isViewer: false
+  };
+}
+
+function levelsUpsertRow(key, patch) {
+  if (!key) return;
+  const row = levelsRows.get(key) || levelsBlankRow(key);
+  Object.keys(patch).forEach(k => {
+    const v = patch[k];
+    if (v === undefined || v === null || v === '') return;
+    row[k] = v;
+  });
+  levelsRows.set(key, row);
+}
+
+function levelsRowRole(row) {
+  if (row.isStreamer) return 'streamers';
+  if (row.isRegistered) return 'players';
+  return 'viewers';
+}
+
+// أفاتار الصف — نفس مصدر ونفس آلية البديل المستخدمة بشاشات الانتظار
+// (buildParticipantChip): صورة المنصة أولاً، وعند فشلها البروكسي ثم دائرة
+// ملونة بالحرف الأول بنفس لون participantChipColor الثابت لكل شخص.
+function levelsAvatarHtml(row) {
+  const name = row.username || row.key || '؟';
+  const color = participantChipColor(row.key);
+  const fallback = '<div class="lvl-avatar-fb" style="background:' + color + '">' + esc(name.charAt(0).toUpperCase() || '؟') + '</div>';
+  if (!row.avatar) return fallback;
+  return '<img class="lvl-avatar" src="' + esc(row.avatar) + '" data-avatar-src="' + esc(row.avatar) +
+    '" data-avatar-fallback="' + escAttr(fallback) + '" referrerpolicy="no-referrer" style="background:' + color +
+    '" onerror="avatarOnErrorHandler(this)" />';
+}
+
+function levelsRowHtml(row) {
+  const p = levelsProgressFromXp(row.xp);
+  const role = levelsRowRole(row);
+  const roleLabel = role === 'streamers' ? '📡 ستريمر' : (role === 'players' ? '👤 لاعب' : '👁 متابع');
+  // "بيانات غير كافية بعد" — ما لعب ولا راوند، أو راوند واحد فقط.
+  const fresh = (row.roundsPlayed || 0) <= 1;
+  const meta = fresh
+    ? '<span class="lvl-fresh-note">' + (row.roundsPlayed ? '🌱 أول راوند — لسا بالبداية' : '🌱 ما لعب راوند بعد') + '</span>' +
+      '<span class="lvl-meta-next">' + (p.isMax ? 'أعلى لفل' : (p.xpForNextLevel - p.xpIntoLevel) + ' XP للفل ' + (p.level + 1)) + '</span>'
+    : '<span class="lvl-meta-xp">' + p.xpIntoLevel + ' / ' + p.xpForNextLevel + ' XP</span>' +
+      '<span class="lvl-meta-next">' + (p.isMax ? 'أعلى لفل' : 'باقي ' + (p.xpForNextLevel - p.xpIntoLevel) + ' للفل ' + (p.level + 1)) + '</span>';
+
+  return '<div class="lb-row lvl-row' + (p.isMax ? ' lvl-row-max' : '') + (fresh ? ' lvl-row-fresh' : '') + '">' +
+    levelsAvatarHtml(row) +
+    '<div class="lvl-main">' +
+      '<div class="lvl-top">' +
+        '<span class="lb-row-name" title="' + escAttr(row.username || row.key) + '">' + esc(row.username || row.key) + '</span>' +
+        '<span class="lvl-rounds" title="عدد الراوندات التي لعبها">🎮 ' + (row.roundsPlayed || 0) + '</span>' +
+        '<span class="lvl-tag lvl-tag-' + role.slice(0, -1) + '">' + roleLabel + '</span>' +
+      '</div>' +
+      '<div class="lvl-bar"><div class="lvl-bar-fill" style="width:' + p.percent + '%"></div></div>' +
+      '<div class="lvl-meta">' + meta + '</div>' +
+    '</div>' +
+    '<div class="lvl-badge" title="اللفل الحالي">' +
+      '<span class="lvl-badge-lbl">LEVEL</span>' +
+      '<span class="lvl-badge-num">' + p.level + '</span>' +
+    '</div>' +
+  '</div>';
+}
+
+function levelsRender() {
+  const list = document.getElementById('lvl-list');
+  const empty = document.getElementById('lvl-empty');
+  const scope = document.getElementById('lvl-scope');
+  if (!list || !empty) return; // الصفحة غير موجودة (حماية، نفس أسلوب lbRenderRanking)
+
+  if (scope) scope.textContent = LEVELS_FILTER_LABELS[levelsFilter] || 'الكل';
+  ['all', 'players', 'streamers', 'viewers'].forEach(f => {
+    const btn = document.getElementById('lvl-filter-' + f);
+    if (btn) btn.classList.toggle('active', levelsFilter === f);
+  });
+
+  const rows = [...levelsRows.values()]
+    .filter(r => levelsFilter === 'all' || levelsRowRole(r) === levelsFilter)
+    .sort((a, b) => (b.xp || 0) - (a.xp || 0) || (b.roundsPlayed || 0) - (a.roundsPlayed || 0));
+
+  if (!rows.length) {
+    list.innerHTML = '';
+    // حالة فارغة أنيقة بثلاث صيغ: تحميل / ما فيه بيانات إطلاقاً / الفلتر
+    // الحالي فاضي بينما فيه بيانات بفئات ثانية.
+    empty.innerHTML = levelsPageLoading
+      ? 'جاري تحميل المستويات… ⏳'
+      : (levelsRows.size
+        ? 'ما فيه أحد بفئة "' + (LEVELS_FILTER_LABELS[levelsFilter] || 'الكل') + '" بعد ⭐<br><span style="font-size:12.5px;">جرّب فلتر ثاني، أو العب راوند وبتظهر البطاقات هنا</span>'
+        : 'ما فيه بيانات مستوى بعد ⭐<br><span style="font-size:12.5px;">أول ما تنلعب راوندات بأي بث، تظهر هنا بطاقة لكل واحد مع لفله وشريط تقدمه</span>');
+    empty.classList.add('visible');
+    return;
+  }
+  empty.classList.remove('visible');
+  list.innerHTML = rows.map(levelsRowHtml).join('');
+}
+
+// قراءة وحدة عند كل فتح للصفحة (users/activeStreamers) + مستمع حيّ دائم على
+// levels — نفس أسلوب scoreFirestoreBoot بالضبط.
+async function levelsLoadAll() {
+  if (!fb) { levelsRender(); return; }
+  levelsPageLoading = true;
+  levelsRender();
+
+  if (!levelsUnsub) {
+    try {
+      levelsUnsub = fb.onSnapshot(fb.collection(fb.db, 'levels'), (snap) => {
+        snap.forEach(d => {
+          const v = d.data() || {};
+          levelsUpsertRow(d.id, {
+            username: v.username || d.id,
+            avatar: v.avatar || '',
+            xp: Math.max(0, Number(v.xp) || 0),
+            level: Math.max(LEVELS_CONFIG.START_LEVEL, Number(v.level) || LEVELS_CONFIG.START_LEVEL),
+            roundsPlayed: Math.max(0, Number(v.roundsPlayed) || 0),
+            isRegistered: !!v.isRegistered,
+            isStreamer: !!v.isStreamer,
+            isViewer: !!v.isViewer
+          });
+        });
+        levelsPageLoading = false;
+        levelsRender();
+      }, (err) => { levelsPageLoading = false; levelsRender(); });
+    } catch (err) { /* best-effort */ }
+  }
+
+  // كل حساب دائم بالموقع يظهر بالقائمة حتى لو ما لعب ولا راوند.
+  try {
+    const usersSnap = await fb.getDocs(fb.collection(fb.db, 'users'));
+    usersSnap.forEach(d => {
+      const v = d.data() || {};
+      const key = levelsKey(v.usernameLower || v.username);
+      if (!key) return;
+      levelsUpsertRow(key, { username: v.username || key, isRegistered: true });
+    });
+  } catch (err) { /* best-effort — القائمة تظهر بمن توفّر */ }
+
+  // كل ستريمر شغّل لعبة، حتى لو ما له سجل levels بعد.
+  try {
+    const strSnap = await fb.getDocs(fb.collection(fb.db, 'activeStreamers'));
+    strSnap.forEach(d => {
+      const v = d.data() || {};
+      const key = levelsKey(v.username);
+      if (!key) return;
+      levelsUpsertRow(key, { username: v.username || key, isStreamer: true });
+    });
+  } catch (err) { /* best-effort */ }
+
+  levelsPageLoading = false;
+  levelsRender();
+}
+
+function levelsSetFilter(filter) {
+  levelsFilter = filter || 'all';
+  levelsRender();
+}
+
+function levelsOpen() {
+  levelsRender();
+  show('levels');
+  window.scrollTo(0, 0);
+  levelsLoadAll();
+}
+
+function levelsBack() {
+  navGoBackFromSubPage();
+}
+
 </script>
 
 <style>
@@ -43346,6 +43858,11 @@ function sideDrawerGoProfile() {
 function sideDrawerGoLeaderboard() {
   sideDrawerClose();
   leaderboardOpen();
+}
+
+function sideDrawerGoLevels() {
+  sideDrawerClose();
+  levelsOpen();
 }
 
 function sideDrawerRunFeedback() {
