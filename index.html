@@ -1890,7 +1890,7 @@ body{padding-top:64px;}
 
 .drawer-profile{display:flex;align-items:center;gap:11px;width:100%;text-align:right;background:linear-gradient(150deg,rgba(124,58,237,.22),var(--surface2));border:1px solid var(--border-strong);border-radius:16px;padding:13px 14px;cursor:pointer;font-family:var(--font);margin-bottom:10px;transition:border-color .15s,transform .15s;}
 .drawer-profile:hover{border-color:var(--accent2);transform:translateY(-1px);}
-.drawer-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(140deg,var(--accent-light),var(--accent));display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff;flex-shrink:0;}
+.drawer-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(140deg,var(--accent-light),var(--accent));display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:#fff;flex-shrink:0;overflow:hidden;}
 .drawer-profile-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
 .drawer-username{font-size:15px;font-weight:900;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .drawer-profile-sub{font-size:11.5px;font-weight:700;color:var(--muted);}
@@ -2128,7 +2128,10 @@ body{padding-top:64px;}
 .profile-modal-title{background:linear-gradient(150deg,var(--accent2),var(--accent),var(--brand-cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
 .profile-body{padding:22px;overflow-y:auto;flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;}
 .profile-avatar-row{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:8px;}
-.profile-avatar-big{width:74px;height:74px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.35);}
+.profile-avatar-big{width:74px;height:74px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:900;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.35);overflow:hidden;}
+/* صورة أفتار تيك توك المربوطة تملأ الدائرة؛ لو ما فيه ربط أو فشلت الصورة يبقى
+   الحرف كما هو بالضبط (نفس الدائرة ونفس الخط). */
+.profile-avatar-big img,.drawer-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
 .profile-username-big{font-size:19px;font-weight:900;color:var(--text);}
 .profile-section-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 2px;}
 .profile-stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
@@ -8502,7 +8505,7 @@ async function profileOpen() {
   show('profile'); // صارت صفحة مستقلة بدل مودال — نفس نمط التنقّل بباقي الموقع
   window.scrollTo(0, 0);
   document.getElementById('profile-username-big').textContent = currentUsername;
-  document.getElementById('profile-avatar-big').textContent = currentUsername.charAt(0).toUpperCase();
+  playerAvatarRender(document.getElementById('profile-avatar-big'), currentUsername);
   document.getElementById('profile-new-username').value = '';
   profilePlayerLinkRefresh();
   profileSetStatus('', '');
@@ -8554,7 +8557,7 @@ async function profileRenameUsername() {
     currentUsername = newUsername;
     authUpdateChip();
     document.getElementById('profile-username-big').textContent = currentUsername;
-    document.getElementById('profile-avatar-big').textContent = currentUsername.charAt(0).toUpperCase();
+    playerAvatarRender(document.getElementById('profile-avatar-big'), currentUsername);
     document.getElementById('profile-new-username').value = '';
     profileSetStatus('ok', '✅ تم تغيير اليوزر بنجاح');
     btn.textContent = 'تقدر تغيّر اليوزر بعد 7 يوم';
@@ -18054,6 +18057,7 @@ function playerTiktokLinkStore(link) {
     else localStorage.removeItem(PLAYER_TIKTOK_LINK_KEY);
   } catch (e) { /* الحفظ المحلي للعرض الفوري فقط — فشله ما يمنع شيء */ }
   profilePlayerLinkRefresh();
+  playerAvatarRefreshAll();
 }
 
 // يُستدعى من authRunPostAuthBootChain — فايرستور هو المرجع، والنسخة المحلية
@@ -18222,6 +18226,32 @@ async function playerTiktokPersist(cleanUsername, okVerb) {
     // مهما صار فوق، الزر لازم يرجع يشتغل.
     if (btn) btn.disabled = false;
   }
+}
+
+// يرسم أفتار الحساب داخل أي دائرة أفتار بالموقع: صورة تيك توك المربوطة إن
+// وُجدت، وإلا الحرف الأول زي ما كان. تستخدم نفس سلسلة البدائل المعتمدة بكل
+// أفتارات الموقع (الرابط المباشر ← بروكسي الصور ← الحرف) عبر
+// avatarOnErrorHandler — وهذا مهم هنا تحديداً لأن روابط صور تيك توك موقّعة
+// وتنتهي صلاحيتها بعد يومين تقريباً، فترجع الدائرة للحرف تلقائياً بدل ما
+// تنكسر، لين يضغط اللاعب "تحديث الربط".
+function playerAvatarRender(el, nameForLetter) {
+  if (!el) return;
+  const letter = String(nameForLetter || '').trim().charAt(0).toUpperCase() || '؟';
+  const link = playerTiktokLinkGet();
+  const url = link && link.avatar;
+  if (!url) { el.textContent = letter; return; }
+  const fallback = '<span>' + esc(letter) + '</span>';
+  el.innerHTML = '<img src="' + esc(url) + '" data-avatar-src="' + esc(url) +
+    '" data-avatar-fallback="' + escAttr(fallback) + '" referrerpolicy="no-referrer" alt="" ' +
+    'onerror="avatarOnErrorHandler(this)" />';
+}
+
+// يحدّث كل دوائر أفتار الحساب مرة وحدة — تُنادى عند فتح البروفايل، وفتح
+// القائمة الجانبية، وبعد أي حفظ/تحديث للربط.
+function playerAvatarRefreshAll() {
+  const name = (typeof currentUsername !== 'undefined' && currentUsername) ? currentUsername : '';
+  playerAvatarRender(document.getElementById('profile-avatar-big'), name);
+  playerAvatarRender(document.getElementById('drawer-avatar'), name);
 }
 
 // سطر الحالة تحت زر البروفايل.
@@ -44354,7 +44384,10 @@ function sideDrawerSyncUser() {
   var nameEl = document.getElementById('drawer-username');
   var avEl = document.getElementById('drawer-avatar');
   if (nameEl) nameEl.textContent = name;
-  if (avEl) avEl.textContent = name && name !== '—' ? name.charAt(0).toUpperCase() : '؟';
+  if (avEl) {
+    if (typeof playerAvatarRender === 'function') playerAvatarRender(avEl, name !== '—' ? name : '');
+    else avEl.textContent = name && name !== '—' ? name.charAt(0).toUpperCase() : '؟';
+  }
 }
 
 function sideDrawerGoProfile() {
