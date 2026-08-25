@@ -347,7 +347,7 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "حرب الدول | احسمها",
+    "name": "الدول | احسمها",
     "alternateName": "حرب الدول",
     "description": "يختار كل متابع دولة، وتُقصى الدول عشوائياً جولة بعد جولة حتى تبقى دولة واحدة فائزة — لعبة حظ وإثارة للبث.",
     "applicationCategory": "GameApplication",
@@ -4356,7 +4356,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <li><a href="/games/shad-al-habl">شد الحبل</a></li>
       <li><a href="/games/al-qannas">القناص</a></li>
       <li><a href="/games/al-qunbula-al-mutaharrika">القنبلة المتحركة</a></li>
-      <li><a href="/games/harb-al-duwal">حرب الدول</a></li>
+      <li><a href="/games/harb-al-duwal">الدول</a></li>
       <li><a href="/games/al-sandooq-al-ashwai">الصندوق العشوائي</a></li>
       <li><a href="/games/al-kursi-al-mutaharrik">الكرسي المتحرك</a></li>
       <li><a href="/games/aithur-ala-al-kora">اعثر على الكورة</a></li>
@@ -4709,7 +4709,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <span class="gcard-num">١٦</span>
       <span class="badge" data-badge-slot></span>
       <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" fill="none"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/></svg></div>
-      <div class="gcard-name">حرب الدول</div>
+      <div class="gcard-name">الدول</div>
       <div class="gcard-desc">كل متابع ياخذ دولة سرية عشوائية — الدائرة تختار شخصاً يقدر يقصي أي دولة يبيها، آخر دولة تبقى تفوز!</div>
       <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span></div>
     </div>
@@ -5064,7 +5064,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <div class="gcard" data-tag="countrywarparty" onclick="goSetupPCW()">
       <span class="badge" data-badge-slot></span>
       <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9" fill="none"/><path d="M3 12h18"/><path d="M12 3c3 3 3 15 0 18"/><path d="M12 3c-3 3-3 15 0 18"/></svg></div>
-      <div class="gcard-name">حرب الدول</div>
+      <div class="gcard-name">الدول</div>
       <div class="gcard-desc">كل لاعب ياخذ دولة سرية، وكل جولة شخص عشوائي يقصي دولة بالضغط عليها — آخر دولة تبقى تفوز!</div>
     </div>
 
@@ -6482,7 +6482,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
   <div class="setup-box">
     <button class="back-btn" onclick="show('party-home')">← رجوع</button>
     <button class="back-btn" onclick="show('home')">رجوع</button>
-    <div class="setup-title">🌍 إعداد لعبة حرب الدول</div>
+    <div class="setup-title">🌍 إعداد لعبة الدول</div>
     <div class="setup-sub">أدخل أسماء اللاعبين (من 2 إلى 20 لاعب) — كل واحد ياخذ دولة سرية، وآخر دولة تبقى تفوز!</div>
 
     <div class="api-section">
@@ -6537,7 +6537,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <div class="w-confetti">🎉</div>
     <div class="w-congrats">🏆 مبروك للفائز!</div>
     <div class="w-name" id="pcww-name">—</div>
-    <div class="w-label" id="pcww-label">آخر دولة باقية في حرب الدول!</div>
+    <div class="w-label" id="pcww-label">آخر دولة باقية في لعبة الدول!</div>
     <button class="btn-again" onclick="show('setup-countrywarparty')">🔁 لعبة جديدة</button>
     <button class="back-btn" onclick="show('party-home')">← رجوع لقائمة العاب الجمعات</button>
     <button class="back-btn" onclick="show('home')">رجوع</button>
@@ -10141,7 +10141,7 @@ const MOD_SETTINGS_SCHEMA = {
     ]
   },
   countrywar: {
-    name: 'حرب الدول',
+    name: 'الدول',
     fields: [
       { key: 'spinMinMs', type: 'number', label: 'أقل مدة للف الروليت (بالميلي ثانية)', hint: 'الحالي: 4000', default: 4000, min: 1000, max: 15000 },
       { key: 'spinRandomMs', type: 'number', label: 'مدة عشوائية إضافية للف (بالميلي ثانية)', hint: 'الحالي: 1500', default: 1500, min: 0, max: 10000 },
@@ -13870,7 +13870,7 @@ const TST_GAME_REGISTRY = {
   'letterscramble':{ pageId: 'letterscramble',participantsVar: 'lscParticipants',  joinFn: 'lscJoinParticipant',     handleFn: 'lscHandleEvent', name: 'ترتيب الحروف' },
   'wr':            { pageId: 'wr',            participantsVar: 'wrParticipants',   joinFn: 'wrJoinParticipant',      handleFn: 'wrHandleEvent', name: 'سباق الكلمات السريع' },
   'draw':          { pageId: 'draw',          participantsVar: 'drawParticipants', joinFn: 'drawJoinParticipant',    handleFn: 'drawHandleEvent', name: 'الرسم والتخمين' },
-  'countrywar':    { pageId: 'countrywar',    participantsVar: 'cwParticipants',   joinFn: 'cwJoinParticipant',      handleFn: 'cwHandleEvent', name: 'حرب الدول' },
+  'countrywar':    { pageId: 'countrywar',    participantsVar: 'cwParticipants',   joinFn: 'cwJoinParticipant',      handleFn: 'cwHandleEvent', name: 'الدول' },
   'crownsteal':    { pageId: 'crownsteal',    participantsVar: 'csParticipants',   joinFn: 'csJoinParticipant',      handleFn: 'csHandleEvent', name: 'سرقة التاج' },
   'findball':      { pageId: 'findball',      participantsVar: 'findballParticipants', joinFn: 'findballJoinParticipant', handleFn: 'findballHandleEvent', name: 'اعثر على الكورة' },
   'chairs':        { pageId: 'chairs',        participantsVar: 'chairsParticipants', joinFn: 'chairsJoinParticipant', handleFn: 'chairsHandleEvent', name: 'الكرسي المتحرك' },
@@ -30655,7 +30655,7 @@ function drawAddChatMsg(user, text) {
 <div id="pg-setup-countrywar" class="page">
   <div class="setup-box">
     <button class="back-btn" onclick="show('home')">← رجوع</button>
-    <div class="setup-title">🌍 إعداد لعبة حرب الدول</div>
+    <div class="setup-title">🌍 إعداد لعبة الدول</div>
     <div class="setup-sub">كل متابع ياخذ دولة سرية — الدائرة تختار من يقصي، آخر دولة تفوز!</div>
 
     <div class="legacy-connect-box">
@@ -30745,7 +30745,7 @@ function drawAddChatMsg(user, text) {
 
       <div class="game-title-header">
         <div class="gth-icon">🌍</div>
-        <div class="gth-name">حرب الدول</div>
+        <div class="gth-name">الدول</div>
         <div class="gth-desc">كل متابع ياخذ دولة سرية — الدائرة تختار من يقصي، آخر دولة تفوز!</div>
       </div>
 
@@ -30759,7 +30759,7 @@ function drawAddChatMsg(user, text) {
       <div class="participants-overlay" id="cw-participants-box">
         <div class="participants-overlay-header">
           <div class="participants-big-count" id="cw-p-count">0</div>
-          <div class="participants-label">مشارك دخل حرب الدول</div>
+          <div class="participants-label">مشارك دخل لعبة الدول</div>
         </div>
         <div class="participants-usernames" id="cw-p-usernames">
           <span class="p-empty-placeholder" style="font-size:12px;color:var(--muted)">في انتظار المشاركين...</span>
@@ -30952,7 +30952,7 @@ function launchCountryWar() {
   if (!cwKeyword) return cwSetStatus('err','⚠️ أدخل الكلمة المفتاحية');
 
   scoreCurrentStreamer = cwUser;
-  ownerRegisterActiveStreamer('cw', cwUser, gamePlatform['cw'], 'حرب الدول');
+  ownerRegisterActiveStreamer('cw', cwUser, gamePlatform['cw'], 'الدول');
   contestNoteActivity();
   liveCommandsBoot('cw', cwLiveCommandHandlers);
   cwRevivalBoot(cwUser);
@@ -31633,7 +31633,7 @@ function addCWElimItem(countryName, playerName, byName, source) {
 }
 
 function showCWWinner(user, countryName, flag) {
-  recordWin(user, 'حرب الدول');
+  recordWin(user, 'الدول');
   document.getElementById('cww-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('cww-label').textContent = user.nickname + ' — دولته (' + countryName + ') آخر من بقي في الحرب! 🎉';
   const disp = document.getElementById('cww-country-display');
@@ -32620,13 +32620,13 @@ window.soundManager = (function(){
 
 /* ====== واجهة "تحكم في أصوات اللعبة" داخل البروفايل ====== */
 var SOUND_UI_GROUPS = [
-  { game:'🎡 حرب الدول', items:[['cw_spin_start','صوت بدء الدوران'],['cw_tick','صوت دوران الدولاب'],['cw_slap','صوت الكف عند الإقصاء']] },
+  { game:'🎡 الدول', items:[['cw_spin_start','صوت بدء الدوران'],['cw_tick','صوت دوران الدولاب'],['cw_slap','صوت الكف عند الإقصاء']] },
   { game:'🎯 الروليت', items:[['roulette_slap','صوت الكف عند الإقصاء']] },
   { game:'💣 القنبلة المتحركة', items:[['bomb_fuse','صوت الفتيل المشتعل'],['bomb_explosion','صوت الانفجار']] },
   { game:'🪑 الكرسي المتحرك', items:[['chairs_spin_start','صوت بدء الدوران'],['chairs_tick','صوت الدوران'],['chairs_reveal','صوت كشف الكراسي'],['chairs_claim','صوت حجز الكرسي'],['chairs_eliminate','صوت الإقصاء']] },
   { game:'🚦 الضوء الأخضر والأحمر', items:[['rlgl_red','صوت الإشارة الحمراء'],['rlgl_green','صوت الإشارة الخضراء'],['rlgl_tick','صوت التكات'],['rlgl_eliminate','صوت الإقصاء']] },
   { game:'🗳️ التصويت بالإقصاء', items:[['vote_eliminate','صوت الإقصاء']] },
-  { game:'🤝 حرب الدول (الجمعات)', items:[['cwparty_slap','صوت الكف عند الإقصاء']] },
+  { game:'🤝 الدول (الجمعات)', items:[['cwparty_slap','صوت الكف عند الإقصاء']] },
   { game:'🏆 أصوات عامة (كل الألعاب)', items:[['global_win','صوت الفوز'],['global_applause','صوت التصفيق']] }
 ];
 
@@ -37954,7 +37954,7 @@ function pcwStartGame() {
   document.getElementById('pcw-setup-status').className = 'status-msg';
   document.getElementById('pcw-setup-status').textContent = '';
 
-  ownerLogPlayEvent('party_play', 'countrywarparty', 'حرب الدول', null, 'party');
+  ownerLogPlayEvent('party_play', 'countrywarparty', 'الدول', null, 'party');
 
   pcwStartRound();
 }
@@ -38045,7 +38045,7 @@ function pcwFinishGame() {
   const winner = winnerEntry ? pcwPlayers[winnerEntry.playerIdx] : null;
   document.getElementById('pcww-name').textContent = winner ? winner.name : '—';
   document.getElementById('pcww-label').textContent = winner
-    ? (winnerEntry.flag + ' ' + winnerEntry.name + ' — آخر دولة باقية في حرب الدول!')
+    ? (winnerEntry.flag + ' ' + winnerEntry.name + ' — آخر دولة باقية في لعبة الدول!')
     : 'انتهت اللعبة';
   show('countrywarparty-winner');
 }
