@@ -32112,10 +32112,45 @@ function cwRevivalBoot(streamerUsername) {
   }, (err) => { /* best-effort */ });
 }
 
-// ملاحظة: هذي اللعبة ما تحذف اللاعب من cwParticipants عند الإقصاء (يبقى فيها
-// لعرض اسمه بسجل الإقصاء) — القياس الصحيح لـ"مُقصى فعلاً" هو غيابه من
-// cwActiveCountries. الإنعاش هنا يستدعي cwJoinParticipant اللي أصلاً مبني
-// ليتعرّف هذا الوضع (isRejoinAfterElimination) ويعطيه دولة سرية جديدة تلقائياً.
+// عند الإنعاش بهدية: ما نكتفي بإعطاء المُنعَش دولة سرية جديدة فقط — نجمع كل
+// الدول النشطة الحالية + الدولة الجديدة بصندوق واحد، ونعيد خلطها عشوائياً على
+// كل اللاعبين النشطين (بمن فيهم المُنعَش)، فتتغيّر الدول السرية لكل الجميع
+// مرة وحدة ويدخل المُنعَش وسط هالخلطة الجديدة.
+function cwReviveWithReshuffle(user) {
+  if (cwKickedDuringRound.has(user.uniqueId)) return;
+  const alreadyActive = cwActiveCountries.some(c => c.uid === user.uniqueId);
+  if (alreadyActive) return;
+  if (cwGameStatus !== 'active') return;
+
+  cwParticipants.set(user.uniqueId, user);
+  const cwPCount = document.getElementById('cw-p-count');
+  if (cwPCount) cwPCount.textContent = cwParticipants.size;
+  announceDeveloperJoinIfApplicable(user);
+  toast('👤 ' + user.nickname + ' انضم!');
+
+  const usedNames = new Set([...cwActiveCountries.map(c => c.name), ...cwEliminatedNames]);
+  const available = cwCountryBank.filter(c => !usedNames.has(c.name));
+  if (available.length === 0) {
+    toast('⚠️ ما فيه دول متاحة في البنك — ' + user.nickname + ' انضم بدون دولة هالجولة');
+    liveRoundsMirror('cw', cwParticipants);
+    return;
+  }
+  const newCountry = available[Math.floor(Math.random() * available.length)];
+
+  const pool = shuffleArr([
+    ...cwActiveCountries.map(c => ({ name: c.name, flag: c.flag, code: c.code })),
+    { name: newCountry.name, flag: newCountry.flag, code: newCountry.code }
+  ]);
+  const players = [...cwActiveCountries.map(c => c.uid), user.uniqueId];
+
+  cwActiveCountries = players.map((uid, i) => ({ ...pool[i], uid }));
+  cwActiveCountries.forEach(c => cwAssignments.set(c.uid, c.name));
+
+  renderCWCountriesGrid();
+  toastFast('🔀 ' + user.nickname + ' رجع باللعبة وتبدّلت كل الدول السرية عشوائياً!');
+  liveRoundsMirror('cw', cwParticipants);
+}
+
 function cwHandleGift(user, giftName, diamondValue) {
   cwLogGiftShare(user, giftName, diamondValue);
 
@@ -32128,10 +32163,10 @@ function cwHandleGift(user, giftName, diamondValue) {
 
   cwEliminatedHistory.delete(user.uniqueId);
   triggerGiftRevivalFreeze('cw', user.nickname || user.uniqueId, giftName, null);
-  // ملاحظة: cwJoinParticipant أصلاً يتجاوز فحص الفولو تلقائياً لأي لاعب موجود
-  // بـcwParticipants (isRejoinAfterElimination) — لكن نمرر isFollower:true
-  // بأي حال للتناسق مع باقي الألعاب واحتياطاً لأي تعديل مستقبلي بهذا الشرط.
-  setTimeout(() => cwJoinParticipant(Object.assign({}, user, { isFollower: true })), 3000);
+  // الإنعاش هنا يستدعي cwReviveWithReshuffle بدل cwJoinParticipant العادية —
+  // عشان يعيد خلط كل الدول النشطة عشوائياً مع دخول المُنعَش، مو بس يضيفه
+  // بدولة جديدة تاركاً باقي الدول كما هي.
+  setTimeout(() => cwReviveWithReshuffle(Object.assign({}, user, { isFollower: true })), 3000);
   grantRevival(cwUser, user.uniqueId, user.nickname).catch(() => {});
 }
 
