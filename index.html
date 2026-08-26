@@ -32128,26 +32128,30 @@ function cwReviveWithReshuffle(user) {
   announceDeveloperJoinIfApplicable(user);
   toast('👤 ' + user.nickname + ' انضم!');
 
-  const usedNames = new Set([...cwActiveCountries.map(c => c.name), ...cwEliminatedNames]);
-  const available = cwCountryBank.filter(c => !usedNames.has(c.name));
-  if (available.length === 0) {
-    toast('⚠️ ما فيه دول متاحة في البنك — ' + user.nickname + ' انضم بدون دولة هالجولة');
+  // مهم: نسحب مجموعة دول جديدة بالكامل من البنك (لا نعيد استخدام نفس أسماء
+  // الدول النشطة الحالية فقط بإعادة توزيعها على لاعبين مختلفين) — وإلا تبقى
+  // نفس بطاقات الدول تماماً بشبكة الستريمر ولا يظهر أي تغيير فعلي. الدول
+  // المُقصاة فقط تبقى محجوزة (ما ترجع)، وباقي البنك مؤهّل للسحب من جديد.
+  const needed = cwActiveCountries.length + 1;
+  const pool = cwCountryBank.filter(c => !cwEliminatedNames.has(c.name));
+  if (pool.length < needed) {
+    toast('⚠️ ما فيه دول كافية بالبنك لإعادة الخلط — ' + user.nickname + ' انضم بدون دولة هالجولة');
     liveRoundsMirror('cw', cwParticipants);
     return;
   }
-  const newCountry = available[Math.floor(Math.random() * available.length)];
+  const newBatch = shuffleArr(pool).slice(0, needed);
+  const players = shuffleArr([...cwActiveCountries.map(c => c.uid), user.uniqueId]);
 
-  const pool = shuffleArr([
-    ...cwActiveCountries.map(c => ({ name: c.name, flag: c.flag, code: c.code })),
-    { name: newCountry.name, flag: newCountry.flag, code: newCountry.code }
-  ]);
-  const players = [...cwActiveCountries.map(c => c.uid), user.uniqueId];
-
-  cwActiveCountries = players.map((uid, i) => ({ ...pool[i], uid }));
+  cwActiveCountries = players.map((uid, i) => ({ name: newBatch[i].name, flag: newBatch[i].flag, code: newBatch[i].code, uid }));
   cwActiveCountries.forEach(c => cwAssignments.set(c.uid, c.name));
 
+  // الدولة الذهبية/دولتا التحالف قد تكون خرجت من المجموعة الجديدة — نمسحها
+  // بدل ما تضل تشير لدولة ما عادت موجودة بالراوند.
+  if (cwGoldenCountryName && !cwActiveCountries.some(c => c.name === cwGoldenCountryName)) cwGoldenCountryName = null;
+  if (cwAlliancePair && !cwAlliancePair.every(n => cwActiveCountries.some(c => c.name === n))) cwAlliancePair = null;
+
   renderCWCountriesGrid();
-  toastFast('🔀 ' + user.nickname + ' رجع باللعبة وتبدّلت كل الدول السرية عشوائياً!');
+  toastFast('🔀 ' + user.nickname + ' رجع باللعبة وتغيّرت كل الدول السرية لدولٍ جديدة عشوائياً!');
   liveRoundsMirror('cw', cwParticipants);
 }
 
