@@ -645,7 +645,7 @@
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, increment, arrayUnion, deleteField
+    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, deleteField
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove
@@ -687,7 +687,7 @@
     signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
     deleteUser,
     doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, increment, arrayUnion, deleteField,
+    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, deleteField,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove
   };
   window.dispatchEvent(new Event('fb-ready'));
@@ -832,6 +832,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .home-hero-badge.online{background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);color:var(--green);}
 .home-hero-badge-dot{width:7px;height:7px;border-radius:99px;background:currentColor;animation:homeHeroPulse 1.6s infinite;}
 @keyframes homeHeroPulse{0%,100%{opacity:.45;transform:scale(1);}50%{opacity:1;transform:scale(1.15);}}
+/* عداد اللاعبين المسجّلين الحي — يظهر بين شارة الاتصال ومحتوى الـhero، مخفي
+   افتراضياً حتى تصل أول قراءة من config/homeStats (تفادي وميض رقم 0)، راجع
+   homeLiveCounterBoot. */
+.home-live-counter{display:none;flex-direction:column;gap:2px;margin-top:16px;padding:14px 20px;background:var(--surface);border:1px solid var(--border);border-radius:16px;width:fit-content;}
+.home-live-counter.visible{display:flex;}
+.home-live-counter-num-row{display:flex;align-items:center;gap:9px;}
+.home-live-counter-dot{width:8px;height:8px;border-radius:99px;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,.18);animation:homeHeroPulse 1.6s infinite;flex-shrink:0;}
+.home-live-counter-num{font-family:var(--font-brand);font-weight:900;font-size:32px;color:var(--text);line-height:1;}
+.home-live-counter-label{font-size:14px;color:var(--muted);font-weight:700;}
 .home-hero-logo{width:64px;height:64px;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(139,92,246,.4);margin-top:16px;}
 .home-hero-logo svg{display:block;width:100%;height:100%;}
 .home-hero-title{font-family:var(--font-brand);font-weight:900;font-size:42px;line-height:1.15;margin-top:14px;}
@@ -873,7 +882,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .gcard-tag{font-size:11px;font-weight:800;border-radius:var(--radius-pill);padding:4px 10px;}
 #pg-home .games-grid,#pg-solo-home .games-grid,#pg-party-home .games-grid,#pg-online-home .games-grid{max-width:none;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px;}
 @media (max-width:860px){.home-hero{grid-template-columns:1fr;}}
-@media (max-width:480px){.home-hero{padding:24px;margin-top:20px;}.home-hero-title{font-size:30px;}.home-wrap{padding:0 16px;}}
+@media (max-width:480px){.home-hero{padding:24px;margin-top:20px;}.home-hero-title{font-size:30px;}.home-wrap{padding:0 16px;}.home-live-counter{padding:12px 16px;}.home-live-counter-num{font-size:26px;}}
 
 /* ===== SECTION HERO (فردي/جمعات/أونلاين hub pages) ===== */
 .section-hero{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;margin-top:34px;padding:36px;background:linear-gradient(120deg,#22143f,#150b28 60%);border:1px solid var(--border-strong);border-radius:28px;}
@@ -3650,6 +3659,17 @@ if (location.hostname === 'streamgame1.netlify.app') {
          أول نوع منها. مختلف تماماً عن تاب "🎉 فعاليات" أعلاه (بادئة evt، مضاعفات
          نقاط/تجميد لوحة) — لا علاقة بينهما. -->
     <div class="owner-panel-body" id="owner-panel-sevt">
+      <div id="home-stats-admin-section" style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border);">
+        <div class="mod-settings-title">عداد اللاعبين بالصفحة الرئيسية</div>
+        <button type="button" class="btn-primary" id="home-stats-toggle-btn" style="width:auto;" onclick="homeStatsToggleVisible()">إخفاء العداد</button>
+        <div class="field" style="margin-top:14px;max-width:220px;">
+          <label>الرقم الإضافي المُضاف على العدد الحقيقي</label>
+          <input type="number" id="home-stats-offset-input" min="0" step="1" placeholder="300" autocomplete="off" />
+        </div>
+        <button type="button" class="btn-primary" style="width:auto;" onclick="homeStatsSaveOffset()">💾 حفظ الرقم الإضافي</button>
+        <button type="button" class="btn-primary" style="width:auto;background:var(--surface2);color:var(--text);border:1px solid var(--border);margin-inline-start:8px;" onclick="homeStatsRecalcRealCount()">🔢 احتساب العدد الحقيقي الآن</button>
+        <div class="status-msg" id="home-stats-admin-status"></div>
+      </div>
       <div id="sevt-body-idle">
         <button type="button" class="btn-primary" onclick="sevtOpenLaunchFormManual()">🏆 فعالية جديدة</button>
         <button type="button" class="btn-danger" style="margin-top:10px;opacity:.9;" onclick="sevtHardResetNow()">🔄 إعادة تعيين البطولة من الصفر (يمسح أي فعالية سابقة والمؤقّت)</button>
@@ -4532,6 +4552,13 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="home-hero-left">
         <div class="home-hero-badge offline" id="home-conn-badge">
           <span class="home-hero-badge-dot"></span><span id="home-conn-badge-text">غير متصل</span>
+        </div>
+        <div class="home-live-counter" id="home-live-counter">
+          <div class="home-live-counter-num-row">
+            <span class="home-live-counter-dot"></span>
+            <span class="home-live-counter-num" id="home-live-counter-num">0</span>
+          </div>
+          <div class="home-live-counter-label">لاعب مسجّل</div>
         </div>
         <div class="home-hero-logo" aria-hidden="true">
           <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="homeLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#homeLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>
@@ -8623,6 +8650,9 @@ async function authHandleSignup(e) {
     const cred = await authWithTimeout(fb.createUserWithEmailAndPassword(fb.auth, email, pass));
     createdCred = cred;
     await authWithTimeout(authReserveUsername(cred.user.uid, username, email, 'password'));
+    // حساب جديد فعلياً (لا إعادة دخول) — زد عداد الصفحة الرئيسية الحي. best-effort،
+    // ما يوقف تدفق التسجيل لو فشل.
+    fb.updateDoc(fb.doc(fb.db, 'config', 'homeStats'), { registeredCount: fb.increment(1) }).catch(() => {});
     try { await fb.updateProfile(cred.user, { displayName: username }); } catch (e2) {}
     currentUser = cred.user;
     currentUsername = username;
@@ -8767,6 +8797,9 @@ async function authHandleChooseUsername(e) {
       return false;
     }
     await authWithTimeout(authReserveUsername(currentUser.uid, username, currentUser.email, 'google'));
+    // أول ظهور فعلي لهذا الحساب (اختيار يوزرنيم لأول مرة بعد Google) — زد عداد
+    // الصفحة الرئيسية الحي. best-effort، ما يوقف تدفق التسجيل لو فشل.
+    fb.updateDoc(fb.doc(fb.db, 'config', 'homeStats'), { registeredCount: fb.increment(1) }).catch(() => {});
     try { await fb.updateProfile(currentUser, { displayName: username }); } catch (e2) {}
     currentUsername = username;
     authUpdateChip();
@@ -10504,6 +10537,7 @@ function authUpdateChip() {
 function authBoot() {
   fb = window.__fb;
   modPreloadSettings();
+  homeLiveCounterBoot();
   // Surface errors from a signInWithRedirect() round-trip (e.g. unauthorized
   // domain) instead of letting them fail silently on page reload.
   fb.getRedirectResult(fb.auth).catch((err) => {
@@ -11258,6 +11292,85 @@ let sevtAdminCountdownInterval = null;
 // ما نطلق الفعالية الجديدة أو نرجع idle يدويًا.
 let sevtFormOpenAfterReset = false;
 
+// ==================== لوحة المالك: عداد اللاعبين بالصفحة الرئيسية (config/homeStats) ====================
+// تحت تبويب "🏆 فعاليات الستريمرز" (owner-tab-sevt) — لا تبويب مستقل. مستمع واحد
+// طوال عمر الجلسة (نفس نمط protRosterUnsub)، يُشغَّل من ownerSwitchTab('sevt').
+let homeStatsAdminUnsub = null;
+let homeStatsAdminData = null;
+
+function homeStatsAdminBoot() {
+  if (!fb || homeStatsAdminUnsub) return;
+  homeStatsAdminUnsub = fb.onSnapshot(fb.doc(fb.db, 'config', 'homeStats'), (snap) => {
+    homeStatsAdminData = snap.exists() ? snap.data() : null;
+    homeStatsAdminRender();
+  }, (err) => { /* best-effort */ });
+}
+
+function homeStatsAdminRender() {
+  const btn = document.getElementById('home-stats-toggle-btn');
+  const offsetInput = document.getElementById('home-stats-offset-input');
+  if (!btn || !offsetInput) return;
+  const visible = !homeStatsAdminData || homeStatsAdminData.visible !== false;
+  btn.textContent = visible ? 'إخفاء العداد' : 'إظهار العداد';
+  if (document.activeElement !== offsetInput) {
+    offsetInput.value = (homeStatsAdminData && homeStatsAdminData.baseOffset != null) ? homeStatsAdminData.baseOffset : 300;
+  }
+}
+
+async function homeStatsToggleVisible() {
+  if (!isOwnerAccount()) return;
+  const statusEl = document.getElementById('home-stats-admin-status');
+  const nextVisible = !(!homeStatsAdminData || homeStatsAdminData.visible !== false);
+  try {
+    if (statusEl) { statusEl.className = 'status-msg'; statusEl.textContent = '⏳ جارِ الحفظ...'; }
+    await fb.setDoc(fb.doc(fb.db, 'config', 'homeStats'), { visible: nextVisible }, { merge: true });
+    if (statusEl) { statusEl.className = 'status-msg ok'; statusEl.textContent = nextVisible ? '✅ العداد ظاهر الآن' : '✅ العداد مخفي الآن'; }
+    toast(nextVisible ? '👁️ العداد ظاهر الآن' : '🙈 العداد مخفي الآن');
+  } catch (err) {
+    if (statusEl) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ تعذّر الحفظ: ' + err.message; }
+    toast('⚠️ تعذّر الحفظ: ' + err.message);
+  }
+}
+
+async function homeStatsSaveOffset() {
+  if (!isOwnerAccount()) return;
+  const input = document.getElementById('home-stats-offset-input');
+  const statusEl = document.getElementById('home-stats-admin-status');
+  const val = input ? Math.round(Number(input.value)) : NaN;
+  if (!input || input.value === '' || Number.isNaN(val) || val < 0) {
+    if (statusEl) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ أدخل رقماً صحيحاً غير سالب'; }
+    return;
+  }
+  try {
+    if (statusEl) { statusEl.className = 'status-msg'; statusEl.textContent = '⏳ جارِ الحفظ...'; }
+    await fb.setDoc(fb.doc(fb.db, 'config', 'homeStats'), { baseOffset: val }, { merge: true });
+    if (statusEl) { statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم حفظ الرقم الإضافي'; }
+    toast('💾 تم حفظ الرقم الإضافي');
+  } catch (err) {
+    if (statusEl) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ تعذّر الحفظ: ' + err.message; }
+    toast('⚠️ تعذّر الحفظ: ' + err.message);
+  }
+}
+
+// احتساب لمرة واحدة (aggregation query عبر getCountFromServer — لا يقرأ كل
+// المستندات ولا يفتح مستمعاً دائماً) لضبط registeredCount على العدد الحقيقي
+// الحالي لمجموعة users، بدل تركه يبدأ من صفر.
+async function homeStatsRecalcRealCount() {
+  if (!isOwnerAccount()) return;
+  const statusEl = document.getElementById('home-stats-admin-status');
+  try {
+    if (statusEl) { statusEl.className = 'status-msg'; statusEl.textContent = '⏳ جارِ احتساب عدد الحسابات الحقيقي...'; }
+    const countSnap = await fb.getCountFromServer(fb.collection(fb.db, 'users'));
+    const realCount = countSnap.data().count;
+    await fb.setDoc(fb.doc(fb.db, 'config', 'homeStats'), { registeredCount: realCount }, { merge: true });
+    if (statusEl) { statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم ضبط العدد الحقيقي: ' + realCount; }
+    toast('🔢 تم ضبط العدد الحقيقي: ' + realCount);
+  } catch (err) {
+    if (statusEl) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ تعذّر الاحتساب: ' + err.message; }
+    toast('⚠️ تعذّر الاحتساب: ' + err.message);
+  }
+}
+
 function sevtAdminBoot() {
   if (sevtAdminBootedOnce) { sevtAdminRenderFromCache(); return; }
   sevtAdminBootedOnce = true;
@@ -11975,7 +12088,7 @@ function ownerSwitchTab(tab) {
   if (tab === 'event100') event100AdminRenderPanel();
   if (tab === 'protection') protBootPanel();
   if (tab === 'ahsemha') { ahsemhaAdminListBoot(); ahsemhaRenderEditorsList(); ahsemhaAdminRenderList('ahsemha-categories-list', 'ahsemha-categories-count'); }
-  if (tab === 'sevt') sevtAdminBoot();
+  if (tab === 'sevt') { sevtAdminBoot(); homeStatsAdminBoot(); }
 }
 
 function ownerOpenNewAccounts() {
@@ -15250,6 +15363,43 @@ function homeUpdateConnectionBadge(connected, platformLabel) {
   badge.classList.toggle('online', connected);
   badge.classList.toggle('offline', !connected);
   text.textContent = connected ? ('متصل · ' + platformLabel) : 'غير متصل';
+}
+
+// ==================== عداد اللاعبين المسجّلين الحي (الصفحة الرئيسية) ====================
+// يستمع لمستند config/homeStats بدل كامل مجموعة users (خفيف وفوري). يُشغَّل مرة
+// واحدة فقط طوال عمر الجلسة (نفس نمط protRosterUnsub) — يُستدعى من authBoot().
+let homeLiveCounterUnsub = null;
+let homeLiveCounterCurrentVal = null;
+let homeLiveCounterAnimFrame = null;
+
+function homeLiveCounterAnimateTo(target) {
+  const el = document.getElementById('home-live-counter-num');
+  if (!el) return;
+  const start = homeLiveCounterCurrentVal == null ? target : homeLiveCounterCurrentVal;
+  homeLiveCounterCurrentVal = target;
+  if (homeLiveCounterAnimFrame) cancelAnimationFrame(homeLiveCounterAnimFrame);
+  if (start === target) { el.textContent = target.toLocaleString('en-US'); return; }
+  const duration = 600;
+  const t0 = performance.now();
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / duration);
+    const eased = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(start + (target - start) * eased).toLocaleString('en-US');
+    homeLiveCounterAnimFrame = p < 1 ? requestAnimationFrame(tick) : null;
+  };
+  homeLiveCounterAnimFrame = requestAnimationFrame(tick);
+}
+
+function homeLiveCounterBoot() {
+  if (!fb || homeLiveCounterUnsub) return;
+  homeLiveCounterUnsub = fb.onSnapshot(fb.doc(fb.db, 'config', 'homeStats'), (snap) => {
+    const wrap = document.getElementById('home-live-counter');
+    if (!snap.exists()) { if (wrap) wrap.classList.remove('visible'); return; }
+    const d = snap.data();
+    const total = Math.max(0, (d.baseOffset || 0) + (d.registeredCount || 0));
+    homeLiveCounterAnimateTo(total);
+    if (wrap) wrap.classList.toggle('visible', d.visible !== false);
+  }, (err) => { /* best-effort */ });
 }
 
 function homeStartQuickConnect() {

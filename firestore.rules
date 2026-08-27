@@ -376,6 +376,20 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // عداد اللاعبين المسجّلين الحي بالصفحة الرئيسية. registeredCount يزيد ذرّياً
+    // (increment) من أي حساب مسجّل دخول جديد فعلياً — لذلك أي مستخدم مسجّل يقدر
+    // يزيده بمقدار 1 فقط بكل مرة، بينما visible وbaseOffset للمالك حصراً.
+    match /config/homeStats {
+      allow read: if true;
+      allow create: if isOwner();
+      allow update: if request.auth != null && (
+        isOwner() ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount']) &&
+         request.resource.data.registeredCount == resource.data.registeredCount + 1)
+      );
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
