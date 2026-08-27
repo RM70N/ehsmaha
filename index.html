@@ -841,6 +841,14 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .home-live-counter-dot{width:8px;height:8px;border-radius:99px;background:var(--green);box-shadow:0 0 0 3px rgba(52,211,153,.18);animation:homeHeroPulse 1.6s infinite;flex-shrink:0;}
 .home-live-counter-num{font-family:var(--font-brand);font-weight:900;font-size:32px;color:var(--text);line-height:1;}
 .home-live-counter-label{font-size:14px;color:var(--muted);font-weight:700;}
+.home-live-counter-sub{font-size:11px;color:var(--accent2);font-weight:800;margin-top:4px;}
+/* من عرض 861px فأكثر (تخطيط الـhero بعمودين) يُسحب العداد من التدفّق العادي
+   ويُثبَّت في الفراغ الأفقي بين بطاقات الأوضاع (يسار) وشارة الاتصال (يمين) —
+   نفس ارتفاع الشارة تقريباً، بدل التكديس تحتها مباشرة. أقل من هذا العرض
+   (تكديس عمودي) يبقى بمكانه الطبيعي أسفل الشارة كما كان. */
+@media (min-width:861px){
+  .home-live-counter{position:absolute;top:0;left:0;margin-top:0;z-index:2;}
+}
 .home-hero-logo{width:64px;height:64px;border-radius:16px;overflow:hidden;box-shadow:0 10px 28px rgba(139,92,246,.4);margin-top:16px;}
 .home-hero-logo svg{display:block;width:100%;height:100%;}
 .home-hero-title{font-family:var(--font-brand);font-weight:900;font-size:42px;line-height:1.15;margin-top:14px;}
@@ -4559,6 +4567,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
             <span class="home-live-counter-num" id="home-live-counter-num">0</span>
           </div>
           <div class="home-live-counter-label">لاعب مسجّل</div>
+          <div class="home-live-counter-sub">فعالية 300 لاعب لجميع الستريمرز ولاعبين</div>
         </div>
         <div class="home-hero-logo" aria-hidden="true">
           <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="homeLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#homeLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>
