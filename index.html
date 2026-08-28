@@ -3667,6 +3667,52 @@ if (location.hostname === 'streamgame1.netlify.app') {
          أول نوع منها. مختلف تماماً عن تاب "🎉 فعاليات" أعلاه (بادئة evt، مضاعفات
          نقاط/تجميد لوحة) — لا علاقة بينهما. -->
     <div class="owner-panel-body" id="owner-panel-sevt">
+      <!-- ===== جسر المصير — لوحة تحكم المالك ===== -->
+      <div id="brg-owner-section" style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border);">
+        <div class="mod-settings-title">🌉 جسر المصير</div>
+        <div class="owner-count-badge" style="margin-bottom:10px;">
+          الحالة: <b id="brg-owner-state">ما فيه فعالية</b>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button type="button" class="btn-primary" style="width:auto;" onclick="brgOwnerCreate()">➕ فتح فعالية</button>
+          <button type="button" class="btn-primary" style="width:auto;" onclick="brgOwnerStart()">🚀 ابدأ الآن</button>
+          <button type="button" class="btn-danger" style="width:auto;margin-top:0;" onclick="brgOwnerEnd()">⛔ إنهاء</button>
+          <button type="button" class="btn-primary" style="width:auto;background:linear-gradient(135deg,#FFD700,#F5C451);color:#2E1065;" onclick="brgSimStart()">🧪 التجربة</button>
+        </div>
+        <div class="stats-note" style="margin-top:6px;text-align:right;">«التجربة» تشغّل الفعالية داخل متصفحك وحدك — ما تُكتب بقاعدة البيانات ولا يراها أي ستريمر.</div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+          <div class="field" style="margin-bottom:0;max-width:130px;">
+            <label>مدة التصويت (ث)</label>
+            <input type="number" id="brg-set-duration" min="4" max="60" value="10" autocomplete="off" />
+          </div>
+          <div class="field" style="margin-bottom:0;max-width:130px;">
+            <label>أقصى جولات</label>
+            <input type="number" id="brg-set-rounds" min="1" max="200" value="30" autocomplete="off" />
+          </div>
+          <div class="field" style="margin-bottom:0;max-width:130px;">
+            <label>مشاهدو التجربة</label>
+            <input type="number" id="brg-sim-viewers" min="1" max="500" value="40" autocomplete="off" />
+          </div>
+          <div class="field" style="margin-bottom:0;max-width:130px;">
+            <label>دقة التجربة ٪</label>
+            <input type="number" id="brg-sim-acc" min="0" max="100" value="62" autocomplete="off" />
+          </div>
+        </div>
+        <button type="button" class="btn-primary" style="width:auto;margin-top:8px;" onclick="brgOwnerSaveSettings()">💾 حفظ الإعدادات</button>
+
+        <div class="mod-settings-title" style="margin-top:16px;font-size:14px;">🎴 منح بطاقة يدوياً</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <select id="brg-give-player" style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);"></select>
+          <select id="brg-give-card" style="flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);"></select>
+          <button type="button" class="btn-primary" style="width:auto;margin-top:0;" onclick="brgOwnerGiveCard()">منح</button>
+        </div>
+
+        <div class="mod-settings-title" style="margin-top:16px;font-size:14px;">📋 الستريمرز — مراقبة لحظية</div>
+        <div class="owner-list" id="brg-owner-players"><div class="owner-empty">ما دخل أحد بعد</div></div>
+        <div class="status-msg" id="brg-owner-status"></div>
+      </div>
+
       <div id="home-stats-admin-section" style="margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border);">
         <div class="mod-settings-title">عداد اللاعبين بالصفحة الرئيسية</div>
         <button type="button" class="btn-primary" id="home-stats-toggle-btn" style="width:auto;" onclick="homeStatsToggleVisible()">إخفاء العداد</button>
@@ -4863,6 +4909,17 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span></div>
     </div>
 <!-- END volcanic-lands:card -->
+
+<!-- BEGIN bridge-fate:card -->
+    <div class="gcard" data-tag="bridge-fate" data-category="chat" onclick="show('bridge-setup')">
+      <span class="gcard-num">٢٥</span>
+      <span class="badge new">جديد</span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M4 12V8"/><path d="M20 12V8"/><path d="M8 12v4"/><path d="M12 12v5"/><path d="M16 12v4"/><path d="M2 8c4-3 16-3 20 0"/></svg></div>
+      <div class="gcard-name">جسر المصير</div>
+      <div class="gcard-desc">٣٠٠ ستريمر على جسر واحد فوق الهاوية — جمهورك يكتب رقم الإجابة، والأغلبية تبني لك لوحاً أو تكسره. ٣ صح متتالية = بطاقة عشوائية!</div>
+      <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(201,168,76,.16);color:#C9A84C;">فعالية جماعية</span></div>
+    </div>
+<!-- END bridge-fate:card -->
 
   </div>
   </div>
@@ -12097,7 +12154,7 @@ function ownerSwitchTab(tab) {
   if (tab === 'event100') event100AdminRenderPanel();
   if (tab === 'protection') protBootPanel();
   if (tab === 'ahsemha') { ahsemhaAdminListBoot(); ahsemhaRenderEditorsList(); ahsemhaAdminRenderList('ahsemha-categories-list', 'ahsemha-categories-count'); }
-  if (tab === 'sevt') { sevtAdminBoot(); homeStatsAdminBoot(); }
+  if (tab === 'sevt') { sevtAdminBoot(); homeStatsAdminBoot(); if (typeof brgOwnerBoot === 'function') brgOwnerBoot(); }
 }
 
 function ownerOpenNewAccounts() {
@@ -15191,6 +15248,10 @@ function show(page) {
   }
   if (page === 'contest-top20') top20Boot(); else top20Teardown();
   if (page === 'home') homeEventWinnersCheckAndShow();
+  // جسر المصير — تهيئة صفحاته الثلاث
+  if (page === 'bridge-setup' && typeof brgSetupRender === 'function') brgSetupRender();
+  if (page === 'bridge-lobby' && typeof brgRenderLobby === 'function') brgRenderLobby();
+  if (page === 'bridge-round' && typeof brgBootPage === 'function') setTimeout(brgBootPage, 30);
   // احتفال موحّد لكل ألعاب الستريمر: أي شاشة فائز (page ينتهي بـ -winner)
   // تُطلق كونفيتي + صوت فوز غير موسيقي تلقائيًا — مصدر واحد يغطي كل الألعاب.
   if (page && page.slice(-7) === '-winner') { try { fxCelebrate(); } catch (e) {} }
@@ -54014,5 +54075,2078 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </script>
 <!-- END volcanic-lands:ui -->
+
+<!-- BEGIN bridge-fate — جسر المصير (لعبة جماعية لحظية) -->
+<!-- BEGIN bridge-fate:styles — جسر المصير (تصميم Harf منقول 1:1 من ملف التصميم المعتمد) -->
+<style>
+/* ============================================================
+   جسر المصير — رموز التصميم (Harf)
+   منقولة حرفياً من ملف التصميم المعتمد. كلها مسبوقة بـbrg- أو
+   محصورة داخل #pg-bridge-round حتى لا تصطدم بمتغيرات المنصة
+   الأصلية (--accent/--surface/--border...) المستخدمة بباقي الصفحات.
+   ============================================================ */
+#pg-bridge-round, #pg-bridge-lobby, #pg-bridge-setup, .brg-scope{
+  --harf-gold:#C9A84C; --gold-100:#F4E9C6; --gold-200:#E6D08A; --gold-300:#D8BC66;
+  --gold-400:#C9A84C; --gold-500:#B08F37; --gold-600:#8B6914; --gold-700:#6E520F;
+  --brg-ink-900:#0D0D14; --brg-ink-800:#14141F; --brg-ink-700:#1C1C2E; --brg-ink-600:#25253A;
+  --brg-gray-500:#6B6B7A; --brg-gray-400:#8A8A99; --brg-gray-300:#ABABB8;
+  --brg-border:rgba(201,168,76,0.18);
+  --brg-radius-md:12px; --brg-radius-lg:16px; --brg-radius-xl:24px; --brg-pill:999px;
+  --brg-shadow-md:0 6px 18px rgba(0,0,0,0.45); --brg-shadow-lg:0 16px 40px rgba(0,0,0,0.55);
+  --glow-gold-sm:0 0 0 3px rgba(201,168,76,0.20);
+  --glow-gold-md:0 0 18px rgba(201,168,76,0.35);
+  --glow-gold-lg:0 0 34px rgba(201,168,76,0.45);
+  --brg-ease-out:cubic-bezier(0.22,1,0.36,1);
+  --brg-ease-in:cubic-bezier(0.55,0,1,0.45);
+  --brg-ease-in-out:cubic-bezier(0.65,0,0.35,1);
+  --brg-ease-bounce:cubic-bezier(0.34,1.56,0.64,1);
+  --brg-dur-base:220ms; --brg-dur-flip:420ms; --brg-dur-slow:600ms;
+  --brg-font-display:'Amiri','Times New Roman',serif;
+  --brg-font-ui:'Tajawal','Segoe UI',system-ui,sans-serif;
+}
+
+/* ---- أنيميشن التصميم (منقولة كما هي بأسمائها ومددها) ---- */
+@keyframes brgCloudDrift{from{transform:translateX(0)}to{transform:translateX(-52%)}}
+@keyframes brgSkyBreath{0%,100%{opacity:.55}50%{opacity:.9}}
+@keyframes brgStepFwd{0%{transform:translateY(0) scale(1)}22%{transform:translateY(-26px) scale(1.06) rotate(-3deg)}55%{transform:translateY(-6px) scale(1)}78%{transform:translateY(-3px)}100%{transform:translateY(0) scale(1)}}
+@keyframes brgPullBack{0%{transform:translateY(0)}30%{transform:translateY(-14px) scale(.94) rotate(9deg)}62%{transform:translateY(6px) scale(1.03) rotate(-3deg)}100%{transform:translateY(0) scale(1) rotate(0)}}
+@keyframes brgBobIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes brgCheer{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-18px) rotate(-6deg)}75%{transform:translateY(-10px) rotate(6deg)}}
+@keyframes brgPlankBuild{0%{transform:translateY(-60px) rotateZ(-9deg);opacity:0}55%{opacity:1}78%{transform:translateY(4px) rotateZ(2deg)}100%{transform:translateY(0) rotateZ(0);opacity:1}}
+@keyframes brgPlankSnap{0%{transform:rotateZ(0) translateY(0);opacity:1}18%{transform:rotateZ(-3deg) translateY(-4px)}100%{transform:rotateZ(26deg) translateY(340px) translateX(-40px);opacity:0}}
+@keyframes brgPlankHang{0%,100%{transform:rotateZ(52deg) translateY(20px)}50%{transform:rotateZ(60deg) translateY(26px)}}
+@keyframes brgRopeSway{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes brgRingPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,168,76,.35),inset 0 0 22px rgba(201,168,76,.10)}50%{box-shadow:0 0 0 14px rgba(201,168,76,0),inset 0 0 34px rgba(201,168,76,.22)}}
+@keyframes brgUrgentPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@keyframes brgShakeSoft{0%,100%{transform:translateX(-50%) translate3d(0,0,0)}20%{transform:translateX(-50%) translate3d(-1.5px,1px,0)}45%{transform:translateX(-50%) translate3d(2px,-1px,0)}70%{transform:translateX(-50%) translate3d(-1px,-1.5px,0)}}
+@keyframes brgFadeUp{0%{transform:translateY(18px);opacity:0}100%{transform:translateY(0);opacity:1}}
+@keyframes brgFadeUpC{0%{transform:translateX(-50%) translateY(18px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+@keyframes brgCardIn{0%{transform:perspective(1400px) rotateY(180deg) scale(.55);opacity:0}45%{opacity:1}72%{transform:perspective(1400px) rotateY(8deg) scale(1.06)}100%{transform:perspective(1400px) rotateY(0) scale(1);opacity:1}}
+@keyframes brgHaloGrow{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.1);opacity:0}}
+@keyframes brgGlowBreath{0%,100%{opacity:.35}50%{opacity:.9}}
+@keyframes brgBeacon{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes brgBirdFly{0%{transform:translate(0,0) scale(.8);opacity:0}12%{opacity:.65}100%{transform:translate(-620px,-90px) scale(1);opacity:0}}
+@keyframes brgPetalFall{0%{transform:translateY(-60px) rotate(0);opacity:0}12%{opacity:1}100%{transform:translateY(820px) rotate(300deg);opacity:0}}
+@keyframes brgWinRise{0%{transform:translateY(40px) scale(.94);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+@keyframes brgRankShift{0%{background:rgba(201,168,76,.28)}100%{background:transparent}}
+@keyframes brgCrackFlash{0%{opacity:0}12%{opacity:1}40%{opacity:.6}100%{opacity:0}}
+@keyframes brgHalfLeft{0%{transform:rotate(0) translate(0,0);opacity:1}14%{transform:rotate(-4deg) translate(0,-6px)}100%{transform:rotate(-72deg) translate(-120px,420px);opacity:0}}
+@keyframes brgHalfRight{0%{transform:rotate(0) translate(0,0);opacity:1}14%{transform:rotate(5deg) translate(0,-5px)}100%{transform:rotate(84deg) translate(130px,440px);opacity:0}}
+@keyframes brgShardSpin{0%{transform:translate(0,0) rotate(0);opacity:0}8%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+@keyframes brgDustPuff{0%{transform:scale(.3);opacity:0}18%{opacity:.55}100%{transform:scale(2.6) translateY(-30px);opacity:0}}
+@keyframes brgCamJolt{0%,100%{transform:translate(0,0)}8%{transform:translate(-7px,6px)}20%{transform:translate(6px,-5px)}34%{transform:translate(-4px,3px)}52%{transform:translate(3px,-2px)}72%{transform:translate(-1px,1px)}}
+@keyframes brgFlashRed{0%{opacity:0}10%{opacity:.5}100%{opacity:0}}
+@keyframes brgGhostDrop{0%{transform:translateY(-190px) rotate(-11deg);opacity:0;filter:blur(3px)}30%{opacity:.9}68%{transform:translateY(8px) rotate(2deg);filter:blur(0)}84%{transform:translateY(-4px) rotate(-1deg)}100%{transform:translateY(0) rotate(0);opacity:1}}
+@keyframes brgSparkFly{0%{transform:translate(0,0) scale(1);opacity:0}10%{opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+@keyframes brgFlashGold{0%{opacity:0}12%{opacity:.42}100%{opacity:0}}
+@keyframes brgHammerNail{0%{transform:translateY(-26px) scale(.8);opacity:0}40%{opacity:1}60%{transform:translateY(0) scale(1)}100%{transform:translateY(0) scale(1);opacity:0}}
+@keyframes brgSpeedLine{0%{transform:translateY(-40px) scaleY(.4);opacity:0}25%{opacity:.75}100%{transform:translateY(300px) scaleY(1.6);opacity:0}}
+@keyframes brgCardFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-9px) rotate(-.7deg)}}
+
+/* ---- المسرح ---- */
+#pg-bridge-round{padding:0;background:#05050A;align-items:stretch;justify-content:flex-start;}
+.brg-stage-wrap{position:relative;width:100%;height:100vh;overflow:hidden;background:#070A16;}
+.brg-stage{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:0 0;}
+.brg-stage.jolt{animation:brgCamJolt 620ms var(--brg-ease-out) both;}
+.brg-sky{position:absolute;inset:0;background:linear-gradient(180deg,#070A16 0%,#0D1226 26%,#1B2140 52%,#4A3A22 78%,#7C5F22 100%);}
+.brg-sun-halo{position:absolute;left:50%;top:250px;transform:translate(-50%,-50%);width:1000px;height:600px;border-radius:50%;background:radial-gradient(ellipse,rgba(232,217,168,.34) 0%,rgba(201,168,76,.22) 36%,rgba(201,168,76,0) 70%);animation:brgSkyBreath 7s var(--brg-ease-in-out) infinite;}
+.brg-sun{position:absolute;left:50%;top:186px;transform:translate(-50%,-50%);width:128px;height:128px;border-radius:50%;background:radial-gradient(circle,#FBF6E6,#E8D9A8 62%,rgba(232,217,168,0));box-shadow:0 0 100px rgba(232,217,168,.55);}
+.brg-vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(80% 62% at 50% 46%,rgba(0,0,0,0) 42%,rgba(4,5,12,.72) 100%);}
+.brg-bridge-layer{position:absolute;inset:0;z-index:3;}
+
+/* ---- الشريط العلوي ---- */
+.brg-topbar{position:absolute;top:0;left:0;right:0;height:96px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;background:linear-gradient(180deg,rgba(5,6,14,.9),rgba(5,6,14,0));z-index:8;font-family:var(--brg-font-ui);}
+.brg-live-chip{display:flex;align-items:center;gap:9px;padding:8px 16px;border-radius:var(--brg-pill);background:rgba(163,59,50,.16);border:1px solid rgba(163,59,50,.5);}
+.brg-live-dot{width:9px;height:9px;border-radius:50%;background:#E0564A;animation:brgGlowBreath 1.4s ease-in-out infinite;}
+.brg-live-chip.on{background:rgba(62,140,99,.16);border-color:rgba(62,140,99,.5);}
+.brg-live-chip.on .brg-live-dot{background:#4ADE80;}
+.brg-title-main{font-family:var(--brg-font-display);font-size:34px;color:var(--harf-gold);line-height:1;}
+.brg-title-sub{font-size:13px;color:var(--brg-gray-400);letter-spacing:.12em;}
+.brg-stat-label{font-size:12px;color:var(--brg-gray-400);}
+.brg-stat-val{font-family:var(--brg-font-display);font-size:26px;color:#fff;line-height:1.1;}
+
+/* ---- لوحة المتصدرين ---- */
+.brg-board{position:absolute;top:118px;right:40px;width:340px;border-radius:var(--brg-radius-lg);background:rgba(9,12,24,.8);border:1px solid var(--brg-border);box-shadow:var(--brg-shadow-lg);backdrop-filter:blur(10px);overflow:hidden;z-index:9;font-family:var(--brg-font-ui);}
+.brg-board-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--brg-border);}
+.brg-board-title{font-family:var(--brg-font-display);font-size:21px;color:#fff;}
+.brg-board-row{display:flex;align-items:center;gap:11px;padding:11px 18px;border-bottom:1px solid rgba(255,255,255,.05);}
+.brg-board-row.top{background:linear-gradient(90deg,rgba(201,168,76,.16),transparent);}
+.brg-board-row.shift{animation:brgRankShift 700ms var(--brg-ease-out) both;}
+.brg-board-rank{font-family:var(--brg-font-display);font-size:18px;width:20px;color:var(--brg-gray-400);}
+.brg-board-rank.medal{color:var(--harf-gold);}
+.brg-board-move{font-size:11px;width:12px;color:var(--brg-gray-500);}
+.brg-board-move.up{color:#7BC49B;} .brg-board-move.down{color:#E0A79F;}
+.brg-board-av{width:30px;height:30px;border-radius:50% 50% 42% 42%;display:flex;align-items:center;justify-content:center;font-family:var(--brg-font-display);font-size:15px;background:radial-gradient(circle at 35% 25%,#23304F,#131A2E);color:var(--gold-200);border:1px solid rgba(201,168,76,.45);overflow:hidden;flex:none;}
+.brg-board-av img{width:100%;height:100%;object-fit:cover;}
+.brg-board-av.medal{background:radial-gradient(circle at 35% 25%,var(--gold-200),var(--gold-500));color:var(--brg-ink-900);}
+.brg-board-name{font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brg-board-track{height:4px;margin-top:5px;border-radius:2px;background:rgba(255,255,255,.09);overflow:hidden;}
+.brg-board-bar{height:100%;background:linear-gradient(90deg,var(--gold-600),var(--harf-gold));border-radius:2px;transition:width 900ms var(--brg-ease-out);}
+.brg-board-pos{font-family:var(--brg-font-display);font-size:20px;color:var(--harf-gold);min-width:26px;text-align:left;}
+.brg-board-chip{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--brg-font-display);font-size:13px;color:#fff;}
+.brg-board-foot{padding:12px 18px;border-top:1px solid var(--brg-border);display:flex;align-items:center;justify-content:space-between;background:rgba(201,168,76,.08);}
+
+/* ---- اللوحة اليسرى (تصويت + سلسلة) ---- */
+.brg-left{position:absolute;top:118px;left:40px;width:300px;z-index:9;display:flex;flex-direction:column;gap:12px;font-family:var(--brg-font-ui);}
+.brg-panel{border-radius:var(--brg-radius-lg);background:rgba(9,12,24,.72);border:1px solid var(--brg-border);padding:14px 16px;}
+.brg-panel-label{font-size:13px;color:var(--brg-gray-400);letter-spacing:.08em;margin-bottom:10px;}
+.brg-vote-row{display:flex;align-items:center;gap:10px;}
+.brg-vote-key{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:rgba(255,255,255,.06);color:var(--brg-gray-300);border:1px solid var(--brg-border);flex:none;}
+.brg-vote-track{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;}
+.brg-vote-bar{height:100%;border-radius:4px;background:rgba(255,255,255,.22);transition:all var(--brg-dur-slow) var(--brg-ease-out);}
+.brg-vote-bar.win{background:linear-gradient(90deg,var(--gold-600),var(--harf-gold));}
+.brg-vote-pct{font-size:13px;color:var(--brg-gray-300);min-width:42px;text-align:left;}
+.brg-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--brg-border);font-size:13px;color:var(--brg-gray-400);line-height:1.5;}
+.brg-streak-dot{flex:1;height:34px;border-radius:var(--brg-radius-md);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--brg-gray-500);background:rgba(255,255,255,.05);border:1px solid var(--brg-border);transition:all var(--brg-dur-flip) var(--brg-ease-out);}
+.brg-streak-dot.on{color:var(--brg-ink-900);background:linear-gradient(180deg,var(--gold-200),var(--harf-gold));border-color:var(--gold-100);box-shadow:var(--glow-gold-sm);}
+
+/* ---- لوحة السؤال ---- */
+.brg-question{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:980px;padding:14px 22px;border-radius:var(--brg-radius-xl);z-index:52;background:linear-gradient(180deg,rgba(15,19,36,.95),rgba(6,8,18,.96));border:1px solid var(--brg-border);box-shadow:var(--brg-shadow-lg),0 0 60px rgba(201,168,76,.10);backdrop-filter:blur(10px);transition:opacity var(--brg-dur-base) var(--brg-ease-out);font-family:var(--brg-font-ui);}
+.brg-question.urgent{border-color:rgba(224,86,74,.5);animation:brgShakeSoft 420ms var(--brg-ease-in-out) infinite;}
+.brg-question.dim{opacity:.5;}
+.brg-ring{width:96px;height:96px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;transition:background 700ms linear;}
+.brg-ring.ticking{animation:brgRingPulse 1.2s var(--brg-ease-in-out) infinite;}
+.brg-ring-inner{width:80px;height:80px;border-radius:50%;background:#070A16;display:flex;align-items:center;justify-content:center;font-family:var(--brg-font-display);font-size:38px;color:var(--harf-gold);}
+.brg-ring-inner.urgent{color:#E0564A;animation:brgUrgentPulse 480ms var(--brg-ease-in-out) infinite;}
+.brg-phase{font-size:13px;color:var(--harf-gold);letter-spacing:.1em;margin-bottom:4px;}
+.brg-qtext{font-family:var(--brg-font-display);font-size:34px;line-height:1.15;color:#fff;}
+.brg-opts{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.brg-opt{display:flex;align-items:center;gap:13px;padding:11px 16px;border-radius:var(--brg-radius-lg);background:rgba(255,255,255,.04);border:1px solid var(--brg-border);transition:all var(--brg-dur-flip) var(--brg-ease-out);}
+.brg-opt.hot{background:linear-gradient(90deg,var(--gold-300),var(--harf-gold));border-color:var(--gold-100);box-shadow:var(--glow-gold-md);transform:translateY(-2px);}
+.brg-opt.cold{opacity:.4;}
+.brg-opt.gone{opacity:.12;filter:grayscale(1);}
+.brg-opt-key{width:38px;height:38px;border-radius:var(--brg-radius-md);flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;background:rgba(201,168,76,.14);color:var(--harf-gold);border:1px solid rgba(201,168,76,.35);}
+.brg-opt.hot .brg-opt-key{background:rgba(7,10,22,.85);border-color:transparent;}
+.brg-opt-text{flex:1;font-size:21px;font-family:var(--brg-font-display);color:#fff;}
+.brg-opt.hot .brg-opt-text{color:var(--brg-ink-900);}
+
+/* ---- الأفتار ---- */
+.brg-avatar-wrap{position:absolute;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;z-index:60;transition:top 900ms var(--brg-ease-out);}
+.brg-avatar-body{position:relative;width:86px;height:86px;animation:brgBobIdle 3.2s var(--brg-ease-in-out) infinite;}
+.brg-avatar-body.fwd{animation:brgStepFwd 900ms var(--brg-ease-out) both;animation-delay:300ms;}
+.brg-avatar-body.back{animation:brgPullBack 900ms var(--brg-ease-out) both;animation-delay:180ms;}
+.brg-avatar-body.win{animation:brgCheer 1.4s var(--brg-ease-in-out) infinite;}
+.brg-avatar-face{width:100%;height:100%;border-radius:50% 50% 44% 44%;background:radial-gradient(circle at 34% 24%,var(--gold-100),var(--gold-500) 70%,#6E5116);border:2px solid #F5EDD6;color:var(--brg-ink-900);font-family:var(--brg-font-display);font-size:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 34px rgba(201,168,76,.7),0 14px 22px rgba(0,0,0,.6);overflow:hidden;}
+.brg-avatar-face img{width:100%;height:100%;object-fit:cover;}
+.brg-avatar-shield{position:absolute;inset:-9px;border-radius:50%;border:2px solid #3E8C63;box-shadow:0 0 22px rgba(62,140,99,.6);}
+.brg-avatar-carddot{position:absolute;top:-8px;right:-8px;width:22px;height:22px;border-radius:7px;color:#fff;font-family:var(--brg-font-display);font-size:13px;display:flex;align-items:center;justify-content:center;}
+.brg-avatar-shadow{width:74px;height:16px;border-radius:50%;margin-top:-6px;background:radial-gradient(circle,rgba(0,0,0,.6),transparent 70%);transform:translateY(6px);}
+.brg-avatar-label{position:absolute;top:104%;white-space:nowrap;padding:4px 12px;border-radius:var(--brg-pill);background:rgba(9,12,24,.85);border:1px solid rgba(201,168,76,.4);color:#fff;font-size:15px;font-family:var(--brg-font-ui);}
+.brg-delta{position:absolute;bottom:118%;white-space:nowrap;font-family:var(--brg-font-display);font-size:34px;text-shadow:0 0 26px rgba(0,0,0,.8);animation:brgFadeUp 420ms var(--brg-ease-out) both;}
+
+/* ---- بانر الحركة ---- */
+.brg-move-banner{position:absolute;top:150px;left:50%;transform:translateX(-50%);z-index:58;text-align:center;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;animation:brgFadeUpC 420ms var(--brg-ease-out) both;font-family:var(--brg-font-ui);}
+.brg-move-title{font-family:var(--brg-font-display);font-size:68px;line-height:1;}
+.brg-move-sub{font-size:19px;color:var(--brg-gray-300);}
+
+/* ---- كشف البطاقة ---- */
+.brg-card-overlay{position:absolute;inset:0;z-index:14;background:rgba(5,6,14,.8);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;font-family:var(--brg-font-ui);}
+.brg-card-kicker{font-size:18px;color:var(--brg-gray-300);letter-spacing:.14em;animation:brgFadeUp 300ms var(--brg-ease-out) both;}
+.brg-card-halo{position:absolute;width:620px;height:620px;border-radius:50%;animation:brgHaloGrow 1.3s var(--brg-ease-out) both,brgGlowBreath 2.6s 1.3s ease-in-out infinite;}
+.brg-card-face{position:relative;width:460px;min-height:520px;padding:30px;border-radius:26px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;animation:brgCardIn 840ms var(--brg-ease-out) both;transform-style:preserve-3d;}
+.brg-card-tag{font-size:13px;letter-spacing:.1em;padding:6px 14px;border-radius:var(--brg-pill);color:#fff;}
+.brg-card-mono{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--brg-font-display);font-size:300px;color:rgba(201,168,76,.16);pointer-events:none;}
+.brg-card-name{font-family:var(--brg-font-display);font-size:42px;color:#fff;line-height:1.1;}
+.brg-card-desc{font-size:17px;color:var(--brg-gray-300);line-height:1.5;margin-top:10px;}
+.brg-card-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);}
+
+/* ---- مشهد الفوز ---- */
+.brg-win{position:absolute;inset:0;z-index:16;overflow:hidden;background:radial-gradient(70% 60% at 50% 42%,rgba(201,168,76,.3),rgba(6,8,18,.94) 68%);font-family:var(--brg-font-ui);}
+.brg-win-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+.brg-win-kicker{font-size:20px;color:var(--brg-gray-300);letter-spacing:.2em;animation:brgWinRise 500ms var(--brg-ease-out) both;}
+.brg-win-name{font-family:var(--brg-font-display);font-size:124px;line-height:1.05;color:var(--gold-100);text-shadow:0 0 90px rgba(201,168,76,.65);animation:brgWinRise 700ms 100ms var(--brg-ease-out) both;}
+.brg-win-stats{display:flex;gap:14px;margin-top:26px;animation:brgWinRise 700ms 240ms var(--brg-ease-out) both;}
+.brg-win-stat{padding:18px 30px;border-radius:var(--brg-radius-lg);background:rgba(15,19,36,.9);border:1px solid var(--brg-border);text-align:center;min-width:180px;}
+.brg-win-stat-num{font-family:var(--brg-font-display);font-size:36px;color:#fff;}
+
+/* ---- شارة الانتظار داخل الشاشة ---- */
+.brg-wait{position:absolute;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(5,6,14,.72);backdrop-filter:blur(4px);font-family:var(--brg-font-ui);}
+.brg-wait-title{font-family:var(--brg-font-display);font-size:52px;color:var(--harf-gold);}
+.brg-wait-sub{font-size:18px;color:var(--brg-gray-300);}
+
+/* شاشتا الإعداد والانتظار تحتاجان قاعدة التخطيط نفسها المستخدمة بباقي شاشات
+   الإعداد، وإلا ورثتا align-items:stretch بلا padding فالتصق الكرت بحافة
+   اليمين باتجاه RTL بدل أن يتوسّط (نفس ما عولج بـ#pg-setup-volcanic-lands). */
+#pg-bridge-setup,#pg-bridge-lobby{align-items:center;justify-content:flex-start;padding:40px 20px;}
+
+/* ---- الإعداد + الانتظار (بهوية المنصة) ---- */
+.brg-lobby-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:14px;}
+.brg-lobby-card{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--surface2);border:1px solid var(--border);}
+.brg-lobby-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent-light),var(--accent));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;flex:none;overflow:hidden;}
+.brg-lobby-av img{width:100%;height:100%;object-fit:cover;}
+.brg-lobby-name{font-weight:800;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.brg-lobby-plat{font-size:11px;color:var(--muted);}
+.brg-owner-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);margin-bottom:8px;}
+.brg-owner-row .pos{font-weight:900;color:var(--accent2);min-width:34px;}
+.brg-sim-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--brg-pill);background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.5);color:#F5C451;font-size:12px;font-weight:800;font-family:var(--brg-font-ui);}
+</style>
+<!-- END bridge-fate:styles -->
+
+<!-- BEGIN bridge-fate:pages -->
+<!-- ====== جسر المصير — شاشة إعداد الستريمر ====== -->
+<div id="pg-bridge-setup" class="page">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('home')">← رجوع</button>
+    <div class="setup-title">🌉 جسر المصير</div>
+    <div class="setup-sub">جمهورك يكتب رقم الإجابة في الشات — الأغلبية تبني لك لوحاً أو تكسره. ٣ صح متتالية = بطاقة عشوائية.</div>
+
+    <!-- يظهر فقط لو ما فيه حساب بث مربوط مسبقاً (راجع brgSetupRender) -->
+    <div id="brg-setup-userbox">
+      <div class="platform-toggle">
+        <button type="button" class="ptab active" id="brg-tab-tiktok" onclick="brgSetPlatform('tiktok')">📱 تيك توك</button>
+        <button type="button" class="ptab" id="brg-tab-twitch" onclick="brgSetPlatform('twitch')">🟣 تويتش</button>
+        <button type="button" class="ptab plat-kick" id="brg-tab-kick" onclick="brgSetPlatform('kick')">🟢 كيك</button>
+        <button type="button" class="ptab plat-youtube" id="brg-tab-youtube" onclick="brgSetPlatform('youtube')">▶️ يوتيوب</button>
+      </div>
+      <div class="field">
+        <label id="brg-user-label">يوزر حسابك على المنصة</label>
+        <input type="text" id="brg-username" placeholder="بدون @" autocomplete="off" />
+      </div>
+    </div>
+
+    <!-- يظهر بدل الحقل أعلاه لو الحساب مربوط مسبقاً -->
+    <div id="brg-setup-linked" style="display:none;">
+      <div class="brg-owner-row" style="margin-bottom:14px;">
+        <div class="brg-lobby-av" id="brg-linked-av">@</div>
+        <div style="flex:1;min-width:0;">
+          <div class="brg-lobby-name" id="brg-linked-name">—</div>
+          <div class="brg-lobby-plat">حسابك المربوط — سيُستخدم تلقائياً</div>
+        </div>
+        <button type="button" class="home-lib-filter" onclick="brgUnlinkAccount()">تغيير</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>الكلمة المفتاحية (يكتبها جمهورك للانضمام)</label>
+      <input type="text" id="brg-keyword" placeholder="مثال: جسر" autocomplete="off" />
+    </div>
+
+    <button type="button" class="btn-primary" onclick="brgJoinEvent()">بدأ</button>
+    <div class="status-msg" id="brg-setup-status"></div>
+  </div>
+</div>
+
+<!-- ====== جسر المصير — غرفة الانتظار ====== -->
+<div id="pg-bridge-lobby" class="page">
+  <div class="setup-box" style="max-width:760px;">
+    <button class="back-btn" onclick="brgLeaveEvent()">← خروج من الفعالية</button>
+    <div class="setup-title">🌉 غرفة انتظار جسر المصير</div>
+    <div class="setup-sub" id="brg-lobby-sub">بانتظار أن يبدأ المالك الفعالية — لا تقفل هذه الصفحة.</div>
+
+    <div class="owner-count-badge" style="margin-bottom:6px;">
+      الستريمرز الداخلون الآن: <b id="brg-lobby-count">0</b>
+    </div>
+    <div id="brg-lobby-me" class="brg-owner-row" style="display:none;"></div>
+    <div class="brg-lobby-grid" id="brg-lobby-list"></div>
+    <div class="status-msg" id="brg-lobby-status"></div>
+  </div>
+</div>
+
+<!-- ====== جسر المصير — شاشة الراوند (نسخة 1:1 من التصميم) ====== -->
+<div id="pg-bridge-round" class="page">
+  <div class="brg-stage-wrap" id="brg-stage-wrap">
+    <div class="brg-stage" id="brg-stage">
+      <div class="brg-sky"></div>
+      <div class="brg-sun-halo"></div>
+      <div class="brg-sun"></div>
+      <div id="brg-clouds"></div>
+      <div id="brg-birds"></div>
+      <div class="brg-vignette"></div>
+
+      <div id="brg-island"></div>
+      <div class="brg-bridge-layer" id="brg-bridge-layer"></div>
+      <div id="brg-fx-layer"></div>
+
+      <!-- الشريط العلوي -->
+      <div class="brg-topbar">
+        <div style="display:flex;align-items:center;gap:18px;">
+          <div class="brg-live-chip" id="brg-live-chip">
+            <div class="brg-live-dot"></div>
+            <div style="font-size:15px;font-weight:700;color:#F0A79F;" id="brg-live-text">غير متصل</div>
+          </div>
+          <div style="font-size:16px;color:var(--brg-gray-300);">شاشتك — أنت ترى أفتارك فقط</div>
+          <div class="brg-sim-badge" id="brg-sim-badge" style="display:none;">🧪 وضع التجربة — لا يراه أحد غيرك</div>
+        </div>
+        <div style="text-align:center;">
+          <div class="brg-title-main">جسر المصير</div>
+          <div class="brg-title-sub" id="brg-title-sub">جولة واحدة · جزيرة واحدة</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px;">
+          <div style="text-align:left;">
+            <div class="brg-stat-label">ألواحك</div>
+            <div class="brg-stat-val" id="brg-plank-label">٠</div>
+          </div>
+          <div style="width:1px;height:38px;background:var(--brg-border);"></div>
+          <div style="text-align:left;">
+            <div class="brg-stat-label">تبقّى للجزيرة</div>
+            <div class="brg-stat-val" style="color:var(--harf-gold);" id="brg-remain-label">٢٤</div>
+          </div>
+          <button type="button" class="home-lib-filter" style="margin-inline-start:10px;" onclick="brgLeaveEvent()">خروج</button>
+        </div>
+      </div>
+
+      <!-- لوحة المتصدرين -->
+      <div class="brg-board">
+        <div class="brg-board-head">
+          <div class="brg-board-title">لوحة المتصدرين</div>
+          <div style="font-size:12px;color:var(--harf-gold);">مراكز ثابتة · تحديث لحظي</div>
+        </div>
+        <div id="brg-board-rows"></div>
+        <div class="brg-board-foot">
+          <div style="font-size:14px;color:var(--brg-gray-300);">مركزك</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:15px;color:#fff;" id="brg-my-name">—</div>
+            <div style="font-family:var(--brg-font-display);font-size:22px;color:var(--harf-gold);" id="brg-my-rank">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- اللوحة اليسرى -->
+      <div class="brg-left">
+        <div class="brg-panel">
+          <div class="brg-panel-label">تصويت جمهورك</div>
+          <div style="display:flex;flex-direction:column;gap:9px;" id="brg-vote-rows"></div>
+          <div class="brg-note">الأغلبية تحدد مصيرك وحدك — لوح يُضاف أو لوح يُكسر.</div>
+        </div>
+        <div class="brg-panel" style="display:flex;flex-direction:column;gap:10px;">
+          <div class="brg-panel-label" style="margin:0;">سلسلتك</div>
+          <div style="display:flex;gap:8px;" id="brg-streak-dots"></div>
+          <div style="font-size:13px;color:var(--brg-gray-400);line-height:1.5;">٣ صح متتالية = بطاقة عشوائية تُفعّل فوراً.</div>
+        </div>
+        <div class="brg-panel" id="brg-cards-panel" style="display:none;">
+          <div class="brg-panel-label" style="margin:0 0 8px;">تأثيرات نشطة</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="brg-active-fx"></div>
+        </div>
+      </div>
+
+      <!-- لوحة السؤال -->
+      <div class="brg-question" id="brg-question">
+        <div style="display:flex;align-items:center;gap:20px;margin-bottom:14px;">
+          <div class="brg-ring" id="brg-ring">
+            <div class="brg-ring-inner" id="brg-ring-inner">١٠</div>
+          </div>
+          <div style="flex:1;">
+            <div class="brg-phase" id="brg-phase">بانتظار الجولة</div>
+            <div class="brg-qtext" id="brg-qtext">—</div>
+          </div>
+        </div>
+        <div class="brg-opts" id="brg-opts"></div>
+      </div>
+
+      <div id="brg-overlays"></div>
+    </div>
+  </div>
+</div>
+<!-- END bridge-fate:pages -->
+
+<script>
+// ============================================================================
+// جسر المصير — المنطق الكامل
+// ----------------------------------------------------------------------------
+// المعمارية: المالك هو "قائد الجولة" — متصفحه يكتب مستند جولة واحد
+// (bridgeEvents/{id}) يشترك فيه كل الستريمرز، فيظهر السؤال ويُقفل التصويت
+// عند الجميع باللحظة نفسها. كل ستريمر يعدّ أصوات جمهوره محلياً من نفس مسار
+// شات البث المشترك بالموقع (homeRegisterGameListener — بلا أي اتصال جديد)،
+// ويكتب نتيجته في مستنده وحده. المالك يجمّع أعلى ٢٠ في مستند واحد
+// (state/leaderboard) يقرؤه الجميع — بدل أن يشترك ٣٠٠ عميل بـ٣٠٠ مستند
+// (٩٠ ألف قراءة بالجولة). كل مسارات القراءة مستندات معروفة المسار لا
+// استعلامات where، لنفس سبب استبدال استعلامات streamerEvents سابقاً: صلاحية
+// list غالباً محصورة بالمالك فتفشل بصمت لأي ستريمر عادي.
+// ============================================================================
+(function () {
+  'use strict';
+
+  var TAG = 'bridge-fate';
+  var TOTAL = 24;               // عدد الألواح حتى الجزيرة (من التصميم)
+  var DEFAULT_DURATION = 10;    // ثواني التصويت الافتراضية
+
+  // ---- إسقاط المنظور (القيم منقولة حرفياً من ملف التصميم) ----
+  var YH = 296, Z0 = 600, ZS = 90, PA = 182400, PW = 180000;
+  function proj(t) {
+    var Z = Z0 + t * ZS;
+    return { Z: Z, y: YH + PA / Z, w: Math.min(340, PW / Z) };
+  }
+
+  // ---- فئات البطاقات وألوانها (من التصميم) ----
+  var CATS = {
+    good: { label: 'نافعة',    color: '#3E8C63', soft: 'rgba(62,140,99,.16)',  line: 'rgba(62,140,99,.55)' },
+    risk: { label: 'مؤجلة',    color: '#A33B32', soft: 'rgba(163,59,50,.16)',  line: 'rgba(163,59,50,.55)' },
+    foe:  { label: 'على الخصم', color: '#6C4C9B', soft: 'rgba(108,76,155,.18)', line: 'rgba(108,76,155,.6)' },
+    wild: { label: 'عشوائية',  color: '#8A8A99', soft: 'rgba(138,138,153,.14)', line: 'rgba(138,138,153,.5)' }
+  };
+
+  // ---- الـ٢٠ بطاقة: [الفئة, الاسم, الوصف, الرمز, الكود, معرّف التأثير] ----
+  var DECK = [
+    ['good','لوحان دفعة','يُبنى لوحان وتخطو خطوتين','ل','G-01','doubleStep'],
+    ['good','مسمار الأمان','لوحك لا ينكسر جولة','م','G-02','safetyNail'],
+    ['good','وقت إضافي','+٥ ثوان لجمهورك','و','G-03','extraTime'],
+    ['good','تلميح','يحذف خيارين خاطئين','ت','G-04','hint'],
+    ['good','حبل نجاة','يمنع تراجعاً واحداً','ح','G-05','lifeRope'],
+    ['good','جسر ثابت','لا ينكسر أي لوح جولتين','ج','G-06','steadyBridge'],
+    ['good','مضاعف نقاط','×٢ على نقاط الجولة','ض','G-07','pointsX2'],
+    ['good','إعادة لوح','يُرمّم لوح مكسور خلفك','ع','G-08','repairPlank'],
+    ['risk','قفزة متهورة','لوحان الآن، ينكسر لوح بعد جولتين','ق','R-01','recklessLeap'],
+    ['risk','ضباب','يخفي خياراً صحيحاً محتملاً','غ','R-02','fog'],
+    ['risk','ريح معاكسة','تفويت جولة كاملة','ر','R-03','headwind'],
+    ['foe','قطع الحبل','ترجيع أقرب منافس خطوة','ط','P-01','cutRope'],
+    ['foe','تبديل مواقع','تبادل موقعك مع منافس','ب','P-02','swapPos'],
+    ['foe','سرقة بطاقة','تأخذ بطاقة الخصم','س','P-03','stealCard'],
+    ['foe','تشويش','حذف خيار صح من شاشته','ش','P-04','jam'],
+    ['foe','تقييد الوقت','−٤ ثوان على الخصم','ي','P-05','timeCut'],
+    ['foe','خشب متعفن','لوح الخصم يتشقق','خ','P-06','rottenWood'],
+    ['wild','صندوق مجهول','بطاقة ثانية فورية','ص','W-01','mysteryBox'],
+    ['wild','عاصفة','خلط مواقع أعلى ٢٠','ع','W-02','storm'],
+    ['wild','مرآة','انعكاس أي ضرر لاحق','آ','W-03','mirror']
+  ];
+  function cardByCode(code) {
+    for (var i = 0; i < DECK.length; i++) if (DECK[i][4] === code) return DECK[i];
+    return null;
+  }
+
+  // ---- أرقام عربية-هندية (نفس ما يعرضه التصميم) ----
+  var AR_DIGITS = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  function ar(n) { return String(n).replace(/\d/g, function (d) { return AR_DIGITS[+d]; }); }
+
+  // ---- حالة محلية ----
+  var state = {
+    eventId: null,
+    myKey: null,
+    isOwner: false,
+    sim: false,              // وضع التجربة — لا يكتب أي شيء لـFirestore
+    event: null,             // مستند الفعالية
+    me: null,                // مستند اللاعب
+    board: [],               // صفوف لوحة المتصدرين
+    votes: {},               // userId -> رقم الخيار (صوت واحد لكل مشاهد بالجولة)
+    voteCounts: [0, 0, 0, 0],
+    countedRound: -1,        // آخر جولة عولجت محلياً (يمنع الاحتساب المزدوج)
+    phase: 'idle',
+    clockOffset: 0,          // فرق ساعة العميل عن الخادم (ms)
+    lastMove: 0,
+    joinedViewers: {},       // مشاهدون انضموا بالكلمة المفتاحية
+    keyword: '',
+    platformUser: '',
+    platform: 'tiktok',
+    tickTimer: null,
+    unsubEvent: null,
+    unsubMe: null,
+    unsubBoard: null,
+    unsubOwnerPlayers: null,
+    ownerPlayers: {},
+    stage: { built: 0, broken: 0, bestStreak: 0 }
+  };
+
+  // ================= أدوات Firestore =================
+  function evRef() { return fb.doc(fb.db, 'bridgeEvents', state.eventId); }
+  function playerRef(key) { return fb.doc(fb.db, 'bridgeEvents', state.eventId, 'players', key); }
+  function boardRef() { return fb.doc(fb.db, 'bridgeEvents', state.eventId, 'state', 'leaderboard'); }
+
+  // فرق ساعة الجهاز عن ساعة الخادم — يُقاس مرة واحدة بكتابة serverTimestamp
+  // في مستند اللاعب نفسه ثم مقارنته بالساعة المحلية، مع طرح نصف زمن الذهاب
+  // والإياب. بدونه يبدأ العد التنازلي عند كل ستريمر بلحظة مختلفة حسب انحراف
+  // ساعة جهازه، فينكسر التزامن المطلوب بين الـ٣٠٠.
+  function measureClockOffset(key) {
+    if (state.sim) return Promise.resolve(0);
+    var t0 = Date.now();
+    return fb.updateDoc(playerRef(key), { clockPing: fb.serverTimestamp() })
+      .then(function () { return fb.getDoc(playerRef(key)); })
+      .then(function (snap) {
+        var rtt = Date.now() - t0;
+        var d = snap.data() || {};
+        if (d.clockPing && d.clockPing.toMillis) {
+          state.clockOffset = d.clockPing.toMillis() - (t0 + rtt / 2);
+        }
+        return state.clockOffset;
+      })
+      .catch(function () { return 0; });
+  }
+  function serverNow() { return Date.now() + state.clockOffset; }
+
+  // ================= بنك الأسئلة (نفس بنك الأراضي البركانية) =================
+  // window.VolcanicLands.questions.questions — ٥٠٠ سؤال بحقول
+  // question/options/correct_index/difficulty/category. الاختيار مركزي عند
+  // المالك لأن السؤال لازم يكون واحداً لكل الـ٣٠٠ باللحظة نفسها، فلا نستخدم
+  // QuestionBank المحلي (هو مصمّم لجلسة ستريمر واحد).
+  function bank() {
+    var VL = window.VolcanicLands;
+    if (VL && VL.questions && Array.isArray(VL.questions.questions)) return VL.questions.questions;
+    return [];
+  }
+  // تصعيد الصعوبة: كل ما اقترب اللاعبون من الجزيرة صار السؤال أصعب.
+  function difficultyForRound(roundNo, maxRounds) {
+    var p = roundNo / Math.max(1, maxRounds);
+    if (p <= 0.34) return 'easy';
+    if (p <= 0.7) return 'medium';
+    return 'hard';
+  }
+  function pickQuestion(roundNo, usedIds, maxRounds) {
+    var all = bank();
+    if (!all.length) return null;
+    var want = difficultyForRound(roundNo, maxRounds);
+    var used = {};
+    (usedIds || []).forEach(function (id) { used[String(id)] = 1; });
+    var pool = all.filter(function (q) { return q.difficulty === want && !used[String(q.id)]; });
+    if (!pool.length) pool = all.filter(function (q) { return !used[String(q.id)]; });
+    if (!pool.length) pool = all;
+    var q = pool[Math.floor(Math.random() * pool.length)];
+    // خلط الخيارات مع تتبّع موضع الصحيح بعد الخلط
+    var idx = q.options.map(function (t, i) { return { t: t, i: i }; });
+    for (var i = idx.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)); var tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp;
+    }
+    return {
+      qid: String(q.id),
+      question: q.question,
+      options: idx.map(function (o) { return o.t; }),
+      correctIndex: idx.findIndex(function (o) { return o.i === q.correct_index; })
+    };
+  }
+
+  // ================= احتساب أصوات الجمهور (أرقام ١٢٣٤) =================
+  // المشاهد يكتب رقم الخيار. نقبل الأرقام الإنجليزية والعربية-الهندية،
+  // ومع أو بدون علامات، ونأخذ أول صوت فقط لكل مشاهد في الجولة الواحدة حتى
+  // لا يقلب شخص واحد الأغلبية بتكرار التعليق.
+  function parseVote(text) {
+    var t = String(text || '').trim();
+    // حوّل الأرقام العربية-الهندية إلى إنجليزية
+    t = t.replace(/[٠-٩]/g, function (d) { return String(AR_DIGITS.indexOf(d)); });
+    t = t.replace(/[۰-۹]/g, function (d) { return String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)); });
+    var m = t.match(/^[^\d]*([1-4])\b/);
+    if (!m) {
+      m = t.match(/^([1-4])$/);
+      if (!m) return -1;
+    }
+    return parseInt(m[1], 10) - 1;   // 0..3
+  }
+
+  function recordVote(userId, text) {
+    if (state.phase !== 'question') return;
+    var opt = parseVote(text);
+    if (opt < 0 || opt > 3) return;
+    if (state.votes[userId] !== undefined) return;   // صوت واحد لكل مشاهد
+    // الخيارات المخفية (ضباب/تشويش/تلميح) لا تُقبل أصواتها
+    if (hiddenOptions().indexOf(opt) > -1) return;
+    state.votes[userId] = opt;
+    state.voteCounts[opt]++;
+    renderVotes();
+  }
+
+  function majorityResult() {
+    var counts = state.voteCounts;
+    var total = counts[0] + counts[1] + counts[2] + counts[3];
+    if (!total) return { delta: 0, winner: -1, total: 0 };
+    var max = Math.max.apply(null, counts);
+    var winners = [];
+    for (var i = 0; i < 4; i++) if (counts[i] === max) winners.push(i);
+    if (winners.length > 1) return { delta: 0, winner: -1, total: total };  // تعادل = ثبات
+    var w = winners[0];
+    var correct = state.event && state.event.round ? state.event.round.correctIndex : -1;
+    return { delta: w === correct ? 1 : -1, winner: w, total: total };
+  }
+
+  // ================= تطبيق نتيجة الجولة على اللاعب =================
+  function applyRoundResult(res) {
+    var me = state.me;
+    if (!me) return null;
+    var fxIn = me.fx || {};
+    var roundNo = state.event.round.no;
+    var delta = res.delta;
+    var notes = [];
+
+    // ريح معاكسة — تفويت الجولة بالكامل
+    if (fxIn.skipRound && fxIn.skipRound >= roundNo) {
+      delta = 0;
+      notes.push('ريح معاكسة — فوّتّ الجولة');
+    }
+
+    // خشب متعفن / قفزة متهورة — كسر مؤجل يحلّ الآن
+    var pendingBreak = (fxIn.breakAtRound && fxIn.breakAtRound === roundNo) ? 1 : 0;
+
+    var pos = me.pos || 0;
+    var broken = (me.broken || []).slice();
+    var streak = me.streak || 0;
+    var fx = Object.assign({}, fxIn);
+    var built = 0, brokeCount = 0;
+
+    if (delta === 1) {
+      var step = 1;
+      if (fx.doubleStepPending) { step = 2; delete fx.doubleStepPending; notes.push('لوحان دفعة'); }
+      pos = Math.min(TOTAL, pos + step);
+      built += step;
+      streak = streak + 1;
+    } else if (delta === -1) {
+      // مسمار الأمان / حبل نجاة / جسر ثابت تمنع التراجع
+      if (fx.steadyUntilRound && fx.steadyUntilRound >= roundNo) {
+        notes.push('جسر ثابت — لم ينكسر أي لوح');
+      } else if (fx.safetyNailRound && fx.safetyNailRound >= roundNo) {
+        delete fx.safetyNailRound;
+        notes.push('مسمار الأمان — لوحك صمد');
+      } else if (fx.lifeRope) {
+        delete fx.lifeRope;
+        notes.push('حبل نجاة — مُنع التراجع');
+      } else {
+        if (pos > 0) { if (broken.indexOf(pos) === -1) broken.push(pos); pos = pos - 1; brokeCount++; }
+      }
+      streak = 0;
+    } else {
+      streak = 0;   // تعادل/لا أصوات يقطع السلسلة أيضاً
+    }
+
+    if (pendingBreak) {
+      delete fx.breakAtRound;
+      if (fx.steadyUntilRound && fx.steadyUntilRound >= roundNo) {
+        notes.push('جسر ثابت امتصّ الكسر المؤجل');
+      } else if (pos > 0) {
+        if (broken.indexOf(pos) === -1) broken.push(pos);
+        pos = pos - 1; brokeCount++;
+        notes.push('كسر مؤجل');
+      }
+    }
+
+    // تنظيف التأثيرات منتهية الصلاحية
+    ['hintRound','fogRound','jamRound','extraTimeRound','timeCutRound'].forEach(function (k) {
+      if (fx[k] && fx[k] < roundNo) delete fx[k];
+    });
+    if (fx.skipRound && fx.skipRound <= roundNo) delete fx.skipRound;
+
+    var points = (me.points || 0) + (delta === 1 ? (fx.pointsX2Round === roundNo ? 20 : 10) : 0);
+    if (fx.pointsX2Round === roundNo) delete fx.pointsX2Round;
+
+    var out = {
+      pos: pos, broken: broken, streak: streak, fx: fx, points: points,
+      lastMove: delta, lastRound: roundNo, notes: notes,
+      builtInc: built, brokeInc: brokeCount,
+      finished: pos >= TOTAL
+    };
+    return out;
+  }
+
+  // ================= البطاقات =================
+  function drawRandomCard() {
+    return DECK[Math.floor(Math.random() * DECK.length)];
+  }
+
+  // يطبّق بطاقة على اللاعب نفسه، ويرجّع التعديلات + أي أثر على خصم.
+  function applyCard(card, me, roundNo) {
+    var fx = Object.assign({}, me.fx || {});
+    var patch = {};
+    var foe = null;   // { effect } يُرسل لأقرب منافس
+    var eff = card[5];
+
+    switch (eff) {
+      case 'doubleStep':  fx.doubleStepPending = true; break;
+      case 'safetyNail':  fx.safetyNailRound = roundNo + 1; break;
+      case 'extraTime':   fx.extraTimeRound = roundNo + 1; break;
+      case 'hint':        fx.hintRound = roundNo + 1; break;
+      case 'lifeRope':    fx.lifeRope = true; break;
+      case 'steadyBridge':fx.steadyUntilRound = roundNo + 2; break;
+      case 'pointsX2':    fx.pointsX2Round = roundNo + 1; break;
+      case 'repairPlank': {
+        var br = (me.broken || []).slice();
+        if (br.length) { br.pop(); patch.broken = br; }
+        break;
+      }
+      case 'recklessLeap':
+        patch.pos = Math.min(TOTAL, (me.pos || 0) + 2);
+        fx.breakAtRound = roundNo + 2;
+        break;
+      case 'fog':       fx.fogRound = roundNo + 1; break;
+      case 'headwind':  fx.skipRound = roundNo + 1; break;
+      case 'cutRope':   foe = { kind: 'push', by: me.name }; break;
+      case 'swapPos':   foe = { kind: 'swap', by: me.name, pos: me.pos || 0, from: state.myKey }; break;
+      case 'stealCard': foe = { kind: 'steal', by: me.name, from: state.myKey }; break;
+      case 'jam':       foe = { kind: 'jam', by: me.name, round: roundNo + 1 }; break;
+      case 'timeCut':   foe = { kind: 'timeCut', by: me.name, round: roundNo + 1 }; break;
+      case 'rottenWood':foe = { kind: 'rot', by: me.name, round: roundNo + 1 }; break;
+      case 'mysteryBox': patch.__drawAgain = true; break;
+      case 'storm':      patch.__storm = true; break;
+      case 'mirror':     fx.mirror = true; break;
+    }
+    patch.fx = fx;
+    return { patch: patch, foe: foe };
+  }
+
+  // يستقبل أثراً أرسله خصم — مع احترام "مرآة" التي تعكسه على مُرسله.
+  function applyIncomingFx(item, me, roundNo) {
+    var fx = Object.assign({}, me.fx || {});
+    var patch = {};
+    if (fx.mirror) {
+      delete fx.mirror;
+      patch.fx = fx;
+      patch.__reflectTo = item.from || null;
+      patch.__reflectItem = item;
+      return patch;
+    }
+    switch (item.kind) {
+      case 'push':
+        if (fx.lifeRope) { delete fx.lifeRope; }
+        else if (!(fx.steadyUntilRound && fx.steadyUntilRound >= roundNo) && (me.pos || 0) > 0) {
+          patch.pos = (me.pos || 0) - 1;
+        }
+        break;
+      case 'swap':
+        patch.pos = Math.max(0, Math.min(TOTAL, item.pos || 0));
+        break;
+      case 'steal':
+        patch.heldCard = null;
+        break;
+      case 'jam':     fx.jamRound = item.round; break;
+      case 'timeCut': fx.timeCutRound = item.round; break;
+      case 'rot':     fx.breakAtRound = item.round + 1; break;
+    }
+    patch.fx = fx;
+    return patch;
+  }
+
+  // الخيارات المخفية على شاشتي حالياً (تلميح يخفي خيارين خاطئين، ضباب/تشويش
+  // يخفيان خياراً). تُحسب من fx ورقم الجولة الحالية.
+  function hiddenOptions() {
+    if (!state.event || !state.event.round || !state.me) return [];
+    var r = state.event.round.no;
+    var fx = state.me.fx || {};
+    var correct = state.event.round.correctIndex;
+    var out = [];
+    // بذرة ثابتة لكل جولة حتى لا تتغيّر الخيارات المخفية مع كل إعادة رسم
+    function seeded(n, salt) { var x = Math.sin((r + 1) * 9301 + salt * 49297) * 233280; return Math.floor((x - Math.floor(x)) * n); }
+    if (fx.hintRound === r) {
+      var wrong = [0, 1, 2, 3].filter(function (i) { return i !== correct; });
+      out.push(wrong[seeded(wrong.length, 1)]);
+      var rest = wrong.filter(function (i) { return out.indexOf(i) === -1; });
+      out.push(rest[seeded(rest.length, 2)]);
+    }
+    if (fx.fogRound === r) {
+      var others = [0, 1, 2, 3].filter(function (i) { return out.indexOf(i) === -1; });
+      out.push(others[seeded(others.length, 3)]);
+    }
+    if (fx.jamRound === r && out.indexOf(correct) === -1) out.push(correct);
+    return out;
+  }
+
+  function myDuration() {
+    var base = (state.event && state.event.settings && state.event.settings.roundDuration) || DEFAULT_DURATION;
+    if (!state.me) return base;
+    var r = state.event.round.no;
+    var fx = state.me.fx || {};
+    if (fx.extraTimeRound === r) base += 5;
+    if (fx.timeCutRound === r) base -= 4;
+    return Math.max(4, base);
+  }
+
+
+  // ================= الرسم =================
+  // المسرح مقاس 1920×1080 ثابت (نفس التصميم) ويُقاس بـtransform:scale ليملأ
+  // أي شاشة — بهذا تبقى كل إحداثيات التصميم صحيحة بالبكسل على كل الأجهزة
+  // بدل إعادة حساب التخطيط لكل مقاس.
+  function fitStage() {
+    var wrap = document.getElementById('brg-stage-wrap');
+    var stage = document.getElementById('brg-stage');
+    if (!wrap || !stage) return;
+    var w = wrap.clientWidth, h = wrap.clientHeight;
+    if (!w || !h) return;
+    var s = Math.min(w / 1920, h / 1080);
+    stage.style.transform = 'translate(' + ((w - 1920 * s) / 2) + 'px,' + ((h - 1080 * s) / 2) + 'px) scale(' + s + ')';
+  }
+
+  function buildSky() {
+    var CL = [[0.30,110,180,44,60],[0.22,58,240,58,95],[0.16,240,300,40,140],[0.26,420,150,34,78],[0.18,610,270,52,120],[0.12,760,210,38,150],[0.24,900,330,44,88],[0.14,1250,180,46,132],[0.20,1480,290,40,104]];
+    var ch = document.getElementById('brg-clouds');
+    if (ch && !ch.dataset.built) {
+      ch.dataset.built = '1';
+      ch.innerHTML = CL.map(function (c, i) {
+        return '<div style="position:absolute;top:' + c[2] + 'px;left:' + c[1] + 'px;width:' + (c[3] * 5) + 'px;height:' + c[3] + 'px;border-radius:50%;background:rgba(200,214,244,' + c[0] + ');filter:blur(' + (7 + (i % 3) * 4) + 'px);animation:brgCloudDrift ' + c[4] + 's linear infinite;z-index:1;pointer-events:none;"></div>';
+      }).join('');
+    }
+    var bh = document.getElementById('brg-birds');
+    if (bh && !bh.dataset.built) {
+      bh.dataset.built = '1';
+      var out = '';
+      for (var i = 0; i < 5; i++) {
+        out += '<div style="position:absolute;top:' + (200 + i * 46) + 'px;right:' + (-40 - i * 30) + 'px;width:14px;height:5px;border-radius:50%;background:rgba(20,24,40,.75);z-index:2;opacity:0;animation:brgBirdFly ' + (26 + i * 7) + 's linear infinite;animation-delay:' + (i * 6) + 's;"></div>';
+      }
+      bh.innerHTML = out;
+    }
+  }
+
+  // يبني الجسر كله (ألواح + أعمدة + حبال) بالإسقاط المنظوري — الأفتار ثابت
+  // بمركز الشاشة والجسر هو الذي يتحرك تحته (الكاميرا تركب مع اللاعب).
+  function renderBridge() {
+    var layer = document.getElementById('brg-bridge-layer');
+    if (!layer) return;
+    var pos = (state.me && state.me.pos) || 0;
+    var brokenList = (state.me && state.me.broken) || [];
+    var moving = state.phase === 'moving';
+    var built = Math.min(TOTAL - 1, pos + 1);
+    var ropes = '', planks = '', posts = '';
+
+    for (var i = 0; i <= TOTAL; i++) {
+      var t = i - pos;
+      var pr = proj(t);
+      if (pr.Z < 150 || pr.y > 1240) continue;
+      var py = pr.y, w = pr.w, ph = Math.max(6, (pr.y - proj(t + 1).y) * 0.44);
+      var isBroken = brokenList.indexOf(i) > -1;
+      var isNew = i === built && moving && state.lastMove === 1;
+      var snapping = moving && state.lastMove === -1 && i === pos + 1;
+      var ahead = i > built;
+      var fade = Math.max(0.16, 1 - Math.max(0, t) * 0.055);
+      var anim = isNew ? 'brgPlankBuild 520ms var(--brg-ease-bounce) both'
+        : snapping ? 'brgPlankSnap 700ms var(--brg-ease-in) both'
+        : isBroken ? 'brgPlankHang 3.4s var(--brg-ease-in-out) infinite' : 'none';
+      var z = Math.max(4, 30 - Math.max(0, t));
+
+      planks += '<div style="position:absolute;left:50%;top:' + (py - ph) + 'px;width:' + w + 'px;height:' + ph + 'px;margin-left:' + (-w / 2) + 'px;transform-origin:50% 100%;z-index:' + z + ';animation:' + anim + ';opacity:' + (ahead ? 0 : 1) + ';transition:top 900ms var(--brg-ease-out),width 900ms var(--brg-ease-out),opacity var(--brg-dur-base) var(--brg-ease-out);">'
+        + '<div style="position:absolute;inset:0;border-radius:5px;background:' + (isBroken ? 'linear-gradient(180deg,#4A3520,#2A1D10)' : 'linear-gradient(180deg,#A57742 0%,#8A6234 42%,#5C4021 100%)') + ';border:1px solid rgba(46,30,14,.9);box-shadow:0 ' + Math.max(2, ph * 0.3).toFixed(0) + 'px 0 rgba(30,19,8,.8),0 18px 28px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,225,180,.28);opacity:' + fade + ';filter:' + (isBroken ? 'saturate(.5) brightness(.65)' : 'none') + ';"></div>'
+        + '<div style="position:absolute;inset:2px 6px;border-radius:4px;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(60,38,16,.30) 0 2px,rgba(60,38,16,0) 2px 22px),radial-gradient(60% 120% at 20% 50%,rgba(255,220,170,.18),transparent 60%);opacity:' + (isBroken ? 0.4 : 0.8) + ';"></div>'
+        + '</div>';
+
+      var postH = Math.max(12, w * 0.30);
+      var nxt = proj(t + 1);
+      [-1, 1].forEach(function (side) {
+        var px = side * (w / 2 + w * 0.03);
+        posts += '<div style="position:absolute;left:50%;top:' + (py - postH) + 'px;margin-left:' + (px - Math.max(2, w * 0.022)) + 'px;width:' + Math.max(3, w * 0.045) + 'px;height:' + postH + 'px;background:linear-gradient(180deg,#7A5329,#3A2614);border-radius:3px;box-shadow:0 0 14px rgba(0,0,0,.6);opacity:' + fade + ';z-index:' + Math.max(4, 31 - Math.max(0, t)) + ';transition:all 900ms var(--brg-ease-out);"></div>';
+        if (i < TOTAL) {
+          var nPostH = Math.max(12, nxt.w * 0.30);
+          var x1 = px, y1 = py - postH;
+          var x2 = side * (nxt.w / 2 + nxt.w * 0.03), y2 = nxt.y - nPostH;
+          var dx = x2 - x1, dy = y2 - y1;
+          var len = Math.sqrt(dx * dx + dy * dy);
+          var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+          // الدوران على الغلاف والتذبذب على الابن: keyframes ropeSway تضبط
+          // transform، فلو وُضعا على نفس العنصر ألغت الأنيميشن دورانَ الحبل
+          // وانرسم أفقياً بدل أن يصل بين العمودين (الزاوية محسوبة أعلاه بدقة).
+          ropes += '<div style="position:absolute;left:50%;top:' + y1 + 'px;margin-left:' + x1 + 'px;width:' + len + 'px;height:' + Math.max(2, w * 0.02) + 'px;transform:rotate(' + angle.toFixed(2) + 'deg);transform-origin:0 50%;z-index:3;opacity:' + (fade * 0.9) + ';transition:all 900ms var(--brg-ease-out);">'
+            + '<div style="width:100%;height:100%;background:linear-gradient(90deg,rgba(214,180,96,.9),rgba(150,112,52,.65));border-radius:2px;animation:brgRopeSway 5s var(--brg-ease-in-out) infinite;animation-delay:' + (i * 0.12) + 's;"></div>'
+            + '</div>';
+        }
+      });
+    }
+    layer.innerHTML = ropes + planks + posts + avatarHtml();
+    renderIsland(pos);
+  }
+
+  function avatarHtml() {
+    var pos = (state.me && state.me.pos) || 0;
+    var p0 = proj(0);
+    var top = p0.y - (p0.y - proj(1).y) * 0.44 - 92;
+    var moving = state.phase === 'moving';
+    var cls = 'brg-avatar-body';
+    if (state.me && state.me.finished) cls += ' win';
+    else if (moving) cls += (state.lastMove === 1 ? ' fwd' : state.lastMove === -1 ? ' back' : '');
+    var me = state.me || {};
+    var fx = me.fx || {};
+    var glyph = (me.name || 'أ').trim().charAt(0);
+    var face = me.avatar ? '<img src="' + esc(me.avatar) + '" alt="">' : esc(glyph);
+    var shield = (fx.lifeRope || (fx.steadyUntilRound && state.event && fx.steadyUntilRound >= state.event.round.no))
+      ? '<div class="brg-avatar-shield"></div>' : '';
+    var held = me.heldCard ? cardByCode(me.heldCard) : null;
+    var dot = held ? '<div class="brg-avatar-carddot" style="background:' + CATS[held[0]].soft + ';border:1px solid ' + CATS[held[0]].line + ';box-shadow:0 0 14px ' + CATS[held[0]].color + ';">' + held[3] + '</div>' : '';
+    var delta = '';
+    if (moving && state.lastMove !== 0) {
+      delta = '<div class="brg-delta" style="color:' + (state.lastMove === 1 ? 'var(--gold-100)' : '#E0A79F') + ';">' + (state.lastMove === 1 ? '+١' : '−١') + '</div>';
+    }
+    return '<div class="brg-avatar-wrap" style="top:' + top + 'px;">'
+      + '<div class="' + cls + '">'
+      + '<div class="brg-avatar-face">' + face + '</div>' + shield + dot
+      + '</div>'
+      + '<div class="brg-avatar-shadow"></div>'
+      + '<div class="brg-avatar-label">' + esc(me.name || '—') + '</div>'
+      + delta
+      + '</div>';
+  }
+
+  function renderIsland(pos) {
+    var el = document.getElementById('brg-island');
+    if (!el) return;
+    var pr = proj(TOTAL - pos);
+    var scale = Math.min(1.4, pr.w / 130);
+    el.setAttribute('style', 'position:absolute;left:50%;top:' + (pr.y - 200 * scale) + 'px;transform:translateX(-50%) scale(' + scale.toFixed(3) + ');transform-origin:50% 100%;z-index:2;transition:all 900ms var(--brg-ease-out);filter:drop-shadow(0 0 60px rgba(201,168,76,.35));');
+    if (el.dataset.built) return;
+    el.dataset.built = '1';
+    el.innerHTML =
+      '<div style="position:relative;width:520px;height:210px;margin:0 auto">'
+      + '<div style="position:absolute;left:0;right:0;top:56px;height:74px;border-radius:50% 50% 44% 44%/64% 64% 36% 36%;background:linear-gradient(180deg,#5D7B4A,#3C5232 42%,#2A2015 43%,#171009);box-shadow:0 30px 70px rgba(0,0,0,.6),inset 0 2px 0 rgba(201,168,76,.35)"></div>'
+      + '<div style="position:absolute;left:120px;right:120px;top:118px;height:96px;background:linear-gradient(180deg,#20170D,rgba(32,23,13,0));clip-path:polygon(0 0,100% 0,72% 100%,28% 100%)"></div>'
+      + '<div style="position:absolute;left:50%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center">'
+      + '<div style="width:20px;height:20px;border-radius:50%;background:var(--gold-100);box-shadow:0 0 34px 10px rgba(201,168,76,.75);animation:brgBeacon 2.2s var(--brg-ease-in-out) infinite"></div>'
+      + '<div style="width:6px;height:62px;background:linear-gradient(180deg,var(--harf-gold),rgba(201,168,76,.25))"></div>'
+      + '</div>'
+      + '<div style="position:absolute;left:50%;top:-52px;transform:translateX(-50%);font-family:var(--brg-font-display);font-size:30px;color:var(--gold-100);text-shadow:0 0 30px rgba(201,168,76,.8);white-space:nowrap">جزيرة النهاية</div>'
+      + '</div>';
+  }
+
+  // مؤثرات الكسر/البناء — تُحقن مرة واحدة لحظة الانتقال ثم تُزال.
+  function playMoveFx(delta) {
+    var layer = document.getElementById('brg-fx-layer');
+    var stage = document.getElementById('brg-stage');
+    if (!layer) return;
+    var brk = proj(1), bw = brk.w, bph = Math.max(6, (brk.y - proj(2).y) * 0.44);
+    var html = '';
+    html += '<div style="position:absolute;inset:0;z-index:45;pointer-events:none;background:' + (delta === 1 ? 'rgba(201,168,76,.5)' : 'rgba(224,86,74,.55)') + ';animation:' + (delta === 1 ? 'brgFlashGold' : 'brgFlashRed') + ' 620ms var(--brg-ease-out) both;"></div>';
+
+    if (delta === -1) {
+      var half = 'position:absolute;left:50%;top:' + (brk.y - bph) + 'px;width:' + (bw / 2) + 'px;height:' + bph + 'px;background:linear-gradient(180deg,#8A6234,#4A3520);border:1px solid rgba(40,26,12,.9);border-radius:4px;z-index:48;pointer-events:none;box-shadow:0 6px 14px rgba(0,0,0,.6);';
+      html += '<div style="' + half + 'margin-left:' + (-bw / 2) + 'px;transform-origin:0% 50%;animation:brgHalfLeft 900ms var(--brg-ease-in) both;animation-delay:160ms;"></div>';
+      html += '<div style="' + half + 'margin-left:0px;transform-origin:100% 50%;animation:brgHalfRight 900ms var(--brg-ease-in) both;animation-delay:160ms;"></div>';
+      html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph - 4) + 'px;margin-left:' + (-bw / 2) + 'px;width:' + bw + 'px;height:' + (bph + 8) + 'px;z-index:51;pointer-events:none;background:linear-gradient(96deg,transparent 46%,rgba(255,120,90,.95) 49%,transparent 52%),linear-gradient(70deg,transparent 40%,rgba(255,160,120,.7) 42%,transparent 44%);filter:drop-shadow(0 0 12px rgba(255,120,80,.8));animation:brgCrackFlash 520ms var(--brg-ease-out) both;"></div>';
+      html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph) + 'px;margin-left:' + (-bw * 0.7) + 'px;width:' + (bw * 1.4) + 'px;height:' + (bph * 4) + 'px;border-radius:50%;z-index:46;pointer-events:none;background:radial-gradient(ellipse,rgba(150,120,86,.55),rgba(120,96,70,0) 68%);animation:brgDustPuff 1s var(--brg-ease-out) both;animation-delay:200ms;"></div>';
+      for (var i = 0; i < 12; i++) {
+        var dir = i % 2 ? 1 : -1;
+        html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph) + 'px;margin-left:' + (dir * (8 + (i % 6) * 12)) + 'px;width:' + (4 + (i % 3) * 3) + 'px;height:' + (3 + (i % 4) * 4) + 'px;background:' + (i % 3 === 0 ? '#C79355' : '#6E4B26') + ';border-radius:1px;z-index:49;pointer-events:none;opacity:0;--dx:' + (dir * (40 + (i % 5) * 34)) + 'px;--dy:' + (200 + (i % 6) * 90) + 'px;--rot:' + (dir * (180 + i * 40)) + 'deg;animation:brgShardSpin ' + (0.9 + (i % 5) * 0.14).toFixed(2) + 's var(--brg-ease-in) both;animation-delay:' + (i * 22) + 'ms;"></div>';
+      }
+      if (stage) { stage.classList.remove('jolt'); void stage.offsetWidth; stage.classList.add('jolt'); }
+    } else if (delta === 1) {
+      html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph) + 'px;margin-left:' + (-brk.w / 2) + 'px;width:' + brk.w + 'px;height:' + bph + 'px;border-radius:5px;z-index:48;pointer-events:none;background:linear-gradient(180deg,#A57742 0%,#8A6234 42%,#5C4021 100%);border:1px solid rgba(232,217,168,.7);animation:brgGhostDrop 620ms var(--brg-ease-bounce) both;"></div>';
+      for (var s = 0; s < 14; s++) {
+        var a = (s / 14) * Math.PI * 2;
+        html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph) + 'px;margin-left:-3px;width:6px;height:6px;border-radius:50%;background:' + (s % 3 === 0 ? 'var(--gold-100)' : 'var(--harf-gold)') + ';box-shadow:0 0 12px var(--harf-gold);z-index:49;pointer-events:none;opacity:0;--dx:' + (Math.cos(a) * (70 + (s % 4) * 26)).toFixed(0) + 'px;--dy:' + (Math.sin(a) * (46 + (s % 4) * 18) - 30).toFixed(0) + 'px;animation:brgSparkFly ' + (0.7 + (s % 4) * 0.12).toFixed(2) + 's var(--brg-ease-out) both;animation-delay:' + (260 + s * 16) + 'ms;"></div>';
+      }
+      for (var l = 0; l < 7; l++) {
+        html += '<div style="position:absolute;left:' + (34 + l * 5.4) + '%;top:' + (brk.y - 240) + 'px;width:2px;height:' + (70 + (l % 3) * 40) + 'px;background:linear-gradient(180deg,rgba(232,217,168,0),rgba(232,217,168,.8),rgba(232,217,168,0));z-index:47;pointer-events:none;opacity:0;animation:brgSpeedLine ' + (0.6 + (l % 3) * 0.1).toFixed(2) + 's var(--brg-ease-out) both;animation-delay:' + (l * 34) + 'ms;"></div>';
+      }
+      [-1, 1].forEach(function (side) {
+        html += '<div style="position:absolute;left:50%;top:' + (brk.y - bph - 6) + 'px;margin-left:' + (side * (bw / 2 - 14)) + 'px;width:7px;height:7px;border-radius:50%;background:var(--gold-100);box-shadow:0 0 14px var(--harf-gold);z-index:50;pointer-events:none;animation:brgHammerNail 600ms var(--brg-ease-out) both;animation-delay:' + (side < 0 ? 420 : 520) + 'ms;"></div>';
+      });
+    }
+    layer.innerHTML = html;
+    setTimeout(function () { if (layer) layer.innerHTML = ''; }, 1700);
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
+  // ---- لوحة السؤال ----
+  function renderQuestion() {
+    var qEl = document.getElementById('brg-question');
+    var round = state.event && state.event.round;
+    if (!qEl || !round) return;
+    var phase = state.phase;
+    var revealed = phase !== 'question';
+    var hidden = hiddenOptions();
+    document.getElementById('brg-qtext').textContent = round.question || '—';
+    var phaseLabels = { question: 'جمهورك يصوّت الآن — اكتبوا الرقم', reveal: 'أُغلق التصويت', moving: 'تُطبَّق النتيجة', idle: 'بانتظار الجولة' };
+    document.getElementById('brg-phase').textContent = phaseLabels[phase] || '';
+    qEl.classList.toggle('dim', phase === 'moving');
+
+    var opts = round.options || [];
+    document.getElementById('brg-opts').innerHTML = opts.map(function (text, i) {
+      var isC = i === round.correctIndex;
+      var hot = revealed && isC;
+      var gone = hidden.indexOf(i) > -1;
+      var cls = 'brg-opt' + (hot ? ' hot' : '') + (revealed && !isC ? ' cold' : '') + (gone ? ' gone' : '');
+      return '<div class="' + cls + '"><div class="brg-opt-key">' + ar(i + 1) + '</div>'
+        + '<div class="brg-opt-text">' + esc(gone ? '—' : text) + '</div>'
+        + (hot ? '<div style="font-size:22px;color:var(--brg-ink-900);font-weight:800">✓</div>' : '')
+        + '</div>';
+    }).join('');
+  }
+
+  function renderVotes() {
+    var host = document.getElementById('brg-vote-rows');
+    if (!host) return;
+    var counts = state.voteCounts;
+    var total = counts[0] + counts[1] + counts[2] + counts[3];
+    var round = state.event && state.event.round;
+    var revealed = state.phase !== 'question';
+    host.innerHTML = counts.map(function (c, i) {
+      var pct = total ? Math.round(c / total * 100) : 0;
+      var win = revealed && round && i === round.correctIndex;
+      return '<div class="brg-vote-row"><div class="brg-vote-key">' + ar(i + 1) + '</div>'
+        + '<div class="brg-vote-track"><div class="brg-vote-bar' + (win ? ' win' : '') + '" style="width:' + pct + '%"></div></div>'
+        + '<div class="brg-vote-pct">' + ar(pct) + '٪</div></div>';
+    }).join('');
+  }
+
+  function renderStreak() {
+    var host = document.getElementById('brg-streak-dots');
+    if (!host) return;
+    var s = (state.me && state.me.streak) || 0;
+    var out = '';
+    for (var i = 0; i < 3; i++) out += '<div class="brg-streak-dot' + (i < s ? ' on' : '') + '">' + (i < s ? '✓' : '') + '</div>';
+    host.innerHTML = out;
+  }
+
+  function renderActiveFx() {
+    var panel = document.getElementById('brg-cards-panel');
+    var host = document.getElementById('brg-active-fx');
+    if (!panel || !host || !state.me) return;
+    var fx = state.me.fx || {};
+    var r = state.event && state.event.round ? state.event.round.no : 0;
+    var chips = [];
+    if (fx.lifeRope) chips.push(['حبل نجاة', 'good']);
+    if (fx.doubleStepPending) chips.push(['لوحان دفعة', 'good']);
+    if (fx.safetyNailRound >= r) chips.push(['مسمار الأمان', 'good']);
+    if (fx.steadyUntilRound >= r) chips.push(['جسر ثابت', 'good']);
+    if (fx.extraTimeRound === r) chips.push(['وقت إضافي', 'good']);
+    if (fx.hintRound === r) chips.push(['تلميح', 'good']);
+    if (fx.pointsX2Round === r) chips.push(['مضاعف نقاط', 'good']);
+    if (fx.fogRound === r) chips.push(['ضباب', 'risk']);
+    if (fx.skipRound === r) chips.push(['ريح معاكسة', 'risk']);
+    if (fx.breakAtRound) chips.push(['كسر مؤجل', 'risk']);
+    if (fx.jamRound === r) chips.push(['تشويش', 'foe']);
+    if (fx.timeCutRound === r) chips.push(['تقييد الوقت', 'foe']);
+    if (fx.mirror) chips.push(['مرآة', 'wild']);
+    panel.style.display = chips.length ? '' : 'none';
+    host.innerHTML = chips.map(function (c) {
+      var ct = CATS[c[1]];
+      return '<div style="font-size:12px;padding:4px 10px;border-radius:999px;color:#fff;background:' + ct.soft + ';border:1px solid ' + ct.line + '">' + esc(c[0]) + '</div>';
+    }).join('');
+  }
+
+  function renderBoard() {
+    var host = document.getElementById('brg-board-rows');
+    if (!host) return;
+    var rows = state.board || [];
+    host.innerHTML = rows.slice(0, 10).map(function (r, i) {
+      var moveCls = r.move === 1 ? 'up' : r.move === -1 ? 'down' : '';
+      var moveGlyph = r.move === 1 ? '▲' : r.move === -1 ? '▼' : '–';
+      var card = r.cardCode ? cardByCode(r.cardCode) : null;
+      var chip = card ? '<div class="brg-board-chip" style="background:' + CATS[card[0]].soft + ';border:1px solid ' + CATS[card[0]].line + '">' + card[3] + '</div>' : '';
+      var av = r.avatar ? '<img src="' + esc(r.avatar) + '" alt="">' : esc((r.name || '?').charAt(0));
+      return '<div class="brg-board-row' + (i === 0 ? ' top' : '') + (r.move ? ' shift' : '') + '">'
+        + '<div class="brg-board-rank' + (i < 3 ? ' medal' : '') + '">' + ar(i + 1) + '</div>'
+        + '<div class="brg-board-move ' + moveCls + '">' + moveGlyph + '</div>'
+        + '<div class="brg-board-av' + (i < 3 ? ' medal' : '') + '">' + av + '</div>'
+        + '<div style="flex:1;min-width:0"><div class="brg-board-name">' + esc(r.name) + '</div>'
+        + '<div class="brg-board-track"><div class="brg-board-bar" style="width:' + Math.round((r.pos || 0) / TOTAL * 100) + '%"></div></div></div>'
+        + '<div style="display:flex;align-items:center;gap:6px">' + chip
+        + '<div class="brg-board-pos">' + ar(r.pos || 0) + '</div></div>'
+        + '</div>';
+    }).join('') || '<div style="padding:18px;text-align:center;color:var(--brg-gray-500);font-size:14px">لا نتائج بعد</div>';
+
+    var myPos = (state.me && state.me.pos) || 0;
+    var ahead = rows.filter(function (r) { return (r.pos || 0) > myPos; }).length;
+    document.getElementById('brg-my-name').textContent = (state.me && state.me.name) || '—';
+    document.getElementById('brg-my-rank').textContent = state.board.length ? ar(ahead + 1) : '—';
+  }
+
+  function renderHud() {
+    var pos = (state.me && state.me.pos) || 0;
+    var pl = document.getElementById('brg-plank-label');
+    var rl = document.getElementById('brg-remain-label');
+    if (pl) pl.textContent = ar(pos);
+    if (rl) rl.textContent = ar(Math.max(0, TOTAL - pos));
+    var chip = document.getElementById('brg-live-chip');
+    var txt = document.getElementById('brg-live-text');
+    if (chip && txt) {
+      var on = state.sim || (typeof homeHasActiveConnection === 'function' && homeHasActiveConnection());
+      chip.classList.toggle('on', !!on);
+      txt.textContent = state.sim ? 'تجربة' : (on ? 'بث مباشر' : 'غير متصل');
+      txt.style.color = on ? '#8FE3B4' : '#F0A79F';
+    }
+    var sub = document.getElementById('brg-title-sub');
+    if (sub && state.event) {
+      sub.textContent = 'جولة ' + ar(state.event.round.no || 0) + ' · ' + ar(state.event.playerCount || 0) + ' ستريمر';
+    }
+    var badge = document.getElementById('brg-sim-badge');
+    if (badge) badge.style.display = state.sim ? '' : 'none';
+  }
+
+  function renderAll() {
+    renderBridge(); renderQuestion(); renderVotes();
+    renderStreak(); renderActiveFx(); renderBoard(); renderHud();
+  }
+
+
+  // ================= العدّاد والأطوار =================
+  // العد التنازلي يُحسب دائماً من startAt (وقت الخادم) لا من مؤقّت محلي —
+  // فلو تجمّد التبويب أو تأخّرت الشبكة يعود الستريمر لنفس اللحظة الصحيحة
+  // تماماً بدل أن ينزاح عن بقية الـ٣٠٠.
+  function startTick() {
+    stopTick();
+    state.tickTimer = setInterval(tick, 100);
+    tick();
+  }
+  function stopTick() {
+    if (state.tickTimer) { clearInterval(state.tickTimer); state.tickTimer = null; }
+  }
+
+  function tick() {
+    var ev = state.event;
+    if (!ev || !ev.round || ev.status !== 'running') return;
+    var round = ev.round;
+    if (round.phase !== 'question') return;
+    var dur = myDuration() * 1000;
+    var elapsed = serverNow() - (round.startAtMs || 0);
+    var left = Math.max(0, dur - elapsed);
+    var secs = Math.ceil(left / 1000);
+
+    var ring = document.getElementById('brg-ring');
+    var inner = document.getElementById('brg-ring-inner');
+    var qEl = document.getElementById('brg-question');
+    if (ring && inner) {
+      var frac = Math.max(0, Math.min(1, left / dur));
+      ring.style.background = 'conic-gradient(var(--harf-gold) ' + (frac * 360) + 'deg, rgba(255,255,255,.07) 0deg)';
+      ring.classList.add('ticking');
+      inner.textContent = ar(secs);
+      var urgent = secs <= 3;
+      inner.classList.toggle('urgent', urgent);
+      if (qEl) qEl.classList.toggle('urgent', urgent);
+    }
+
+    if (left <= 0 && state.phase === 'question' && state.countedRound !== round.no) {
+      lockAndResolve();
+    }
+  }
+
+  // إغلاق التصويت وتطبيق النتيجة — يحدث محلياً عند كل ستريمر باللحظة نفسها
+  // (نفس startAt + نفس المدة)، فتتحرك كل الأفتارات معاً بلا انتظار أي إشارة
+  // إضافية من المالك.
+  function lockAndResolve() {
+    var round = state.event.round;
+    state.countedRound = round.no;
+    state.phase = 'reveal';
+    var res = majorityResult();
+    renderQuestion(); renderVotes();
+
+    setTimeout(function () {
+      var out = applyRoundResult(res);
+      if (!out) return;
+      state.lastMove = out.lastMove;
+      state.phase = 'moving';
+
+      // حدّث الحالة المحلية فوراً (لا ننتظر Firestore) — الحركة لازم تكون فورية
+      state.me = Object.assign({}, state.me, {
+        pos: out.pos, broken: out.broken, streak: out.streak,
+        fx: out.fx, points: out.points, lastMove: out.lastMove,
+        lastRound: out.lastRound, finished: out.finished
+      });
+      state.stage.built += out.builtInc;
+      state.stage.broken += out.brokeInc;
+      state.stage.bestStreak = Math.max(state.stage.bestStreak, out.streak);
+
+      playMoveFx(out.lastMove);
+      showMoveBanner(out.lastMove, res, out.notes);
+      renderAll();
+
+      persistMe({
+        pos: out.pos, broken: out.broken, streak: out.streak, fx: out.fx,
+        points: out.points, lastMove: out.lastMove, lastRound: out.lastRound,
+        finished: out.finished, finishedAtMs: out.finished ? serverNow() : null,
+        stats: state.stage
+      });
+
+      // ٣ صح متتالية → بطاقة عشوائية تُفعّل فوراً
+      setTimeout(function () {
+        if (state.me && state.me.streak >= 3) {
+          grantRandomCard();
+        } else {
+          state.phase = 'idle';
+          renderQuestion();
+        }
+      }, 1650);
+    }, 400);
+  }
+
+  function showMoveBanner(delta, res, notes) {
+    var host = document.getElementById('brg-overlays');
+    if (!host) return;
+    var title = delta === 1 ? 'لوح جديد' : delta === -1 ? 'انكسر لوح' : 'ثبات';
+    var color = delta === 1 ? 'var(--gold-100)' : delta === -1 ? '#E0A79F' : 'var(--brg-gray-300)';
+    var shadow = delta === 1 ? 'rgba(201,168,76,.75)' : 'rgba(224,86,74,.6)';
+    var sub;
+    if (!res.total) sub = 'ما وصل أي صوت من جمهورك';
+    else if (res.winner < 0) sub = 'تعادل التصويت — بقيت مكانك';
+    else sub = 'أغلبية جمهورك اختارت ' + ar(res.winner + 1) + ' · ' + ar(res.total) + ' صوت';
+    if (notes && notes.length) sub = notes[0] + ' · ' + sub;
+    var el = document.createElement('div');
+    el.className = 'brg-move-banner';
+    el.innerHTML = '<div class="brg-move-title" style="color:' + color + ';text-shadow:0 0 60px ' + shadow + '">' + title + '</div>'
+      + '<div class="brg-move-sub">' + esc(sub) + '</div>';
+    host.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2200);
+  }
+
+  // ---- منح بطاقة وكشفها ----
+  function grantRandomCard(forcedCode) {
+    var card = forcedCode ? cardByCode(forcedCode) : drawRandomCard();
+    if (!card) { state.phase = 'idle'; return; }
+    var roundNo = state.event && state.event.round ? state.event.round.no : 0;
+    var out = applyCard(card, state.me, roundNo);
+    var patch = out.patch;
+    var drawAgain = !!patch.__drawAgain;
+    var storm = !!patch.__storm;
+    delete patch.__drawAgain; delete patch.__storm;
+
+    // السلسلة تُصفَّر بعد منح البطاقة حتى لا تُمنح مرة أخرى بنفس السلسلة
+    patch.streak = 0;
+    patch.heldCard = (card[0] === 'good' || card[0] === 'wild') ? card[4] : null;
+    state.me = Object.assign({}, state.me, patch);
+    persistMe(patch);
+
+    if (out.foe) sendFoeEffect(out.foe);
+    if (storm) requestGlobalFx({ kind: 'storm', by: state.me.name });
+
+    showCardReveal(card, function () {
+      if (drawAgain) { grantRandomCard(); return; }
+      state.phase = 'idle';
+      renderAll();
+    });
+  }
+
+  function showCardReveal(card, done) {
+    var host = document.getElementById('brg-overlays');
+    if (!host) { if (done) done(); return; }
+    var cat = CATS[card[0]];
+    var el = document.createElement('div');
+    el.className = 'brg-card-overlay';
+    el.innerHTML =
+      '<div class="brg-card-kicker">بطاقة عشوائية · تفعيل تلقائي</div>'
+      + '<div style="position:relative;display:flex;align-items:center;justify-content:center">'
+      + '<div class="brg-card-halo" style="background:radial-gradient(circle,rgba(201,168,76,.42),' + cat.color + '22 45%,transparent 68%)"></div>'
+      + '<div class="brg-card-face" style="background:linear-gradient(160deg,#1D2544,#0A0D18 62%),radial-gradient(120% 60% at 50% 0%,' + cat.color + '55,transparent 60%);border:1px solid ' + cat.line + ';box-shadow:var(--brg-shadow-lg),0 0 90px ' + cat.color + '55,inset 0 0 0 1px rgba(201,168,76,.22)">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;position:relative;z-index:2">'
+      + '<div class="brg-card-tag" style="background:' + cat.soft + ';border:1px solid ' + cat.line + '">' + cat.label + '</div>'
+      + '<div style="font-size:13px;color:rgba(255,255,255,.45);letter-spacing:.1em">' + card[4] + '</div></div>'
+      + '<div class="brg-card-mono" style="text-shadow:0 0 60px ' + cat.color + '99">' + card[3] + '</div>'
+      + '<div style="position:relative;z-index:2"><div class="brg-card-name">' + esc(card[1]) + '</div>'
+      + '<div class="brg-card-desc">' + esc(card[2]) + '</div></div>'
+      + '<div class="brg-card-foot"><div style="font-size:15px;color:#fff">' + esc(state.me.name) + ' · ٣ صح متتالية</div>'
+      + '<div style="font-size:14px;color:var(--harf-gold)">فُعّلت الآن</div></div>'
+      + '</div></div>';
+    host.appendChild(el);
+    setTimeout(function () {
+      if (el.parentNode) el.parentNode.removeChild(el);
+      if (done) done();
+    }, 2800);
+  }
+
+  function showWin(winnerName) {
+    var host = document.getElementById('brg-overlays');
+    if (!host || document.getElementById('brg-win-screen')) return;
+    var petals = '';
+    for (var i = 0; i < 20; i++) {
+      petals += '<div style="position:absolute;top:0;left:' + (3 + i * 5) + '%;width:' + (i % 3 === 0 ? 10 : 7) + 'px;height:' + (i % 2 ? 14 : 9) + 'px;background:' + (i % 4 === 0 ? 'var(--gold-100)' : 'var(--harf-gold)') + ';border-radius:60% 40% 55% 45%;opacity:0;animation:brgPetalFall ' + (2.6 + (i % 5) * 0.5) + 's linear infinite;animation-delay:' + (i * 0.19) + 's"></div>';
+    }
+    var el = document.createElement('div');
+    el.className = 'brg-win';
+    el.id = 'brg-win-screen';
+    el.innerHTML = petals + '<div class="brg-win-inner">'
+      + '<div class="brg-win-kicker">وصل الجزيرة أولاً</div>'
+      + '<div class="brg-win-name">' + esc(winnerName) + '</div>'
+      + '<div class="brg-win-stats">'
+      + '<div class="brg-win-stat"><div style="font-size:13px;color:var(--brg-gray-400)">ألواح بُنيت</div><div class="brg-win-stat-num">' + ar(state.stage.built) + '</div></div>'
+      + '<div class="brg-win-stat"><div style="font-size:13px;color:var(--brg-gray-400)">ألواح انكسرت</div><div class="brg-win-stat-num" style="color:#E0A79F">' + ar(state.stage.broken) + '</div></div>'
+      + '<div class="brg-win-stat"><div style="font-size:13px;color:var(--brg-gray-400)">أطول سلسلة</div><div class="brg-win-stat-num" style="color:var(--harf-gold)">' + ar(state.stage.bestStreak) + ' صح</div></div>'
+      + '</div></div>';
+    host.appendChild(el);
+    try { if (typeof fxCelebrate === 'function') fxCelebrate(); } catch (e) {}
+  }
+
+  // ================= الكتابة إلى Firestore =================
+  function persistMe(patch) {
+    if (state.sim || !state.myKey || !fb) return;
+    var data = Object.assign({}, patch, { lastSeen: fb.serverTimestamp() });
+    fb.updateDoc(playerRef(state.myKey), data).catch(function () { /* best-effort */ });
+  }
+
+  // أثر بطاقة "على الخصم" — يُضاف لطابور pendingFx عند الهدف (arrayUnion).
+  // القاعدة في firestore.rules تسمح لأي حساب مسجّل بتعديل pendingFx فقط لا غير.
+  function sendFoeEffect(effect) {
+    var target = pickFoe();
+    if (!target) { toastSafe('⚠️ ما فيه منافس قريب — البطاقة راحت بلا هدف'); return; }
+    if (state.sim) { toastSafe('🧪 (تجربة) أُرسل الأثر إلى ' + target.name); return; }
+    var item = Object.assign({}, effect, { id: state.myKey + '_' + Date.now(), from: state.myKey });
+    fb.updateDoc(playerRef(target.key), { pendingFx: fb.arrayUnion(item) })
+      .then(function () { toastSafe('🎴 أثّرت على ' + target.name); })
+      .catch(function () { /* best-effort */ });
+  }
+
+  // أقرب منافس أمامي (وإلا أقرب خلفي) من لوحة المتصدرين.
+  function pickFoe() {
+    var myPos = (state.me && state.me.pos) || 0;
+    var rows = (state.board || []).filter(function (r) { return r.key !== state.myKey; });
+    if (!rows.length) return null;
+    var ahead = rows.filter(function (r) { return (r.pos || 0) >= myPos; })
+      .sort(function (a, b) { return (a.pos || 0) - (b.pos || 0); });
+    if (ahead.length) return ahead[0];
+    return rows.sort(function (a, b) { return (b.pos || 0) - (a.pos || 0); })[0];
+  }
+
+  function requestGlobalFx(item) {
+    if (state.sim || !fb) return;
+    fb.updateDoc(evRef(), { globalFx: fb.arrayUnion(Object.assign({}, item, { id: state.myKey + '_' + Date.now() })) })
+      .catch(function () { /* best-effort */ });
+  }
+
+  // يستهلك آثار الخصوم الواردة ثم يفرغ الطابور.
+  function drainIncomingFx(doc) {
+    var list = doc.pendingFx || [];
+    if (!list.length) return;
+    var roundNo = state.event && state.event.round ? state.event.round.no : 0;
+    var merged = Object.assign({}, state.me);
+    var reflect = [];
+    list.forEach(function (item) {
+      var patch = applyIncomingFx(item, merged, roundNo);
+      if (patch.__reflectTo) { reflect.push({ to: patch.__reflectTo, item: patch.__reflectItem }); }
+      delete patch.__reflectTo; delete patch.__reflectItem;
+      merged = Object.assign(merged, patch);
+      toastSafe('🎴 ' + (item.by || 'منافس') + ' استخدم بطاقة عليك');
+    });
+    state.me = merged;
+    persistMe({ pos: merged.pos, fx: merged.fx, heldCard: merged.heldCard || null, pendingFx: [] });
+    reflect.forEach(function (r) {
+      if (state.sim || !r.to) return;
+      fb.updateDoc(playerRef(r.to), { pendingFx: fb.arrayUnion(Object.assign({}, r.item, { from: state.myKey, by: state.me.name + ' (مرآة)' })) })
+        .catch(function () {});
+    });
+    renderAll();
+  }
+
+  function toastSafe(msg) { try { if (typeof toast === 'function') toast(msg); } catch (e) {} }
+
+
+  // ================= شاشة الإعداد =================
+  var setupPlatform = 'tiktok';
+  var linkedAccount = null;
+  var unlinkOverride = false;
+
+  function brgSetPlatform(p) {
+    setupPlatform = p;
+    ['tiktok', 'twitch', 'kick', 'youtube'].forEach(function (k) {
+      var b = document.getElementById('brg-tab-' + k);
+      if (b) b.classList.toggle('active', k === p);
+    });
+    var lbl = document.getElementById('brg-user-label');
+    if (lbl) lbl.textContent = p === 'youtube' ? 'رابط أو معرّف البث' : 'يوزر حسابك على المنصة';
+  }
+
+  // لو للستريمر حساب بث مربوط مسبقاً (نفس tiktokSavedUsers المستخدم بزر
+  // "ابدأ بثاً سريعاً") ما نعرض حقل اليوزر إطلاقاً — يُستخدم تلقائياً.
+  function brgSetupRender() {
+    linkedAccount = null;
+    if (!unlinkOverride) {
+      try {
+        var saved = (typeof tiktokSavedUsersLoad === 'function') ? tiktokSavedUsersLoad() : [];
+        var active = saved.filter(function (u) { return u.enabled !== false; })[0];
+        if (active) linkedAccount = { username: active.username, platform: 'tiktok' };
+      } catch (e) {}
+      // لو فيه بث شغّال الآن من "ابدأ بثاً سريعاً" نأخذ يوزره مباشرة
+      try {
+        if (!linkedAccount && typeof homeConnectedUser === 'string' && homeConnectedUser) {
+          linkedAccount = { username: homeConnectedUser, platform: (typeof homeConnectedPlatform === 'string' ? homeConnectedPlatform : 'tiktok') };
+        }
+      } catch (e) {}
+    }
+    var box = document.getElementById('brg-setup-userbox');
+    var linked = document.getElementById('brg-setup-linked');
+    if (linkedAccount) {
+      if (box) box.style.display = 'none';
+      if (linked) linked.style.display = '';
+      var nm = document.getElementById('brg-linked-name');
+      var av = document.getElementById('brg-linked-av');
+      if (nm) nm.textContent = '@' + linkedAccount.username;
+      if (av) av.textContent = (linkedAccount.username || '@').charAt(0).toUpperCase();
+      setupPlatform = linkedAccount.platform || 'tiktok';
+    } else {
+      if (box) box.style.display = '';
+      if (linked) linked.style.display = 'none';
+    }
+    try { if (typeof streamerKeywordAutofillInit === 'function') streamerKeywordAutofillInit(); } catch (e) {}
+  }
+
+  function brgUnlinkAccount() { unlinkOverride = true; brgSetupRender(); }
+
+  function setupStatus(kind, msg) {
+    var el = document.getElementById('brg-setup-status');
+    if (!el) return;
+    el.className = 'status-msg' + (kind ? ' ' + kind : '');
+    el.textContent = msg;
+    el.style.display = msg ? '' : 'none';
+  }
+
+  // ================= الدخول للفعالية =================
+  function brgJoinEvent() {
+    var username = linkedAccount ? linkedAccount.username
+      : (document.getElementById('brg-username').value || '').trim().replace(/^@/, '');
+    var keyword = (document.getElementById('brg-keyword').value || '').trim();
+    if (!username) { setupStatus('err', '⚠️ اكتب يوزر حسابك على المنصة'); return; }
+    if (!keyword) { setupStatus('err', '⚠️ اكتب الكلمة المفتاحية'); return; }
+    if (!fb || !currentUser) { setupStatus('err', '⚠️ لازم تسجّل دخول أولاً'); return; }
+    if (!state.eventId) { setupStatus('err', '⚠️ ما فيه فعالية مفتوحة الآن'); return; }
+
+    state.platformUser = username;
+    state.platform = setupPlatform;
+    state.keyword = keyword;
+    state.myKey = currentUser.uid;
+    setupStatus('load', '⏳ جارِ الدخول...');
+
+    var doc = {
+      key: state.myKey, uid: currentUser.uid,
+      name: currentUsername || username,
+      platformUser: username, platform: setupPlatform, keyword: keyword,
+      avatar: (typeof currentAvatarUrl === 'string' ? currentAvatarUrl : '') || '',
+      pos: 0, streak: 0, broken: [], points: 0,
+      fx: {}, heldCard: null, pendingFx: [],
+      lastMove: 0, lastRound: -1, finished: false, finishedAtMs: null,
+      kicked: false, joinedAt: fb.serverTimestamp(), lastSeen: fb.serverTimestamp(),
+      stats: { built: 0, broken: 0, bestStreak: 0 }
+    };
+    fb.setDoc(playerRef(state.myKey), doc, { merge: true })
+      .then(function () { return measureClockOffset(state.myKey); })
+      .then(function () {
+        setupStatus('ok', '✅ دخلت الفعالية');
+        attachPlayerListener();
+        attachBoardListener();
+        registerChat();
+        show('bridge-lobby');
+      })
+      .catch(function (err) { setupStatus('err', '⚠️ تعذّر الدخول: ' + err.message); });
+  }
+
+  function brgLeaveEvent() {
+    stopTick();
+    unregisterChat();
+    if (state.unsubMe) { state.unsubMe(); state.unsubMe = null; }
+    if (state.unsubBoard) { state.unsubBoard(); state.unsubBoard = null; }
+    state.sim = false;
+    state.me = null;
+    show('home');
+  }
+
+  // ================= المستمعون =================
+  // مستند الفعالية — مستند واحد معروف المسار يشترك فيه الجميع، فتصل الجولة
+  // ونهاية التصويت لكل الـ٣٠٠ باللحظة نفسها.
+  function attachEventListener() {
+    if (!fb || state.unsubEvent) return;
+    state.unsubEvent = fb.onSnapshot(fb.doc(fb.db, 'bridgeEvents', 'current'), function (snap) {
+      if (!snap.exists()) { state.eventId = null; return; }
+      var ptr = snap.data();
+      if (!ptr.eventId) { state.eventId = null; return; }
+      if (state.eventId !== ptr.eventId) {
+        state.eventId = ptr.eventId;
+        attachLiveEventListener();
+      }
+    }, function () {});
+  }
+
+  var unsubLive = null;
+  function attachLiveEventListener() {
+    if (unsubLive) { unsubLive(); unsubLive = null; }
+    if (!state.eventId) return;
+    unsubLive = fb.onSnapshot(evRef(), function (snap) {
+      if (!snap.exists()) return;
+      onEventUpdate(snap.data());
+    }, function () {});
+  }
+
+  function onEventUpdate(ev) {
+    var prevRound = state.event && state.event.round ? state.event.round.no : -1;
+    var prevStatus = state.event ? state.event.status : null;
+    state.event = ev;
+
+    // فتح لوحة الإعداد تلقائياً لكل الستريمرز عند تفعيل المالك للفعالية
+    if (ev.status === 'lobby' && !state.me && document.getElementById('pg-bridge-setup')) {
+      var active = document.querySelector('.page.active');
+      if (active && active.id === 'pg-home' && !state.sim) {
+        // لا ننقل الستريمر قسراً — نعرض له تنبيهاً بزر
+        brgShowInvite();
+      }
+    }
+
+    if (ev.status === 'running' && prevStatus !== 'running') {
+      if (state.me) show('bridge-round');
+    }
+    if (ev.status === 'ended' && prevStatus === 'running') {
+      stopTick();
+      if (ev.winnerName) showWin(ev.winnerName);
+    }
+
+    if (ev.round && ev.round.no !== prevRound && ev.status === 'running') {
+      onNewRound(ev.round);
+    }
+    if (isRoundPage()) { renderAll(); }
+    // المالك: يدير الجولة التالية
+    if (state.isOwner && !state.sim) ownerConductorTick();
+  }
+
+  function onNewRound(round) {
+    state.votes = {};
+    state.voteCounts = [0, 0, 0, 0];
+    state.phase = 'question';
+    state.lastMove = 0;
+    var qEl = document.getElementById('brg-question');
+    if (qEl) qEl.classList.remove('dim');
+    renderAll();
+    startTick();
+  }
+
+  function attachPlayerListener() {
+    if (state.sim || !fb || !state.myKey) return;
+    if (state.unsubMe) { state.unsubMe(); state.unsubMe = null; }
+    state.unsubMe = fb.onSnapshot(playerRef(state.myKey), function (snap) {
+      if (!snap.exists()) return;
+      var d = snap.data();
+      if (d.kicked) { toastSafe('⛔ أخرجك المالك من الفعالية'); brgLeaveEvent(); return; }
+      var incoming = d.pendingFx || [];
+      // ادمج حالة الخادم مع المحلية (المحلية أحدث أثناء الحركة)
+      state.me = Object.assign({}, d, state.me && state.me.lastRound >= d.lastRound ? {
+        pos: state.me.pos, broken: state.me.broken, streak: state.me.streak,
+        fx: state.me.fx, points: state.me.points, lastRound: state.me.lastRound
+      } : {});
+      state.me.name = d.name; state.me.avatar = d.avatar; state.me.key = d.key;
+      if (incoming.length) { state.me.pendingFx = incoming; drainIncomingFx(d); }
+      // بطاقة منحها المالك يدوياً من لوحته — تُكشف وتُفعّل فوراً كأي بطاقة.
+      if (d.grantedCard) checkGrantedCard(d);
+      if (isRoundPage()) renderAll();
+      if (isLobbyPage()) renderLobbyMe();
+    }, function () {});
+  }
+
+  // لوحة المتصدرين: مستند واحد مجمَّع يكتبه المالك — بدل اشتراك ٣٠٠ عميل
+  // بـ٣٠٠ مستند (٩٠ ألف قراءة كل جولة).
+  function attachBoardListener() {
+    if (state.sim || !fb) return;
+    if (state.unsubBoard) { state.unsubBoard(); state.unsubBoard = null; }
+    state.unsubBoard = fb.onSnapshot(boardRef(), function (snap) {
+      if (!snap.exists()) return;
+      state.board = (snap.data().rows) || [];
+      if (isRoundPage()) renderBoard();
+      if (isLobbyPage()) renderLobbyList();
+    }, function () {});
+  }
+
+  function isRoundPage() {
+    var a = document.querySelector('.page.active');
+    return !!(a && a.id === 'pg-bridge-round');
+  }
+  function isLobbyPage() {
+    var a = document.querySelector('.page.active');
+    return !!(a && a.id === 'pg-bridge-lobby');
+  }
+
+  // ================= قراءة الشات (نفس مسار المنصة تماماً) =================
+  var chatRegistered = false;
+  function registerChat() {
+    if (chatRegistered) return;
+    if (typeof homeRegisterGameListener === 'function') {
+      homeRegisterGameListener(TAG, brgHandleEvent);
+      chatRegistered = true;
+    }
+  }
+  function unregisterChat() {
+    if (!chatRegistered) return;
+    if (typeof homeUnregisterGameListener === 'function') homeUnregisterGameListener(TAG);
+    chatRegistered = false;
+  }
+
+  // يستقبل نفس شكل الحدث الذي تنتجه dispatch() ويمرّ منه كل ألعاب الموقع.
+  function brgHandleEvent(data) {
+    var messages = (data && data.messages) || (data && data.type ? [data] : []);
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+      var type = msg.type || msg.event;
+      if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') continue;
+      var user = (typeof extractUser === 'function') ? extractUser(msg) : { uniqueId: msg.userId || '?', nickname: msg.nickname || '?' };
+      var text = String(msg.comment || msg.content || (msg.data && msg.data.comment) || '').trim();
+      if (!text) continue;
+      // الكلمة المفتاحية تفتح باب المشاركة لهذا المشاهد
+      if (state.keyword && !state.joinedViewers[user.uniqueId]) {
+        if (text.toLowerCase().indexOf(state.keyword.toLowerCase()) > -1) {
+          state.joinedViewers[user.uniqueId] = true;
+          continue;
+        }
+      }
+      recordVote(user.uniqueId, text);
+    }
+  }
+
+
+  // ================= غرفة الانتظار =================
+  function renderLobbyList() {
+    var host = document.getElementById('brg-lobby-list');
+    var cnt = document.getElementById('brg-lobby-count');
+    if (!host) return;
+    var rows = state.board || [];
+    if (cnt) cnt.textContent = rows.length;
+    host.innerHTML = rows.map(function (r) {
+      var av = r.avatar ? '<img src="' + esc(r.avatar) + '" alt="">' : esc((r.name || '?').charAt(0));
+      return '<div class="brg-lobby-card"><div class="brg-lobby-av">' + av + '</div>'
+        + '<div style="flex:1;min-width:0"><div class="brg-lobby-name">' + esc(r.name) + '</div>'
+        + '<div class="brg-lobby-plat">@' + esc(r.platformUser || '—') + '</div></div></div>';
+    }).join('') || '<div class="owner-empty">لا أحد دخل بعد</div>';
+  }
+
+  function renderLobbyMe() {
+    var el = document.getElementById('brg-lobby-me');
+    if (!el || !state.me) return;
+    el.style.display = '';
+    el.innerHTML = '<div class="brg-lobby-av">' + esc((state.me.name || '?').charAt(0)) + '</div>'
+      + '<div style="flex:1"><div class="brg-lobby-name">' + esc(state.me.name) + ' — أنت</div>'
+      + '<div class="brg-lobby-plat">@' + esc(state.me.platformUser || '') + ' · الكلمة: ' + esc(state.me.keyword || '') + '</div></div>';
+  }
+
+  function brgShowInvite() {
+    if (document.getElementById('brg-invite-toast')) return;
+    if (typeof toast !== 'function') return;
+    toast('🌉 فعالية جسر المصير فتحت — ادخل من مكتبة الألعاب');
+  }
+
+  // ================= لوحة المالك — قائد الجولة =================
+  var ownerBooted = false;
+  var conductorBusy = false;
+  var conductorTimer = null;
+
+  function brgOwnerBoot() {
+    if (typeof isOwnerAccount !== 'function' || !isOwnerAccount()) return;
+    // ارسم اللوحة (قائمة البطاقات + الحالة) دائماً — حتى قبل جهوز Firebase،
+    // حتى يشتغل زر «التجربة» ويظهر اختيار البطاقات بلا انتظار الشبكة.
+    brgOwnerRender();
+    if (!fb) return;
+    state.isOwner = true;
+    if (ownerBooted) return;
+    ownerBooted = true;
+    attachEventListener();
+    // يراقب كل اللاعبين — المالك وحده يفعل هذا (لبناء المستند المجمَّع
+    // ولوحة المراقبة)، فلا يتحمّل الـ٣٠٠ عميل تكلفة الاشتراك بالجميع.
+    setInterval(function () { if (state.eventId && state.isOwner) ownerAttachPlayers(); }, 4000);
+  }
+
+  function ownerAttachPlayers() {
+    if (state.unsubOwnerPlayers || !state.eventId) return;
+    state.unsubOwnerPlayers = fb.onSnapshot(
+      fb.collection(fb.db, 'bridgeEvents', state.eventId, 'players'),
+      function (snap) {
+        state.ownerPlayers = {};
+        snap.forEach(function (d) { state.ownerPlayers[d.id] = d.data(); });
+        ownerPublishBoard();
+        brgOwnerRender();
+      }, function () {}
+    );
+  }
+
+  // يجمّع أعلى ٢٠ ويكتبها في مستند واحد يقرؤه الجميع.
+  function ownerPublishBoard() {
+    if (!state.eventId) return;
+    var rows = Object.keys(state.ownerPlayers).map(function (k) {
+      var p = state.ownerPlayers[k];
+      return {
+        key: k, name: p.name || '—', avatar: p.avatar || '',
+        platformUser: p.platformUser || '', pos: p.pos || 0,
+        move: p.lastMove || 0, cardCode: p.heldCard || null, points: p.points || 0
+      };
+    }).filter(function (r) { return !state.ownerPlayers[r.key].kicked; })
+      .sort(function (a, b) { return (b.pos - a.pos) || (b.points - a.points); })
+      .slice(0, 20);
+    fb.setDoc(boardRef(), { rows: rows, updatedAt: fb.serverTimestamp() }, { merge: true }).catch(function () {});
+    fb.updateDoc(evRef(), { playerCount: Object.keys(state.ownerPlayers).length }).catch(function () {});
+  }
+
+  // يدفع الجولة التالية عندما تنتهي مهلة الجولة الحالية + زمن الحركة.
+  function ownerConductorTick() {
+    var ev = state.event;
+    if (!ev || ev.status !== 'running' || conductorBusy) return;
+    var round = ev.round || {};
+    var dur = ((ev.settings && ev.settings.roundDuration) || DEFAULT_DURATION) * 1000;
+    var settle = 4200;   // زمن الكشف + الحركة + كشف البطاقة
+    var due = (round.startAtMs || 0) + dur + settle;
+    if (serverNow() < due) {
+      // مؤقّت واحد فقط: onEventUpdate تُنادى مع كل لقطة، فبدون هذا الحارس
+      // تتراكم عشرات المؤقّتات وتدفع كلها الجولة التالية دفعة واحدة.
+      if (conductorTimer) clearTimeout(conductorTimer);
+      conductorTimer = setTimeout(function () {
+        conductorTimer = null;
+        if (state.isOwner) ownerConductorTick();
+      }, Math.max(400, due - serverNow()));
+      return;
+    }
+    // هل وصل أحد الجزيرة؟
+    var winner = null;
+    Object.keys(state.ownerPlayers).forEach(function (k) {
+      var p = state.ownerPlayers[k];
+      if (p.finished && !p.kicked && (!winner || (p.finishedAtMs || 0) < (winner.finishedAtMs || 0))) winner = p;
+    });
+    var maxRounds = (ev.settings && ev.settings.maxRounds) || 30;
+    if (winner || round.no >= maxRounds) {
+      conductorBusy = true;
+      fb.updateDoc(evRef(), {
+        status: 'ended', endedAt: fb.serverTimestamp(),
+        winnerName: winner ? winner.name : topName(), winnerKey: winner ? winner.key : null
+      }).then(function () { conductorBusy = false; }).catch(function () { conductorBusy = false; });
+      return;
+    }
+    conductorBusy = true;
+    ownerPushRound(round.no + 1).then(function () { conductorBusy = false; })
+      .catch(function () { conductorBusy = false; });
+  }
+
+  function topName() {
+    var rows = (state.board || []);
+    return rows.length ? rows[0].name : '—';
+  }
+
+  function ownerPushRound(no) {
+    var ev = state.event || {};
+    var used = (ev.usedQids || []).slice();
+    var maxRounds = (ev.settings && ev.settings.maxRounds) || 30;
+    var q = pickQuestion(no, used, maxRounds);
+    if (!q) return Promise.reject(new Error('بنك الأسئلة غير متاح'));
+    used.push(q.qid);
+    if (used.length > 400) used = used.slice(-400);
+    // globalFx: يطبّق المالك آثار البطاقات العامة (عاصفة) قبل الجولة التالية
+    var pending = (ev.globalFx || []);
+    var jobs = [];
+    if (pending.length) jobs.push(ownerApplyGlobalFx(pending));
+    return Promise.all(jobs).then(function () {
+      return fb.updateDoc(evRef(), {
+        round: {
+          no: no, qid: q.qid, question: q.question, options: q.options,
+          correctIndex: q.correctIndex, startAtMs: serverNow() + 1200, phase: 'question'
+        },
+        usedQids: used,
+        globalFx: []
+      });
+    });
+  }
+
+  // عاصفة — خلط مواقع أعلى ٢٠. ينفّذها المالك لأنها تمسّ عدة لاعبين.
+  function ownerApplyGlobalFx(list) {
+    var hasStorm = list.some(function (x) { return x.kind === 'storm'; });
+    if (!hasStorm) return Promise.resolve();
+    var keys = Object.keys(state.ownerPlayers)
+      .filter(function (k) { return !state.ownerPlayers[k].kicked; })
+      .sort(function (a, b) { return (state.ownerPlayers[b].pos || 0) - (state.ownerPlayers[a].pos || 0); })
+      .slice(0, 20);
+    var positions = keys.map(function (k) { return state.ownerPlayers[k].pos || 0; });
+    for (var i = positions.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = positions[i]; positions[i] = positions[j]; positions[j] = t;
+    }
+    return Promise.all(keys.map(function (k, i) {
+      return fb.updateDoc(playerRef(k), { pos: positions[i] }).catch(function () {});
+    }));
+  }
+
+  // ---- أفعال المالك ----
+  function brgOwnerCreate() {
+    if (!isOwnerAccount()) return;
+    var eventId = 'bridge_' + Date.now();
+    var st = document.getElementById('brg-owner-status');
+    ownerStatus('load', '⏳ جارِ إنشاء الفعالية...');
+    fb.setDoc(fb.doc(fb.db, 'bridgeEvents', eventId), {
+      type: 'bridgeFate', status: 'lobby', title: 'جسر المصير',
+      settings: {
+        roundDuration: parseInt(document.getElementById('brg-set-duration').value, 10) || DEFAULT_DURATION,
+        maxRounds: parseInt(document.getElementById('brg-set-rounds').value, 10) || 30,
+        totalPlanks: TOTAL
+      },
+      round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 },
+      usedQids: [], globalFx: [], playerCount: 0,
+      createdAt: fb.serverTimestamp(), createdByUid: currentUser.uid,
+      endedAt: null, winnerName: null, winnerKey: null
+    }).then(function () {
+      // مؤشّر ثابت المسار — كل الستريمرز يشتركون به بدل استعلام على التجميعة
+      return fb.setDoc(fb.doc(fb.db, 'bridgeEvents', 'current'), {
+        eventId: eventId, status: 'lobby', updatedAt: fb.serverTimestamp()
+      });
+    }).then(function () {
+      state.eventId = eventId;
+      attachLiveEventListener();
+      ownerAttachPlayers();
+      ownerStatus('ok', '✅ الفعالية مفتوحة — لوحة الإعداد ظهرت للستريمرز');
+      toastSafe('🌉 فتحت فعالية جسر المصير');
+    }).catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function brgOwnerStart() {
+    if (!isOwnerAccount() || !state.eventId) return;
+    ownerStatus('load', '⏳ جارِ البدء...');
+    fb.updateDoc(evRef(), { status: 'running', startedAt: fb.serverTimestamp() })
+      .then(function () { return ownerPushRound(1); })
+      .then(function () {
+        fb.setDoc(fb.doc(fb.db, 'bridgeEvents', 'current'), { status: 'running' }, { merge: true });
+        ownerStatus('ok', '🚀 بدأت الفعالية عند الجميع باللحظة نفسها');
+      })
+      .catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function brgOwnerEnd() {
+    if (!isOwnerAccount() || !state.eventId) return;
+    fb.updateDoc(evRef(), { status: 'ended', endedAt: fb.serverTimestamp(), winnerName: topName() })
+      .then(function () {
+        return fb.setDoc(fb.doc(fb.db, 'bridgeEvents', 'current'), { eventId: null, status: 'ended' }, { merge: true });
+      })
+      .then(function () { ownerStatus('ok', '⛔ أُنهيت الفعالية'); })
+      .catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function brgOwnerSaveSettings() {
+    if (!isOwnerAccount() || !state.eventId) return;
+    var d = parseInt(document.getElementById('brg-set-duration').value, 10) || DEFAULT_DURATION;
+    var r = parseInt(document.getElementById('brg-set-rounds').value, 10) || 30;
+    fb.updateDoc(evRef(), { 'settings.roundDuration': Math.max(4, Math.min(60, d)), 'settings.maxRounds': Math.max(1, Math.min(200, r)) })
+      .then(function () { ownerStatus('ok', '💾 حُفظت الإعدادات — تُطبَّق من الجولة القادمة'); })
+      .catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function brgOwnerGiveCard() {
+    if (!isOwnerAccount() || !state.eventId) return;
+    var key = document.getElementById('brg-give-player').value;
+    var code = document.getElementById('brg-give-card').value;
+    if (!key || !code) { ownerStatus('err', '⚠️ اختر ستريمر وبطاقة'); return; }
+    var card = cardByCode(code);
+    var p = state.ownerPlayers[key];
+    if (!card || !p) return;
+    // نمنح البطاقة عبر طابور pendingFx بصيغة "بطاقة ممنوحة من المالك"
+    fb.updateDoc(playerRef(key), { grantedCard: code, grantedAt: fb.serverTimestamp() })
+      .then(function () { ownerStatus('ok', '🎴 أعطيت «' + card[1] + '» إلى ' + (p.name || key)); })
+      .catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function brgOwnerKick(key) {
+    if (!isOwnerAccount() || !state.eventId) return;
+    fb.updateDoc(playerRef(key), { kicked: true }).then(function () {
+      ownerStatus('ok', '⛔ أُخرج الستريمر من الفعالية');
+    }).catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
+  }
+
+  function ownerStatus(kind, msg) {
+    var el = document.getElementById('brg-owner-status');
+    if (!el) return;
+    el.className = 'status-msg' + (kind ? ' ' + kind : '');
+    el.textContent = msg;
+    el.style.display = msg ? '' : 'none';
+  }
+
+  function brgOwnerRender() {
+    var ev = state.event;
+    var badge = document.getElementById('brg-owner-state');
+    if (badge) {
+      var label = !state.eventId ? 'ما فيه فعالية' :
+        (ev && ev.status === 'lobby') ? 'مفتوحة — بانتظار البدء' :
+        (ev && ev.status === 'running') ? ('شغّالة — جولة ' + (ev.round ? ev.round.no : 0)) :
+        (ev && ev.status === 'ended') ? 'منتهية' : '—';
+      badge.textContent = label;
+    }
+    var list = document.getElementById('brg-owner-players');
+    if (list) {
+      var keys = Object.keys(state.ownerPlayers).sort(function (a, b) {
+        return (state.ownerPlayers[b].pos || 0) - (state.ownerPlayers[a].pos || 0);
+      });
+      list.innerHTML = keys.map(function (k, i) {
+        var p = state.ownerPlayers[k];
+        var card = p.heldCard ? cardByCode(p.heldCard) : null;
+        var stale = p.lastSeen && p.lastSeen.toMillis ? (Date.now() - p.lastSeen.toMillis() > 45000) : false;
+        return '<div class="brg-owner-row"' + (p.kicked ? ' style="opacity:.45"' : '') + '>'
+          + '<div class="pos">' + (i + 1) + '</div>'
+          + '<div style="flex:1;min-width:0"><div class="brg-lobby-name">' + esc(p.name || k) + '</div>'
+          + '<div class="brg-lobby-plat">@' + esc(p.platformUser || '') + ' · لوح ' + (p.pos || 0)
+          + (card ? ' · 🎴 ' + esc(card[1]) : '') + (stale ? ' · ⚠️ غير متصل' : '') + '</div></div>'
+          + (p.kicked ? '<span style="font-size:12px;color:var(--red)">مطرود</span>'
+            : '<button type="button" class="home-lib-filter" onclick="brgOwnerKick(\'' + esc(k) + '\')">طرد</button>')
+          + '</div>';
+      }).join('') || '<div class="owner-empty">ما دخل أحد بعد</div>';
+    }
+    var sel = document.getElementById('brg-give-player');
+    if (sel) {
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">— اختر ستريمر —</option>' + Object.keys(state.ownerPlayers).map(function (k) {
+        return '<option value="' + esc(k) + '">' + esc(state.ownerPlayers[k].name || k) + '</option>';
+      }).join('');
+      if (cur) sel.value = cur;
+    }
+    var csel = document.getElementById('brg-give-card');
+    if (csel && !csel.dataset.built) {
+      csel.dataset.built = '1';
+      csel.innerHTML = '<option value="">— اختر بطاقة —</option>' + DECK.map(function (c) {
+        return '<option value="' + c[4] + '">' + CATS[c[0]].label + ' · ' + c[1] + '</option>';
+      }).join('');
+    }
+  }
+
+  // البطاقة الممنوحة يدوياً من المالك تصل عبر حقل grantedCard بمستند اللاعب.
+  function checkGrantedCard(d) {
+    if (!d.grantedCard) return;
+    var code = d.grantedCard;
+    fb.updateDoc(playerRef(state.myKey), { grantedCard: null }).catch(function () {});
+    grantRandomCard(code);
+  }
+
+
+  // ================= وضع التجربة (خاص بالمالك وحده) =================
+  // يشغّل الفعالية كاملة داخل متصفح المالك فقط: لا يكتب أي شيء في Firestore،
+  // ولا يراه أي ستريمر آخر، ولا يمسّ أي فعالية حقيقية. جمهور وهمي يصوّت
+  // بالأرقام تلقائياً عبر نفس دالة الشات الحقيقية (brgHandleEvent) — فما
+  // نختبره هنا هو نفس المسار الذي تمرّ منه تعليقات البث الفعلية.
+  var simTimer = null;
+  var simRoundNo = 0;
+  var simUsed = [];
+  var simBots = [];
+  var simAccuracy = 0.62;
+
+  function brgSimStart() {
+    if (typeof isOwnerAccount !== 'function' || !isOwnerAccount()) {
+      toastSafe('⛔ زر التجربة للمالك فقط');
+      return;
+    }
+    brgSimStop();
+    state.sim = true;
+    state.isOwner = false;              // لا يشغّل قائد الجولة الحقيقي
+    state.myKey = 'sim_me';
+    state.clockOffset = 0;
+    state.stage = { built: 0, broken: 0, bestStreak: 0 };
+    simRoundNo = 0; simUsed = [];
+    simAccuracy = (parseInt((document.getElementById('brg-sim-acc') || {}).value, 10) || 62) / 100;
+
+    state.me = {
+      key: 'sim_me', name: (currentUsername || 'أنت') + ' · تجربة',
+      avatar: '', platformUser: 'sim', keyword: 'تجربة',
+      pos: 0, streak: 0, broken: [], points: 0, fx: {}, heldCard: null,
+      pendingFx: [], lastMove: 0, lastRound: -1, finished: false,
+      stats: { built: 0, broken: 0, bestStreak: 0 }
+    };
+    // ستريمرز وهميون للوحة المتصدرين
+    var names = ['ريان_لايف','نورة_تيفي','فيصل_برو','لمى_بلس','سلطان_ون','دانة_ماكس','مشعل_برايم','هيا_ستار','تركي_لايف','جواهر_برو','بدر_ون','شهد_ماكس'];
+    simBots = names.map(function (n, i) {
+      return { key: 'sim_' + i, name: n, avatar: '', pos: Math.max(0, 6 - Math.floor(i / 2)), move: 0, cardCode: null, points: 0 };
+    });
+
+    var count = Math.max(1, Math.min(500, parseInt((document.getElementById('brg-sim-viewers') || {}).value, 10) || 40));
+    state.simViewers = count;
+
+    state.event = {
+      status: 'running', playerCount: simBots.length + 1,
+      settings: { roundDuration: parseInt((document.getElementById('brg-set-duration') || {}).value, 10) || DEFAULT_DURATION, maxRounds: 30, totalPlanks: TOTAL },
+      round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 },
+      usedQids: []
+    };
+    try { if (typeof ownerCloseModal === 'function') ownerCloseModal(); } catch (e) {}
+    show('bridge-round');
+    simNextRound();
+    toastSafe('🧪 بدأ وضع التجربة — لا يراه أحد غيرك');
+  }
+
+  function brgSimStop() {
+    if (simTimer) { clearTimeout(simTimer); simTimer = null; }
+    stopTick();
+    state.sim = false;
+  }
+
+  function simNextRound() {
+    if (!state.sim) return;
+    // انتهت التجربة؟
+    if (state.me.finished) { showWin(state.me.name); return; }
+    if (simRoundNo >= 30) { showWin(simBoardRows()[0].name); return; }
+    simRoundNo++;
+    var q = pickQuestion(simRoundNo, simUsed, 30);
+    if (!q) { toastSafe('⚠️ بنك الأسئلة غير متاح'); return; }
+    simUsed.push(q.qid);
+    state.event.round = {
+      no: simRoundNo, qid: q.qid, question: q.question, options: q.options,
+      correctIndex: q.correctIndex, startAtMs: Date.now() + 600, phase: 'question'
+    };
+    simUpdateBoard();
+    onNewRound(state.event.round);
+    simFeedVotes();
+    // بعد انتهاء الجولة + زمن الحركة والبطاقة، ادفع الجولة التالية
+    var dur = myDuration() * 1000;
+    simTimer = setTimeout(function () {
+      simMoveBots();
+      simUpdateBoard();
+      simNextRound();
+    }, 600 + dur + 5200);
+  }
+
+  // جمهور وهمي يكتب أرقاماً في الشات عبر نفس مسار الحدث الحقيقي.
+  function simFeedVotes() {
+    var n = state.simViewers || 40;
+    var correct = state.event.round.correctIndex;
+    var delay = 900;
+    for (var i = 0; i < n; i++) {
+      (function (idx) {
+        var t = delay + Math.random() * (myDuration() * 1000 - 1800);
+        setTimeout(function () {
+          if (!state.sim || state.phase !== 'question') return;
+          var pick = Math.random() < simAccuracy ? correct : Math.floor(Math.random() * 4);
+          brgHandleEvent({
+            messages: [{
+              type: 'chat',
+              comment: String(pick + 1),
+              user: { uniqueId: 'simv_' + idx, nickname: 'مشاهد' + idx, avatarThumb: { urlList: [] } },
+              userId: 'simv_' + idx, nickname: 'مشاهد' + idx
+            }]
+          });
+        }, t);
+      })(i);
+    }
+  }
+
+  function simMoveBots() {
+    simBots.forEach(function (b) {
+      var r = Math.random();
+      var m = r < 0.5 ? 1 : r < 0.8 ? 0 : -1;
+      b.pos = Math.max(0, Math.min(TOTAL, b.pos + m));
+      b.move = m;
+    });
+  }
+
+  function simBoardRows() {
+    var rows = simBots.map(function (b) {
+      return { key: b.key, name: b.name, avatar: '', pos: b.pos, move: b.move, cardCode: b.cardCode, points: b.points };
+    });
+    rows.push({
+      key: 'sim_me', name: state.me.name, avatar: state.me.avatar || '',
+      pos: state.me.pos, move: state.me.lastMove, cardCode: state.me.heldCard, points: state.me.points
+    });
+    return rows.sort(function (a, b) { return b.pos - a.pos; });
+  }
+
+  function simUpdateBoard() {
+    state.board = simBoardRows();
+    if (isRoundPage()) renderBoard();
+  }
+
+  // ================= الإقلاع والتصدير =================
+  function brgBootPage() {
+    buildSky();
+    fitStage();
+    renderAll();
+  }
+
+  window.addEventListener('resize', function () { if (isRoundPage()) fitStage(); });
+
+  // يشترك بمؤشّر الفعالية لكل مستخدم مسجّل — مستند واحد ثابت المسار، خفيف
+  // جداً، ليعرف كل ستريمر أن فعالية فُتحت دون أي استعلام على تجميعة.
+  function brgBoot() {
+    if (!fb) return;
+    attachEventListener();
+    if (typeof isOwnerAccount === 'function' && isOwnerAccount()) brgOwnerBoot();
+  }
+
+  // نفس نمط بقية الألعاب: يُسجَّل بمحاكي المطوّر الموجود أصلاً.
+  if (typeof TST_GAME_REGISTRY === 'object' && TST_GAME_REGISTRY) {
+    TST_GAME_REGISTRY['bridge-round'] = {
+      pageId: 'bridge-round', participantsVar: null, joinFn: null,
+      handleFn: 'brgHandleEvent', name: 'جسر المصير'
+    };
+  }
+
+  // تصدير الدوال التي تناديها الواجهة
+  window.brgSetPlatform = brgSetPlatform;
+  window.brgSetupRender = brgSetupRender;
+  window.brgUnlinkAccount = brgUnlinkAccount;
+  window.brgJoinEvent = brgJoinEvent;
+  window.brgLeaveEvent = brgLeaveEvent;
+  window.brgHandleEvent = brgHandleEvent;
+  window.brgBootPage = brgBootPage;
+  window.brgBoot = brgBoot;
+  window.brgOwnerBoot = brgOwnerBoot;
+  window.brgOwnerCreate = brgOwnerCreate;
+  window.brgOwnerStart = brgOwnerStart;
+  window.brgOwnerEnd = brgOwnerEnd;
+  window.brgOwnerSaveSettings = brgOwnerSaveSettings;
+  window.brgOwnerGiveCard = brgOwnerGiveCard;
+  window.brgOwnerKick = brgOwnerKick;
+  window.brgSimStart = brgSimStart;
+  window.brgSimStop = brgSimStop;
+  window.brgRenderLobby = function () { renderLobbyList(); renderLobbyMe(); };
+  window.BridgeFate = { DECK: DECK, CATS: CATS, TOTAL: TOTAL, state: state, parseVote: parseVote, proj: proj, pickQuestion: pickQuestion };
+
+  if (window.fb || window.__fb) { /* fb يُملأ بـauthBoot */ }
+  window.addEventListener('fb-ready', function () { setTimeout(brgBoot, 800); });
+})();
+
+</script>
+<!-- END bridge-fate -->
 </body>
 </html>

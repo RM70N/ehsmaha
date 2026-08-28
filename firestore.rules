@@ -390,6 +390,46 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ===== جسر المصير =====
+    // bridgeEvents/current: مؤشّر ثابت المسار يعرف منه كل ستريمر أن فعالية
+    // فُتحت — مستند واحد بدل استعلام على التجميعة (نفس سبب مرآة
+    // streamerEventAnnouncements/current: صلاحية list محصورة بالمالك عادةً).
+    match /bridgeEvents/current {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /bridgeEvents/{eventId} {
+      allow read: if true;
+      // globalFx وحده مفتوح لأي حساب مسجّل (بطاقة "عاصفة" تُضاف للطابور
+      // بـarrayUnion وينفّذها المالك) — وما عداه للمالك حصراً.
+      allow create, delete: if isOwner();
+      allow update: if isOwner() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
+      );
+
+      // لوحة المتصدرين المجمَّعة — يكتبها المالك (قائد الجولة) ويقرؤها الجميع.
+      match /state/{docId} {
+        allow read: if request.auth != null;
+        allow write: if isOwner();
+      }
+
+      // مستند كل ستريمر: يكتبه صاحبه وحده، عدا حقل pendingFx الذي تضيف فيه
+      // بطاقات "على الخصم" أثرها (arrayUnion) — لذلك يُسمح لأي حساب مسجّل
+      // بتعديل pendingFx فقط لا غير، ولا يقدر يمسّ موقع أحد مباشرة.
+      match /players/{playerKey} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.auth.uid == playerKey;
+        allow update: if request.auth != null && (
+          request.auth.uid == playerKey ||
+          isOwner() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
+        );
+        allow delete: if isOwner();
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
