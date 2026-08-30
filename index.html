@@ -54221,6 +54221,20 @@ document.addEventListener('DOMContentLoaded', function () {
 .brg-streak-dot{flex:1;height:34px;border-radius:var(--brg-radius-md);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--brg-gray-500);background:rgba(255,255,255,.05);border:1px solid var(--brg-border);transition:all var(--brg-dur-flip) var(--brg-ease-out);}
 .brg-streak-dot.on{color:var(--brg-ink-900);background:linear-gradient(180deg,var(--gold-200),var(--harf-gold));border-color:var(--gold-100);box-shadow:var(--glow-gold-sm);}
 
+/* ---- شات البث الحي: يعرض تعليقات جمهورك لحظة وصولها (حقيقية أو محاكاة) ---- */
+.brg-chat{display:flex;flex-direction:column;gap:6px;max-height:270px;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;}
+.brg-chat::-webkit-scrollbar{width:5px;}
+.brg-chat::-webkit-scrollbar-thumb{background:rgba(201,168,76,.35);border-radius:3px;}
+.brg-chat-row{display:flex;align-items:flex-start;gap:7px;animation:brgFadeUp 260ms var(--brg-ease-out) both;}
+.brg-chat-av{width:22px;height:22px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0B0E1A;}
+.brg-chat-body{flex:1;min-width:0;line-height:1.35;}
+.brg-chat-name{font-size:11px;font-weight:800;color:var(--brg-gray-400);}
+.brg-chat-text{font-size:13px;color:#E8E4F2;word-break:break-word;}
+.brg-chat-row.vote .brg-chat-text{color:var(--gold-100);font-weight:800;}
+.brg-chat-row.join .brg-chat-text{color:#7BC49B;font-weight:700;}
+.brg-chat-empty{font-size:12px;color:var(--brg-gray-500);text-align:center;padding:14px 0;}
+.brg-viewers-pill{font-size:11px;font-weight:800;color:var(--harf-gold);background:rgba(201,168,76,.12);border:1px solid var(--brg-border);border-radius:var(--brg-pill);padding:2px 9px;}
+
 /* ---- لوحة السؤال ---- */
 .brg-question{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:980px;padding:14px 22px;border-radius:var(--brg-radius-xl);z-index:52;background:linear-gradient(180deg,rgba(15,19,36,.95),rgba(6,8,18,.96));border:1px solid var(--brg-border);box-shadow:var(--brg-shadow-lg),0 0 60px rgba(201,168,76,.10);backdrop-filter:blur(10px);transition:opacity var(--brg-dur-base) var(--brg-ease-out);font-family:var(--brg-font-ui);}
 .brg-question.urgent{border-color:rgba(224,86,74,.5);animation:brgShakeSoft 420ms var(--brg-ease-in-out) infinite;}
@@ -54261,7 +54275,10 @@ document.addEventListener('DOMContentLoaded', function () {
 .brg-move-sub{font-size:19px;color:var(--brg-gray-300);}
 
 /* ---- كشف البطاقة ---- */
-.brg-card-overlay{position:absolute;inset:0;z-index:14;background:rgba(5,6,14,.8);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;font-family:var(--brg-font-ui);}
+/* z-index أعلى من لوحة السؤال (52): بالتصميم الأصلي كانت شاشتا البطاقة والفوز
+   «عرضين» مستقلين يحلّان محل المسرح، أما هنا فهما طبقتان فوقه — فبقيمتيهما
+   الأصليتين (14 و16) كانت لوحة السؤال تطفو فوقهما وتقطع المشهد. */
+.brg-card-overlay{position:absolute;inset:0;z-index:70;background:rgba(5,6,14,.8);backdrop-filter:blur(6px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;font-family:var(--brg-font-ui);}
 .brg-card-kicker{font-size:18px;color:var(--brg-gray-300);letter-spacing:.14em;animation:brgFadeUp 300ms var(--brg-ease-out) both;}
 .brg-card-halo{position:absolute;width:620px;height:620px;border-radius:50%;animation:brgHaloGrow 1.3s var(--brg-ease-out) both,brgGlowBreath 2.6s 1.3s ease-in-out infinite;}
 .brg-card-face{position:relative;width:460px;min-height:520px;padding:30px;border-radius:26px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;animation:brgCardIn 840ms var(--brg-ease-out) both;transform-style:preserve-3d;}
@@ -54272,7 +54289,7 @@ document.addEventListener('DOMContentLoaded', function () {
 .brg-card-foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding-top:14px;border-top:1px solid rgba(255,255,255,.12);}
 
 /* ---- مشهد الفوز ---- */
-.brg-win{position:absolute;inset:0;z-index:16;overflow:hidden;background:radial-gradient(70% 60% at 50% 42%,rgba(201,168,76,.3),rgba(6,8,18,.94) 68%);font-family:var(--brg-font-ui);}
+.brg-win{position:absolute;inset:0;z-index:80;overflow:hidden;background:radial-gradient(70% 60% at 50% 42%,rgba(201,168,76,.3),rgba(6,8,18,.94) 68%);font-family:var(--brg-font-ui);}
 .brg-win-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
 .brg-win-kicker{font-size:20px;color:var(--brg-gray-300);letter-spacing:.2em;animation:brgWinRise 500ms var(--brg-ease-out) both;}
 .brg-win-name{font-family:var(--brg-font-display);font-size:124px;line-height:1.05;color:var(--gold-100);text-shadow:0 0 90px rgba(201,168,76,.65);animation:brgWinRise 700ms 100ms var(--brg-ease-out) both;}
@@ -54437,6 +54454,13 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="brg-panel" id="brg-cards-panel" style="display:none;">
           <div class="brg-panel-label" style="margin:0 0 8px;">تأثيرات نشطة</div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;" id="brg-active-fx"></div>
+        </div>
+        <div class="brg-panel">
+          <div class="brg-panel-label" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>شات بثك</span>
+            <span class="brg-viewers-pill" id="brg-viewers-pill">٠ متفاعل</span>
+          </div>
+          <div class="brg-chat" id="brg-chat"><div class="brg-chat-empty">بانتظار تعليقات جمهورك…</div></div>
         </div>
       </div>
 
@@ -55166,6 +55190,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderAll() {
     renderBridge(); renderQuestion(); renderVotes();
     renderStreak(); renderActiveFx(); renderBoard(); renderHud();
+    brgUpdateViewersPill();
   }
 
 
@@ -55483,6 +55508,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var keyword = (document.getElementById('brg-keyword').value || '').trim();
     if (!username) { setupStatus('err', '⚠️ اكتب يوزر حسابك على المنصة'); return; }
     if (!keyword) { setupStatus('err', '⚠️ اكتب الكلمة المفتاحية'); return; }
+    // وضع التجربة: نفس الرحلة بالضبط لكن بلا Firestore ولا فعالية حقيقية
+    if (state.sim) { setupStatus('ok', '🧪 دخلت غرفة الانتظار (تجربة)'); simEnterLobby(username, keyword); return; }
     if (!fb || !currentUser) { setupStatus('err', '⚠️ لازم تسجّل دخول أولاً'); return; }
     if (!state.eventId) { setupStatus('err', '⚠️ ما فيه فعالية مفتوحة الآن'); return; }
 
@@ -55516,12 +55543,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function brgLeaveEvent() {
-    stopTick();
+    brgSimStop();          // يوقف مؤقّتات التجربة كلها (لوبي + مشاهدين + جولات)
     unregisterChat();
     if (state.unsubMe) { state.unsubMe(); state.unsubMe = null; }
     if (state.unsubBoard) { state.unsubBoard(); state.unsubBoard = null; }
-    state.sim = false;
     state.me = null;
+    state.joinedViewers = {};
+    brgClearChat();
     show('home');
   }
 
@@ -55651,6 +55679,40 @@ document.addEventListener('DOMContentLoaded', function () {
     chatRegistered = false;
   }
 
+  // ---- شات البث: يعرض التعليقات لحظة وصولها، بنفس ألوان أفتارات الموقع ----
+  var chatCount = 0;
+  function brgChatColor(id) {
+    var h = 0, s = String(id);
+    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+    return 'hsl(' + h + ',62%,68%)';
+  }
+  function brgAddChatMsg(user, text, kind) {
+    var host = document.getElementById('brg-chat');
+    if (!host) return;
+    var empty = host.querySelector('.brg-chat-empty');
+    if (empty) empty.remove();
+    var name = user.nickname || user.uniqueId || '؟';
+    var row = document.createElement('div');
+    row.className = 'brg-chat-row' + (kind ? ' ' + kind : '');
+    row.innerHTML = '<div class="brg-chat-av" style="background:' + brgChatColor(user.uniqueId || name) + '">'
+      + esc(String(name).trim().charAt(0) || '؟') + '</div>'
+      + '<div class="brg-chat-body"><div class="brg-chat-name">' + esc(name) + '</div>'
+      + '<div class="brg-chat-text">' + esc(text) + '</div></div>';
+    host.appendChild(row);
+    // سقف 60 رسالة: مع مئات المشاهدين تتضخّم الـDOM وتثقّل الرسم بلا فائدة.
+    while (host.children.length > 60) host.removeChild(host.firstChild);
+    host.scrollTop = host.scrollHeight;
+  }
+  function brgUpdateViewersPill() {
+    var pill = document.getElementById('brg-viewers-pill');
+    if (pill) pill.textContent = ar(Object.keys(state.joinedViewers).length) + ' متفاعل';
+  }
+  function brgClearChat() {
+    var host = document.getElementById('brg-chat');
+    if (host) host.innerHTML = '<div class="brg-chat-empty">بانتظار تعليقات جمهورك…</div>';
+    chatCount = 0;
+  }
+
   // يستقبل نفس شكل الحدث الذي تنتجه dispatch() ويمرّ منه كل ألعاب الموقع.
   function brgHandleEvent(data) {
     var messages = (data && data.messages) || (data && data.type ? [data] : []);
@@ -55665,10 +55727,15 @@ document.addEventListener('DOMContentLoaded', function () {
       if (state.keyword && !state.joinedViewers[user.uniqueId]) {
         if (text.toLowerCase().indexOf(state.keyword.toLowerCase()) > -1) {
           state.joinedViewers[user.uniqueId] = true;
+          brgAddChatMsg(user, text + ' ✅ انضم', 'join');
+          brgUpdateViewersPill();
           continue;
         }
       }
+      var before = state.votes[user.uniqueId];
       recordVote(user.uniqueId, text);
+      var counted = before === undefined && state.votes[user.uniqueId] !== undefined;
+      brgAddChatMsg(user, text, counted ? 'vote' : '');
     }
   }
 
@@ -55680,7 +55747,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!host) return;
     var rows = state.board || [];
     if (cnt) cnt.textContent = rows.length;
-    host.innerHTML = rows.map(function (r) {
+    // صفّك معروض بسطر «أنت» المستقل فوق القائمة، فلا نكرّره داخل الشبكة
+    host.innerHTML = rows.filter(function (r) { return r.key !== state.myKey; }).map(function (r) {
       var av = r.avatar ? '<img src="' + esc(r.avatar) + '" alt="">' : esc((r.name || '?').charAt(0));
       return '<div class="brg-lobby-card"><div class="brg-lobby-av">' + av + '</div>'
         + '<div style="flex:1;min-width:0"><div class="brg-lobby-name">' + esc(r.name) + '</div>'
@@ -55995,6 +56063,24 @@ document.addEventListener('DOMContentLoaded', function () {
   var simBots = [];
   var simAccuracy = 0.62;
 
+  // أسماء ستريمرز ومشاهدين عربية واقعية — تجعل المحاكاة تبدو كبثّ حقيقي.
+  var SIM_STREAMERS = ['ريان_لايف','نورة_تيفي','فيصل_برو','لمى_بلس','سلطان_ون','دانة_ماكس','مشعل_برايم','هيا_ستار','تركي_لايف','جواهر_برو','بدر_ون','شهد_ماكس','ماجد_جيمنق','رزان_شو','عبدالله_تيفي','ملاك_لايف'];
+  var SIM_STREAMER_USERS = ['rayan_live','noura_tv','faisal_pro','lama_plus','sultan_one','dana_max','meshal_prime','haya_star','turki_live','jawaher_pro','bader_one','shahad_max','majed_gaming','razan_show','abdullah_tv','malak_live'];
+  var SIM_VIEWERS = ['أبو فهد','ندى','خالد','سارة','عمر','ريم','يوسف','جود','تركي','لين','سلمان','أروى','بندر','غلا','راكان','دلال','فواز','شهد','نايف','مي','زياد','رغد','متعب','هند','وليد','بشاير','سعود','أمل','ثامر','لطيفة'];
+  // تعليقات غير تصويتية — بدونها يصير الشات أرقاماً فقط ولا يشبه بثاً حقيقياً.
+  var SIM_CHATTER = ['يا شباب ركزوا','هذي سهلة','لا لا غلط','أكيد ٢','ما أدري 😅','يلا يلا','الله يستر','تراهم غلط','ركزوا الجولة الجاية','أنا متأكد','خلونا نفوز','هههههه','وش هذا السؤال','سهل والله','بالتوفيق','جاوبوا بسرعة'];
+  var simLobbyTimers = [];
+  var simViewerTimers = [];
+
+  function simClearTimers() {
+    simLobbyTimers.forEach(clearTimeout); simLobbyTimers = [];
+    simViewerTimers.forEach(clearTimeout); simViewerTimers = [];
+  }
+
+  // «التجربة» تمشي بالرحلة كاملة كأن المالك ستريمر داخل فعلاً: شاشة الإعداد ←
+  // غرفة الانتظار والستريمرز يدخلون واحداً واحداً ← بدء الفعالية ← شاشة الراوند
+  // وجمهور وهمي يكتب بالشات ويصوّت. كل ذلك داخل متصفحه فقط بلا أي كتابة
+  // لـFirestore وبلا أن يراه أحد.
   function brgSimStart() {
     if (typeof isOwnerAccount !== 'function' || !isOwnerAccount()) {
       toastSafe('⛔ زر التجربة للمالك فقط');
@@ -56006,39 +56092,110 @@ document.addEventListener('DOMContentLoaded', function () {
     state.myKey = 'sim_me';
     state.clockOffset = 0;
     state.stage = { built: 0, broken: 0, bestStreak: 0 };
-    simRoundNo = 0; simUsed = [];
+    state.joinedViewers = {};
+    simRoundNo = 0; simUsed = []; simBots = [];
     simAccuracy = (parseInt((document.getElementById('brg-sim-acc') || {}).value, 10) || 62) / 100;
-
-    state.me = {
-      key: 'sim_me', name: (currentUsername || 'أنت') + ' · تجربة',
-      avatar: '', platformUser: 'sim', keyword: 'تجربة',
-      pos: 0, streak: 0, broken: [], points: 0, fx: {}, heldCard: null,
-      pendingFx: [], lastMove: 0, lastRound: -1, finished: false,
-      stats: { built: 0, broken: 0, bestStreak: 0 }
-    };
-    // ستريمرز وهميون للوحة المتصدرين
-    var names = ['ريان_لايف','نورة_تيفي','فيصل_برو','لمى_بلس','سلطان_ون','دانة_ماكس','مشعل_برايم','هيا_ستار','تركي_لايف','جواهر_برو','بدر_ون','شهد_ماكس'];
-    simBots = names.map(function (n, i) {
-      return { key: 'sim_' + i, name: n, avatar: '', pos: Math.max(0, 6 - Math.floor(i / 2)), move: 0, cardCode: null, points: 0 };
-    });
-
-    var count = Math.max(1, Math.min(500, parseInt((document.getElementById('brg-sim-viewers') || {}).value, 10) || 40));
-    state.simViewers = count;
+    state.simViewers = Math.max(1, Math.min(500, parseInt((document.getElementById('brg-sim-viewers') || {}).value, 10) || 40));
+    state.board = [];
+    brgClearChat();
 
     state.event = {
-      status: 'running', playerCount: simBots.length + 1,
+      status: 'lobby', playerCount: 1,
       settings: { roundDuration: parseInt((document.getElementById('brg-set-duration') || {}).value, 10) || DEFAULT_DURATION, maxRounds: 30, totalPlanks: TOTAL },
       round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 },
       usedQids: []
     };
+
     try { if (typeof ownerCloseModal === 'function') ownerCloseModal(); } catch (e) {}
-    show('bridge-round');
-    simNextRound();
+    // ابدأ من شاشة الإعداد نفسها التي يراها أي ستريمر، معبّأة مسبقاً
+    show('bridge-setup');
+    setTimeout(function () {
+      var u = document.getElementById('brg-username');
+      var k = document.getElementById('brg-keyword');
+      if (u && !u.value) u.value = (currentUsername || 'tajriba');
+      if (k && !k.value) k.value = 'جسر';
+      setupStatus('ok', '🧪 وضع التجربة — اضغط «بدأ» وكمّل كأنك ستريمر داخل فعلاً');
+    }, 60);
     toastSafe('🧪 بدأ وضع التجربة — لا يراه أحد غيرك');
+  }
+
+  // يُنادى من brgJoinEvent حين تكون التجربة شغّالة — بدل الكتابة لـFirestore.
+  function simEnterLobby(username, keyword) {
+    state.platformUser = username;
+    state.keyword = keyword;
+    state.me = {
+      key: 'sim_me', name: (currentUsername || 'أنت') + ' · تجربة',
+      avatar: '', platformUser: username, keyword: keyword,
+      pos: 0, streak: 0, broken: [], points: 0, fx: {}, heldCard: null,
+      pendingFx: [], lastMove: 0, lastRound: -1, finished: false,
+      stats: { built: 0, broken: 0, bestStreak: 0 }
+    };
+    state.board = [{ key: 'sim_me', name: state.me.name, avatar: '', platformUser: username, pos: 0, move: 0 }];
+    show('bridge-lobby');
+    renderLobbyList(); renderLobbyMe();
+    var sub = document.getElementById('brg-lobby-sub');
+    if (sub) sub.textContent = '🧪 تجربة — الستريمرز يدخلون الآن، وتبدأ الفعالية تلقائياً بعد لحظات.';
+
+    // الستريمرز يدخلون واحداً واحداً كأنها غرفة انتظار حقيقية
+    var howMany = 11;
+    for (var i = 0; i < howMany; i++) {
+      (function (idx) {
+        simLobbyTimers.push(setTimeout(function () {
+          if (!state.sim) return;
+          var nm = SIM_STREAMERS[idx % SIM_STREAMERS.length];
+          simBots.push({ key: 'sim_' + idx, name: nm, avatar: '', platformUser: SIM_STREAMER_USERS[idx % SIM_STREAMER_USERS.length], pos: 0, move: 0, cardCode: null, points: 0 });
+          state.board = simBoardRows();
+          state.event.playerCount = simBots.length + 1;
+          renderLobbyList();
+        }, 500 + idx * 420));
+      })(i);
+    }
+    // «المالك بدأ الفعالية» — نفس اللحظة التي ينتظرها كل ستريمر
+    simLobbyTimers.push(setTimeout(function () {
+      if (!state.sim) return;
+      var s = document.getElementById('brg-lobby-status');
+      if (s) { s.className = 'status-msg ok'; s.textContent = '🚀 بدأت الفعالية!'; s.style.display = ''; }
+      toastSafe('🚀 بدأت الفعالية — بالتوفيق!');
+      setTimeout(simStartEvent, 900);
+    }, 500 + howMany * 420 + 900));
+  }
+
+  function simStartEvent() {
+    if (!state.sim) return;
+    state.event.status = 'running';
+    state.event.playerCount = simBots.length + 1;
+    show('bridge-round');
+    setTimeout(function () {
+      simUpdateBoard();
+      simFeedViewerJoins();
+      simNextRound();
+    }, 120);
+  }
+
+  // المشاهدون ينضمون بالكلمة المفتاحية أولاً (نفس آلية اللعبة الحقيقية)،
+  // فيظهرون بالشات وبعدّاد المتفاعلين قبل أن يبدأ التصويت.
+  function simFeedViewerJoins() {
+    var n = state.simViewers || 40;
+    for (var i = 0; i < n; i++) {
+      (function (idx) {
+        simViewerTimers.push(setTimeout(function () {
+          if (!state.sim) return;
+          brgHandleEvent({ messages: [simMsg(idx, state.keyword || 'جسر')] });
+        }, 200 + Math.random() * 2600));
+      })(i);
+    }
+  }
+
+  function simViewerName(idx) { return SIM_VIEWERS[idx % SIM_VIEWERS.length] + (idx >= SIM_VIEWERS.length ? ('_' + Math.floor(idx / SIM_VIEWERS.length)) : ''); }
+  function simMsg(idx, text) {
+    var nick = simViewerName(idx);
+    return { type: 'chat', comment: text, userId: 'simv_' + idx, nickname: nick,
+      user: { uniqueId: 'simv_' + idx, nickname: nick, avatarThumb: { urlList: [] } } };
   }
 
   function brgSimStop() {
     if (simTimer) { clearTimeout(simTimer); simTimer = null; }
+    simClearTimers();
     stopTick();
     state.sim = false;
   }
@@ -56068,26 +56225,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }, 600 + dur + 5200);
   }
 
-  // جمهور وهمي يكتب أرقاماً في الشات عبر نفس مسار الحدث الحقيقي.
+  // جمهور وهمي يتفاعل بالشات عبر نفس مسار الحدث الحقيقي (brgHandleEvent):
+  // أغلبهم يكتب رقم إجابته، وبعضهم يكتب تعليقاً عادياً — فيبدو الشات كبثّ حي
+  // لا مجرد أرقام. ولأنه يمرّ من نفس الدالة، فما نراه هنا هو سلوك اللعبة
+  // الحقيقي حرفياً لا محاكاة منفصلة.
   function simFeedVotes() {
     var n = state.simViewers || 40;
     var correct = state.event.round.correctIndex;
-    var delay = 900;
+    var window_ = Math.max(1200, myDuration() * 1000 - 1600);
     for (var i = 0; i < n; i++) {
       (function (idx) {
-        var t = delay + Math.random() * (myDuration() * 1000 - 1800);
-        setTimeout(function () {
+        var t = 700 + Math.random() * window_;
+        simViewerTimers.push(setTimeout(function () {
           if (!state.sim || state.phase !== 'question') return;
           var pick = Math.random() < simAccuracy ? correct : Math.floor(Math.random() * 4);
-          brgHandleEvent({
-            messages: [{
-              type: 'chat',
-              comment: String(pick + 1),
-              user: { uniqueId: 'simv_' + idx, nickname: 'مشاهد' + idx, avatarThumb: { urlList: [] } },
-              userId: 'simv_' + idx, nickname: 'مشاهد' + idx
-            }]
-          });
-        }, t);
+          brgHandleEvent({ messages: [simMsg(idx, String(pick + 1))] });
+        }, t));
+        // نحو خُمس المشاهدين يكتبون تعليقاً عادياً أيضاً
+        if (Math.random() < 0.2) {
+          simViewerTimers.push(setTimeout(function () {
+            if (!state.sim || state.phase !== 'question') return;
+            brgHandleEvent({ messages: [simMsg(idx, SIM_CHATTER[Math.floor(Math.random() * SIM_CHATTER.length)])] });
+          }, 700 + Math.random() * window_));
+        }
       })(i);
     }
   }
@@ -56103,10 +56263,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function simBoardRows() {
     var rows = simBots.map(function (b) {
-      return { key: b.key, name: b.name, avatar: '', pos: b.pos, move: b.move, cardCode: b.cardCode, points: b.points };
+      return { key: b.key, name: b.name, avatar: '', platformUser: b.platformUser || '',
+        pos: b.pos, move: b.move, cardCode: b.cardCode, points: b.points };
     });
     rows.push({
       key: 'sim_me', name: state.me.name, avatar: state.me.avatar || '',
+      platformUser: state.me.platformUser || '',
       pos: state.me.pos, move: state.me.lastMove, cardCode: state.me.heldCard, points: state.me.points
     });
     return rows.sort(function (a, b) { return b.pos - a.pos; });
