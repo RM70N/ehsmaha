@@ -20461,7 +20461,11 @@ function setDotById(id, state) {
 .rd-cgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:min-content;gap:1.8cqw;align-content:center;overflow-y:auto;overflow-x:hidden;}
 .rd-ccard{position:relative;border-radius:2.6cqw;padding:1.8cqw .6cqw;display:flex;flex-direction:column;align-items:center;gap:1cqw;background:#1a0d33;border:.4cqw solid rgba(227,195,106,.16);cursor:pointer;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
 .rd-ccard .rd-chip{width:9.4cqw;height:9.4cqw;border-radius:2.6cqw;display:grid;place-items:center;font-family:'Amiri',serif;font-size:5.6cqw;font-weight:700;color:#150a2c;box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.45);overflow:hidden;flex:0 0 auto;}
-.rd-ccard .cw-flag-img{width:100%;height:100%;aspect-ratio:auto;object-fit:cover;border-radius:2.6cqw;box-shadow:none;}
+/* الشريحة (.rd-chip) مربّعة، وcover كان يقصّ العلم لمربّع فيضيع ثلث عرضه أو
+   نصفه (يختفي المثلث الأسود بعلم الكويت والشريط الأحمر بعلم الإمارات فيظهران
+   كعلمين مختلفين تماماً). height:auto + contain يعرض العلم كاملاً بنسبته
+   الحقيقية على كامل عرض الشريحة، متوسّطاً عمودياً (الشريحة place-items:center). */
+.rd-ccard .cw-flag-img{width:100%;height:auto;aspect-ratio:auto;object-fit:contain;border-radius:2.6cqw;box-shadow:none;}
 .rd-ccard .cw-country-flag{font-size:6cqw;line-height:1;}
 .rd-cname{font-size:3.1cqw;font-weight:700;color:#F6EBD0;text-align:center;line-height:1.1;}
 .rd-ccard-aim{position:absolute;inset:-.4cqw;border-radius:3.2cqw;border:.6cqw solid #E8A0C8;box-shadow:0 0 6cqw rgba(232,160,200,.8);opacity:0;transition:opacity .2s ease;pointer-events:none;}
@@ -31160,7 +31164,11 @@ function drawAddChatMsg(user, text) {
 .cw-country-card:hover:not(.eliminated){border-color:var(--green);transform:translateY(-2px);box-shadow:0 6px 20px rgba(52,211,153,.25);}
 .cw-country-flag{font-size:32px;line-height:1;}
 /* صورة العلم الحقيقية (flagcdn) — بديل إيموجي الأعلام اللي يظهر حروف على ويندوز */
-.cw-flag-img{width:52px;height:auto;aspect-ratio:3/2;object-fit:cover;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.4);display:block;}
+/* object-fit:contain لا cover: أعلام الدول نسبها مختلفة (الكويت والإمارات 2:1،
+   قطر 28:11، سويسرا 1:1...)، وcover كان يقصّ الأطراف ليملأ صندوق 3/2 — فينقص
+   من العلم جزؤه المميّز (مثلاً المثلث الأسود بسارية علم الكويت) فيصير شكله علماً
+   ثانياً. contain يعرض العلم كاملاً دائماً داخل نفس الصندوق بلا أي قص. */
+.cw-flag-img{width:52px;height:auto;aspect-ratio:3/2;object-fit:contain;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.4);display:block;}
 .cw-country-name{font-size:12px;font-weight:800;color:var(--text);}
 /* شاشة الفائز: علم أكبر بجانب اسم الدولة */
 #cww-country-display{display:flex;align-items:center;justify-content:center;gap:12px;}
