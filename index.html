@@ -3690,6 +3690,14 @@ if (location.hostname === 'streamgame1.netlify.app') {
             <label>أقصى جولات</label>
             <input type="number" id="brg-set-rounds" min="1" max="200" value="30" autocomplete="off" />
           </div>
+          <div class="field" style="margin-bottom:0;max-width:150px;">
+            <label>نافذة الانضمام (جولات)</label>
+            <input type="number" id="brg-set-joinwin" min="0" max="50" value="3" autocomplete="off" />
+          </div>
+          <div class="field" style="margin-bottom:0;display:flex;align-items:center;gap:8px;max-width:190px;">
+            <input type="checkbox" id="brg-set-nolate" style="width:18px;height:18px;" />
+            <label style="margin:0;">امنع الانضمام بعد البدء</label>
+          </div>
           <div class="field" style="margin-bottom:0;max-width:130px;">
             <label>مشاهدو التجربة</label>
             <input type="number" id="brg-sim-viewers" min="1" max="500" value="40" autocomplete="off" />
@@ -4909,17 +4917,6 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span></div>
     </div>
 <!-- END volcanic-lands:card -->
-
-<!-- BEGIN bridge-fate:card -->
-    <div class="gcard" data-tag="bridge-fate" data-category="chat" onclick="show('bridge-setup')">
-      <span class="gcard-num">٢٥</span>
-      <span class="badge new">جديد</span>
-      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"/><path d="M4 12V8"/><path d="M20 12V8"/><path d="M8 12v4"/><path d="M12 12v5"/><path d="M16 12v4"/><path d="M2 8c4-3 16-3 20 0"/></svg></div>
-      <div class="gcard-name">جسر المصير</div>
-      <div class="gcard-desc">٣٠٠ ستريمر على جسر واحد فوق الهاوية — جمهورك يكتب رقم الإجابة، والأغلبية تبني لك لوحاً أو تكسره. ٣ صح متتالية = بطاقة عشوائية!</div>
-      <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(201,168,76,.16);color:#C9A84C;">فعالية جماعية</span></div>
-    </div>
-<!-- END bridge-fate:card -->
 
   </div>
   </div>
@@ -15252,6 +15249,9 @@ function show(page) {
   if (page === 'bridge-setup' && typeof brgSetupRender === 'function') brgSetupRender();
   if (page === 'bridge-lobby' && typeof brgRenderLobby === 'function') brgRenderLobby();
   if (page === 'bridge-round' && typeof brgBootPage === 'function') setTimeout(brgBootPage, 30);
+  // فعالية جسر المصير عامة ويتحكم بها المالك: بعد أي تنقّل نعيد فحص التوجيه،
+  // فينتقل الستريمر تلقائياً فور خروجه من لوحة اللعبة التي كان مشغولاً بها.
+  if (typeof brgAfterNavigate === 'function') brgAfterNavigate();
   // احتفال موحّد لكل ألعاب الستريمر: أي شاشة فائز (page ينتهي بـ -winner)
   // تُطلق كونفيتي + صوت فوز غير موسيقي تلقائيًا — مصدر واحد يغطي كل الألعاب.
   if (page && page.slice(-7) === '-winner') { try { fxCelebrate(); } catch (e) {} }
@@ -54235,6 +54235,24 @@ document.addEventListener('DOMContentLoaded', function () {
 .brg-chat-empty{font-size:12px;color:var(--brg-gray-500);text-align:center;padding:14px 0;}
 .brg-viewers-pill{font-size:11px;font-weight:800;color:var(--harf-gold);background:rgba(201,168,76,.12);border:1px solid var(--brg-border);border-radius:var(--brg-pill);padding:2px 9px;}
 
+/* شريط الفعالية — يظهر فقط للستريمر المشغول بلوحة لعبة على الهواء، بدل سحبه
+   قسراً من راوند حي أمام جمهوره. ينتقل تلقائياً أول ما يخرج من اللوحة. */
+.brg-event-banner{position:fixed;left:50%;bottom:-100px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:14px;padding:12px 18px;border-radius:999px;background:linear-gradient(100deg,#1D2544,#0A0D18);border:1px solid rgba(201,168,76,.55);box-shadow:0 16px 40px rgba(0,0,0,.55),0 0 34px rgba(201,168,76,.28);color:#fff;font-family:'Tajawal','Segoe UI',system-ui,sans-serif;font-size:14px;font-weight:700;transition:bottom .45s cubic-bezier(.22,1,.36,1);}
+.brg-event-banner.show{bottom:22px;}
+.brg-event-banner b{color:#C9A84C;}
+.brg-event-banner button{border:none;border-radius:999px;padding:8px 18px;background:linear-gradient(135deg,#E6D08A,#C9A84C);color:#0D0D14;font-family:inherit;font-weight:900;font-size:14px;cursor:pointer;}
+.brg-event-banner button:hover{filter:brightness(1.06);}
+@media (max-width:480px){.brg-event-banner{width:calc(100% - 24px);justify-content:space-between;font-size:13px;padding:10px 14px;}}
+
+/* وضع المتابعة: نخفي ما لا معنى له لمن لا يلعب (تصويت جمهوره وسلسلته) */
+/* !important لأن لوحة السلسلة تحمل display:flex ضمن style المضمّن، والمضمّن
+   يتغلّب على القاعدة العادية فتبقى ظاهرة للمتابع رغم أنها لا تعنيه. */
+#pg-bridge-round.spectating .brg-vote-panel,
+#pg-bridge-round.spectating .brg-streak-panel{display:none !important;}
+.brg-spec-note{border-radius:var(--brg-radius-lg);background:rgba(201,168,76,.10);border:1px solid rgba(201,168,76,.45);padding:14px 16px;font-family:var(--brg-font-ui);}
+.brg-spec-note-title{font-family:var(--brg-font-display);font-size:20px;color:var(--harf-gold);margin-bottom:4px;}
+.brg-spec-note-sub{font-size:13px;color:var(--brg-gray-300);line-height:1.6;}
+
 /* ---- لوحة السؤال ---- */
 .brg-question{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:980px;padding:14px 22px;border-radius:var(--brg-radius-xl);z-index:52;background:linear-gradient(180deg,rgba(15,19,36,.95),rgba(6,8,18,.96));border:1px solid var(--brg-border);box-shadow:var(--brg-shadow-lg),0 0 60px rgba(201,168,76,.10);backdrop-filter:blur(10px);transition:opacity var(--brg-dur-base) var(--brg-ease-out);font-family:var(--brg-font-ui);}
 .brg-question.urgent{border-color:rgba(224,86,74,.5);animation:brgShakeSoft 420ms var(--brg-ease-in-out) infinite;}
@@ -54441,15 +54459,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
       <!-- اللوحة اليسرى -->
       <div class="brg-left">
-        <div class="brg-panel">
+        <div class="brg-panel brg-vote-panel">
           <div class="brg-panel-label">تصويت جمهورك</div>
           <div style="display:flex;flex-direction:column;gap:9px;" id="brg-vote-rows"></div>
           <div class="brg-note">الأغلبية تحدد مصيرك وحدك — لوح يُضاف أو لوح يُكسر.</div>
         </div>
-        <div class="brg-panel" style="display:flex;flex-direction:column;gap:10px;">
+        <div class="brg-panel brg-streak-panel" style="display:flex;flex-direction:column;gap:10px;">
           <div class="brg-panel-label" style="margin:0;">سلسلتك</div>
           <div style="display:flex;gap:8px;" id="brg-streak-dots"></div>
           <div style="font-size:13px;color:var(--brg-gray-400);line-height:1.5;">٣ صح متتالية = بطاقة عشوائية تُفعّل فوراً.</div>
+        </div>
+        <div class="brg-spec-note" id="brg-spec-note" style="display:none;">
+          <div class="brg-spec-note-title">👁️ وضع المتابعة</div>
+          <div class="brg-spec-note-sub">الفعالية بدأت قبل دخولك، فأنت تتابعها الآن مع جمهورك — تشوف السؤال وترتيب الستريمرز لحظياً. تقدر تشارك بالفعالية القادمة من أولها.</div>
         </div>
         <div class="brg-panel" id="brg-cards-panel" style="display:none;">
           <div class="brg-panel-label" style="margin:0 0 8px;">تأثيرات نشطة</div>
@@ -54577,7 +54599,10 @@ document.addEventListener('DOMContentLoaded', function () {
     unsubBoard: null,
     unsubOwnerPlayers: null,
     ownerPlayers: {},
-    stage: { built: 0, broken: 0, bestStreak: 0 }
+    stage: { built: 0, broken: 0, bestStreak: 0 },
+    restoreDone: false,      // هل فُحص مستند اللاعب لهذه الفعالية (استعادة بعد انقطاع)
+    spectator: false,        // فاتته نافذة الانضمام → متابعة فقط بلا مستند لاعب
+    pendingJoin: false       // دخل أثناء سؤال جارٍ → ينتظر بداية الجولة التالية
   };
 
   // ================= أدوات Firestore =================
@@ -54963,7 +54988,8 @@ document.addEventListener('DOMContentLoaded', function () {
         }
       });
     }
-    layer.innerHTML = ropes + planks + posts + avatarHtml();
+    // المتابع يشوف الجسر والجزيرة بلا أفتار — هو ليس متسابقاً بهذه الفعالية
+    layer.innerHTML = ropes + planks + posts + (state.spectator ? '' : avatarHtml());
     renderIsland(pos);
   }
 
@@ -55188,6 +55214,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderAll() {
+    var pg = document.getElementById('pg-bridge-round');
+    if (pg) pg.classList.toggle('spectating', !!state.spectator);
+    var note = document.getElementById('brg-spec-note');
+    if (note) note.style.display = state.spectator ? '' : 'none';
     renderBridge(); renderQuestion(); renderVotes();
     renderStreak(); renderActiveFx(); renderBoard(); renderHud();
     brgUpdateViewersPill();
@@ -55511,7 +55541,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // وضع التجربة: نفس الرحلة بالضبط لكن بلا Firestore ولا فعالية حقيقية
     if (state.sim) { setupStatus('ok', '🧪 دخلت غرفة الانتظار (تجربة)'); simEnterLobby(username, keyword); return; }
     if (!fb || !currentUser) { setupStatus('err', '⚠️ لازم تسجّل دخول أولاً'); return; }
-    if (!state.eventId) { setupStatus('err', '⚠️ ما فيه فعالية مفتوحة الآن'); return; }
+    if (!state.eventId || !state.event) { setupStatus('err', '⚠️ ما فيه فعالية مفتوحة الآن'); return; }
+    // بدأت الفعالية وانتهت نافذة الانضمام → متابعة بدل رسالة خطأ جافة
+    if (state.event.status === 'running' && !brgCanLateJoin()) {
+      setupStatus('err', '⏳ الفعالية بدأت وانتهت مهلة الانضمام — تقدر تتابعها');
+      setTimeout(enterSpectator, 700);
+      return;
+    }
 
     state.platformUser = username;
     state.platform = setupPlatform;
@@ -55537,7 +55573,18 @@ document.addEventListener('DOMContentLoaded', function () {
         attachPlayerListener();
         attachBoardListener();
         registerChat();
-        show('bridge-lobby');
+        if (state.event && state.event.status === 'running') {
+          // انضمام متأخر داخل النافذة: ندخله عند بداية الجولة القادمة لا الآن،
+          // حتى لا يبدأ بعدّاد مبتور من سؤال شارف على الانتهاء.
+          state.pendingJoin = true;
+          show('bridge-lobby');
+          var s = document.getElementById('brg-lobby-status');
+          if (s) { s.className = 'status-msg ok'; s.textContent = '⏳ تدخل مع بداية الجولة القادمة...'; s.style.display = ''; }
+          var sub = document.getElementById('brg-lobby-sub');
+          if (sub) sub.textContent = 'الفعالية شغّالة — تنضم تلقائياً عند بداية الجولة القادمة.';
+        } else {
+          show('bridge-lobby');
+        }
       })
       .catch(function (err) { setupStatus('err', '⚠️ تعذّر الدخول: ' + err.message); });
   }
@@ -55559,11 +55606,19 @@ document.addEventListener('DOMContentLoaded', function () {
   function attachEventListener() {
     if (!fb || state.unsubEvent) return;
     state.unsubEvent = fb.onSnapshot(fb.doc(fb.db, 'bridgeEvents', 'current'), function (snap) {
-      if (!snap.exists()) { state.eventId = null; return; }
-      var ptr = snap.data();
-      if (!ptr.eventId) { state.eventId = null; return; }
+      var ptr = snap.exists() ? snap.data() : null;
+      // أوقف المالك الفعالية (أو ما فيه فعالية) → أغلق كل شيء فوراً عند الجميع
+      if (!ptr || !ptr.eventId || ptr.status === 'ended') {
+        if (state.eventId) {
+          state.eventId = null; state.event = null; state.restoreDone = false;
+          if (unsubLive) { unsubLive(); unsubLive = null; }
+          brgRouteForEvent();
+        }
+        return;
+      }
       if (state.eventId !== ptr.eventId) {
         state.eventId = ptr.eventId;
+        state.restoreDone = false;      // فعالية جديدة → أعد فحص مستند اللاعب
         attachLiveEventListener();
       }
     }, function () {});
@@ -55584,29 +55639,197 @@ document.addEventListener('DOMContentLoaded', function () {
     var prevStatus = state.event ? state.event.status : null;
     state.event = ev;
 
-    // فتح لوحة الإعداد تلقائياً لكل الستريمرز عند تفعيل المالك للفعالية
-    if (ev.status === 'lobby' && !state.me && document.getElementById('pg-bridge-setup')) {
-      var active = document.querySelector('.page.active');
-      if (active && active.id === 'pg-home' && !state.sim) {
-        // لا ننقل الستريمر قسراً — نعرض له تنبيهاً بزر
-        brgShowInvite();
-      }
-    }
+    // أول لقطة لهذه الفعالية: اقرأ مستند اللاعب لنعرف هل هو مشارك قائم (عاد
+    // بعد انقطاع/تحديث صفحة) أم داخل جديد — عليه يعتمد كل التوجيه بعدها.
+    if (!state.restoreDone && !state.sim) { restoreThenRoute(); return; }
 
-    if (ev.status === 'running' && prevStatus !== 'running') {
-      if (state.me) show('bridge-round');
+    if (ev.status === 'running' && prevStatus === 'lobby' && state.me && !state.spectator) {
+      show('bridge-round');   // لحظة ضغط المالك «ابدأ» — تنتقل كل الشاشات معاً
     }
-    if (ev.status === 'ended' && prevStatus === 'running') {
+    if (ev.status === 'ended' && prevStatus === 'running' && state.me && !state.spectator) {
       stopTick();
-      if (ev.winnerName) showWin(ev.winnerName);
+      if (ev.winnerName) { showWin(ev.winnerName); brgRouteForEvent(); return; }
     }
 
     if (ev.round && ev.round.no !== prevRound && ev.status === 'running') {
-      onNewRound(ev.round);
+      // انضمام مؤجّل: الداخل أثناء سؤال جارٍ ينتظر بداية الجولة التالية حتى لا
+      // يحصل على عدّاد مبتور (ثانيتان مثلاً) فيخسر ظلماً.
+      if (state.pendingJoin) { state.pendingJoin = false; finishLateJoin(); }
+      if (!state.spectator) onNewRound(ev.round);
+      else { state.phase = 'question'; renderAll(); }
     }
-    if (isRoundPage()) { renderAll(); }
+    brgRouteForEvent();
+    if (isRoundPage()) renderAll();
     // المالك: يدير الجولة التالية
     if (state.isOwner && !state.sim) ownerConductorTick();
+  }
+
+  // ================= التوجيه المركزي =================
+  // الفعالية عامة: الستريمر لا يدخلها من مكتبة الألعاب، بل هي التي تظهر له.
+  // كل قرارات «أي شاشة يشوف الآن» تمر من هنا وحدها — من التفعيل إلى الإيقاف.
+  var BRG_PAGES = ['pg-bridge-setup', 'pg-bridge-lobby', 'pg-bridge-round'];
+  var brgPendingAutoNav = false;
+
+  function onBridgePage() {
+    var a = document.querySelector('.page.active');
+    return !!(a && BRG_PAGES.indexOf(a.id) > -1);
+  }
+
+  // «مشغول ببث» = واقف بلوحة لعبة شغّالة وبثّه متصل. ننقله قسراً في كل مكان
+  // عدا هذي الحالة، لأن سحبه من راوند حي يقطع اللعب على جمهوره — بدلها نعرض
+  // شريطاً بارزاً وننقله تلقائياً أول ما يخرج من اللوحة.
+  function brgIsBusyStreaming() {
+    var a = document.querySelector('.page.active');
+    if (!a) return false;
+    var id = a.id.replace(/^pg-/, '');
+    var isGamePage = (typeof TST_GAME_REGISTRY === 'object' && TST_GAME_REGISTRY && TST_GAME_REGISTRY[id])
+      || id === 'volcanic-lands' || id === 'countrywar' || id === 'ahsemha-board';
+    if (!isGamePage) return false;
+    return (typeof homeHasActiveConnection === 'function') ? homeHasActiveConnection() : true;
+  }
+
+  function brgCanLateJoin() {
+    var ev = state.event;
+    if (!ev || ev.status !== 'running') return false;
+    var s = ev.settings || {};
+    if (s.allowLateJoin === false) return false;
+    var until = (s.joinUntilRound == null) ? 3 : s.joinUntilRound;
+    return (ev.round && ev.round.no <= until);
+  }
+
+  function brgRouteForEvent() {
+    if (state.sim) return;                       // التجربة لها مسارها الخاص
+    var ev = state.event;
+    var loggedIn = !!(typeof currentUser !== 'undefined' && currentUser && currentUsername);
+
+    // لا فعالية (أو أوقفها المالك) → أغلق كل شاشات الفعالية فوراً وأرجعه لحالته
+    if (!state.eventId || !ev || ev.status === 'ended' || ev.status === 'cancelled') {
+      brgHideBanner();
+      if (onBridgePage()) {
+        var hadWin = !!document.getElementById('brg-win-screen');
+        brgTeardownLocal();
+        if (!hadWin) { toastSafe('🌉 أُنهيت فعالية جسر المصير'); show('home'); }
+      }
+      return;
+    }
+    if (!loggedIn) return;                       // الزائر غير المسجّل لا تعنيه
+
+    var target = null;
+    if (ev.status === 'lobby') target = state.me ? 'bridge-lobby' : 'bridge-setup';
+    else if (ev.status === 'running') {
+      if (state.me && !state.spectator) target = 'bridge-round';
+      else if (state.spectator) target = 'bridge-round';
+      else target = brgCanLateJoin() ? 'bridge-setup' : 'bridge-round';  // متأخر: إعداد أو متابعة
+    }
+    if (!target) return;
+
+    var a = document.querySelector('.page.active');
+    if (a && a.id === 'pg-' + target) { brgHideBanner(); return; }
+    if (onBridgePage()) { show(target); brgHideBanner(); return; }
+
+    // خارج شاشات الفعالية: ينتقل تلقائياً بلا أي تحديث صفحة، إلا لو كان
+    // بمنتصف راوند لعبة على الهواء — عندها شريط + نقل تلقائي بعد خروجه.
+    if (brgIsBusyStreaming()) { brgPendingAutoNav = true; brgShowBanner(target); return; }
+    if (ev.status === 'running' && !state.me && !state.spectator && !brgCanLateJoin()) {
+      enterSpectator();          // فات وقت الانضمام → وضع المتابعة
+      return;
+    }
+    show(target);
+    brgHideBanner();
+  }
+
+  // يُنادى من show() بعد كل تنقّل — ينقله فور خروجه من لوحة اللعبة المشغول بها.
+  function brgAfterNavigate() {
+    if (!brgPendingAutoNav || state.sim) return;
+    if (brgIsBusyStreaming() || onBridgePage()) return;
+    brgPendingAutoNav = false;
+    brgRouteForEvent();
+  }
+
+  function brgShowBanner(target) {
+    var el = document.getElementById('brg-event-banner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'brg-event-banner';
+      el.className = 'brg-event-banner';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = '<span>🌉 فعالية <b>جسر المصير</b> شغّالة الآن</span>'
+      + '<button type="button" onclick="brgEnterFromBanner()">ادخل الفعالية</button>';
+    el.classList.add('show');
+  }
+  function brgHideBanner() {
+    var el = document.getElementById('brg-event-banner');
+    if (el) el.classList.remove('show');
+  }
+  function brgEnterFromBanner() {
+    brgPendingAutoNav = false;
+    brgHideBanner();
+    brgRouteForEvent();
+  }
+
+  // استعادة الحالة بعد إعادة تحميل/انقطاع: المشارك القائم يرجع لمكانه بالضبط
+  // (لوبي أو راوند بموقعه وسلسلته وبطاقاته)، لا لشاشة الإعداد من جديد.
+  function restoreThenRoute() {
+    state.restoreDone = true;
+    if (!fb || !currentUser || !state.eventId) { brgRouteForEvent(); return; }
+    fb.getDoc(playerRef(currentUser.uid)).then(function (snap) {
+      if (snap.exists() && !snap.data().kicked) {
+        state.myKey = currentUser.uid;
+        var d = snap.data();
+        state.me = d;
+        state.keyword = d.keyword || '';
+        state.platformUser = d.platformUser || '';
+        state.countedRound = (d.lastRound == null ? -1 : d.lastRound);
+        measureClockOffset(state.myKey);
+        attachPlayerListener();
+        attachBoardListener();
+        registerChat();
+      }
+      brgRouteForEvent();
+      // العائد وسط جولة جارية: استأنف نفس الجولة فوراً بدل انتظار التالية.
+      // العدّاد يُحسب من startAt بوقت الخادم، فيظهر له المتبقّي الصحيح تماماً.
+      var ev = state.event;
+      if (state.me && !state.spectator && ev && ev.status === 'running' && ev.round && ev.round.no > 0) {
+        onNewRound(ev.round);
+      }
+    }).catch(function () { brgRouteForEvent(); });
+  }
+
+  // وضع المتابعة — لمن فاتته نافذة الانضمام: يشوف الجسر ولوحة المتصدرين
+  // والسؤال حياً بلا مستند لاعب وبلا أي كتابة، فلا يكلّف الفعالية شيئاً.
+  function enterSpectator() {
+    state.spectator = true;
+    state.me = { key: '__spec', name: currentUsername || 'متابع', avatar: '', pos: 0, streak: 0,
+      broken: [], points: 0, fx: {}, heldCard: null, pendingFx: [], lastMove: 0, lastRound: -1, finished: false };
+    attachBoardListener();
+    state.phase = 'question';
+    show('bridge-round');
+    setTimeout(function () { renderAll(); startTick(); }, 60);
+    toastSafe('👁️ الفعالية بدأت — أنت تتابعها الآن');
+  }
+
+  // انضمام متأخر مؤجّل لبداية الجولة التالية (لا نصف سؤال).
+  function finishLateJoin() {
+    if (!state.me) return;
+    state.countedRound = -1;
+    show('bridge-round');
+    setTimeout(function () { onNewRound(state.event.round); }, 40);
+    toastSafe('✅ دخلت الفعالية — بالتوفيق!');
+  }
+
+  // تنظيف محلي كامل عند إيقاف الفعالية أو الخروج منها.
+  function brgTeardownLocal() {
+    stopTick();
+    unregisterChat();
+    if (state.unsubMe) { state.unsubMe(); state.unsubMe = null; }
+    if (state.unsubBoard) { state.unsubBoard(); state.unsubBoard = null; }
+    state.me = null; state.spectator = false; state.pendingJoin = false;
+    state.joinedViewers = {}; state.votes = {}; state.voteCounts = [0, 0, 0, 0];
+    state.board = []; state.phase = 'idle';
+    brgClearChat();
+    var w = document.getElementById('brg-win-screen');
+    if (w && w.parentNode) w.parentNode.removeChild(w);
   }
 
   function onNewRound(round) {
@@ -55917,7 +56140,10 @@ document.addEventListener('DOMContentLoaded', function () {
       settings: {
         roundDuration: parseInt(document.getElementById('brg-set-duration').value, 10) || DEFAULT_DURATION,
         maxRounds: parseInt(document.getElementById('brg-set-rounds').value, 10) || 30,
-        totalPlanks: TOTAL
+        totalPlanks: TOTAL,
+        // نافذة الانضمام المتأخر: بعدها يصير الداخل متابعاً لا متسابقاً
+        joinUntilRound: parseInt(document.getElementById('brg-set-joinwin').value, 10) || 3,
+        allowLateJoin: !document.getElementById('brg-set-nolate').checked
       },
       round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 },
       usedQids: [], globalFx: [], playerCount: 0,
@@ -55963,7 +56189,13 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!isOwnerAccount() || !state.eventId) return;
     var d = parseInt(document.getElementById('brg-set-duration').value, 10) || DEFAULT_DURATION;
     var r = parseInt(document.getElementById('brg-set-rounds').value, 10) || 30;
-    fb.updateDoc(evRef(), { 'settings.roundDuration': Math.max(4, Math.min(60, d)), 'settings.maxRounds': Math.max(1, Math.min(200, r)) })
+    var jw = parseInt(document.getElementById('brg-set-joinwin').value, 10);
+    fb.updateDoc(evRef(), {
+      'settings.roundDuration': Math.max(4, Math.min(60, d)),
+      'settings.maxRounds': Math.max(1, Math.min(200, r)),
+      'settings.joinUntilRound': Math.max(0, Math.min(50, isNaN(jw) ? 3 : jw)),
+      'settings.allowLateJoin': !document.getElementById('brg-set-nolate').checked
+    })
       .then(function () { ownerStatus('ok', '💾 حُفظت الإعدادات — تُطبَّق من الجولة القادمة'); })
       .catch(function (e) { ownerStatus('err', '⚠️ ' + e.message); });
   }
@@ -56322,6 +56554,9 @@ document.addEventListener('DOMContentLoaded', function () {
   window.brgOwnerKick = brgOwnerKick;
   window.brgSimStart = brgSimStart;
   window.brgSimStop = brgSimStop;
+  window.brgAfterNavigate = brgAfterNavigate;
+  window.brgEnterFromBanner = brgEnterFromBanner;
+  window.brgRouteForEvent = brgRouteForEvent;
   window.brgRenderLobby = function () { renderLobbyList(); renderLobbyMe(); };
   window.BridgeFate = { DECK: DECK, CATS: CATS, TOTAL: TOTAL, state: state, parseVote: parseVote, proj: proj, pickQuestion: pickQuestion };
 
