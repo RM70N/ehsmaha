@@ -54235,14 +54235,29 @@ document.addEventListener('DOMContentLoaded', function () {
 .brg-chat-empty{font-size:12px;color:var(--brg-gray-500);text-align:center;padding:14px 0;}
 .brg-viewers-pill{font-size:11px;font-weight:800;color:var(--harf-gold);background:rgba(201,168,76,.12);border:1px solid var(--brg-border);border-radius:var(--brg-pill);padding:2px 9px;}
 
-/* شريط الفعالية — يظهر فقط للستريمر المشغول بلوحة لعبة على الهواء، بدل سحبه
-   قسراً من راوند حي أمام جمهوره. ينتقل تلقائياً أول ما يخرج من اللوحة. */
-.brg-event-banner{position:fixed;left:50%;bottom:-100px;transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:14px;padding:12px 18px;border-radius:999px;background:linear-gradient(100deg,#1D2544,#0A0D18);border:1px solid rgba(201,168,76,.55);box-shadow:0 16px 40px rgba(0,0,0,.55),0 0 34px rgba(201,168,76,.28);color:#fff;font-family:'Tajawal','Segoe UI',system-ui,sans-serif;font-size:14px;font-weight:700;transition:bottom .45s cubic-bezier(.22,1,.36,1);}
-.brg-event-banner.show{bottom:22px;}
-.brg-event-banner b{color:#C9A84C;}
-.brg-event-banner button{border:none;border-radius:999px;padding:8px 18px;background:linear-gradient(135deg,#E6D08A,#C9A84C);color:#0D0D14;font-family:inherit;font-weight:900;font-size:14px;cursor:pointer;}
-.brg-event-banner button:hover{filter:brightness(1.06);}
-@media (max-width:480px){.brg-event-banner{width:calc(100% - 24px);justify-content:space-between;font-size:13px;padding:10px 14px;}}
+/* إشعار الفعالية — نافذة كبيرة بنص الشاشة، تظهر للستريمر المشغول بلوحة لعبة
+   على الهواء (بدل سحبه قسراً من راوند حي أمام جمهوره) وللمتأخر بعد انتهاء
+   نافذة الانضمام. لا تختفي بمرور الوقت إطلاقاً — تبقى حتى يضغط ✕ بنفسه. */
+.brg-notice-back{position:fixed;inset:0;z-index:99998;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(5,6,14,.82);backdrop-filter:blur(7px);animation:brgNoticeFade .3s ease both;}
+.brg-notice-back.show{display:flex;}
+@keyframes brgNoticeFade{from{opacity:0}to{opacity:1}}
+@keyframes brgNoticePop{0%{transform:translateY(26px) scale(.92);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+.brg-notice{position:relative;width:100%;max-width:560px;border-radius:28px;padding:44px 40px 36px;text-align:center;background:linear-gradient(160deg,#1D2544,#0A0D18 68%);border:1px solid rgba(201,168,76,.5);box-shadow:0 30px 90px rgba(0,0,0,.7),0 0 90px rgba(201,168,76,.22),inset 0 0 0 1px rgba(201,168,76,.14);font-family:'Tajawal','Segoe UI',system-ui,sans-serif;animation:brgNoticePop .5s cubic-bezier(.22,1,.36,1) both;}
+.brg-notice-x{position:absolute;top:14px;left:14px;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .18s,transform .18s;}
+.brg-notice-x:hover{background:rgba(255,255,255,.14);transform:scale(1.06);}
+.brg-notice-icon{font-size:60px;line-height:1;margin-bottom:12px;}
+.brg-notice-title{font-family:'Amiri','Times New Roman',serif;font-size:44px;line-height:1.15;color:#C9A84C;text-shadow:0 0 40px rgba(201,168,76,.45);margin-bottom:12px;}
+.brg-notice-text{font-size:19px;line-height:1.75;color:#D6D2E4;margin-bottom:28px;}
+.brg-notice-btn{display:inline-block;border:none;border-radius:999px;padding:17px 42px;background:linear-gradient(135deg,#F4E9C6,#C9A84C);color:#0D0D14;font-family:inherit;font-weight:900;font-size:19px;cursor:pointer;box-shadow:0 10px 30px rgba(201,168,76,.35);transition:filter .18s,transform .18s;}
+.brg-notice-btn:hover{filter:brightness(1.06);transform:translateY(-2px);}
+.brg-notice-hint{margin-top:16px;font-size:13px;color:#8A8A99;}
+@media (max-width:520px){
+  .brg-notice{padding:38px 22px 28px;border-radius:22px;}
+  .brg-notice-icon{font-size:48px;}
+  .brg-notice-title{font-size:32px;}
+  .brg-notice-text{font-size:16px;}
+  .brg-notice-btn{width:100%;padding:15px 20px;font-size:17px;}
+}
 
 /* وضع المتابعة: نخفي ما لا معنى له لمن لا يلعب (تصويت جمهوره وسلسلته) */
 /* !important لأن لوحة السلسلة تحمل display:flex ضمن style المضمّن، والمضمّن
@@ -55704,7 +55719,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // لا فعالية (أو أوقفها المالك) → أغلق كل شاشات الفعالية فوراً وأرجعه لحالته
     if (!state.eventId || !ev || ev.status === 'ended' || ev.status === 'cancelled') {
-      brgHideBanner();
+      brgHideNotice();
       if (onBridgePage()) {
         var hadWin = !!document.getElementById('brg-win-screen');
         brgTeardownLocal();
@@ -55724,18 +55739,22 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!target) return;
 
     var a = document.querySelector('.page.active');
-    if (a && a.id === 'pg-' + target) { brgHideBanner(); return; }
-    if (onBridgePage()) { show(target); brgHideBanner(); return; }
+    if (a && a.id === 'pg-' + target) { brgHideNotice(); return; }
+    if (onBridgePage()) { show(target); brgHideNotice(); return; }
 
-    // خارج شاشات الفعالية: ينتقل تلقائياً بلا أي تحديث صفحة، إلا لو كان
-    // بمنتصف راوند لعبة على الهواء — عندها شريط + نقل تلقائي بعد خروجه.
-    if (brgIsBusyStreaming()) { brgPendingAutoNav = true; brgShowBanner(target); return; }
+    // خارج شاشات الفعالية: ينتقل تلقائياً بلا أي تحديث صفحة، إلا في حالتين
+    // نعرض فيهما إشعاراً كبيراً بنص الشاشة بدل النقل القسري.
+    if (brgIsBusyStreaming() && !brgNoticeForce) {
+      brgPendingAutoNav = true;
+      brgShowNotice('busy');      // بمنتصف راوند على الهواء
+      return;
+    }
     if (ev.status === 'running' && !state.me && !state.spectator && !brgCanLateJoin()) {
-      enterSpectator();          // فات وقت الانضمام → وضع المتابعة
+      brgShowNotice('late');      // فات وقت الانضمام → متابعة باختياره
       return;
     }
     show(target);
-    brgHideBanner();
+    brgHideNotice();
   }
 
   // يُنادى من show() بعد كل تنقّل — ينقله فور خروجه من لوحة اللعبة المشغول بها.
@@ -55746,26 +55765,59 @@ document.addEventListener('DOMContentLoaded', function () {
     brgRouteForEvent();
   }
 
-  function brgShowBanner(target) {
-    var el = document.getElementById('brg-event-banner');
-    if (!el) {
-      el = document.createElement('div');
-      el.id = 'brg-event-banner';
-      el.className = 'brg-event-banner';
-      document.body.appendChild(el);
+  // ---- إشعار الفعالية الكبير (وسط الشاشة، لا يزول إلا بضغط ✕) ----
+  var brgNoticeKind = null;        // 'busy' | 'late'
+  var brgNoticeDismissed = {};     // eventId -> true (أُغلق يدوياً فلا يعود)
+  var brgNoticeForce = false;      // تجاوز فحص «مشغول ببث» بعد ضغط زر الدخول
+
+  function brgShowNotice(kind) {
+    if (brgNoticeDismissed[state.eventId]) return;
+    if (brgNoticeKind === kind && document.querySelector('#brg-notice-back.show')) return;
+    brgNoticeKind = kind;
+    var back = document.getElementById('brg-notice-back');
+    if (!back) {
+      back = document.createElement('div');
+      back.id = 'brg-notice-back';
+      back.className = 'brg-notice-back';
+      document.body.appendChild(back);
     }
-    el.innerHTML = '<span>🌉 فعالية <b>جسر المصير</b> شغّالة الآن</span>'
-      + '<button type="button" onclick="brgEnterFromBanner()">ادخل الفعالية</button>';
-    el.classList.add('show');
+    var busy = kind === 'busy';
+    back.innerHTML = '<div class="brg-notice">'
+      + '<button type="button" class="brg-notice-x" onclick="brgDismissNotice()" title="إغلاق">✕</button>'
+      + '<div class="brg-notice-icon">' + (busy ? '🌉' : '👁️') + '</div>'
+      + '<div class="brg-notice-title">' + (busy ? 'فعالية جسر المصير' : 'الفعالية بدأت') + '</div>'
+      + '<div class="brg-notice-text">' + (busy
+          ? 'الفعالية شغّالة الآن وأنت بمنتصف راوند على الهواء — ما سحبناك منه.<br>ادخل وقت ما تخلّص.'
+          : 'بدأت الفعالية قبل دخولك وانتهت مهلة الانضمام.<br>تقدر تتابعها مع جمهورك، وتشارك بالقادمة من أولها.')
+        + '</div>'
+      + '<button type="button" class="brg-notice-btn" onclick="brgEnterFromNotice()">'
+        + (busy ? 'ادخل الفعالية الآن' : 'تابع الفعالية') + '</button>'
+      + '<div class="brg-notice-hint">يبقى هذا الإشعار ظاهراً حتى تغلقه بنفسك</div>'
+      + '</div>';
+    back.classList.add('show');
   }
-  function brgHideBanner() {
-    var el = document.getElementById('brg-event-banner');
-    if (el) el.classList.remove('show');
+
+  function brgHideNotice() {
+    var back = document.getElementById('brg-notice-back');
+    if (back) back.classList.remove('show');
+    brgNoticeKind = null;
   }
-  function brgEnterFromBanner() {
+
+  // ✕ = «شِلته»: لا يرجع لهذه الفعالية إطلاقاً، ولا ننقله تلقائياً بعدها.
+  function brgDismissNotice() {
+    if (state.eventId) brgNoticeDismissed[state.eventId] = true;
     brgPendingAutoNav = false;
-    brgHideBanner();
+    brgHideNotice();
+  }
+
+  function brgEnterFromNotice() {
+    var kind = brgNoticeKind;
+    brgPendingAutoNav = false;
+    brgHideNotice();
+    if (kind === 'late') { enterSpectator(); return; }
+    brgNoticeForce = true;          // يتجاوز فحص «مشغول ببث» هذه المرة فقط
     brgRouteForEvent();
+    brgNoticeForce = false;
   }
 
   // استعادة الحالة بعد إعادة تحميل/انقطاع: المشارك القائم يرجع لمكانه بالضبط
@@ -56555,8 +56607,9 @@ document.addEventListener('DOMContentLoaded', function () {
   window.brgSimStart = brgSimStart;
   window.brgSimStop = brgSimStop;
   window.brgAfterNavigate = brgAfterNavigate;
-  window.brgEnterFromBanner = brgEnterFromBanner;
   window.brgRouteForEvent = brgRouteForEvent;
+  window.brgDismissNotice = brgDismissNotice;
+  window.brgEnterFromNotice = brgEnterFromNotice;
   window.brgRenderLobby = function () { renderLobbyList(); renderLobbyMe(); };
   window.BridgeFate = { DECK: DECK, CATS: CATS, TOTAL: TOTAL, state: state, parseVote: parseVote, proj: proj, pickQuestion: pickQuestion };
 
