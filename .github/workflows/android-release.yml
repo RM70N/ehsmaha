@@ -56,13 +56,26 @@ jobs:
           EHSMAHA_KEY_ALIAS: ${{ secrets.EHSMAHA_KEY_ALIAS }}
           EHSMAHA_KEY_PASSWORD: ${{ secrets.EHSMAHA_KEY_PASSWORD }}
         run: |
+          # نتحقق بعد trim المسافات — سرّ يحتوي على مسافة/سطر جديد فقط يمرّ
+          # اختبار [ -z ] العادي (طوله > 0) لكن Properties.load() بجافا يحذف
+          # المسافات البادئة من القيمة فتصير فارغة فعلياً عند القراءة، وهذا
+          # بالضبط ما حدث فعلياً (EHSMAHA_KEYSTORE_PASSWORD ظهر طوله صفر رغم
+          # اجتيازه فحصاً سابقاً بسيطاً).
+          trimmed() { printf '%s' "$1" | tr -d '[:space:]'; }
           missing=""
-          [ -z "$EHSMAHA_KEYSTORE_BASE64" ] && missing="$missing EHSMAHA_KEYSTORE_BASE64"
-          [ -z "$EHSMAHA_KEYSTORE_PASSWORD" ] && missing="$missing EHSMAHA_KEYSTORE_PASSWORD"
-          [ -z "$EHSMAHA_KEY_ALIAS" ] && missing="$missing EHSMAHA_KEY_ALIAS"
-          [ -z "$EHSMAHA_KEY_PASSWORD" ] && missing="$missing EHSMAHA_KEY_PASSWORD"
+          [ -z "$(trimmed "$EHSMAHA_KEYSTORE_BASE64")" ] && missing="$missing EHSMAHA_KEYSTORE_BASE64"
+          [ -z "$(trimmed "$EHSMAHA_KEYSTORE_PASSWORD")" ] && missing="$missing EHSMAHA_KEYSTORE_PASSWORD"
+          [ -z "$(trimmed "$EHSMAHA_KEY_ALIAS")" ] && missing="$missing EHSMAHA_KEY_ALIAS"
+          [ -z "$(trimmed "$EHSMAHA_KEY_PASSWORD")" ] && missing="$missing EHSMAHA_KEY_PASSWORD"
           if [ -n "$missing" ]; then
-            echo "::error::الأسرار التالية غير مضبوطة أو فارغة في GitHub Secrets:$missing — تحقق من الاسم بالضبط (حساس لحالة الأحرف) في Settings > Secrets and variables > Actions. راجع mobile/README.md قسم التوقيع."
+            echo "::error::الأسرار التالية فارغة أو تحتوي مسافات فقط في GitHub Secrets:$missing — أعد فتح Settings > Secrets and variables > Actions واضغط Update على كل سرّ منها والصق القيمة من جديد بعناية (بدون مسافة أو سطر إضافي في البداية/النهاية). راجع mobile/README.md قسم التوقيع."
+            exit 1
+          fi
+          # PKCS12 يتطلب أن تكون كلمة مرور الـ keystore ومفتاحه متطابقتين
+          # تماماً — لو اختلفتا فهذا خطأ شائع (لصق القيمة الخطأ في أحد
+          # السرّين) يستحق إيقاف البناء برسالة واضحة بدل فشل Gradle مبهم لاحقاً.
+          if [ "$(trimmed "$EHSMAHA_KEYSTORE_PASSWORD")" != "$(trimmed "$EHSMAHA_KEY_PASSWORD")" ]; then
+            echo "::error::EHSMAHA_KEYSTORE_PASSWORD وEHSMAHA_KEY_PASSWORD يجب أن يكونا متطابقين تماماً لملفات PKCS12 — تحقق من قيمتيهما في GitHub Secrets."
             exit 1
           fi
           echo "$EHSMAHA_KEYSTORE_BASE64" | base64 --decode > release.keystore
