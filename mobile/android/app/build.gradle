@@ -28,6 +28,19 @@ android {
     if (keystorePropsFile.exists()) {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
+    // تشخيص مؤقت (آمن — يطبع أسماء المفاتيح وأطوال القيم فقط، لا القيم
+    // نفسها إطلاقاً) بعد فشلين متتاليين بخطأ "missing required property
+    // storePassword" رغم تحقّق الأسرار الأربعة كموجودة وغير فارغة في CI.
+    // يُزال بعد تشخيص السبب الحقيقي.
+    logger.lifecycle("🔍 keystore.properties موجود: ${keystorePropsFile.exists()} — المسار: ${keystorePropsFile}")
+    if (keystorePropsFile.exists()) {
+        logger.lifecycle("🔍 حجم الملف بالبايت: ${keystorePropsFile.length()}")
+        logger.lifecycle("🔍 أسماء المفاتيح المقروءة: ${keystoreProps.stringPropertyNames()}")
+        ['storeFile', 'storePassword', 'keyAlias', 'keyPassword'].each { key ->
+            def v = keystoreProps.getProperty(key)
+            logger.lifecycle("🔍 ${key}: موجود=${v != null}, الطول=${v?.length()}")
+        }
+    }
     def ksPath = keystoreProps.getProperty('storeFile') ?: System.getenv('EHSMAHA_KEYSTORE_PATH')
     // rootProject.file() وليس file() العادية: قيمة storeFile مكتوبة بمسار
     // نسبي لمجلد الجذر (mobile/android/، حيث يعيش keystore.properties نفسه)
