@@ -15184,15 +15184,14 @@ function streamerKeywordAutofillInit() {
 }
 
 // ==================== DESKTOP APP DOWNLOAD ====================
-// رابط ثابت للأبد يشير دائماً لآخر إصدار منشور على GitHub Releases (انظر
-// desktop/README.md لتفاصيل النشر). لو تغيّر اسم مستودع GitHub، عدّل السطر
-// التالي فقط — كل الروابط في صفحة التحميل تُبنى منه.
-const GITHUB_RELEASES_BASE = 'https://github.com/rm70n/ehsmaha/releases/latest/download';
+// الملفات مستضافة على نفس دومين الموقع (مجلد downloads/) بدل GitHub Releases
+// — المستودع خاص فكانت روابط GitHub تُرجع 404 للزوار غير المسجَّلين دخول.
+const DOWNLOADS_BASE = '/downloads';
 const DESKTOP_APP_LINKS = {
-  win: `${GITHUB_RELEASES_BASE}/ehsmaha-setup.exe`,
-  macIntel: `${GITHUB_RELEASES_BASE}/ehsmaha-x64.dmg`,
-  macArm: `${GITHUB_RELEASES_BASE}/ehsmaha-arm64.dmg`,
-  android: `${GITHUB_RELEASES_BASE}/ehsmaha.apk`,
+  win: `${DOWNLOADS_BASE}/ehsmaha-setup.exe`,
+  macIntel: `${DOWNLOADS_BASE}/ehsmaha-x64.dmg`,
+  macArm: `${DOWNLOADS_BASE}/ehsmaha-arm64.dmg`,
+  android: `${DOWNLOADS_BASE}/ehsmaha.apk`,
 };
 
 let desktopDownloadPageBooted = false;
