@@ -29,12 +29,19 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
     def ksPath = keystoreProps.getProperty('storeFile') ?: System.getenv('EHSMAHA_KEYSTORE_PATH')
-    def hasSigningConfig = ksPath != null && file(ksPath).exists()
+    // rootProject.file() وليس file() العادية: قيمة storeFile مكتوبة بمسار
+    // نسبي لمجلد الجذر (mobile/android/، حيث يعيش keystore.properties نفسه)
+    // — file() العادية هنا كانت تحلّها نسبةً لمجلد app/ فتفشل بصمت (الملف
+    // موجود لكن بمسار مختلف)، فيبني Gradle نسخة غير موقَّعة بدون أي خطأ
+    // ظاهر. rootProject.file() يتعامل بشكل صحيح مع المسارين النسبي والمطلق.
+    def resolveKeystoreFile = { p -> p != null ? rootProject.file(p) : null }
+    def hasSigningConfig = ksPath != null && resolveKeystoreFile(ksPath).exists()
 
     if (hasSigningConfig) {
+        logger.lifecycle("✅ توقيع release مفعّل — الملف: ${resolveKeystoreFile(ksPath)}")
         signingConfigs {
             release {
-                storeFile file(ksPath)
+                storeFile resolveKeystoreFile(ksPath)
                 storePassword keystoreProps.getProperty('storePassword') ?: System.getenv('EHSMAHA_KEYSTORE_PASSWORD')
                 keyAlias keystoreProps.getProperty('keyAlias') ?: System.getenv('EHSMAHA_KEY_ALIAS')
                 keyPassword keystoreProps.getProperty('keyPassword') ?: System.getenv('EHSMAHA_KEY_PASSWORD')
