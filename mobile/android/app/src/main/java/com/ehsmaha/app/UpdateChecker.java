@@ -14,41 +14,39 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
- * تحقّق بسيط من وجود إصدار أحدث لتطبيق احسمها على GitHub Releases (نفس
- * مصدر رابط "تحميل التطبيق" في الموقع). التطبيق موزَّع كملف APK مباشر خارج
+ * تحقّق بسيط من وجود إصدار أحدث لتطبيق احسمها عبر ملف version.json مستضاف
+ * على نفس دومين الموقع (بدل GitHub API — المستودع خاص فكانت طلبات API
+ * ترجع 404 للزوار غير المسجَّلين دخول). التطبيق موزَّع كملف APK مباشر خارج
  * Google Play، فلا يوجد تحديث تلقائي عبر متجر — هذا التنبيه البسيط هو
- * البديل: مقارنة رقم الإصدار الحالي مع "latest release" على GitHub، ولو
- * كان أحدث نعرض شريطاً يوجّه المستخدم لتحميله يدوياً (انظر MainActivity).
+ * البديل: مقارنة رقم الإصدار الحالي مع القيمة في version.json، ولو كان
+ * أحدث نعرض شريطاً يوجّه المستخدم لتحميله يدوياً (انظر MainActivity).
  */
 final class UpdateChecker {
 
-    private static final String LATEST_RELEASE_API =
-        "https://api.github.com/repos/RM70N/ehsmaha/releases/latest";
+    private static final String VERSION_JSON_URL = "https://ehsmaha.com/downloads/version.json";
     // نفس رابط "تحميل التطبيق" الثابت المستخدم على الموقع — يبدأ التنزيل مباشرة.
-    static final String APK_DOWNLOAD_URL =
-        "https://github.com/RM70N/ehsmaha/releases/latest/download/ehsmaha.apk";
+    static final String APK_DOWNLOAD_URL = "https://ehsmaha.com/downloads/ehsmaha.apk";
 
     private UpdateChecker() {}
 
-    /** @return رقم الإصدار الأحدث بدون بادئة "v" (مثل "1.2.0")، أو null لو تعذّر الجلب. */
+    /** @return رقم الإصدار الأحدث (مثل "1.2.0")، أو null لو تعذّر الجلب. */
     static String fetchLatestReleaseTag() {
         HttpURLConnection conn = null;
         try {
-            URL url = new URL(LATEST_RELEASE_API);
+            URL url = new URL(VERSION_JSON_URL);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(6000);
             conn.setReadTimeout(6000);
-            conn.setRequestProperty("Accept", "application/vnd.github+json");
             int status = conn.getResponseCode();
             if (status != 200) return null;
 
             InputStream in = conn.getInputStream();
             String body = readAll(in);
             JSONObject json = new JSONObject(body);
-            String tag = json.optString("tag_name", null);
-            if (tag == null) return null;
-            return tag.startsWith("v") || tag.startsWith("V") ? tag.substring(1) : tag;
+            String version = json.optString("version", null);
+            if (version == null) return null;
+            return version.startsWith("v") || version.startsWith("V") ? version.substring(1) : version;
         } catch (Exception e) {
             return null;
         } finally {
