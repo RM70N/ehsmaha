@@ -70,7 +70,17 @@ jobs:
       - name: Rename APK to permanent filename
         run: |
           mkdir -p dist
-          cp mobile/android/app/build/outputs/apk/release/app-release.apk dist/ehsmaha.apk
+          # نبحث عن الـ APK الناتج بدل افتراض اسم/مسار ثابت (app-release.apk) —
+          # يختلف حسب إصدار Android Gradle Plugin. لو ما لقينا شيئاً نطبع
+          # محتوى مجلد outputs كاملاً لتشخيص أسهل بدل رسالة "لا يوجد ملف" مبهمة.
+          APK_PATH=$(find mobile/android/app/build/outputs/apk -name "*.apk" -not -name "*unsigned*" | head -1)
+          if [ -z "$APK_PATH" ]; then
+            echo "::error::لم يُعثر على أي ملف APK داخل mobile/android/app/build/outputs/apk"
+            find mobile/android/app/build/outputs -type f 2>/dev/null || echo "(مجلد outputs غير موجود إطلاقاً)"
+            exit 1
+          fi
+          echo "APK found at: $APK_PATH"
+          cp "$APK_PATH" dist/ehsmaha.apk
 
       - name: Clean up keystore
         if: always()
