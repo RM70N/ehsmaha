@@ -1,0 +1,33 @@
+{
+  "name": "ehsmaha-mobile",
+  "version": "1.0.0",
+  "description": "تطبيق أندرويد لمنصة احسمها (ehsmaha.com) — غلاف Capacitor حول الموقع الحي",
+  "author": {
+    "name": "احسمها",
+    "email": "malshaifan1@gmail.com"
+  },
+  "homepage": "https://ehsmaha.com",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync": "cap sync android",
+    "open": "npm run sync && cap open android",
+    "run": "npm run sync && cap run android",
+    "build:debug": "npm run sync && cd android && ./gradlew assembleDebug",
+    "build:release": "npm run sync && cd android && ./gradlew assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "typescript": "^7.0.2"
+  }
+}
