@@ -1,0 +1,45 @@
+name: Export Release Assets as Artifact
+
+# سكربت مساعد لمرة واحدة: ينزّل ملفات إصدار v1.0.0 (exe/dmg/apk) عبر gh CLI
+# (المُثبَّت مسبقاً على أي GitHub-hosted runner، ويستخدم GITHUB_TOKEN
+# التلقائي الذي له صلاحية قراءة إصدارات هذا المستودع نفسه حتى لو كان
+# خاصاً) ويرفعها كـ"Artifact" لتشغيل الـ workflow — وهذا نوع ملفات مختلف
+# عن "Release assets" ويمكن تنزيله عبر GitHub API even للمستودعات الخاصة
+# بدون الحاجة لجلسة متصفح مسجَّلة دخول. الهدف: تمكين نقل هذي الملفات
+# لصاحب المستودع مباشرة (مثلاً ليرفعها بنفسه على استضافة الموقع) دون
+# الحاجة لجعل المستودع عاماً.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "التاج المطلوب تصدير ملفاته"
+        required: false
+        default: "v1.0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p export
+          gh release download "${{ inputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir export \
+            --pattern "ehsmaha-setup.exe" \
+            --pattern "ehsmaha-x64.dmg" \
+            --pattern "ehsmaha-arm64.dmg" \
+            --pattern "ehsmaha.apk"
+          ls -la export
+
+      - name: Upload as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ehsmaha-release-assets
+          path: export/*
+          retention-days: 3
