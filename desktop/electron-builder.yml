@@ -26,11 +26,17 @@ files:
 icon: build/icon.png
 
 # ------------------------------------------------------------------ Windows
+#
+# artifactName بدون ${version} عمداً: هذا يجعل رابط التحميل على الموقع
+# ثابتاً للأبد (لا يتغيّر مع كل إصدار جديد) — GitHub يسمح بنفس اسم الملف في
+# إصدارات (tags) مختلفة، ورابط .../releases/latest/download/<name> يرجع
+# دائماً أصل من آخر إصدار منشور تلقائياً. لو احتجت لاحقاً معرفة رقم النسخة
+# من اسم الملف نفسه، رقم النسخة موجود داخل latest.yml/latest-mac.yml أصلاً.
 win:
   target:
     - target: nsis
       arch: [x64]
-  artifactName: ehsmaha-setup-${version}.${ext}
+  artifactName: ehsmaha-setup.${ext}
   icon: build/icon.png
 
 nsis:
@@ -40,7 +46,7 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: احسمها
-  artifactName: ehsmaha-setup-${version}.${ext}
+  artifactName: ehsmaha-setup.${ext}
   deleteAppDataOnUninstall: false
   displayLanguageSelector: false
   installerLanguages: [ar]
@@ -53,7 +59,7 @@ mac:
       arch: [x64, arm64]
   icon: build/icon.png
   category: public.app-category.entertainment
-  artifactName: ehsmaha-${version}-${arch}.${ext}
+  artifactName: ehsmaha-${arch}.${ext}
   hardenedRuntime: true
   gatekeeperAssess: false
   # لا يوجد حساب مطوّر Apple بعد — بدون هذا السطر signing سيُتخطّى تلقائياً
@@ -62,7 +68,7 @@ mac:
 
 dmg:
   title: تثبيت احسمها
-  artifactName: ehsmaha-${version}-${arch}.${ext}
+  artifactName: ehsmaha-${arch}.${ext}
 
 # --------------------------------------------------------- التحديث التلقائي
 # نفس مصدر ملفات التثبيت (GitHub Releases) هو مصدر التحديث التلقائي.

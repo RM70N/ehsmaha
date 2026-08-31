@@ -93,8 +93,14 @@ npm run dist
 ```
 
 الناتج يظهر في `desktop/dist/`:
-- Windows: `ehsmaha-setup-<version>.exe`
-- macOS: `ehsmaha-<version>-<arch>.dmg`
+- Windows: `ehsmaha-setup.exe`
+- macOS: `ehsmaha-x64.dmg` / `ehsmaha-arm64.dmg`
+
+> اسم الملف **ثابت بدون رقم إصدار** عمداً (`artifactName` في
+> `electron-builder.yml` بدون `${version}`) — هذا يجعل رابط التحميل المباشر
+> ثابتاً للأبد مهما صدرت نسخ جديدة، وهو ما يستخدمه زر "تحميل التطبيق" في
+> صفحة `/download-app` على الموقع (انظر أدناه). GitHub يسمح بنفس اسم الملف
+> في إصدارات (tags) مختلفة بلا مشاكل.
 
 > **ملاحظة عن Cross-compiling:** electron-builder لا يبني `.dmg` إلا على
 > ماك (أو عبر GitHub Actions macOS runner). لذلك أنشأنا سكربت GitHub Actions
@@ -135,23 +141,17 @@ npm run dist
 https://github.com/<owner>/<repo>/releases
 ```
 
-رابط **ثابت دائماً يشير لآخر نسخة** (يُحدَّث تلقائياً مع كل إصدار جديد —
-هذا هو الرابط الذي تضعه خلف زر "تحميل التطبيق" في ehsmaha.com):
+رابط **ثابت للأبد ويشير دائماً لآخر نسخة منشورة تلقائياً** (لا يتغيّر مع أي
+إصدار جديد — هذا هو الرابط الذي يستخدمه بالفعل زر "تحميل التطبيق" في صفحة
+`/download-app` على الموقع، انظر قسم "زر تحميل التطبيق على الموقع" أدناه):
 ```
-https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-setup-<version>.exe
+https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-setup.exe        # Windows
+https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-x64.dmg          # macOS (Intel)
+https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-arm64.dmg        # macOS (Apple Silicon)
 ```
-
-⚠️ ملاحظة مهمة: اسم الملف في الرابط أعلاه يحتوي على رقم الإصدار
-(`ehsmaha-setup-1.0.0.exe`) لأن `artifactName` في `electron-builder.yml` يضمّه
-— وهذا مقصود لتفادي مشاكل الكاش، لكنه يعني أن رابط `/latest/download/...`
-يحتاج تحديث الرقم يدوياً مع كل إصدار. **لرابط ثابت 100% لا يتغيّر أبداً مهما
-صدرت نسخ جديدة**، احذف `${version}` من `artifactName` في
-`electron-builder.yml` (يصبح مثلاً `ehsmaha-setup.exe` بدون رقم)، عندها:
-```
-https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-setup.exe
-```
-هذا الرابط **لا يتغيّر إطلاقاً** ويعطي دائماً أحدث نسخة — ضعه مباشرة في زر
-"تحميل" على الموقع.
+بمجرّد فتح هذا الرابط (بالضغط عليه أو وضعه في `<a href>`)، يبدأ تحميل ملف
+`.exe`/`.dmg` مباشرة من المتصفح بدون أي صفحة وسيطة — بالضبط سلوك "اضغط تحميل
+ويبدأ التنزيل على طول".
 
 **مزايا GitHub Releases:**
 - مجاني بالكامل، بدون حدود تخزين عملية لهذا الاستخدام.
@@ -173,7 +173,7 @@ https://github.com/<owner>/<repo>/releases/latest/download/ehsmaha-setup.exe
 
 ```bash
 # افترض أن مجلد استضافة firebase الحالي هو public/
-cp desktop/dist/ehsmaha-setup-1.0.0.exe /path/to/firebase-hosting/public/download/ehsmaha-setup.exe
+cp desktop/dist/ehsmaha-setup.exe /path/to/firebase-hosting/public/download/ehsmaha-setup.exe
 firebase deploy --only hosting
 ```
 
@@ -205,6 +205,31 @@ https://ehsmaha.com/download/ehsmaha-setup.exe
 الثابت** (`/releases/latest/download/ehsmaha-setup.exe`) بدل استضافة الملف
 بنفسك — تحصل على واجهة `ehsmaha.com` (الزر نفسه على موقعك) دون التضحية
 بالتحديث التلقائي أو الصيانة اليدوية.
+
+## زر "تحميل التطبيق" على الموقع
+
+أُضيف زر "تحميل التطبيق" في الصفحة الرئيسية للموقع (`index.html`، أسفل بطاقة
+"أسئلة شائعة" مباشرة) يفتح صفحة تحميل مخصّصة (`show('download-app')`) بتصميم
+فخم متوافق مع هوية الموقع. زر "تحميل لويندوز" فيها رابط `<a href download>`
+مباشر لملف `.exe` على GitHub Releases — الضغط عليه يبدأ التنزيل فوراً من
+المتصفح بدون أي صفحة وسيطة، ومباشرة بعد اكتمال التنزيل يقدر المستخدم يفتح
+الملف وتثبيته (NSIS one-click installer).
+
+الروابط داخل هذه الصفحة (بحث عن `GITHUB_RELEASES_BASE` داخل `index.html`)
+تشير إلى:
+```
+https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-setup.exe   (ويندوز)
+https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-x64.dmg     (ماك Intel)
+https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-arm64.dmg   (ماك Apple Silicon)
+```
+هذه الروابط **لن تُنزّل شيئاً حقيقياً حتى يُنشر أول إصدار فعلي** عبر
+`npm run publish` أو تاج `git tag vX.Y.Z && git push origin vX.Y.Z` (انظر
+أعلاه) — قبل ذلك GitHub يرجع 404. بعد أول نشر تعمل الروابط فوراً بدون أي
+تعديل إضافي على الموقع، لأنها تشير دائماً لـ "آخر إصدار" تلقائياً.
+
+لو غيّرت `owner`/`repo` في `electron-builder.yml`، حدّث نفس القيمة في ثابت
+`GITHUB_RELEASES_BASE` داخل `index.html` (مكان واحد فقط، أعلى قسم صفحة
+التحميل) حتى يبقى الرابطان متطابقين.
 
 ## تحديث محتوى الموقع داخل التطبيق (بدون بناء إصدار جديد)
 

@@ -4450,6 +4450,123 @@ if (location.hostname === 'streamgame1.netlify.app') {
   </div>
 </div>
 
+<style>
+.dl-page{padding:26px 16px 80px;align-items:center;background:radial-gradient(1100px 520px at 82% -8%, rgba(124,58,237,.34), transparent 62%),radial-gradient(760px 420px at 8% 4%, rgba(236,72,153,.14), transparent 60%),var(--bg);}
+.dl-page-inner{width:100%;max-width:880px;}
+
+.dl-hero{text-align:center;padding:28px 12px 8px;}
+.dl-hero-logo{width:84px;height:84px;margin:0 auto 18px;border-radius:22px;overflow:hidden;box-shadow:0 12px 36px rgba(139,92,246,.45);}
+.dl-hero-logo svg{display:block;width:100%;height:100%;}
+.dl-hero-badge{display:inline-block;font-size:12.5px;font-weight:800;color:var(--accent2);background:rgba(139,92,246,.14);border:1px solid var(--border-strong);border-radius:999px;padding:5px 14px;margin-bottom:14px;letter-spacing:.02em;}
+.dl-hero-title{font-family:var(--font-brand);font-size:32px;font-weight:900;line-height:1.35;color:#f3eefe;margin:0 0 14px;}
+.dl-hero-title .grad{background:linear-gradient(150deg,var(--accent-light),var(--brand-violet),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.dl-hero-sub{font-size:15.5px;line-height:1.9;color:#c9bdea;max-width:560px;margin:0 auto;}
+
+.dl-platforms{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin:34px 0;}
+.dl-plat-card{position:relative;background:linear-gradient(180deg,#180d33,#130a27);border:1px solid var(--border-strong);border-radius:24px;padding:30px 26px;text-align:center;transition:border-color .2s,transform .2s;}
+.dl-plat-card-suggested{border-color:var(--accent2);box-shadow:0 0 0 1px rgba(167,139,255,.35),0 20px 46px rgba(124,58,237,.28);}
+.dl-plat-badge{display:none;position:absolute;top:-13px;right:50%;transform:translateX(50%);background:linear-gradient(100deg,var(--accent-light),var(--accent));color:var(--text-on-accent);font-size:12px;font-weight:900;padding:5px 16px;border-radius:999px;box-shadow:0 6px 16px rgba(124,58,237,.5);white-space:nowrap;}
+.dl-plat-card-suggested .dl-plat-badge{display:inline-block;}
+.dl-plat-icon{width:60px;height:60px;margin:6px auto 14px;border-radius:16px;display:grid;place-items:center;background:rgba(167,139,255,.12);color:var(--accent2);}
+.dl-plat-name{font-family:var(--font-brand);font-size:20px;font-weight:900;color:#f3eefe;}
+.dl-plat-req{font-size:13px;color:var(--muted);font-weight:700;margin:4px 0 20px;}
+.dl-plat-hint{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.7;}
+
+.dl-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;text-decoration:none;font-family:var(--font);font-size:16px;font-weight:900;padding:15px;border-radius:12px;cursor:pointer;transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s,filter .15s;background:var(--surface2);color:var(--text);border:1px solid var(--border-strong);}
+.dl-btn-primary-choice{background:linear-gradient(100deg,var(--accent-light),var(--accent));color:var(--text-on-accent);border:none;box-shadow:var(--shadow-btn);}
+.dl-btn-primary-choice:hover{transform:translateY(-3px);box-shadow:0 9px 0 var(--accent-dark),0 20px 40px rgba(124,58,237,.55);filter:none;}
+.dl-btn-primary-choice:active{transform:translateY(3px);box-shadow:var(--shadow-btn-pressed);}
+.dl-btn:not(.dl-btn-primary-choice):hover{filter:brightness(1.12);border-color:var(--accent2);}
+.dl-btn-ghost{background:transparent;box-shadow:none;font-size:14px;padding:10px;}
+.dl-mac-btns{display:flex;flex-direction:column;gap:10px;}
+
+.dl-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:38px 0 30px;}
+.dl-feature{display:flex;gap:12px;align-items:flex-start;background:#150c28;border:1px solid var(--border);border-radius:16px;padding:16px 18px;}
+.dl-feature-icon{font-size:22px;line-height:1;flex-shrink:0;}
+.dl-feature-text{font-size:13.5px;line-height:1.9;color:#c9bdea;}
+.dl-feature-text b{color:#f3eefe;font-size:14.5px;}
+
+.dl-footnote{text-align:center;font-size:13.5px;color:var(--muted);margin-top:10px;}
+.dl-footnote a{color:var(--accent2);font-weight:800;text-decoration:none;}
+.dl-footnote a:hover{text-decoration:underline;}
+
+@media (max-width:480px){
+  .dl-hero-title{font-size:25px;}
+  .dl-plat-card{padding:24px 18px;}
+}
+</style>
+
+<!-- ====== DOWNLOAD APP PAGE (تحميل تطبيق سطح المكتب — تُفتح من بطاقة بالصفحة الرئيسية) ====== -->
+<div id="pg-download-app" class="page dl-page">
+  <div class="dl-page-inner">
+    <button type="button" class="faq-back-btn" onclick="show('home')">↩ رجوع للصفحة الرئيسية</button>
+
+    <div class="dl-hero">
+      <div class="dl-hero-logo" aria-hidden="true">
+        <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="dlLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#dlLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>
+      </div>
+      <div class="dl-hero-badge">تطبيق سطح المكتب</div>
+      <h1 class="dl-hero-title">حمّل تطبيق <span class="grad">احسمها</span> لجهازك</h1>
+      <p class="dl-hero-sub">نفس حسابك، نفس ألعابك، نفس البث — بتجربة أسرع وأثبت من المتصفح، بدون تسجيل دخول من جديد وبدون أي فرق في بياناتك.</p>
+    </div>
+
+    <div class="dl-platforms">
+      <div class="dl-plat-card" data-plat="win">
+        <div class="dl-plat-badge dl-plat-badge-suggested">الأنسب لجهازك</div>
+        <div class="dl-plat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M3 5.5 10.4 4.5 10.4 11.3 3 11.3ZM11.3 4.4 21 3 21 11.2 11.3 11.2ZM3 12.2 10.4 12.2 10.4 19.1 3 18.1ZM11.3 12.2 21 12.2 21 21 11.3 19.6Z"/></svg>
+        </div>
+        <div class="dl-plat-name">ويندوز</div>
+        <div class="dl-plat-req">Windows 10 / 11 · 64-bit</div>
+        <a id="dl-win-btn" class="dl-btn dl-btn-primary-choice" href="https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-setup.exe" download rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+          تحميل لويندوز
+        </a>
+        <div class="dl-plat-hint">ملف تثبيت واحد (.exe) — اضغط، شغّل، وثبّت بنقرة واحدة</div>
+      </div>
+
+      <div class="dl-plat-card" data-plat="mac">
+        <div class="dl-plat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.09-.499 1.71-1.655 3.38-1 1.44-2.04 2.88-3.67 2.91-1.6.03-2.117-.94-3.95-.94-1.834 0-2.409.91-3.923.97-1.573.06-2.769-1.55-3.777-2.98-2.06-2.94-3.634-8.31-1.52-11.93 1.05-1.8 2.928-2.94 4.964-2.97 1.546-.03 3.005 1.04 3.95 1.04.94 0 2.712-1.28 4.573-1.09.78.03 2.97.31 4.375 2.36-.113.07-2.612 1.52-2.585 4.55.03 3.61 3.17 4.81 3.218 4.83z"/></svg>
+        </div>
+        <div class="dl-plat-name">ماك</div>
+        <div class="dl-plat-req">macOS 12 فأحدث</div>
+        <div class="dl-mac-btns">
+          <a id="dl-mac-arm-btn" class="dl-btn" href="https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-arm64.dmg" download rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+            تحميل (Apple Silicon)
+          </a>
+          <a id="dl-mac-intel-btn" class="dl-btn dl-btn-ghost" href="https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-x64.dmg" download rel="noopener">تحميل (Intel)</a>
+        </div>
+        <div class="dl-plat-hint">أول تشغيل: اضغط بزر الفأرة الأيمن على التطبيق ← "فتح" لتجاوز تحذير Gatekeeper</div>
+      </div>
+    </div>
+
+    <div class="dl-features">
+      <div class="dl-feature">
+        <div class="dl-feature-icon">🔐</div>
+        <div class="dl-feature-text"><b>نفس حسابك تماماً</b><br>تسجيل الدخول والجلسة محفوظة — تفتح التطبيق وتلقى حسابك جاهز.</div>
+      </div>
+      <div class="dl-feature">
+        <div class="dl-feature-icon">⚡</div>
+        <div class="dl-feature-text"><b>أسرع وأثبت</b><br>نافذة مستقلة بدون تبويبات متصفح، أداء أفضل للألعاب المباشرة.</div>
+      </div>
+      <div class="dl-feature">
+        <div class="dl-feature-icon">🔔</div>
+        <div class="dl-feature-text"><b>إشعارات فورية</b><br>إشعارات سطح مكتب حقيقية لأهم أحداث بثك ولعبك.</div>
+      </div>
+      <div class="dl-feature">
+        <div class="dl-feature-icon">🔄</div>
+        <div class="dl-feature-text"><b>يحدّث نفسه</b><br>يتحقق تلقائياً من كل جديد وتحديث — بدون ما تسوي شي.</div>
+      </div>
+    </div>
+
+    <div class="dl-footnote">
+      تفضّل تجربة المتصفح؟ لا حاجة لتحميل أي شيء — <a href="javascript:void(0)" onclick="show('home')">تقدر تستخدم احسمها مباشرة من هنا</a>.
+    </div>
+  </div>
+</div>
+
 <!-- ====== AUTH (LOGIN / SIGNUP) ====== -->
 <div id="pg-auth" class="page">
   <div class="auth-box">
@@ -4569,6 +4686,11 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <div class="home-mode-icon" style="background:rgba(139,92,246,.14);color:var(--accent2);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
           <div class="home-mode-title">أسئلة شائعة</div>
           <div class="home-mode-sub">كل ما تريد معرفته</div>
+        </div>
+        <div class="home-mode-card home-mode-card-download" onclick="show('download-app')">
+          <div class="home-mode-icon" style="background:rgba(245,158,11,.14);color:var(--brand-amber);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg></div>
+          <div class="home-mode-title">تحميل التطبيق</div>
+          <div class="home-mode-sub">نسخة سطح المكتب</div>
         </div>
         <div class="home-mode-card" onclick="show('ahsemha-home')">
           <div class="home-mode-icon" style="background:rgba(52,211,153,.14);color:var(--green);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="4" fill="none"/><path d="M7 9h10"/><path d="M7 14h6"/></svg></div>
@@ -15047,6 +15169,45 @@ function streamerKeywordAutofillInit() {
   });
 }
 
+// ==================== DESKTOP APP DOWNLOAD ====================
+// رابط ثابت للأبد يشير دائماً لآخر إصدار منشور على GitHub Releases (انظر
+// desktop/README.md لتفاصيل النشر). لو تغيّر اسم مستودع GitHub، عدّل السطر
+// التالي فقط — كل الروابط في صفحة التحميل تُبنى منه.
+const GITHUB_RELEASES_BASE = 'https://github.com/rm70n/ehsmaha/releases/latest/download';
+const DESKTOP_APP_LINKS = {
+  win: `${GITHUB_RELEASES_BASE}/ehsmaha-setup.exe`,
+  macIntel: `${GITHUB_RELEASES_BASE}/ehsmaha-x64.dmg`,
+  macArm: `${GITHUB_RELEASES_BASE}/ehsmaha-arm64.dmg`,
+};
+
+let desktopDownloadPageBooted = false;
+function desktopDownloadPageInit() {
+  const winBtn = document.getElementById('dl-win-btn');
+  const macIntelBtn = document.getElementById('dl-mac-intel-btn');
+  const macArmBtn = document.getElementById('dl-mac-arm-btn');
+  if (winBtn) winBtn.href = DESKTOP_APP_LINKS.win;
+  if (macIntelBtn) macIntelBtn.href = DESKTOP_APP_LINKS.macIntel;
+  if (macArmBtn) macArmBtn.href = DESKTOP_APP_LINKS.macArm;
+  if (desktopDownloadPageBooted) return;
+  desktopDownloadPageBooted = true;
+  // كشف نظام التشغيل لإبراز نسخة ويندوز أو ماك المناسبة تلقائياً كخيار رئيسي.
+  const ua = navigator.userAgent || '';
+  const isMac = /Mac OS X|Macintosh/i.test(ua);
+  const isWin = /Windows/i.test(ua);
+  const isAppleSilicon = isMac && /arm64|aarch64/i.test((navigator.platform || '') + ua);
+  document.querySelectorAll('.dl-plat-card').forEach((card) => {
+    const plat = card.getAttribute('data-plat');
+    const highlight = (plat === 'win' && isWin) || (plat === 'mac' && isMac);
+    card.classList.toggle('dl-plat-card-suggested', highlight);
+  });
+  if (isMac && macArmBtn && macIntelBtn) {
+    const primary = isAppleSilicon ? macArmBtn : macIntelBtn;
+    const secondary = isAppleSilicon ? macIntelBtn : macArmBtn;
+    primary.classList.add('dl-btn-primary-choice');
+    secondary.classList.remove('dl-btn-primary-choice');
+  }
+}
+
 // ==================== NAV ====================
 function show(page) {
   // أي تنقّل يقفل القائمة الجانبية — ما تبقى أبداً مفتوحة فوق صفحة جديدة.
@@ -15063,6 +15224,7 @@ function show(page) {
   streamerUserAutofillInit();
   streamerKeywordAutofillInit();
   if (page === 'online-friends') frnFriendsPageBoot();
+  if (page === 'download-app') desktopDownloadPageInit();
   if (page === 'ahsemha-home') {
     const card = document.querySelector('.ahsemha-start-card');
     if (card) card.style.background = ahsemhaGetSetting('startCardColor') || '';
