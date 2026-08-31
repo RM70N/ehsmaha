@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>احسمها | لا يوجد اتصال</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: radial-gradient(circle at 50% 30%, #1a0b33 0%, #0b0518 70%);
+    color: #f4ecff; font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    padding: 24px; box-sizing: border-box;
+  }
+  .card { max-width: 420px; }
+  .icon { font-size: 56px; margin-bottom: 14px; }
+  h1 { font-size: 21px; margin: 0 0 12px; }
+  p { font-size: 14.5px; line-height: 2; opacity: .82; margin: 0 0 22px; }
+  button {
+    appearance: none; border: 0; cursor: pointer; border-radius: 12px; color: #fff;
+    padding: 13px 30px; font-size: 15px; font-weight: 700; width: 100%;
+    background: linear-gradient(135deg, #7c3aed, #c026d3);
+  }
+  .hint { margin-top: 16px; font-size: 12.5px; opacity: .55; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>لا يوجد اتصال بالإنترنت</h1>
+    <p>ما قدرنا نوصل لسيرفر احسمها. تأكد من اتصالك بالإنترنت أو بيانات الجوال، والتطبيق يعيد المحاولة تلقائياً كل ٥ ثوانٍ.</p>
+    <button id="retry" type="button">إعادة المحاولة الآن</button>
+    <div class="hint" id="hint">جارِ إعادة المحاولة تلقائياً...</div>
+  </div>
+<script>
+  // هذه الصفحة تُحمَّل من سيرفر Capacitor المحلي الداخلي (server.errorPath)
+  // عند فشل تحميل ehsmaha.com. "إعادة المحاولة" ببساطة تنقل الـ WebView
+  // مباشرة لعنوان الموقع الحي من جديد — أي نجاح يستبدل هذه الصفحة تلقائياً.
+  var SITE_URL = 'https://ehsmaha.com/';
+  function attemptRetry() {
+    location.replace(SITE_URL + '?retry=' + Date.now());
+  }
+  document.getElementById('retry').addEventListener('click', function () {
+    document.getElementById('hint').textContent = 'جارِ المحاولة...';
+    attemptRetry();
+  });
+  // إعادة محاولة تلقائية كل 5 ثوانٍ طالما الجهاز يقول إنه متصل بالشبكة.
+  setInterval(function () {
+    if (navigator.onLine) attemptRetry();
+  }, 5000);
+  window.addEventListener('online', attemptRetry);
+</script>
+</body>
+</html>

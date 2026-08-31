@@ -1,0 +1,85 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace = "com.ehsmaha.app"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "com.ehsmaha.app"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+
+    // توقيع نسخة release. القيم تُقرَأ من متغيرات بيئة (تُملأ من GitHub
+    // Secrets في CI — انظر ../../.github/workflows/android-release.yml وقسم
+    // "التوقيع" في README) أو من keystore.properties محلي غير مرفوع للمستودع.
+    // لو لم يوجد أي منهما (تشغيل محلي بدون إعداد توقيع)، نبني بدون توقيع
+    // بدل فشل البناء بالكامل — assembleRelease غير الموقَّع يبقى صالحاً
+    // للفحص المحلي فقط، لا للتوزيع.
+    def keystorePropsFile = rootProject.file('keystore.properties')
+    def keystoreProps = new Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+    }
+    def ksPath = keystoreProps.getProperty('storeFile') ?: System.getenv('EHSMAHA_KEYSTORE_PATH')
+    def hasSigningConfig = ksPath != null && file(ksPath).exists()
+
+    if (hasSigningConfig) {
+        signingConfigs {
+            release {
+                storeFile file(ksPath)
+                storePassword keystoreProps.getProperty('storePassword') ?: System.getenv('EHSMAHA_KEYSTORE_PASSWORD')
+                keyAlias keystoreProps.getProperty('keyAlias') ?: System.getenv('EHSMAHA_KEY_ALIAS')
+                keyPassword keystoreProps.getProperty('keyPassword') ?: System.getenv('EHSMAHA_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (hasSigningConfig) {
+                signingConfig signingConfigs.release
+            } else {
+                logger.warn('⚠️  لا يوجد keystore.properties ولا متغيرات EHSMAHA_KEYSTORE_* — سيُبنى APK غير موقَّع (للفحص المحلي فقط). انظر mobile/README.md لإنشاء التوقيع.')
+            }
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

@@ -11,7 +11,45 @@ permissions:
   contents: write # electron-builder يحتاج هذه الصلاحية لإنشاء/رفع GitHub Release
 
 jobs:
+  # ينشئ GitHub Release للتاج (لو ما كان موجوداً) قبل أي بناء. بدون هذه
+  # الخطوة، كل مهمة (windows-latest, macos-latest) — بل وحتى مهام النشر
+  # الداخلية لكل معمارية مختلفة (x64/arm64) على ماك — تحاول إنشاء نفس
+  # الإصدار في نفس اللحظة تقريباً، فيحدث تعارض (race condition) يفشل معه
+  # طلب "إنشاء Release" لدى GitHub بخطأ 422 "Published releases must have
+  # a valid tag" حتى لو نجح رفع الملفات فعلياً. إنشاء الإصدار مرة واحدة
+  # هنا أولاً يعني أن كل مهمة لاحقة تجده موجوداً بالفعل فتكتفي برفع
+  # الملفات إليه مباشرة بدل التسابق على إنشائه.
+  ensure-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            VERSION=$(node -p "require('./desktop/package.json').version")
+            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "الإصدار $TAG موجود بالفعل — تخطّي الإنشاء"
+          else
+            gh release create "$TAG" --repo "${{ github.repository }}" --title "$TAG" --notes "تم إنشاؤه تلقائياً بواسطة GitHub Actions"
+          fi
+
   build:
+    needs: ensure-release
     strategy:
       fail-fast: false
       matrix:

@@ -4505,7 +4505,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="dl-hero-logo" aria-hidden="true">
         <svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="dlLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#dlLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>
       </div>
-      <div class="dl-hero-badge">تطبيق سطح المكتب</div>
+      <div class="dl-hero-badge">تطبيق سطح المكتب والجوال</div>
       <h1 class="dl-hero-title">حمّل تطبيق <span class="grad">احسمها</span> لجهازك</h1>
       <p class="dl-hero-sub">نفس حسابك، نفس ألعابك، نفس البث — بتجربة أسرع وأثبت من المتصفح، بدون تسجيل دخول من جديد وبدون أي فرق في بياناتك.</p>
     </div>
@@ -4539,6 +4539,20 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <a id="dl-mac-intel-btn" class="dl-btn dl-btn-ghost" href="https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha-x64.dmg" download rel="noopener">تحميل (Intel)</a>
         </div>
         <div class="dl-plat-hint">أول تشغيل: اضغط بزر الفأرة الأيمن على التطبيق ← "فتح" لتجاوز تحذير Gatekeeper</div>
+      </div>
+
+      <div class="dl-plat-card" data-plat="android">
+        <div class="dl-plat-badge dl-plat-badge-suggested">الأنسب لجهازك</div>
+        <div class="dl-plat-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="30" height="30"><path d="M17.523 15.34a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1Zm-11.046 0a1.05 1.05 0 1 1 0-2.1 1.05 1.05 0 0 1 0 2.1ZM17.83 9.7l1.72-2.98a.36.36 0 0 0-.62-.36l-1.74 3.02a10.6 10.6 0 0 0-8.38 0L7.07 6.36a.36.36 0 1 0-.62.36L8.17 9.7A9.1 9.1 0 0 0 3.6 16.9h16.8A9.1 9.1 0 0 0 17.83 9.7Z"/></svg>
+        </div>
+        <div class="dl-plat-name">أندرويد</div>
+        <div class="dl-plat-req">Android 7.0 فأحدث</div>
+        <a id="dl-android-btn" class="dl-btn dl-btn-primary-choice" href="https://github.com/rm70n/ehsmaha/releases/latest/download/ehsmaha.apk" download rel="noopener">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg>
+          تحميل لأندرويد (APK)
+        </a>
+        <div class="dl-plat-hint">أول تثبيت: قد يطلب منك أندرويد السماح بـ"التثبيت من مصادر غير معروفة" — وافق ثم أكمل التثبيت</div>
       </div>
     </div>
 
@@ -15178,6 +15192,7 @@ const DESKTOP_APP_LINKS = {
   win: `${GITHUB_RELEASES_BASE}/ehsmaha-setup.exe`,
   macIntel: `${GITHUB_RELEASES_BASE}/ehsmaha-x64.dmg`,
   macArm: `${GITHUB_RELEASES_BASE}/ehsmaha-arm64.dmg`,
+  android: `${GITHUB_RELEASES_BASE}/ehsmaha.apk`,
 };
 
 let desktopDownloadPageBooted = false;
@@ -15185,21 +15200,28 @@ function desktopDownloadPageInit() {
   const winBtn = document.getElementById('dl-win-btn');
   const macIntelBtn = document.getElementById('dl-mac-intel-btn');
   const macArmBtn = document.getElementById('dl-mac-arm-btn');
+  const androidBtn = document.getElementById('dl-android-btn');
   if (winBtn) winBtn.href = DESKTOP_APP_LINKS.win;
   if (macIntelBtn) macIntelBtn.href = DESKTOP_APP_LINKS.macIntel;
   if (macArmBtn) macArmBtn.href = DESKTOP_APP_LINKS.macArm;
+  if (androidBtn) androidBtn.href = DESKTOP_APP_LINKS.android;
   if (desktopDownloadPageBooted) return;
   desktopDownloadPageBooted = true;
-  // كشف نظام التشغيل لإبراز نسخة ويندوز أو ماك المناسبة تلقائياً كخيار رئيسي.
+  // كشف نظام التشغيل/الجهاز لإبراز النسخة المناسبة تلقائياً كخيار رئيسي.
   const ua = navigator.userAgent || '';
-  const isMac = /Mac OS X|Macintosh/i.test(ua);
+  const isAndroid = /Android/i.test(ua);
+  const isMac = !isAndroid && /Mac OS X|Macintosh/i.test(ua);
   const isWin = /Windows/i.test(ua);
   const isAppleSilicon = isMac && /arm64|aarch64/i.test((navigator.platform || '') + ua);
   document.querySelectorAll('.dl-plat-card').forEach((card) => {
     const plat = card.getAttribute('data-plat');
-    const highlight = (plat === 'win' && isWin) || (plat === 'mac' && isMac);
+    const highlight = (plat === 'win' && isWin) || (plat === 'mac' && isMac) || (plat === 'android' && isAndroid);
     card.classList.toggle('dl-plat-card-suggested', highlight);
   });
+  // زر "الخيار الرئيسي" (تدرّج بنفسجي بارز) يتبع الجهاز الفعلي بدل افتراض
+  // ثابت — ويندوز هو الافتراضي فقط لو ما قدرنا نكتشف نظام المستخدم.
+  if (winBtn) winBtn.classList.toggle('dl-btn-primary-choice', isWin || (!isMac && !isAndroid));
+  if (androidBtn) androidBtn.classList.toggle('dl-btn-primary-choice', isAndroid);
   if (isMac && macArmBtn && macIntelBtn) {
     const primary = isAppleSilicon ? macArmBtn : macIntelBtn;
     const secondary = isAppleSilicon ? macIntelBtn : macArmBtn;
