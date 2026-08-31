@@ -1,0 +1,76 @@
+# إعداد electron-builder لتطبيق "احسمها" لسطح المكتب.
+# التوزيع: رابط تحميل مباشر عبر GitHub Releases — بدون أي متجر تطبيقات.
+
+appId: com.ehsmaha.desktop
+productName: احسمها
+copyright: Copyright © ehsmaha.com
+
+# نُنتج ملف تثبيت واحد لكل نظام (installer)، لا حزمة نقية (portable/zip) افتراضياً.
+directories:
+  output: dist
+  buildResources: build
+
+# ما الذي يُشحن فعلياً داخل حزمة التطبيق.
+files:
+  - main.js
+  - preload.js
+  - src/**/*
+  - renderer/**/*
+  - site/**/*
+  - package.json
+  - "!**/*.map"
+  - "!**/{.DS_Store,Thumbs.db}"
+
+# شعار الموقع نفسه كأيقونة — electron-builder يحوّله تلقائياً
+# إلى .ico (ويندوز) و.icns (ماك) من نفس ملف PNG.
+icon: build/icon.png
+
+# ------------------------------------------------------------------ Windows
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: ehsmaha-setup-${version}.${ext}
+  icon: build/icon.png
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: احسمها
+  artifactName: ehsmaha-setup-${version}.${ext}
+  deleteAppDataOnUninstall: false
+  displayLanguageSelector: false
+  installerLanguages: [ar]
+  language: "1025" # العربية
+
+# ---------------------------------------------------------------------- macOS
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+  icon: build/icon.png
+  category: public.app-category.entertainment
+  artifactName: ehsmaha-${version}-${arch}.${ext}
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  # لا يوجد حساب مطوّر Apple بعد — بدون هذا السطر signing سيُتخطّى تلقائياً
+  # ويبقى الـ .dmg قابلاً للتشغيل (المستخدم يحتاج "افتح رغم ذلك" في الماك أول مرة).
+  identity: null
+
+dmg:
+  title: تثبيت احسمها
+  artifactName: ehsmaha-${version}-${arch}.${ext}
+
+# --------------------------------------------------------- التحديث التلقائي
+# نفس مصدر ملفات التثبيت (GitHub Releases) هو مصدر التحديث التلقائي.
+# استبدل owner/repo بحساب GitHub الفعلي قبل أول نشر (انظر desktop/README.md).
+publish:
+  provider: github
+  owner: rm70n
+  repo: ehsmaha
+  releaseType: release
+
+# لا نحتاج afterSign/notarize بدون حساب مطوّر Apple — يُضاف لاحقاً عند توفره.

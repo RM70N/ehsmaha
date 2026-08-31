@@ -1,0 +1,33 @@
+{
+  "name": "ehsmaha-desktop",
+  "version": "1.0.0",
+  "description": "تطبيق سطح المكتب لمنصة احسمها (ehsmaha.com)",
+  "author": {
+    "name": "احسمها",
+    "email": "malshaifan1@gmail.com"
+  },
+  "homepage": "https://ehsmaha.com",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "sync": "node scripts/sync-site.js",
+    "icons": "node scripts/make-icons.js",
+    "prepare-assets": "npm run sync && npm run icons",
+    "start": "npm run prepare-assets && electron .",
+    "start:remote": "npm run prepare-assets && node scripts/start-remote.js",
+    "dev": "npm run prepare-assets && electron . --dev",
+    "pack": "npm run prepare-assets && electron-builder --dir",
+    "dist": "npm run prepare-assets && electron-builder",
+    "dist:win": "npm run prepare-assets && electron-builder --win",
+    "dist:mac": "npm run prepare-assets && electron-builder --mac",
+    "publish": "npm run prepare-assets && electron-builder --publish always"
+  },
+  "devDependencies": {
+    "electron": "^38.8.6",
+    "electron-builder": "^26.0.12"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}
