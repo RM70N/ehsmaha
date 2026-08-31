@@ -47,12 +47,12 @@ jobs:
           path: export/*
           retention-days: 3
 
-      - name: Push small files to a temp git branch
+      - name: Push files to a temp git branch (splitting large ones)
         # نقل بديل عبر git نفسه (وليس عبر رابط Artifact الموقَّع على Azure Blob
         # Storage) — بعض بيئات الشبكات تحجب نطاق Azure الموقَّع لكنها تسمح
-        # بعمليات git العادية إلى github.com. نرفع هنا فقط الملفات الأصغر من
-        # حد 100MB الذي يفرضه git (ehsmaha.apk وehsmaha-setup.exe)، أما ملفا
-        # dmg فأكبر من الحد فنستثنيهما من هذه الطريقة.
+        # بعمليات git العادية إلى github.com. الملفات الأصغر من حد 100MB الذي
+        # يفرضه git تُنقَل كما هي، وملفات dmg (أكبر من الحد) تُقسَّم لأجزاء
+        # بحجم 90MB ثم تُدمَج لاحقاً في الطرف المستقبِل عبر cat.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -60,13 +60,15 @@ jobs:
           git checkout --orphan "$BRANCH"
           git rm -rf --cached . >/dev/null 2>&1 || true
           mkdir -p transfer
-          for f in export/ehsmaha.apk export/ehsmaha-setup.exe; do
+          for f in export/ehsmaha.apk export/ehsmaha-setup.exe export/ehsmaha-x64.dmg export/ehsmaha-arm64.dmg; do
             if [ -f "$f" ]; then
               size=$(stat -c%s "$f")
-              if [ "$size" -lt 99000000 ]; then
+              name=$(basename "$f")
+              if [ "$size" -lt 90000000 ]; then
                 cp "$f" transfer/
               else
-                echo "تخطي $f لأن حجمه ($size بايت) يتجاوز حد git"
+                split -b 90000000 -d -a 2 "$f" "transfer/${name}.part"
+                echo "تقسيم $f (حجمه $size بايت) إلى أجزاء"
               fi
             fi
           done
