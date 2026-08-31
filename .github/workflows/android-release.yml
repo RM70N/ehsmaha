@@ -23,7 +23,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # @capacitor/cli@8 يتطلب Node >= 22 (على عكس مشروع سطح المكتب
+          # الذي لا يزال متوافقاً مع Node 20).
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 
