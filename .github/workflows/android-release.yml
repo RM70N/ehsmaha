@@ -49,19 +49,29 @@ jobs:
       - name: Decode signing keystore
         working-directory: mobile/android
         env:
+          # نمرّرها كمتغيرات بيئة (بدل تضمينها مباشرة داخل نص heredoc) —
+          # أضمن وأوضح عند التشخيص، ولا يخضع محتواها لأي تفسير من الصَدَفة.
           EHSMAHA_KEYSTORE_BASE64: ${{ secrets.EHSMAHA_KEYSTORE_BASE64 }}
+          EHSMAHA_KEYSTORE_PASSWORD: ${{ secrets.EHSMAHA_KEYSTORE_PASSWORD }}
+          EHSMAHA_KEY_ALIAS: ${{ secrets.EHSMAHA_KEY_ALIAS }}
+          EHSMAHA_KEY_PASSWORD: ${{ secrets.EHSMAHA_KEY_PASSWORD }}
         run: |
-          if [ -z "$EHSMAHA_KEYSTORE_BASE64" ]; then
-            echo "::error::سرّ EHSMAHA_KEYSTORE_BASE64 غير مضبوط — أضفه في إعدادات المستودع (Settings > Secrets and variables > Actions) قبل النشر. راجع mobile/README.md قسم التوقيع."
+          missing=""
+          [ -z "$EHSMAHA_KEYSTORE_BASE64" ] && missing="$missing EHSMAHA_KEYSTORE_BASE64"
+          [ -z "$EHSMAHA_KEYSTORE_PASSWORD" ] && missing="$missing EHSMAHA_KEYSTORE_PASSWORD"
+          [ -z "$EHSMAHA_KEY_ALIAS" ] && missing="$missing EHSMAHA_KEY_ALIAS"
+          [ -z "$EHSMAHA_KEY_PASSWORD" ] && missing="$missing EHSMAHA_KEY_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::الأسرار التالية غير مضبوطة أو فارغة في GitHub Secrets:$missing — تحقق من الاسم بالضبط (حساس لحالة الأحرف) في Settings > Secrets and variables > Actions. راجع mobile/README.md قسم التوقيع."
             exit 1
           fi
           echo "$EHSMAHA_KEYSTORE_BASE64" | base64 --decode > release.keystore
-          cat > keystore.properties <<PROPS
-          storeFile=release.keystore
-          storePassword=${{ secrets.EHSMAHA_KEYSTORE_PASSWORD }}
-          keyAlias=${{ secrets.EHSMAHA_KEY_ALIAS }}
-          keyPassword=${{ secrets.EHSMAHA_KEY_PASSWORD }}
-          PROPS
+          {
+            echo "storeFile=release.keystore"
+            echo "storePassword=$EHSMAHA_KEYSTORE_PASSWORD"
+            echo "keyAlias=$EHSMAHA_KEY_ALIAS"
+            echo "keyPassword=$EHSMAHA_KEY_PASSWORD"
+          } > keystore.properties
 
       - name: Build signed release APK
         working-directory: mobile/android
