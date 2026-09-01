@@ -10,7 +10,7 @@
  * هو الموقع. كود الموقع نفسه لم يُعدَّل بأي حرف.
  */
 
-const { app, BrowserWindow, session, shell, ipcMain, nativeImage, dialog, Notification } = require('electron');
+const { app, BrowserWindow, session, shell, ipcMain, nativeImage, dialog, Notification, Tray, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
@@ -38,6 +38,8 @@ let state = null;
 let updater = null;
 let appUrl = null;
 let retryTimer = null;
+let tray = null;
+let isQuitting = false;
 let syncTimer = null;
 
 function log(...args) {
@@ -74,6 +76,52 @@ function notifyDesktop(payload) {
   const n = new Notification({ title, body, icon: iconPath() || undefined, silent: false });
   n.on('click', () => { if (mainWindow && !mainWindow.isDestroyed()) { mainWindow.show(); mainWindow.focus(); } });
   n.show();
+}
+
+/* --------------------------------------------------------------- أيقونة النظام */
+
+/**
+ * أيقونة بشريط النظام (Tray) — تخلي التطبيق يبقى شغّالاً بالخلفية لما يُغلَق
+ * (زر X يصغّره بدل ما يقفله)، عشان تستمر جلسة الموقع بالعمل وتقدر تستقبل
+ * إشعارات نظام حقيقية (personalMessages/broadcastMessages عبر Web Notification
+ * API القياسي — انظر notifyDesktop أعلاه لتعليق مشابه) حتى لو النافذة مو
+ * مفتوحة على الشاشة. الخروج الفعلي فقط من قائمة الأيقونة أو Cmd/Ctrl+Q.
+ */
+function createTray() {
+  if (tray) return;
+  const img = appIcon();
+  tray = new Tray(img || nativeImage.createEmpty());
+  tray.setToolTip('احسمها');
+  refreshTrayMenu();
+  tray.on('click', showMainWindow);
+}
+
+function refreshTrayMenu() {
+  if (!tray) return;
+  const autoLaunch = app.getLoginItemSettings().openAtLogin;
+  const menu = Menu.buildFromTemplate([
+    { label: 'فتح احسمها', click: showMainWindow },
+    { type: 'separator' },
+    {
+      label: 'تشغيل تلقائي عند بدء التشغيل',
+      type: 'checkbox',
+      checked: autoLaunch,
+      click: (item) => {
+        app.setLoginItemSettings({ openAtLogin: item.checked, openAsHidden: true });
+        state.set('autoLaunch', item.checked);
+      }
+    },
+    { type: 'separator' },
+    { label: 'خروج', click: () => { isQuitting = true; app.quit(); } }
+  ]);
+  tray.setContextMenu(menu);
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }
 
 /* ------------------------------------------------------------------ الهوية */
@@ -320,7 +368,15 @@ function createMainWindow() {
   };
   mainWindow.on('resize', debounce(saveBounds, 500));
   mainWindow.on('move', debounce(saveBounds, 500));
-  mainWindow.on('close', saveBounds);
+  mainWindow.on('close', (event) => {
+    saveBounds();
+    if (!isQuitting) {
+      // نصغّر بدل ما نقفل — العملية تبقى شغّالة بالخلفية عشان جلسة الموقع
+      // تستمر وتقدر تستقبل إشعارات (انظر createTray أعلاه).
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 
   mainWindow.loadURL(appUrl);
@@ -435,6 +491,15 @@ async function boot() {
   registerIpc();
   createSplash();
   createMainWindow();
+  createTray();
+
+  // أول تشغيل فقط: نفعّل التشغيل التلقائي عند بدء النظام افتراضياً (المستخدم
+  // يقدر يعطّله لاحقاً من قائمة أيقونة النظام) — بدونه التطبيق ما يبقى شغّالاً
+  // بالخلفية أصلاً بعد إعادة تشغيل الجهاز فتفوته الإشعارات.
+  if (!IS_DEV && state.get('autoLaunch', null) === null) {
+    app.setLoginItemSettings({ openAtLogin: true, openAsHidden: true });
+    state.set('autoLaunch', true);
+  }
 
   updater = initUpdater({
     getWindow: () => mainWindow,
@@ -503,10 +568,13 @@ if (!gotLock) {
     if (BrowserWindow.getAllWindows().length === 0) {
       createSplash();
       createMainWindow();
+    } else {
+      showMainWindow();
     }
   });
 
   app.on('before-quit', () => {
+    isQuitting = true;
     clearInterval(syncTimer);
     clearTimeout(retryTimer);
     if (server) server.stop();
