@@ -70,7 +70,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         // إعادة محاولة تعليق الواجهة هنا احتياطاً — لو WebView ما كان جاهزاً
         // بعد وقت onCreate() لأي سبب، إضافتها هنا (مسموح استدعاؤها أكثر من
