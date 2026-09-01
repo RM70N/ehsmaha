@@ -48,6 +48,20 @@ jobs:
             gh release create "$TAG" --repo "${{ github.repository }}" --title "$TAG" --notes "تم إنشاؤه تلقائياً بواسطة GitHub Actions"
           fi
 
+      - name: Delete stale desktop assets
+        # electron-builder يتخطّى رفع الملف من جديد لو رقم الإصدار
+        # (desktop/package.json) ما تغيّر ووجد أصلاً أصلاً بنفس الاسم على
+        # الإصدار — حتى لو محتوى الكود تغيّر فعلياً. حذف الملفات القديمة هنا
+        # قبل البناء يضمن رفع نسخة جديدة دائماً بكل تشغيل يدوي، بدون الحاجة
+        # لرفع رقم الإصدار (وبالتالي تاج) مع كل تعديل بسيط.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.tag }}"
+          for asset in ehsmaha-setup.exe ehsmaha-setup.exe.blockmap ehsmaha-x64.dmg ehsmaha-x64.dmg.blockmap ehsmaha-arm64.dmg ehsmaha-arm64.dmg.blockmap latest.yml latest-mac.yml; do
+            gh release delete-asset "$TAG" "$asset" --repo "${{ github.repository }}" -y || true
+          done
+
   build:
     needs: ensure-release
     strategy:
