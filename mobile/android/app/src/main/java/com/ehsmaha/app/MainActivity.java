@@ -117,6 +117,7 @@ public class MainActivity extends BridgeActivity {
                     if (e.getStatusCode() == 12501) {
                         deliverGoogleIdTokenToWebView(null, "cancelled");
                     } else {
+                        Toast.makeText(MainActivity.this, "❌ خطأ تسجيل الدخول — كود: " + e.getStatusCode(), Toast.LENGTH_LONG).show();
                         Logger.debug("GoogleSignIn", "فشل تسجيل الدخول الأصلي: " + e.getStatusCode());
                         deliverGoogleIdTokenToWebView(null, "error:" + e.getStatusCode());
                     }
@@ -129,7 +130,19 @@ public class MainActivity extends BridgeActivity {
             webView.addJavascriptInterface(new Object() {
                 @JavascriptInterface
                 public void signIn() {
-                    runOnUiThread(() -> googleSignInLauncher.launch(googleSignInClient.getSignInIntent()));
+                    runOnUiThread(() -> {
+                        // تشخيص مؤقت (Toast يظهر حتى لو WebView صار فاضي/أبيض،
+                        // لأنه عنصر نظام منفصل) — يوضّح هل الاستدعاء وصل للكود
+                        // الأصلي أصلاً، وهل launch() نفسه رمى استثناء.
+                        Toast.makeText(MainActivity.this, "🔵 بدء تسجيل الدخول عبر قوقل...", Toast.LENGTH_SHORT).show();
+                        try {
+                            googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
+                        } catch (Exception e) {
+                            Toast.makeText(MainActivity.this, "❌ فشل فتح نافذة الاختيار: " + e, Toast.LENGTH_LONG).show();
+                            Logger.debug("GoogleSignIn", "فشل launch(): " + e);
+                            deliverGoogleIdTokenToWebView(null, "launch-exception:" + e.getMessage());
+                        }
+                    });
                 }
             }, "AndroidGoogleAuth");
         }
