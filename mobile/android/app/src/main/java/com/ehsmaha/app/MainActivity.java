@@ -66,6 +66,17 @@ public class MainActivity extends BridgeActivity {
         registerBackButtonHandler();
         checkForAppUpdate();
         setupNativeGoogleSignIn();
+        attachGoogleAuthJsInterface();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // إعادة محاولة تعليق الواجهة هنا احتياطاً — لو WebView ما كان جاهزاً
+        // بعد وقت onCreate() لأي سبب، إضافتها هنا (مسموح استدعاؤها أكثر من
+        // مرة، Android يستبدل القديمة بنفس الاسم) تضمن وصولها قبل أي تفاعل
+        // حقيقي من المستخدم.
+        attachGoogleAuthJsInterface();
     }
 
     /* ------------------------------------------------------------ Google Sign-In */
@@ -124,28 +135,38 @@ public class MainActivity extends BridgeActivity {
                 }
             }
         );
+    }
 
-        WebView webView = this.bridge.getWebView();
-        if (webView != null) {
-            webView.addJavascriptInterface(new Object() {
-                @JavascriptInterface
-                public void signIn() {
-                    runOnUiThread(() -> {
-                        // تشخيص مؤقت (Toast يظهر حتى لو WebView صار فاضي/أبيض،
-                        // لأنه عنصر نظام منفصل) — يوضّح هل الاستدعاء وصل للكود
-                        // الأصلي أصلاً، وهل launch() نفسه رمى استثناء.
-                        Toast.makeText(MainActivity.this, "🔵 بدء تسجيل الدخول عبر قوقل...", Toast.LENGTH_SHORT).show();
-                        try {
-                            googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
-                        } catch (Exception e) {
-                            Toast.makeText(MainActivity.this, "❌ فشل فتح نافذة الاختيار: " + e, Toast.LENGTH_LONG).show();
-                            Logger.debug("GoogleSignIn", "فشل launch(): " + e);
-                            deliverGoogleIdTokenToWebView(null, "launch-exception:" + e.getMessage());
-                        }
-                    });
-                }
-            }, "AndroidGoogleAuth");
+    /**
+     * تعليق واجهة AndroidGoogleAuth على WebView — منفصلة عن setupNativeGoogleSignIn()
+     * (اللي فيها registerForActivityResult، يُستدعى مرة وحدة بس وجوباً بـonCreate)
+     * عشان تقدر تتكرر بأمان (onStart أيضاً) لو WebView ما كان جاهزاً وقت onCreate.
+     */
+    private void attachGoogleAuthJsInterface() {
+        WebView webView = this.bridge != null ? this.bridge.getWebView() : null;
+        if (webView == null) {
+            Toast.makeText(this, "⚠️ تعذّر تعليق AndroidGoogleAuth: WebView غير جاهز بعد", Toast.LENGTH_LONG).show();
+            return;
         }
+        webView.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public void signIn() {
+                runOnUiThread(() -> {
+                    // تشخيص مؤقت (Toast يظهر حتى لو WebView صار فاضي/أبيض،
+                    // لأنه عنصر نظام منفصل) — يوضّح هل الاستدعاء وصل للكود
+                    // الأصلي أصلاً، وهل launch() نفسه رمى استثناء.
+                    Toast.makeText(MainActivity.this, "🔵 بدء تسجيل الدخول عبر قوقل...", Toast.LENGTH_SHORT).show();
+                    try {
+                        googleSignInLauncher.launch(googleSignInClient.getSignInIntent());
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "❌ فشل فتح نافذة الاختيار: " + e, Toast.LENGTH_LONG).show();
+                        Logger.debug("GoogleSignIn", "فشل launch(): " + e);
+                        deliverGoogleIdTokenToWebView(null, "launch-exception:" + e.getMessage());
+                    }
+                });
+            }
+        }, "AndroidGoogleAuth");
+        Toast.makeText(this, "✅ AndroidGoogleAuth جاهزة", Toast.LENGTH_SHORT).show();
     }
 
     private void deliverGoogleIdTokenToWebView(String idToken, String errorReason) {
