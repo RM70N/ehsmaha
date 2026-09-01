@@ -21,6 +21,7 @@ const api = {
   restart: () => ipcRenderer.invoke('ehsmaha:restart'),
   openExternal: (url) => ipcRenderer.invoke('ehsmaha:open-external', url),
   checkForUpdates: () => ipcRenderer.invoke('ehsmaha:check-updates'),
+  googleSignIn: () => ipcRenderer.invoke('ehsmaha:google-sign-in'),
   onStatus: (handler) => {
     if (typeof handler !== 'function') return () => {};
     const listener = (_event, payload) => handler(payload);

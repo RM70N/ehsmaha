@@ -82,6 +82,14 @@ function buildCsp(selfOrigin) {
   ].join('; ');
 }
 
+// عميل OAuth من نوع "Desktop app" في Google Cloud Console (نفس مشروع
+// Firebase الخاص بالموقع) — يُستخدم فقط لتدفّق تسجيل الدخول بقوقل عبر متصفح
+// النظام الخارجي (انظر google-oauth.js). نوع "Desktop app" مصمَّم خصيصاً
+// لهذا السيناريو: يقبل أي منفذ على 127.0.0.1 كعنوان إعادة توجيه بدون تسجيله
+// مسبقاً. غير مرتبط بعميل الويب المستخدم داخل كود الموقع نفسه.
+const GOOGLE_DESKTOP_OAUTH_CLIENT_ID = '';
+const GOOGLE_DESKTOP_OAUTH_CLIENT_SECRET = '';
+
 module.exports = {
   SITE_ORIGIN,
   PREFERRED_PORT,
@@ -89,6 +97,8 @@ module.exports = {
   AUTH_HOSTS,
   CONNECT_HOSTS,
   buildCsp,
+  GOOGLE_DESKTOP_OAUTH_CLIENT_ID,
+  GOOGLE_DESKTOP_OAUTH_CLIENT_SECRET,
   APP_ID: 'com.ehsmaha.desktop',
   WINDOW_TITLE: 'احسمها | ehsmaha',
   SESSION_PARTITION: 'persist:ehsmaha',

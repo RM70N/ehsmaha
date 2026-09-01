@@ -8888,16 +8888,39 @@ function androidNativeGoogleSignIn() {
   });
 }
 
+// تطبيق سطح المكتب (Electron) يحقن واجهة ehsmahaDesktop.googleSignIn() — تفتح
+// تسجيل الدخول بمتصفح النظام الافتراضي بدل نافذة Electron المدمجة (قوقل تمنع
+// تسجيل الدخول بحسابها من أي متصفح مدمج، بصرف النظر عن إعداد النطاق). نفس
+// فكرة androidNativeGoogleSignIn أعلاه لكن عبر IPC بدل جسر JS مباشر.
+function desktopGoogleSignIn() {
+  if (typeof window === 'undefined' || !window.ehsmahaDesktop || !window.ehsmahaDesktop.googleSignIn) {
+    return Promise.reject(new Error('not-available'));
+  }
+  return window.ehsmahaDesktop.googleSignIn().then((result) => {
+    if (result && result.idToken) return result.idToken;
+    throw new Error('desktop-sign-in-failed');
+  });
+}
+
 async function authGoogleSignIn() {
   authClearStatus('auth-status');
   authSetButtonsDisabled(true);
   authSetStatus('auth-status', 'load', 'جارِ الدخول عبر Google...');
   try {
-    const idToken = await androidNativeGoogleSignIn().catch(() => null);
+    const idToken = await androidNativeGoogleSignIn().catch(() => null)
+      || await desktopGoogleSignIn().catch(() => null);
     if (idToken) {
       const credential = fb.GoogleAuthProvider.credential(idToken);
       const result = await fb.signInWithCredential(fb.auth, credential);
       await authProcessGoogleUser(result.user);
+      authSetButtonsDisabled(false);
+      return;
+    }
+    if (window.ehsmahaDesktop) {
+      // سطح المكتب: لا نكمل بـ popup/redirect داخل نافذة Electron المدمجة —
+      // قوقل يمنعها دائماً. لو وصلنا هنا فتدفّق المتصفح الخارجي فشل أو ألغاه
+      // المستخدم؛ نوقف هنا بدل محاولة مسار مضمون الفشل.
+      authSetStatus('auth-status', 'err', 'تعذّر تسجيل الدخول عبر Google. تأكد من إكمال تسجيل الدخول بالمتصفح الذي فُتح، ثم حاول مرة أخرى.');
       authSetButtonsDisabled(false);
       return;
     }

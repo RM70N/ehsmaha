@@ -16,6 +16,7 @@ const fs = require('fs');
 
 const {
   SITE_ORIGIN, AUTH_HOSTS, APP_ID, WINDOW_TITLE, SESSION_PARTITION, BRAND_BG, PREFERRED_PORT,
+  GOOGLE_DESKTOP_OAUTH_CLIENT_ID, GOOGLE_DESKTOP_OAUTH_CLIENT_SECRET,
 } = require('./src/config');
 const { LocalSiteServer } = require('./src/server');
 const { ContentStore } = require('./src/content');
@@ -23,6 +24,7 @@ const { syncContent } = require('./src/content-sync');
 const { initUpdater } = require('./src/updater');
 const { buildAppMenu } = require('./src/menu');
 const { AppState } = require('./src/state');
+const { googleSignInViaSystemBrowser } = require('./src/google-oauth');
 
 const IS_DEV = !app.isPackaged || process.argv.includes('--dev');
 // وضع "remote" اختياري للتجربة: يحمّل الموقع الحيّ مباشرة بدل النسخة المحلية.
@@ -458,6 +460,15 @@ function registerIpc() {
   ipcMain.handle('ehsmaha:restart', () => { app.relaunch(); app.exit(0); });
   ipcMain.handle('ehsmaha:open-external', (event, url) => { openExternal(String(url || '')); return true; });
   ipcMain.handle('ehsmaha:check-updates', () => (updater ? updater.checkManually() : null));
+  ipcMain.handle('ehsmaha:google-sign-in', async () => {
+    if (!GOOGLE_DESKTOP_OAUTH_CLIENT_ID) {
+      throw new Error('desktop-oauth-not-configured');
+    }
+    return googleSignInViaSystemBrowser({
+      clientId: GOOGLE_DESKTOP_OAUTH_CLIENT_ID,
+      clientSecret: GOOGLE_DESKTOP_OAUTH_CLIENT_SECRET,
+    });
+  });
 }
 
 /* ------------------------------------------------------------------ الإقلاع */
