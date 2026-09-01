@@ -1,11 +1,13 @@
 package com.ehsmaha.app;
 
+import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -14,9 +16,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.Logger;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.tasks.Task;
 
 /**
  * النافذة الرئيسية لتطبيق احسمها. الموقع نفسه (index.html) يُحمَّل حياً من
@@ -38,6 +48,16 @@ public class MainActivity extends BridgeActivity {
     private long lastBackPressAt = 0L;
     private static final long DOUBLE_BACK_EXIT_WINDOW_MS = 2000L;
 
+    // Web Client ID من google-services.json (oauth_client بنوع 3) — نفس
+    // المعرّف اللي Firebase Auth بالموقع يستخدمه، فتسجيل الدخول الأصلي هنا
+    // ينتج نفس idToken اللي GoogleAuthProvider.credential() بجافاسكربت
+    // يتوقعه، فتصير نفس جلسة Firebase Auth بالضبط بدون أي تعديل بالباك اند.
+    private static final String GOOGLE_WEB_CLIENT_ID =
+        "149723106437-mqhn2rocfce0jkdhomds7sskbvr7monp.apps.googleusercontent.com";
+
+    private GoogleSignInClient googleSignInClient;
+    private ActivityResultLauncher<Intent> googleSignInLauncher;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,6 +65,7 @@ public class MainActivity extends BridgeActivity {
         fixWebViewUserAgentForGoogleSignIn();
         registerBackButtonHandler();
         checkForAppUpdate();
+        setupNativeGoogleSignIn();
     }
 
     /* ------------------------------------------------------------ Google Sign-In */
@@ -66,6 +87,68 @@ public class MainActivity extends BridgeActivity {
         if (ua != null && ua.contains("; wv")) {
             settings.setUserAgentString(ua.replace("; wv", ""));
         }
+    }
+
+    /**
+     * تسجيل دخول قوقل الأصلي: يفتح نافذة اختيار الحساب الحقيقية بدل
+     * signInWithRedirect اللي يفتح صفحة قوقل جوه WebView بدون قائمة
+     * الحسابات المحفوظة بالجهاز (نفس المشكلة بالصورة اللي أرسلها المستخدم).
+     * نضيف واجهة JS اسمها AndroidGoogleAuth يستدعيها كود الموقع (بدون تعديل
+     * الموقع فعلياً لتجاوز الشرط الأصلي — الاستدعاء الوحيد المضاف بـ
+     * index.html للكشف عن وجودها والتفويض لها بدل signInWithPopup/Redirect
+     * حصراً داخل تطبيق أندرويد).
+     */
+    private void setupNativeGoogleSignIn() {
+        GoogleSignInOptions options = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(GOOGLE_WEB_CLIENT_ID)
+            .requestEmail()
+            .build();
+        googleSignInClient = GoogleSignIn.getClient(this, options);
+
+        googleSignInLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                try {
+                    GoogleSignInAccount account = task.getResult(ApiException.class);
+                    deliverGoogleIdTokenToWebView(account.getIdToken(), null);
+                } catch (ApiException e) {
+                    // الكود 12501 = المستخدم لغى نافذة الاختيار — ليست خطأ حقيقي.
+                    if (e.getStatusCode() == 12501) {
+                        deliverGoogleIdTokenToWebView(null, "cancelled");
+                    } else {
+                        Logger.debug("GoogleSignIn", "فشل تسجيل الدخول الأصلي: " + e.getStatusCode());
+                        deliverGoogleIdTokenToWebView(null, "error:" + e.getStatusCode());
+                    }
+                }
+            }
+        );
+
+        WebView webView = this.bridge.getWebView();
+        if (webView != null) {
+            webView.addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public void signIn() {
+                    runOnUiThread(() -> googleSignInLauncher.launch(googleSignInClient.getSignInIntent()));
+                }
+            }, "AndroidGoogleAuth");
+        }
+    }
+
+    private void deliverGoogleIdTokenToWebView(String idToken, String errorReason) {
+        WebView webView = this.bridge.getWebView();
+        if (webView == null) return;
+        runOnUiThread(() -> {
+            String script;
+            if (idToken != null) {
+                script = "window.__androidGoogleSignInResult && window.__androidGoogleSignInResult("
+                    + org.json.JSONObject.quote(idToken) + ", null);";
+            } else {
+                script = "window.__androidGoogleSignInResult && window.__androidGoogleSignInResult(null, "
+                    + org.json.JSONObject.quote(errorReason) + ");";
+            }
+            webView.evaluateJavascript(script, null);
+        });
     }
 
     /* ------------------------------------------------------------------- زر الرجوع */

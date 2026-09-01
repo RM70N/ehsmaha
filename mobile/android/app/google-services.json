@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "149723106437",
+    "firebase_url": "https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "streamgame-180b8",
+    "storage_bucket": "streamgame-180b8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149723106437:android:00cbdd9b3942c6418d2dec",
+        "android_client_info": {
+          "package_name": "com.ehsmaha.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "149723106437-mqhn2rocfce0jkdhomds7sskbvr7monp.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAczbXfBeDr7qQwds8tjV5GckpFxEm9pyI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149723106437-mqhn2rocfce0jkdhomds7sskbvr7monp.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
