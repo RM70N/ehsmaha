@@ -640,12 +640,13 @@
   import {
     getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
+    GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, signOut, updateProfile,
     deleteUser
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, increment, arrayUnion, deleteField
+    collection, onSnapshot, query, where, getDocs, increment, arrayUnion, deleteField,
+    persistentLocalCache, persistentMultipleTabManager
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove
@@ -665,7 +666,13 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = initializeFirestore(app, { experimentalAutoDetectLongPolling: true });
+  // localCache: يفعّل تخزين مؤقت محلي (IndexedDB) لبيانات Firestore المقروءة
+  // سابقاً — يسمح بلعب الأوضاع المحلية (فردي/جمعات/الفئات) بدون إنترنت طالما
+  // فُتح المحتوى مرة واحدة أونلاين قبلها. لا يغيّر أي شيء بالباك اند نفسه.
+  const db = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
   const googleProvider = new GoogleAuthProvider();
 
   // قاعدة بيانات احتياطية (Realtime Database) — منتج منفصل تماماً عن Firestore
@@ -681,10 +688,10 @@
 
   // Expose to the classic (non-module) script below via window.__fb
   window.__fb = {
-    auth, db, googleProvider,
+    auth, db, googleProvider, GoogleAuthProvider,
     setPersistence, browserLocalPersistence, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
-    signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
+    signInWithPopup, signInWithRedirect, getRedirectResult, signInWithCredential, signOut, updateProfile,
     deleteUser,
     doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, increment, arrayUnion, deleteField,
@@ -8857,11 +8864,43 @@ const AUTH_POPUP_FALLBACK_CODES = new Set([
   'auth/web-storage-unsupported'
 ]);
 
+// تطبيق أندرويد (Capacitor) يحقن واجهة AndroidGoogleAuth.signIn() — تفتح
+// نافذة اختيار الحساب الأصلية بدل صفحة قوقل جوه الـ WebView. نستخدمها هنا
+// فقط لو موجودة (أي فقط جوه تطبيق أندرويد)، وإلا نكمل بنفس تدفق الويب
+// المعتاد (popup ثم redirect) بدون أي تغيير.
+function androidNativeGoogleSignIn() {
+  return new Promise((resolve, reject) => {
+    if (typeof AndroidGoogleAuth === 'undefined' || !AndroidGoogleAuth.signIn) {
+      reject(new Error('not-available'));
+      return;
+    }
+    window.__androidGoogleSignInResult = (idToken, errorReason) => {
+      window.__androidGoogleSignInResult = null;
+      if (idToken) resolve(idToken);
+      else reject(new Error(errorReason || 'native-sign-in-failed'));
+    };
+    try {
+      AndroidGoogleAuth.signIn();
+    } catch (e) {
+      window.__androidGoogleSignInResult = null;
+      reject(e);
+    }
+  });
+}
+
 async function authGoogleSignIn() {
   authClearStatus('auth-status');
   authSetButtonsDisabled(true);
   authSetStatus('auth-status', 'load', 'جارِ الدخول عبر Google...');
   try {
+    const idToken = await androidNativeGoogleSignIn().catch(() => null);
+    if (idToken) {
+      const credential = fb.GoogleAuthProvider.credential(idToken);
+      const result = await fb.signInWithCredential(fb.auth, credential);
+      await authProcessGoogleUser(result.user);
+      authSetButtonsDisabled(false);
+      return;
+    }
     const result = await fb.signInWithPopup(fb.auth, fb.googleProvider);
     await authProcessGoogleUser(result.user);
   } catch (err) {
