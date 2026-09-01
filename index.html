@@ -10755,6 +10755,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   publicBadgesBoot();
   publicGameOrderBoot();
   presenceStart();
+  requestNotificationPermissionOnce();
   whatsNewCheck(lastSeenUpdateAt || null);
   personalMessageBoot();
   await broadcastMessageCheckOnLoad();
@@ -13001,6 +13002,7 @@ function personalMessageShow(data) {
   document.getElementById('msg-personal-banner-text').textContent = data.text;
   banner.classList.add('visible');
   msgBannerSyncBackdrop();
+  fireOsNotification('احسمها', data.text);
 
   if (personalMsgTimeout) { clearTimeout(personalMsgTimeout); personalMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
@@ -13061,6 +13063,7 @@ function broadcastMessageShow(data, sentMs) {
   document.getElementById('msg-broadcast-banner-text').textContent = data.text;
   banner.classList.add('visible');
   msgBannerSyncBackdrop();
+  fireOsNotification('احسمها', data.text);
 
   if (broadcastMsgTimeout) { clearTimeout(broadcastMsgTimeout); broadcastMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
@@ -18206,6 +18209,28 @@ function onlinePointsBoot() {
 }
 
 let toastT = null;
+// ==================== إشعارات نظام حقيقية (خارج الصفحة) ====================
+// Web Notification API قياسي — يعمل تلقائياً بتطبيق سطح المكتب (صلاحية
+// notifications ممنوحة سلفاً هناك)، وبمتصفح الويب العادي بعد موافقة
+// المستخدم مرة واحدة. غير مدعوم إطلاقاً بـ WebView أندرويد (طبيعي ومتوقَّع
+// — تطبيق أندرويد يستقبل إشعاراته عبر FCM بشكل منفصل).
+function fireOsNotification(title, body) {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && document.hasFocus()) return; // الصفحة مفتوحة وقدامه أصلاً — البانر الداخلي يكفي
+    new Notification(title, { body });
+  } catch (e) { /* best-effort */ }
+}
+
+function requestNotificationPermissionOnce() {
+  try {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'default') return;
+    if (localStorage.getItem('notifPermissionAsked')) return;
+    localStorage.setItem('notifPermissionAsked', '1');
+    Notification.requestPermission();
+  } catch (e) { /* best-effort */ }
+}
+
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
