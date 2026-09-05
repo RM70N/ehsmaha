@@ -7617,17 +7617,17 @@ function landingCtaClick(){
     <div class="api-section" id="gw-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="gw-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -7638,17 +7638,14 @@ function landingCtaClick(){
     </div>
 
     <div class="field" id="gw-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="gw-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="gw-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="gw-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="gw-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="gw-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="gw-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -7838,17 +7835,17 @@ function landingCtaClick(){
     <div class="api-section" id="main-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="main-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -7859,17 +7856,14 @@ function landingCtaClick(){
     </div>
 
     <div class="field" id="main-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="main-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="main-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="main-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="main-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="main-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="main-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -19261,101 +19255,39 @@ function profileTiktokStatusRefresh() {
   el.className = 'status-msg ok';
 }
 
-// ==================== KICK.com PUSHER (مشترك بين كل الألعاب) ====================
-const KICK_PUSHER_WS = 'wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0-rc2&flash=false';
-function kickOpenPusher(chatroomId, onChat, onOpen, onClose) {
+// ==================== YOUTUBE + KICK — عبر سيرفر الجسر المستضاف (مشترك
+// بين كل الألعاب) ====================
+// نفس فكرة tiktokBridgeWsUrl/tiktokOpenWS بالضبط (السيرفر تُوسِّع ليدعم
+// المنصتين أيضاً عبر platform=)، لكن دالة منفصلة تماماً عن منطق تيك توك —
+// tiktokOpenWS/tiktokBridgeWsUrl لم يُلمسا إطلاقاً. لا مفتاح API لليوتيوب
+// ولا Chatroom ID يدوي لكيك بعد اليوم: حقل واحد فقط (يوزر، أو رابط بثه لو
+// اليوزر المجرّد ما ضبط)، والسيرفر يحل الباقي (chatroomId/liveId/handle).
+function otherPlatformBridgeWsUrl(platform, identifier) {
+  return `${TIKTOK_BRIDGE_SERVER_URL}?platform=${platform}&u=${encodeURIComponent((identifier || '').trim().replace(/^@/, ''))}`;
+}
+function otherPlatformBridgeOpenWS(platform, identifier, onEvent, onOpen, onClose) {
   let sock;
-  try { sock = new WebSocket(KICK_PUSHER_WS); }
-  catch(e) { if (onClose) onClose({code:0}); return null; }
+  const url = otherPlatformBridgeWsUrl(platform, identifier);
+  try { sock = new WebSocket(url); } catch (e) { if (onClose) onClose({ code: 0 }); return null; }
+  let openFired = false;
   sock.onmessage = (e) => {
-    let msg; try { msg = JSON.parse(e.data); } catch(err) { return; }
-    if (msg.event === 'pusher:connection_established') {
-      sock.send(JSON.stringify({ event: 'pusher:subscribe', data: { auth: '', channel: 'chatrooms.' + chatroomId + '.v2' } }));
-      if (onOpen) onOpen();
+    let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+    if (d && d.type === 'bridge_status') {
+      if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
+      onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code });
       return;
     }
-    if (msg.event === 'pusher:ping') {
-      sock.send(JSON.stringify({ event: 'pusher:pong', data: {} }));
-      return;
-    }
-    if (msg.event === 'App\\Events\\ChatMessageEvent') {
-      let data; try { data = JSON.parse(msg.data); } catch(err) { return; }
-      const sender = data.sender || {};
-      // sender.slug هو صيغة مشتقة من كيك (يحوّل _ إلى - مثلاً)، تختلف عن
-      // اليوزر الحقيقي — لو استخدمناها كـ uniqueId، أي مقارنة يوزر (مشرف،
-      // مميز، فولو، طرد...) تفشل لأي اسم فيه شرطة سفلية (mzx_787 يوصل
-      // كـ mzx-787). uniqueId لازم يكون نفس الاسم الحقيقي اللي يكتبه
-      // الستريمر بلوحته، بنفس مبدأ uniqueId بتويتش (login الحقيقي، مو أي
-      // صيغة مشتقة)، فنستخدم username لكل من الهوية والعرض.
-      const username = sender.username || sender.slug || '?';
-      onChat(username, username, data.content || '');
-    }
+    onEvent(d);
   };
   sock.onerror = () => {};
   sock.onclose = (e) => { if (onClose) onClose(e); };
   return sock;
 }
-let kickRoomId = {};
-let ytVideoId = {};
-let ytApiKey = {};
-
-// ==================== YOUTUBE LIVE CHAT (مشترك بين كل الألعاب) ====================
-function youtubeExtractVideoId(input) {
-  input = (input || '').trim();
-  if (!input) return '';
-  if (input.indexOf('http') !== 0 && input.indexOf('/') === -1 && input.indexOf('.') === -1) return input; // already an ID
-  try {
-    const url = new URL(input);
-    if (url.searchParams.get('v')) return url.searchParams.get('v');
-    const parts = url.pathname.split('/').filter(Boolean);
-    if (url.hostname.indexOf('youtu.be') !== -1 && parts[0]) return parts[0];
-    const liveIdx = parts.indexOf('live');
-    if (liveIdx !== -1 && parts[liveIdx + 1]) return parts[liveIdx + 1];
-    const shortsIdx = parts.indexOf('shorts');
-    if (shortsIdx !== -1 && parts[shortsIdx + 1]) return parts[shortsIdx + 1];
-    return parts[parts.length - 1] || input;
-  } catch (e) { return input; }
+function youtubeBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
+  return otherPlatformBridgeOpenWS('youtube', usernameOrLink, onEvent, onOpen, onClose);
 }
-function youtubeOpenPolling(videoId, apiKey, onChat, onOpen, onClose) {
-  let stopped = false;
-  let pollTimer = null;
-  let pageToken = '';
-  const handle = { close: function () { stopped = true; if (pollTimer) clearTimeout(pollTimer); } };
-
-  fetch(`https://www.googleapis.com/youtube/v3/videos?part=liveStreamingDetails&id=${encodeURIComponent(videoId)}&key=${encodeURIComponent(apiKey)}`)
-    .then(r => r.json())
-    .then(data => {
-      if (stopped) return;
-      if (data.error) { if (onClose) onClose({ code: 0, reason: (data.error.message || 'خطأ في مفتاح API') }); return; }
-      const items = data.items || [];
-      const liveChatId = items[0] && items[0].liveStreamingDetails && items[0].liveStreamingDetails.activeLiveChatId;
-      if (!liveChatId) { if (onClose) onClose({ code: 0, reason: 'لا يوجد بث مباشر نشط حالياً على هذا الفيديو' }); return; }
-      if (onOpen) onOpen();
-      poll(liveChatId);
-    })
-    .catch(err => { if (!stopped && onClose) onClose({ code: 0, reason: 'تعذّر الوصول لـ YouTube API' }); });
-
-  function poll(liveChatId) {
-    if (stopped) return;
-    let url = `https://www.googleapis.com/youtube/v3/liveChat/messages?liveChatId=${encodeURIComponent(liveChatId)}&part=snippet,authorDetails&key=${encodeURIComponent(apiKey)}`;
-    if (pageToken) url += `&pageToken=${encodeURIComponent(pageToken)}`;
-    fetch(url).then(r => r.json()).then(data => {
-      if (stopped) return;
-      if (data.error) { if (onClose) onClose({ code: 0, reason: (data.error.message || 'خطأ في مفتاح API') }); return; }
-      pageToken = data.nextPageToken || pageToken;
-      (data.items || []).forEach(item => {
-        const snip = item.snippet || {};
-        const author = item.authorDetails || {};
-        const msg = snip.displayMessage || '';
-        if (msg) onChat(author.displayName || 'مشاهد', (author.channelId || author.displayName || 'viewer').toLowerCase(), msg);
-      });
-      const interval = Math.max(data.pollingIntervalMillis || 5000, 4000);
-      pollTimer = setTimeout(() => poll(liveChatId), interval);
-    }).catch(err => {
-      if (!stopped) pollTimer = setTimeout(() => poll(liveChatId), 8000);
-    });
-  }
-  return handle;
+function kickBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
+  return otherPlatformBridgeOpenWS('kick', usernameOrLink, onEvent, onOpen, onClose);
 }
 
 // تبديل تيك توك / تويتش داخل صفحة الإعداد
@@ -19497,15 +19429,19 @@ function connectOnePlatform(tag, platform, creds, onUnifiedEvent, onStatus) {
       () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
       (e) => { if (onStatus) onStatus(platform, 'disconnected'); retry(); });
   } else if (platform === 'kick') {
-    slot.ws = kickOpenPusher(creds.chatroomId,
-      (username, slug, message) => dispatch(twitchEventShape(username, slug, message)),
+    slot.ws = kickBridgeOpenWS(creds.username, dispatch,
       () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => { if (onStatus) onStatus(platform, 'disconnected'); retry(); });
+      (e) => {
+        if (e && e.code === 4403) { if (onStatus) onStatus(platform, 'disabled'); return; }
+        if (onStatus) onStatus(platform, 'disconnected'); retry();
+      });
   } else if (platform === 'youtube') {
-    slot.ws = youtubeOpenPolling(creds.videoId, creds.apiKey,
-      (displayName, uniqueId, message) => dispatch(twitchEventShape(displayName, uniqueId, message)),
+    slot.ws = youtubeBridgeOpenWS(creds.username, dispatch,
       () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => { if (onStatus) onStatus(platform, 'disconnected', e && e.reason); retry(); });
+      (e) => {
+        if (e && e.code === 4403) { if (onStatus) onStatus(platform, 'disabled'); return; }
+        if (onStatus) onStatus(platform, 'disconnected'); retry();
+      });
   }
 }
 
@@ -19553,16 +19489,16 @@ function buildMultiPlatformFieldsHTML(tag, platform) {
   }
   if (platform === 'kick') {
     return `<div class="field" style="margin-bottom:0">
-      <label>🟢 Chatroom ID — كيك</label>
-      <input type="text" id="${tag}-multi-kick-chatroom" placeholder="مثال: 12345" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint" style="margin-bottom:8px">🟢 بدون أي إعداد يدوي — يوزرك فقط</div>
+      <label>يوزر قناتك على كيك (أو رابط بثك لو ما ضبط)</label>
+      <input type="text" id="${tag}-multi-kick-user" placeholder="مثال: username أو kick.com/username" dir="ltr" style="direction:ltr;text-align:right" />
     </div>`;
   }
   if (platform === 'youtube') {
     return `<div class="field" style="margin-bottom:0">
-      <label>▶️ مفتاح YouTube API</label>
-      <input type="password" id="${tag}-multi-youtube-apikey" placeholder="أدخل مفتاح API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <label style="margin-top:8px">رابط/معرف البث المباشر</label>
-      <input type="text" id="${tag}-multi-youtube-video" placeholder="رابط أو معرف الفيديو" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint" style="margin-bottom:8px">▶️ بدون أي مفتاح API — يوزرك فقط</div>
+      <label>يوزر قناتك على يوتيوب (أو رابط بثك لو ما ضبط)</label>
+      <input type="text" id="${tag}-multi-youtube-user" placeholder="مثال: channelname أو رابط البث" dir="ltr" style="direction:ltr;text-align:right" />
     </div>`;
   }
   return '';
@@ -19627,12 +19563,9 @@ function readMultiPlatformCreds(tag) {
     } else if (p === 'twitch') {
       creds.twitch = { username: (document.getElementById(tag + '-multi-twitch-user') || {}).value?.trim().replace('@', '') || '' };
     } else if (p === 'kick') {
-      creds.kick = { chatroomId: (document.getElementById(tag + '-multi-kick-chatroom') || {}).value?.trim() || '' };
+      creds.kick = { username: (document.getElementById(tag + '-multi-kick-user') || {}).value?.trim() || '' };
     } else if (p === 'youtube') {
-      creds.youtube = {
-        apiKey: (document.getElementById(tag + '-multi-youtube-apikey') || {}).value?.trim() || '',
-        videoId: youtubeExtractVideoId((document.getElementById(tag + '-multi-youtube-video') || {}).value?.trim() || '')
-      };
+      creds.youtube = { username: (document.getElementById(tag + '-multi-youtube-user') || {}).value?.trim() || '' };
     }
   });
   return creds;
@@ -19645,9 +19578,8 @@ function validateMultiPlatformCreds(tag, creds) {
     if (p === 'tiktok' && !creds.tiktok?.username) return '⚠️ أدخل يوزر تيك توك';
     if (p === 'tiktok' && !tiktokSavedUsersIsEnabled(creds.tiktok.username)) return '⛔ هذا الحساب معطّل — فعّله من "ربط حساب تيك توك"';
     if (p === 'twitch' && !creds.twitch?.username) return '⚠️ أدخل اسم قناة تويتش';
-    if (p === 'kick' && !creds.kick?.chatroomId) return '⚠️ أدخل رقم Chatroom ID لكيك';
-    if (p === 'youtube' && !creds.youtube?.apiKey) return '⚠️ أدخل مفتاح YouTube API';
-    if (p === 'youtube' && !creds.youtube?.videoId) return '⚠️ أدخل رابط أو معرف بث اليوتيوب';
+    if (p === 'kick' && !creds.kick?.username) return '⚠️ أدخل يوزر قناتك على كيك (أو رابط بثك)';
+    if (p === 'youtube' && !creds.youtube?.username) return '⚠️ أدخل يوزر قناتك على يوتيوب (أو رابط بثك)';
   }
   return null;
 }
@@ -19949,15 +19881,15 @@ function homeQcPickPlatform(platform) {
     hint.textContent = 'اليوزرنيم اللي تبث فيه الحين — بدون أي مفتاح';
     ytKeyField.style.display = 'none';
   } else if (platform === 'kick') {
-    label.textContent = 'رقم Chatroom ID لكيك';
-    input.placeholder = 'مثال: 668';
-    hint.textContent = 'رقم غرفة الشات، تقدر تلقاه برابط بثك — مو اليوزرنيم';
+    label.textContent = 'يوزر قناتك على كيك';
+    input.placeholder = 'username123';
+    hint.textContent = 'يوزرك على كيك — بدون أي إعداد يدوي. لو ما ضبط، الصق رابط بثك بدلاً منه (kick.com/username)';
     ytKeyField.style.display = 'none';
   } else if (platform === 'youtube') {
-    label.textContent = 'رابط البث أو معرّف الفيديو';
-    input.placeholder = 'https://youtube.com/watch?v=xxxxxxxxxxx';
-    hint.textContent = 'الصق رابط البث المباشر كامل أو رقم الفيديو فقط';
-    ytKeyField.style.display = 'block';
+    label.textContent = 'يوزر قناتك على يوتيوب';
+    input.placeholder = 'username123';
+    hint.textContent = 'يوزر/هاندل قناتك — بدون أي مفتاح API. لو ما ضبط، الصق رابط بثك المباشر بدلاً منه';
+    ytKeyField.style.display = 'none';
   }
   document.getElementById('qc-status').className = 'qc-status';
 }
@@ -19984,12 +19916,6 @@ function homeQcSetStatus(msg) {
   const el = document.getElementById('qc-status');
   el.textContent = msg;
   el.className = 'qc-status err show';
-}
-
-function homeExtractYouTubeVideoId(raw) {
-  const v = (raw || '').trim();
-  const m = v.match(/[?&]v=([^&]+)/) || v.match(/youtu\.be\/([^?&]+)/);
-  return m ? m[1] : v;
 }
 
 function homeUpdateConnectionBadge(connected, platformLabel) {
@@ -20048,14 +19974,6 @@ function homeStartQuickConnect() {
     return;
   }
 
-  let ytKey = '';
-  let videoId = '';
-  if (platform === 'youtube') {
-    ytKey = document.getElementById('qc-ytkey-input').value.trim();
-    videoId = homeExtractYouTubeVideoId(mainValue);
-    if (!ytKey) { homeQcSetStatus('⚠️ عبّي مفتاح يوتيوب API'); return; }
-  }
-
   // يوزرنيم تيك توك/تويتش يُحفظ بنفس آلية "احفظ يوزر البث" الموجودة أصلاً —
   // يتعبّى تلقائياً بكل شاشات "ابدأ اللعبة" بعدها بدون أي تعديل عليها.
   // نفس القيمة تُستخدم أيضاً كمعرّف اتصال موحّد تستهلكه كل الألعاب مباشرة
@@ -20070,8 +19988,7 @@ function homeStartQuickConnect() {
 
   const platformLabels = { tiktok: 'تيك توك', twitch: 'تويتش', kick: 'كيك', youtube: 'يوتيوب' };
 
-  const creds = platform === 'kick' ? { chatroomId: mainValue }
-    : platform === 'youtube' ? { videoId, apiKey: ytKey }
+  const creds = (platform === 'kick' || platform === 'youtube') ? { username: mainValue }
     : { username: mainValue, apiKey: '' };
 
   connectOnePlatform('home', platform, creds, homeDispatchToGameListeners, function homeQcOnStatus(p, status) {
@@ -20593,9 +20510,8 @@ let gwPendingFollowers = new Map();
 let gwGuesses = []; // { user, text, sim, formatted }
 let gwGameStatus = 'waiting'; // waiting | active | finished
 let gwAttemptCount = 0;
-let gwKickRoomId = '';
-let gwYtVideoId = '';
-let gwYtApiKey = '';
+let gwKickUser = '';
+let gwYtUser = '';
 
 async function gwLaunchGame() {
   gwApiKey    = getTikTokApiKey();
@@ -20604,11 +20520,10 @@ async function gwLaunchGame() {
   const isAiMode = document.getElementById('gw-mode-ai').checked;
 
   if (gamePlatform['gw'] === 'tiktok' && !gwApiKey) return gwSetStatus('err','⚠️ اربط مفتاح تيك توك أولاً من البروفايل (اضغط اسم حسابك فوق يمين)');
-  if (gamePlatform['gw'] === 'kick') gwKickRoomId = (document.getElementById('gw-kickroom')||{value:''}).value.trim();
-  if (gamePlatform['gw'] === 'kick' && !gwKickRoomId) return gwSetStatus('err','⚠️ أدخل رقم Chatroom ID');
-  if (gamePlatform['gw'] === 'youtube') { gwYtVideoId = youtubeExtractVideoId((document.getElementById('gw-ytvideo')||{value:''}).value.trim()); gwYtApiKey = (document.getElementById('gw-ytkey')||{value:''}).value.trim(); }
-  if (gamePlatform['gw'] === 'youtube' && !gwYtVideoId) return gwSetStatus('err','⚠️ أدخل رابط أو معرف البث المباشر');
-  if (gamePlatform['gw'] === 'youtube' && !gwYtApiKey) return gwSetStatus('err','⚠️ أدخل مفتاح YouTube API');
+  if (gamePlatform['gw'] === 'kick') gwKickUser = (document.getElementById('gw-kickuser')||{value:''}).value.trim();
+  if (gamePlatform['gw'] === 'kick' && !gwKickUser) return gwSetStatus('err','⚠️ أدخل يوزر أو رابط قناتك على كيك');
+  if (gamePlatform['gw'] === 'youtube') gwYtUser = (document.getElementById('gw-ytuser')||{value:''}).value.trim();
+  if (gamePlatform['gw'] === 'youtube' && !gwYtUser) return gwSetStatus('err','⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث');
   if (!gwTiktokUser) return gwSetStatus('err','⚠️ أدخل اسم المستخدم/القناة');
   if (!gwKeyword)    return gwSetStatus('err','⚠️ أدخل الكلمة المفتاحية');
 
@@ -20701,14 +20616,15 @@ function gwConnectMainKick() {
   if (gwReconnectTimer) { clearTimeout(gwReconnectTimer); gwReconnectTimer = null; }
   if (gwWs) { try { gwWs.close(1000); } catch(e){} gwWs = null; }
   gwSetDot('connecting');
-  const roomId = (gwKickRoomId || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); gwSetDot('off'); return; }
-  gwWs = kickOpenPusher(roomId,
-    (username, slug, message) => gwHandleTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { gwSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (gwKickUser || '').trim();
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); gwSetDot('off'); return; }
+  gwWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; gwHandleTikTokEvent(evt); },
+    () => { gwSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       gwSetDot('off');
       if (gamePlatform['gw'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       gwReconnectTimer = setTimeout(gwConnectMainKick, 4000);
     }
   );
@@ -20718,16 +20634,15 @@ function gwConnectMainYouTube() {
   if (gwReconnectTimer) { clearTimeout(gwReconnectTimer); gwReconnectTimer = null; }
   if (gwWs) { try { gwWs.close(1000); } catch(e){} gwWs = null; }
   gwSetDot('connecting');
-  const vid = (gwYtVideoId || '').trim();
-  const key = (gwYtApiKey || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); gwSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); gwSetDot('off'); return; }
-  gwWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => gwHandleTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (gwYtUser || '').trim();
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); gwSetDot('off'); return; }
+  gwWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; gwHandleTikTokEvent(evt); },
     () => { gwSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       gwSetDot('off');
       if (gamePlatform['gw'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       gwReconnectTimer = setTimeout(gwConnectMainYouTube, 6000);
     }
   );
@@ -21415,14 +21330,15 @@ function connectMainKick() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (ws) { try { ws.close(1000); } catch(e){} ws = null; }
   setDot('connecting');
-  const roomId = (kickRoomId['main'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDot('off'); return; }
-  ws = kickOpenPusher(roomId,
-    (username, slug, message) => handleTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('main-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDot('off'); return; }
+  ws = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleTikTokEvent(evt); },
+    () => { setDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDot('off');
       if (gamePlatform['main'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       reconnectTimer = setTimeout(connectMainKick, 4000);
     }
   );
@@ -21432,16 +21348,15 @@ function connectMainYouTube() {
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   if (ws) { try { ws.close(1000); } catch(e){} ws = null; }
   setDot('connecting');
-  const vid = (ytVideoId['main'] || '').trim();
-  const key = (ytApiKey['main'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDot('off'); return; }
-  ws = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('main-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDot('off'); return; }
+  ws = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleTikTokEvent(evt); },
     () => { setDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDot('off');
       if (gamePlatform['main'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       reconnectTimer = setTimeout(connectMainYouTube, 6000);
     }
   );
@@ -23756,17 +23671,17 @@ function levelsBack() {
     <div class="api-section" id="sniper-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="sniper-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -23777,17 +23692,14 @@ function levelsBack() {
     </div>
 
     <div class="field" id="sniper-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="sniper-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="sniper-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="sniper-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="sniper-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="sniper-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="sniper-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -23861,17 +23773,17 @@ function levelsBack() {
     <div class="api-section" id="battery-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="battery-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -23882,17 +23794,14 @@ function levelsBack() {
     </div>
 
     <div class="field" id="battery-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="battery-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="battery-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="battery-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="battery-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="battery-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="battery-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -24103,16 +24012,17 @@ function connectBatteryKick() {
   if (batteryReconnectTimer) { clearTimeout(batteryReconnectTimer); batteryReconnectTimer = null; }
   if (batteryWs) { try { batteryWs.close(1000); } catch(e){} batteryWs = null; }
   setDotById('battery-dot','connecting');
-  const roomId = (kickRoomId['battery'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('battery-dot','off'); return; }
-  batteryWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleBatteryTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('battery-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('battery-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('battery-dot','off'); return; }
+  batteryWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBatteryTikTokEvent(evt); },
+    () => { setDotById('battery-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('battery-dot','off');
       if (gamePlatform['battery'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       batteryReconnectAttempts++;
-      if (batteryReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (batteryReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       batteryReconnectTimer = setTimeout(connectBatteryKick, 4000);
     }
   );
@@ -24122,18 +24032,17 @@ function connectBatteryYouTube() {
   if (batteryReconnectTimer) { clearTimeout(batteryReconnectTimer); batteryReconnectTimer = null; }
   if (batteryWs) { try { batteryWs.close(1000); } catch(e){} batteryWs = null; }
   setDotById('battery-dot','connecting');
-  const vid = (ytVideoId['battery'] || '').trim();
-  const key = (ytApiKey['battery'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('battery-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('battery-dot','off'); return; }
-  batteryWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleBatteryTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('battery-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('battery-dot','off'); return; }
+  batteryWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBatteryTikTokEvent(evt); },
     () => { setDotById('battery-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('battery-dot','off');
       if (gamePlatform['battery'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       batteryReconnectAttempts++;
-      if (batteryReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (batteryReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       batteryReconnectTimer = setTimeout(connectBatteryYouTube, 6000);
     }
   );
@@ -24421,16 +24330,17 @@ function connectSniperKick() {
   if (sniperReconnectTimer) { clearTimeout(sniperReconnectTimer); sniperReconnectTimer = null; }
   if (sniperWs) { try { sniperWs.close(1000); } catch(e){} sniperWs = null; }
   setDotById('sniper-dot','connecting');
-  const roomId = (kickRoomId['sniper'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('sniper-dot','off'); return; }
-  sniperWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleSniperTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('sniper-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('sniper-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('sniper-dot','off'); return; }
+  sniperWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleSniperTikTokEvent(evt); },
+    () => { setDotById('sniper-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('sniper-dot','off');
       if (gamePlatform['sniper'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       sniperReconnectAttempts++;
-      if (sniperReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (sniperReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       sniperReconnectTimer = setTimeout(connectSniperKick, 4000);
     }
   );
@@ -24440,18 +24350,17 @@ function connectSniperYouTube() {
   if (sniperReconnectTimer) { clearTimeout(sniperReconnectTimer); sniperReconnectTimer = null; }
   if (sniperWs) { try { sniperWs.close(1000); } catch(e){} sniperWs = null; }
   setDotById('sniper-dot','connecting');
-  const vid = (ytVideoId['sniper'] || '').trim();
-  const key = (ytApiKey['sniper'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('sniper-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('sniper-dot','off'); return; }
-  sniperWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleSniperTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('sniper-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('sniper-dot','off'); return; }
+  sniperWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleSniperTikTokEvent(evt); },
     () => { setDotById('sniper-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('sniper-dot','off');
       if (gamePlatform['sniper'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       sniperReconnectAttempts++;
-      if (sniperReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (sniperReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       sniperReconnectTimer = setTimeout(connectSniperYouTube, 6000);
     }
   );
@@ -25333,17 +25242,17 @@ function rdElimOverlay(stageId, user, sub, soundId) {
     <div class="api-section" id="rou-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="rou-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -25354,17 +25263,14 @@ function rdElimOverlay(stageId, user, sub, soundId) {
     </div>
 
     <div class="field" id="rou-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="rou-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="rou-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="rou-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="rou-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="rou-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="rou-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -25636,16 +25542,17 @@ function connectRouKick() {
   if (rouReconnectTimer) { clearTimeout(rouReconnectTimer); rouReconnectTimer = null; }
   if (rouWs) { try { rouWs.close(1000); } catch(e){} rouWs = null; }
   setDotById('rou-dot','connecting');
-  const roomId = (kickRoomId['rou'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('rou-dot','off'); return; }
-  rouWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleRouTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('rou-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('rou-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('rou-dot','off'); return; }
+  rouWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleRouTikTokEvent(evt); },
+    () => { setDotById('rou-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('rou-dot','off');
       if (gamePlatform['rou'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rouReconnectAttempts++;
-      if (rouReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (rouReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       rouReconnectTimer = setTimeout(connectRouKick, 4000);
     }
   );
@@ -25655,18 +25562,17 @@ function connectRouYouTube() {
   if (rouReconnectTimer) { clearTimeout(rouReconnectTimer); rouReconnectTimer = null; }
   if (rouWs) { try { rouWs.close(1000); } catch(e){} rouWs = null; }
   setDotById('rou-dot','connecting');
-  const vid = (ytVideoId['rou'] || '').trim();
-  const key = (ytApiKey['rou'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('rou-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('rou-dot','off'); return; }
-  rouWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleRouTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('rou-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('rou-dot','off'); return; }
+  rouWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleRouTikTokEvent(evt); },
     () => { setDotById('rou-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('rou-dot','off');
       if (gamePlatform['rou'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rouReconnectAttempts++;
-      if (rouReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (rouReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       rouReconnectTimer = setTimeout(connectRouYouTube, 6000);
     }
   );
@@ -26444,17 +26350,17 @@ function addRouChatMsg(user, text) {
     <div class="api-section" id="tmr-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="tmr-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -26465,17 +26371,14 @@ function addRouChatMsg(user, text) {
     </div>
 
     <div class="field" id="tmr-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="tmr-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="tmr-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="tmr-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="tmr-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="tmr-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="tmr-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -26682,16 +26585,17 @@ function connectTmrKick() {
   if (tmrReconnectTimer) { clearTimeout(tmrReconnectTimer); tmrReconnectTimer = null; }
   if (tmrWs) { try { tmrWs.close(1000); } catch(e){} tmrWs = null; }
   setDotById('tmr-dot','connecting');
-  const roomId = (kickRoomId['tmr'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('tmr-dot','off'); return; }
-  tmrWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleTimerTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('tmr-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('tmr-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('tmr-dot','off'); return; }
+  tmrWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleTimerTikTokEvent(evt); },
+    () => { setDotById('tmr-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('tmr-dot','off');
       if (gamePlatform['tmr'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       tmrReconnectAttempts++;
-      if (tmrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (tmrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       tmrReconnectTimer = setTimeout(connectTmrKick, 4000);
     }
   );
@@ -26701,18 +26605,17 @@ function connectTmrYouTube() {
   if (tmrReconnectTimer) { clearTimeout(tmrReconnectTimer); tmrReconnectTimer = null; }
   if (tmrWs) { try { tmrWs.close(1000); } catch(e){} tmrWs = null; }
   setDotById('tmr-dot','connecting');
-  const vid = (ytVideoId['tmr'] || '').trim();
-  const key = (ytApiKey['tmr'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('tmr-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('tmr-dot','off'); return; }
-  tmrWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleTimerTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('tmr-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('tmr-dot','off'); return; }
+  tmrWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleTimerTikTokEvent(evt); },
     () => { setDotById('tmr-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('tmr-dot','off');
       if (gamePlatform['tmr'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       tmrReconnectAttempts++;
-      if (tmrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (tmrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       tmrReconnectTimer = setTimeout(connectTmrYouTube, 6000);
     }
   );
@@ -27176,17 +27079,17 @@ function addTmrChatMsg(user, text) {
     <div class="api-section" id="bomb-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="bomb-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -27196,17 +27099,14 @@ function addTmrChatMsg(user, text) {
     </div>
 
     <div class="field" id="bomb-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="bomb-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="bomb-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="bomb-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="bomb-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="bomb-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="bomb-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -27405,16 +27305,17 @@ function connectBombKick() {
   if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
   if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
   setDotById('bomb-dot','connecting');
-  const roomId = (kickRoomId['bomb'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('bomb-dot','off'); return; }
-  bombWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleBombTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('bomb-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('bomb-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('bomb-dot','off'); return; }
+  bombWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBombTikTokEvent(evt); },
+    () => { setDotById('bomb-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('bomb-dot','off');
       if (gamePlatform['bomb'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       bombReconnectAttempts++;
-      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       bombReconnectTimer = setTimeout(connectBombKick, 4000);
     }
   );
@@ -27424,18 +27325,17 @@ function connectBombYouTube() {
   if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
   if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
   setDotById('bomb-dot','connecting');
-  const vid = (ytVideoId['bomb'] || '').trim();
-  const key = (ytApiKey['bomb'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('bomb-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('bomb-dot','off'); return; }
-  bombWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleBombTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('bomb-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('bomb-dot','off'); return; }
+  bombWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBombTikTokEvent(evt); },
     () => { setDotById('bomb-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('bomb-dot','off');
       if (gamePlatform['bomb'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       bombReconnectAttempts++;
-      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       bombReconnectTimer = setTimeout(connectBombYouTube, 6000);
     }
   );
@@ -28089,17 +27989,17 @@ function addBombChatMsg(user, text) {
     <div class="api-section" id="box-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="box-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -28109,17 +28009,14 @@ function addBombChatMsg(user, text) {
     </div>
 
     <div class="field" id="box-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="box-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="box-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="box-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="box-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="box-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="box-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -28333,16 +28230,17 @@ function connectBoxKick() {
   if (boxReconnectTimer) { clearTimeout(boxReconnectTimer); boxReconnectTimer = null; }
   if (boxWs) { try { boxWs.close(1000); } catch(e){} boxWs = null; }
   setDotById('box-dot','connecting');
-  const roomId = (kickRoomId['box'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('box-dot','off'); return; }
-  boxWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleBoxTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('box-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('box-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('box-dot','off'); return; }
+  boxWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBoxTikTokEvent(evt); },
+    () => { setDotById('box-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('box-dot','off');
       if (gamePlatform['box'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       boxReconnectAttempts++;
-      if (boxReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (boxReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       boxReconnectTimer = setTimeout(connectBoxKick, 4000);
     }
   );
@@ -28352,18 +28250,17 @@ function connectBoxYouTube() {
   if (boxReconnectTimer) { clearTimeout(boxReconnectTimer); boxReconnectTimer = null; }
   if (boxWs) { try { boxWs.close(1000); } catch(e){} boxWs = null; }
   setDotById('box-dot','connecting');
-  const vid = (ytVideoId['box'] || '').trim();
-  const key = (ytApiKey['box'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('box-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('box-dot','off'); return; }
-  boxWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleBoxTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('box-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('box-dot','off'); return; }
+  boxWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBoxTikTokEvent(evt); },
     () => { setDotById('box-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('box-dot','off');
       if (gamePlatform['box'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       boxReconnectAttempts++;
-      if (boxReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (boxReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       boxReconnectTimer = setTimeout(connectBoxYouTube, 6000);
     }
   );
@@ -29014,17 +28911,17 @@ function addBoxChatMsg(user, text) {
     <div class="api-section" id="cr-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="cr-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -29034,17 +28931,14 @@ function addBoxChatMsg(user, text) {
     </div>
 
     <div class="field" id="cr-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="cr-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="cr-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="cr-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="cr-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="cr-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="cr-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -29231,16 +29125,17 @@ function connectCrKick() {
   if (crReconnectTimer) { clearTimeout(crReconnectTimer); crReconnectTimer = null; }
   if (crWs) { try { crWs.close(1000); } catch(e){} crWs = null; }
   setDotById('cr-dot','connecting');
-  const roomId = (kickRoomId['cr'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('cr-dot','off'); return; }
-  crWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleCrTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('cr-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('cr-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('cr-dot','off'); return; }
+  crWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleCrTikTokEvent(evt); },
+    () => { setDotById('cr-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('cr-dot','off');
       if (gamePlatform['cr'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       crReconnectAttempts++;
-      if (crReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (crReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       crReconnectTimer = setTimeout(connectCrKick, 4000);
     }
   );
@@ -29250,18 +29145,17 @@ function connectCrYouTube() {
   if (crReconnectTimer) { clearTimeout(crReconnectTimer); crReconnectTimer = null; }
   if (crWs) { try { crWs.close(1000); } catch(e){} crWs = null; }
   setDotById('cr-dot','connecting');
-  const vid = (ytVideoId['cr'] || '').trim();
-  const key = (ytApiKey['cr'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('cr-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('cr-dot','off'); return; }
-  crWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleCrTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('cr-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('cr-dot','off'); return; }
+  crWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleCrTikTokEvent(evt); },
     () => { setDotById('cr-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('cr-dot','off');
       if (gamePlatform['cr'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       crReconnectAttempts++;
-      if (crReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (crReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       crReconnectTimer = setTimeout(connectCrYouTube, 6000);
     }
   );
@@ -29643,17 +29537,17 @@ function addCrChatMsg(user, text) {
     <div class="api-section" id="ev-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="ev-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -29663,17 +29557,14 @@ function addCrChatMsg(user, text) {
     </div>
 
     <div class="field" id="ev-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="ev-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="ev-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="ev-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="ev-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="ev-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="ev-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -29922,16 +29813,17 @@ function connectEvKick() {
   if (evReconnectTimer) { clearTimeout(evReconnectTimer); evReconnectTimer = null; }
   if (evWs) { try { evWs.close(1000); } catch(e){} evWs = null; }
   setDotById('ev-dot','connecting');
-  const roomId = (kickRoomId['ev'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('ev-dot','off'); return; }
-  evWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleEvTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('ev-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('ev-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('ev-dot','off'); return; }
+  evWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleEvTikTokEvent(evt); },
+    () => { setDotById('ev-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('ev-dot','off');
       if (gamePlatform['ev'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       evReconnectAttempts++;
-      if (evReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (evReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       evReconnectTimer = setTimeout(connectEvKick, 4000);
     }
   );
@@ -29941,18 +29833,17 @@ function connectEvYouTube() {
   if (evReconnectTimer) { clearTimeout(evReconnectTimer); evReconnectTimer = null; }
   if (evWs) { try { evWs.close(1000); } catch(e){} evWs = null; }
   setDotById('ev-dot','connecting');
-  const vid = (ytVideoId['ev'] || '').trim();
-  const key = (ytApiKey['ev'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('ev-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('ev-dot','off'); return; }
-  evWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleEvTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('ev-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('ev-dot','off'); return; }
+  evWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleEvTikTokEvent(evt); },
     () => { setDotById('ev-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('ev-dot','off');
       if (gamePlatform['ev'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       evReconnectAttempts++;
-      if (evReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (evReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       evReconnectTimer = setTimeout(connectEvYouTube, 6000);
     }
   );
@@ -30482,17 +30373,17 @@ function addEvChatMsg(user, text) {
     <div class="api-section" id="ll-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="ll-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -30503,17 +30394,14 @@ function addEvChatMsg(user, text) {
     </div>
 
     <div class="field" id="ll-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="ll-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="ll-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="ll-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="ll-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="ll-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="ll-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -30743,16 +30631,17 @@ function connectLlKick() {
   if (llReconnectTimer) { clearTimeout(llReconnectTimer); llReconnectTimer = null; }
   if (llWs) { try { llWs.close(1000); } catch(e){} llWs = null; }
   setDotById('ll-dot','connecting');
-  const roomId = (kickRoomId['ll'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); setDotById('ll-dot','off'); return; }
-  llWs = kickOpenPusher(roomId,
-    (username, slug, message) => handleLLTikTokEvent(twitchEventShape(username, slug, message)),
-    () => { setDotById('ll-dot','on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('ll-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('ll-dot','off'); return; }
+  llWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleLLTikTokEvent(evt); },
+    () => { setDotById('ll-dot','on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       setDotById('ll-dot','off');
       if (gamePlatform['ll'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       llReconnectAttempts++;
-      if (llReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (llReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       llReconnectTimer = setTimeout(connectLlKick, 4000);
     }
   );
@@ -30762,18 +30651,17 @@ function connectLlYouTube() {
   if (llReconnectTimer) { clearTimeout(llReconnectTimer); llReconnectTimer = null; }
   if (llWs) { try { llWs.close(1000); } catch(e){} llWs = null; }
   setDotById('ll-dot','connecting');
-  const vid = (ytVideoId['ll'] || '').trim();
-  const key = (ytApiKey['ll'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); setDotById('ll-dot','off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); setDotById('ll-dot','off'); return; }
-  llWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => handleLLTikTokEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('ll-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('ll-dot','off'); return; }
+  llWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; handleLLTikTokEvent(evt); },
     () => { setDotById('ll-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       setDotById('ll-dot','off');
       if (gamePlatform['ll'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       llReconnectAttempts++;
-      if (llReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (llReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       llReconnectTimer = setTimeout(connectLlYouTube, 6000);
     }
   );
@@ -31389,17 +31277,17 @@ function addLLChatMsg(user, text) {
     <div class="api-section" id="wai-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="wai-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -31410,17 +31298,14 @@ function addLLChatMsg(user, text) {
     </div>
 
     <div class="field" id="wai-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="wai-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="wai-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="wai-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="wai-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="wai-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="wai-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -31642,16 +31527,17 @@ function connectWaiKick() {
   if (waiReconnectTimer) { clearTimeout(waiReconnectTimer); waiReconnectTimer = null; }
   if (waiWs) { try { waiWs.close(1000); } catch(e){} waiWs = null; }
   waiSetDot('connecting');
-  const roomId = (kickRoomId['wai'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); waiSetDot('off'); return; }
-  waiWs = kickOpenPusher(roomId,
-    (username, slug, message) => waiHandleEvent(twitchEventShape(username, slug, message)),
-    () => { waiSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('wai-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); waiSetDot('off'); return; }
+  waiWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; waiHandleEvent(evt); },
+    () => { waiSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       waiSetDot('off');
       if (gamePlatform['wai'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       waiReconnectAttempts++;
-      if (waiReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (waiReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       waiReconnectTimer = setTimeout(connectWaiKick, 4000);
     }
   );
@@ -31661,18 +31547,17 @@ function connectWaiYouTube() {
   if (waiReconnectTimer) { clearTimeout(waiReconnectTimer); waiReconnectTimer = null; }
   if (waiWs) { try { waiWs.close(1000); } catch(e){} waiWs = null; }
   waiSetDot('connecting');
-  const vid = (ytVideoId['wai'] || '').trim();
-  const key = (ytApiKey['wai'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); waiSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); waiSetDot('off'); return; }
-  waiWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => waiHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('wai-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); waiSetDot('off'); return; }
+  waiWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; waiHandleEvent(evt); },
     () => { waiSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       waiSetDot('off');
       if (gamePlatform['wai'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       waiReconnectAttempts++;
-      if (waiReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (waiReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       waiReconnectTimer = setTimeout(connectWaiYouTube, 6000);
     }
   );
@@ -32098,17 +31983,17 @@ function waiAddChatMsg(user, text) {
     <div class="api-section" id="rw-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="rw-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -32119,17 +32004,14 @@ function waiAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="rw-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="rw-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="rw-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="rw-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="rw-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="rw-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="rw-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -32337,16 +32219,17 @@ function connectRwKick() {
   if (rwReconnectTimer) { clearTimeout(rwReconnectTimer); rwReconnectTimer = null; }
   if (rwWs) { try { rwWs.close(1000); } catch(e){} rwWs = null; }
   rwSetDot('connecting');
-  const roomId = (kickRoomId['rw'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); rwSetDot('off'); return; }
-  rwWs = kickOpenPusher(roomId,
-    (username, slug, message) => rwHandleEvent(twitchEventShape(username, slug, message)),
-    () => { rwSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('rw-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); rwSetDot('off'); return; }
+  rwWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; rwHandleEvent(evt); },
+    () => { rwSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       rwSetDot('off');
       if (gamePlatform['rw'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rwReconnectAttempts++;
-      if (rwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (rwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       rwReconnectTimer = setTimeout(connectRwKick, 4000);
     }
   );
@@ -32356,18 +32239,17 @@ function connectRwYouTube() {
   if (rwReconnectTimer) { clearTimeout(rwReconnectTimer); rwReconnectTimer = null; }
   if (rwWs) { try { rwWs.close(1000); } catch(e){} rwWs = null; }
   rwSetDot('connecting');
-  const vid = (ytVideoId['rw'] || '').trim();
-  const key = (ytApiKey['rw'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); rwSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); rwSetDot('off'); return; }
-  rwWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => rwHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('rw-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); rwSetDot('off'); return; }
+  rwWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; rwHandleEvent(evt); },
     () => { rwSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       rwSetDot('off');
       if (gamePlatform['rw'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rwReconnectAttempts++;
-      if (rwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (rwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       rwReconnectTimer = setTimeout(connectRwYouTube, 6000);
     }
   );
@@ -32800,17 +32682,17 @@ function rwAddChatMsg(user, text) {
     <div class="api-section" id="pgs-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="pgs-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -32821,17 +32703,14 @@ function rwAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="pgs-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="pgs-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="pgs-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="pgs-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="pgs-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="pgs-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="pgs-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -33042,16 +32921,17 @@ function connectPgsKick() {
   if (pgsReconnectTimer) { clearTimeout(pgsReconnectTimer); pgsReconnectTimer = null; }
   if (pgsWs) { try { pgsWs.close(1000); } catch(e){} pgsWs = null; }
   pgsSetDot('connecting');
-  const roomId = (kickRoomId['pgs'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); pgsSetDot('off'); return; }
-  pgsWs = kickOpenPusher(roomId,
-    (username, slug, message) => pgsHandleEvent(twitchEventShape(username, slug, message)),
-    () => { pgsSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('pgs-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); pgsSetDot('off'); return; }
+  pgsWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; pgsHandleEvent(evt); },
+    () => { pgsSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       pgsSetDot('off');
       if (gamePlatform['pgs'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       pgsReconnectAttempts++;
-      if (pgsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (pgsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       pgsReconnectTimer = setTimeout(connectPgsKick, 4000);
     }
   );
@@ -33061,18 +32941,17 @@ function connectPgsYouTube() {
   if (pgsReconnectTimer) { clearTimeout(pgsReconnectTimer); pgsReconnectTimer = null; }
   if (pgsWs) { try { pgsWs.close(1000); } catch(e){} pgsWs = null; }
   pgsSetDot('connecting');
-  const vid = (ytVideoId['pgs'] || '').trim();
-  const key = (ytApiKey['pgs'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); pgsSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); pgsSetDot('off'); return; }
-  pgsWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => pgsHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('pgs-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); pgsSetDot('off'); return; }
+  pgsWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; pgsHandleEvent(evt); },
     () => { pgsSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       pgsSetDot('off');
       if (gamePlatform['pgs'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       pgsReconnectAttempts++;
-      if (pgsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (pgsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       pgsReconnectTimer = setTimeout(connectPgsYouTube, 6000);
     }
   );
@@ -33503,17 +33382,17 @@ function pgsAddChatMsg(user, text) {
     <div class="api-section" id="lsc-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="lsc-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -33524,17 +33403,14 @@ function pgsAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="lsc-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="lsc-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="lsc-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="lsc-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="lsc-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="lsc-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="lsc-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -33753,16 +33629,17 @@ function connectLscKick() {
   if (lscReconnectTimer) { clearTimeout(lscReconnectTimer); lscReconnectTimer = null; }
   if (lscWs) { try { lscWs.close(1000); } catch(e){} lscWs = null; }
   lscSetDot('connecting');
-  const roomId = (kickRoomId['lsc'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); lscSetDot('off'); return; }
-  lscWs = kickOpenPusher(roomId,
-    (username, slug, message) => lscHandleEvent(twitchEventShape(username, slug, message)),
-    () => { lscSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('lsc-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); lscSetDot('off'); return; }
+  lscWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; lscHandleEvent(evt); },
+    () => { lscSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       lscSetDot('off');
       if (gamePlatform['lsc'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       lscReconnectAttempts++;
-      if (lscReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (lscReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       lscReconnectTimer = setTimeout(connectLscKick, 4000);
     }
   );
@@ -33772,18 +33649,17 @@ function connectLscYouTube() {
   if (lscReconnectTimer) { clearTimeout(lscReconnectTimer); lscReconnectTimer = null; }
   if (lscWs) { try { lscWs.close(1000); } catch(e){} lscWs = null; }
   lscSetDot('connecting');
-  const vid = (ytVideoId['lsc'] || '').trim();
-  const key = (ytApiKey['lsc'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); lscSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); lscSetDot('off'); return; }
-  lscWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => lscHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('lsc-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); lscSetDot('off'); return; }
+  lscWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; lscHandleEvent(evt); },
     () => { lscSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       lscSetDot('off');
       if (gamePlatform['lsc'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       lscReconnectAttempts++;
-      if (lscReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (lscReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       lscReconnectTimer = setTimeout(connectLscYouTube, 6000);
     }
   );
@@ -34172,17 +34048,17 @@ function lscAddChatMsg(user, text) {
     <div class="api-section" id="wr-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="wr-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -34193,17 +34069,14 @@ function lscAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="wr-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="wr-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="wr-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="wr-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="wr-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="wr-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="wr-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -34376,16 +34249,17 @@ function connectWrKick() {
   if (wrReconnectTimer) { clearTimeout(wrReconnectTimer); wrReconnectTimer = null; }
   if (wrWs) { try { wrWs.close(1000); } catch(e){} wrWs = null; }
   wrSetDot('connecting');
-  const roomId = (kickRoomId['wr'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); wrSetDot('off'); return; }
-  wrWs = kickOpenPusher(roomId,
-    (username, slug, message) => wrHandleEvent(twitchEventShape(username, slug, message)),
-    () => { wrSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('wr-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); wrSetDot('off'); return; }
+  wrWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; wrHandleEvent(evt); },
+    () => { wrSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       wrSetDot('off');
       if (gamePlatform['wr'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       wrReconnectAttempts++;
-      if (wrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (wrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       wrReconnectTimer = setTimeout(connectWrKick, 4000);
     }
   );
@@ -34395,18 +34269,17 @@ function connectWrYouTube() {
   if (wrReconnectTimer) { clearTimeout(wrReconnectTimer); wrReconnectTimer = null; }
   if (wrWs) { try { wrWs.close(1000); } catch(e){} wrWs = null; }
   wrSetDot('connecting');
-  const vid = (ytVideoId['wr'] || '').trim();
-  const key = (ytApiKey['wr'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); wrSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); wrSetDot('off'); return; }
-  wrWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => wrHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('wr-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); wrSetDot('off'); return; }
+  wrWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; wrHandleEvent(evt); },
     () => { wrSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       wrSetDot('off');
       if (gamePlatform['wr'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       wrReconnectAttempts++;
-      if (wrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (wrReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       wrReconnectTimer = setTimeout(connectWrYouTube, 6000);
     }
   );
@@ -34790,17 +34663,17 @@ function wrAddChatMsg(user, text) {
     <div class="api-section" id="draw-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="draw-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -34811,17 +34684,14 @@ function wrAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="draw-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="draw-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="draw-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="draw-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="draw-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="draw-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="draw-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -35058,16 +34928,17 @@ function connectDrawKick() {
   if (drawReconnectTimer) { clearTimeout(drawReconnectTimer); drawReconnectTimer = null; }
   if (drawWs) { try { drawWs.close(1000); } catch(e){} drawWs = null; }
   drawSetDot('connecting');
-  const roomId = (kickRoomId['draw'] || '').trim();
-  if (!roomId) { drawNotify('⚠️ أدخل رقم Chatroom ID لكيك'); drawSetDot('off'); return; }
-  drawWs = kickOpenPusher(roomId,
-    (username, slug, message) => drawHandleEvent(twitchEventShape(username, slug, message)),
-    () => { drawSetDot('on'); drawNotify('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('draw-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { drawNotify('⚠️ أدخل يوزر أو رابط قناتك على كيك'); drawSetDot('off'); return; }
+  drawWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; drawHandleEvent(evt); },
+    () => { drawSetDot('on'); drawNotify('✅ متصل بشات كيك'); },
     (e) => {
       drawSetDot('off');
       if (gamePlatform['draw'] !== 'kick') return;
+      if (e && e.code === 4403) { drawNotify('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       drawReconnectAttempts++;
-      if (drawReconnectAttempts > 6) { drawNotify('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (drawReconnectAttempts > 6) { drawNotify('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       drawReconnectTimer = setTimeout(connectDrawKick, 4000);
     }
   );
@@ -35077,18 +34948,17 @@ function connectDrawYouTube() {
   if (drawReconnectTimer) { clearTimeout(drawReconnectTimer); drawReconnectTimer = null; }
   if (drawWs) { try { drawWs.close(1000); } catch(e){} drawWs = null; }
   drawSetDot('connecting');
-  const vid = (ytVideoId['draw'] || '').trim();
-  const key = (ytApiKey['draw'] || '').trim();
-  if (!vid) { drawNotify('⚠️ أدخل رابط أو معرف البث المباشر'); drawSetDot('off'); return; }
-  if (!key) { drawNotify('⚠️ أدخل مفتاح YouTube API'); drawSetDot('off'); return; }
-  drawWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => drawHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('draw-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { drawNotify('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); drawSetDot('off'); return; }
+  drawWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; drawHandleEvent(evt); },
     () => { drawSetDot('on'); drawNotify('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       drawSetDot('off');
       if (gamePlatform['draw'] !== 'youtube') return;
+      if (e && e.code === 4403) { drawNotify('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       drawReconnectAttempts++;
-      if (drawReconnectAttempts > 6) { drawNotify('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (drawReconnectAttempts > 6) { drawNotify('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       drawReconnectTimer = setTimeout(connectDrawYouTube, 6000);
     }
   );
@@ -35994,17 +35864,17 @@ function drawAddChatMsg(user, text) {
     <div class="api-section" id="cw-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="cw-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -36015,17 +35885,14 @@ function drawAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="cw-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="cw-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="cw-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="cw-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="cw-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="cw-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="cw-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -36322,16 +36189,17 @@ function connectCwKick() {
   if (cwReconnectTimer) { clearTimeout(cwReconnectTimer); cwReconnectTimer = null; }
   if (cwWs) { try { cwWs.close(1000); } catch(e){} cwWs = null; }
   cwSetDot('connecting');
-  const roomId = (kickRoomId['cw'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); cwSetDot('off'); return; }
-  cwWs = kickOpenPusher(roomId,
-    (username, slug, message) => cwHandleEvent(twitchEventShape(username, slug, message)),
-    () => { cwSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('cw-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); cwSetDot('off'); return; }
+  cwWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; cwHandleEvent(evt); },
+    () => { cwSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       cwSetDot('off');
       if (gamePlatform['cw'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       cwReconnectAttempts++;
-      if (cwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (cwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       cwReconnectTimer = setTimeout(connectCwKick, 4000);
     }
   );
@@ -36341,18 +36209,17 @@ function connectCwYouTube() {
   if (cwReconnectTimer) { clearTimeout(cwReconnectTimer); cwReconnectTimer = null; }
   if (cwWs) { try { cwWs.close(1000); } catch(e){} cwWs = null; }
   cwSetDot('connecting');
-  const vid = (ytVideoId['cw'] || '').trim();
-  const key = (ytApiKey['cw'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); cwSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); cwSetDot('off'); return; }
-  cwWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => cwHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('cw-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); cwSetDot('off'); return; }
+  cwWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; cwHandleEvent(evt); },
     () => { cwSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       cwSetDot('off');
       if (gamePlatform['cw'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       cwReconnectAttempts++;
-      if (cwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (cwReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       cwReconnectTimer = setTimeout(connectCwYouTube, 6000);
     }
   );
@@ -37154,17 +37021,17 @@ function cwAddChatMsg(user, text) {
     <div class="api-section" id="cs-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="cs-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -37175,17 +37042,14 @@ function cwAddChatMsg(user, text) {
     </div>
 
     <div class="field" id="cs-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="cs-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="cs-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="cs-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="cs-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="cs-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="cs-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -37381,16 +37245,17 @@ function connectCsKick() {
   if (csReconnectTimer) { clearTimeout(csReconnectTimer); csReconnectTimer = null; }
   if (csWs) { try { csWs.close(1000); } catch(e){} csWs = null; }
   csSetDot('connecting');
-  const roomId = (kickRoomId['cs'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); csSetDot('off'); return; }
-  csWs = kickOpenPusher(roomId,
-    (username, slug, message) => csHandleEvent(twitchEventShape(username, slug, message)),
-    () => { csSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('cs-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); csSetDot('off'); return; }
+  csWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; csHandleEvent(evt); },
+    () => { csSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       csSetDot('off');
       if (gamePlatform['cs'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       csReconnectAttempts++;
-      if (csReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (csReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       csReconnectTimer = setTimeout(connectCsKick, 4000);
     }
   );
@@ -37400,18 +37265,17 @@ function connectCsYouTube() {
   if (csReconnectTimer) { clearTimeout(csReconnectTimer); csReconnectTimer = null; }
   if (csWs) { try { csWs.close(1000); } catch(e){} csWs = null; }
   csSetDot('connecting');
-  const vid = (ytVideoId['cs'] || '').trim();
-  const key = (ytApiKey['cs'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); csSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); csSetDot('off'); return; }
-  csWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => csHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('cs-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); csSetDot('off'); return; }
+  csWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; csHandleEvent(evt); },
     () => { csSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       csSetDot('off');
       if (gamePlatform['cs'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       csReconnectAttempts++;
-      if (csReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (csReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       csReconnectTimer = setTimeout(connectCsYouTube, 6000);
     }
   );
@@ -38332,17 +38196,17 @@ function fxSlapEliminatePlayer(user, soundId){
     <div class="api-section" id="chairs-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="chairs-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -38353,17 +38217,14 @@ function fxSlapEliminatePlayer(user, soundId){
     </div>
 
     <div class="field" id="chairs-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="chairs-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="chairs-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="chairs-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="chairs-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="chairs-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="chairs-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -38521,17 +38382,17 @@ function fxSlapEliminatePlayer(user, soundId){
     <div class="api-section" id="findball-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="findball-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -38542,17 +38403,14 @@ function fxSlapEliminatePlayer(user, soundId){
     </div>
 
     <div class="field" id="findball-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="findball-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="findball-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="findball-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="findball-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="findball-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="findball-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -38695,17 +38553,17 @@ function fxSlapEliminatePlayer(user, soundId){
     <div class="api-section" id="tug-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="tug-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -38716,17 +38574,14 @@ function fxSlapEliminatePlayer(user, soundId){
     </div>
 
     <div class="field" id="tug-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="tug-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="tug-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="tug-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="tug-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="tug-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="tug-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -38930,17 +38785,17 @@ function fxSlapEliminatePlayer(user, soundId){
     <div class="api-section" id="rlgl-kick-section" style="display:none">
       <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>وأنت بثك شغال على كيك، افتح بمتصفحك الرابط: <b>kick.com/api/v2/channels/اسم_قناتك</b> (بدّل اسم_قناتك باسمك)</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>بالصفحة اللي تفتح دوّر (Ctrl+F) عن كلمة <b>"chatroom"</b> وبعدها <b>"id":</b> — انسخ الرقم اللي بعدها</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>الصق الرقم بحقل Chatroom ID تحت واضغط ابدأ اللعبة — بدون أي API Key!</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
       </div>
     </div>
     <div class="api-section" id="rlgl-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — يحتاج مفتاح مجاني</div>
+      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
       <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>روح <a class="api-link" href="https://console.cloud.google.com/apis/credentials" target="_blank">console.cloud.google.com</a> وسوّي مشروع جديد، وفعّل خدمة <b>YouTube Data API v3</b></span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>من نفس الصفحة أنشئ <b>API Key</b> وانسخه، والصقه بحقل المفتاح تحت</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>وأنت بثك شغال على يوتيوب، انسخ رابط البث المباشر (أو رقم الفيديو من آخر الرابط) والصقه بالحقل تحت</span></div>
+        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
+        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
+        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
       </div>
     </div>
 
@@ -38951,17 +38806,14 @@ function fxSlapEliminatePlayer(user, soundId){
     </div>
 
     <div class="field" id="rlgl-kick-field" style="display:none">
-      <label>🔢 Chatroom ID (رقم شات كيك)</label>
-      <input type="text" id="rlgl-kickroom" placeholder="مثال: 668" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">رقم تحصله من خطوات الربط فوق — مو اسم القناة</div>
+      <label>🟢 يوزر قناتك على كيك</label>
+      <input type="text" id="rlgl-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
     </div>
     <div class="field" id="rlgl-youtube-field" style="display:none">
-      <label>🔑 YouTube API Key</label>
-      <input type="password" id="rlgl-ytkey" placeholder="أدخل مفتاح YouTube API هنا" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يُحفظ في متصفحك فقط ولا يُرسل لأي سيرفر</div>
-      <label style="margin-top:10px;display:block">🔗 رابط البث المباشر أو معرف الفيديو</label>
-      <input type="text" id="rlgl-ytvideo" placeholder="مثال: https://youtube.com/watch?v=xxxxxxxxxxx" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">الصق رابط البث المباشر كامل أو رقم الفيديو فقط</div>
+      <label>▶️ يوزر قناتك على يوتيوب</label>
+      <input type="text" id="rlgl-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
     </div>
     </div>
 
@@ -39605,16 +39457,17 @@ function connectFindballKick() {
   if (findballReconnectTimer) { clearTimeout(findballReconnectTimer); findballReconnectTimer = null; }
   if (findballWs) { try { findballWs.close(1000); } catch(e){} findballWs = null; }
   findballSetDot('connecting');
-  const roomId = (kickRoomId['findball'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); findballSetDot('off'); return; }
-  findballWs = kickOpenPusher(roomId,
-    (username, slug, message) => findballHandleEvent(twitchEventShape(username, slug, message)),
-    () => { findballSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('findball-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); findballSetDot('off'); return; }
+  findballWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; findballHandleEvent(evt); },
+    () => { findballSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       findballSetDot('off');
       if (gamePlatform['findball'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       findballReconnectAttempts++;
-      if (findballReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (findballReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       findballReconnectTimer = setTimeout(connectFindballKick, 4000);
     }
   );
@@ -39624,18 +39477,17 @@ function connectFindballYouTube() {
   if (findballReconnectTimer) { clearTimeout(findballReconnectTimer); findballReconnectTimer = null; }
   if (findballWs) { try { findballWs.close(1000); } catch(e){} findballWs = null; }
   findballSetDot('connecting');
-  const vid = (ytVideoId['findball'] || '').trim();
-  const key = (ytApiKey['findball'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); findballSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); findballSetDot('off'); return; }
-  findballWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => findballHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('findball-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); findballSetDot('off'); return; }
+  findballWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; findballHandleEvent(evt); },
     () => { findballSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       findballSetDot('off');
       if (gamePlatform['findball'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       findballReconnectAttempts++;
-      if (findballReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (findballReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       findballReconnectTimer = setTimeout(connectFindballYouTube, 6000);
     }
   );
@@ -40795,16 +40647,17 @@ function connectChairsKick() {
   if (chairsReconnectTimer) { clearTimeout(chairsReconnectTimer); chairsReconnectTimer = null; }
   if (chairsWs) { try { chairsWs.close(1000); } catch(e){} chairsWs = null; }
   chairsSetDot('connecting');
-  const roomId = (kickRoomId['chairs'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); chairsSetDot('off'); return; }
-  chairsWs = kickOpenPusher(roomId,
-    (username, slug, message) => chairsHandleEvent(twitchEventShape(username, slug, message)),
-    () => { chairsSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('chairs-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); chairsSetDot('off'); return; }
+  chairsWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; chairsHandleEvent(evt); },
+    () => { chairsSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       chairsSetDot('off');
       if (gamePlatform['chairs'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       chairsReconnectAttempts++;
-      if (chairsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (chairsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       chairsReconnectTimer = setTimeout(connectChairsKick, 4000);
     }
   );
@@ -40814,18 +40667,17 @@ function connectChairsYouTube() {
   if (chairsReconnectTimer) { clearTimeout(chairsReconnectTimer); chairsReconnectTimer = null; }
   if (chairsWs) { try { chairsWs.close(1000); } catch(e){} chairsWs = null; }
   chairsSetDot('connecting');
-  const vid = (ytVideoId['chairs'] || '').trim();
-  const key = (ytApiKey['chairs'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); chairsSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); chairsSetDot('off'); return; }
-  chairsWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => chairsHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('chairs-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); chairsSetDot('off'); return; }
+  chairsWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; chairsHandleEvent(evt); },
     () => { chairsSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       chairsSetDot('off');
       if (gamePlatform['chairs'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       chairsReconnectAttempts++;
-      if (chairsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (chairsReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       chairsReconnectTimer = setTimeout(connectChairsYouTube, 6000);
     }
   );
@@ -41793,16 +41645,17 @@ function connectTugKick() {
   if (tugReconnectTimer) { clearTimeout(tugReconnectTimer); tugReconnectTimer = null; }
   if (tugWs) { try { tugWs.close(1000); } catch(e){} tugWs = null; }
   tugSetDot('connecting');
-  const roomId = (kickRoomId['tug'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); tugSetDot('off'); return; }
-  tugWs = kickOpenPusher(roomId,
-    (username, slug, message) => tugHandleEvent(twitchEventShape(username, slug, message)),
-    () => { tugSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('tug-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); tugSetDot('off'); return; }
+  tugWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; tugHandleEvent(evt); },
+    () => { tugSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       tugSetDot('off');
       if (gamePlatform['tug'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       tugReconnectAttempts++;
-      if (tugReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (tugReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       tugReconnectTimer = setTimeout(connectTugKick, 4000);
     }
   );
@@ -41812,18 +41665,17 @@ function connectTugYouTube() {
   if (tugReconnectTimer) { clearTimeout(tugReconnectTimer); tugReconnectTimer = null; }
   if (tugWs) { try { tugWs.close(1000); } catch(e){} tugWs = null; }
   tugSetDot('connecting');
-  const vid = (ytVideoId['tug'] || '').trim();
-  const key = (ytApiKey['tug'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); tugSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); tugSetDot('off'); return; }
-  tugWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => tugHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('tug-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); tugSetDot('off'); return; }
+  tugWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; tugHandleEvent(evt); },
     () => { tugSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       tugSetDot('off');
       if (gamePlatform['tug'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       tugReconnectAttempts++;
-      if (tugReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (tugReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       tugReconnectTimer = setTimeout(connectTugYouTube, 4000);
     }
   );
@@ -42406,16 +42258,17 @@ function connectRlglKick() {
   if (rlglReconnectTimer) { clearTimeout(rlglReconnectTimer); rlglReconnectTimer = null; }
   if (rlglWs) { try { rlglWs.close(1000); } catch(e){} rlglWs = null; }
   rlglSetDot('connecting');
-  const roomId = (kickRoomId['rlgl'] || '').trim();
-  if (!roomId) { toast('⚠️ أدخل رقم Chatroom ID لكيك'); rlglSetDot('off'); return; }
-  rlglWs = kickOpenPusher(roomId,
-    (username, slug, message) => rlglHandleEvent(twitchEventShape(username, slug, message)),
-    () => { rlglSetDot('on'); toast('✅ متصل بشات كيك #' + roomId); },
+  const kickUser = (document.getElementById('rlgl-kickuser') || {}).value?.trim() || '';
+  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); rlglSetDot('off'); return; }
+  rlglWs = kickBridgeOpenWS(kickUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; rlglHandleEvent(evt); },
+    () => { rlglSetDot('on'); toast('✅ متصل بشات كيك'); },
     (e) => {
       rlglSetDot('off');
       if (gamePlatform['rlgl'] !== 'kick') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rlglReconnectAttempts++;
-      if (rlglReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من رقم الـ Chatroom ID'); return; }
+      if (rlglReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
       rlglReconnectTimer = setTimeout(connectRlglKick, 4000);
     }
   );
@@ -42425,18 +42278,17 @@ function connectRlglYouTube() {
   if (rlglReconnectTimer) { clearTimeout(rlglReconnectTimer); rlglReconnectTimer = null; }
   if (rlglWs) { try { rlglWs.close(1000); } catch(e){} rlglWs = null; }
   rlglSetDot('connecting');
-  const vid = (ytVideoId['rlgl'] || '').trim();
-  const key = (ytApiKey['rlgl'] || '').trim();
-  if (!vid) { toast('⚠️ أدخل رابط أو معرف البث المباشر'); rlglSetDot('off'); return; }
-  if (!key) { toast('⚠️ أدخل مفتاح YouTube API'); rlglSetDot('off'); return; }
-  rlglWs = youtubeOpenPolling(vid, key,
-    (username, slug, message) => rlglHandleEvent(twitchEventShape(username, slug, message)),
+  const ytUser = (document.getElementById('rlgl-ytuser') || {}).value?.trim() || '';
+  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); rlglSetDot('off'); return; }
+  rlglWs = youtubeBridgeOpenWS(ytUser,
+    (evt) => { if (evt && evt.type === 'bridge_status') return; rlglHandleEvent(evt); },
     () => { rlglSetDot('on'); toast('✅ متصل ببث يوتيوب المباشر'); },
     (e) => {
       rlglSetDot('off');
       if (gamePlatform['rlgl'] !== 'youtube') return;
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       rlglReconnectAttempts++;
-      if (rlglReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تحقق من الرابط والمفتاح'); return; }
+      if (rlglReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
       rlglReconnectTimer = setTimeout(connectRlglYouTube, 4000);
     }
   );
