@@ -39070,6 +39070,19 @@ function triggerAdminReviveFreeze(gameTag, displayName) {
   setTimeout(() => { gamePausedForRevival[gameTag] = false; }, 3000);
 }
 
+// يتحقق إن raw يبدأ فعلاً بالكلمة kw متبوعة بأي نوع مسافة — مو بس مسافة
+// ASCII عادية (' '). منتقي المنشن بتيك توك (خصوصاً على الجوال) أحياناً
+// يحقن مسافة غير قاطعة (NBSP،  ) أو مسافة يونيكود أخرى بدل المسافة
+// العادية بعد الكلمة مباشرة قبل "@username" — لو اعتمدنا فقط على raw.
+// startsWith(kw + ' ') الحرفية، كل أوامر المنشن (انعاش/دخول/تجميد/شعلة/
+// درع/تاج/سبوتلايت/إعلان) تفشل بصمت رغم كتابتها صح، بينما الأمر بدون
+// منشن (مطابقة normalize كاملة) يستمر يشتغل — بالضبط العرض اللي لاحظه
+// المالك (كل الأوامر بمنشن ما تشتغل). \s بتعبيرات جافاسكربت النمطية تغطي
+// NBSP وأغلب مسافات اليونيكود الشائعة.
+function adminStartsWithKeywordSpace(raw, kw) {
+  return raw.length > kw.length && raw.slice(0, kw.length) === kw && /\s/.test(raw[kw.length]);
+}
+
 // النقطة المركزية الوحيدة لأمر "انعاش"/"احياء" — حصراً لـADMIN_REVIVE_USERNAMES.
 // bindings: { eliminatedSet, isParticipant(uid), statusCheckFn(), reviveFn(user) }
 // ترجع true إذا "استهلكت" الرسالة (نُفّذ الأمر، أو رُفض بصمت بعد التحقق من
@@ -39088,7 +39101,7 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
   } else {
     // "انعاش @username" — لازم تبدأ الرسالة فعلاً بالكلمة المفتاحية متبوعة
     // بمسافة، لتفادي أي تصادم مع رسالة عادية تحتوي الكلمة ضمن جملة أطول.
-    const startsWithKeyword = ADMIN_REVIVE_KEYWORDS.some(kw => raw.startsWith(kw + ' '));
+    const startsWithKeyword = ADMIN_REVIVE_KEYWORDS.some(kw => adminStartsWithKeywordSpace(raw, kw));
     if (!startsWithKeyword) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
     if (!mention) return false;
@@ -39121,18 +39134,22 @@ function parseAdminJoinCommand(rawText) {
 
   let matchedKw = null;
   for (const kw of ADMIN_JOIN_KEYWORDS) {
-    if (normalize(raw) === normalize(kw) || raw.startsWith(kw + ' ')) { matchedKw = kw; break; }
+    if (normalize(raw) === normalize(kw) || adminStartsWithKeywordSpace(raw, kw)) { matchedKw = kw; break; }
   }
   if (!matchedKw) return null;
-  // تأكيد الفاصل فعلاً مسافة (وليس حرفاً ملتصقاً زي "دخولي") على النص الخام
-  // نفسه — normalize() لا تغيّر طول كلمة "دخول" (ما فيها أ/إ/آ/ة/ى) فمقارنة
-  // الطول هنا مضمونة ومطابقة لموضعها بالنص الخام.
-  if (raw.length > matchedKw.length && raw[matchedKw.length] !== ' ') return null;
+  // تأكيد الفاصل فعلاً نوع مسافة (وليس حرفاً ملتصقاً زي "دخولي") — أي \s
+  // مو بس المسافة العادية (راجع تعليق adminStartsWithKeywordSpace) — على
+  // النص الخام نفسه؛ normalize() لا تغيّر طول كلمة "دخول" (ما فيها أ/إ/آ/
+  // ة/ى) فمقارنة الطول هنا مضمونة ومطابقة لموضعها بالنص الخام.
+  if (raw.length > matchedKw.length && !/\s/.test(raw[matchedKw.length])) return null;
 
   const rest = raw.length <= matchedKw.length ? '' : raw.slice(matchedKw.length + 1);
   if (!rest.trim()) return { mode: 'self' };
 
-  const mention = rest.match(/^@([a-zA-Z0-9_.]+)/);
+  // trimStart فقط لفحص وجود المنشن (احتياطاً لو صار فاصل مكوّن من أكثر من
+  // حرف مسافة) — القيمة المُرجعة بحالة customName تبقى rest الأصلية بدون
+  // أي قص، تماماً كما يتطلب التصميم.
+  const mention = rest.replace(/^\s+/, '').match(/^@([a-zA-Z0-9_.]+)/);
   if (mention) return { mode: 'mention', handle: mention[1].trim().toLowerCase() };
 
   return { mode: 'customName', name: rest }; // raw بدون قص — يحافظ على الاسم كما كُتب بالضبط
@@ -39294,7 +39311,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
   // إعلان [نص] — لا يستهدف مشاركاً، متاح حتى بدون participantsMap.
   for (const kw of ADMIN_FX_KEYWORDS.announce) {
     if (raw === kw) return true; // بدون نص — تجاهل
-    if (raw.startsWith(kw + ' ')) {
+    if (adminStartsWithKeywordSpace(raw, kw)) {
       const msg = raw.slice(kw.length + 1);
       if (msg.trim()) showAdminAnnounceBanner(msg);
       return true;
@@ -39324,7 +39341,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
 
   // تجميد/شعلة/درع/تاج/سبوتلايت — تتطلب منشن + الهدف مشارك نشط حالياً.
   for (const kind of ['freeze', 'flame', 'shield', 'crown', 'spotlight']) {
-    const matched = ADMIN_FX_KEYWORDS[kind].some(kw => raw === kw || raw.startsWith(kw + ' '));
+    const matched = ADMIN_FX_KEYWORDS[kind].some(kw => raw === kw || adminStartsWithKeywordSpace(raw, kw));
     if (!matched) continue;
     const mention = raw.match(ADMIN_MENTION_RE);
     if (!mention) return true; // كتب الكلمة بدون منشن صالح — بصمت
@@ -39366,6 +39383,13 @@ function handleAdminChatCommand(gameTag, text, senderUser, bindings) {
   if (tryAdminFxCommand(gameTag, text, senderUser, bindings)) return true;
   if (bindings.eliminatedSet && tryAdminReviveCommand(gameTag, text, senderUser, bindings)) return true;
   if (tryAdminJoinCommand(gameTag, text, senderUser, bindings)) return true;
+  // تشخيص فقط — ما يظهر أبداً لأي متابع عادي (لا يصل بحال إلا لو المرسل
+  // من الحسابين المصرّح لهما أصلاً، ويطبع بـconsole المتصفح فقط، مو بالشات).
+  // يساعد بتشخيص أي حالة نص غير متوقعة (مسافة نادرة، رمز @ مختلف...) ما زالت
+  // تفشل رغم إصلاح مشكلة المسافة غير القاطعة (NBSP) بعد الكلمة المفتاحية.
+  if (isAdminReviver(senderUser.uniqueId)) {
+    console.debug('🛠️ أمر إداري لم يُنفَّذ (' + gameTag + '): ' + JSON.stringify(text));
+  }
   return false;
 }
 
