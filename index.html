@@ -38625,13 +38625,20 @@ function revivalCountAndCheck(countsMap, uniqueId) {
 // قد يحاول تقليد الأمر بمجرد رؤيته يعمل مرة.
 const ADMIN_REVIVE_USERNAMES = ['ehsmaha7', 'ic.zx8'];
 
-function isAdminReviver(uniqueId) {
-  if (!uniqueId) return false;
-  // نفس منطق تنظيف isDeveloperUser بالضبط: إزالة بادئة المنصة (وضع "أكثر من
-  // منصة")، إزالة @، وlowercase، قبل المقارنة بالقائمة المصرّح لها.
+// نفس منطق تنظيف isDeveloperUser بالضبط: إزالة بادئة المنصة (وضع "أكثر من
+// منصة")، إزالة @، وlowercase — دالة واحدة يستخدمها كل من isAdminReviver
+// وتسجيل adminReviveLog، عشان القيمة المكتوبة بحقل byAdmin تطابق حرفياً
+// نفس القيمة اللي تحققت منها قاعدة Firestore (adminReviveLog rule تشترط
+// byAdmin بالضبط 'ehsmaha7'/'ic.zx8' — لو كتبنا uniqueId الخام بدون تنظيف
+// [مثلاً "tiktok:Ehsmaha7" بوضع أكثر من منصة] كانت الكتابة ترفض رغم إن
+// الأمر نفسه نُفّذ بنجاح).
+function adminCleanUsername(uniqueId) {
+  if (!uniqueId) return '';
   const withoutPlatformPrefix = String(uniqueId).replace(/^(tiktok|twitch|kick|youtube):/, '');
-  const clean = withoutPlatformPrefix.trim().toLowerCase().replace(/^@/, '');
-  return ADMIN_REVIVE_USERNAMES.includes(clean);
+  return withoutPlatformPrefix.trim().toLowerCase().replace(/^@/, '');
+}
+function isAdminReviver(uniqueId) {
+  return ADMIN_REVIVE_USERNAMES.includes(adminCleanUsername(uniqueId));
 }
 
 // مرادفات كل أمر — مصفوفة قابلة للتوسعة بدل تكرار الكلمة hardcoded بكل مكان.
@@ -38722,7 +38729,7 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
 
   eliminatedSet.delete(targetUid);
   triggerAdminReviveFreeze(gameTag, targetUser.nickname || targetUid);
-  adminLogRevive(gameTag, targetUid, targetUser.nickname, senderUser.uniqueId);
+  adminLogRevive(gameTag, targetUid, targetUser.nickname, adminCleanUsername(senderUser.uniqueId));
   reviveFn(targetUser);
   return true;
 }
