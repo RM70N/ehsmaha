@@ -4933,7 +4933,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     </span>
     <span class="landing-brand-name">احسمها</span>
   </a>
-  <a class="landing-btn-cta landing-header-cta pulse" href="javascript:void(0)" onclick="show('auth')">ابدأ اللعب مجاناً</a>
+  <a class="landing-btn-cta landing-header-cta pulse" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
 </header>
 
 <section class="landing-hero">
@@ -4941,7 +4941,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <span class="landing-hero-eyebrow"><span class="landing-hero-eyebrow-dot"></span> منصة عربية مجانية بالكامل</span>
     <h1 id="landing-hero-title"></h1>
     <p>احسمها منصة عربية تحوّل شات البث المباشر إلى ملعب حقيقي — يربط الستريمر حسابه خلال ثوانٍ، ويشارك متابعوه في اللحظة نفسها من الشات.</p>
-    <a class="landing-btn-cta" href="javascript:void(0)" onclick="show('auth')" style="padding:17px 40px;font-size:16px;">ابدأ اللعب مجاناً</a>
+    <a class="landing-btn-cta" href="javascript:void(0)" onclick="landingCtaClick()" style="padding:17px 40px;font-size:16px;">ابدأ اللعب مجاناً</a>
   </div>
 </section>
 
@@ -5046,7 +5046,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <div class="landing-final-cta-box landing-reveal">
       <h2>جاهز تبدأ؟</h2>
       <p>سجّل مجاناً وخلّ متابعينك يلعبون معك مباشرة من الشات.</p>
-      <a class="landing-btn-cta" href="javascript:void(0)" onclick="show('auth')">ابدأ اللعب مجاناً</a>
+      <a class="landing-btn-cta" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
     </div>
   </div>
 </section>
@@ -5071,7 +5071,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16M20 4 4 20"/></svg>
         </a>
       </div>
-      <a class="landing-btn-cta" href="javascript:void(0)" onclick="show('auth')" style="padding:12px 26px;font-size:13.5px;">ابدأ اللعب مجاناً</a>
+      <a class="landing-btn-cta" href="javascript:void(0)" onclick="landingCtaClick()" style="padding:12px 26px;font-size:13.5px;">ابدأ اللعب مجاناً</a>
       <p class="landing-footer-copy">© 2026 احسمها. جميع الحقوق محفوظة.</p>
     </div>
   </div>
@@ -5079,6 +5079,15 @@ if (location.hostname === 'streamgame1.netlify.app') {
 </div>
 
 <script>
+// زر "ابدأ اللعب مجاناً" بصفحة الهبوط — يوديه لصفحة تسجيل الدخول لو مو
+// مسجّل، أو مباشرة لصفحته الرئيسية (home، فيها كل ألعاب الستريمر) لو عنده
+// حساب مسجّل دخوله فعلاً بهذي اللحظة.
+function landingCtaClick(){
+  const loggedIn = typeof currentUser !== 'undefined' && currentUser
+    && typeof currentUsername !== 'undefined' && currentUsername;
+  show(loggedIn ? 'home' : 'auth');
+}
+
 (function(){
   "use strict";
   var booted = false;
@@ -15158,8 +15167,8 @@ function authBoot() {
         currentUsername = null;
         authUpdateChip();
         // زائر غير مسجّل دخول: يشوف صفحة الهبوط التعريفية أولاً (بدل نموذج
-        // تسجيل الدخول مباشرة) — زر "ابدأ اللعب مجاناً" بداخلها هو اللي
-        // يوديه لـshow('auth') الفعلية.
+        // تسجيل الدخول مباشرة) — زر "ابدأ اللعب مجاناً" بداخلها (landingCtaClick)
+        // يتعرف إنه مو مسجّل ويوديه لـshow('auth') الفعلية.
         show('landing');
         presenceStop();
         return;
@@ -15169,7 +15178,11 @@ function authBoot() {
         if (userDoc && userDoc.username) {
           currentUsername = userDoc.username;
           authUpdateChip();
-          show('home');
+          // حساب مسجّل دخوله يشوف نفس صفحة الهبوط التعريفية أول ما يفتح
+          // الموقع (بدل الذهاب مباشرة لصفحة الألعاب) — زر "ابدأ اللعب
+          // مجاناً" بداخلها يتعرف تلقائياً إنه مسجّل دخول (landingCtaClick)
+          // ويوديه لصفحته الرئيسية الفعلية (home) بدل نموذج تسجيل الدخول.
+          show('landing');
           await authRunPostAuthBootChain(userDoc.lastSeenUpdateAt || null);
           ghMilestoneCheckAndShow();
         } else {
