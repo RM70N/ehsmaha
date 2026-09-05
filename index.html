@@ -4703,11 +4703,13 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <div class="home-mode-title">ألعاب ستريمر</div>
           <div class="home-mode-sub">فرق بالكلمة المفتاحية</div>
         </div>
-        <div class="home-mode-card" onclick="show('faq')">
-          <div class="home-mode-icon" style="background:rgba(139,92,246,.14);color:var(--accent2);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg></div>
-          <div class="home-mode-title">أسئلة شائعة</div>
-          <div class="home-mode-sub">كل ما تريد معرفته</div>
+        <!-- BEGIN wordle:card (بديل بطاقة "أسئلة شائعة" — صفحة #pg-faq نفسها باقية بالكود بدون حذف لأغراض السيو، فقط الرابط من الرئيسية انحذف) -->
+        <div class="home-mode-card" onclick="show('wordle-mode-select')">
+          <div class="home-mode-icon" style="background:rgba(139,92,246,.14);color:var(--brand-violet);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="6" rx="1.4"/><rect x="9.7" y="3" width="6" height="6" rx="1.4"/><rect x="16.4" y="3" width="6" height="6" rx="1.4"/><rect x="3" y="9.7" width="6" height="6" rx="1.4" fill="currentColor" fill-opacity=".3"/><rect x="9.7" y="9.7" width="6" height="6" rx="1.4"/><rect x="3" y="16.4" width="6" height="6" rx="1.4"/></svg></div>
+          <div class="home-mode-title">وردل</div>
+          <div class="home-mode-sub">خمّن الكلمة العربية</div>
         </div>
+        <!-- END wordle:card -->
         <div class="home-mode-card home-mode-card-download" onclick="show('download-app')">
           <div class="home-mode-icon" style="background:rgba(245,158,11,.14);color:var(--brand-amber);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="24" height="24"><path d="M12 3v12"></path><path d="M7 10l5 5 5-5"></path><path d="M5 21h14"></path></svg></div>
           <div class="home-mode-title">تحميل التطبيق</div>
@@ -4976,11 +4978,11 @@ if (location.hostname === 'streamgame1.netlify.app') {
 </div>
 
 <!-- ====== QUICK CONNECT (ابدأ بثاً سريعاً) ====== -->
-<div class="mod-modal-overlay" id="qc-overlay" onclick="if(event.target===this) homeCloseQuickConnect()">
+<div class="mod-modal-overlay" id="qc-overlay" onclick="if(event.target===this) homeQcCancel()">
   <div class="qc-modal">
     <div class="owner-modal-head">
       <div class="owner-modal-title" style="background:linear-gradient(100deg,var(--accent-light),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">🚀 ابدأ بثاً سريعاً</div>
-      <button class="owner-modal-close" onclick="homeCloseQuickConnect()">✕</button>
+      <button class="owner-modal-close" onclick="homeQcCancel()">✕</button>
     </div>
     <div style="padding:20px 22px 0;">
       <div class="platform-toggle" id="qc-platform-toggle">
@@ -15288,6 +15290,7 @@ function show(page) {
   streamerKeywordAutofillInit();
   if (page === 'online-friends') frnFriendsPageBoot();
   if (page === 'download-app') desktopDownloadPageInit();
+  if (page === 'wordle-mode-select' && typeof wdlModeSelectRefresh === 'function') wdlModeSelectRefresh();
   if (page === 'ahsemha-home') {
     const card = document.querySelector('.ahsemha-start-card');
     if (card) card.style.background = ahsemhaGetSetting('startCardColor') || '';
@@ -15456,6 +15459,15 @@ function homeCloseQuickConnect() {
   document.getElementById('qc-overlay').classList.remove('visible');
 }
 
+// يُستدعى فقط من إلغاء المستخدم اليدوي (زر ✕ أو الضغط خارج النافذة) — يمسح
+// أي "استئناف" معلّق (مثل العودة لإعداد وردل) حتى ما يُطلَق لاحقاً بالغلط
+// بمناسبة اتصال ثاني غير مرتبط. الإغلاق الداخلي أثناء نجاح الاتصال الفعلي
+// (homeStartQuickConnect) ما يمرّ من هنا، فيبقى الاستئناف شغّالاً وقتها.
+function homeQcCancel() {
+  homeQcResumeFn = null;
+  homeCloseQuickConnect();
+}
+
 function homeQcSetStatus(msg) {
   const el = document.getElementById('qc-status');
   el.textContent = msg;
@@ -15518,6 +15530,11 @@ function homeStartQuickConnect() {
     if (status === 'connected') {
       homeUpdateConnectionBadge(true, platformLabels[p] || p);
       if (p === 'tiktok') { tiktokSavedUsersUpsert(mainValue); tiktokBridgeStreamerSetEnabled(mainValue, true); homeQuickReconnectButtonRefresh(); }
+      if (typeof homeQcResumeFn === 'function') {
+        const resumeFn = homeQcResumeFn;
+        homeQcResumeFn = null;
+        try { resumeFn(); } catch (e) {}
+      }
     } else if (status === 'disabled') {
       homeUpdateConnectionBadge(false, '');
       toast('⛔ هذا الحساب معطّل من إدارة المنصة');
@@ -15536,6 +15553,15 @@ function homeStartQuickConnect() {
 // الموجود أصلاً بكل لعبة، بدون أي تعديل على منطقه الداخلي).
 const HOME_CONNECTED_PLATFORM_KEY = 'homeConnectedPlatform';
 let homeGameListeners = {};
+
+// دالة اختيارية تُنفَّذ تلقائياً بعد أول اتصال ناجح عبر نافذة الربط السريع —
+// تسمح لأي لعبة (مثل وردل) بإرسال المستخدم لربط بثه من نفس نافذة الربط
+// السريع الموجودة أصلاً، ثم إرجاعه تلقائياً لنقطة إعداده بمجرد نجاح الاتصال،
+// بدل ما تفتح كل لعبة نافذة ربط منفصلة خاصة بها.
+let homeQcResumeFn = null;
+function homeSetQuickConnectResume(fn) {
+  homeQcResumeFn = (typeof fn === 'function') ? fn : null;
+}
 
 function homeRegisterGameListener(tag, handlerFn) {
   homeGameListeners[tag] = handlerFn;
@@ -54102,5 +54128,543 @@ document.addEventListener('DOMContentLoaded', function () {
 
 </script>
 <!-- END volcanic-lands:ui -->
+
+<!-- ============================================================ -->
+<!-- BEGIN wordle:style — لعبة "وردل" العربية (قسم مستقل بالكامل)   -->
+<!-- ============================================================ -->
+<style>
+#pg-wordle-mode-select{align-items:center;justify-content:flex-start;padding:40px 20px;}
+.wdl-mode-wrap{flex:1;width:100%;max-width:380px;margin:0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;}
+.wdl-mode-btn{width:100%;border:none;border-radius:24px;cursor:pointer;padding:28px 20px;font-family:var(--font-brand);color:var(--text-on-accent);background:linear-gradient(135deg,var(--accent-light),var(--accent) 55%,var(--gold));box-shadow:var(--shadow-btn);display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform .15s cubic-bezier(.2,.8,.2,1),box-shadow .15s;}
+.wdl-mode-btn:hover{transform:translateY(-3px);}
+.wdl-mode-btn:active{transform:translateY(2px);box-shadow:var(--shadow-btn-pressed);}
+.wdl-mode-btn-title{font-size:26px;font-weight:900;}
+.wdl-mode-btn-sub{font-size:13px;font-weight:700;font-family:var(--font);opacity:.8;}
+.wdl-mode-btn-sub.online{opacity:1;font-weight:900;}
+
+#pg-wordle-setup{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.30) 0%,transparent 60%),var(--bg);}
+.wdl-field-label{font-size:13px;font-weight:800;color:var(--muted);margin:18px 0 8px;}
+.wdl-chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.wdl-chip{background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:10px 18px;border-radius:var(--radius-pill);cursor:pointer;font-family:var(--font);font-size:14px;font-weight:800;transition:all .15s;}
+.wdl-chip:hover{border-color:var(--accent2);}
+.wdl-chip.active{background:linear-gradient(100deg,var(--accent-light),var(--accent));border-color:var(--accent);color:var(--text-on-accent);}
+
+#pg-wordle-game{align-items:center;padding:18px 14px 22px;gap:12px;}
+.wdl-game-top{width:100%;max-width:520px;display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:800;color:var(--muted);}
+.wdl-timer{font-family:var(--font-brand);font-size:20px;font-weight:900;color:var(--accent2);}
+.wdl-timer.danger{color:var(--red);}
+
+.wdl-board{display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px;overflow-y:auto;flex:1;padding:4px 2px;}
+.wdl-row{display:flex;align-items:center;gap:10px;}
+.wdl-row.wdl-row-solo{justify-content:center;}
+.wdl-row-filled{animation:wdlRowIn .25s ease;}
+@keyframes wdlRowIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.wdl-row-user{display:flex;align-items:center;gap:6px;width:96px;flex-shrink:0;overflow:hidden;}
+.wdl-row-av{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.wdl-row-av-fb{width:26px;height:26px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0;}
+.wdl-row-name{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wdl-row-letters{display:flex;gap:6px;flex:1;justify-content:center;flex-wrap:nowrap;}
+.wdl-box{width:44px;height:44px;border-radius:8px;border:2px solid var(--border-strong);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:900;color:var(--text);background:var(--surface);flex-shrink:0;}
+.wdl-box.wdl-box-filled{border-color:var(--accent2);}
+.wdl-box.green{background:var(--green);border-color:var(--green);color:#08331f;}
+.wdl-box.orange{background:var(--orange);border-color:var(--orange);color:#3a2100;}
+.wdl-box.gray{background:var(--gray-letter);border-color:var(--gray-letter);color:#fff;}
+@keyframes wdlFlip{0%{transform:rotateX(0deg);}50%{transform:rotateX(90deg);}100%{transform:rotateX(0deg);}}
+.wdl-box-anim{animation:wdlFlip .45s ease both;}
+
+.wdl-keyboard{width:100%;max-width:560px;display:flex;flex-direction:column;gap:8px;margin-top:auto;}
+.wdl-key-row{display:flex;gap:6px;justify-content:center;}
+.wdl-key{flex:1;max-width:38px;height:46px;border-radius:8px;border:none;background:var(--surface2);color:var(--text);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .12s;}
+.wdl-key:hover{background:var(--surface);}
+.wdl-key.wide{max-width:64px;font-size:12px;}
+.wdl-key.green{background:var(--green);color:#08331f;}
+.wdl-key.orange{background:var(--orange);color:#3a2100;}
+.wdl-key.gray{background:var(--gray-letter);color:#fff;}
+
+.wdl-game-bottom{width:100%;max-width:520px;display:flex;justify-content:center;}
+
+#pg-wordle-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse 120% 80% at 50% -10%, rgba(124,58,237,.32) 0%, var(--bg-3) 45%, var(--bg) 100%);}
+.wdl-winner-word{background:rgba(245,158,11,.1);border:1px solid var(--gold);border-radius:12px;padding:12px 28px;font-size:20px;font-weight:900;color:var(--gold);letter-spacing:6px;}
+
+@media (max-width:480px){
+  .wdl-box{width:32px;height:32px;font-size:14px;border-radius:6px;}
+  .wdl-row-letters{gap:4px;}
+  .wdl-key{height:40px;max-width:28px;font-size:12px;}
+  .wdl-key.wide{max-width:46px;}
+  .wordle-game-page .wdl-row:not(.wdl-row-solo){flex-direction:column;align-items:stretch;gap:4px;}
+  .wdl-row-user{width:auto;justify-content:center;}
+}
+</style>
+<!-- END wordle:style -->
+
+<!-- ============================================================ -->
+<!-- BEGIN wordle:pages — لعبة "وردل" العربية (قسم مستقل بالكامل)   -->
+<!-- ============================================================ -->
+
+<div id="pg-wordle-mode-select" class="page">
+  <button class="back-btn" onclick="show('home')">← رجوع</button>
+  <div class="wdl-mode-wrap">
+    <button type="button" class="wdl-mode-btn" onclick="wdlChooseMode('streamer')">
+      <span class="wdl-mode-btn-title">ستريمر</span>
+      <span class="wdl-mode-btn-sub offline" id="wdl-mode-conn-status">غير متصل</span>
+    </button>
+    <button type="button" class="wdl-mode-btn" onclick="wdlChooseMode('solo')">
+      <span class="wdl-mode-btn-title">فردي</span>
+    </button>
+  </div>
+</div>
+
+<div id="pg-wordle-setup" class="page wordle-setup-page">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('wordle-mode-select')">← رجوع</button>
+    <div class="setup-title">إعداد لعبة وردل</div>
+    <div class="setup-sub" id="wdl-setup-sub">اضبط إعدادات الجولة وابدأ اللعب</div>
+
+    <div class="wdl-field-label">مدة الراوند</div>
+    <div class="wdl-chip-row" id="wdl-duration-row">
+      <button type="button" class="wdl-chip" data-value="30" onclick="wdlPickChip(this,'duration')">30 ثانية</button>
+      <button type="button" class="wdl-chip" data-value="60" onclick="wdlPickChip(this,'duration')">دقيقة</button>
+      <button type="button" class="wdl-chip active" data-value="120" onclick="wdlPickChip(this,'duration')">دقيقتان</button>
+      <button type="button" class="wdl-chip" data-value="180" onclick="wdlPickChip(this,'duration')">3 دقائق</button>
+    </div>
+
+    <div class="wdl-field-label">عدد حروف الكلمة</div>
+    <div class="wdl-chip-row" id="wdl-length-row">
+      <button type="button" class="wdl-chip" data-value="4" onclick="wdlPickChip(this,'length')">4</button>
+      <button type="button" class="wdl-chip active" data-value="5" onclick="wdlPickChip(this,'length')">5</button>
+      <button type="button" class="wdl-chip" data-value="6" onclick="wdlPickChip(this,'length')">6</button>
+      <button type="button" class="wdl-chip" data-value="7" onclick="wdlPickChip(this,'length')">7</button>
+    </div>
+
+    <div class="wdl-field-label">عدد المحاولات</div>
+    <div class="wdl-chip-row" id="wdl-attempts-row">
+      <button type="button" class="wdl-chip" data-value="3" onclick="wdlPickChip(this,'attempts')">3</button>
+      <button type="button" class="wdl-chip active" data-value="6" onclick="wdlPickChip(this,'attempts')">6</button>
+      <button type="button" class="wdl-chip" data-value="7" onclick="wdlPickChip(this,'attempts')">7</button>
+      <button type="button" class="wdl-chip" data-value="10" onclick="wdlPickChip(this,'attempts')">10</button>
+    </div>
+
+    <button class="btn-primary" onclick="wdlStartRound()">بدأ</button>
+    <div class="status-msg" id="wdl-setup-status"></div>
+  </div>
+</div>
+
+<div id="pg-wordle-game" class="page wordle-game-page">
+  <div class="wdl-game-top">
+    <div class="wdl-timer" id="wdl-timer">00:00</div>
+    <div id="wdl-attempts-info">المحاولات: 0/0</div>
+  </div>
+  <div class="wdl-board" id="wdl-board"></div>
+  <div class="wdl-keyboard" id="wdl-keyboard" style="display:none;"></div>
+  <div class="wdl-game-bottom">
+    <button class="btn-reset" onclick="wdlGoHome()">رئيسية</button>
+  </div>
+</div>
+
+<div id="pg-wordle-winner" class="page">
+  <div class="winner-box">
+    <div id="wdl-winner-avatar-wrap"></div>
+    <div class="w-congrats" id="wdl-winner-title">—</div>
+    <div class="w-name" id="wdl-winner-name" style="display:none;">—</div>
+    <div class="w-label" id="wdl-winner-label"></div>
+    <div class="wdl-winner-word" id="wdl-winner-word"></div>
+    <button class="btn-again" onclick="wdlPlayAgain()">جولة جديدة</button>
+    <button class="back-btn" onclick="wdlGoHome()">← رجوع للرئيسية</button>
+  </div>
+</div>
+
+<!-- END wordle:pages -->
+
+<!-- ============================================================ -->
+<!-- BEGIN wordle:logic — لعبة "وردل" العربية (قسم مستقل بالكامل)   -->
+<!-- تعتمد على دوال/متغيرات عامة موجودة أصلاً بالملف ولا تُعدَّل هنا: -->
+<!-- checkGuess, normalize, extractUser, esc, avatarImgWithFallback,  -->
+<!-- gwNormalizeWordForDedup, gwLoadPersistedSet, gwSavePersistedSet, -->
+<!-- homeHasActiveConnection, homeRegisterGameListener,               -->
+<!-- homeUnregisterGameListener, homeOpenQuickConnect,                -->
+<!-- homeSetQuickConnectResume, STREAMER_USER_STORAGE_KEY,            -->
+<!-- HOME_CONNECTED_PLATFORM_KEY, gamePlatform, ownerRegisterActiveStreamer, -->
+<!-- contestNoteActivity, contestNoteRoundStarted, recordWin, toast, show, goHome -->
+<!-- ============================================================ -->
+<script>
+// بنك كلمات وردل — مصنّف حسب عدد الحروف (4/5/6/7)، فصحى بالكامل.
+const WORDLE_WORD_BANK = {
+  4: ["كتاب","دفتر","شباك","كرسي","طريق","شارع","مطعم","فندق","مسجد","غابة","وادي","نجمة","سماء","هواء","تراب","صخرة","غيمة","شتاء","ربيع","خريف","ليلة","صباح","مساء","ساعة","حياة","زواج","فتاة","خالة","صديق","معلم","طبيب","قاضي","شرطي","جندي","عامل","فلاح","صياد","تاجر","بائع","طباخ","خباز","نجار","حداد","خياط","سائق","طيار","ملاح","كاتب","شاعر","رسام","ممثل","مغني","لاعب","حارس","مدرب","رئيس","وزير","أمير","حاكم","قائد","زعيم","سفير","دولة","قرية","حدود","سلام","حديد","نحاس","زجاج","قماش","حرير","معدن","طاقة","وقود","طعام","شراب","دجاج","حليب","زبدة","فلفل","خضار","تفاح","بطيخ","مشمش","خيار","رقبة","ذراع","إصبع","ركبة","دواء","علاج","حادث","راحة","يقظة","سؤال","جواب","حديث","كلام","بكاء","صراخ","خطاب","مجلة","فيلم","رقصة","لوحة","متحف","مسرح","هاتف","شاشة","شبكة","لعبة","سباق","تزلج","دوري","فريق","ملعب","نقطة","درجة","سرعة","خبرة","نجاح","طموح","ماضي","حاضر","ذكرى","تخرج","فكرة","قرار","فرصة","راتب","ثروة","متجر","شركة","مصنع","ورشة","مكتب","موظف","مدير","زميل","ندوة","دورة","رحلة","مطار","محطة","قطار","جواز","وجهة"],
+  5: ["طاولة","سيارة","مدرسة","جامعة","مكتبة","كنيسة","حديقة","صحراء","عاصفة","دقيقة","ثانية","أسبوع","تاريخ","ولادة","امرأة","صديقة","معلمة","طبيبة","مهندس","محامي","مواطن","مدينة","منطقة","عاصمة","خريطة","معركة","هزيمة","اتفاق","قانون","دستور","حكومة","سياسة","تجارة","صناعة","زراعة","بترول","توابل","فاكهة","ليمون","طماطم","بطاطس","ملفوف","سبانخ","جراحة","عملية","إصابة","صداقة","عداوة","شجاعة","تواضع","إهانة","رسالة","مقالة","رواية","قصيدة","صحيفة","إعلان","مسلسل","أغنية","تمثال","سينما","حاسوب","برمجة","تطبيق","سباحة","رماية","بطولة","جمهور","تشجيع","خسارة","تعادل","نتيجة","تدريب","تمرين","لياقة","مهارة","موهبة","تجربة","شهادة","دراسة","تعليم","معرفة","مشكلة","مشروع","وظيفة","مزرعة","إدارة","مؤتمر","سياحة","ميناء","حافلة","دراجة","سفينة","حقيبة","تذكرة","بوصلة"],
+  6: ["مستشفى","صيدلية","معاهدة","برلمان","انتخاب","اقتصاد","كهرباء","برتقال","فراولة","كبرياء","احترام","اعتذار","برنامج","موسيقى","كاميرا","إنترنت","مصارعة","ملاكمة","مباراة","مستقبل","امتحان","اختيار","اجتماع","محاضرة","تأشيرة"],
+  7: ["بلاستيك","فاصوليا","باذنجان","استوديو","استراحة"]
+};
+
+const WDL_USED_WORDS_STORAGE_KEY = 'wdl_used_words_v1';
+const WDL_COLOR_RANK = { gray: 1, orange: 2, green: 3 };
+const WDL_KB_ROWS = [
+  ['ذ','ض','ص','ث','ق','ف','غ','ع','ه','خ','ح','ج'],
+  ['ش','س','ي','ب','ل','ا','ت','ن','م','ك','ط'],
+  ['ENTER','ئ','ء','ؤ','ر','ى','ة','و','ز','ظ','BACK']
+];
+
+let wdlMode = 'solo';
+let wdlSettings = { duration: 120, length: 5, attempts: 6 };
+let wdlSecretWord = '';
+let wdlRows = [];
+let wdlStatus = 'idle'; // idle | active | finished
+let wdlTimeLeft = 0;
+let wdlTimerInterval = null;
+let wdlCurrentInput = '';
+let wdlKeyState = {};
+let wdlLastRevealedIndex = -1;
+let wdlStreamerUser = '';
+
+// ==================== اختيار الكلمة (بدون تكرار سريع) ====================
+function wdlPickSecretWord(len) {
+  const bank = WORDLE_WORD_BANK[len] || [];
+  if (!bank.length) return '';
+  const used = gwLoadPersistedSet(WDL_USED_WORDS_STORAGE_KEY);
+  const candidates = bank.filter(w => !used.has(gwNormalizeWordForDedup(w)));
+  const pool = candidates.length ? candidates : bank;
+  const word = pool[Math.floor(Math.random() * pool.length)];
+  used.add(gwNormalizeWordForDedup(word));
+  gwSavePersistedSet(WDL_USED_WORDS_STORAGE_KEY, used);
+  return word;
+}
+
+// ==================== شاشة اختيار الوضع ====================
+function wdlChooseMode(mode) {
+  wdlMode = mode;
+  if (mode === 'solo') { wdlOpenSetup(); return; }
+  if (typeof homeHasActiveConnection === 'function' && homeHasActiveConnection()) {
+    wdlOpenSetup();
+  } else {
+    if (typeof homeSetQuickConnectResume === 'function') homeSetQuickConnectResume(wdlOpenSetup);
+    if (typeof homeOpenQuickConnect === 'function') homeOpenQuickConnect();
+  }
+}
+
+function wdlModeSelectRefresh() {
+  const el = document.getElementById('wdl-mode-conn-status');
+  if (!el) return;
+  const connected = typeof homeHasActiveConnection === 'function' && homeHasActiveConnection();
+  const labels = { tiktok: 'تيك توك', twitch: 'تويتش', kick: 'كيك', youtube: 'يوتيوب' };
+  let platform = '';
+  try { platform = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || ''; } catch (e) {}
+  el.textContent = connected ? ('متصل · ' + (labels[platform] || platform || '')) : 'غير متصل';
+  el.classList.toggle('online', connected);
+  el.classList.toggle('offline', !connected);
+}
+
+// ==================== شاشة الإعدادات ====================
+function wdlOpenSetup() {
+  wdlSetSetupStatus('', '');
+  const sub = document.getElementById('wdl-setup-sub');
+  if (sub) sub.textContent = wdlMode === 'streamer' ? 'اضبط إعدادات الجولة قبل بدء البث' : 'اضبط إعدادات الجولة وابدأ اللعب بنفسك';
+  show('wordle-setup');
+}
+
+function wdlSetSetupStatus(kind, msg) {
+  const el = document.getElementById('wdl-setup-status');
+  if (!el) return;
+  el.className = 'status-msg ' + (kind || '');
+  el.textContent = msg || '';
+}
+
+function wdlPickChip(btn, group) {
+  const row = btn.parentElement;
+  Array.prototype.forEach.call(row.children, c => c.classList.remove('active'));
+  btn.classList.add('active');
+  wdlSettings[group] = parseInt(btn.getAttribute('data-value'), 10);
+}
+
+// ==================== بدء الجولة ====================
+function wdlStartRound() {
+  if (wdlMode === 'streamer' && !(typeof homeHasActiveConnection === 'function' && homeHasActiveConnection())) {
+    wdlSetSetupStatus('err', 'اربط بثك أولاً من الصفحة الرئيسية');
+    return;
+  }
+  wdlSetSetupStatus('', '');
+
+  wdlSecretWord = wdlPickSecretWord(wdlSettings.length);
+  wdlRows = [];
+  wdlKeyState = {};
+  wdlCurrentInput = '';
+  wdlLastRevealedIndex = -1;
+  wdlStatus = 'active';
+
+  show('wordle-game');
+  const kb = document.getElementById('wdl-keyboard');
+
+  if (wdlMode === 'solo') {
+    if (kb) kb.style.display = 'flex';
+    wdlRenderKeyboard();
+    document.removeEventListener('keydown', wdlOnPhysicalKey);
+    document.addEventListener('keydown', wdlOnPhysicalKey);
+  } else {
+    if (kb) kb.style.display = 'none';
+    try { wdlStreamerUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || ''; } catch (e) { wdlStreamerUser = ''; }
+    let platform = '';
+    try { platform = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || ''; } catch (e) {}
+    if (typeof gamePlatform === 'object') gamePlatform['wordle'] = platform || gamePlatform['wordle'] || '';
+    if (typeof ownerRegisterActiveStreamer === 'function') ownerRegisterActiveStreamer('wordle', wdlStreamerUser, gamePlatform['wordle'], 'وردل');
+    if (typeof contestNoteActivity === 'function') contestNoteActivity();
+    if (typeof contestNoteRoundStarted === 'function') contestNoteRoundStarted('wordle');
+    homeRegisterGameListener('wordle', wdlHandleEvent);
+  }
+
+  wdlRenderBoard();
+  wdlBeginTimer();
+}
+
+// ==================== المؤقّت ====================
+function wdlFormatTime(sec) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+function wdlUpdateTimerUI() {
+  const el = document.getElementById('wdl-timer');
+  if (el) {
+    el.textContent = wdlFormatTime(Math.max(wdlTimeLeft, 0));
+    el.classList.toggle('danger', wdlTimeLeft <= 10);
+  }
+  const info = document.getElementById('wdl-attempts-info');
+  if (info) info.textContent = 'المحاولات: ' + wdlRows.length + '/' + wdlSettings.attempts;
+}
+
+function wdlBeginTimer() {
+  wdlTimeLeft = wdlSettings.duration;
+  wdlUpdateTimerUI();
+  if (wdlTimerInterval) clearInterval(wdlTimerInterval);
+  wdlTimerInterval = setInterval(() => {
+    wdlTimeLeft--;
+    wdlUpdateTimerUI();
+    if (wdlTimeLeft <= 0) {
+      clearInterval(wdlTimerInterval);
+      wdlTimerInterval = null;
+      if (wdlStatus === 'active') wdlEndRound('timeout', null);
+    }
+  }, 1000);
+}
+
+// ==================== اللوحة ====================
+function wdlRenderBoard() {
+  const board = document.getElementById('wdl-board');
+  if (!board) return;
+  let html = '';
+  for (let i = 0; i < wdlSettings.attempts; i++) {
+    if (wdlRows[i]) {
+      html += wdlBuildFilledRowHtml(wdlRows[i], i === wdlLastRevealedIndex);
+    } else if (wdlMode === 'solo' && wdlStatus === 'active' && i === wdlRows.length) {
+      html += wdlBuildCurrentInputRowHtml();
+    } else {
+      html += wdlBuildEmptyRowHtml();
+    }
+  }
+  board.innerHTML = html;
+  board.scrollTop = board.scrollHeight;
+}
+
+function wdlBuildEmptyRowHtml() {
+  let boxes = '';
+  for (let j = 0; j < wdlSettings.length; j++) boxes += '<div class="wdl-box"></div>';
+  const userSlot = wdlMode === 'streamer' ? '<div class="wdl-row-user"></div>' : '';
+  return '<div class="wdl-row wdl-row-empty' + (wdlMode === 'solo' ? ' wdl-row-solo' : '') + '">' + userSlot +
+    '<div class="wdl-row-letters">' + boxes + '</div></div>';
+}
+
+function wdlBuildCurrentInputRowHtml() {
+  const chars = Array.from(wdlCurrentInput);
+  let boxes = '';
+  for (let j = 0; j < wdlSettings.length; j++) {
+    const ch = chars[j] || '';
+    boxes += '<div class="wdl-box' + (ch ? ' wdl-box-filled' : '') + '">' + esc(ch) + '</div>';
+  }
+  return '<div class="wdl-row wdl-row-solo wdl-row-current"><div class="wdl-row-letters">' + boxes + '</div></div>';
+}
+
+function wdlBuildFilledRowHtml(row, animate) {
+  const chars = Array.from(row.text);
+  const boxes = chars.map((ch, i) => {
+    const delay = animate ? (' style="animation-delay:' + (i * 90) + 'ms"') : '';
+    const animCls = animate ? ' wdl-box-anim' : '';
+    return '<div class="wdl-box ' + row.colors[i] + animCls + '"' + delay + '>' + esc(ch) + '</div>';
+  }).join('');
+
+  let userHtml = '';
+  if (wdlMode === 'streamer') {
+    if (row.user) {
+      const nameRaw = row.user.nickname || row.user.uniqueId || '؟';
+      const initial = esc(nameRaw.charAt(0));
+      const avatarHtml = row.user.avatar
+        ? avatarImgWithFallback(row.user.avatar, 'wdl-row-av', initial, row.user.uniqueId)
+        : '<div class="wdl-row-av-fb">' + initial + '</div>';
+      userHtml = '<div class="wdl-row-user" title="' + esc(nameRaw) + '">' + avatarHtml +
+        '<span class="wdl-row-name">' + esc(nameRaw) + '</span></div>';
+    } else {
+      userHtml = '<div class="wdl-row-user"></div>';
+    }
+  }
+  return '<div class="wdl-row wdl-row-filled' + (wdlMode === 'solo' ? ' wdl-row-solo' : '') + '">' + userHtml +
+    '<div class="wdl-row-letters">' + boxes + '</div></div>';
+}
+
+// ==================== إرسال محاولة (مشتركة بين الوضعين) ====================
+function wdlSubmitGuess(text, user) {
+  if (wdlStatus !== 'active') return;
+  if (wdlRows.length >= wdlSettings.attempts) return;
+  const colors = checkGuess(text, wdlSecretWord);
+  if (!colors) return;
+
+  const row = { text, colors, user: user || null };
+  wdlRows.push(row);
+  wdlLastRevealedIndex = wdlRows.length - 1;
+  wdlUpdateKeyState(text, colors);
+  wdlRenderBoard();
+  if (wdlMode === 'solo') wdlRenderKeyboard();
+  wdlUpdateTimerUI();
+
+  const won = colors.every(c => c === 'green');
+  if (won) { wdlEndRound('win', user || null); return; }
+  if (wdlRows.length >= wdlSettings.attempts) wdlEndRound('lose', null);
+}
+
+// ==================== وضع "فردي": لوحة مفاتيح + كيبورد خارجي ====================
+function wdlUpdateKeyState(text, colors) {
+  Array.from(text).forEach((ch, i) => {
+    const c = colors[i];
+    if (!wdlKeyState[ch] || WDL_COLOR_RANK[c] > WDL_COLOR_RANK[wdlKeyState[ch]]) {
+      wdlKeyState[ch] = c;
+    }
+  });
+}
+
+function wdlRenderKeyboard() {
+  const kb = document.getElementById('wdl-keyboard');
+  if (!kb || wdlMode !== 'solo') return;
+  kb.innerHTML = WDL_KB_ROWS.map(row => {
+    return '<div class="wdl-key-row">' + row.map(k => {
+      const label = k === 'ENTER' ? 'إدخال' : (k === 'BACK' ? 'حذف' : k);
+      const wide = (k === 'ENTER' || k === 'BACK') ? ' wide' : '';
+      const stateClass = (k !== 'ENTER' && k !== 'BACK' && wdlKeyState[k]) ? (' ' + wdlKeyState[k]) : '';
+      return '<button type="button" class="wdl-key' + wide + stateClass + '" onclick="wdlKeyPress(\'' + k + '\')">' + esc(label) + '</button>';
+    }).join('') + '</div>';
+  }).join('');
+}
+
+function wdlKeyPress(key) {
+  if (wdlMode !== 'solo' || wdlStatus !== 'active') return;
+  if (key === 'ENTER') { wdlSubmitCurrentGuess(); return; }
+  if (key === 'BACK') {
+    const arr = Array.from(wdlCurrentInput);
+    arr.pop();
+    wdlCurrentInput = arr.join('');
+    wdlRenderBoard();
+    return;
+  }
+  if (Array.from(wdlCurrentInput).length >= wdlSettings.length) return;
+  wdlCurrentInput += key;
+  wdlRenderBoard();
+}
+
+function wdlSubmitCurrentGuess() {
+  const text = wdlCurrentInput;
+  if (Array.from(text).length !== wdlSettings.length) {
+    toast('أكمل الكلمة أولاً — ' + wdlSettings.length + ' حروف');
+    return;
+  }
+  wdlCurrentInput = '';
+  wdlSubmitGuess(text, null);
+}
+
+function wdlOnPhysicalKey(e) {
+  if (wdlMode !== 'solo' || wdlStatus !== 'active') return;
+  const active = document.querySelector('.page.active');
+  if (!active || active.id !== 'pg-wordle-game') return;
+  if (e.key === 'Enter') { e.preventDefault(); wdlSubmitCurrentGuess(); return; }
+  if (e.key === 'Backspace') { e.preventDefault(); wdlKeyPress('BACK'); return; }
+  if (e.key && e.key.length === 1 && /[ء-ي]/.test(e.key)) {
+    wdlKeyPress(e.key);
+  }
+}
+
+// ==================== وضع "ستريمر": قراءة الشات ====================
+function wdlHandleEvent(data) {
+  if (wdlStatus !== 'active') return;
+  const messages = (data && data.messages) || (data && data.type ? [data] : []);
+  messages.forEach(msg => {
+    if (wdlStatus !== 'active') return;
+    const type = msg.type || msg.event;
+    if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') return;
+    const text = (msg.comment || msg.content || (msg.data && msg.data.comment) || '').trim();
+    if (!text || /\s/.test(text)) return;
+    if (Array.from(text).length !== wdlSettings.length) return;
+    const user = extractUser(msg);
+    wdlSubmitGuess(text, user);
+  });
+}
+
+// ==================== نهاية الجولة ====================
+function wdlEndRound(result, user) {
+  wdlStatus = 'finished';
+  if (wdlTimerInterval) { clearInterval(wdlTimerInterval); wdlTimerInterval = null; }
+  document.removeEventListener('keydown', wdlOnPhysicalKey);
+  if (typeof homeUnregisterGameListener === 'function') homeUnregisterGameListener('wordle');
+
+  const titleEl = document.getElementById('wdl-winner-title');
+  const nameEl = document.getElementById('wdl-winner-name');
+  const labelEl = document.getElementById('wdl-winner-label');
+  const wordEl = document.getElementById('wdl-winner-word');
+  const avatarWrap = document.getElementById('wdl-winner-avatar-wrap');
+
+  wordEl.textContent = wdlSecretWord;
+  avatarWrap.innerHTML = '';
+  nameEl.style.display = 'none';
+
+  if (result === 'win' && user) {
+    titleEl.textContent = 'فاز بالجولة';
+    nameEl.textContent = user.nickname || user.uniqueId;
+    nameEl.style.display = '';
+    labelEl.textContent = 'خمّن الكلمة الصحيحة';
+    const initial = esc((user.nickname || user.uniqueId || '؟').charAt(0));
+    avatarWrap.innerHTML = user.avatar
+      ? avatarImgWithFallback(user.avatar, 'w-avatar', initial, user.uniqueId)
+      : '<div class="w-avatar-fb">' + initial + '</div>';
+    if (typeof recordWin === 'function') recordWin(user, 'وردل', 1);
+  } else if (result === 'win') {
+    titleEl.textContent = 'أحسنت';
+    labelEl.textContent = 'خمّنت الكلمة الصحيحة';
+  } else {
+    titleEl.textContent = 'انتهت الجولة';
+    labelEl.textContent = result === 'timeout' ? 'انتهى الوقت قبل تخمين الكلمة' : 'انتهت كل المحاولات دون تخمين الكلمة';
+  }
+
+  show('wordle-winner');
+}
+
+function wdlPlayAgain() {
+  wdlOpenSetup();
+}
+
+// ==================== الخروج ====================
+function wdlTeardown() {
+  if (wdlTimerInterval) { clearInterval(wdlTimerInterval); wdlTimerInterval = null; }
+  if (typeof homeUnregisterGameListener === 'function') homeUnregisterGameListener('wordle');
+  document.removeEventListener('keydown', wdlOnPhysicalKey);
+  wdlStatus = 'idle';
+}
+
+function wdlGoHome() {
+  wdlTeardown();
+  goHome();
+}
+
+// تسجيل اللعبة في محاكي المطوّر الموجود أصلاً — إضافة لا تعديل.
+if (typeof TST_GAME_REGISTRY === 'object' && TST_GAME_REGISTRY) {
+  TST_GAME_REGISTRY['wordle'] = {
+    pageId: 'wordle-game', participantsVar: null, joinFn: null,
+    handleFn: 'wdlHandleEvent', name: 'وردل',
+  };
+}
+</script>
+<!-- END wordle:logic -->
+
 </body>
 </html>
