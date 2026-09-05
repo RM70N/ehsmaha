@@ -39084,13 +39084,27 @@ function adminStartsWithKeywordSpace(raw, kw) {
   return raw.length > kw.length && raw.slice(0, kw.length) === kw && /\s/.test(raw[kw.length]);
 }
 
+// تنظيف إضافي (أهم من إصلاح NBSP أعلاه): تطبيقات الجوال — وتيك توك تحديداً —
+// تحقن محارف تحكّم اتجاه غير مرئية إطلاقاً بالواجهة (RLM/LRM، محارف عزل
+// اتجاه Unicode Bidi Isolate، مسافات بعرض صفر...) حول أي "@منشن" لاتيني
+// وسط نص عربي RTL، عشان يضبط اتجاه العرض البصري فقط دون أي أثر ظاهر —
+// لكنها تصل ضمن نص التعليق الخام وتكسر أي مطابقة حرفية بالموضع (startsWith،
+// فحص حرف المسافة مباشرة بعد الكلمة المفتاحية...) لو ما أُزيلت أولاً. هذا
+// يفسّر بدقة أكبر من إصلاح NBSP وحده لماذا "كل" أمر فيه منشن يفشل بينما
+// الأوامر الذاتية بدون منشن تشتغل عادي — نطبّقها هنا على أي نص خام قبل أي
+// معالجة له بكل أوامر الأدمن (انعاش/دخول/تجميد وأخواتها/اضافة-إزالة).
+const ADMIN_INVISIBLE_CHARS_RE = /[\u200B-\u200F\u2028-\u202E\u2060-\u2069\uFEFF\u061C]/g;
+function adminSanitizeText(raw) {
+  return String(raw || '').replace(ADMIN_INVISIBLE_CHARS_RE, '').replace(/\u00A0/g, ' ');
+}
+
 // النقطة المركزية الوحيدة لأمر "انعاش"/"احياء" — حصراً لـADMIN_REVIVE_USERNAMES.
 // bindings: { eliminatedSet, isParticipant(uid), statusCheckFn(), reviveFn(user) }
 // ترجع true إذا "استهلكت" الرسالة (نُفّذ الأمر، أو رُفض بصمت بعد التحقق من
 // الشروط) — الطرف المستدعي يوقف باقي معالجة هذي الرسالة بأي الحالتين.
 function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isParticipant, statusCheckFn, reviveFn }) {
   if (!isAdminAuthorizedFor(senderUser.uniqueId, 'revive')) return false;
-  const raw = (text || '').trim();
+  const raw = adminSanitizeText(text).trim();
   if (!raw) return false;
   const normalized = normalize(raw);
 
@@ -39105,7 +39119,7 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
     const startsWithKeyword = ADMIN_REVIVE_KEYWORDS.some(kw => adminStartsWithKeywordSpace(raw, kw));
     if (!startsWithKeyword) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
-    if (!mention) return false;
+    if (!mention) { console.debug('🛠️ [انعاش] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return false; }
     targetUid = mention[1].trim().toLowerCase();
     // ما عندنا بيانات كاملة عن المستخدم المذكور (اسمه الحقيقي، أفاتاره...)
     // من نص الشات فقط — نبني كائن مبسّط، مع أي نيكنيم مخصص محفوظ له سابقاً.
@@ -39113,10 +39127,13 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
     targetUser = { uniqueId: targetUid, nickname: override || targetUid, avatar: '' };
   }
 
-  if (!statusCheckFn()) return true;             // اللعبة مو بحالة راوند نشط — تجاهل بصمت
-  if (isParticipant(targetUid)) return true;      // مشارك نشط أصلاً — تجاهل بصمت
-  if (!eliminatedSet.has(targetUid)) return true; // ما انقصى قط (يشمل منشن لشخص غير موجود بأي مجموعة إقصاء) — تجاهل بصمت
-  if (!adminCommandCooldownCheck(gameTag, 'revive', targetUid)) return true; // سبام سريع — تجاهل بصمت
+  // تشخيص: كل الشروط تحت هذي تُسجَّل بـconsole (تظهر فقط بمتصفح الحسابين
+  // المصرّح لهما، أبداً بالشات) عشان نعرف بالضبط أي شرط منع التنفيذ لو صار
+  // ذلك رغم إن الأمر وصل ومطابقة المنشن نجحت.
+  if (!statusCheckFn()) { console.debug('🛠️ [انعاش] اللعبة "' + gameTag + '" مو بحالة راوند نشط حالياً.'); return true; }
+  if (isParticipant(targetUid)) { console.debug('🛠️ [انعاش] "' + targetUid + '" مشارك نشط أصلاً بـ' + gameTag + ' — ما يحتاج إنعاش.'); return true; }
+  if (!eliminatedSet.has(targetUid)) { console.debug('🛠️ [انعاش] "' + targetUid + '" مو موجود بمجموعة إقصاء لعبة ' + gameTag + ' حالياً (ما انقصى قط بهذا الراوند، أو المعرّف اللي استخرجناه من المنشن ما يطابق uniqueId الحقيقي له).'); return true; }
+  if (!adminCommandCooldownCheck(gameTag, 'revive', targetUid)) { console.debug('🛠️ [انعاش] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
 
   eliminatedSet.delete(targetUid);
   triggerAdminReviveFreeze(gameTag, targetUser.nickname || targetUid);
@@ -39130,7 +39147,7 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
 // شيء إن النص يبدأ فعلاً بـ"دخول" متبوعة بمسافة أو نهاية السطر، حتى لا
 // يتصادم مع رسالة عادية تحتوي الكلمة ضمن جملة (مثل "وين الدخول؟").
 function parseAdminJoinCommand(rawText) {
-  const raw = (rawText || '').trim();
+  const raw = adminSanitizeText(rawText).trim();
   if (!raw) return null;
 
   let matchedKw = null;
@@ -39164,15 +39181,15 @@ function parseAdminJoinCommand(rawText) {
 function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, joinFn, chooseSlotFn, statusGetter }) {
   if (!isAdminAuthorizedFor(senderUser.uniqueId, 'join')) return false;
   const parsed = parseAdminJoinCommand(rawText);
-  if (!parsed) return false;
+  if (!parsed) { if (isAdminReviver(senderUser.uniqueId)) console.debug('🛠️ [دخول] الصيغة ما طابقت أمر دخول صالح:', JSON.stringify(rawText)); return false; }
 
   let targetUser;
   if (parsed.mode === 'mention') {
-    if (!adminCommandCooldownCheck(gameTag, 'join', parsed.handle)) return true;
+    if (!adminCommandCooldownCheck(gameTag, 'join', parsed.handle)) { console.debug('🛠️ [دخول] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
     const override = liveCommandNicknameOverrides[parsed.handle];
     targetUser = { uniqueId: parsed.handle, nickname: override || parsed.handle, avatar: '', isFollower: true };
   } else {
-    if (!adminCommandCooldownCheck(gameTag, 'join', senderUser.uniqueId)) return true;
+    if (!adminCommandCooldownCheck(gameTag, 'join', senderUser.uniqueId)) { console.debug('🛠️ [دخول] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
     targetUser = Object.assign({}, senderUser, { isFollower: true });
     if (parsed.mode === 'customName') {
       // نسجّله بنفس خريطة liveCommandNicknameOverrides الموجودة أصلاً، عشان
@@ -39182,7 +39199,7 @@ function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, jo
     }
   }
 
-  if (participantsMap.has(targetUser.uniqueId)) return true; // منضم أصلاً — تجاهل بصمت (لا تكرار انضمام)
+  if (participantsMap.has(targetUser.uniqueId)) { console.debug('🛠️ [دخول] "' + targetUser.uniqueId + '" منضم أصلاً بـ' + gameTag + ' — تجاهل (لا تكرار انضمام).'); return true; }
 
   if (chooseSlotFn) {
     const gotSlot = chooseSlotFn(targetUser);
@@ -39190,6 +39207,8 @@ function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, jo
       // انضم كمشارك لكن ما فيه خانة/سعة فاضية فعلياً — إشعار للستريمر فقط
       // (toast هنا يظهر فقط بلوحة تحكم الستريمر، أبداً لمشاهدي تيك توك).
       toast('🛠️ دخول إداري: لا يوجد مكان فاضٍ حالياً بـ' + gameTag);
+    } else if (!gotSlot) {
+      console.debug('🛠️ [دخول] chooseSlotFn رفض انضمام "' + targetUser.uniqueId + '" بـ' + gameTag + ' (مثلاً مطرود بهذا الراوند).');
     }
   } else {
     joinFn(targetUser);
@@ -39307,7 +39326,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
   // تجاهل فوراً بدون أي مطابقة نصوص — نفس أداء الفحص القديم لغالبية
   // الرسائل (متابعين عاديين).
   if (!isAdminReviver(senderUser.uniqueId) && !adminHasAnyGrant(senderUser.uniqueId)) return false;
-  const raw = (text || '').trim();
+  const raw = adminSanitizeText(text).trim();
   if (!raw) return false;
   const normalized = normalize(raw);
   const participantsMap = bindings && bindings.participantsMap;
@@ -39338,7 +39357,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
   // عشوائي — يختار مشاركاً حياً حالياً عشوائياً ويمنحه أحد تأثيرات: شعلة/درع/سبوتلايت.
   if (adminNormalizedEquals(normalized, ADMIN_FX_KEYWORDS.random)) {
     if (!isAdminAuthorizedFor(senderUser.uniqueId, 'random')) return false;
-    if (!participantsMap || !participantsMap.size) return true;
+    if (!participantsMap || !participantsMap.size) { console.debug('🛠️ [عشوائي] ما فيه مشاركين حالياً بـ' + gameTag + '.'); return true; }
     const keys = Array.from(participantsMap.keys());
     const targetUid = keys[Math.floor(Math.random() * keys.length)];
     const targetUser = adminResolveKnownUser(targetUid, participantsMap);
@@ -39356,10 +39375,10 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
     if (!matched) continue;
     if (!isAdminAuthorizedFor(senderUser.uniqueId, kind)) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
-    if (!mention) return true; // كتب الكلمة بدون منشن صالح — بصمت
+    if (!mention) { console.debug('🛠️ [' + kind + '] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return true; }
     const targetUid = mention[1].trim().toLowerCase();
-    if (!participantsMap || !participantsMap.has(targetUid)) return true; // مو مشارك حالي — بصمت
-    if (!adminCommandCooldownCheck(gameTag, kind, targetUid)) return true;
+    if (!participantsMap || !participantsMap.has(targetUid)) { console.debug('🛠️ [' + kind + '] "' + targetUid + '" مو مشارك نشط حالياً بـ' + gameTag + ' (participantsMap ما فيه هذا الـuniqueId).'); return true; }
+    if (!adminCommandCooldownCheck(gameTag, kind, targetUid)) { console.debug('🛠️ [' + kind + '] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
 
     const targetUser = adminResolveKnownUser(targetUid, participantsMap);
     const key = adminFxKey(gameTag, targetUid);
@@ -39481,8 +39500,12 @@ function adminRevokeCommandPermission(uniqueIdLower, commandKey) {
 // يحلل "اضافة @user اسم_الأمر" أو "إزالة/ازالة @user اسم_الأمر" — يرجّع
 // {mode, handle, commandKey} أو null. لازم منشن صريح واسم أمر معروف، وإلا
 // null (تجاهل بصمت — نفس مبدأ كل الأوامر الأخرى).
+// المنشن واسم الأمر ممكن يجيان بأي ترتيب ("اضافة @user انعاش" أو "اضافة
+// انعاش @user") — منتقي المنشن بتيك توك أحياناً يضيف المنشن آخر الجملة
+// بدل أولها مباشرة بعد الكلمة المفتاحية، فنبحث عن المنشن بأي موضع بالنص
+// المتبقي بدل افتراض أنه أول شيء بعد الكلمة المفتاحية مباشرة.
 function parseAdminGrantCommand(rawText) {
-  const raw = (rawText || '').trim();
+  const raw = adminSanitizeText(rawText).trim();
   if (!raw) return null;
 
   let mode = null, matchedKw = null;
@@ -39496,27 +39519,42 @@ function parseAdminGrantCommand(rawText) {
   }
   if (!mode) return null;
 
-  const rest = raw.slice(matchedKw.length + 1).replace(/^\s+/, '');
-  const mention = rest.match(/^@([a-zA-Z0-9_.]+)/);
-  if (!mention) return null; // لازم منشن صريح
+  const rest = raw.slice(matchedKw.length + 1).trim();
+  const mention = rest.match(ADMIN_MENTION_RE);
+  if (!mention) { console.debug('🛠️ [اضافة/إزالة] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return null; }
   const handle = mention[1].trim().toLowerCase();
-  const afterMention = rest.slice(mention[0].length).trim();
-  if (!afterMention) return null; // لازم اسم أمر بعد المنشن
-  const commandKey = adminResolveCommandKey(afterMention);
-  if (!commandKey) return null; // اسم أمر غير معروف
+  // باقي النص بعد حذف توكن المنشن (بأي موضع كان) هو اسم الأمر.
+  const commandNameText = (rest.slice(0, mention.index) + ' ' + rest.slice(mention.index + mention[0].length)).trim();
+  if (!commandNameText) { console.debug('🛠️ [اضافة/إزالة] ما لقيت اسم أمر بعد حذف المنشن بالنص:', JSON.stringify(raw)); return null; }
+  const commandKey = adminResolveCommandKey(commandNameText);
+  if (!commandKey) { console.debug('🛠️ [اضافة/إزالة] اسم الأمر "' + commandNameText + '" غير معروف — راجع أسماء الأوامر الصحيحة.'); return null; }
 
   return { mode, handle, commandKey };
 }
 
+// اسم عرض عربي مختصر لكل مفتاح أمر داخلي — يُستخدم فقط بنص توست التأكيد.
+function adminCommandDisplayName(commandKey) {
+  const group = ADMIN_COMMAND_NAME_GROUPS[commandKey];
+  return (group && group[0]) || commandKey;
+}
+
 // حصراً لـADMIN_REVIVE_USERNAMES الكاملين — حساب مفوَّض لأمر واحد لا يقدر
 // يستخدم "اضافة"/"إزالة" إطلاقاً، حتى لو كان مفوَّضاً لأمر اسمه نفسه بالصدفة.
+// يظهر توست تأكيد بلوحة تحكم الستريمر (نفس جهاز الأدمن لو كان هو المشغّل)
+// عند نجاح التنفيذ فعلياً — حسب طلب المالك، عشان يتأكد إن الأمر نُفّذ.
 function tryAdminGrantCommand(senderUser, text) {
   if (!isAdminReviver(senderUser.uniqueId)) return false;
   const parsed = parseAdminGrantCommand(text);
   if (!parsed) return false;
   const byClean = adminCleanUsername(senderUser.uniqueId);
-  if (parsed.mode === 'grant') adminGrantCommandPermission(parsed.handle, parsed.commandKey, byClean);
-  else adminRevokeCommandPermission(parsed.handle, parsed.commandKey);
+  const label = adminCommandDisplayName(parsed.commandKey);
+  if (parsed.mode === 'grant') {
+    adminGrantCommandPermission(parsed.handle, parsed.commandKey, byClean);
+    toast('✅ تم اضافة أمر "' + label + '" لـ @' + parsed.handle);
+  } else {
+    adminRevokeCommandPermission(parsed.handle, parsed.commandKey);
+    toast('🗑️ تم إزالة أمر "' + label + '" من @' + parsed.handle);
+  }
   return true;
 }
 
