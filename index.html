@@ -18463,6 +18463,7 @@ async function ownerRegisterActiveStreamer(gameTag, username, platform, gameName
   devSpecialFabBoot();
   alfawzanSpecialFabBoot();
   ghnamSpecialFabBoot();
+  adminCommandGrantsBoot();
   try {
     await fb.setDoc(fb.doc(fb.db, 'activeStreamers', gameTag), {
       username, platform: platform || null, gameTag, gameName: gameName || null,
@@ -39088,7 +39089,7 @@ function adminStartsWithKeywordSpace(raw, kw) {
 // ترجع true إذا "استهلكت" الرسالة (نُفّذ الأمر، أو رُفض بصمت بعد التحقق من
 // الشروط) — الطرف المستدعي يوقف باقي معالجة هذي الرسالة بأي الحالتين.
 function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isParticipant, statusCheckFn, reviveFn }) {
-  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  if (!isAdminAuthorizedFor(senderUser.uniqueId, 'revive')) return false;
   const raw = (text || '').trim();
   if (!raw) return false;
   const normalized = normalize(raw);
@@ -39161,7 +39162,7 @@ function parseAdminJoinCommand(rawText) {
 // statusGetter اختياري — الأمر مصمم يشتغل حتى أثناء راوند شغّال، فما نستخدمه
 // لمنع التنفيذ؛ متاح فقط لو لعبة معينة احتاجته مستقبلاً لقرار عرض/رسالة.
 function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, joinFn, chooseSlotFn, statusGetter }) {
-  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  if (!isAdminAuthorizedFor(senderUser.uniqueId, 'join')) return false;
   const parsed = parseAdminJoinCommand(rawText);
   if (!parsed) return false;
 
@@ -39302,24 +39303,33 @@ function showAdminAnnounceBanner(text) {
 // النقطة المركزية لأوامر تجميد/شعلة/درع/تاج/سبوتلايت/عشوائي/وقت+/إعلان.
 // bindings: { participantsMap?, addTimeFn?(seconds) }
 function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
-  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  // فحص رخيص مبكر: لو مو أدمن كامل ولا عنده أي تفويض أمر فردي إطلاقاً،
+  // تجاهل فوراً بدون أي مطابقة نصوص — نفس أداء الفحص القديم لغالبية
+  // الرسائل (متابعين عاديين).
+  if (!isAdminReviver(senderUser.uniqueId) && !adminHasAnyGrant(senderUser.uniqueId)) return false;
   const raw = (text || '').trim();
   if (!raw) return false;
   const normalized = normalize(raw);
   const participantsMap = bindings && bindings.participantsMap;
 
   // إعلان [نص] — لا يستهدف مشاركاً، متاح حتى بدون participantsMap.
+  // ملاحظة: كل فرع هنا يتحقق من التفويض لهذا الأمر بالذات (isAdminAuthorizedFor)
+  // بعد تأكيد تطابق الصيغة، مو قبلها — حساب مفوَّض لأمر واحد فقط لازم تمر
+  // رسالته بأمر آخر كأنها رسالة شات عادية تماماً (return false، بدون أي أثر)،
+  // تماماً متل أي متابع عادي، حتى لا تنكشف له أوامر ثانية غير مصرّح له فيها.
   for (const kw of ADMIN_FX_KEYWORDS.announce) {
-    if (raw === kw) return true; // بدون نص — تجاهل
-    if (adminStartsWithKeywordSpace(raw, kw)) {
-      const msg = raw.slice(kw.length + 1);
-      if (msg.trim()) showAdminAnnounceBanner(msg);
-      return true;
-    }
+    const isSelf = raw === kw;
+    if (!isSelf && !adminStartsWithKeywordSpace(raw, kw)) continue;
+    if (!isAdminAuthorizedFor(senderUser.uniqueId, 'announce')) return false;
+    if (isSelf) return true; // بدون نص — تجاهل
+    const msg = raw.slice(kw.length + 1);
+    if (msg.trim()) showAdminAnnounceBanner(msg);
+    return true;
   }
 
   // وقت+ — يستهدف عداد الراوند لا شخصاً.
   if (adminNormalizedEquals(normalized, ADMIN_FX_KEYWORDS.timeAdd)) {
+    if (!isAdminAuthorizedFor(senderUser.uniqueId, 'timeAdd')) return false;
     if (bindings && typeof bindings.addTimeFn === 'function') bindings.addTimeFn(10);
     else console.warn('وقت+: غير مربوط بعداد لعبة "' + gameTag + '" حالياً.');
     return true;
@@ -39327,6 +39337,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
 
   // عشوائي — يختار مشاركاً حياً حالياً عشوائياً ويمنحه أحد تأثيرات: شعلة/درع/سبوتلايت.
   if (adminNormalizedEquals(normalized, ADMIN_FX_KEYWORDS.random)) {
+    if (!isAdminAuthorizedFor(senderUser.uniqueId, 'random')) return false;
     if (!participantsMap || !participantsMap.size) return true;
     const keys = Array.from(participantsMap.keys());
     const targetUid = keys[Math.floor(Math.random() * keys.length)];
@@ -39343,6 +39354,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
   for (const kind of ['freeze', 'flame', 'shield', 'crown', 'spotlight']) {
     const matched = ADMIN_FX_KEYWORDS[kind].some(kw => raw === kw || adminStartsWithKeywordSpace(raw, kw));
     if (!matched) continue;
+    if (!isAdminAuthorizedFor(senderUser.uniqueId, kind)) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
     if (!mention) return true; // كتب الكلمة بدون منشن صالح — بصمت
     const targetUid = mention[1].trim().toLowerCase();
@@ -39372,6 +39384,142 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
   return false;
 }
 
+// ==================== تفويض أوامر فردية لحسابات أخرى ("اضافة"/"إزالة") ====================
+// حصراً لـADMIN_REVIVE_USERNAMES (نفس تقييد كل شيء بهذا القسم) — يسمحان
+// لهذين الحسابين فقط بمنح/سحب صلاحية استخدام أمر واحد محدد (وليس كل
+// الأوامر) لأي حساب تيك توك ثالث، عبر الشات مباشرة:
+//   "اضافة @username اسم_الأمر"  → username يصير يقدر يستخدم "اسم_الأمر"
+//                                  فقط (بأي لعبة فيها هذا الأمر أصلاً).
+//   "إزالة @username اسم_الأمر"  → يسحب نفس الصلاحية، يرجع ما يقدر يستخدمه.
+// "اسم_الأمر" أي مرادف من مرادفات أي أمر موجود أصلاً (انعاش/احياء/دخول/
+// تجميد/شعلة/درع/تاج/سبوتلايت/عشوائي/وقت+/إعلان) — بدون سلسلة تفويض: حساب
+// مُفوَّض لأمر واحد ما يقدر يفوّض غيره أبداً، فقط الحسابان المبرمجان أصلاً.
+const ADMIN_GRANT_KEYWORDS = ['اضافة'];
+const ADMIN_REVOKE_KEYWORDS = ['إزالة', 'ازالة']; // الصيغتان (بهمزة وبدونها) لأن الكتابة الحرفية هنا لا تمر بـnormalize()
+
+// كل مجموعة تربط اسم الأمر (كل مرادفاته) بمفتاحه الداخلي — نفس مصفوفات
+// المرادفات المستخدمة أصلاً بكل أمر، بدل تكرارها بمكان ثانٍ.
+const ADMIN_COMMAND_NAME_GROUPS = {
+  revive: ADMIN_REVIVE_KEYWORDS,
+  join: ADMIN_JOIN_KEYWORDS,
+  freeze: ADMIN_FX_KEYWORDS.freeze,
+  flame: ADMIN_FX_KEYWORDS.flame,
+  shield: ADMIN_FX_KEYWORDS.shield,
+  crown: ADMIN_FX_KEYWORDS.crown,
+  spotlight: ADMIN_FX_KEYWORDS.spotlight,
+  random: ADMIN_FX_KEYWORDS.random,
+  timeAdd: ADMIN_FX_KEYWORDS.timeAdd,
+  announce: ADMIN_FX_KEYWORDS.announce,
+};
+
+function adminResolveCommandKey(text) {
+  const n = normalize((text || '').trim());
+  if (!n) return null;
+  for (const key of Object.keys(ADMIN_COMMAND_NAME_GROUPS)) {
+    if (ADMIN_COMMAND_NAME_GROUPS[key].some(kw => normalize(kw) === n)) return key;
+  }
+  return null;
+}
+
+// خريطة التفويضات الحية — 'commandKey:uid' — تُملأ من Firestore (مستمع حي،
+// نفس نمط devSpecialSet/devSpecialFabBoot الموجود أصلاً لتوسيع قوائم مبرمجة
+// بالكود حياً من مصدر خارجي)، مع تحديث محلي فوري عند كل اضافة/إزالة حتى
+// يشتغل الأمر بنفس اللحظة بدون انتظار رحلة الشبكة الكاملة.
+let adminCommandGrantsSet = new Set();
+let adminCommandGrantsListenerStarted = false;
+function adminCommandGrantsBoot() {
+  if (!fb || adminCommandGrantsListenerStarted) return;
+  adminCommandGrantsListenerStarted = true;
+  fb.onSnapshot(fb.collection(fb.db, 'adminCommandGrants'), (snap) => {
+    const next = new Set();
+    snap.forEach(d => {
+      const data = d.data() || {};
+      if (data.commandKey && data.uniqueId) next.add(data.commandKey + ':' + data.uniqueId);
+    });
+    adminCommandGrantsSet = next;
+  }, (err) => { /* best-effort — بدون هذا المستمع تبقى التفويضات المضافة بنفس الجلسة الحالية شغالة (التحديث المحلي الفوري)، فقط ما تُزامَن مع جلسات/أجهزة أخرى */ });
+}
+
+function isAdminGrantedCommand(uniqueId, commandKey) {
+  return adminCommandGrantsSet.has(commandKey + ':' + adminCleanUsername(uniqueId));
+}
+
+// هل عند هذا الحساب أي تفويض أمر فردي إطلاقاً (بغض النظر عن أيّه)؟ فحص
+// رخيص مستخدَم فقط كفلترة مبكرة بـtryAdminFxCommand (المجموعة متوقّع حجمها
+// صغيراً جداً — عدد قليل من التفويضات الحية على الأكثر).
+function adminHasAnyGrant(uniqueId) {
+  const clean = adminCleanUsername(uniqueId);
+  const suffix = ':' + clean;
+  for (const entry of adminCommandGrantsSet) { if (entry.endsWith(suffix)) return true; }
+  return false;
+}
+
+// نقطة الفحص الموحّدة لأي أمر فردي: أدمن كامل (ADMIN_REVIVE_USERNAMES) أو
+// مفوَّض تحديداً لهذا الأمر بالذات.
+function isAdminAuthorizedFor(uniqueId, commandKey) {
+  return isAdminReviver(uniqueId) || isAdminGrantedCommand(uniqueId, commandKey);
+}
+
+function adminGrantCommandPermission(uniqueIdLower, commandKey, grantedByClean) {
+  adminCommandGrantsSet.add(commandKey + ':' + uniqueIdLower); // فوري محلياً
+  if (!fb) return;
+  try {
+    fb.setDoc(fb.doc(fb.db, 'adminCommandGrants', commandKey + '_' + uniqueIdLower), {
+      commandKey, uniqueId: uniqueIdLower, grantedBy: grantedByClean, grantedAt: fb.serverTimestamp()
+    }).catch(() => {});
+  } catch (e) { /* best-effort — التحديث المحلي أعلاه يبقى فعّالاً بهذي الجلسة حتى لو فشلت الكتابة */ }
+}
+
+function adminRevokeCommandPermission(uniqueIdLower, commandKey) {
+  adminCommandGrantsSet.delete(commandKey + ':' + uniqueIdLower); // فوري محلياً
+  if (!fb) return;
+  try {
+    fb.deleteDoc(fb.doc(fb.db, 'adminCommandGrants', commandKey + '_' + uniqueIdLower)).catch(() => {});
+  } catch (e) { /* best-effort */ }
+}
+
+// يحلل "اضافة @user اسم_الأمر" أو "إزالة/ازالة @user اسم_الأمر" — يرجّع
+// {mode, handle, commandKey} أو null. لازم منشن صريح واسم أمر معروف، وإلا
+// null (تجاهل بصمت — نفس مبدأ كل الأوامر الأخرى).
+function parseAdminGrantCommand(rawText) {
+  const raw = (rawText || '').trim();
+  if (!raw) return null;
+
+  let mode = null, matchedKw = null;
+  for (const kw of ADMIN_GRANT_KEYWORDS) {
+    if (adminStartsWithKeywordSpace(raw, kw)) { mode = 'grant'; matchedKw = kw; break; }
+  }
+  if (!mode) {
+    for (const kw of ADMIN_REVOKE_KEYWORDS) {
+      if (adminStartsWithKeywordSpace(raw, kw)) { mode = 'revoke'; matchedKw = kw; break; }
+    }
+  }
+  if (!mode) return null;
+
+  const rest = raw.slice(matchedKw.length + 1).replace(/^\s+/, '');
+  const mention = rest.match(/^@([a-zA-Z0-9_.]+)/);
+  if (!mention) return null; // لازم منشن صريح
+  const handle = mention[1].trim().toLowerCase();
+  const afterMention = rest.slice(mention[0].length).trim();
+  if (!afterMention) return null; // لازم اسم أمر بعد المنشن
+  const commandKey = adminResolveCommandKey(afterMention);
+  if (!commandKey) return null; // اسم أمر غير معروف
+
+  return { mode, handle, commandKey };
+}
+
+// حصراً لـADMIN_REVIVE_USERNAMES الكاملين — حساب مفوَّض لأمر واحد لا يقدر
+// يستخدم "اضافة"/"إزالة" إطلاقاً، حتى لو كان مفوَّضاً لأمر اسمه نفسه بالصدفة.
+function tryAdminGrantCommand(senderUser, text) {
+  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  const parsed = parseAdminGrantCommand(text);
+  if (!parsed) return false;
+  const byClean = adminCleanUsername(senderUser.uniqueId);
+  if (parsed.mode === 'grant') adminGrantCommandPermission(parsed.handle, parsed.commandKey, byClean);
+  else adminRevokeCommandPermission(parsed.handle, parsed.commandKey);
+  return true;
+}
+
 // ==================== نقطة الربط الموحّدة (تُستدعى من كل لعبة) ====================
 // دالة واحدة تُستدعى بكل معالج WebcastChatMessage بالـ23 لعبة، بدل تكرار
 // استدعاء 3-4 دوال منفصلة بكل مكان. ترجع true لو لازم نوقف باقي معالجة
@@ -39380,6 +39528,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
 //   eliminatedSet?, isParticipant?, statusCheckFn?, reviveFn?, addTimeFn? }
 function handleAdminChatCommand(gameTag, text, senderUser, bindings) {
   if (isAdminFrozen(gameTag, senderUser.uniqueId)) return true; // مجمّد إدارياً — تجاهل كامل الرسالة
+  if (tryAdminGrantCommand(senderUser, text)) return true;
   if (tryAdminFxCommand(gameTag, text, senderUser, bindings)) return true;
   if (bindings.eliminatedSet && tryAdminReviveCommand(gameTag, text, senderUser, bindings)) return true;
   if (tryAdminJoinCommand(gameTag, text, senderUser, bindings)) return true;
