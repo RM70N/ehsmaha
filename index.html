@@ -20291,6 +20291,7 @@ function gwHandleTikTokEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('gw', text, user, { participantsMap: gwParticipants, joinFn: gwJoinParticipant })) return;
 
       gwAddChatMsg(user, text);
 
@@ -21008,6 +21009,7 @@ function handleTikTokEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('main', text, user, { participantsMap: participants, joinFn: joinParticipant })) return;
 
       addChatMsg(user, text);
 
@@ -24001,6 +24003,18 @@ function handleSniperTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('sniper', text, user, {
+        participantsMap: sniperParticipants,
+        joinFn: (u) => sniperJoinParticipant(u, null),
+        chooseSlotFn: sniperAdminChooseSlot,
+        eliminatedSet: sniperEliminatedHistory,
+        isParticipant: (uid) => sniperParticipants.has(uid),
+        statusCheckFn: () => sniperGameStatus !== 'finished' && sniperGameStatus !== 'waiting',
+        reviveFn: (u) => {
+          const revivedUser = Object.assign({}, u, { isFollower: true });
+          setTimeout(() => sniperAdminChooseSlot(revivedUser), 3000);
+        }
+      })) return;
 
       addSniperChatMsg(user, text);
 
@@ -25200,6 +25214,22 @@ function handleRouTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('rou', text, user, {
+        participantsMap: rouParticipants,
+        joinFn: rouJoinParticipant,
+        eliminatedSet: rouEliminatedHistory,
+        isParticipant: (uid) => rouParticipants.has(uid),
+        statusCheckFn: () => rouGameStatus !== 'finished' && rouGameStatus !== 'waiting',
+        reviveFn: (u) => {
+          const revivedUser = Object.assign({}, u, { isFollower: true });
+          setTimeout(() => {
+            rouJoinParticipant(revivedUser);
+            if (rouParticipants.has(revivedUser.uniqueId) && !rouActivePlayers.includes(revivedUser.nickname)) {
+              rouActivePlayers.push(revivedUser.nickname);
+            }
+          }, 3000);
+        }
+      })) return;
       addRouChatMsg(user, text);
       if (rouGameStatus === 'waiting') {
         if (normalize(text) === normalize(rouKeyword)) {
@@ -26234,6 +26264,7 @@ function handleTimerTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('tmr', text, user, { participantsMap: tmrParticipants, joinFn: tmrJoinParticipant })) return;
       addTmrChatMsg(user, text);
 
       // انضمام بالكلمة المفتاحية
@@ -26952,6 +26983,14 @@ function handleBombTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('bomb', text, user, {
+        participantsMap: bombParticipants,
+        joinFn: bombJoinParticipant,
+        eliminatedSet: bombEliminatedHistory,
+        isParticipant: (uid) => bombParticipants.has(uid),
+        statusCheckFn: () => bombGameStatus !== 'finished' && bombGameStatus !== 'waiting',
+        reviveFn: (u) => setTimeout(() => bombJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
+      })) return;
 
       // تمرير القنبلة أولاً — قبل أي شيء ثاني لتجنب التأخير
       // تيك توك: منشن @اسم كما هو. كيك/يوتيوب/تويتش: رقم اللاعب الثابت فقط
@@ -27872,6 +27911,22 @@ function handleBoxTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('box', text, user, {
+        participantsMap: boxParticipants,
+        joinFn: boxJoinParticipant,
+        eliminatedSet: boxEliminatedHistory,
+        isParticipant: (uid) => boxParticipants.has(uid),
+        statusCheckFn: () => boxGameStatus !== 'finished' && boxGameStatus !== 'waiting',
+        reviveFn: (u) => {
+          const revivedUser = Object.assign({}, u, { isFollower: true });
+          setTimeout(() => {
+            boxJoinParticipant(revivedUser);
+            if (boxParticipants.has(revivedUser.uniqueId) && !boxTurnOrder.includes(revivedUser.uniqueId)) {
+              boxTurnOrder.push(revivedUser.uniqueId);
+            }
+          }, 3000);
+        }
+      })) return;
 
       // اختيار صندوق — فقط صاحب الدور الحالي
       if (boxGameStatus === 'active' && boxAwaitingPick) {
@@ -28754,6 +28809,10 @@ function handleCrTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      // ملاحظة: crJoinParticipant نفسها ترفض الانضمام لو crGameStatus !== 'waiting'
+      // (سباق الشات لا يدعم انضماماً متأخراً بمنطقه الأساسي) — أمر "دخول"
+      // الإداري هنا يعمل فقط أثناء الانتظار، تماماً كالمتابعين العاديين.
+      if (handleAdminChatCommand('cr', text, user, { participantsMap: crParticipants, joinFn: crJoinParticipant })) return;
 
       // انضمام
       if (crGameStatus === 'waiting') {
@@ -29441,6 +29500,10 @@ function handleEvTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      // ملاحظة: evJoinParticipant نفسها ترفض الانضمام لو evGameStatus !== 'waiting'
+      // (التصويت بالإقصاء لا يدعم انضماماً متأخراً بمنطقه الأساسي) — أمر
+      // "دخول" الإداري هنا يعمل فقط أثناء الانتظار، تماماً كالمتابعين العاديين.
+      if (handleAdminChatCommand('ev', text, user, { participantsMap: evParticipants, joinFn: evJoinParticipant })) return;
 
       if (evGameStatus === 'waiting') {
         if (normalize(text) === normalize(evKeyword)) evJoinParticipant(user);
@@ -30257,6 +30320,23 @@ function handleLLTikTokEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('ll', text, user, {
+        participantsMap: llParticipants,
+        joinFn: llJoinParticipant,
+        eliminatedSet: llEliminatedHistory,
+        isParticipant: (uid) => llParticipants.has(uid),
+        statusCheckFn: () => llGameStatus !== 'finished' && llGameStatus !== 'waiting',
+        reviveFn: (u) => {
+          const revivedUser = Object.assign({}, u, { isFollower: true });
+          setTimeout(() => {
+            llJoinParticipant(revivedUser);
+            if (llGameStatus === 'active' && llParticipants.has(revivedUser.uniqueId) && llQueue.indexOf(revivedUser.uniqueId) === -1) {
+              llQueue.push(revivedUser.uniqueId);
+              renderQueue();
+            }
+          }, 3000);
+        }
+      })) return;
       addLLChatMsg(user, text);
 
       if (llGameStatus === 'waiting') {
@@ -31142,6 +31222,7 @@ function waiHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('wai', text, user, { participantsMap: waiParticipants, joinFn: waiJoinParticipant })) return;
       waiAddChatMsg(user, text);
 
       if (waiGameStatus === 'waiting') {
@@ -31836,6 +31917,7 @@ function rwHandleEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('rw', text, user, { participantsMap: rwParticipants, joinFn: rwJoinParticipant })) return;
       rwAddChatMsg(user, text);
 
       if (rwGameStatus === 'waiting') {
@@ -32532,6 +32614,7 @@ function pgsHandleEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('pgs', text, user, { participantsMap: pgsParticipants, joinFn: pgsJoinParticipant })) return;
       pgsAddChatMsg(user, text);
 
       if (pgsGameStatus === 'waiting') {
@@ -33242,6 +33325,7 @@ function lscHandleEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('lsc', text, user, { participantsMap: lscParticipants, joinFn: lscJoinParticipant })) return;
       lscAddChatMsg(user, text);
 
       if (lscGameStatus === 'waiting') {
@@ -33864,6 +33948,7 @@ function wrHandleEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('wr', text, user, { participantsMap: wrParticipants, joinFn: wrJoinParticipant })) return;
       wrAddChatMsg(user, text);
 
       if (wrGameStatus === 'waiting') {
@@ -34548,6 +34633,7 @@ function drawHandleEvent(data) {
       const user = extractUser(msg);
       const text = msg.comment || msg.content || msg.data?.comment || '';
       if (!text) return;
+      if (handleAdminChatCommand('draw', text, user, { participantsMap: drawParticipants, joinFn: drawJoinParticipant })) return;
       drawAddChatMsg(user, text);
 
       if (drawGameStatus === 'active') {
@@ -35808,6 +35894,16 @@ function cwHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('cw', text, user, {
+        // القياس الصحيح لـ"مشارك نشط فعلاً" بحرب الدول هو وجوده بـcwActiveCountries
+        // (وليس cwParticipants، اللي يبقى فيه حتى المُقصين لعرض اسمهم بالسجل).
+        participantsMap: { has: (uid) => cwActiveCountries.some(c => c.uid === uid), get: (uid) => cwParticipants.get(uid), keys: () => cwParticipants.keys(), size: cwParticipants.size },
+        joinFn: cwJoinParticipant,
+        eliminatedSet: cwEliminatedHistory,
+        isParticipant: (uid) => cwActiveCountries.some(c => c.uid === uid),
+        statusCheckFn: () => cwGameStatus !== 'finished' && cwGameStatus !== 'waiting',
+        reviveFn: (u) => setTimeout(() => cwJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
+      })) return;
       cwAddChatMsg(user, text);
 
       if (cwGameStatus === 'waiting') {
@@ -36857,6 +36953,17 @@ function csHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('cs', text, user, {
+        participantsMap: csParticipants,
+        joinFn: csJoinParticipant,
+        // سرقة التاج ما فيها "إنعاش هدايا" أصلاً (بلا EliminatedHistory) —
+        // csKickedDuringRound هي أقرب معادل: مطرودين أثناء الراوند الحالي،
+        // وcsJoinParticipant نفسها ترفض من هو فيها، فحذفه هو شرط الإنعاش.
+        eliminatedSet: csKickedDuringRound,
+        isParticipant: (uid) => csParticipants.has(uid),
+        statusCheckFn: () => csGameStatus !== 'finished' && csGameStatus !== 'waiting',
+        reviveFn: (u) => setTimeout(() => csJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
+      })) return;
       csAddChatMsg(user, text);
 
       if (csGameStatus === 'waiting') {
@@ -38508,6 +38615,396 @@ function revivalCountAndCheck(countsMap, uniqueId) {
   return true;
 }
 
+// ==================== ADMIN LIVE-CHAT COMMANDS (حصري لحسابين فقط) ====================
+// نظام أوامر سرية تُكتب مباشرة بالشات المباشر (بدون أي هدية فعلية) — حصري
+// لحسابي ADMIN_REVIVE_USERNAMES. هذا القسم لا يغيّر أي منطق إنعاش بالهدايا
+// الموجود أعلاه، ولا أي واجهة لوحة تحكم — إضافة مستقلة فقط.
+// أمني: كلمات هذي الأوامر غير موثّقة بأي مكان ظاهر بالموقع (لا زر، لا تلميح،
+// لا Help modal) — أي شرط يفشل (حساب غير مصرّح، هدف غير صالح، سبام...) =
+// تجاهل صامت تام بدون أي أثر ظاهر، حتى لا ينكشف وجود النظام لأي متابع عادي
+// قد يحاول تقليد الأمر بمجرد رؤيته يعمل مرة.
+const ADMIN_REVIVE_USERNAMES = ['ehsmaha7', 'ic.zx8'];
+
+function isAdminReviver(uniqueId) {
+  if (!uniqueId) return false;
+  // نفس منطق تنظيف isDeveloperUser بالضبط: إزالة بادئة المنصة (وضع "أكثر من
+  // منصة")، إزالة @، وlowercase، قبل المقارنة بالقائمة المصرّح لها.
+  const withoutPlatformPrefix = String(uniqueId).replace(/^(tiktok|twitch|kick|youtube):/, '');
+  const clean = withoutPlatformPrefix.trim().toLowerCase().replace(/^@/, '');
+  return ADMIN_REVIVE_USERNAMES.includes(clean);
+}
+
+// مرادفات كل أمر — مصفوفة قابلة للتوسعة بدل تكرار الكلمة hardcoded بكل مكان.
+const ADMIN_REVIVE_KEYWORDS = ['انعاش', 'احياء'];
+const ADMIN_JOIN_KEYWORDS = ['دخول'];
+const ADMIN_MENTION_RE = /@([a-zA-Z0-9_.]+)/;
+
+// سبام-غارد للأوامر الإدارية — نفس فكرة revivalCountAndCheck لكن بفترة زمنية
+// قصيرة بدل عدّاد بالراوند: يمنع تكرار نفس الأمر لنفس (لعبة+نوع+هدف) خلال
+// أقل من ADMIN_COMMAND_COOLDOWN_MS، عشان سبام "انعاش @نفس_الشخص" المتكرر ما
+// يشغّل الأنيميشن/يكرر التسجيل كل رسالة.
+const ADMIN_COMMAND_COOLDOWN_MS = 4000;
+let adminCommandLastRun = new Map(); // key: gameTag+':'+kind+':'+targetUid -> timestamp
+
+function adminCommandCooldownCheck(gameTag, kind, targetUid) {
+  const key = gameTag + ':' + kind + ':' + targetUid;
+  const now = Date.now();
+  const last = adminCommandLastRun.get(key) || 0;
+  if (now - last < ADMIN_COMMAND_COOLDOWN_MS) return false;
+  adminCommandLastRun.set(key, now);
+  return true;
+}
+
+function adminNormalizedEquals(normalizedText, keywords) {
+  return keywords.some(k => normalizedText === normalize(k));
+}
+
+function adminLogRevive(gameTag, targetUid, targetNickname, byAdmin) {
+  if (!fb) return;
+  try {
+    fb.setDoc(fb.doc(fb.collection(fb.db, 'adminReviveLog')), {
+      streamer: (typeof scoreCurrentStreamer !== 'undefined' ? scoreCurrentStreamer : '') || '',
+      targetUid, targetNickname: targetNickname || targetUid,
+      byAdmin, gameTag, createdAt: fb.serverTimestamp()
+    }).catch(() => {});
+  } catch (e) { /* best-effort — ما نوقف الجلسة الحية لو صار خطأ تسجيل */ }
+}
+
+// أنيميشن التجميد الإداري — يعيد استخدام نفس تجربة triggerGiftRevivalFreeze
+// (توقف اللعبة 3 ثوانٍ + أنيميشن فاخر) لكن بشارة 🛠️ بدل 🎁 عشان يميّزه
+// الستريمر بصرياً عن إنعاش الهدايا العادي. هذا كله يظهر فقط بلوحة تحكم
+// الستريمر (نفس بقية الموقع) — لا يصل لشاشات مشاهدي تيك توك إطلاقاً.
+function triggerAdminReviveFreeze(gameTag, displayName) {
+  gamePausedForRevival[gameTag] = true;
+  showGiftRevivalAnimation({
+    senderName: displayName,
+    giftName: 'إداري',
+    giftIcon: '🛠️',
+    revivalMessage: '🛠️ إنعاش إداري — ' + displayName + ' رجع اللعبة!',
+    durationMs: 3000
+  });
+  setTimeout(() => { gamePausedForRevival[gameTag] = false; }, 3000);
+}
+
+// النقطة المركزية الوحيدة لأمر "انعاش"/"احياء" — حصراً لـADMIN_REVIVE_USERNAMES.
+// bindings: { eliminatedSet, isParticipant(uid), statusCheckFn(), reviveFn(user) }
+// ترجع true إذا "استهلكت" الرسالة (نُفّذ الأمر، أو رُفض بصمت بعد التحقق من
+// الشروط) — الطرف المستدعي يوقف باقي معالجة هذي الرسالة بأي الحالتين.
+function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isParticipant, statusCheckFn, reviveFn }) {
+  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  const normalized = normalize(raw);
+
+  let targetUid, targetUser;
+  if (adminNormalizedEquals(normalized, ADMIN_REVIVE_KEYWORDS)) {
+    // "انعاش" بدون منشن = المرسل يُنعش نفسه
+    targetUid = senderUser.uniqueId;
+    targetUser = senderUser;
+  } else {
+    // "انعاش @username" — لازم تبدأ الرسالة فعلاً بالكلمة المفتاحية متبوعة
+    // بمسافة، لتفادي أي تصادم مع رسالة عادية تحتوي الكلمة ضمن جملة أطول.
+    const startsWithKeyword = ADMIN_REVIVE_KEYWORDS.some(kw => raw.startsWith(kw + ' '));
+    if (!startsWithKeyword) return false;
+    const mention = raw.match(ADMIN_MENTION_RE);
+    if (!mention) return false;
+    targetUid = mention[1].trim().toLowerCase();
+    // ما عندنا بيانات كاملة عن المستخدم المذكور (اسمه الحقيقي، أفاتاره...)
+    // من نص الشات فقط — نبني كائن مبسّط، مع أي نيكنيم مخصص محفوظ له سابقاً.
+    const override = liveCommandNicknameOverrides[targetUid];
+    targetUser = { uniqueId: targetUid, nickname: override || targetUid, avatar: '' };
+  }
+
+  if (!statusCheckFn()) return true;             // اللعبة مو بحالة راوند نشط — تجاهل بصمت
+  if (isParticipant(targetUid)) return true;      // مشارك نشط أصلاً — تجاهل بصمت
+  if (!eliminatedSet.has(targetUid)) return true; // ما انقصى قط (يشمل منشن لشخص غير موجود بأي مجموعة إقصاء) — تجاهل بصمت
+  if (!adminCommandCooldownCheck(gameTag, 'revive', targetUid)) return true; // سبام سريع — تجاهل بصمت
+
+  eliminatedSet.delete(targetUid);
+  triggerAdminReviveFreeze(gameTag, targetUser.nickname || targetUid);
+  adminLogRevive(gameTag, targetUid, targetUser.nickname, senderUser.uniqueId);
+  reviveFn(targetUser);
+  return true;
+}
+
+// ==================== ADMIN JOIN COMMAND ("دخول") ====================
+// يحلل نص "دخول" الخام (بدون تطبيع الاسم المخصص) لثلاث صيغ ممكنة. يتحقق أول
+// شيء إن النص يبدأ فعلاً بـ"دخول" متبوعة بمسافة أو نهاية السطر، حتى لا
+// يتصادم مع رسالة عادية تحتوي الكلمة ضمن جملة (مثل "وين الدخول؟").
+function parseAdminJoinCommand(rawText) {
+  const raw = (rawText || '').trim();
+  if (!raw) return null;
+
+  let matchedKw = null;
+  for (const kw of ADMIN_JOIN_KEYWORDS) {
+    if (normalize(raw) === normalize(kw) || raw.startsWith(kw + ' ')) { matchedKw = kw; break; }
+  }
+  if (!matchedKw) return null;
+  // تأكيد الفاصل فعلاً مسافة (وليس حرفاً ملتصقاً زي "دخولي") على النص الخام
+  // نفسه — normalize() لا تغيّر طول كلمة "دخول" (ما فيها أ/إ/آ/ة/ى) فمقارنة
+  // الطول هنا مضمونة ومطابقة لموضعها بالنص الخام.
+  if (raw.length > matchedKw.length && raw[matchedKw.length] !== ' ') return null;
+
+  const rest = raw.length <= matchedKw.length ? '' : raw.slice(matchedKw.length + 1);
+  if (!rest.trim()) return { mode: 'self' };
+
+  const mention = rest.match(/^@([a-zA-Z0-9_.]+)/);
+  if (mention) return { mode: 'mention', handle: mention[1].trim().toLowerCase() };
+
+  return { mode: 'customName', name: rest }; // raw بدون قص — يحافظ على الاسم كما كُتب بالضبط
+}
+
+// bindings: { participantsMap, joinFn(user), chooseSlotFn?(user)=>boolean, statusGetter? }
+// chooseSlotFn اختياري للألعاب محدودة السعة/الفرق (القناص، شد الحبل) — تتكفل
+// هي بعملية الانضمام كاملة وترجع true/false حسب نجاح إيجاد خانة فعلية.
+// statusGetter اختياري — الأمر مصمم يشتغل حتى أثناء راوند شغّال، فما نستخدمه
+// لمنع التنفيذ؛ متاح فقط لو لعبة معينة احتاجته مستقبلاً لقرار عرض/رسالة.
+function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, joinFn, chooseSlotFn, statusGetter }) {
+  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  const parsed = parseAdminJoinCommand(rawText);
+  if (!parsed) return false;
+
+  let targetUser;
+  if (parsed.mode === 'mention') {
+    if (!adminCommandCooldownCheck(gameTag, 'join', parsed.handle)) return true;
+    const override = liveCommandNicknameOverrides[parsed.handle];
+    targetUser = { uniqueId: parsed.handle, nickname: override || parsed.handle, avatar: '', isFollower: true };
+  } else {
+    if (!adminCommandCooldownCheck(gameTag, 'join', senderUser.uniqueId)) return true;
+    targetUser = Object.assign({}, senderUser, { isFollower: true });
+    if (parsed.mode === 'customName') {
+      // نسجّله بنفس خريطة liveCommandNicknameOverrides الموجودة أصلاً، عشان
+      // يبقى متسق مع extractUser() وباقي الكود اللي يقرأ منها — بدل آلية موازية.
+      liveCommandNicknameOverrides[senderUser.uniqueId] = parsed.name;
+      targetUser.nickname = parsed.name;
+    }
+  }
+
+  if (participantsMap.has(targetUser.uniqueId)) return true; // منضم أصلاً — تجاهل بصمت (لا تكرار انضمام)
+
+  if (chooseSlotFn) {
+    const gotSlot = chooseSlotFn(targetUser);
+    if (!gotSlot && participantsMap.has(targetUser.uniqueId)) {
+      // انضم كمشارك لكن ما فيه خانة/سعة فاضية فعلياً — إشعار للستريمر فقط
+      // (toast هنا يظهر فقط بلوحة تحكم الستريمر، أبداً لمشاهدي تيك توك).
+      toast('🛠️ دخول إداري: لا يوجد مكان فاضٍ حالياً بـ' + gameTag);
+    }
+  } else {
+    joinFn(targetUser);
+  }
+  return true;
+}
+
+// ==================== ADMIN FX COMMANDS (تجميد/شعلة/درع/تاج/سبوتلايت/عشوائي/وقت+) ====================
+// امتداد لنفس نظام الأوامر الإدارية أعلاه — نفس التقييد الحصري بـ
+// ADMIN_REVIVE_USERNAMES، ونفس مبدأ التجاهل الصامت الكامل لأي متابع عادي.
+//
+// نطاق التسليم الفعلي (مهم — اقرأ قبل الاعتماد على تأثير كل أمر):
+//   • "تجميد" له تأثير فعلي حقيقي: أثناء التجميد، أي رسالة شات من الهدف
+//     تُتجاهل بالكامل بكل الألعاب (عبر isAdminFrozen بأعلى handleAdminChatCommand)
+//     — يمنعه فعلياً من الانضمام/التخمين/التصويت/سحب القنبلة... إلخ، وبالتالي
+//     من تسجيل أي نقاط، طول مدة التجميد.
+//   • "شعلة"/"درع"/"تاج" تُسجَّل كحالة حقيقية (adminFlameSet/adminShieldSet/
+//     adminCrownSet) مع تأثير بصري فوري بلوحة الستريمر، ومتاحة كنقاط ربط
+//     جاهزة (hasAdminFlame/hasAdminShield/consumeAdminShield) لأي منطق نقاط/
+//     إقصاء يريد الستريمر ربطها به لاحقاً — لكنها غير مربوطة تلقائياً بمنطق
+//     النقاط أو الإقصاء الداخلي لكل لعبة من الـ23 (يختلف تماماً من لعبة
+//     لأخرى)، فمضاعفة ×2 الفعلية وحماية الإقصاء الفعلية تحتاجان ربطاً يدوياً
+//     إضافياً بكود كل لعبة عند الطلب.
+//   • "عشوائي" و"سبوتلايت" و"تاج" بصرية بالكامل (نفس بطاقة flashRevival
+//     العائمة، بشارة/لون مختلف لكل نوع) — وليست تكبيراً فعلياً لبطاقة اللاعب
+//     داخل كل لعبة (كل لعبة من الـ23 لها DOM مختلف تماماً لبطاقات المشاركين).
+//   • "وقت+" مبني ويتحقق من الصلاحية لكن غير مربوط فعلياً بأي عداد — كل لعبة
+//     تدير عدادها بـsetInterval ومتغيرات مختلفة تماماً، وتعديلها من الخارج
+//     بأمان يحتاج فحص كل لعبة على حدة. يُظهر تحذيراً بالـconsole فقط حالياً.
+//   • "إعلان [نص]" فعلي بالكامل — بانر ملء شاشة مستقل (لا يمس broadcastMessages
+//     الحالي ولا أي عنصر HTML موجود).
+const ADMIN_FX_KEYWORDS = {
+  freeze: ['تجميد'], flame: ['شعلة'], shield: ['درع'], crown: ['تاج'],
+  spotlight: ['سبوتلايت'], random: ['عشوائي'], timeAdd: ['وقت+'], announce: ['إعلان']
+};
+const ADMIN_FREEZE_MS = 5000;
+
+let adminFrozenUntil = new Map(); // key gameTag+':'+uid -> timestamp انتهاء التجميد
+let adminFlameSet = new Set();    // key gameTag+':'+uid
+let adminShieldSet = new Set();   // key gameTag+':'+uid — استهلاك لمرة وحدة
+let adminCrownSet = new Set();    // key gameTag+':'+uid — بصري فقط
+
+function adminFxKey(gameTag, uid) { return gameTag + ':' + uid; }
+function isAdminFrozen(gameTag, uid) {
+  const until = adminFrozenUntil.get(adminFxKey(gameTag, uid));
+  return !!until && Date.now() < until;
+}
+function hasAdminFlame(gameTag, uid) { return adminFlameSet.has(adminFxKey(gameTag, uid)); }
+function hasAdminShield(gameTag, uid) { return adminShieldSet.has(adminFxKey(gameTag, uid)); }
+// نقطة ربط جاهزة: تُستدعى من منطق إقصاء أي لعبة (لو رُبطت لاحقاً يدوياً)
+// لاستهلاك الدرع مرة وحدة بدل تنفيذ الإقصاء فعلياً.
+function consumeAdminShield(gameTag, uid) {
+  const key = adminFxKey(gameTag, uid);
+  if (!adminShieldSet.has(key)) return false;
+  adminShieldSet.delete(key);
+  return true;
+}
+
+// يرجّع كائن مستخدم معروف من participantsMap الحالية للعبة (يفكّ غلاف نمط
+// سنايبر {user, cell} تلقائياً)، أو كائن مبسّط لو ما لقاه (نفس قيد "منشن
+// بدون بيانات كاملة" بأمر انعاش).
+function adminResolveKnownUser(uid, participantsMap) {
+  const entry = participantsMap && participantsMap.get ? participantsMap.get(uid) : null;
+  const user = entry && entry.user ? entry.user : entry;
+  if (user && user.uniqueId) return user;
+  const override = liveCommandNicknameOverrides[uid];
+  return { uniqueId: uid, nickname: override || uid, avatar: '' };
+}
+
+// بطاقة عائمة عامة لكل أوامر الـfx — نفس كلاس .revival-flash/.revival-badge
+// الموجود أصلاً (يستخدمه flashRevival)، فلا نحتاج أي CSS جديد. تظهر فقط
+// بلوحة تحكم الستريمر مثل بقية أنيميشنات الموقع.
+function showAdminFxOverlay(kind, nickname, extraText) {
+  const themes = {
+    freeze:    { icon: '❄️', color: '#7dd3fc', text: (nickname) + ' مجمّد إدارياً ' + (extraText || '') },
+    flame:     { icon: '🔥', color: '#fb923c', text: (nickname) + ' — مضاعفة نقاط ×2 هالراوند!' },
+    shield:    { icon: '🛡️', color: '#a3e635', text: (nickname) + ' محمي من الإقصاء القادم!' },
+    crown:     { icon: '👑', color: '#f5d67f', text: (nickname) + ' لبس التاج!' },
+    spotlight: { icon: '🎥', color: '#e879f9', text: (nickname) + ' بالسبوتلايت!' }
+  };
+  const t = themes[kind];
+  if (!t) return;
+  const el = document.createElement('div');
+  el.className = 'revival-flash show';
+  el.innerHTML = '<div class="revival-badge" style="border-color:' + t.color + ';box-shadow:0 0 24px 4px ' + t.color + '55;">' +
+    '<span style="font-size:20px;margin-left:6px;">' + t.icon + '</span>' + esc(t.text) + '</div>';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+// بانر "إعلان" ملء الشاشة — مستقل تماماً عن broadcastMessages الحالي (نظام
+// مختلف موجّه لمشاهدي الموقع نفسه)، عنصر DOM جديد يُبنى بالكامل بالجافاسكربت
+// بدون أي تعديل على HTML الحالي. بدون إيموجيز بواجهته الثابتة (حسب الطلب) —
+// نص الأدمن نفسه يُعرض كما كُتب بالضبط.
+function showAdminAnnounceBanner(text) {
+  const el = document.createElement('div');
+  el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(10,6,24,0.86);backdrop-filter:blur(6px);opacity:0;transition:opacity .35s ease;';
+  el.innerHTML =
+    '<div style="max-width:80%;padding:36px 48px;border-radius:18px;background:linear-gradient(160deg,#241245,#150a2e);border:1px solid rgba(245,214,127,0.5);box-shadow:0 0 60px rgba(139,92,246,0.35);text-align:center;">' +
+      '<div style="font-size:13px;letter-spacing:2px;color:#f5d67f;margin-bottom:14px;">EHSMAHA</div>' +
+      '<div style="font-size:26px;line-height:1.5;color:#fff;font-weight:700;">' + esc(text) + '</div>' +
+    '</div>';
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 400);
+  }, 6000);
+}
+
+// النقطة المركزية لأوامر تجميد/شعلة/درع/تاج/سبوتلايت/عشوائي/وقت+/إعلان.
+// bindings: { participantsMap?, addTimeFn?(seconds) }
+function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
+  if (!isAdminReviver(senderUser.uniqueId)) return false;
+  const raw = (text || '').trim();
+  if (!raw) return false;
+  const normalized = normalize(raw);
+  const participantsMap = bindings && bindings.participantsMap;
+
+  // إعلان [نص] — لا يستهدف مشاركاً، متاح حتى بدون participantsMap.
+  for (const kw of ADMIN_FX_KEYWORDS.announce) {
+    if (raw === kw) return true; // بدون نص — تجاهل
+    if (raw.startsWith(kw + ' ')) {
+      const msg = raw.slice(kw.length + 1);
+      if (msg.trim()) showAdminAnnounceBanner(msg);
+      return true;
+    }
+  }
+
+  // وقت+ — يستهدف عداد الراوند لا شخصاً.
+  if (adminNormalizedEquals(normalized, ADMIN_FX_KEYWORDS.timeAdd)) {
+    if (bindings && typeof bindings.addTimeFn === 'function') bindings.addTimeFn(10);
+    else console.warn('وقت+: غير مربوط بعداد لعبة "' + gameTag + '" حالياً.');
+    return true;
+  }
+
+  // عشوائي — يختار مشاركاً حياً حالياً عشوائياً ويمنحه أحد تأثيرات: شعلة/درع/سبوتلايت.
+  if (adminNormalizedEquals(normalized, ADMIN_FX_KEYWORDS.random)) {
+    if (!participantsMap || !participantsMap.size) return true;
+    const keys = Array.from(participantsMap.keys());
+    const targetUid = keys[Math.floor(Math.random() * keys.length)];
+    const targetUser = adminResolveKnownUser(targetUid, participantsMap);
+    const pick = ['flame', 'shield', 'spotlight'][Math.floor(Math.random() * 3)];
+    const key = adminFxKey(gameTag, targetUid);
+    if (pick === 'flame') adminFlameSet.add(key);
+    else if (pick === 'shield') adminShieldSet.add(key);
+    showAdminFxOverlay(pick, targetUser.nickname || targetUid);
+    return true;
+  }
+
+  // تجميد/شعلة/درع/تاج/سبوتلايت — تتطلب منشن + الهدف مشارك نشط حالياً.
+  for (const kind of ['freeze', 'flame', 'shield', 'crown', 'spotlight']) {
+    const matched = ADMIN_FX_KEYWORDS[kind].some(kw => raw === kw || raw.startsWith(kw + ' '));
+    if (!matched) continue;
+    const mention = raw.match(ADMIN_MENTION_RE);
+    if (!mention) return true; // كتب الكلمة بدون منشن صالح — بصمت
+    const targetUid = mention[1].trim().toLowerCase();
+    if (!participantsMap || !participantsMap.has(targetUid)) return true; // مو مشارك حالي — بصمت
+    if (!adminCommandCooldownCheck(gameTag, kind, targetUid)) return true;
+
+    const targetUser = adminResolveKnownUser(targetUid, participantsMap);
+    const key = adminFxKey(gameTag, targetUid);
+    if (kind === 'freeze') {
+      adminFrozenUntil.set(key, Date.now() + ADMIN_FREEZE_MS);
+      showAdminFxOverlay('freeze', targetUser.nickname || targetUid, (ADMIN_FREEZE_MS / 1000) + ' ثوانٍ');
+    } else if (kind === 'flame') {
+      adminFlameSet.add(key);
+      showAdminFxOverlay('flame', targetUser.nickname || targetUid);
+    } else if (kind === 'shield') {
+      adminShieldSet.add(key);
+      showAdminFxOverlay('shield', targetUser.nickname || targetUid);
+    } else if (kind === 'crown') {
+      adminCrownSet.add(key);
+      showAdminFxOverlay('crown', targetUser.nickname || targetUid);
+    } else if (kind === 'spotlight') {
+      showAdminFxOverlay('spotlight', targetUser.nickname || targetUid);
+    }
+    return true;
+  }
+
+  return false;
+}
+
+// ==================== نقطة الربط الموحّدة (تُستدعى من كل لعبة) ====================
+// دالة واحدة تُستدعى بكل معالج WebcastChatMessage بالـ23 لعبة، بدل تكرار
+// استدعاء 3-4 دوال منفصلة بكل مكان. ترجع true لو لازم نوقف باقي معالجة
+// الرسالة (أمر إداري نُفّذ، أو المرسل مجمّد إدارياً حالياً).
+// bindings المتوقعة (حسب اللعبة): { participantsMap, joinFn, chooseSlotFn?,
+//   eliminatedSet?, isParticipant?, statusCheckFn?, reviveFn?, addTimeFn? }
+function handleAdminChatCommand(gameTag, text, senderUser, bindings) {
+  if (isAdminFrozen(gameTag, senderUser.uniqueId)) return true; // مجمّد إدارياً — تجاهل كامل الرسالة
+  if (tryAdminFxCommand(gameTag, text, senderUser, bindings)) return true;
+  if (bindings.eliminatedSet && tryAdminReviveCommand(gameTag, text, senderUser, bindings)) return true;
+  if (tryAdminJoinCommand(gameTag, text, senderUser, bindings)) return true;
+  return false;
+}
+
+// chooseSlotFn الخاصة بالقناص لأمر "دخول" الإداري — نفس منطق اختيار أول خانة
+// فاضية المستخدم أصلاً بالإنعاش عبر الهدايا (sniperHandleGift).
+function sniperAdminChooseSlot(user) {
+  sniperJoinParticipant(user, null);
+  if (!sniperParticipants.has(user.uniqueId)) return false; // رُفض الانضمام (مثلاً مطرود بالراوند)
+  for (let i = 1; i <= SNIPER_GRID_SIZE; i++) {
+    if (sniperCells[i].length < sniperCellCapacity) { sniperChooseCell(user, i); return true; }
+  }
+  return false; // انضم كمشارك لكن ما فيه خانة فاضية بالشبكة حالياً
+}
+
+// chooseSlotFn الخاصة بشد الحبل لأمر "دخول" الإداري — يختار تلقائياً الفريق
+// الأقل عدداً (أو "أ" عند التعادل) بدل ما يطلب من الأدمن تحديد فريق بالأمر.
+function tugAdminChooseSlot(user) {
+  if (tugTeamOf(user.uniqueId)) return true; // منضم بفريق أصلاً
+  const team = tugTeamA.size <= tugTeamB.size ? 'a' : 'b';
+  tugJoinTeam(user, team);
+  return tugTeamOf(user.uniqueId) === team;
+}
+
 function goSetupFindball() { show('setup-findball'); modInitAdvancedSection('findball'); }
 
 // ==================== LAUNCH ====================
@@ -38673,6 +39170,14 @@ function findballHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('findball', text, user, {
+        participantsMap: findballParticipants,
+        joinFn: findballJoinParticipant,
+        eliminatedSet: findballEliminatedHistory,
+        isParticipant: (uid) => findballParticipants.has(uid),
+        statusCheckFn: () => findballGameStatus !== 'finished' && findballGameStatus !== 'waiting',
+        reviveFn: (u) => setTimeout(() => findballJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
+      })) return;
       findballAddChatMsg(user, text);
 
       if (findballGameStatus === 'waiting') {
@@ -39914,6 +40419,14 @@ function chairsHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('chairs', text, user, {
+        participantsMap: chairsParticipants,
+        joinFn: chairsJoinParticipant,
+        eliminatedSet: chairsEliminatedHistory,
+        isParticipant: (uid) => chairsParticipants.has(uid),
+        statusCheckFn: () => chairsGameStatus !== 'finished' && chairsGameStatus !== 'waiting',
+        reviveFn: (u) => setTimeout(() => chairsJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
+      })) return;
       chairsAddChatMsg(user, text);
 
       if (chairsGameStatus === 'waiting') {
@@ -40641,6 +41154,13 @@ function tugHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('tug', text, user, {
+        // شد الحبل فرق (أ/ب) مو خريطة مشاركين وحدة — محوّل بسيط بواجهة
+        // .has فقط (المطلوبة من tryAdminJoinCommand)، تُبنى فوق tugTeamOf.
+        participantsMap: { has: (uid) => !!tugTeamOf(uid), get: (uid) => tugTeamA.get(uid) || tugTeamB.get(uid), keys: () => [...tugTeamA.keys(), ...tugTeamB.keys()], size: tugTeamA.size + tugTeamB.size },
+        joinFn: null,
+        chooseSlotFn: tugAdminChooseSlot
+      })) return;
       tugAddChatMsg(user, text);
 
       const norm = tugNormalize(text);
@@ -41272,6 +41792,7 @@ function rlglHandleEvent(data) {
       const user = extractUser(msg);
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
+      if (handleAdminChatCommand('rlgl', text, user, { participantsMap: rlglParticipants, joinFn: rlglJoinParticipant })) return;
       rlglAddChatMsg(user, text);
       const norm = rlglNormalize(text);
 
