@@ -39440,11 +39440,23 @@ function adminResolveCommandKey(text) {
   return null;
 }
 
-// خريطة التفويضات الحية — 'commandKey:uid' — تُملأ من Firestore (مستمع حي،
-// نفس نمط devSpecialSet/devSpecialFabBoot الموجود أصلاً لتوسيع قوائم مبرمجة
-// بالكود حياً من مصدر خارجي)، مع تحديث محلي فوري عند كل اضافة/إزالة حتى
-// يشتغل الأمر بنفس اللحظة بدون انتظار رحلة الشبكة الكاملة.
-let adminCommandGrantsSet = new Set();
+// خريطة التفويضات الحية — 'commandKey:uid' — مصدرها الأساسي والدائم
+// localStorage بهذا الجهاز/المتصفح (يضمن بقاءها للأبد حتى مع الريفرش أو
+// انتهاء الراوند أو حتى لو فشلت الكتابة بفَيرستور لأي سبب — تسجيل دخول
+// غير مكتمل، صلاحيات، انقطاع شبكة وقت الأمر...)، مع مزامنة أفضل-جهد مع
+// Firestore (مستمع حي، نفس نمط devSpecialSet/devSpecialFabBoot الموجود
+// أصلاً) لمّا تكون متاحة، عشان تظهر التفويضات على أجهزة/جلسات أخرى كذلك.
+const ADMIN_GRANTS_LOCAL_KEY = 'ehsmaha_adminCommandGrants_v1';
+function adminGrantsLoadLocal() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(ADMIN_GRANTS_LOCAL_KEY) || '[]');
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) { return []; }
+}
+function adminGrantsSaveLocal(set) {
+  try { localStorage.setItem(ADMIN_GRANTS_LOCAL_KEY, JSON.stringify(Array.from(set))); } catch (e) {}
+}
+let adminCommandGrantsSet = new Set(adminGrantsLoadLocal());
 let adminCommandGrantsListenerStarted = false;
 function adminCommandGrantsBoot() {
   if (!fb || adminCommandGrantsListenerStarted) return;
@@ -39455,8 +39467,12 @@ function adminCommandGrantsBoot() {
       const data = d.data() || {};
       if (data.commandKey && data.uniqueId) next.add(data.commandKey + ':' + data.uniqueId);
     });
+    // دمج مع المحفوظ محلياً — أي تفويض موجود بهذا الجهاز يبقى فعّالاً حتى
+    // لو غاب من فَيرستور (لم تُقرأ بعد، أو فشلت كتابته أصلاً).
+    adminGrantsLoadLocal().forEach(e => next.add(e));
     adminCommandGrantsSet = next;
-  }, (err) => { /* best-effort — بدون هذا المستمع تبقى التفويضات المضافة بنفس الجلسة الحالية شغالة (التحديث المحلي الفوري)، فقط ما تُزامَن مع جلسات/أجهزة أخرى */ });
+    adminGrantsSaveLocal(adminCommandGrantsSet);
+  }, (err) => { console.warn('🛠️ تعذّرت مزامنة تفويضات الأوامر مع فَيرستور — تبقى التفويضات المحفوظة محلياً بهذا المتصفح فعّالة:', err && err.message); });
 }
 
 function isAdminGrantedCommand(uniqueId, commandKey) {
@@ -39481,19 +39497,21 @@ function isAdminAuthorizedFor(uniqueId, commandKey) {
 
 function adminGrantCommandPermission(uniqueIdLower, commandKey, grantedByClean) {
   adminCommandGrantsSet.add(commandKey + ':' + uniqueIdLower); // فوري محلياً
+  adminGrantsSaveLocal(adminCommandGrantsSet); // دائم بهذا المتصفح — لا يعتمد على فَيرستور
   if (!fb) return;
   try {
     fb.setDoc(fb.doc(fb.db, 'adminCommandGrants', commandKey + '_' + uniqueIdLower), {
       commandKey, uniqueId: uniqueIdLower, grantedBy: grantedByClean, grantedAt: fb.serverTimestamp()
-    }).catch(() => {});
-  } catch (e) { /* best-effort — التحديث المحلي أعلاه يبقى فعّالاً بهذي الجلسة حتى لو فشلت الكتابة */ }
+    }).catch((err) => { console.warn('🛠️ فشلت مزامنة "اضافة أمر" مع فَيرستور (يبقى محفوظاً بهذا المتصفح فقط):', err && err.message); });
+  } catch (e) { /* best-effort — التحديث المحلي أعلاه يبقى فعّالاً للأبد بهذا المتصفح حتى لو فشلت الكتابة */ }
 }
 
 function adminRevokeCommandPermission(uniqueIdLower, commandKey) {
   adminCommandGrantsSet.delete(commandKey + ':' + uniqueIdLower); // فوري محلياً
+  adminGrantsSaveLocal(adminCommandGrantsSet); // دائم بهذا المتصفح — لا يعتمد على فَيرستور
   if (!fb) return;
   try {
-    fb.deleteDoc(fb.doc(fb.db, 'adminCommandGrants', commandKey + '_' + uniqueIdLower)).catch(() => {});
+    fb.deleteDoc(fb.doc(fb.db, 'adminCommandGrants', commandKey + '_' + uniqueIdLower)).catch((err) => { console.warn('🛠️ فشلت مزامنة "إزالة أمر" مع فَيرستور (أُزيل محلياً بهذا المتصفح على الأقل):', err && err.message); });
   } catch (e) { /* best-effort */ }
 }
 
