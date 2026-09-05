@@ -2,7 +2,7 @@
   "name": "ehsmaha-tiktok-bridge-server",
   "version": "1.0.0",
   "private": true,
-  "description": "TikTok Live bridge server for ehsmaha.com — hosted once, connects streamers by username only, fans out chat/gift/like/follow events to the website over WebSocket.",
+  "description": "Live chat bridge server for ehsmaha.com — hosted once, connects streamers by username only (TikTok, YouTube, Kick), fans out chat/gift/like/follow events to the website over WebSocket.",
   "type": "commonjs",
   "main": "server.js",
   "engines": {
@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "tiktok-live-connector": "^2.4.4",
+    "youtube-chat": "^2.2.0",
+    "@retconned/kick-js": "^0.8.0",
     "ws": "^8.18.0",
     "firebase-admin": "^13.6.0"
   }
