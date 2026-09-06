@@ -18535,6 +18535,19 @@ function adminResolveMentionUid(token) {
   if (byNickname) return byNickname;
   return raw.toLowerCase();
 }
+// هل هذا النص نيكنيم معروف حياً (شخص فعلاً تكلم بالشات بهذا الاسم)؟ — يفرّق
+// بين "دخول احسمها" (يقصد شخصاً باسم "احسمها" سبق وتكلم بالشات) و"دخول
+// اسمي_الجديد" (يقصد يدخل هو نفسه بهذا الاسم كبديل) لما ما فيه @ صريح بالنص.
+function adminIsKnownNickname(text) {
+  const n = normalize((text || '').trim());
+  return !!n && adminUidByNormalizedNickname.has(n);
+}
+// هل هذا النص يشبه يوزرنيم تيك توك حرفياً (لاتيني/أرقام/نقطة/شرطة سفلية،
+// بدون مسافات)؟ — يغطي "دخول ehsmaha7fan" بدون @ لمن يكتب اليوزر الحقيقي
+// مباشرة بدل اسم العرض.
+function adminLooksLikeLiteralHandle(text) {
+  return /^[a-zA-Z0-9_.]+$/.test((text || '').trim());
+}
 // الاسم المعروض الصحيح لهدف بـuniqueId معروف — نيكنيمه الحقيقي المرصود
 // حياً أولاً، وإلا أي اسم مخصص محفوظ له سابقاً، وإلا uniqueId نفسه كحل أخير.
 function adminDisplayNameFor(uid) {
@@ -39163,13 +39176,22 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
     targetUid = senderUser.uniqueId;
     targetUser = senderUser;
   } else {
-    // "انعاش @username" — لازم تبدأ الرسالة فعلاً بالكلمة المفتاحية متبوعة
-    // بمسافة، لتفادي أي تصادم مع رسالة عادية تحتوي الكلمة ضمن جملة أطول.
-    const startsWithKeyword = ADMIN_REVIVE_KEYWORDS.some(kw => adminStartsWithKeywordSpace(raw, kw));
-    if (!startsWithKeyword) return false;
-    const mention = raw.match(ADMIN_MENTION_RE);
-    if (!mention) { console.debug('🛠️ [انعاش] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return false; }
-    targetUid = adminResolveMentionUid(mention[1]);
+    // "انعاش @username" أو "انعاش نيكنيم" أو "انعاش يوزرنيم" (بدون @ حتى) —
+    // لازم تبدأ الرسالة فعلاً بالكلمة المفتاحية متبوعة بمسافة، لتفادي أي
+    // تصادم مع رسالة عادية تحتوي الكلمة ضمن جملة أطول.
+    const matchedKw = ADMIN_REVIVE_KEYWORDS.find(kw => adminStartsWithKeywordSpace(raw, kw));
+    if (!matchedKw) return false;
+    const rest = raw.slice(matchedKw.length + 1).trim();
+    if (!rest) { console.debug('🛠️ [انعاش] ما فيه هدف بعد الكلمة المفتاحية:', JSON.stringify(raw)); return false; }
+    const withoutAt = rest.replace(/^@/, '');
+    // "@" صريح دايماً يُقبل (منشن تيك توك حقيقي حتى لو ما تكلم صاحبه بالشات
+    // بعد) — وإلا لازم يكون نيكنيم معروف حياً أو يشبه يوزرنيم حرفي صالح،
+    // وإلا نتجاهل (نص عشوائي مو هدف حقيقي).
+    if (!rest.startsWith('@') && !adminIsKnownNickname(withoutAt) && !adminLooksLikeLiteralHandle(withoutAt)) {
+      console.debug('🛠️ [انعاش] "' + rest + '" مو نيكنيم معروف حياً ولا يشبه يوزرنيم صالح — تجاهل.');
+      return false;
+    }
+    targetUid = adminResolveMentionUid(withoutAt);
     // اسمه الحقيقي المعروض (نيكنيمه الفعلي لو رصدناه حياً من رسائله بالشات،
     // وإلا أي اسم مخصص محفوظ له، وإلا uniqueId كحل أخير) — يظهر بهذا الاسم
     // فعلياً لو انعش، مو بيوزره الخام.
@@ -39213,11 +39235,21 @@ function parseAdminJoinCommand(rawText) {
   const rest = raw.length <= matchedKw.length ? '' : raw.slice(matchedKw.length + 1);
   if (!rest.trim()) return { mode: 'self' };
 
-  // trimStart فقط لفحص وجود المنشن (احتياطاً لو صار فاصل مكوّن من أكثر من
-  // حرف مسافة) — القيمة المُرجعة بحالة customName تبقى rest الأصلية بدون
-  // أي قص، تماماً كما يتطلب التصميم.
-  const mention = rest.replace(/^\s+/, '').match(/^@([^\s@]+)/);
+  // trimStart فقط لفحص المحتوى (احتياطاً لو صار فاصل مكوّن من أكثر من حرف
+  // مسافة) — القيمة المُرجعة بحالة customName تبقى rest الأصلية بدون أي
+  // قص، تماماً كما يتطلب التصميم.
+  const trimmedRest = rest.replace(/^\s+/, '');
+  const mention = trimmedRest.match(/^@([^\s@]+)/);
   if (mention) return { mode: 'mention', handle: adminResolveMentionUid(mention[1]) };
+
+  // بدون @ صريح: لو النص المكتوب فعلاً نيكنيم معروف حياً (شخص سبق وتكلم
+  // بالشات بهذا الاسم) أو يشبه يوزرنيم حرفي صالح، اعتبره استهدافاً لذلك
+  // الشخص — يحل مشكلة "دخول احسمها" (بدون @) اللي ما كانت تشتغل قبل. غير
+  // هذا (نص عشوائي ما يطابق أي هوية معروفة) يبقى اسماً مخصصاً يدخل به
+  // المرسل نفسه، بنفس السلوك القديم بالضبط.
+  if (adminIsKnownNickname(trimmedRest) || adminLooksLikeLiteralHandle(trimmedRest)) {
+    return { mode: 'mention', handle: adminResolveMentionUid(trimmedRest) };
+  }
 
   return { mode: 'customName', name: rest }; // raw بدون قص — يحافظ على الاسم كما كُتب بالضبط
 }
@@ -39422,14 +39454,15 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
     return true;
   }
 
-  // تجميد/شعلة/درع/تاج/سبوتلايت — تتطلب منشن + الهدف مشارك نشط حالياً.
+  // تجميد/شعلة/درع/تاج/سبوتلايت — تتطلب هدف (منشن @، أو نيكنيم/يوزرنيم
+  // مباشر بدون @) + الهدف مشارك نشط حالياً.
   for (const kind of ['freeze', 'flame', 'shield', 'crown', 'spotlight']) {
-    const matched = ADMIN_FX_KEYWORDS[kind].some(kw => raw === kw || adminStartsWithKeywordSpace(raw, kw));
-    if (!matched) continue;
+    const matchedKw = ADMIN_FX_KEYWORDS[kind].find(kw => raw === kw || adminStartsWithKeywordSpace(raw, kw));
+    if (!matchedKw) continue;
     if (!isAdminAuthorizedFor(senderUser.uniqueId, kind)) return false;
-    const mention = raw.match(ADMIN_MENTION_RE);
-    if (!mention) { console.debug('🛠️ [' + kind + '] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return true; }
-    const targetUid = adminResolveMentionUid(mention[1]);
+    const rest = raw === matchedKw ? '' : raw.slice(matchedKw.length + 1).trim();
+    if (!rest) { console.debug('🛠️ [' + kind + '] ما فيه هدف بعد الكلمة المفتاحية:', JSON.stringify(raw)); return true; }
+    const targetUid = adminResolveMentionUid(rest.replace(/^@/, ''));
     if (!participantsMap || !participantsMap.has(targetUid)) { console.debug('🛠️ [' + kind + '] "' + targetUid + '" مو مشارك نشط حالياً بـ' + gameTag + ' (participantsMap ما فيه هذا الـuniqueId).'); return true; }
     if (!adminCommandCooldownCheck(gameTag, kind, targetUid)) { console.debug('🛠️ [' + kind + '] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
 
@@ -39591,14 +39624,20 @@ function parseAdminGrantCommand(rawText) {
   if (!mode) return null;
 
   const rest = raw.slice(matchedKw.length + 1).trim();
-  const mention = rest.match(ADMIN_MENTION_RE);
-  if (!mention) { console.debug('🛠️ [اضافة/إزالة] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return null; }
-  const handle = adminResolveMentionUid(mention[1]);
-  // باقي النص بعد حذف توكن المنشن (بأي موضع كان) هو اسم الأمر.
-  const commandNameText = (rest.slice(0, mention.index) + ' ' + rest.slice(mention.index + mention[0].length)).trim();
-  if (!commandNameText) { console.debug('🛠️ [اضافة/إزالة] ما لقيت اسم أمر بعد حذف المنشن بالنص:', JSON.stringify(raw)); return null; }
-  const commandKey = adminResolveCommandKey(commandNameText);
-  if (!commandKey) { console.debug('🛠️ [اضافة/إزالة] اسم الأمر "' + commandNameText + '" غير معروف — راجع أسماء الأوامر الصحيحة.'); return null; }
+  if (!rest) { console.debug('🛠️ [اضافة/إزالة] ما فيه شي بعد الكلمة المفتاحية:', JSON.stringify(raw)); return null; }
+  // نبحث عن أي كلمة بالنص تطابق اسم أمر معروف (بأي ترتيب — "اضافة @user
+  // انعاش" أو "اضافة انعاش @user")؛ باقي الكلمات (بأي ترتيب، مع أو بدون
+  // @) هي الهدف (يوزرنيم أو نيكنيم، حتى لو كان بعدة كلمات).
+  const tokens = rest.split(/\s+/);
+  let commandKey = null, targetTokens = null;
+  for (let i = 0; i < tokens.length; i++) {
+    const key = adminResolveCommandKey(tokens[i]);
+    if (key) { commandKey = key; targetTokens = tokens.slice(0, i).concat(tokens.slice(i + 1)); break; }
+  }
+  if (!commandKey) { console.debug('🛠️ [اضافة/إزالة] ما لقيت اسم أمر معروف بالنص:', JSON.stringify(raw)); return null; }
+  const targetText = targetTokens.join(' ').trim();
+  if (!targetText) { console.debug('🛠️ [اضافة/إزالة] ما فيه هدف (يوزر/نيكنيم) بالنص:', JSON.stringify(raw)); return null; }
+  const handle = adminResolveMentionUid(targetText.replace(/^@/, ''));
 
   return { mode, handle, commandKey };
 }
