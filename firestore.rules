@@ -373,11 +373,15 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;
-      allow update: if request.auth != null && (
-        resource.data.ownerUid == request.auth.uid ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
-         request.resource.data.clicksCount == resource.data.clicksCount + 1)
-      );
+      // زيادة clicksCount مسموحة للجميع حتى بدون تسجيل دخول — أغلب من يفتح
+      // رابط إحالة لأول مرة زائر غير مسجّل أصلاً، وهذا الشرط هو اللي كان
+      // يمنع احتساب زيارته بصمت (request.auth != null كان شرطاً عاماً على
+      // كل تحديث بما فيها هذا). محصور تماماً بزيادة +1 بالضبط على هذا الحقل
+      // وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله فقط.
+      allow update: if (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
+        request.resource.data.clicksCount == resource.data.clicksCount + 1
+      ) || (request.auth != null && resource.data.ownerUid == request.auth.uid);
       allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
 
       match /entrants/{entrantUid} {

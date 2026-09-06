@@ -9224,8 +9224,8 @@ async function refRenderMyLink() {
     refEntrantsUnsub = fb.onSnapshot(fb.collection(fb.db, 'referralLinks', refMyCode, 'entrants'), (esnap) => {
       const el = document.getElementById('ref-entrants-count');
       if (el) el.textContent = esnap.size;
-    }, (err) => { /* best-effort */ });
-  } catch (e) { /* best-effort */ }
+    }, (err) => { console.error('🔗 refRenderMyLink: تعذّرت متابعة entrants حياً —', err); });
+  } catch (e) { console.error('🔗 refRenderMyLink فشلت —', e); }
 }
 
 // يقرأ pendingReferralUsers/{uid} من النظام الاحتياطي (RTDB) — يرجّع
@@ -9409,7 +9409,7 @@ async function refAddEntrantIfMissing(code, uid, username) {
     const esnap = await fb.getDoc(entrantRef);
     if (esnap.exists()) return;
     await fb.setDoc(entrantRef, { username, enteredAt: fb.serverTimestamp() });
-  } catch (e) { /* best-effort — ما نكسر أي شي لو فشلت */ }
+  } catch (e) { console.error('🔗 refAddEntrantIfMissing(' + code + ', ' + uid + ') فشلت —', e); }
 }
 
 // تُستدعى مرة وحدة عند إقلاع التطبيق (من authBoot، قبل أي show()). تنظّف
@@ -9431,15 +9431,22 @@ async function refHandleIncomingVisit() {
     const data = linkSnap.data() || {};
     const seenKey = 'refSeen_' + codeLower;
     if (!localStorage.getItem(seenKey)) {
-      localStorage.setItem(seenKey, '1');
-      try { await fb.updateDoc(linkRef, { clicksCount: fb.increment(1) }); } catch (e) {}
+      // نعلّم "شوفناها" فقط بعد نجاح الكتابة الفعلي — لو فشلت (مثلاً بسبب
+      // قاعدة أمان لسا ما تسمح بزيادة anonymous)، تبقى الفرصة قائمة لزيارة
+      // لاحقة تحتسب صح، بدل ما تُقفل نهائياً بهذا المتصفح بالغلط.
+      try {
+        await fb.updateDoc(linkRef, { clicksCount: fb.increment(1) });
+        localStorage.setItem(seenKey, '1');
+      } catch (e) {
+        console.error('🔗 refHandleIncomingVisit: فشلت زيادة clicksCount لكود "' + codeLower + '" —', e);
+      }
     }
     if (currentUser && currentUsername) {
       if (currentUser.uid !== data.ownerUid) await refAddEntrantIfMissing(codeLower, currentUser.uid, currentUsername);
     } else {
       localStorage.setItem('pendingRefCode', codeLower);
     }
-  } catch (e) { /* لا تكسر إقلاع التطبيق أبداً بسبب هذي الميزة */ }
+  } catch (e) { console.error('🔗 refHandleIncomingVisit فشلت —', e); }
 }
 
 // تُستدعى بعد ما currentUser/currentUsername يصيرون معروفين (دخول عادي أو
@@ -9462,7 +9469,7 @@ async function refSyncPendingCodeIfAny() {
         await refAddEntrantIfMissing(pending, currentUser.uid, currentUsername);
       }
     }
-  } catch (e) { /* best-effort */ }
+  } catch (e) { console.error('🔗 refSyncPendingCodeIfAny(' + pending + ') فشلت —', e); }
   localStorage.removeItem('pendingRefCode');
 }
 
@@ -9515,7 +9522,7 @@ function ownerRenderLinksTab() {
     const rows = [];
     snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
     renderCombined(rows);
-  }, (err) => { renderCombined([]); });
+  }, (err) => { console.error('🔗 ownerRenderLinksTab: تعذّرت متابعة referralLinks حياً —', err); renderCombined([]); });
 }
 
 let refEntrantsModalUnsub = null;
@@ -9533,7 +9540,7 @@ function ownerOpenLinkEntrants(code) {
     if (!list) return;
     if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما دخل أحد بعد</div>'; return; }
     list.innerHTML = rows.map(r => `<div class="owner-row"><div class="owner-row-main"><div class="owner-row-name">${ownerEscape(r.username || '—')}</div></div></div>`).join('');
-  }, (err) => { /* best-effort */ });
+  }, (err) => { console.error('🔗 ownerOpenLinkEntrants(' + code + '): تعذّرت متابعة entrants حياً —', err); });
 }
 function ownerCloseLinkEntrants() {
   const overlay = document.getElementById('ref-entrants-modal-overlay');

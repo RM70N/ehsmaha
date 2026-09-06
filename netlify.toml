@@ -1,0 +1,11 @@
+[build]
+  publish = "."
+
+# رابط إحالة زي ehsmaha.com/ahmed-2024 لازم يحمّل نفس index.html (تطبيق صفحة
+# واحدة) حتى تقرأ refHandleIncomingVisit() المسار من location.pathname —
+# بدون هذا الرد، Netlify يرجّع 404 مباشرة قبل ما يوصل أي كود جافاسكربت
+# للمتصفح، فلا تُحتسب الزيارة ولا يشتغل أي شيء من نظام الروابط المرجعية.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
