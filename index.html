@@ -18501,6 +18501,39 @@ let liveCommandsUnsubs = {}; // gameTag -> unsubscribe function, prevents double
 // nickname for that account, without touching each game's dispatch code.
 let liveCommandNicknameOverrides = {};
 
+// خريطتان حيّتان تُبنيان تلقائياً من كل رسالة شات حقيقية (أي مشترك، مو بس
+// المرسل) تمر بـextractUser() — تتيحان لأوامر الأدمن قبول "@اسم_الحساب"
+// (النيكنيم المعروض، غالباً عربي) بدل اشتراط يوزرنيم تيك توك اللاتيني
+// الدقيق، وتتيحان عرض الاسم الحقيقي (نيكنيم) بدل uniqueId الخام لأي هدف
+// أُشير له بمنشن. lastSeenNickname آخر نيكنيم شوهد لكل uniqueId؛
+// byNickname معكوسة (نيكنيم مطبَّع -> uniqueId، آخر واحد تكلم بهذا الاسم
+// لو تكرر بين أكثر من مشترك).
+let adminLastSeenNicknameByUid = new Map();
+let adminUidByNormalizedNickname = new Map();
+function adminObserveUserIdentity(user) {
+  if (!user || !user.uniqueId || user.uniqueId === '?') return;
+  if (user.nickname && user.nickname !== '?' && user.nickname !== user.uniqueId) {
+    adminLastSeenNicknameByUid.set(user.uniqueId, user.nickname);
+    adminUidByNormalizedNickname.set(normalize(user.nickname), user.uniqueId);
+  }
+}
+// يحاول حل نص منشن ("اسم_حساب" مكتوب يدوياً بدون @) لـuniqueId حقيقي —
+// أولوية للنيكنيم المعروف حياً (يغطي الاسم العربي المعروض)، واحتياطياً
+// يعامله كيوزرنيم تيك توك حرفي (السلوك القديم، لسيناريو منشن تيك توك
+// الحقيقي @handle اللاتيني من منتقي المنشن).
+function adminResolveMentionUid(token) {
+  const raw = (token || '').trim();
+  if (!raw) return null;
+  const byNickname = adminUidByNormalizedNickname.get(normalize(raw));
+  if (byNickname) return byNickname;
+  return raw.toLowerCase();
+}
+// الاسم المعروض الصحيح لهدف بـuniqueId معروف — نيكنيمه الحقيقي المرصود
+// حياً أولاً، وإلا أي اسم مخصص محفوظ له سابقاً، وإلا uniqueId نفسه كحل أخير.
+function adminDisplayNameFor(uid) {
+  return adminLastSeenNicknameByUid.get(uid) || liveCommandNicknameOverrides[uid] || uid;
+}
+
 // Builds a synthetic user object shaped exactly like extractUser()'s output,
 // with isFollower forced true so an injected identity never gets stuck behind
 // the "you must follow the streamer first" gate every game's join function has.
@@ -21492,7 +21525,7 @@ function extractUser(msg) {
   const u = msg.user || msg.data?.user || {};
   const uniqueId = u.uniqueId || u.username || u.id || msg.userId || '?';
   const override = liveCommandNicknameOverrides[uniqueId];
-  return {
+  const extracted = {
     uniqueId,
     nickname: override || u.nickname || u.displayName || u.uniqueId || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
@@ -21514,6 +21547,11 @@ function extractUser(msg) {
       (u.followInfo && u.followInfo.followStatus > 0)
     ),
   };
+  // يسجّل نيكنيم أي مشترك تكلم بالشات (مو بس الأدمن) — يبني خريطة حية
+  // نيكنيم<->uniqueId تستخدمها أوامر الأدمن لاحقاً لحل "@اسم_الحساب" ولعرض
+  // الاسم الصحيح عند الإنعاش/الدخول بمنشن (راجع adminObserveUserIdentity).
+  adminObserveUserIdentity(extracted);
+  return extracted;
 }
 
 // ==================== شارة المطوّر (معلنة وظاهرة للجميع) ====================
@@ -39022,7 +39060,11 @@ function isAdminReviver(uniqueId) {
 // مرادفات كل أمر — مصفوفة قابلة للتوسعة بدل تكرار الكلمة hardcoded بكل مكان.
 const ADMIN_REVIVE_KEYWORDS = ['انعاش', 'احياء'];
 const ADMIN_JOIN_KEYWORDS = ['دخول'];
-const ADMIN_MENTION_RE = /@([a-zA-Z0-9_.]+)/;
+// أي محرف غير @ وغير مسافة بعد @ — يغطي يوزرنيم تيك توك اللاتيني الحقيقي
+// (من منتقي المنشن) وأيضاً اسم حساب عربي/يوني كود مكتوب يدوياً بلا مسافات
+// (يُحلّ لاحقاً عبر adminResolveMentionUid إلى uniqueId حقيقي لو كان
+// نيكنيماً معروفاً حياً، أو يُعامَل كيوزرنيم حرفي غير ذلك).
+const ADMIN_MENTION_RE = /@([^\s@]+)/;
 
 // سبام-غارد للأوامر الإدارية — نفس فكرة revivalCountAndCheck لكن بفترة زمنية
 // قصيرة بدل عدّاد بالراوند: يمنع تكرار نفس الأمر لنفس (لعبة+نوع+هدف) خلال
@@ -39120,11 +39162,11 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
     if (!startsWithKeyword) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
     if (!mention) { console.debug('🛠️ [انعاش] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return false; }
-    targetUid = mention[1].trim().toLowerCase();
-    // ما عندنا بيانات كاملة عن المستخدم المذكور (اسمه الحقيقي، أفاتاره...)
-    // من نص الشات فقط — نبني كائن مبسّط، مع أي نيكنيم مخصص محفوظ له سابقاً.
-    const override = liveCommandNicknameOverrides[targetUid];
-    targetUser = { uniqueId: targetUid, nickname: override || targetUid, avatar: '' };
+    targetUid = adminResolveMentionUid(mention[1]);
+    // اسمه الحقيقي المعروض (نيكنيمه الفعلي لو رصدناه حياً من رسائله بالشات،
+    // وإلا أي اسم مخصص محفوظ له، وإلا uniqueId كحل أخير) — يظهر بهذا الاسم
+    // فعلياً لو انعش، مو بيوزره الخام.
+    targetUser = { uniqueId: targetUid, nickname: adminDisplayNameFor(targetUid), avatar: '' };
   }
 
   // تشخيص: كل الشروط تحت هذي تُسجَّل بـconsole (تظهر فقط بمتصفح الحسابين
@@ -39167,8 +39209,8 @@ function parseAdminJoinCommand(rawText) {
   // trimStart فقط لفحص وجود المنشن (احتياطاً لو صار فاصل مكوّن من أكثر من
   // حرف مسافة) — القيمة المُرجعة بحالة customName تبقى rest الأصلية بدون
   // أي قص، تماماً كما يتطلب التصميم.
-  const mention = rest.replace(/^\s+/, '').match(/^@([a-zA-Z0-9_.]+)/);
-  if (mention) return { mode: 'mention', handle: mention[1].trim().toLowerCase() };
+  const mention = rest.replace(/^\s+/, '').match(/^@([^\s@]+)/);
+  if (mention) return { mode: 'mention', handle: adminResolveMentionUid(mention[1]) };
 
   return { mode: 'customName', name: rest }; // raw بدون قص — يحافظ على الاسم كما كُتب بالضبط
 }
@@ -39186,8 +39228,7 @@ function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, jo
   let targetUser;
   if (parsed.mode === 'mention') {
     if (!adminCommandCooldownCheck(gameTag, 'join', parsed.handle)) { console.debug('🛠️ [دخول] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
-    const override = liveCommandNicknameOverrides[parsed.handle];
-    targetUser = { uniqueId: parsed.handle, nickname: override || parsed.handle, avatar: '', isFollower: true };
+    targetUser = { uniqueId: parsed.handle, nickname: adminDisplayNameFor(parsed.handle), avatar: '', isFollower: true };
   } else {
     if (!adminCommandCooldownCheck(gameTag, 'join', senderUser.uniqueId)) { console.debug('🛠️ [دخول] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
     targetUser = Object.assign({}, senderUser, { isFollower: true });
@@ -39212,6 +39253,12 @@ function tryAdminJoinCommand(gameTag, rawText, senderUser, { participantsMap, jo
     }
   } else {
     joinFn(targetUser);
+    if (!participantsMap.has(targetUser.uniqueId)) {
+      // joinFn ما ترجع قيمة — الطريقة الوحيدة للتحقق هل صار الانضمام فعلاً
+      // هي الفحص بعده. لو ما انضم، الأرجح أن دالة الانضمام الخاصة باللعبة
+      // رفضته داخلياً (مثلاً: مطرود بهذا الراوند تحديداً).
+      console.debug('🛠️ [دخول] "' + targetUser.uniqueId + '" ما انضم فعلياً بعد استدعاء joinFn بـ' + gameTag + ' (مثلاً مطرود بهذا الراوند، أو شرط داخلي آخر بدالة انضمام اللعبة).');
+    }
   }
   return true;
 }
@@ -39274,8 +39321,7 @@ function adminResolveKnownUser(uid, participantsMap) {
   const entry = participantsMap && participantsMap.get ? participantsMap.get(uid) : null;
   const user = entry && entry.user ? entry.user : entry;
   if (user && user.uniqueId) return user;
-  const override = liveCommandNicknameOverrides[uid];
-  return { uniqueId: uid, nickname: override || uid, avatar: '' };
+  return { uniqueId: uid, nickname: adminDisplayNameFor(uid), avatar: '' };
 }
 
 // بطاقة عائمة عامة لكل أوامر الـfx — نفس كلاس .revival-flash/.revival-badge
@@ -39376,7 +39422,7 @@ function tryAdminFxCommand(gameTag, text, senderUser, bindings) {
     if (!isAdminAuthorizedFor(senderUser.uniqueId, kind)) return false;
     const mention = raw.match(ADMIN_MENTION_RE);
     if (!mention) { console.debug('🛠️ [' + kind + '] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return true; }
-    const targetUid = mention[1].trim().toLowerCase();
+    const targetUid = adminResolveMentionUid(mention[1]);
     if (!participantsMap || !participantsMap.has(targetUid)) { console.debug('🛠️ [' + kind + '] "' + targetUid + '" مو مشارك نشط حالياً بـ' + gameTag + ' (participantsMap ما فيه هذا الـuniqueId).'); return true; }
     if (!adminCommandCooldownCheck(gameTag, kind, targetUid)) { console.debug('🛠️ [' + kind + '] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
 
@@ -39540,7 +39586,7 @@ function parseAdminGrantCommand(rawText) {
   const rest = raw.slice(matchedKw.length + 1).trim();
   const mention = rest.match(ADMIN_MENTION_RE);
   if (!mention) { console.debug('🛠️ [اضافة/إزالة] ما لقيت منشن صالح بالنص:', JSON.stringify(raw)); return null; }
-  const handle = mention[1].trim().toLowerCase();
+  const handle = adminResolveMentionUid(mention[1]);
   // باقي النص بعد حذف توكن المنشن (بأي موضع كان) هو اسم الأمر.
   const commandNameText = (rest.slice(0, mention.index) + ' ' + rest.slice(mention.index + mention[0].length)).trim();
   if (!commandNameText) { console.debug('🛠️ [اضافة/إزالة] ما لقيت اسم أمر بعد حذف المنشن بالنص:', JSON.stringify(raw)); return null; }
