@@ -22632,8 +22632,19 @@ function buildParticipantChip(user, playerNumber, tagId) {
     (prefix ? `<span class="p-username-prefix">${prefix}</span>` : '') +
     `<span class="p-username-name">${esc(nickname)}</span>`;
   // نظام الإطارات: يلبس تلقائياً إطار الأفتار المُفعَّل (إن وُجد) حول دائرة
-  // المشارك — أفضل جهد وبلا تعطيل رسم البطاقة (async، يحدّث الـDOM لاحقاً).
-  if (typeof framesApplyToChip === 'function') framesApplyToChip(tag.querySelector('.p-avatar-wrap'), uid);
+  // المشارك. Fire-and-forget بالكامل ومعزول عن مسار الانضمام: مؤجَّل بـ
+  // setTimeout(0) حتى ما يشتغل إطلاقاً ضمن نفس استدعاء الدالة الحالي
+  // (فيستحيل أي throw منه يوصل لدالة الانضمام اللي بنَت هذي البطاقة)، ومحاط
+  // بـ try/catch احتياطياً حتى لو صار استثناء متزامن غير متوقع داخل
+  // framesApplyToChip نفسها (مثلاً مرجع Firestore غير صالح) ما ينكسر معه
+  // أي كود ثاني — أهم شيء الانضمام للراوند يصير فوراً بغض النظر عن حالة
+  // أو نجاح/فشل قراءة الإطار.
+  const wrapElForFrame = tag.querySelector('.p-avatar-wrap');
+  setTimeout(() => {
+    try {
+      if (typeof framesApplyToChip === 'function') framesApplyToChip(wrapElForFrame, uid);
+    } catch (e) { /* أفضل جهد — عرض البطاقة والانضمام للراوند لا يتأثران أبداً */ }
+  }, 0);
   return tag;
 }
 
@@ -23898,6 +23909,57 @@ function framesRender() {
   grid.innerHTML = FRAMES_CATALOG.map(framesCardHtml).join('');
 }
 
+// ==================== نظام احتياطي خاص ببيانات الإطارات (Firestore -> Realtime Database) ====================
+// مسار levels/{key} (الحقلين ownedFrames و activeFrame) فقط — لا شيء آخر
+// بالمشروع. يعيد استخدام authIsQuotaError (نفس دالة كشف انتهاء حصة Firestore
+// المستخدمة أصلاً بمسار تسجيل الحسابات أعلى بالملف: err.code ===
+// 'resource-exhausted'/'unavailable' أو رسالة تحتوي "quota exceeded"). لو
+// انتهت الحصة وعندنا Realtime Database مفعّل (fb.rtdb)، يتحول القراءة
+// والكتابة تلقائياً وبصمت لنفس المسار هناك — بدون أي رسالة خطأ للمستخدم.
+// لو fb.rtdb غير مفعّل، يرمي الخطأ الأصلي (نفس السلوك القديم بالضبط).
+function framesRtdbPath(key) { return 'levels/' + key; }
+
+// قراءة مرة وحدة — ترجع كائن بنفس شكل Firestore snap (exists()/data()) بغض
+// النظر عن المصدر الفعلي، حتى يبقى كل كود الاستدعاء بدون أي تغيير.
+async function framesReadKV(key) {
+  try {
+    return await fb.getDoc(fb.doc(fb.db, 'levels', key));
+  } catch (err) {
+    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
+    const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)));
+    return { exists: () => rsnap.exists(), data: () => rsnap.val() || {} };
+  }
+}
+
+// كتابة (merge دائماً — نفس استخدام framesClaim/framesSetActive الحالي).
+async function framesWriteKV(key, data) {
+  try {
+    await fb.setDoc(fb.doc(fb.db, 'levels', key), data, { merge: true });
+  } catch (err) {
+    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
+    await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), data);
+  }
+}
+
+// استماع حي (تستخدمه framesLoadSelf فقط) — يبدأ بـFirestore onSnapshot، ولو
+// أول خطأ يوصل لدالة الفشل هو خطأ حصة وعندنا rtdb، يتحول تلقائياً لاستماع حي
+// بديل من Realtime Database بنفس المسار ونفس شكل snap. يرجع دالة إلغاء اشتراك
+// واحدة تشتغل صح بالحالتين.
+function framesOnValue(key, onData) {
+  let unsub = null;
+  let switched = false;
+  unsub = fb.onSnapshot(fb.doc(fb.db, 'levels', key), (snap) => {
+    onData(snap);
+  }, (err) => {
+    if (switched || !authIsQuotaError(err) || !fb.rtdb) return;
+    switched = true;
+    unsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), (rsnap) => {
+      onData({ exists: () => rsnap.exists(), data: () => rsnap.val() || {} });
+    }, () => {});
+  });
+  return () => { if (unsub) unsub(); };
+}
+
 // يقرأ لفل/إطارات الشخص الحالي مرة، ثم يبقى مستمعاً حيّاً طول ما صفحة
 // الإطارات مفتوحة (عشان لو رفع لفل أثناء تصفّحه تنفتح له مقاعد جديدة فوراً).
 async function framesLoadSelf() {
@@ -23905,14 +23967,14 @@ async function framesLoadSelf() {
   if (!framesSelfKey || !fb) { framesRender(); return; }
   if (framesSelfUnsub) { framesSelfUnsub(); framesSelfUnsub = null; }
   try {
-    framesSelfUnsub = fb.onSnapshot(fb.doc(fb.db, 'levels', framesSelfKey), (snap) => {
+    framesSelfUnsub = framesOnValue(framesSelfKey, (snap) => {
       const v = snap.exists() ? (snap.data() || {}) : {};
       framesSelfLevel = Math.max(1, Number(v.level) || 1);
       const rawOwned = Array.isArray(v.ownedFrames) ? v.ownedFrames : [];
       framesSelfOwned = rawOwned.filter(id => FRAMES_CATALOG.some(f => f.id === id));
       framesSelfActive = (v.activeFrame && framesSelfOwned.includes(v.activeFrame)) ? v.activeFrame : '';
       framesRender();
-    }, (err) => { framesRender(); });
+    });
   } catch (e) { framesRender(); }
 }
 
@@ -23929,7 +23991,7 @@ async function framesClaim(frameId) {
   framesRender();
   if (!fb || !framesSelfKey) return;
   try {
-    await fb.setDoc(fb.doc(fb.db, 'levels', framesSelfKey), { ownedFrames: nextOwned, activeFrame: frameId }, { merge: true });
+    await framesWriteKV(framesSelfKey, { ownedFrames: nextOwned, activeFrame: frameId });
     if (typeof toast === 'function') toast('🖼️ صار إطار "' + f.name + '" عندك وتفعّل!');
   } catch (e) {
     if (typeof toast === 'function') toast('⚠️ ما قدرنا نحفظ الإطار، جرّب مرة ثانية');
@@ -23943,7 +24005,7 @@ async function framesSetActive(frameId) {
   framesRender();
   if (!fb || !framesSelfKey) return;
   try {
-    await fb.setDoc(fb.doc(fb.db, 'levels', framesSelfKey), { activeFrame: frameId }, { merge: true });
+    await framesWriteKV(framesSelfKey, { activeFrame: frameId });
   } catch (e) {
     if (typeof toast === 'function') toast('⚠️ ما قدرنا نحفظ الإطار، جرّب مرة ثانية');
   }
@@ -23985,20 +24047,25 @@ function framesInjectRing(wrapEl, frameId, sizePx) {
 }
 
 function framesApplyToChip(wrapEl, uniqueId, sizePx) {
-  if (!wrapEl || !uniqueId || !fb) return;
-  const key = levelsKey(uniqueId);
-  if (!key) return;
-  if (framesParticipantCache.has(key)) {
-    const cached = framesParticipantCache.get(key);
-    if (cached) framesInjectRing(wrapEl, cached, sizePx);
-    return;
-  }
-  fb.getDoc(fb.doc(fb.db, 'levels', key)).then(snap => {
-    const v = snap.exists() ? (snap.data() || {}) : {};
-    const fid = v.activeFrame || '';
-    framesParticipantCache.set(key, fid);
-    if (fid && document.body.contains(wrapEl)) framesInjectRing(wrapEl, fid, sizePx);
-  }).catch(() => { /* أفضل جهد — بلا إطار عند أي فشل قراءة */ });
+  // كل شيء بالأسفل محاط بـtry حتى لو صار استثناء متزامن (مثلاً مرجع
+  // Firestore غير صالح) — الأفضلية دايماً لعدم كسر أي كود مستدعي، هذي دالة
+  // "أفضل جهد" بحتة لعرض الإطار، أبداً ما يجوز تأثّر بيها عملية الانضمام.
+  try {
+    if (!wrapEl || !uniqueId || !fb) return;
+    const key = levelsKey(uniqueId);
+    if (!key) return;
+    if (framesParticipantCache.has(key)) {
+      const cached = framesParticipantCache.get(key);
+      if (cached) framesInjectRing(wrapEl, cached, sizePx);
+      return;
+    }
+    framesReadKV(key).then(snap => {
+      const v = snap.exists() ? (snap.data() || {}) : {};
+      const fid = v.activeFrame || '';
+      framesParticipantCache.set(key, fid);
+      if (fid && document.body.contains(wrapEl)) framesInjectRing(wrapEl, fid, sizePx);
+    }).catch(() => { /* أفضل جهد — بلا إطار عند أي فشل قراءة */ });
+  } catch (e) { /* أفضل جهد — بلا إطار عند أي استثناء متزامن غير متوقع */ }
 }
 
 </script>
