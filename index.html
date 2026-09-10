@@ -23214,6 +23214,11 @@ async function playerTiktokPersist(cleanUsername, okVerb) {
     // للمستخدم حتى لو الشبكة بطيئة.
     playerTiktokLinkStore(link);
     playerTiktokRenderCurrent();
+    // ربط الحساب غيّر هوية نظام المستويات (levelsSelfIdentity يرجع يوزر تيك
+    // توك من الحين بدل يوزر حساب الموقع) — لازم نعيد تحميل حالة الإطارات
+    // عشان framesSelfKey يتحدّث لنفس المفتاح الصحيح، وإلا أي تفعيل إطار بعد
+    // الربط يفضل يحفظ (خطأً) تحت المفتاح القديم المحسوب قبل الربط.
+    if (typeof framesLoadSelf === 'function') framesLoadSelf();
 
     const outcome = await playerTiktokSaveToAccount(link);
     const avatarNote = fetched ? '' : ' — ما قدرنا نجيب صورة الحساب فراح يظهر أفتار افتراضي، جرّب "تحديث الربط" لاحقاً';
@@ -23980,9 +23985,23 @@ async function framesLoadSelf() {
 
 // يختار الشخص إطاراً جديداً بمقعد فاضي — ينضم لمجموعته الدائمة ويصير
 // مفعَّلاً فوراً بنفس الضغطة.
+// لازم يكون رابط حسابه بتيك توك (زر "ربط حسابي بتيك توك" بالبروفايل — منفصل
+// تماماً عن ربط البث) قبل تفعيل أي إطار: framesKeyForSelf/levelsSelfIdentity
+// بدون ربط يرجع يوزر حساب الموقع لا يوزر تيك توك، فيُحفظ الإطار تحت مفتاح
+// غير اللي تُقرأ منه بطاقات المشاركين بالبث (levelsKey(uid) من الشات) ولا
+// يظهر إطلاقاً. بدل ما يحفظ تحت مفتاح خاطئ بصمت، نفتح له صفحة الربط مباشرة.
+function framesRequireLinkedOrRedirect() {
+  const linked = (typeof playerTiktokLinkGet === 'function') ? playerTiktokLinkGet() : null;
+  if (linked && linked.username) return true;
+  if (typeof toast === 'function') toast('🔗 اربط حسابك بتيك توك الأول عشان يظهر إطارك بالبثوث');
+  if (typeof playerTiktokModalOpen === 'function') playerTiktokModalOpen();
+  return false;
+}
+
 async function framesClaim(frameId) {
   const f = FRAMES_CATALOG.find(x => x.id === frameId);
   if (!f) return;
+  if (!framesRequireLinkedOrRedirect()) return;
   const slots = framesSlotsForLevel(framesSelfLevel);
   if (framesSelfOwned.includes(frameId) || framesSelfOwned.length >= slots) return;
   const nextOwned = framesSelfOwned.concat([frameId]);
@@ -24001,6 +24020,7 @@ async function framesClaim(frameId) {
 // يبدّل الإطار المفعَّل بين الإطارات اللي عنده أصلاً (frameId='' = بلا إطار).
 async function framesSetActive(frameId) {
   if (frameId && !framesSelfOwned.includes(frameId)) return;
+  if (frameId && !framesRequireLinkedOrRedirect()) return; // إلغاء التفعيل (frameId='') مسموح دايماً بدون شرط الربط
   framesSelfActive = frameId;
   framesRender();
   if (!fb || !framesSelfKey) return;
@@ -24028,6 +24048,15 @@ function framesBack() {
 // من مرة بنفس الجلسة (كل الألعاب تستخدم buildParticipantChip فتُغطّى كلها
 // بنقطة ربط وحدة). أفضل جهد بالكامل — أي فشل ما يكسر عرض البطاقة نفسها.
 const framesParticipantCache = new Map(); // levelsKey -> activeFrame id ('' = بلا إطار)
+
+// قوائم المشاركين بكل لعبة تُعاد بناؤها بالكامل (innerHTML='' ثم إعادة إنشاء
+// كل الشرائح) في كل مرة يتغيّر فيها المشاركون — فممكن تنعاد قبل ما تخلص قراءة
+// Firestore/RTDB لأول مرة لمستخدم معيّن، فيصير عنصر wrapEl المُلتقَط وقت
+// النداء قديم/محذوف من الصفحة ولا يظهر عليه الإطار أبداً رغم نجاح القراءة.
+// framesPendingWraps يجمع كل عناصر wrap اللي بانتظار نفس المفتاح (بما فيها
+// اللي انعاد إنشاؤها أثناء انتظار القراءة) عشان نطبّق الإطار على كل واحد
+// لسه موجود بالصفحة لحظة وصول الرد — بدل الاعتماد على عنصر واحد بس.
+const framesPendingWraps = new Map(); // levelsKey -> Set<Element>
 
 function framesRingUrl(frameId) {
   const f = FRAMES_CATALOG.find(x => x.id === frameId);
@@ -24059,12 +24088,18 @@ function framesApplyToChip(wrapEl, uniqueId, sizePx) {
       if (cached) framesInjectRing(wrapEl, cached, sizePx);
       return;
     }
+    let pending = framesPendingWraps.get(key);
+    if (pending) { pending.add(wrapEl); return; } // قراءة لنفس المفتاح شغّالة أصلاً — نكتفي بتسجيل هذا العنصر
+    pending = new Set([wrapEl]);
+    framesPendingWraps.set(key, pending);
     framesReadKV(key).then(snap => {
       const v = snap.exists() ? (snap.data() || {}) : {};
       const fid = v.activeFrame || '';
       framesParticipantCache.set(key, fid);
-      if (fid && document.body.contains(wrapEl)) framesInjectRing(wrapEl, fid, sizePx);
-    }).catch(() => { /* أفضل جهد — بلا إطار عند أي فشل قراءة */ });
+      framesPendingWraps.delete(key);
+      if (!fid) return;
+      pending.forEach(el => { if (document.body.contains(el)) framesInjectRing(el, fid, sizePx); });
+    }).catch(() => { framesPendingWraps.delete(key); /* أفضل جهد — بلا إطار عند أي فشل قراءة */ });
   } catch (e) { /* أفضل جهد — بلا إطار عند أي استثناء متزامن غير متوقع */ }
 }
 
