@@ -66043,15 +66043,16 @@ function tt10SetStatus(type, msg) {
 
 // ==================== الإطلاق ====================
 function tt10Launch() {
-  tt10TiktokUser = document.getElementById('tt10-user').value.trim().replace('@','');
-  const apiKey = (typeof getTikTokApiKey === 'function') ? getTikTokApiKey() : '';
+  // الموقع ما فيه نظام مفاتيح API إطلاقاً — كل الألعاب تعتمد على الاتصال
+  // الموحّد اللي يصير مرة وحدة من الصفحة الرئيسية (زر "ابدأ بثاً سريعاً")
+  // بالضبط زي باقي الـ26 لعبة (شوف launchSniper مثلاً). هذي اللعبة كانت
+  // باقية على منطق قديم (تبويب منصة + قراءة مفتاح تيك توك من البروفايل)
+  // يفشل دايماً لأن getTikTokApiKey ما ترجع شيء بعد إزالة نظام المفاتيح،
+  // فيطلع خطأ "اربط مفتاح" حتى لو البث متصل فعلاً من الصفحة الرئيسية.
+  tt10TiktokUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
+  gamePlatform['tt10'] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform['tt10'];
 
-  if (gamePlatform['tt10'] === 'tiktok' && !apiKey) return tt10SetStatus('err','⚠️ اربط مفتاح تيك توك أولاً من البروفايل (اضغط اسم حسابك فوق يمين)');
-  if (gamePlatform['tt10'] === 'kick') tt10KickUser = (document.getElementById('tt10-kickuser')||{value:''}).value.trim();
-  if (gamePlatform['tt10'] === 'kick' && !tt10KickUser) return tt10SetStatus('err','⚠️ أدخل يوزر أو رابط قناتك على كيك');
-  if (gamePlatform['tt10'] === 'youtube') tt10YtUser = (document.getElementById('tt10-ytuser')||{value:''}).value.trim();
-  if (gamePlatform['tt10'] === 'youtube' && !tt10YtUser) return tt10SetStatus('err','⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث');
-  if (!tt10TiktokUser) return tt10SetStatus('err','⚠️ أدخل اسم المستخدم/القناة');
+  if (!homeHasActiveConnection() || !tt10TiktokUser) return tt10SetStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
 
   const timerEnabled = document.getElementById('tt10-timer-enable').checked;
   const timerVal = parseInt(document.getElementById('tt10-timer-seconds').value, 10);
@@ -66067,7 +66068,6 @@ function tt10Launch() {
   tt10InitDashboard();
   show('tt10');
   homeRegisterGameListener('tt10', tt10HandleTikTokEvent);
-  tt10ConnectTikTok();
 
   document.getElementById('btn-tt10-launch').disabled = false;
   tt10SetStatus('', '');
@@ -67228,15 +67228,13 @@ function glzSetStatus(type, msg) {
 
 // ==================== الإطلاق ====================
 function glzLaunch() {
-  glzTiktokUser = document.getElementById('glz-user').value.trim().replace('@','');
-  const apiKey = (typeof getTikTokApiKey === 'function') ? getTikTokApiKey() : '';
+  // نفس منطق tt10Launch: الموقع ما فيه نظام مفاتيح API، والاتصال يصير مرة
+  // وحدة من الصفحة الرئيسية ويُشارَك مع كل الألعاب (homeHasActiveConnection
+  // + homeRegisterGameListener) — بالضبط زي باقي الـ26 لعبة (شوف launchSniper).
+  glzTiktokUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
+  gamePlatform['glz'] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform['glz'];
 
-  if (gamePlatform['glz'] === 'tiktok' && !apiKey) return glzSetStatus('err','⚠️ اربط مفتاح تيك توك أولاً من البروفايل (اضغط اسم حسابك فوق يمين)');
-  if (gamePlatform['glz'] === 'kick') glzKickUser = (document.getElementById('glz-kickuser')||{value:''}).value.trim();
-  if (gamePlatform['glz'] === 'kick' && !glzKickUser) return glzSetStatus('err','⚠️ أدخل يوزر أو رابط قناتك على كيك');
-  if (gamePlatform['glz'] === 'youtube') glzYtUser = (document.getElementById('glz-ytuser')||{value:''}).value.trim();
-  if (gamePlatform['glz'] === 'youtube' && !glzYtUser) return glzSetStatus('err','⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث');
-  if (!glzTiktokUser) return glzSetStatus('err','⚠️ أدخل اسم المستخدم/القناة');
+  if (!homeHasActiveConnection() || !glzTiktokUser) return glzSetStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
 
   glzJoinKeyword = (document.getElementById('glz-join-kw').value || 'زجاج').trim() || 'زجاج';
   glzMaxPlayers = Math.max(2, Math.min(40, parseInt(document.getElementById('glz-maxplayers').value, 10) || 20));
@@ -67252,7 +67250,6 @@ function glzLaunch() {
   glzInitDashboard();
   show('glz');
   homeRegisterGameListener('glz', glzHandleTikTokEvent);
-  glzConnectTikTok();
 
   document.getElementById('btn-glz-launch').disabled = false;
   glzSetStatus('', '');
