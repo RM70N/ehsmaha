@@ -200,19 +200,24 @@ service cloud.firestore {
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
+      // ownedFrames/activeFrame: حقول نظام الإطارات (framesClaim/framesSetActive)
+      // — تكتب فوق نفس مستند اللفل بـmerge:true، غالباً بدون لمس xp/level/
+      // roundsPlayed إطلاقاً (أو حتى قبل ما يكون عند المستخدم مستند لفل أصلاً).
+      // لذا صار التحقق من الحقول الرقمية شرطياً (يتحقق فقط لو الحقل موجود
+      // بنتيجة الكتابة) بدل إلزامي دائماً، حتى كتابة إطار وحدها ما تُرفض.
       allow create, update: if request.auth != null
                     && request.resource.data.keys().hasOnly([
                          'key', 'username', 'avatar',
                          'xp', 'level', 'roundsPlayed',
                          'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
+                         'createdAt', 'updatedAt',
+                         'ownedFrames', 'activeFrame'
                        ])
-                    && request.resource.data.xp is number
-                    && request.resource.data.xp >= 0
-                    && request.resource.data.level is number
-                    && request.resource.data.level >= 1
-                    && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+                    && (!('xp' in request.resource.data) || (request.resource.data.xp is number && request.resource.data.xp >= 0))
+                    && (!('level' in request.resource.data) || (request.resource.data.level is number && request.resource.data.level >= 1))
+                    && (!('roundsPlayed' in request.resource.data) || (request.resource.data.roundsPlayed is number && request.resource.data.roundsPlayed >= 0))
+                    && (!('ownedFrames' in request.resource.data) || request.resource.data.ownedFrames is list)
+                    && (!('activeFrame' in request.resource.data) || request.resource.data.activeFrame is string);
 
       allow delete: if isOwner();
     }
