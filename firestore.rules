@@ -436,6 +436,48 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /bridgeEvents/{eventId} {
+      // فعالية "جسر المصير" (لعبة تفاعلية بين الستريمرز) — هذه التجميعة ما
+      // كانت موجودة أصلاً بالقواعد، وهذا سبب "Missing or insufficient
+      // permissions" على أزرار فتح/ابدأ الآن/إنهاء بلوحة المالك.
+      allow read: if true;
+
+      allow create: if isOwner();
+
+      // المالك يعدّل أي حقل (الحالة، الجولة، الإعدادات...)؛ أي حساب مسجّل
+      // دخول غيره يقدر يعدّل حقل globalFx فقط — المشاركون أنفسهم يرسلون
+      // أثر بطاقة "عاصفة" عبر arrayUnion على هذا الحقل تحديداً.
+      allow update: if isOwner() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
+      );
+
+      allow delete: if isOwner();
+
+      match /players/{uid} {
+        allow read: if true;
+
+        // كل مشارك ينشئ وثيقته الخاصة فقط، بمفتاح يساوي uid حسابه.
+        allow create: if request.auth != null && request.auth.uid == uid;
+
+        // صاحب الوثيقة يعدّلها بالكامل، وكذلك المالك (طرد/منح بطاقة/خلط
+        // مواقع العاصفة). أي حساب آخر مسجّل دخول يقدر يعدّل حقل pendingFx
+        // فقط — أثر بطاقة يرسله خصم على هذا اللاعب.
+        allow update: if request.auth != null && (
+          request.auth.uid == uid ||
+          isOwner() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
+        );
+
+        allow delete: if isOwner();
+      }
+
+      match /state/{docId} {
+        allow read: if true;
+        allow write: if isOwner();
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
