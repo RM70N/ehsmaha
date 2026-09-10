@@ -1512,11 +1512,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
    عنده إطار مُفعَّل): بدل حلقة صغيرة حول الأفتار، تعرض صورة الإطار العريضة
    كاملة (دائرة الأفتار + لوحة الاسم) كخلفية للبطاقة، والأفتار/الاسم
    يتموضعان داخلها حسب حقل hole بـFRAMES_CATALOG (framesInjectRing بالجافاسكربت). */
-.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:64px;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
+.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:92px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;}
 .p-has-full-frame .p-avatar-circle{width:100%;height:100%;box-shadow:none;border:none;}
-.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:12px;text-align:center;}
-.p-has-full-frame .p-username-prefix{position:absolute;top:2px;right:4%;font-size:9px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);z-index:1;}
+.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
+.p-has-full-frame .p-username-prefix{position:absolute;top:3px;right:4%;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);z-index:1;}
 
 /* زر خاص باللعبة (مثل "انفجار" ببومب) — نفس أسلوب الصورة المرجعية: حدود مضيئة بدون تعبئة */
 .game-special-btn{background:rgba(0,212,255,.06);border:2px solid var(--sgc,#22D3EE);color:var(--sgc,#22D3EE);border-radius:999px;padding:12px 32px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;box-shadow:0 0 18px rgba(0,212,255,.25);margin-bottom:18px;}
@@ -24068,10 +24068,14 @@ const framesPendingWraps = new Map(); // levelsKey -> Set<Element>
 // يلبس بطاقة المشارك (tagEl = .p-username-tag كاملة) التصميم الكامل للإطار
 // (الدائرة + لوحة الاسم) بدل حلقة صغيرة حول الأفتار بس — بناءً على حقل hole
 // المخزّن بكل عنصر FRAMES_CATALOG ([left%, top%, width%, height%] لموضع فتحة
-// الأفتار داخل صورة gallery العريضة) وratio (نسبة عرض:ارتفاع الصورة نفسها).
-// ارتفاع البطاقة ثابت (FRAMES_BANNER_H) وعرضها يُحسب تلقائياً من aspect-ratio
-// حسب تصميم كل إطار.
-const FRAMES_BANNER_H = 64; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل
+// الأفتار داخل صورة gallery العريضة). حجم البطاقة (الارتفاع ونسبة العرض
+// للارتفاع) ثابت وموحّد لكل الإطارات (CSS: .p-has-full-frame) بدل ما يتبع
+// أبعاد صورة كل إطار الأصلية — عشان تظهر كل الإطارات بنفس الحجم بالضبط بصف
+// المشاركين (background-size:100% 100% يعرض التصميم كامل، بس بتمديد بسيط
+// غير منتظم لو نسبة الصورة الأصلية تختلف عن نسبة البطاقة الموحّدة — نسبة
+// البطاقة 2.8 مُختارة كمتوسط بين نسبة عائلة الأنمي (~3.6) وعائلة الأعلام
+// (~2.17) عشان التمديد يبقى خفيف ومتوازن على الطرفين).
+const FRAMES_BANNER_H = 92; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
 
 function framesInjectRing(tagEl, frameId, sizePx) {
   if (!tagEl || tagEl.classList.contains('p-has-full-frame')) return;
@@ -24082,7 +24086,6 @@ function framesInjectRing(tagEl, frameId, sizePx) {
   const [l, t, w, h] = f.hole;
   tagEl.classList.add('p-has-full-frame');
   tagEl.style.backgroundImage = "url('" + f.gallery + "')";
-  tagEl.style.aspectRatio = String(f.ratio || 2.17);
   wrap.style.left = l + '%';
   wrap.style.top = t + '%';
   wrap.style.width = w + '%';
