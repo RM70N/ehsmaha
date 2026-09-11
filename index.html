@@ -25447,45 +25447,49 @@ function ownerFrameWithTimeout(promise, timeoutMessage) {
 const OWNER_FRAME_MAX_DIMENSION_PX = 1000;   // أطول ضلع بعد التصغير
 const OWNER_FRAME_MAX_DATA_URL_CHARS = 300000; // ~220 كيلوبايت فعلية بعد فك الترميز — يبقي المستند صغيراً وسريع الكتابة
 
-function ownerFrameCompressImage(file) {
+// يعيد استخدام عنصر <img> المعاينة الموجود أصلاً بالصفحة (نفس اللي المالك
+// شافه فعلاً يظهر صح بعد اختيار الملف) بدل تحميل الصورة من جديد بعنصر
+// Image() منفصل خارج الـDOM — بعض متصفحات التطبيقات المدمجة (مثلاً متصفح
+// سناب شات الداخلي) ترفض تحميل blob: URL بعنصر Image() منفصل رغم إنها
+// تعرضه طبيعي بعنصر <img> بالصفحة، فكانت تفشل بـ"تعذّرت قراءة ملف الصورة"
+// رغم إن المعاينة تظهر صح فوقها مباشرة. الاعتماد على العنصر المعروض فعلياً
+// يتفادى هذا الفرق تماماً.
+function ownerFrameCompressImage(kind) {
   return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      try {
-        let w = img.naturalWidth, h = img.naturalHeight;
-        if (!w || !h) { reject(new Error('تعذّرت قراءة أبعاد الصورة')); return; }
-        const scale = Math.min(1, OWNER_FRAME_MAX_DIMENSION_PX / Math.max(w, h));
-        w = Math.max(1, Math.round(w * scale));
-        h = Math.max(1, Math.round(h * scale));
-        const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, w, h); // بدون أي تعبئة خلفية — يحافظ على الشفافية كاملة
-        ctx.drawImage(img, 0, 0, w, h);
-        let quality = 0.9;
-        let dataUrl = canvas.toDataURL('image/webp', quality);
-        let guard = 0;
-        while (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS && quality > 0.3 && guard < 8) {
-          quality -= 0.12;
-          dataUrl = canvas.toDataURL('image/webp', quality);
-          guard++;
-        }
-        if (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS) {
-          reject(new Error('تعذّر ضغط الصورة لحجم مناسب حتى بعد التصغير — جرّب صورة أبسط تصميماً'));
-          return;
-        }
-        resolve(dataUrl);
-      } catch (e) { reject(new Error('تعذّر معالجة الصورة محلياً، جرّب ملف ثاني')); }
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('تعذّرت قراءة ملف الصورة، جرّب ملف ثاني')); };
-    img.src = url;
+    const img = document.getElementById('frm-owner-' + kind + '-preview-img');
+    if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) {
+      reject(new Error('الصورة لسا ما اكتملت معاينتها — انتظر ثانية وحاول تاني'));
+      return;
+    }
+    try {
+      let w = img.naturalWidth, h = img.naturalHeight;
+      const scale = Math.min(1, OWNER_FRAME_MAX_DIMENSION_PX / Math.max(w, h));
+      w = Math.max(1, Math.round(w * scale));
+      h = Math.max(1, Math.round(h * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, w, h); // بدون أي تعبئة خلفية — يحافظ على الشفافية كاملة
+      ctx.drawImage(img, 0, 0, w, h);
+      let quality = 0.9;
+      let dataUrl = canvas.toDataURL('image/webp', quality);
+      let guard = 0;
+      while (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS && quality > 0.3 && guard < 8) {
+        quality -= 0.12;
+        dataUrl = canvas.toDataURL('image/webp', quality);
+        guard++;
+      }
+      if (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS) {
+        reject(new Error('تعذّر ضغط الصورة لحجم مناسب حتى بعد التصغير — جرّب صورة أبسط تصميماً'));
+        return;
+      }
+      resolve(dataUrl);
+    } catch (e) { reject(new Error('تعذّر ضغط الصورة محلياً — ' + ((e && e.message) || 'جرّب ملف ثاني'))); }
   });
 }
 
-function ownerUploadFrameImage(file) {
-  return ownerFrameCompressImage(file).then(dataUrl => ({ imageUrl: dataUrl }));
+function ownerUploadFrameImage(kind) {
+  return ownerFrameCompressImage(kind).then(dataUrl => ({ imageUrl: dataUrl }));
 }
 
 async function ownerPublishFrame() {
@@ -25500,7 +25504,7 @@ async function ownerPublishFrame() {
   statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ الرفع والنشر...';
   try {
     const id = ownerFrameGenId();
-    const { imageUrl } = await ownerUploadFrameImage(file);
+    const { imageUrl } = await ownerUploadFrameImage('pub');
     await ownerFrameWithTimeout(
       framesCatalogExtraSet(id, {
         id, name, imageUrl, hole: [l, t, w, h], ratio,
@@ -25628,7 +25632,7 @@ async function ownerGrantFrame() {
       const { l, t, w, h, ratio, name } = ownerFrameReadHoleFields('priv');
       if (!name) throw new Error('اكتب اسم الإطار أولاً');
       const id = ownerFrameGenId();
-      const { imageUrl } = await ownerUploadFrameImage(file);
+      const { imageUrl } = await ownerUploadFrameImage('priv');
       await ownerFrameWithTimeout(
         framesCatalogExtraSet(id, {
           id, name, imageUrl, hole: [l, t, w, h], ratio,
