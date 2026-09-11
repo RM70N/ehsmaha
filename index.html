@@ -24923,11 +24923,16 @@ function framesEffectiveCatalog() {
 function framesCatalogExtraRtdbPath(id) { return 'framesCatalogExtra/' + id; }
 
 async function framesReadFrameDoc(id) {
+  const firestoreRead = fb.getDoc(fb.doc(fb.db, 'framesCatalogExtra', id));
+  firestoreRead.catch(() => {});
   try {
-    const snap = await fb.getDoc(fb.doc(fb.db, 'framesCatalogExtra', id));
+    const snap = await Promise.race([
+      firestoreRead,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FRAMES_KV_FIRESTORE_TIMEOUT_MS))
+    ]);
     return snap.exists() ? Object.assign({ id }, snap.data()) : null;
   } catch (err) {
-    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
+    if (!fb.rtdb) throw err;
     const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)));
     return rsnap.exists() ? Object.assign({ id }, rsnap.val()) : null;
   }
@@ -25686,11 +25691,39 @@ function ownerRenderFramesGrantsList() {
 // لأنه المفتاح الحقيقي اللي يستخدمه بكل مكان (frames/roundsPlayed/...). غير
 // كذا (يوزر منصة صريح، أو حساب موقع بدون ربط) نستخدم المُدخل مباشرة —
 // levelsKey يطبّعه بنفس أسلوب framesKeyForSelf بالضبط.
-function ownerResolveGrantTargetKey(usernameRaw) {
+// نسخة سابقة كانت تعتمد على ownerUsersCache (لقطة كاملة لمجموعة users،
+// onSnapshot بلا أي فولباك RTDB) — لو تعطّلت مؤقتاً عند المالك (نفس مشكلة
+// تعليق فايرستور الموثّقة بأماكن ثانية بالملف) تضل الكاش فاضية، فيتحول أي
+// منح بيوزر الموقع مباشرة لـlevelsKey(raw) حتى لو الشخص رابط تيك توك فعلاً
+// — فيروح الإطار لمفتاح غلط والشخص ما يشوفه أبداً. الحل: بحث نقطي مباشر
+// (usernames/{lower} ثم users/{uid}) بدل الاعتماد على كاش كامل، بنفس فولباك
+// RTDB الاحتياطي المستخدم أصلاً بالتسجيل (authReserveUsernameFallback/
+// authGetUserDoc تحديداً pendingUsernames/pendingUsers).
+async function ownerResolveGrantTargetKey(usernameRaw) {
   const raw = String(usernameRaw || '').trim();
   if (!raw) return '';
-  const siteMatch = ownerUsersCache.find(u => (u.username || '').toLowerCase() === raw.toLowerCase());
-  if (siteMatch && siteMatch.linkedTiktokUsername) return levelsKey(siteMatch.linkedTiktokUsername);
+  const usernameLower = raw.toLowerCase();
+  let uid = null;
+  try {
+    const unameSnap = await Promise.race([
+      fb.getDoc(fb.doc(fb.db, 'usernames', usernameLower)),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
+    ]);
+    if (unameSnap.exists()) uid = unameSnap.data().uid;
+  } catch (e) {
+    if (fb.rtdb) {
+      try {
+        const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingUsernames/' + usernameLower));
+        if (rsnap.exists()) uid = rsnap.val().uid;
+      } catch (e2) { /* أفضل جهد — نكمل بمعاملة المُدخل كيوزر منصة مباشر بالأسفل */ }
+    }
+  }
+  if (uid) {
+    try {
+      const data = await authGetUserDoc(uid); // عندها فولباك RTDB داخلي أصلاً
+      if (data && data.linkedTiktokUsername) return levelsKey(data.linkedTiktokUsername);
+    } catch (e) { /* أفضل جهد */ }
+  }
   return levelsKey(raw);
 }
 
@@ -25700,10 +25733,12 @@ async function ownerGrantFrame() {
   const btn = document.getElementById('frm-grant-btn');
   const usernameRaw = document.getElementById('frm-grant-target-input').value.trim();
   if (!usernameRaw) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب يوزر المستخدم المستهدف أولاً'; return; }
-  const targetKey = ownerResolveGrantTargetKey(usernameRaw);
-  if (!targetKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ يوزر غير صالح'; return; }
 
   btn.disabled = true;
+  statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ التأكد من الحساب...';
+  const targetKey = await ownerResolveGrantTargetKey(usernameRaw);
+  if (!targetKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ يوزر غير صالح'; btn.disabled = false; return; }
+
   statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ المنح...';
   try {
     let frameId, frameName;
@@ -25730,8 +25765,24 @@ async function ownerGrantFrame() {
       frameId = id; frameName = name;
     }
     await ownerFrameWithTimeout(framesGrantToUser(targetKey, frameId), 'تعذّر منح الإطار (لم يصل رد من الخادم) — حاول ثانية');
-    statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم منح "' + frameName + '" لـ' + usernameRaw;
-    toast('🎁 تم منح إطار "' + frameName + '" لـ' + usernameRaw);
+
+    // تحقّق فعلي بعد الكتابة — نقرأ نفس المستند اللي متصفح الشخص المستهدف
+    // يقرأ منه (framesReadKV، نفس مفتاح levels/{targetKey}) ونتأكد الإطار
+    // فعلاً وصل، بدل افتراض النجاح لمجرد إن نداء الكتابة رجع بلا خطأ.
+    let verified = false;
+    try {
+      const verifySnap = await framesReadKV(targetKey);
+      const verifyData = verifySnap.exists() ? (verifySnap.data() || {}) : {};
+      verified = Array.isArray(verifyData.ownedFrames) && verifyData.ownedFrames.includes(frameId);
+    } catch (e) { /* تعذّر التحقق نفسه — ما نمنع رسالة النجاح الأساسية بسببه */ verified = true; }
+
+    if (!verified) {
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = '⚠️ الكتابة رجعت بنجاح لكن التحقق ما لقى الإطار بحساب الهدف (مفتاح: ' + targetKey + ') — تأكد اليوزر صحيح وجرّب ثانية';
+    } else {
+      statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم منح "' + frameName + '" لـ' + usernameRaw + ' (مفتاح: ' + targetKey + ')';
+      toast('🎁 تم منح إطار "' + frameName + '" لـ' + usernameRaw);
+    }
     ownerFramesSessionGrants.unshift({ username: usernameRaw, frameName, at: Date.now() });
     ownerFramesSessionGrants = ownerFramesSessionGrants.slice(0, 20);
     ownerRenderFramesGrantsList();
