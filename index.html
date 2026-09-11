@@ -2187,6 +2187,7 @@ body{padding-top:64px;}
 .frm-owner-preview-wrap{position:relative;width:100%;max-width:320px;border-radius:12px;overflow:hidden;background:radial-gradient(ellipse at 50% 40%,rgba(255,255,255,.06),transparent 70%);border:1px solid var(--border);}
 .frm-owner-preview-img{display:block;width:100%;height:auto;}
 .frm-owner-hole-rect{position:absolute;border:2px dashed var(--brand-cyan);background:rgba(34,211,238,.12);pointer-events:none;}
+.frm-owner-bgwarn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#F59E0B;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;line-height:1.7;}
 .frm-owner-hole-fields{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .frm-owner-hole-fields .field{margin:0;}
 .frm-grant-subtabs{display:flex;gap:8px;margin:12px 0;}
@@ -4608,6 +4609,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <img id="frm-owner-pub-preview-img" class="frm-owner-preview-img" alt="" />
           <div class="frm-owner-hole-rect" id="frm-owner-pub-hole-rect"></div>
         </div>
+        <div class="frm-owner-bgwarn" id="frm-owner-pub-bgwarn" style="display:none;">⚠️ خلفية الصورة تبين بيضاء معتمة وليست شفافة — بيظهر مربع أبيض حول الإطار وقت الاستخدام. صدّر الصورة بخلفية شفافة (PNG/WebP بقناة ألفا) قبل الرفع.</div>
         <div class="field"><label>اسم الإطار</label><input type="text" id="frm-owner-pub-name" placeholder="مثال: تنين الذهب" /></div>
         <div class="frm-owner-hole-fields">
           <div class="field"><label>يسار %</label><input type="number" id="frm-owner-pub-l" value="10" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('pub')" /></div>
@@ -4651,6 +4653,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
               <img id="frm-owner-priv-preview-img" class="frm-owner-preview-img" alt="" />
               <div class="frm-owner-hole-rect" id="frm-owner-priv-hole-rect"></div>
             </div>
+            <div class="frm-owner-bgwarn" id="frm-owner-priv-bgwarn" style="display:none;">⚠️ خلفية الصورة تبين بيضاء معتمة وليست شفافة — بيظهر مربع أبيض حول الإطار وقت الاستخدام. صدّر الصورة بخلفية شفافة (PNG/WebP بقناة ألفا) قبل الرفع.</div>
             <div class="field"><label>اسم الإطار</label><input type="text" id="frm-owner-priv-name" placeholder="مثال: تصميم خاص بفلان" /></div>
             <div class="frm-owner-hole-fields">
               <div class="field"><label>يسار %</label><input type="number" id="frm-owner-priv-l" value="10" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('priv')" /></div>
@@ -25352,10 +25355,36 @@ function ownerFrameFilePreview(kind) {
       const ratioEl = document.getElementById('frm-owner-' + kind + '-ratio');
       if (ratioEl) ratioEl.value = (img.naturalWidth / img.naturalHeight).toFixed(3);
     }
+    ownerFrameWarnIfOpaqueBackground(kind, img);
   };
   img.src = url;
   document.getElementById('frm-owner-' + kind + '-editor').style.display = '';
   ownerFrameHolePreviewUpdate(kind);
+}
+
+// يفحص أركان الصورة الأربعة فعلياً (بكسلات حقيقية عبر canvas) — لو كلها
+// معتمة (alpha عالي) وقريبة من الأبيض، معناها الصورة مصدَّرة بخلفية بيضاء
+// حقيقية لا شفافة، فينبّه المالك قبل ما ينشر/يمنح إطاراً بيظهر حوله مربع
+// أبيض بدل ما يندمج بخلفية الموقع الغامقة. تحذير فقط — ما يوقف الرفع.
+function ownerFrameWarnIfOpaqueBackground(kind, img) {
+  const warnEl = document.getElementById('frm-owner-' + kind + '-bgwarn');
+  if (!warnEl) return;
+  warnEl.style.display = 'none';
+  try {
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const corners = [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]];
+    let opaqueWhiteCount = 0;
+    corners.forEach(([x, y]) => {
+      const [r, g, b, a] = ctx.getImageData(x, y, 1, 1).data;
+      if (a > 240 && r > 235 && g > 235 && b > 235) opaqueWhiteCount++;
+    });
+    if (opaqueWhiteCount >= 3) warnEl.style.display = '';
+  } catch (e) { /* أفضل جهد — فشل الفحص (مثلاً صورة من مصدر خارجي CORS) ما يمنع الرفع */ }
 }
 
 function ownerFrameHolePreviewUpdate(kind) {
@@ -25389,17 +25418,39 @@ function ownerFrameResetEditor(kind) {
   if (editor) editor.style.display = 'none';
   const nameInput = document.getElementById('frm-owner-' + kind + '-name');
   if (nameInput) nameInput.value = '';
+  const warnEl = document.getElementById('frm-owner-' + kind + '-bgwarn');
+  if (warnEl) warnEl.style.display = 'none';
   ownerFramePendingFile[kind] = null;
 }
 
 // يرفع صورة الإطار فعلياً لـFirebase Storage (لا base64 بالمستند — رابط
 // خفيف فقط) ويرجع رابط التحميل.
+// Firebase Storage/الكتابات التالية ممكن تعلّق للأبد بلا أي خطأ ظاهر لو
+// Storage غير مفعّل أصلاً بمشروع Firebase (خطوة تفعيل يدوية منفصلة تماماً عن
+// قواعد الأمان — لوحة Firebase ← Storage ← "ابدأ الآن" لو أول مرة)، أو على
+// شبكة جوال ضعيفة — نفس سبب استخدام مهلة بكل مكان ثاني بالملف
+// (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها). بعد المهلة نرمي خطأ واضح بدل ما
+// يبقى الزر عالق على "جارِ..." للأبد.
+const OWNER_FRAME_NETWORK_TIMEOUT_MS = 20000;
+function ownerFrameWithTimeout(promise, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(timeoutMessage)), OWNER_FRAME_NETWORK_TIMEOUT_MS))
+  ]);
+}
+
 async function ownerUploadFrameImage(file, id) {
   const ext = ((file.name || '').split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
   const path = 'frames/' + id + '.' + ext;
   const ref = fb.storageRef(fb.storage, path);
-  await fb.uploadBytes(ref, file);
-  const url = await fb.getDownloadURL(ref);
+  await ownerFrameWithTimeout(
+    fb.uploadBytes(ref, file),
+    'تعذّر رفع الصورة (استغرق وقت طويل بدون رد) — تأكد إن Firebase Storage مُفعَّل لهذا المشروع من لوحة Firebase وإن قواعده تسمح لحسابك بالرفع، أو تأكد من اتصال الإنترنت وحاول ثانية'
+  );
+  const url = await ownerFrameWithTimeout(
+    fb.getDownloadURL(ref),
+    'تم الرفع لكن تعذّر جلب رابط الصورة — حاول ثانية'
+  );
   return { imageUrl: url, storagePath: path };
 }
 
@@ -25416,10 +25467,13 @@ async function ownerPublishFrame() {
   try {
     const id = ownerFrameGenId();
     const { imageUrl, storagePath } = await ownerUploadFrameImage(file, id);
-    await framesCatalogExtraSet(id, {
-      id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
-      visibility: 'public', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null
-    });
+    await ownerFrameWithTimeout(
+      framesCatalogExtraSet(id, {
+        id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
+        visibility: 'public', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null
+      }),
+      'تم رفع الصورة لكن تعذّر حفظ بيانات الإطار — حاول ثانية'
+    );
     statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم نشر الإطار — يظهر الآن لكل المستخدمين';
     ownerFrameResetEditor('pub');
     toast('🖼️ نُشر إطار "' + name + '" لكل المستخدمين');
@@ -25541,14 +25595,17 @@ async function ownerGrantFrame() {
       if (!name) throw new Error('اكتب اسم الإطار أولاً');
       const id = ownerFrameGenId();
       const { imageUrl, storagePath } = await ownerUploadFrameImage(file, id);
-      await framesCatalogExtraSet(id, {
-        id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
-        visibility: 'private', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null,
-        grantedTo: targetKey
-      });
+      await ownerFrameWithTimeout(
+        framesCatalogExtraSet(id, {
+          id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
+          visibility: 'private', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null,
+          grantedTo: targetKey
+        }),
+        'تم رفع الصورة لكن تعذّر حفظ بيانات الإطار الخاص — حاول ثانية'
+      );
       frameId = id; frameName = name;
     }
-    await framesGrantToUser(targetKey, frameId);
+    await ownerFrameWithTimeout(framesGrantToUser(targetKey, frameId), 'تعذّر منح الإطار (لم يصل رد من الخادم) — حاول ثانية');
     statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم منح "' + frameName + '" لـ' + usernameRaw;
     toast('🎁 تم منح إطار "' + frameName + '" لـ' + usernameRaw);
     ownerFramesSessionGrants.unshift({ username: usernameRaw, frameName, at: Date.now() });
