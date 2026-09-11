@@ -200,11 +200,12 @@ service cloud.firestore {
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
-      // ownedFrames/activeFrame: نظام الإطارات (framesClaim/framesSetActive
-      // من أي مستخدم، framesGrantToUser من لوحة المالك). lastGamePlayed/
-      // lastGamePlayedAt/gamesPlayCount/activityLog: تتبّع آخر/أكثر لعبة
-      // وسجل النشاط بصفحة البروفايل (levelsCommit). بنفس نمط الثقة الكاملة
-      // بالعميل المطبَّق أصلاً على xp/level/roundsPlayed بهذا المستند.
+      // ownedFrames/activeFrame: نظام إطارات الأفتار (framesClaim/
+      // framesSetActive من أي مستخدم، framesGrantToUser من لوحة المالك).
+      // lastGamePlayed/lastGamePlayedAt/gamesPlayCount/activityLog: تتبّع
+      // آخر/أكثر لعبة وسجل نشاط مختصر بصفحة البروفايل (يُكتَبان مركزياً من
+      // levelsCommit مع كل راوند). فحص نوع بسيط لكل حقل جديد، وكلها اختيارية
+      // (ما تلزم بكل كتابة) — بدون أي تغيير على باقي الشروط الأصلية.
       allow create, update: if request.auth != null
                     && request.resource.data.keys().hasOnly([
                          'key', 'username', 'avatar',
@@ -219,18 +220,25 @@ service cloud.firestore {
                     && request.resource.data.level is number
                     && request.resource.data.level >= 1
                     && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+                    && request.resource.data.roundsPlayed >= 0
+                    && (!('ownedFrames' in request.resource.data) || request.resource.data.ownedFrames is list)
+                    && (!('activeFrame' in request.resource.data) || request.resource.data.activeFrame is string)
+                    && (!('lastGamePlayed' in request.resource.data) || request.resource.data.lastGamePlayed is string)
+                    && (!('lastGamePlayedAt' in request.resource.data) || request.resource.data.lastGamePlayedAt is timestamp)
+                    && (!('gamesPlayCount' in request.resource.data) || request.resource.data.gamesPlayCount is map)
+                    && (!('activityLog' in request.resource.data) || request.resource.data.activityLog is list);
 
       allow delete: if isOwner();
     }
 
     // framesCatalogExtra/{frameId} — إطارات ديناميكية (لوحة المالك فقط
-    // تنشر/تحذف). القراءة لأي مستخدم مسجّل دخول بمعرّف الوثيقة مباشرة —
-    // الوثائق visibility=='private' ما تظهر إطلاقاً بأي استعلام/قائمة عامة
-    // (framesPublicExtraBoot يفلتر visibility=='public' فقط)، فقراءتها عملياً
-    // ممكنة فقط لمن يعرف الـid أصلاً من ownedFrames الخاص فيه (حماية بمستوى
-    // "معرّف غير مخمَّن" — لتشديد أكثر أضف حقل assignedKey وتحقق تطابقه مع
-    // levelsKey حساب القارئ، يتطلب ربط uid↔levelsKey غير متوفر حالياً).
+    // تنشر/تحذف عبر تبويب "إطارات"). القراءة لأي مستخدم مسجّل دخول بمعرّف
+    // الوثيقة مباشرة — الوثائق visibility=='private' ما تظهر إطلاقاً بأي
+    // استعلام/قائمة عامة (framesPublicExtraBoot يفلتر visibility=='public'
+    // فقط بالتطبيق)، فقراءتها عملياً ممكنة فقط لمن يعرف الـid أصلاً من
+    // ownedFrames الخاص فيه (حماية بمستوى "معرّف غير مخمَّن" — لتشديد أكثر
+    // أضف حقل assignedKey وتحقق تطابقه مع حساب القارئ، يتطلب ربط uid↔levelsKey
+    // غير متوفر حالياً بهيكلة القواعد).
     match /framesCatalogExtra/{frameId} {
       allow read: if request.auth != null;
       allow create, update, delete: if isOwner();
@@ -394,9 +402,8 @@ service cloud.firestore {
                     && request.resource.data.ownerUid == request.auth.uid;
       // زيادة clicksCount مسموحة للجميع حتى بدون تسجيل دخول — أغلب من يفتح
       // رابط إحالة لأول مرة زائر غير مسجّل أصلاً، وهذا الشرط هو اللي كان
-      // يمنع احتساب زيارته بصمت (request.auth != null كان شرطاً عاماً على
-      // كل تحديث بما فيها هذا). محصور تماماً بزيادة +1 بالضبط على هذا الحقل
-      // وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله فقط.
+      // يمنع احتساب زيارته بصمت. محصور تماماً بزيادة +1 بالضبط على هذا
+      // الحقل وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله.
       allow update: if (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
         request.resource.data.clicksCount == resource.data.clicksCount + 1
@@ -448,6 +455,48 @@ service cloud.firestore {
          request.resource.data.registeredCount == resource.data.registeredCount + 1)
       );
       allow delete: if false;
+    }
+
+    match /bridgeEvents/{eventId} {
+      // فعالية "جسر المصير" (لعبة تفاعلية بين الستريمرز) — هذه التجميعة ما
+      // كانت موجودة أصلاً بالقواعد، وهذا سبب "Missing or insufficient
+      // permissions" على أزرار فتح/ابدأ الآن/إنهاء بلوحة المالك.
+      allow read: if true;
+
+      allow create: if isOwner();
+
+      // المالك يعدّل أي حقل (الحالة، الجولة، الإعدادات...)؛ أي حساب مسجّل
+      // دخول غيره يقدر يعدّل حقل globalFx فقط — المشاركون أنفسهم يرسلون
+      // أثر بطاقة "عاصفة" عبر arrayUnion على هذا الحقل تحديداً.
+      allow update: if isOwner() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
+      );
+
+      allow delete: if isOwner();
+
+      match /players/{uid} {
+        allow read: if true;
+
+        // كل مشارك ينشئ وثيقته الخاصة فقط، بمفتاح يساوي uid حسابه.
+        allow create: if request.auth != null && request.auth.uid == uid;
+
+        // صاحب الوثيقة يعدّلها بالكامل، وكذلك المالك (طرد/منح بطاقة/خلط
+        // مواقع العاصفة). أي حساب آخر مسجّل دخول يقدر يعدّل حقل pendingFx
+        // فقط — أثر بطاقة يرسله خصم على هذا اللاعب.
+        allow update: if request.auth != null && (
+          request.auth.uid == uid ||
+          isOwner() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
+        );
+
+        allow delete: if isOwner();
+      }
+
+      match /state/{docId} {
+        allow read: if true;
+        allow write: if isOwner();
+      }
     }
 
     match /{document=**} {
