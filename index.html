@@ -4631,7 +4631,8 @@ if (location.hostname === 'streamgame1.netlify.app') {
         </div>
         <div class="field">
           <label>يوزر المستخدم المستهدف</label>
-          <input type="text" id="frm-grant-target-input" placeholder="اسم المستخدم..." autocomplete="off" />
+          <input type="text" id="frm-grant-target-input" placeholder="يوزر حسابه بالموقع أو يوزره بتيك توك..." autocomplete="off" />
+          <div class="field-hint">اكتب يوزر حسابه بالموقع أو يوزره بتيك توك مباشرة — لو مربوط حسابه بتيك توك، الإطار يوصله تلقائياً على نفس حسابه المربوط بغض النظر عن أي يوزر كتبت.</div>
         </div>
         <div class="frm-grant-subtabs">
           <button type="button" class="owner-tab active" id="frm-grant-subtab-existing" onclick="ownerFrameGrantSwitchSubtab('existing')">من الموجود</button>
@@ -25499,13 +25500,29 @@ function ownerRenderFramesGrantsList() {
   `).join('');
 }
 
+// يحوّل المُدخل (يوزر حساب الموقع أو يوزر منصة البث مباشرة) لنفس مفتاح
+// levels/{key} اللي يقرأ منه متصفح ذاك الشخص فعلياً (framesLoadSelf عبر
+// levelsSelfIdentity): لو المُدخل يطابق يوزر حساب موقع معروف (ownerUsersCache)
+// وعنده ربط تيك توك محفوظ بفايرستور (users/{uid}.linkedTiktokUsername —
+// يُكتب من playerTiktokSaveToAccount)، نستخدم مفتاح حساب التيك توك المربوط
+// لأنه المفتاح الحقيقي اللي يستخدمه بكل مكان (frames/roundsPlayed/...). غير
+// كذا (يوزر منصة صريح، أو حساب موقع بدون ربط) نستخدم المُدخل مباشرة —
+// levelsKey يطبّعه بنفس أسلوب framesKeyForSelf بالضبط.
+function ownerResolveGrantTargetKey(usernameRaw) {
+  const raw = String(usernameRaw || '').trim();
+  if (!raw) return '';
+  const siteMatch = ownerUsersCache.find(u => (u.username || '').toLowerCase() === raw.toLowerCase());
+  if (siteMatch && siteMatch.linkedTiktokUsername) return levelsKey(siteMatch.linkedTiktokUsername);
+  return levelsKey(raw);
+}
+
 async function ownerGrantFrame() {
   if (!isOwnerAccount()) return;
   const statusEl = document.getElementById('frm-grant-status');
   const btn = document.getElementById('frm-grant-btn');
   const usernameRaw = document.getElementById('frm-grant-target-input').value.trim();
   if (!usernameRaw) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب يوزر المستخدم المستهدف أولاً'; return; }
-  const targetKey = levelsKey(usernameRaw);
+  const targetKey = ownerResolveGrantTargetKey(usernameRaw);
   if (!targetKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ يوزر غير صالح'; return; }
 
   btn.disabled = true;
