@@ -24911,8 +24911,7 @@ function framesKeyForSelf() {
 // تشمل إطاراً خاصاً مُهدى لشخص واحد فقط) — بدل البحث المباشر بـFRAMES_CATALOG
 // الثابتة، حتى الإطارات الديناميكية (المنشورة/المُهداة من لوحة المالك) تشتغل
 // بكل مكان تشتغل فيه أي إطار عادي.
-let framesPublicExtra = [];        // كاش حي (onSnapshot) لكل framesCatalogExtra حيث visibility=='public'
-let framesPublicExtraUnsub = null;
+let framesPublicExtra = [];        // كاش حي (دمج Firestore + RTDB معاً) لكل framesCatalogExtra حيث visibility=='public'
 const framesPrivateResolved = new Map(); // id -> object، كاش lazy لإطار خاص (private) تم جلبه مرة بالـid
 
 function framesEffectiveCatalog() {
@@ -24955,32 +24954,51 @@ function framesPublicExtraOnChange() {
   if (typeof ownerRenderPublicFramesList === 'function') ownerRenderPublicFramesList();
 }
 
+// يستمع لـFirestore وRTDB معاً (لا واحد يفشل قبل ما يجرَّب الثاني) — بعض
+// الشبكات (بروكسيات شفافة خصوصاً) تحجب Firestore تحديداً بينما RTDB يشتغل
+// طبيعي (نطاقان مختلفان تماماً)، فالاعتماد على فشل صريح من Firestore قبل
+// تفعيل RTDB كان يخلي إطارات منشورة حديثاً ما توصل لبعض الأجهزة إطلاقاً.
+// كل مصدر يحدّث كاشه الخاص ثم يُدمَجان (فايرستور يطغى لو نفس الـid موجود
+// بالمصدرين — عادة النسخة الأحدث لو الاثنان يشتغلان).
+let framesPublicExtraFirestoreDocs = [];
+let framesPublicExtraRtdbDocs = [];
+let framesPublicExtraFirestoreUnsub = null;
+let framesPublicExtraRtdbUnsub = null;
+
 function framesPublicExtraApplyDocs(docs) {
   framesPublicExtra = docs.filter(d => d && d.id && d.imageUrl && d.hole);
   framesPublicExtraOnChange();
 }
 
+function framesPublicExtraMergeAndApply() {
+  const map = new Map();
+  framesPublicExtraFirestoreDocs.forEach(d => map.set(d.id, d));
+  framesPublicExtraRtdbDocs.forEach(d => { if (!map.has(d.id)) map.set(d.id, d); });
+  framesPublicExtraApplyDocs([...map.values()]);
+}
+
 function framesPublicExtraBoot() {
-  if (!fb || framesPublicExtraUnsub) return;
+  if (!fb || framesPublicExtraFirestoreUnsub || framesPublicExtraRtdbUnsub) return;
   try {
-    framesPublicExtraUnsub = fb.onSnapshot(
+    framesPublicExtraFirestoreUnsub = fb.onSnapshot(
       fb.query(fb.collection(fb.db, 'framesCatalogExtra'), fb.where('visibility', '==', 'public')),
       (snap) => {
-        const docs = [];
-        snap.forEach(d => docs.push(Object.assign({ id: d.id }, d.data())));
-        framesPublicExtraApplyDocs(docs);
+        framesPublicExtraFirestoreDocs = [];
+        snap.forEach(d => framesPublicExtraFirestoreDocs.push(Object.assign({ id: d.id }, d.data())));
+        framesPublicExtraMergeAndApply();
       },
-      (err) => {
-        if (!authIsQuotaError(err) || !fb.rtdb) return;
-        if (framesPublicExtraUnsub) { try { framesPublicExtraUnsub(); } catch (e) {} }
-        framesPublicExtraUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'framesCatalogExtra'), (rsnap) => {
-          const val = rsnap.val() || {};
-          const docs = Object.keys(val).map(id => Object.assign({ id }, val[id])).filter(d => d.visibility === 'public');
-          framesPublicExtraApplyDocs(docs);
-        }, () => {});
-      }
+      (err) => { /* أفضل جهد — مصدر RTDB يغطي لو هذا تعذّر */ }
     );
-  } catch (e) { /* أفضل جهد — بلا كتالوج عام عند أي فشل بدء */ }
+  } catch (e) { /* أفضل جهد */ }
+  if (fb.rtdb) {
+    try {
+      framesPublicExtraRtdbUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'framesCatalogExtra'), (rsnap) => {
+        const val = rsnap.val() || {};
+        framesPublicExtraRtdbDocs = Object.keys(val).map(id => Object.assign({ id }, val[id])).filter(d => d.visibility === 'public');
+        framesPublicExtraMergeAndApply();
+      }, () => { /* أفضل جهد */ });
+    } catch (e) { /* أفضل جهد */ }
+  }
 }
 if (window.__fb) framesPublicExtraBoot();
 else window.addEventListener('fb-ready', framesPublicExtraBoot, { once: true });
@@ -25095,37 +25113,67 @@ function framesRenderShell() {
 // يتحول القراءة والكتابة تلقائياً وبصمت لنفس المسار هناك.
 function framesRtdbPath(key) { return 'levels/' + key; }
 
+// مهلة قصيرة بالإضافة لكشف خطأ الحصة الصريح — نفس سبب framesOnValue (بعض
+// الشبكات تعلّق الاتصال بفايرستور صامتاً بلا خطأ ظاهر).
+const FRAMES_KV_FIRESTORE_TIMEOUT_MS = 8000;
+
 async function framesReadKV(key) {
+  const firestoreRead = fb.getDoc(fb.doc(fb.db, 'levels', key));
+  firestoreRead.catch(() => {});
   try {
-    return await fb.getDoc(fb.doc(fb.db, 'levels', key));
+    const snap = await Promise.race([
+      firestoreRead,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FRAMES_KV_FIRESTORE_TIMEOUT_MS))
+    ]);
+    return snap;
   } catch (err) {
-    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
+    if (!fb.rtdb) throw err;
     const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)));
     return { exists: () => rsnap.exists(), data: () => rsnap.val() || {} };
   }
 }
 
 async function framesWriteKV(key, data) {
+  const firestoreWrite = fb.setDoc(fb.doc(fb.db, 'levels', key), data, { merge: true });
+  firestoreWrite.catch(() => {});
   try {
-    await fb.setDoc(fb.doc(fb.db, 'levels', key), data, { merge: true });
+    await Promise.race([
+      firestoreWrite,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FRAMES_KV_FIRESTORE_TIMEOUT_MS))
+    ]);
   } catch (err) {
-    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
+    if (!fb.rtdb) throw err;
     await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), data);
   }
 }
 
+// لو Firestore يرجّع خطأ حصة صريح نتحول لـRTDB فوراً (كما كان). لكن بعض
+// الشبكات (بروكسي شفاف يحجب نطاق Firestore تحديداً) تخلي الاتصال يعلّق
+// صامتاً بلا أي خطأ ظاهر — أول لقطة (snapshot) ما توصل إطلاقاً، فبقية
+// الموقع (لفل، إطار مفعّل، إحصائيات البروفايل) تبقى فارغة للأبد رغم إن
+// RTDB يشتغل طبيعي. نضيف مهلة: لو ما وصلت أول لقطة خلالها نتحول لـRTDB
+// كاحتياط أيضاً، لا ننتظر خطأ صريح ما راح يجي.
+const FRAMES_ONVALUE_FIRESTORE_TIMEOUT_MS = 10000;
+
 function framesOnValue(key, onData) {
   let unsub = null;
   let switched = false;
-  unsub = fb.onSnapshot(fb.doc(fb.db, 'levels', key), (snap) => {
-    onData(snap);
-  }, (err) => {
-    if (switched || !authIsQuotaError(err) || !fb.rtdb) return;
+  let gotFirstSnapshot = false;
+  const switchToRtdb = () => {
+    if (switched || !fb.rtdb) return;
     switched = true;
+    if (unsub) { try { unsub(); } catch (e) {} }
     unsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), (rsnap) => {
       onData({ exists: () => rsnap.exists(), data: () => rsnap.val() || {} });
     }, () => {});
+  };
+  unsub = fb.onSnapshot(fb.doc(fb.db, 'levels', key), (snap) => {
+    gotFirstSnapshot = true;
+    onData(snap);
+  }, (err) => {
+    if (authIsQuotaError(err)) switchToRtdb();
   });
+  setTimeout(() => { if (!gotFirstSnapshot) switchToRtdb(); }, FRAMES_ONVALUE_FIRESTORE_TIMEOUT_MS);
   return () => { if (unsub) unsub(); };
 }
 
@@ -25297,32 +25345,72 @@ function framesApplyToChip(wrapEl, uniqueId, sizePx) {
 // framesCatalogExtra/{id} — نفس نمط framesReadKV/framesWriteKV الاحتياطي
 // (Firestore أولاً، فولباك RTDB عند خطأ حصة). يُستخدم فقط من لوحة المالك
 // (نشر إطار عام، أو رفع تصميم خاص فريد لشخص واحد).
+// فايرستور يُجرَّب أولاً (يبقي التوافق مع framesPublicExtraBoot/القراءات
+// الحالية)، لكن بمهلة قصيرة — لو ما رد خلالها (حصة منتهية، أو بروكسي شبكة
+// يحجب Firestore تحديداً بينما RTDB يشتغل طبيعي، كلا الحالتين واردتان بهذا
+// المشروع) نكتب مباشرة على Realtime Database بدون ما ننتظره أكثر، فالعملية
+// تنجح فعلياً لكل الأحوال. فايرستور يستمر بالخلفية بأفضل جهد لو رجع لاحقاً.
+const FRAMES_CATALOG_EXTRA_FIRESTORE_TIMEOUT_MS = 8000;
+
 async function framesCatalogExtraSet(id, data) {
-  try {
-    await fb.setDoc(fb.doc(fb.db, 'framesCatalogExtra', id), data, { merge: true });
-  } catch (err) {
-    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
-    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)), data);
-  }
+  const base = Object.assign({}, data);
+  delete base.createdAt; // سنتينل serverTimestamp يختلف بين فايرستور وRTDB — نضيفه لكل وجهة بالشكل الصحيح لها
+  const firestoreWrite = fb.setDoc(
+    fb.doc(fb.db, 'framesCatalogExtra', id),
+    Object.assign({}, base, { createdAt: fb.serverTimestamp() }),
+    { merge: true }
+  );
+  firestoreWrite.catch(() => {}); // منع unhandled rejection لو خسرت السباق وفشلت لاحقاً بالخلفية
+  const timedOutOrFailed = await Promise.race([
+    firestoreWrite.then(() => false).catch(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(true), FRAMES_CATALOG_EXTRA_FIRESTORE_TIMEOUT_MS))
+  ]);
+  if (!timedOutOrFailed) return; // فايرستور نجح خلال المهلة — تم
+  if (!fb.rtdb) throw new Error('تعذّرت الكتابة بفايرستور، ولا يوجد Realtime Database احتياطي بهذا المشروع');
+  await fb.rtdbSet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)), Object.assign({}, base, { createdAt: fb.rtdbServerTimestamp() }));
 }
 
 async function framesCatalogExtraDelete(id) {
-  try {
-    await fb.deleteDoc(fb.doc(fb.db, 'framesCatalogExtra', id));
-  } catch (err) {
-    if (!authIsQuotaError(err) || !fb.rtdb) throw err;
-  }
+  // نحذف من الاثنين دايماً بغض النظر عن نتيجة فايرستور — الوثيقة ممكن تكون
+  // موجودة بأي منهما حسب أيّهما نجح وقت framesCatalogExtraSet.
+  const firestoreDelete = fb.deleteDoc(fb.doc(fb.db, 'framesCatalogExtra', id));
+  firestoreDelete.catch(() => {});
+  await Promise.race([
+    firestoreDelete.catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, FRAMES_CATALOG_EXTRA_FIRESTORE_TIMEOUT_MS))
+  ]);
   if (fb.rtdb) { try { await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id))); } catch (e) {} }
 }
 
 // يمنح إطاراً (id من الكتالوج الفعّال أو خاص حديث الرفع) لشخص معيّن — يُضاف
 // فعلياً لمصفوفة ownedFrames الحقيقية بمستنده بـlevels/{targetKey}، فيشتغل
 // بكل مكان يشتغل فيه أي إطار عادي بدون أي استثناء أو منطق إضافي.
+// نفس منطق framesCatalogExtraSet: فايرستور أولاً بمهلة قصيرة، وفولباك RTDB
+// فعلي (لا يعتمد فقط على كشف خطأ حصة صريح) لو ما رد خلالها. RTDB ما عندها
+// arrayUnion فتحتاج قراءة القيمة الحالية أولاً ثم دمج frameId يدوياً قبل
+// الكتابة — بنفس فكرة الاتحاد.
+async function framesGrantToUserRtdb(targetKey, frameId) {
+  const ref = fb.rtdbRef(fb.rtdb, 'levels/' + targetKey);
+  const snap = await fb.rtdbGet(ref);
+  const current = snap.exists() ? (snap.val() || {}) : {};
+  const owned = Array.isArray(current.ownedFrames) ? current.ownedFrames.slice() : [];
+  if (!owned.includes(frameId)) owned.push(frameId);
+  await fb.rtdbUpdate(ref, { ownedFrames: owned });
+}
+
 async function framesGrantToUser(targetKey, frameId) {
   if (!targetKey || !frameId) throw new Error('missing target/frame');
-  await fb.setDoc(fb.doc(fb.db, 'levels', targetKey), {
+  const firestoreWrite = fb.setDoc(fb.doc(fb.db, 'levels', targetKey), {
     ownedFrames: fb.arrayUnion(frameId)
   }, { merge: true });
+  firestoreWrite.catch(() => {});
+  const timedOutOrFailed = await Promise.race([
+    firestoreWrite.then(() => false).catch(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(true), FRAMES_CATALOG_EXTRA_FIRESTORE_TIMEOUT_MS))
+  ]);
+  if (!timedOutOrFailed) return; // فايرستور نجح خلال المهلة — تم
+  if (!fb.rtdb) throw new Error('تعذّرت الكتابة بفايرستور، ولا يوجد Realtime Database احتياطي بهذا المشروع');
+  await framesGrantToUserRtdb(targetKey, frameId);
 }
 
 // ==================== FRAMES: لوحة المالك (رفع عام + منح فردي) ====================
@@ -25425,12 +25513,10 @@ function ownerFrameResetEditor(kind) {
   ownerFramePendingFile[kind] = null;
 }
 
-// مهلة أطول لأنها تشمل كتابة Firestore/RTDB الفعلية (framesCatalogExtraSet/
-// framesGrantToUser) اللي ممكن تبطئ على شبكة جوال ضعيفة — نفس سبب استخدام
-// مهلة بكل مكان شبيه بالملف (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها). بما
-// إن الصورة صارت تُضغَّط لحجم صغير جداً قبل الكتابة (ownerFrameCompressImage)
-// هذي المهلة أصبحت شبكة احتياط نادرة الاستخدام، مو الحارس الأساسي للحجم.
-const OWNER_FRAME_NETWORK_TIMEOUT_MS = 35000;
+// شبكة أمان أخيرة فقط — framesCatalogExtraSet/framesGrantToUser صار عندها
+// فولباك RTDB فعلي بمهلة 8 ثوان داخلية، فهذي نادراً ما تُلمَس (تغطي فقط لو
+// حتى RTDB نفسه تأخر بشكل غير طبيعي).
+const OWNER_FRAME_NETWORK_TIMEOUT_MS = 20000;
 function ownerFrameWithTimeout(promise, timeoutMessage) {
   return Promise.race([
     promise,
