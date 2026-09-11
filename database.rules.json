@@ -1,0 +1,73 @@
+{
+  "rules": {
+    "pendingUsernames": {
+      ".read": true,
+      "$usernameLower": {
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid) && (!newData.exists() || newData.child('uid').val() === auth.uid)"
+      }
+    },
+    "pendingUsers": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "pendingReferralLinks": {
+      ".read": true,
+      "$code": {
+        ".write": "auth != null && (!data.exists() || data.child('ownerUid').val() === auth.uid) && (!newData.exists() || newData.child('ownerUid').val() === auth.uid)"
+      }
+    },
+    "pendingReferralUsers": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "bridgeEvents": {
+      ".read": true,
+      "$eventId": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+
+        "globalFx": {
+          ".write": "auth != null"
+        }
+      }
+    },
+
+    "bridgePlayers": {
+      "$eventId": {
+        ".read": true,
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+
+          "pendingFx": {
+            ".write": "auth != null"
+          }
+        }
+      }
+    },
+
+    "bridgeBoard": {
+      "$eventId": {
+        ".read": true,
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+
+    "levels": {
+      ".read": "auth != null",
+      "$key": {
+        ".write": "auth != null"
+      }
+    },
+
+    "framesCatalogExtra": {
+      ".read": "auth != null",
+      "$frameId": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    }
+  }
+}
