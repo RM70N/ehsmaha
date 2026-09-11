@@ -4595,7 +4595,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="field">
         <label>صورة الإطار</label>
         <input type="file" id="frm-owner-pub-file" accept="image/*" onchange="ownerFrameFilePreview('pub')" />
-        <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — حد أقصى 350 كيلوبايت، WebP صغير أفضل خيار</div>
+        <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — تُضغَّط وتُصغَّر تلقائياً قبل الحفظ، أي حجم/أبعاد تصلح</div>
       </div>
       <div class="frm-owner-editor" id="frm-owner-pub-editor" style="display:none;">
         <div class="frm-owner-preview-wrap">
@@ -4640,7 +4640,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <div class="field">
             <label>صورة الإطار الخاص</label>
             <input type="file" id="frm-owner-priv-file" accept="image/*" onchange="ownerFrameFilePreview('priv')" />
-            <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — حد أقصى 350 كيلوبايت، WebP صغير أفضل خيار</div>
+            <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — تُضغَّط وتُصغَّر تلقائياً قبل الحفظ، أي حجم/أبعاد تصلح</div>
           </div>
           <div class="frm-owner-editor" id="frm-owner-priv-editor" style="display:none;">
             <div class="frm-owner-preview-wrap">
@@ -25341,8 +25341,11 @@ function ownerFrameFilePreview(kind) {
   const input = document.getElementById('frm-owner-' + kind + '-file');
   const file = input && input.files && input.files[0];
   if (!file) return;
-  if (file.size > OWNER_FRAME_MAX_FILE_BYTES) {
-    toast('⚠️ حجم الصورة كبير — الحد الأقصى ' + Math.round(OWNER_FRAME_MAX_FILE_BYTES / 1024) + ' كيلوبايت (صغّر/ضغط الصورة وحاول ثانية)');
+  // سقف بسيط بس عشان ما يتعلّق المتصفح بمحاولة فتح ملف ضخم جداً — الحجم
+  // الفعلي المُخزَّن يُضغَّط تلقائياً وقت النشر/المنح (ownerFrameCompressImage)
+  // بغض النظر عن حجم الملف الأصلي هنا.
+  if (file.size > 20 * 1024 * 1024) {
+    toast('⚠️ الملف كبير جداً (أكثر من 20 ميجا) — اختر صورة أصغر');
     input.value = '';
     return;
   }
@@ -25422,10 +25425,12 @@ function ownerFrameResetEditor(kind) {
   ownerFramePendingFile[kind] = null;
 }
 
-// المهلة تبقى مفيدة لكتابات Firestore/RTDB نفسها (framesCatalogExtraSet/
-// framesGrantToUser) — ممكن تعلّق على شبكة ضعيفة، نفس سبب استخدام مهلة
-// بكل مكان شبيه بالملف (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها).
-const OWNER_FRAME_NETWORK_TIMEOUT_MS = 20000;
+// مهلة أطول لأنها تشمل كتابة Firestore/RTDB الفعلية (framesCatalogExtraSet/
+// framesGrantToUser) اللي ممكن تبطئ على شبكة جوال ضعيفة — نفس سبب استخدام
+// مهلة بكل مكان شبيه بالملف (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها). بما
+// إن الصورة صارت تُضغَّط لحجم صغير جداً قبل الكتابة (ownerFrameCompressImage)
+// هذي المهلة أصبحت شبكة احتياط نادرة الاستخدام، مو الحارس الأساسي للحجم.
+const OWNER_FRAME_NETWORK_TIMEOUT_MS = 35000;
 function ownerFrameWithTimeout(promise, timeoutMessage) {
   return Promise.race([
     promise,
@@ -25433,25 +25438,54 @@ function ownerFrameWithTimeout(promise, timeoutMessage) {
   ]);
 }
 
-// بلا Firebase Storage إطلاقاً — الصورة تُقرأ محلياً وتُحوَّل base64 (Data URI)
-// وتُخزَّن مباشرة داخل مستند framesCatalogExtra بفايرستور (أو الاحتياطي
-// RTDB عند خطأ حصة)، بنفس فلسفة صور الكتالوج الثابت FRAMES_CATALOG (base64
-// مضمّن بالكود أصلاً). حد 350 كيلوبايت للملف الأصلي (~466 كيلوبايت بعد
-// الترميز) يبقي المستند بأمان تحت حد فايرستور (1 ميجابايت للمستند الواحد).
-const OWNER_FRAME_MAX_FILE_BYTES = 350 * 1024;
+// بلا Firebase Storage إطلاقاً — الصورة تُضغَّط/تُصغَّر محلياً (Canvas) ثم
+// تُحوَّل base64 (Data URI) وتُخزَّن مباشرة داخل مستند framesCatalogExtra
+// بفايرستور (أو الاحتياطي RTDB عند خطأ حصة)، بنفس فلسفة صور الكتالوج
+// الثابت FRAMES_CATALOG (base64 مضمّن بالكود أصلاً). الضغط التلقائي (بدل
+// رفض أي ملف كبير) يضمن حجم صغير وكتابة سريعة وموثوقة دائماً — حتى لو رفع
+// المالك صورة ضخمة مباشرة من الجوال بلا أي تصغير يدوي منه.
+const OWNER_FRAME_MAX_DIMENSION_PX = 1000;   // أطول ضلع بعد التصغير
+const OWNER_FRAME_MAX_DATA_URL_CHARS = 300000; // ~220 كيلوبايت فعلية بعد فك الترميز — يبقي المستند صغيراً وسريع الكتابة
+
+function ownerFrameCompressImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { reject(new Error('تعذّرت قراءة أبعاد الصورة')); return; }
+        const scale = Math.min(1, OWNER_FRAME_MAX_DIMENSION_PX / Math.max(w, h));
+        w = Math.max(1, Math.round(w * scale));
+        h = Math.max(1, Math.round(h * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, w, h); // بدون أي تعبئة خلفية — يحافظ على الشفافية كاملة
+        ctx.drawImage(img, 0, 0, w, h);
+        let quality = 0.9;
+        let dataUrl = canvas.toDataURL('image/webp', quality);
+        let guard = 0;
+        while (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS && quality > 0.3 && guard < 8) {
+          quality -= 0.12;
+          dataUrl = canvas.toDataURL('image/webp', quality);
+          guard++;
+        }
+        if (dataUrl.length > OWNER_FRAME_MAX_DATA_URL_CHARS) {
+          reject(new Error('تعذّر ضغط الصورة لحجم مناسب حتى بعد التصغير — جرّب صورة أبسط تصميماً'));
+          return;
+        }
+        resolve(dataUrl);
+      } catch (e) { reject(new Error('تعذّر معالجة الصورة محلياً، جرّب ملف ثاني')); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('تعذّرت قراءة ملف الصورة، جرّب ملف ثاني')); };
+    img.src = url;
+  });
+}
 
 function ownerUploadFrameImage(file) {
-  if (file.size > OWNER_FRAME_MAX_FILE_BYTES) {
-    return Promise.reject(new Error(
-      'حجم الصورة كبير — الحد الأقصى ' + Math.round(OWNER_FRAME_MAX_FILE_BYTES / 1024) + ' كيلوبايت. صغّر/ضغط الصورة (WebP صغير الحجم أفضل خيار) وحاول ثانية'
-    ));
-  }
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve({ imageUrl: String(reader.result) });
-    reader.onerror = () => reject(new Error('تعذّرت قراءة ملف الصورة، جرّب ملف ثاني'));
-    reader.readAsDataURL(file);
-  });
+  return ownerFrameCompressImage(file).then(dataUrl => ({ imageUrl: dataUrl }));
 }
 
 async function ownerPublishFrame() {
