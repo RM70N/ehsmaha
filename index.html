@@ -652,9 +652,6 @@
     update as rtdbUpdate, onValue as rtdbOnValue, off as rtdbOff, runTransaction as rtdbRunTransaction,
     serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-  import {
-    getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject as storageDeleteObject
-  } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-storage.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE",
@@ -689,10 +686,6 @@
     }
   } catch (e) { rtdb = undefined; }
 
-  // Firebase Storage — يُستخدم فقط لرفع صور الإطارات الديناميكية من لوحة
-  // المالك (framesCatalogExtra). بلا أي علاقة بمسار Firestore/RTDB الاحتياطي أعلاه.
-  const storage = getStorage(app);
-
   // Expose to the classic (non-module) script below via window.__fb
   window.__fb = {
     auth, db, googleProvider,
@@ -703,8 +696,7 @@
     doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
-    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
-    storage, storageRef, uploadBytes, getDownloadURL, storageDeleteObject
+    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -4603,6 +4595,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="field">
         <label>صورة الإطار</label>
         <input type="file" id="frm-owner-pub-file" accept="image/*" onchange="ownerFrameFilePreview('pub')" />
+        <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — حد أقصى 350 كيلوبايت، WebP صغير أفضل خيار</div>
       </div>
       <div class="frm-owner-editor" id="frm-owner-pub-editor" style="display:none;">
         <div class="frm-owner-preview-wrap">
@@ -4647,6 +4640,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
           <div class="field">
             <label>صورة الإطار الخاص</label>
             <input type="file" id="frm-owner-priv-file" accept="image/*" onchange="ownerFrameFilePreview('priv')" />
+            <div class="field-hint">تُحفظ داخل فايرستور مباشرة (بلا استضافة خارجية) — حد أقصى 350 كيلوبايت، WebP صغير أفضل خيار</div>
           </div>
           <div class="frm-owner-editor" id="frm-owner-priv-editor" style="display:none;">
             <div class="frm-owner-preview-wrap">
@@ -25347,6 +25341,11 @@ function ownerFrameFilePreview(kind) {
   const input = document.getElementById('frm-owner-' + kind + '-file');
   const file = input && input.files && input.files[0];
   if (!file) return;
+  if (file.size > OWNER_FRAME_MAX_FILE_BYTES) {
+    toast('⚠️ حجم الصورة كبير — الحد الأقصى ' + Math.round(OWNER_FRAME_MAX_FILE_BYTES / 1024) + ' كيلوبايت (صغّر/ضغط الصورة وحاول ثانية)');
+    input.value = '';
+    return;
+  }
   ownerFramePendingFile[kind] = file;
   const url = URL.createObjectURL(file);
   const img = document.getElementById('frm-owner-' + kind + '-preview-img');
@@ -25423,14 +25422,9 @@ function ownerFrameResetEditor(kind) {
   ownerFramePendingFile[kind] = null;
 }
 
-// يرفع صورة الإطار فعلياً لـFirebase Storage (لا base64 بالمستند — رابط
-// خفيف فقط) ويرجع رابط التحميل.
-// Firebase Storage/الكتابات التالية ممكن تعلّق للأبد بلا أي خطأ ظاهر لو
-// Storage غير مفعّل أصلاً بمشروع Firebase (خطوة تفعيل يدوية منفصلة تماماً عن
-// قواعد الأمان — لوحة Firebase ← Storage ← "ابدأ الآن" لو أول مرة)، أو على
-// شبكة جوال ضعيفة — نفس سبب استخدام مهلة بكل مكان ثاني بالملف
-// (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها). بعد المهلة نرمي خطأ واضح بدل ما
-// يبقى الزر عالق على "جارِ..." للأبد.
+// المهلة تبقى مفيدة لكتابات Firestore/RTDB نفسها (framesCatalogExtraSet/
+// framesGrantToUser) — ممكن تعلّق على شبكة ضعيفة، نفس سبب استخدام مهلة
+// بكل مكان شبيه بالملف (PLAYER_TIKTOK_SAVE_TIMEOUT_MS ونظائرها).
 const OWNER_FRAME_NETWORK_TIMEOUT_MS = 20000;
 function ownerFrameWithTimeout(promise, timeoutMessage) {
   return Promise.race([
@@ -25439,19 +25433,25 @@ function ownerFrameWithTimeout(promise, timeoutMessage) {
   ]);
 }
 
-async function ownerUploadFrameImage(file, id) {
-  const ext = ((file.name || '').split('.').pop() || 'png').toLowerCase().replace(/[^a-z0-9]/g, '') || 'png';
-  const path = 'frames/' + id + '.' + ext;
-  const ref = fb.storageRef(fb.storage, path);
-  await ownerFrameWithTimeout(
-    fb.uploadBytes(ref, file),
-    'تعذّر رفع الصورة (استغرق وقت طويل بدون رد) — تأكد إن Firebase Storage مُفعَّل لهذا المشروع من لوحة Firebase وإن قواعده تسمح لحسابك بالرفع، أو تأكد من اتصال الإنترنت وحاول ثانية'
-  );
-  const url = await ownerFrameWithTimeout(
-    fb.getDownloadURL(ref),
-    'تم الرفع لكن تعذّر جلب رابط الصورة — حاول ثانية'
-  );
-  return { imageUrl: url, storagePath: path };
+// بلا Firebase Storage إطلاقاً — الصورة تُقرأ محلياً وتُحوَّل base64 (Data URI)
+// وتُخزَّن مباشرة داخل مستند framesCatalogExtra بفايرستور (أو الاحتياطي
+// RTDB عند خطأ حصة)، بنفس فلسفة صور الكتالوج الثابت FRAMES_CATALOG (base64
+// مضمّن بالكود أصلاً). حد 350 كيلوبايت للملف الأصلي (~466 كيلوبايت بعد
+// الترميز) يبقي المستند بأمان تحت حد فايرستور (1 ميجابايت للمستند الواحد).
+const OWNER_FRAME_MAX_FILE_BYTES = 350 * 1024;
+
+function ownerUploadFrameImage(file) {
+  if (file.size > OWNER_FRAME_MAX_FILE_BYTES) {
+    return Promise.reject(new Error(
+      'حجم الصورة كبير — الحد الأقصى ' + Math.round(OWNER_FRAME_MAX_FILE_BYTES / 1024) + ' كيلوبايت. صغّر/ضغط الصورة (WebP صغير الحجم أفضل خيار) وحاول ثانية'
+    ));
+  }
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve({ imageUrl: String(reader.result) });
+    reader.onerror = () => reject(new Error('تعذّرت قراءة ملف الصورة، جرّب ملف ثاني'));
+    reader.readAsDataURL(file);
+  });
 }
 
 async function ownerPublishFrame() {
@@ -25466,10 +25466,10 @@ async function ownerPublishFrame() {
   statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ الرفع والنشر...';
   try {
     const id = ownerFrameGenId();
-    const { imageUrl, storagePath } = await ownerUploadFrameImage(file, id);
+    const { imageUrl } = await ownerUploadFrameImage(file);
     await ownerFrameWithTimeout(
       framesCatalogExtraSet(id, {
-        id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
+        id, name, imageUrl, hole: [l, t, w, h], ratio,
         visibility: 'public', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null
       }),
       'تم رفع الصورة لكن تعذّر حفظ بيانات الإطار — حاول ثانية'
@@ -25594,10 +25594,10 @@ async function ownerGrantFrame() {
       const { l, t, w, h, ratio, name } = ownerFrameReadHoleFields('priv');
       if (!name) throw new Error('اكتب اسم الإطار أولاً');
       const id = ownerFrameGenId();
-      const { imageUrl, storagePath } = await ownerUploadFrameImage(file, id);
+      const { imageUrl } = await ownerUploadFrameImage(file);
       await ownerFrameWithTimeout(
         framesCatalogExtraSet(id, {
-          id, name, imageUrl, storagePath, hole: [l, t, w, h], ratio,
+          id, name, imageUrl, hole: [l, t, w, h], ratio,
           visibility: 'private', createdAt: fb.serverTimestamp(), createdBy: (currentUser && currentUser.uid) || null,
           grantedTo: targetKey
         }),
