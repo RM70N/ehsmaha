@@ -200,12 +200,19 @@ service cloud.firestore {
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
+      // ownedFrames/activeFrame: نظام الإطارات (framesClaim/framesSetActive
+      // من أي مستخدم، framesGrantToUser من لوحة المالك). lastGamePlayed/
+      // lastGamePlayedAt/gamesPlayCount/activityLog: تتبّع آخر/أكثر لعبة
+      // وسجل النشاط بصفحة البروفايل (levelsCommit). بنفس نمط الثقة الكاملة
+      // بالعميل المطبَّق أصلاً على xp/level/roundsPlayed بهذا المستند.
       allow create, update: if request.auth != null
                     && request.resource.data.keys().hasOnly([
                          'key', 'username', 'avatar',
                          'xp', 'level', 'roundsPlayed',
                          'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
+                         'createdAt', 'updatedAt',
+                         'ownedFrames', 'activeFrame',
+                         'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
                        ])
                     && request.resource.data.xp is number
                     && request.resource.data.xp >= 0
@@ -215,6 +222,18 @@ service cloud.firestore {
                     && request.resource.data.roundsPlayed >= 0;
 
       allow delete: if isOwner();
+    }
+
+    // framesCatalogExtra/{frameId} — إطارات ديناميكية (لوحة المالك فقط
+    // تنشر/تحذف). القراءة لأي مستخدم مسجّل دخول بمعرّف الوثيقة مباشرة —
+    // الوثائق visibility=='private' ما تظهر إطلاقاً بأي استعلام/قائمة عامة
+    // (framesPublicExtraBoot يفلتر visibility=='public' فقط)، فقراءتها عملياً
+    // ممكنة فقط لمن يعرف الـid أصلاً من ownedFrames الخاص فيه (حماية بمستوى
+    // "معرّف غير مخمَّن" — لتشديد أكثر أضف حقل assignedKey وتحقق تطابقه مع
+    // levelsKey حساب القارئ، يتطلب ربط uid↔levelsKey غير متوفر حالياً).
+    match /framesCatalogExtra/{frameId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isOwner();
     }
 
     match /shopProducts/{productId} {
