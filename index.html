@@ -24911,7 +24911,9 @@ function framesSlotsForLevel(level) {
 let framesSelfLevel = 1;
 let framesSelfOwned = [];   // مصفوفة معرّفات الإطارات اللي عند الشخص (ثابتة + عامة + خاصة مُهداة)
 let framesSelfActive = '';  // الإطار المفعَّل حالياً (لازم يكون من ownedFrames)
-let framesSelfKey = '';
+let framesSelfKey = '';      // مفتاح "البث" (تيك توك المربوط، وإلا يوزر الموقع) — منه يُقرأ/يُكتب activeFrame
+let framesSelfSiteKey = '';  // مفتاح حساب الموقع — مرساة الملكية (ownedFrames) دايماً
+let framesSelfDocs = {};     // key -> آخر بيانات مقروءة لكل مفتاح (تُدمج بـframesApplySelfDocs)
 let framesSelfUnsub = null;
 let framesViewMode = 'catalog'; // 'catalog' = المعرض الكامل (٢١ إطار + العامة، بحالة قفل/فتح) | 'owned' = "إطاراتي" من البروفايل فقط
 
@@ -24925,6 +24927,42 @@ let framesPendingAction = null;
 function framesKeyForSelf() {
   const identity = (typeof levelsSelfIdentity === 'function') ? levelsSelfIdentity() : null;
   return identity ? levelsKey(identity.uniqueId) : '';
+}
+
+// ==================== مفاتيح الإطارات (حل مشكلة "الإطار ما يوصل") ====================
+// كانت المشكلة الجذرية: جهتان تحسبان مفتاح levels/{key} بطريقتين مختلفتين
+// فتختلفان كثيراً:
+//   • لوحة المالك (منح إطار) تحسبه من فَيرستور: usernames/{lower} ← uid ←
+//     users/{uid}.linkedTiktokUsername.
+//   • متصفح المستلم يحسبه من localStorage فقط (playerTiktokLinkGet).
+// فلو ربط حسابه بجهاز وفتح الموقع بجهاز ثاني (أو انمسح تخزين المتصفح، أو
+// كتب المالك يوزر التيك توك بدل يوزر الموقع، أو تعثّرت كتابة الربط
+// بـusers/{uid} وهي بلا فولباك) ينكتب الإطار بمفتاح ويُقرأ من مفتاح ثاني —
+// فما يوصل أبداً. الحل: الملكية مرساتها **يوزر الموقع** (ثابت دايماً ولا
+// يعتمد على تخزين المتصفح ولا على الربط)، والقراءة تدمج كل مفاتيح الشخص،
+// والمنح يكتب لكل مفاتيحه — فما عاد فيه أي احتمال اختلاف.
+
+// مفتاح حساب الموقع — متوفر دايماً لأي مسجّل دخول، وهو مرساة الملكية.
+function framesSiteKey() {
+  return currentUsername ? levelsKey(currentUsername) : '';
+}
+
+// مفتاح تيك توك المربوط (إن وُجد) — هذا المفتاح تحديداً اللي تقرأ منه بطاقات
+// المشاركين بالبث (framesApplyToChip بـlevelsKey(uniqueId))، فالتفعيل لازم
+// ينكتب فيه عشان يظهر الإطار بشاشة الانتظار والراوندات.
+function framesTiktokKey() {
+  const link = (typeof playerTiktokLinkGet === 'function') ? playerTiktokLinkGet() : null;
+  return (link && link.username) ? levelsKey(link.username) : '';
+}
+
+// كل مفاتيح الشخص الحالي بلا تكرار (يوزر الموقع أولاً ثم التيك توك المربوط).
+function framesSelfKeys() {
+  const keys = [];
+  const site = framesSiteKey();
+  if (site) keys.push(site);
+  const tk = framesTiktokKey();
+  if (tk && keys.indexOf(tk) === -1) keys.push(tk);
+  return keys;
 }
 
 // ==================== الكتالوج الفعّال (Effective Catalog) ====================
@@ -25174,20 +25212,55 @@ function framesRtdbPath(key) { return 'levels/' + key; }
 // الشبكات تعلّق الاتصال بفايرستور صامتاً بلا خطأ ظاهر).
 const FRAMES_KV_FIRESTORE_TIMEOUT_MS = 8000;
 
+// يدمج مستند levels/{key} من المصدرين (Firestore + RTDB) بدل اعتبار أحدهما
+// مصدر الحقيقة الوحيد. هذا إصلاح جوهري: بيانات الشخص الواحد ممكن تكون
+// **موزّعة** بين القاعدتين فعلياً — مستند اللفل/XP انكتب بفَيرستور (نظام
+// المستويات يكتب فيه دايماً بنجاح)، بينما ownedFrames انكتب بـRTDB لأن قاعدة
+// أمان فَيرستور كانت ترفض حقول الإطارات وقتها فاشتغل الفولباك. القارئ القديم
+// كان يكتفي بفَيرستور (لأنه "نجح")، فيشوف مستنداً بلا أي إطارات ويظن إن
+// الشخص ما عنده شي — والإطارات الممنوحة تضل مخفية للأبد بالقاعدة الثانية.
+// الملكية (ownedFrames) = اتحاد المصدرين دايماً (الملكية تراكمية، ما تنقص)،
+// وبقية الحقول: فَيرستور أولاً لو موجود عنده، وإلا RTDB.
+function framesMergeLevelDocs(fsDoc, rtDoc) {
+  if (!fsDoc && !rtDoc) return null;
+  const merged = Object.assign({}, rtDoc || {}, fsDoc || {});
+  const owned = [];
+  [rtDoc, fsDoc].forEach((d) => {
+    const arr = d && d.ownedFrames;
+    if (Array.isArray(arr)) arr.forEach((id) => { if (id && owned.indexOf(id) === -1) owned.push(id); });
+  });
+  if (owned.length) merged.ownedFrames = owned;
+  // التفعيل: فَيرستور له الأولوية لو الحقل موجود عنده أصلاً (يشمل التعطيل
+  // المتعمّد بقيمة فاضية)، وإلا ناخذ قيمة RTDB (حالة تفعيل قديم انكتب هناك).
+  if (!fsDoc || fsDoc.activeFrame === undefined) {
+    if (rtDoc && rtDoc.activeFrame !== undefined) merged.activeFrame = rtDoc.activeFrame;
+  }
+  return merged;
+}
+
 async function framesReadKV(key) {
   const firestoreRead = fb.getDoc(fb.doc(fb.db, 'levels', key));
   firestoreRead.catch(() => {});
+  let fsDoc = null;
   try {
     const snap = await Promise.race([
       firestoreRead,
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FRAMES_KV_FIRESTORE_TIMEOUT_MS))
     ]);
-    return snap;
+    fsDoc = snap.exists() ? (snap.data() || {}) : null;
   } catch (err) {
+    console.error('🖼️ framesReadKV(' + key + '): فشلت قراءة Firestore، نعتمد على RTDB —', err);
     if (!fb.rtdb) throw err;
-    const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)));
-    return { exists: () => rsnap.exists(), data: () => rsnap.val() || {} };
   }
+  let rtDoc = null;
+  if (fb.rtdb) {
+    try {
+      const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)));
+      rtDoc = rsnap.exists() ? (rsnap.val() || {}) : null;
+    } catch (e) { /* أفضل جهد — نكمل بما وصل من فَيرستور */ }
+  }
+  const merged = framesMergeLevelDocs(fsDoc, rtDoc);
+  return { exists: () => !!merged, data: () => merged || {} };
 }
 
 async function framesWriteKV(key, data) {
@@ -25224,50 +25297,103 @@ async function framesWriteKV(key, data) {
 // كاحتياط أيضاً، لا ننتظر خطأ صريح ما راح يجي.
 const FRAMES_ONVALUE_FIRESTORE_TIMEOUT_MS = 10000;
 
+// يستمع للمصدرين معاً (Firestore + RTDB) ويدمجهما بـframesMergeLevelDocs —
+// مو "فَيرستور وإلا نتحول لـRTDB". السبب: بيانات الشخص ممكن تكون موزّعة بين
+// القاعدتين فعلياً (اللفل بفَيرستور، والإطارات الممنوحة بـRTDB لأن قاعدة
+// الأمان كانت ترفضها وقت المنح)، فالاعتماد على مصدر واحد يخفي نصف البيانات.
+// وهذا نفس نمط framesPublicExtraBoot المعتمد أصلاً بهذا الملف.
 function framesOnValue(key, onData) {
-  let unsub = null;
-  let switched = false;
-  let gotFirstSnapshot = false;
-  const switchToRtdb = () => {
-    if (switched || !fb.rtdb) return;
-    switched = true;
-    if (unsub) { try { unsub(); } catch (e) {} }
-    unsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), (rsnap) => {
-      onData({ exists: () => rsnap.exists(), data: () => rsnap.val() || {} });
-    }, () => {});
+  let fsDoc = null;
+  let rtDoc = null;
+  let gotAny = false;
+  const emit = () => {
+    gotAny = true;
+    const merged = framesMergeLevelDocs(fsDoc, rtDoc);
+    onData({ exists: () => !!merged, data: () => merged || {} });
   };
-  unsub = fb.onSnapshot(fb.doc(fb.db, 'levels', key), (snap) => {
-    gotFirstSnapshot = true;
-    onData(snap);
-  }, (err) => {
-    if (authIsQuotaError(err)) switchToRtdb();
-  });
-  setTimeout(() => { if (!gotFirstSnapshot) switchToRtdb(); }, FRAMES_ONVALUE_FIRESTORE_TIMEOUT_MS);
-  return () => { if (unsub) unsub(); };
+  let fsUnsub = null;
+  let rtUnsub = null;
+  try {
+    fsUnsub = fb.onSnapshot(fb.doc(fb.db, 'levels', key), (snap) => {
+      fsDoc = snap.exists() ? (snap.data() || {}) : null;
+      emit();
+    }, (err) => {
+      // أي خطأ قراءة — مو بس انتهاء الحصة — ما يوقف العرض: مستمع RTDB تحت
+      // يغطّي. سابقاً كان التحول مشروطاً بـauthIsQuotaError فقط، فخطأ زي
+      // permission-denied يخلي الصفحة فاضية 10 ثوانٍ كاملة قبل أي محاولة.
+      console.error('🖼️ framesOnValue(' + key + '): فشلت قراءة Firestore الحيّة، نعتمد على RTDB —', err);
+      fsDoc = null;
+      emit();
+    });
+  } catch (e) {
+    console.error('🖼️ framesOnValue(' + key + '): تعذّر فتح استماع Firestore —', e);
+  }
+  if (fb.rtdb) {
+    try {
+      rtUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, framesRtdbPath(key)), (rsnap) => {
+        rtDoc = rsnap.exists() ? (rsnap.val() || {}) : null;
+        emit();
+      }, (err) => { console.error('🖼️ framesOnValue(' + key + '): فشل استماع RTDB —', err); });
+    } catch (e) {
+      console.error('🖼️ framesOnValue(' + key + '): تعذّر فتح استماع RTDB —', e);
+    }
+  }
+  // لو ما وصلت أي لقطة من أي مصدر خلال المهلة، نُطلق حالة فاضية عشان
+  // الواجهة ترسم بدل ما تبقى معلّقة للأبد.
+  setTimeout(() => { if (!gotAny) emit(); }, FRAMES_ONVALUE_FIRESTORE_TIMEOUT_MS);
+  return () => {
+    if (fsUnsub) { try { fsUnsub(); } catch (e) {} }
+    if (rtUnsub) { try { rtUnsub(); } catch (e) {} }
+  };
 }
 
 // يقرأ لفل/إطارات الشخص الحالي مرة، ثم يبقى مستمعاً حيّاً طول ما صفحة
 // الإطارات مفتوحة (عشان لو رفع لفل أو اتمنح إطار جديد أثناء تصفّحه ينحدّث فوراً).
 async function framesLoadSelf() {
   framesSelfKey = framesKeyForSelf();
-  if (!framesSelfKey || !fb) { framesRenderCurrent(); return; }
+  framesSelfSiteKey = framesSiteKey();
+  const keys = framesSelfKeys();
+  if (!keys.length || !fb) { framesRenderCurrent(); return; }
   if (framesSelfUnsub) { framesSelfUnsub(); framesSelfUnsub = null; }
-  const keyAtCallTime = framesSelfKey; // لقطة المفتاح وقت هذا الاستدعاء — يمنع استئناف على مفتاح تغيّر بالمنتصف
-  try {
-    framesSelfUnsub = framesOnValue(framesSelfKey, (snap) => {
-      const v = snap.exists() ? (snap.data() || {}) : {};
-      framesSelfLevel = Math.max(1, Number(v.level) || 1);
-      framesSelfOwned = Array.isArray(v.ownedFrames) ? v.ownedFrames.filter(Boolean) : [];
-      framesSelfActive = (v.activeFrame && framesSelfOwned.includes(v.activeFrame)) ? v.activeFrame : '';
-      framesRenderCurrent();
-      // نفس مستند levels/{key} يحمل أيضاً roundsPlayed/lastGamePlayed/
-      // gamesPlayCount/activityLog — صفحة البروفايل تستهلكها من نفس
-      // الاشتراك الحي هذا بدل فتح استماع ثانٍ مكرر على نفس المستند.
-      if (typeof profileLevelsDocRefresh === 'function') profileLevelsDocRefresh(v);
-      if (typeof profileFramesCountRefresh === 'function') profileFramesCountRefresh();
-      framesResumePendingActionIfAny(keyAtCallTime);
-    });
-  } catch (e) { framesRenderCurrent(); }
+  framesSelfDocs = {};
+  const unsubs = [];
+  keys.forEach((key) => {
+    try {
+      unsubs.push(framesOnValue(key, (snap) => {
+        framesSelfDocs[key] = snap.exists() ? (snap.data() || {}) : {};
+        framesApplySelfDocs();
+      }));
+    } catch (e) {
+      console.error('🖼️ framesLoadSelf: تعذّر الاستماع لمفتاح "' + key + '" —', e);
+    }
+  });
+  framesSelfUnsub = () => { unsubs.forEach(u => { try { u(); } catch (e) {} }); };
+  framesRenderCurrent();
+}
+
+// يدمج بيانات كل مفاتيح الشخص (يوزر الموقع + تيك توك المربوط) بحالة واحدة:
+// الملكية = اتحاد ownedFrames من كل المفاتيح (فأي إطار انمنح بأي مفتاح — حتى
+// منح قديم انكتب بمفتاح مختلف — يظهر بـ"إطاراتي")، والتفعيل يُؤخذ من مفتاح
+// البث أولاً لأنه اللي تقرأ منه بطاقات المشاركين فعلياً.
+function framesApplySelfDocs() {
+  const siteDoc = framesSelfDocs[framesSelfSiteKey] || {};
+  const streamDoc = framesSelfDocs[framesSelfKey] || {};
+  framesSelfLevel = Math.max(1, Number(siteDoc.level) || 1, Number(streamDoc.level) || 1);
+  const merged = [];
+  Object.keys(framesSelfDocs).forEach((k) => {
+    const arr = framesSelfDocs[k] && framesSelfDocs[k].ownedFrames;
+    if (Array.isArray(arr)) arr.forEach((id) => { if (id && merged.indexOf(id) === -1) merged.push(id); });
+  });
+  framesSelfOwned = merged;
+  const activeRaw = streamDoc.activeFrame || siteDoc.activeFrame || '';
+  framesSelfActive = (activeRaw && merged.indexOf(activeRaw) !== -1) ? activeRaw : '';
+  framesRenderCurrent();
+  // نفس مستند levels/{key} يحمل أيضاً roundsPlayed/lastGamePlayed/
+  // gamesPlayCount/activityLog — صفحة البروفايل تستهلكها من نفس
+  // الاشتراك الحي هذا بدل فتح استماع ثانٍ مكرر على نفس المستند.
+  if (typeof profileLevelsDocRefresh === 'function') profileLevelsDocRefresh(Object.assign({}, siteDoc, streamDoc));
+  if (typeof profileFramesCountRefresh === 'function') profileFramesCountRefresh();
+  framesResumePendingActionIfAny(framesSelfKey);
 }
 
 // لازم يكون رابط حسابه بتيك توك (زر "ربط حسابي بتيك توك" بالبروفايل — منفصل
@@ -25301,78 +25427,80 @@ function framesResumePendingActionIfAny(loadedForKey) {
   else if (action.type === 'setActive') framesSetActive(action.frameId);
 }
 
+// التملّك (اختيار إطار من المعرض) ما يحتاج ربط تيك توك إطلاقاً — الملكية
+// تُحفظ بمفتاح حساب الموقع، فتوصل للحساب وتظهر بـ"إطاراتي" مباشرة. الربط
+// يُطلب فقط بخطوة التفعيل بعدها (framesSetActive) لأن بطاقات المشاركين
+// بالبثوث تُقرأ بمفتاح تيك توك.
 async function framesClaim(frameId) {
   const f = framesEffectiveCatalog().find(x => x.id === frameId);
   if (!f) return;
-  if (!framesRequireLinkedOrRedirect({ type: 'claim', frameId })) return;
-  framesPendingAction = null; // وصلنا هنا يعني الربط متوفر فعلاً (مباشرة أو مُستأنف) — ما فيه شي معلّق نحتفظ فيه
   const slots = framesSlotsForLevel(framesSelfLevel);
   if (framesSelfOwned.includes(frameId) || framesSelfOwned.length >= slots) return;
+  if (!framesSelfSiteKey) framesSelfSiteKey = framesSiteKey();
+  const ownerKey = framesSelfSiteKey || framesSelfKey;
+  if (!fb || !ownerKey) return;
   // نحتفظ بالحالة القديمة عشان نقدر نتراجع عنها بالضبط لو فشل الحفظ بكلا
-  // القاعدتين — غير كذا تضل الواجهة تعرض الإطار مفعَّلاً وهو أصلاً ما انحفظ.
+  // القاعدتين — غير كذا تضل الواجهة تعرض الإطار مملوكاً وهو أصلاً ما انحفظ.
   const prevOwned = framesSelfOwned;
-  const prevActive = framesSelfActive;
-  const prevCached = framesSelfKey ? framesParticipantCache.get(framesSelfKey) : undefined;
   const nextOwned = framesSelfOwned.concat([frameId]);
   framesSelfOwned = nextOwned; // تحديث تفاؤلي فوري
-  framesSelfActive = frameId;
   framesRenderCurrent();
-  // إبطال فوري لكاش بطاقة المشارك بنفس مفتاحنا (framesParticipantCache) —
-  // لو كنا منضمين لراوند قبل ما نملك أي إطار كان انكتب '' بالكاش لهذا
-  // المفتاح، فبدون هذا السطر يضل الإطار ما يظهر لنا بأي راوند جاي بنفس
-  // الجلسة إلا بعد Hard Refresh. framesSelfKey بالضبط نفس مفتاح
-  // levelsKey(uniqueId) اللي يستخدمه framesApplyToChip لبطاقتنا.
-  // framesRefreshChipsForKey يدفع نفس التحديث فوراً لأي بطاقة مشارك معروضة
-  // حالياً بشاشة الانتظار/الراوند (لا تنتظر بناء بطاقة جديدة).
-  if (framesSelfKey) { framesParticipantCache.set(framesSelfKey, frameId); framesRefreshChipsForKey(framesSelfKey, frameId); }
-  if (!fb || !framesSelfKey) return;
   try {
-    await framesWriteKV(framesSelfKey, { ownedFrames: nextOwned, activeFrame: frameId });
-    if (typeof toast === 'function') toast('🖼️ صار إطار "' + (f.name || '') + '" عندك وتفعّل!');
+    await framesWriteKV(ownerKey, { ownedFrames: nextOwned });
+    if (typeof toast === 'function') toast('🖼️ صار إطار "' + (f.name || '') + '" عندك!');
   } catch (e) {
-    console.error('🖼️ framesClaim(' + frameId + '): تعذّر حفظ الإطار بكلا القاعدتين (Firestore وRTDB) —', e);
-    // تراجع كامل عن التحديث التفاؤلي — الإطار ما انحفظ فعلياً بأي قاعدة.
-    framesSelfOwned = prevOwned;
-    framesSelfActive = prevActive;
+    console.error('🖼️ framesClaim(' + frameId + '): تعذّر حفظ الملكية بكلا القاعدتين (Firestore وRTDB) —', e);
+    framesSelfOwned = prevOwned; // تراجع كامل — الملكية ما انحفظت فعلياً بأي قاعدة
     framesRenderCurrent();
-    if (framesSelfKey) {
-      if (prevCached === undefined) framesParticipantCache.delete(framesSelfKey); else framesParticipantCache.set(framesSelfKey, prevCached);
-      framesRefreshChipsForKey(framesSelfKey, prevCached || '');
-    }
     if (typeof toast === 'function') toast('⚠️ ما قدرنا نحفظ الإطار، جرّب مرة ثانية');
+    return;
   }
+  // صار يملكه فعلاً — الحين نحاول نفعّله (هنا فقط يُطلب الربط لو مو مربوط،
+  // والملكية تبقى محفوظة بأي حال حتى لو أجّل الربط).
+  framesSetActive(frameId);
 }
 
 // يبدّل الإطار المفعَّل بين الإطارات اللي عنده أصلاً (frameId='' = بلا إطار).
+// هنا — وهنا فقط — يُشترط ربط تيك توك، لأن بطاقة المشارك بالبث تُقرأ بمفتاح
+// levelsKey(uniqueId) حق تيك توك، فبدون ربط ما فيه مفتاح يظهر فيه الإطار.
+// التفعيل يُكتب بكل مفاتيح الشخص (يوزر الموقع + تيك توك) عشان ما يعتمد على
+// أي مفتاح واحد ويظل متسقاً مهما اختلف الجهاز أو مصدر القراءة.
 async function framesSetActive(frameId) {
   if (frameId && !framesSelfOwned.includes(frameId)) return;
   if (frameId && !framesRequireLinkedOrRedirect({ type: 'setActive', frameId })) return; // إلغاء التفعيل مسموح دايماً بدون شرط الربط
   framesPendingAction = null; // وصلنا هنا يعني الربط متوفر فعلاً (مباشرة أو مُستأنف) — ما فيه شي معلّق نحتفظ فيه
+  framesSelfKey = framesKeyForSelf();
+  framesSelfSiteKey = framesSiteKey();
+  const keys = framesSelfKeys();
   const prevActive = framesSelfActive;
-  const prevCached = framesSelfKey ? framesParticipantCache.get(framesSelfKey) : undefined;
+  const prevCache = {};
+  keys.forEach(k => { prevCache[k] = framesParticipantCache.get(k); });
   framesSelfActive = frameId;
   framesRenderCurrent();
-  // نفس إبطال الكاش أعلاه بـframesClaim — بدونه لو ضغط "استخدام" لإطار
-  // بعدما كان انضم لراوند سابق بلا إطار (فانكتبت '' بالكاش لمفتاحه)، الراوند
-  // الجاي بنفس الجلسة يرجع فوراً من الكاش الفاضي القديم بدل ما يعيد
-  // framesReadKV، فالإطار ما يطلع حول أفتاره إلا بعد Hard Refresh.
-  // framesRefreshChipsForKey يدفع نفس التحديث فوراً لأي بطاقة مشارك معروضة
-  // حالياً بشاشة الانتظار/الراوند (لا تنتظر بناء بطاقة جديدة).
-  if (framesSelfKey) { framesParticipantCache.set(framesSelfKey, frameId); framesRefreshChipsForKey(framesSelfKey, frameId); }
-  if (!fb || !framesSelfKey) return;
-  try {
-    await framesWriteKV(framesSelfKey, { activeFrame: frameId });
-  } catch (e) {
-    console.error('🖼️ framesSetActive(' + frameId + '): تعذّر حفظ الإطار بكلا القاعدتين (Firestore وRTDB) —', e);
-    // تراجع كامل عن التحديث التفاؤلي — التفعيل ما انحفظ فعلياً بأي قاعدة.
-    framesSelfActive = prevActive;
-    framesRenderCurrent();
-    if (framesSelfKey) {
-      if (prevCached === undefined) framesParticipantCache.delete(framesSelfKey); else framesParticipantCache.set(framesSelfKey, prevCached);
-      framesRefreshChipsForKey(framesSelfKey, prevCached || '');
-    }
-    if (typeof toast === 'function') toast('⚠️ ما قدرنا نحفظ الإطار، جرّب مرة ثانية');
-  }
+  // إبطال فوري لكاش بطاقة المشارك لكل مفاتيحنا + دفع التحديث لأي بطاقة
+  // معروضة حالياً بشاشة الانتظار/الراوند، بدون انتظار بناء بطاقة جديدة ولا
+  // إعادة تحميل الصفحة.
+  keys.forEach(k => { framesParticipantCache.set(k, frameId); framesRefreshChipsForKey(k, frameId); });
+  if (!fb || !keys.length) return;
+  const payload = frameId
+    ? { activeFrame: frameId, ownedFrames: framesSelfOwned }
+    : { activeFrame: '' };
+  const results = await Promise.all(keys.map(k =>
+    framesWriteKV(k, payload).then(() => true).catch((e) => {
+      console.error('🖼️ framesSetActive(' + frameId + '): فشل الحفظ بمفتاح "' + k + '" —', e);
+      return false;
+    })
+  ));
+  if (results.some(Boolean)) return; // نجح مفتاح واحد على الأقل — التفعيل محفوظ فعلياً
+  console.error('🖼️ framesSetActive(' + frameId + '): تعذّر الحفظ بكل المفاتيح وبكلا القاعدتين (Firestore وRTDB)');
+  // تراجع كامل عن التحديث التفاؤلي — التفعيل ما انحفظ فعلياً بأي مكان.
+  framesSelfActive = prevActive;
+  framesRenderCurrent();
+  keys.forEach(k => {
+    if (prevCache[k] === undefined) framesParticipantCache.delete(k); else framesParticipantCache.set(k, prevCache[k]);
+    framesRefreshChipsForKey(k, prevCache[k] || '');
+  });
+  if (typeof toast === 'function') toast('⚠️ ما قدرنا نحفظ الإطار، جرّب مرة ثانية');
 }
 
 // mode: 'catalog' (افتراضي، المعرض الكامل بحالة قفل/فتح) | 'owned' (من زر
@@ -25959,10 +26087,20 @@ function ownerRenderFramesGrantsList() {
 // (usernames/{lower} ثم users/{uid}) بدل الاعتماد على كاش كامل، بنفس فولباك
 // RTDB الاحتياطي المستخدم أصلاً بالتسجيل (authReserveUsernameFallback/
 // authGetUserDoc تحديداً pendingUsernames/pendingUsers).
-async function ownerResolveGrantTargetKey(usernameRaw) {
+// ترجع **كل** مفاتيح levels المحتملة للشخص المستهدف بدل مفتاح واحد. هذا هو
+// إصلاح السبب الجذري لمشكلة "الإطار ما يوصل": المتصفح حق المستلم يحسب مفتاحه
+// من localStorage (playerTiktokLinkGet)، بينما هنا نحسبه من فَيرستور — فأي
+// اختلاف بينهما (ربط بجهاز ثاني، تخزين متصفح منمسح، كتابة ربط ما وصلت
+// users/{uid}، أو المالك كتب يوزر التيك توك بدل يوزر الموقع) كان يخلي المنح
+// ينكتب بمفتاح والقراءة من مفتاح ثاني. الحين نكتب بكل المفاتيح، وصفحة
+// "إطاراتي" تدمج كلها عند القراءة — فيستحيل يضيع المنح بينها.
+async function ownerResolveGrantTargetKeys(usernameRaw) {
   const raw = String(usernameRaw || '').trim();
-  if (!raw) return '';
-  const usernameLower = raw.toLowerCase();
+  if (!raw) return [];
+  const keys = [];
+  const push = (v) => { const k = levelsKey(v); if (k && keys.indexOf(k) === -1) keys.push(k); };
+  push(raw); // مهما كتب المالك، المفتاح الحرفي لمُدخله ينمنح دايماً
+  const usernameLower = levelsKey(raw);
   let uid = null;
   try {
     const unameSnap = await Promise.race([
@@ -25971,20 +26109,35 @@ async function ownerResolveGrantTargetKey(usernameRaw) {
     ]);
     if (unameSnap.exists()) uid = unameSnap.data().uid;
   } catch (e) {
+    console.error('🖼️ ownerResolveGrantTargetKeys: تعذّرت قراءة usernames/' + usernameLower + ' —', e);
     if (fb.rtdb) {
       try {
         const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingUsernames/' + usernameLower));
         if (rsnap.exists()) uid = rsnap.val().uid;
-      } catch (e2) { /* أفضل جهد — نكمل بمعاملة المُدخل كيوزر منصة مباشر بالأسفل */ }
+      } catch (e2) { /* أفضل جهد — نكمل بمعاملة المُدخل كيوزر منصة مباشر */ }
     }
+  }
+  // لو المُدخل يوزر تيك توك مو يوزر موقع، ندوّر صاحبه بحقل الربط نفسه.
+  if (!uid) {
+    try {
+      const q = fb.query(fb.collection(fb.db, 'users'), fb.where('linkedTiktokUsername', '==', usernameLower));
+      const qsnap = await Promise.race([
+        fb.getDocs(q),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 6000))
+      ]);
+      qsnap.forEach(d => { if (!uid) uid = d.id; });
+    } catch (e) { /* أفضل جهد — استعلام اختياري بحت */ }
   }
   if (uid) {
     try {
       const data = await authGetUserDoc(uid); // عندها فولباك RTDB داخلي أصلاً
-      if (data && data.linkedTiktokUsername) return levelsKey(data.linkedTiktokUsername);
-    } catch (e) { /* أفضل جهد */ }
+      if (data) {
+        if (data.username) push(data.username);               // مفتاح حساب الموقع (مرساة الملكية)
+        if (data.linkedTiktokUsername) push(data.linkedTiktokUsername); // مفتاح البث
+      }
+    } catch (e) { console.error('🖼️ ownerResolveGrantTargetKeys: تعذّرت قراءة users/' + uid + ' —', e); }
   }
-  return levelsKey(raw);
+  return keys;
 }
 
 async function ownerGrantFrame() {
@@ -25996,8 +26149,9 @@ async function ownerGrantFrame() {
 
   btn.disabled = true;
   statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ التأكد من الحساب...';
-  const targetKey = await ownerResolveGrantTargetKey(usernameRaw);
-  if (!targetKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ يوزر غير صالح'; btn.disabled = false; return; }
+  const targetKeys = await ownerResolveGrantTargetKeys(usernameRaw);
+  if (!targetKeys.length) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ يوزر غير صالح'; btn.disabled = false; return; }
+  const targetKey = targetKeys[0]; // المفتاح الأساسي (نفس ما كتبه المالك) — للعرض وربط الإطار الخاص
 
   statusEl.className = 'status-msg load'; statusEl.textContent = 'جارِ المنح...';
   try {
@@ -26024,23 +26178,32 @@ async function ownerGrantFrame() {
       );
       frameId = id; frameName = name;
     }
-    await ownerFrameWithTimeout(framesGrantToUser(targetKey, frameId), 'تعذّر منح الإطار (لم يصل رد من الخادم) — حاول ثانية');
+    // نمنح الإطار بكل مفاتيح الشخص (مُدخل المالك + يوزر الموقع + تيك توك
+    // المربوط) — يكفي نجاح مفتاح واحد، والباقي أفضل جهد. بهذا يوصل الإطار
+    // مهما كان المفتاح اللي يقرأ منه متصفح المستلم.
+    const grantResults = await Promise.all(targetKeys.map(k =>
+      ownerFrameWithTimeout(framesGrantToUser(k, frameId), 'timeout')
+        .then(() => true)
+        .catch((e) => { console.error('🎁 ownerGrantFrame: فشل المنح بمفتاح "' + k + '" —', e); return false; })
+    ));
+    if (!grantResults.some(Boolean)) throw new Error('تعذّر منح الإطار بكل مفاتيح الحساب — راجع الكونسول للسبب الفعلي');
 
     // تحقّق فعلي بعد الكتابة — نقرأ نفس المستند اللي متصفح الشخص المستهدف
     // يقرأ منه (framesReadKV، نفس مفتاح levels/{targetKey}) ونتأكد الإطار
     // فعلاً وصل، بدل افتراض النجاح لمجرد إن نداء الكتابة رجع بلا خطأ.
     let verified = false;
     try {
-      const verifySnap = await framesReadKV(targetKey);
-      const verifyData = verifySnap.exists() ? (verifySnap.data() || {}) : {};
-      verified = Array.isArray(verifyData.ownedFrames) && verifyData.ownedFrames.includes(frameId);
+      const verifySnaps = await Promise.all(targetKeys.map(k =>
+        framesReadKV(k).then(s => (s.exists() ? (s.data() || {}) : {})).catch(() => ({}))
+      ));
+      verified = verifySnaps.some(d => Array.isArray(d.ownedFrames) && d.ownedFrames.includes(frameId));
     } catch (e) { /* تعذّر التحقق نفسه — ما نمنع رسالة النجاح الأساسية بسببه */ verified = true; }
 
     if (!verified) {
       statusEl.className = 'status-msg err';
-      statusEl.textContent = '⚠️ الكتابة رجعت بنجاح لكن التحقق ما لقى الإطار بحساب الهدف (مفتاح: ' + targetKey + ') — تأكد اليوزر صحيح وجرّب ثانية';
+      statusEl.textContent = '⚠️ الكتابة رجعت بنجاح لكن التحقق ما لقى الإطار بحساب الهدف (المفاتيح: ' + targetKeys.join('، ') + ') — تأكد اليوزر صحيح وجرّب ثانية';
     } else {
-      statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم منح "' + frameName + '" لـ' + usernameRaw + ' (مفتاح: ' + targetKey + ')';
+      statusEl.className = 'status-msg ok'; statusEl.textContent = '✅ تم منح "' + frameName + '" لـ' + usernameRaw + ' (المفاتيح: ' + targetKeys.join('، ') + ')';
       toast('🎁 تم منح إطار "' + frameName + '" لـ' + usernameRaw);
     }
     ownerFramesSessionGrants.unshift({ username: usernameRaw, frameName, at: Date.now() });

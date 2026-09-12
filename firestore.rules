@@ -214,12 +214,14 @@ service cloud.firestore {
                          'ownedFrames', 'activeFrame',
                          'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
                        ])
-                    && request.resource.data.xp is number
-                    && request.resource.data.xp >= 0
-                    && request.resource.data.level is number
-                    && request.resource.data.level >= 1
-                    && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0
+                    // xp/level/roundsPlayed تُتحقَّق لو كانت موجودة فقط. كانت
+                    // مطلوبة دايماً، فأي كتابة "إطارات فقط" على مفتاح ما عنده
+                    // مستند لفل سابق (مثلاً مفتاح تيك توك لشخص ما لعب راوند
+                    // تحته بعد) كانت تُرفض كلياً — فيروح المنح للاحتياطي RTDB
+                    // بلا داعٍ، أو يفشل. الحين مستند ملكية إطارات صافي مسموح.
+                    && (!('xp' in request.resource.data) || (request.resource.data.xp is number && request.resource.data.xp >= 0))
+                    && (!('level' in request.resource.data) || (request.resource.data.level is number && request.resource.data.level >= 1))
+                    && (!('roundsPlayed' in request.resource.data) || (request.resource.data.roundsPlayed is number && request.resource.data.roundsPlayed >= 0))
                     && (!('ownedFrames' in request.resource.data) || request.resource.data.ownedFrames is list)
                     && (!('activeFrame' in request.resource.data) || request.resource.data.activeFrame is string)
                     && (!('lastGamePlayed' in request.resource.data) || request.resource.data.lastGamePlayed is string)
