@@ -205,14 +205,24 @@ service cloud.firestore {
                          'key', 'username', 'avatar',
                          'xp', 'level', 'roundsPlayed',
                          'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
+                         'createdAt', 'updatedAt',
+                         // نظام الإطارات (framesWriteKV/framesClaim/framesSetActive) +
+                         // آخر لعبة/عدّاد لعبات/سجل نشاط (levelsCommit) — كانت غائبة عن
+                         // هذي القائمة فكل كتابة لها كانت تُرفض بصمت (permission-denied)
+                         // ويتحوّل الحفظ لـRTDB الاحتياطي حتى لو Firestore شغّال طبيعي.
+                         'ownedFrames', 'activeFrame',
+                         'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
                        ])
                     && request.resource.data.xp is number
                     && request.resource.data.xp >= 0
                     && request.resource.data.level is number
                     && request.resource.data.level >= 1
                     && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+                    && request.resource.data.roundsPlayed >= 0
+                    && (!('ownedFrames' in request.resource.data) || request.resource.data.ownedFrames is list)
+                    && (!('activeFrame' in request.resource.data) || request.resource.data.activeFrame is string)
+                    && (!('gamesPlayCount' in request.resource.data) || request.resource.data.gamesPlayCount is map)
+                    && (!('activityLog' in request.resource.data) || request.resource.data.activityLog is list);
 
       allow delete: if isOwner();
     }
