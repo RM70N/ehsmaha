@@ -24947,29 +24947,41 @@ function framesCatalogExtraRtdbPath(id) { return 'framesCatalogExtra/' + id; }
 async function framesReadFrameDoc(id) {
   const firestoreRead = fb.getDoc(fb.doc(fb.db, 'framesCatalogExtra', id));
   firestoreRead.catch(() => {});
+  // مهم: لازم نميّز بين "Firestore رجّع خطأ" و"Firestore رد بنجاح إنه ما فيه
+  // مستند بهذا الـid" — حالة ثانية شائعة فعلياً: framesCatalogExtraSet وقت
+  // نشر هذا الإطار (من لوحة المالك) كان تعذّرت كتابته بـFirestore (قبل ما
+  // تُضاف قاعدة framesCatalogExtra — حتى المالك كان يُرفض) فانحفظ حصراً
+  // بـRTDB كفولباك، وبقي بدون أي نسخة بـFirestore إطلاقاً لهذا اليوم. الكود
+  // القديم هنا كان يرجّع null فوراً بمجرد "غير موجود" بـFirestore بدون ما
+  // يجرّب RTDB إطلاقاً — فيختفي الإطار للأبد من "إطاراتي" حتى بعد إصلاح
+  // القاعدة، لأنه أصلاً ما فيه شي يُقرأ من Firestore بهذا الـid.
+  let firestoreDoc; // undefined = تعذّرت القراءة نفسها، null = رجعت بنجاح لكن غير موجود، object = لقيناه
   try {
     const snap = await Promise.race([
       firestoreRead,
       new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), FRAMES_KV_FIRESTORE_TIMEOUT_MS))
     ]);
-    return snap.exists() ? Object.assign({ id }, snap.data()) : null;
+    firestoreDoc = snap.exists() ? Object.assign({ id }, snap.data()) : null;
   } catch (err) {
     // نسجّل الخطأ الفعلي دايماً — أهم حالة عملياً: framesCatalogExtra/{id} ما
     // عندها قاعدة Firestore صريحة (أو تغيّرت)، فتُرفض قراءتها permission-denied
     // لأي شخص غير المالك، ويرجع framesResolveFrame null بصمت فيختفي الإطار
     // من "إطاراتي" رغم إنه فعلاً موجود بـownedFrames.
     console.error('🖼️ framesReadFrameDoc(' + id + '): فشلت قراءة Firestore، نجرّب RTDB —', err);
-    if (!fb.rtdb) {
-      console.error('🖼️ framesReadFrameDoc(' + id + '): لا يوجد RTDB احتياطي مهيّأ — تعذّرت القراءة نهائياً');
-      throw err;
-    }
-    try {
-      const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)));
-      return rsnap.exists() ? Object.assign({ id }, rsnap.val()) : null;
-    } catch (err2) {
-      console.error('🖼️ framesReadFrameDoc(' + id + '): فشلت قراءة RTDB أيضاً —', err2);
-      throw err2;
-    }
+  }
+  if (firestoreDoc) return firestoreDoc; // موجود فعلاً بـFirestore — انتهينا
+  if (!fb.rtdb) {
+    if (firestoreDoc === null) return null; // Firestore أكّد إنه غير موجود، ولا يوجد RTDB لنتحقق منه هناك
+    console.error('🖼️ framesReadFrameDoc(' + id + '): لا يوجد RTDB احتياطي مهيّأ — تعذّرت القراءة نهائياً');
+    throw new Error('framesReadFrameDoc(' + id + '): تعذّرت قراءة Firestore ولا يوجد RTDB احتياطي');
+  }
+  try {
+    const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)));
+    return rsnap.exists() ? Object.assign({ id }, rsnap.val()) : null;
+  } catch (err2) {
+    console.error('🖼️ framesReadFrameDoc(' + id + '): فشلت قراءة RTDB أيضاً —', err2);
+    if (firestoreDoc === null) return null; // Firestore أكّد "غير موجود" وRTDB تعذّرت قراءته — أفضل جهد
+    throw err2;
   }
 }
 
