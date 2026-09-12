@@ -24954,9 +24954,22 @@ async function framesReadFrameDoc(id) {
     ]);
     return snap.exists() ? Object.assign({ id }, snap.data()) : null;
   } catch (err) {
-    if (!fb.rtdb) throw err;
-    const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)));
-    return rsnap.exists() ? Object.assign({ id }, rsnap.val()) : null;
+    // نسجّل الخطأ الفعلي دايماً — أهم حالة عملياً: framesCatalogExtra/{id} ما
+    // عندها قاعدة Firestore صريحة (أو تغيّرت)، فتُرفض قراءتها permission-denied
+    // لأي شخص غير المالك، ويرجع framesResolveFrame null بصمت فيختفي الإطار
+    // من "إطاراتي" رغم إنه فعلاً موجود بـownedFrames.
+    console.error('🖼️ framesReadFrameDoc(' + id + '): فشلت قراءة Firestore، نجرّب RTDB —', err);
+    if (!fb.rtdb) {
+      console.error('🖼️ framesReadFrameDoc(' + id + '): لا يوجد RTDB احتياطي مهيّأ — تعذّرت القراءة نهائياً');
+      throw err;
+    }
+    try {
+      const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesCatalogExtraRtdbPath(id)));
+      return rsnap.exists() ? Object.assign({ id }, rsnap.val()) : null;
+    } catch (err2) {
+      console.error('🖼️ framesReadFrameDoc(' + id + '): فشلت قراءة RTDB أيضاً —', err2);
+      throw err2;
+    }
   }
 }
 
@@ -24969,7 +24982,10 @@ async function framesResolveFrame(frameId) {
     const doc = await framesReadFrameDoc(frameId);
     if (doc) framesPrivateResolved.set(frameId, doc);
     return doc || null;
-  } catch (e) { return null; /* أفضل جهد — بلا إطار عند أي فشل قراءة */ }
+  } catch (e) {
+    console.error('🖼️ framesResolveFrame(' + frameId + '): تعذّر جلب بيانات الإطار (Firestore وRTDB) — راح يختفي من "إطاراتي" —', e);
+    return null; /* أفضل جهد — بلا إطار عند أي فشل قراءة */
+  }
 }
 
 // يُعاد الاستدعاء تلقائياً لحظة أي تغيّر بكتالوج الإطارات العامة —
