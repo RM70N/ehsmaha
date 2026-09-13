@@ -197,6 +197,15 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // levels/{levelKey} — مستند اللفل/XP لكل شخص، وفيه كمان حالة الإطارات
+    // (ownedFrames الملكية، levelFrames اللي اختاره بلفله، activeFrame المفعّل)
+    // وسجل اللعب (lastGamePlayed / gamesPlayCount / activityLog).
+    // مهم: hasOnly تنطبق على **المستند الناتج كاملاً** لا على الحقول المُرسلة
+    // فقط، فأي حقل موجود بالمستند ومو مذكور بالقائمة كان يرفض الكتابة كلها —
+    // ولهذا كان حفظ الإطار (activeFrame) وحقول سجل اللعب يُرفض دايماً
+    // بفَيرستور فما يظهر الإطار بشاشة الانتظار. القائمة تحت تشمل كل الحقول
+    // اللي يكتبها الموقع فعلاً. والتحقق من الأنواع صار مشروطاً بوجود الحقل،
+    // لأن كتابة جزئية (merge) بحقل الإطار وحده ما ترسل xp/level/roundsPlayed.
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
@@ -205,16 +214,35 @@ service cloud.firestore {
                          'key', 'username', 'avatar',
                          'xp', 'level', 'roundsPlayed',
                          'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
+                         'createdAt', 'updatedAt',
+                         'ownedFrames', 'levelFrames', 'activeFrame',
+                         'lastGamePlayed', 'lastGamePlayedAt',
+                         'gamesPlayCount', 'activityLog'
                        ])
-                    && request.resource.data.xp is number
-                    && request.resource.data.xp >= 0
-                    && request.resource.data.level is number
-                    && request.resource.data.level >= 1
-                    && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+                    && (!('xp' in request.resource.data)
+                        || (request.resource.data.xp is number && request.resource.data.xp >= 0))
+                    && (!('level' in request.resource.data)
+                        || (request.resource.data.level is number && request.resource.data.level >= 1))
+                    && (!('roundsPlayed' in request.resource.data)
+                        || (request.resource.data.roundsPlayed is number && request.resource.data.roundsPlayed >= 0))
+                    && (!('ownedFrames' in request.resource.data)
+                        || request.resource.data.ownedFrames is list)
+                    && (!('levelFrames' in request.resource.data)
+                        || request.resource.data.levelFrames is list)
+                    && (!('activeFrame' in request.resource.data)
+                        || request.resource.data.activeFrame is string);
 
       allow delete: if isOwner();
+    }
+
+    // framesCatalogExtra/{frameId} — بيانات الإطارات الديناميكية (المنشورة أو
+    // المُهداة من لوحة المالك). كانت بلا أي قاعدة إطلاقاً فتُرفض قراءتها
+    // للجميع بشكل افتراضي: الإطار المُهدى ما يظهر لصاحبه ولا يتركّب على بطاقته
+    // بشاشة الانتظار عند الستريمر (كل جهاز يحتاج يقرأ بيانات الإطار عشان
+    // يرسمه). القراءة مفتوحة لأي مسجّل دخول، والكتابة/الحذف للمالك وحده.
+    match /framesCatalogExtra/{frameId} {
+      allow read: if request.auth != null;
+      allow write: if isOwner();
     }
 
     match /shopProducts/{productId} {
