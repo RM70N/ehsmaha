@@ -26346,10 +26346,31 @@ function framesMergeLevelDocs(fsDoc, rtDoc) {
     if (Array.isArray(arr)) arr.forEach((id) => { if (id && owned.indexOf(id) === -1) owned.push(id); });
   });
   if (owned.length) merged.ownedFrames = owned;
-  // التفعيل: فَيرستور له الأولوية لو الحقل موجود عنده أصلاً (يشمل التعطيل
-  // المتعمّد بقيمة فاضية)، وإلا ناخذ قيمة RTDB (حالة تفعيل قديم انكتب هناك).
-  if (!fsDoc || fsDoc.activeFrame === undefined) {
-    if (rtDoc && rtDoc.activeFrame !== undefined) merged.activeFrame = rtDoc.activeFrame;
+
+  // ---- التفعيل (activeFrame): الأحدث يفوز، مو "فَيرستور دايماً يطغى" ----
+  // هذا كان **أصل مشكلة "الإطار ما انحفظ بمفتاح البث وراح يرجع القديم"**:
+  // القاعدة القديمة كانت تعطي فَيرستور الأولوية لمجرد إن الحقل موجود عنده،
+  // حتى لو قيمته فاضية أو قديمة. فلو تعذّرت الكتابة بفَيرستور لأي سبب (قاعدة
+  // أمان ما تسمح بحقل activeFrame، انتهاء حصة، شبكة تحجب نطاق فَيرستور)
+  // ونجحت بـRTDB، تبقى القيمة القديمة العالقة بفَيرستور تغلب التفعيل الجديد
+  // **للأبد** — يعني الإطار ينحفظ فعلاً بمكان، ومع ذلك ما يظهر أبداً بشاشة
+  // الانتظار ولا بعد أي تحديث للصفحة. وما فيه أي شي يشفيها إلا نجاح كتابة
+  // فَيرستور، وهي بالضبط اللي فشلت.
+  // الحل: نكتب معه ختم وقت (activeFrameAt) بالقاعدتين، وناخذ الأحدث. ولو
+  // جهة عندها ختم والثانية بلا ختم (قيمة قديمة من قبل هذا الإصلاح)، فصاحبة
+  // الختم هي الأحدث قطعاً. ولو ما فيه ختم بالجهتين نرجع للسلوك القديم.
+  const fsHas = !!fsDoc && fsDoc.activeFrame !== undefined;
+  const rtHas = !!rtDoc && rtDoc.activeFrame !== undefined;
+  if (fsHas || rtHas) {
+    const fsAt = (fsHas && Number(fsDoc.activeFrameAt) > 0) ? Number(fsDoc.activeFrameAt) : 0;
+    const rtAt = (rtHas && Number(rtDoc.activeFrameAt) > 0) ? Number(rtDoc.activeFrameAt) : 0;
+    let winner;
+    if (!fsHas) winner = rtDoc;
+    else if (!rtHas) winner = fsDoc;
+    else if (fsAt !== rtAt) winner = (fsAt > rtAt) ? fsDoc : rtDoc;
+    else winner = fsDoc; // متساويان (أو بلا ختم بالجهتين) — نفس الأولوية القديمة
+    merged.activeFrame = winner.activeFrame;
+    if (winner.activeFrameAt !== undefined) merged.activeFrameAt = winner.activeFrameAt;
   }
   return merged;
 }
@@ -26522,7 +26543,17 @@ function framesApplySelfDocs() {
     framesEnsureOwnerFrameGranted();
   }
   framesSelfOwned = merged;
-  const activeRaw = streamDoc.activeFrame || siteDoc.activeFrame || '';
+  // التفعيل بين مفتاحَي الشخص (الموقع + تيك توك): الأحدث ختماً يفوز، وإلا
+  // مفتاح البث أولاً زي قبل. بدون هذا، قيمة قديمة عالقة بمفتاح الموقع كانت
+  // تقدر تغلب إلغاء تفعيل صار بمفتاح البث.
+  const streamAt = Number(streamDoc.activeFrameAt) || 0;
+  const siteAt = Number(siteDoc.activeFrameAt) || 0;
+  let activeRaw;
+  if (streamAt || siteAt) {
+    activeRaw = (streamAt >= siteAt ? streamDoc.activeFrame : siteDoc.activeFrame) || '';
+  } else {
+    activeRaw = streamDoc.activeFrame || siteDoc.activeFrame || '';
+  }
   framesSelfActive = (activeRaw && merged.indexOf(activeRaw) !== -1) ? activeRaw : '';
   framesRenderCurrent();
   // نفس مستند levels/{key} يحمل أيضاً roundsPlayed/lastGamePlayed/
@@ -26572,27 +26603,34 @@ function framesResumePendingActionIfAny(loadedForKey) {
 // بلا أي رسالة. هنا نكشفها صراحة بدل الصمت.
 async function framesVerifyActiveSaved(streamKey, expected, okKeys) {
   if (!fb || !streamKey) return;
-  let fsVal, rtVal;
+  let fsDoc, rtDoc, fsErr = null, rtErr = null;
   try {
     const s = await fb.getDoc(fb.doc(fb.db, 'levels', streamKey));
-    fsVal = s.exists() ? ((s.data() || {}).activeFrame || '') : undefined;
-  } catch (e) { fsVal = 'ERR:' + ((e && (e.code || e.message)) || e); }
+    fsDoc = s.exists() ? (s.data() || {}) : null;
+  } catch (e) { fsErr = (e && (e.code || e.message)) || String(e); }
   if (fb.rtdb) {
     try {
       const r = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, framesRtdbPath(streamKey)));
-      rtVal = r.exists() ? ((r.val() || {}).activeFrame || '') : undefined;
-    } catch (e) { rtVal = 'ERR:' + ((e && (e.code || e.message)) || e); }
+      rtDoc = r.exists() ? (r.val() || {}) : null;
+    } catch (e) { rtErr = (e && (e.code || e.message)) || String(e); }
   }
-  // القيمة الفعّالة = نفس منطق framesMergeLevelDocs (فَيرستور له الأولوية لو
-  // الحقل موجود عنده، وإلا RTDB).
-  const effective = (typeof fsVal === 'string' && fsVal.indexOf('ERR:') !== 0) ? fsVal
-                  : ((typeof rtVal === 'string' && rtVal.indexOf('ERR:') !== 0) ? rtVal : undefined);
-  if (effective === expected) return; // انحفظ فعلاً وبيقرأه البث صح — ما نزعج المستخدم
+  // نتحقق من **نفس القيمة اللي راح تحسبها بطاقة المشارك فعلاً** — أي ناتج
+  // framesMergeLevelDocs بالضبط، مو "قيمة فَيرستور وحدها". قبل، كان التحقق
+  // يعتبر فَيرستور مصدر الحقيقة، فيطلع تحذير "الإطار ما انحفظ بمفتاح البث"
+  // حتى والإطار محفوظ صح وراح يشتغل تمام — أو العكس. الحين التحذير يطلع فقط
+  // لو الإطار فعلاً ما راح يظهر.
+  const merged = framesMergeLevelDocs(fsDoc, rtDoc);
+  const effective = merged ? (merged.activeFrame || '') : '';
+  if (effective === expected) return; // ثبت فعلاً وبيقرأه البث صح
+
+  // ما ثبت: نطبع تشخيصاً دقيقاً يقول أي قاعدة رفضت وليش، بدل رسالة عامة.
   console.error('🖼️ framesVerifyActiveSaved: التفعيل ما ثبت بمفتاح البث "' + streamKey + '"' +
-    ' — المتوقع: "' + expected + '"، فَيرستور: ' + JSON.stringify(fsVal) +
-    '، RTDB: ' + JSON.stringify(rtVal) + '، المفاتيح اللي نجحت كتابتها: ' + JSON.stringify(okKeys));
+    ' — المتوقع: "' + expected + '"، الفعلي بعد الدمج: "' + effective + '"' +
+    '، فَيرستور: ' + (fsErr ? ('خطأ ' + fsErr) : JSON.stringify(fsDoc && fsDoc.activeFrame)) +
+    '، RTDB: ' + (rtErr ? ('خطأ ' + rtErr) : JSON.stringify(rtDoc && rtDoc.activeFrame)) +
+    '، المفاتيح اللي نجحت كتابتها: ' + JSON.stringify(okKeys));
   if (typeof toast === 'function') {
-    toast('⚠️ الإطار ما انحفظ بمفتاح البث — راح يرجع القديم بشاشة الانتظار. راجع قواعد قاعدة البيانات');
+    toast('⚠️ ما قدرنا نثبّت الإطار — جرّب مرة ثانية، ولو تكررت راجع الإنترنت عندك');
   }
 }
 
@@ -26625,7 +26663,9 @@ async function framesSetActive(frameId) {
   // تغيير ownedFrames، فكتابتها هنا كانت ترفض التفعيل كله). ما يحتاجها شي:
   // القراءة تجمع ownedFrames من **كل** مفاتيح الشخص (framesApplySelfDocs)،
   // وبطاقة المشارك تقرأ activeFrame وحده بلا أي تحقق ملكية.
-  const payload = { activeFrame: frameId || '' };
+  // activeFrameAt: ختم وقت الكتابة بالملّي — يخلي framesMergeLevelDocs يعرف
+  // أي قاعدة تحمل أحدث تفعيل، فما تقدر قيمة عالقة بقاعدة وحدة تغلب الجديدة.
+  const payload = { activeFrame: frameId || '', activeFrameAt: Date.now() };
   const results = await Promise.all(keys.map(k =>
     framesWriteKV(k, payload).then(() => k).catch((e) => {
       console.error('🖼️ framesSetActive(' + frameId + '): فشل الحفظ بمفتاح "' + k + '" —', e);

@@ -210,13 +210,16 @@ service cloud.firestore {
       // levelFrames = الإطارات اللي اختارها اللاعب بنفسه بحصة لفله (أول إطار
       // بلفل 5، وكل +3 لفلات إطار إضافي). منفصل عن ownedFrames اللي يجمع كل ما
       // يملك — عشان منح لوحة المالك يضل مجاني وما يُخصم من حصة اللفل.
+      // activeFrameAt = ختم وقت آخر تفعيل بالملّي. لازم يكون مسموحاً هنا، لأن
+      // الموقع يحدّد فيه أي قاعدة (فَيرستور أو RTDB) تحمل أحدث تفعيل — وبدونه
+      // ترجع مشكلة "الإطار ينحفظ ومع ذلك يرجع القديم بشاشة الانتظار".
       function levelsAllowedKeys() {
         return [
           'key', 'username', 'avatar',
           'xp', 'level', 'roundsPlayed',
           'isRegistered', 'isStreamer', 'isViewer', 'uid',
           'createdAt', 'updatedAt',
-          'ownedFrames', 'levelFrames', 'activeFrame',
+          'ownedFrames', 'levelFrames', 'activeFrame', 'activeFrameAt',
           'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
         ];
       }
@@ -231,6 +234,7 @@ service cloud.firestore {
                && request.resource.data.get('ownedFrames', []) is list
                && request.resource.data.get('levelFrames', []) is list
                && request.resource.data.get('activeFrame', '') is string
+               && request.resource.data.get('activeFrameAt', 0) is number
                && request.resource.data.get('lastGamePlayed', '') is string
                && request.resource.data.get('lastGamePlayedAt', request.time) is timestamp
                && request.resource.data.get('gamesPlayCount', {}) is map
@@ -248,6 +252,7 @@ service cloud.firestore {
                && (!ch.hasAny(['ownedFrames']) || request.resource.data.get('ownedFrames', []) is list)
                && (!ch.hasAny(['levelFrames']) || request.resource.data.get('levelFrames', []) is list)
                && (!ch.hasAny(['activeFrame']) || request.resource.data.get('activeFrame', '') is string)
+               && (!ch.hasAny(['activeFrameAt']) || request.resource.data.get('activeFrameAt', 0) is number)
                && (!ch.hasAny(['lastGamePlayed']) || request.resource.data.get('lastGamePlayed', '') is string)
                && (!ch.hasAny(['lastGamePlayedAt']) || request.resource.data.get('lastGamePlayedAt', request.time) is timestamp)
                && (!ch.hasAny(['gamesPlayCount']) || request.resource.data.get('gamesPlayCount', {}) is map)
