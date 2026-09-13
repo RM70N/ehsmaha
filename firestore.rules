@@ -197,52 +197,145 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
-    // levels/{levelKey} — مستند اللفل/XP لكل شخص، وفيه كمان حالة الإطارات
-    // (ownedFrames الملكية، levelFrames اللي اختاره بلفله، activeFrame المفعّل)
-    // وسجل اللعب (lastGamePlayed / gamesPlayCount / activityLog).
-    // مهم: hasOnly تنطبق على **المستند الناتج كاملاً** لا على الحقول المُرسلة
-    // فقط، فأي حقل موجود بالمستند ومو مذكور بالقائمة كان يرفض الكتابة كلها —
-    // ولهذا كان حفظ الإطار (activeFrame) وحقول سجل اللعب يُرفض دايماً
-    // بفَيرستور فما يظهر الإطار بشاشة الانتظار. القائمة تحت تشمل كل الحقول
-    // اللي يكتبها الموقع فعلاً. والتحقق من الأنواع صار مشروطاً بوجود الحقل،
-    // لأن كتابة جزئية (merge) بحقل الإطار وحده ما ترسل xp/level/roundsPlayed.
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
-      allow create, update: if request.auth != null
-                    && request.resource.data.keys().hasOnly([
-                         'key', 'username', 'avatar',
-                         'xp', 'level', 'roundsPlayed',
-                         'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt',
-                         'ownedFrames', 'levelFrames', 'activeFrame',
-                         'lastGamePlayed', 'lastGamePlayedAt',
-                         'gamesPlayCount', 'activityLog'
-                       ])
-                    && (!('xp' in request.resource.data)
-                        || (request.resource.data.xp is number && request.resource.data.xp >= 0))
-                    && (!('level' in request.resource.data)
-                        || (request.resource.data.level is number && request.resource.data.level >= 1))
-                    && (!('roundsPlayed' in request.resource.data)
-                        || (request.resource.data.roundsPlayed is number && request.resource.data.roundsPlayed >= 0))
-                    && (!('ownedFrames' in request.resource.data)
-                        || request.resource.data.ownedFrames is list)
-                    && (!('levelFrames' in request.resource.data)
-                        || request.resource.data.levelFrames is list)
-                    && (!('activeFrame' in request.resource.data)
-                        || request.resource.data.activeFrame is string);
+      // الحقول المسموحة بمستند levels.
+      // مهم: xp/level/roundsPlayed اختيارية بالفحص (مو مطلوبة بكل كتابة) لأن
+      // مسار الإطارات يكتب حقلاً واحداً بـmerge على مستند ممكن ما يكون موجوداً
+      // أصلاً (اختيار إطار لشخص ما لعب أي راوند، أو لمفتاح تيك توك اللي كل XP
+      // صاحبه محسوب بمفتاح الموقع). إلزامها كان يرفض هذي الكتابات كلها فيروح
+      // الاختيار/التفعيل للقاعدة الاحتياطية (RTDB) بدل فايرستور. levelsCommit
+      // يكتبها دايماً بأي حال، فالفحص يبقى فعّالاً عليه.
+      // levelFrames = الإطارات اللي اختارها اللاعب بنفسه بحصة لفله (أول إطار
+      // بلفل 5، وكل +3 لفلات إطار إضافي). منفصل عن ownedFrames اللي يجمع كل ما
+      // يملك — عشان منح لوحة المالك يضل مجاني وما يُخصم من حصة اللفل.
+      function levelsAllowedKeys() {
+        return [
+          'key', 'username', 'avatar',
+          'xp', 'level', 'roundsPlayed',
+          'isRegistered', 'isStreamer', 'isViewer', 'uid',
+          'createdAt', 'updatedAt',
+          'ownedFrames', 'levelFrames', 'activeFrame',
+          'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
+        ];
+      }
 
-      allow delete: if isOwner();
+      function levelsTypesValid() {
+        return request.resource.data.get('xp', 0) is number
+               && request.resource.data.get('xp', 0) >= 0
+               && request.resource.data.get('level', 1) is number
+               && request.resource.data.get('level', 1) >= 1
+               && request.resource.data.get('roundsPlayed', 0) is number
+               && request.resource.data.get('roundsPlayed', 0) >= 0
+               && request.resource.data.get('ownedFrames', []) is list
+               && request.resource.data.get('levelFrames', []) is list
+               && request.resource.data.get('activeFrame', '') is string
+               && request.resource.data.get('lastGamePlayed', '') is string
+               && request.resource.data.get('lastGamePlayedAt', request.time) is timestamp
+               && request.resource.data.get('gamesPlayCount', {}) is map
+               && request.resource.data.get('activityLog', []) is list;
+      }
+
+      // نسخة التحديث: تفحص نوع الحقل **فقط لو هذا الحقل نفسه يتغيّر بهذي
+      // الكتابة**. بيانات قديمة بنوع غير متوقّع (مثلاً xp محفوظ كنص من نسخة
+      // قديمة) ما تعود تقفل المستند بوجه كل كتابة جديدة عليه.
+      function levelsChangedTypesValid() {
+        let ch = request.resource.data.diff(resource.data).affectedKeys();
+        return (!ch.hasAny(['xp']) || (request.resource.data.get('xp', 0) is number && request.resource.data.get('xp', 0) >= 0))
+               && (!ch.hasAny(['level']) || (request.resource.data.get('level', 1) is number && request.resource.data.get('level', 1) >= 1))
+               && (!ch.hasAny(['roundsPlayed']) || (request.resource.data.get('roundsPlayed', 0) is number && request.resource.data.get('roundsPlayed', 0) >= 0))
+               && (!ch.hasAny(['ownedFrames']) || request.resource.data.get('ownedFrames', []) is list)
+               && (!ch.hasAny(['levelFrames']) || request.resource.data.get('levelFrames', []) is list)
+               && (!ch.hasAny(['activeFrame']) || request.resource.data.get('activeFrame', '') is string)
+               && (!ch.hasAny(['lastGamePlayed']) || request.resource.data.get('lastGamePlayed', '') is string)
+               && (!ch.hasAny(['lastGamePlayedAt']) || request.resource.data.get('lastGamePlayedAt', request.time) is timestamp)
+               && (!ch.hasAny(['gamesPlayCount']) || request.resource.data.get('gamesPlayCount', {}) is map)
+               && (!ch.hasAny(['activityLog']) || request.resource.data.get('activityLog', []) is list);
+      }
+
+      // سقف عدد الإطارات المملوكة — حاجز أمان بحت ضد سكربت يحاول يحشو المستند
+      // بآلاف العناصر. لاعب طبيعي بلفل 100 عنده أقل من 35 إطار.
+      function framesCountSane() {
+        return request.resource.data.get('ownedFrames', []).size() <= 60
+               && request.resource.data.get('levelFrames', []).size() <= 60;
+      }
+
+      // ملكية الإطارات (ownedFrames) للاعب نفسه:
+      // اللاعب صار ياخذ إطاره بنفسه من المعرض لكن باللفل (أول إطار بلفل 5، وكل
+      // +3 لفلات إطار إضافي)، فالقاعدة القديمة "ownedFrames ما تتغيّر إلا من
+      // المالك" كانت ترفض كل اختيار وتخليه يفشل بصمت. البديل هنا يسمح
+      // بالإضافة فقط وبشروط تمنع أي تلاعب فعلي:
+      //   1) ممنوع الحذف نهائياً — كل إطار مملوك أصلاً لازم يبقى بالمصفوفة،
+      //      فما فيه أحد يقدر يمسح إطاراً ممنوحاً من الإدارة (لا لنفسه ولا لغيره).
+      //   2) أي إطار ينضاف لـownedFrames لازم ينضاف معه بـlevelFrames — يعني
+      //      ينسجّل صراحة كـ"اختيار لفل"، فما يقدر أحد يضيف إطاراً ويمرّره كأنه
+      //      منحة إدارة، وسجل الاختيارات يبقى كامل ومُراجَع.
+      //   3) levelFrames نفسها ممنوع الحذف منها — عشان ما يُصفّر عدّاد حصته
+      //      ويرجع يختار من جديد بلا حدود.
+      // عدد الاختيارات المسموح باللفل يتحقّق بالواجهة (framesRemainingPicks)
+      // لأن اللفل الحقيقي ممكن يكون محفوظاً بمستند مفتاح ثاني (مفتاح الموقع)
+      // غير المستند اللي تنكتب فيه هذي الكتابة (مفتاح تيك توك)، فالقاعدة ما
+      // تقدر تشوفه هنا. المالك معفى من كل هذي الشروط (منح/سحب يدوي).
+      function framesNoRemovals() {
+        return request.resource.data.get('ownedFrames', []).hasAll(resource.data.get('ownedFrames', []))
+               && request.resource.data.get('levelFrames', []).hasAll(resource.data.get('levelFrames', []));
+      }
+
+      function framesAdditionsRecordedAsPicks() {
+        return request.resource.data.get('ownedFrames', [])
+                 .removeAll(resource.data.get('ownedFrames', []))
+                 .hasOnly(request.resource.data.get('levelFrames', []));
+      }
+
+      function framesSelfPickAllowed() {
+        return framesNoRemovals() && framesAdditionsRecordedAsPicks() && framesCountSane();
+      }
+
+      // إنشاء مستند جديد: أي ملكية بأول كتابة لازم تكون مسجّلة كاختيار لفل
+      // (نفس الشرط 2 فوق) — هذي حالة فعلية: أول إطار يختاره لاعب ما عنده مستند
+      // بمفتاح تيك توك بعد، فالكتابة تنشئ المستند بحقلين بس.
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasOnly(levelsAllowedKeys())
+                    && levelsTypesValid()
+                    && (isOwner() || (
+                         request.resource.data.get('ownedFrames', [])
+                           .hasOnly(request.resource.data.get('levelFrames', []))
+                         && framesCountSane()
+                       ));
+
+      // بالتحديث نفحص **الحقول المتغيّرة فقط** (affectedKeys)، مو كل المستند
+      // المدموج. هذا فرق جوهري: كتابة merge تخلي request.resource.data =
+      // المستند بعد الدمج، فأي حقل قديم مخزّن من نسخة أقدم للموقع وخارج
+      // القائمة كان يرفض **كل** كتابة لاحقة على ذاك المستند للأبد — فيُحفظ
+      // الإطار بمفتاح وينرفض بمفتاح ثانٍ (بصمت)، ويرجع الإطار القديم بشاشة
+      // الانتظار وبعد أي تحديث للصفحة. الحقول القديمة تبقى كما هي بلا مساس،
+      // والحقول اللي فعلاً تتغيّر تبقى محصورة بالقائمة ومفحوصة النوع.
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(levelsAllowedKeys())
+                    && levelsChangedTypesValid()
+                    && (isOwner() || framesSelfPickAllowed());
+
+      // حتى المالك ما يحذف مستنداً يحمل إطارات (ملكية مُختارة/مُمنوحة أو إطار
+      // مفعَّل) — حماية من تنظيف المستندات "الفاضية" (levelsCleanupEmptyDocs)
+      // اللي كان يبخّر إطاراً لشخص ما لعب أي راوند. لحذف مستند كهذا: صفّر
+      // حقول الإطارات أولاً ثم احذفه.
+      allow delete: if isOwner()
+                    && resource.data.get('ownedFrames', []).size() == 0
+                    && resource.data.get('levelFrames', []).size() == 0
+                    && resource.data.get('activeFrame', '') == '';
     }
 
-    // framesCatalogExtra/{frameId} — بيانات الإطارات الديناميكية (المنشورة أو
-    // المُهداة من لوحة المالك). كانت بلا أي قاعدة إطلاقاً فتُرفض قراءتها
-    // للجميع بشكل افتراضي: الإطار المُهدى ما يظهر لصاحبه ولا يتركّب على بطاقته
-    // بشاشة الانتظار عند الستريمر (كل جهاز يحتاج يقرأ بيانات الإطار عشان
-    // يرسمه). القراءة مفتوحة لأي مسجّل دخول، والكتابة/الحذف للمالك وحده.
+    // framesCatalogExtra/{frameId} — إطارات ديناميكية (لوحة المالك فقط
+    // تنشر/تحذف عبر تبويب "إطارات"). القراءة لأي مستخدم مسجّل دخول لازمة
+    // فعلياً: بطاقة المشارك بشاشة الانتظار تُبنى على **جهاز الستريمر**، فهو
+    // يحتاج يقرأ بيانات إطار خاص يملكه شخص ثانٍ عشان يركّبه حول أفتاره.
+    // الوثائق visibility=='private' ما تظهر بأي قائمة/استعلام عام
+    // (framesPublicExtraBoot يفلتر visibility=='public' فقط)، فقراءتها عملياً
+    // ما تصير إلا لمن عنده الـid أصلاً من ownedFrames/activeFrame.
     match /framesCatalogExtra/{frameId} {
       allow read: if request.auth != null;
-      allow write: if isOwner();
+      allow create, update, delete: if isOwner();
     }
 
     match /shopProducts/{productId} {
@@ -401,11 +494,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;
-      // زيادة clicksCount مسموحة للجميع حتى بدون تسجيل دخول — أغلب من يفتح
-      // رابط إحالة لأول مرة زائر غير مسجّل أصلاً، وهذا الشرط هو اللي كان
-      // يمنع احتساب زيارته بصمت (request.auth != null كان شرطاً عاماً على
-      // كل تحديث بما فيها هذا). محصور تماماً بزيادة +1 بالضبط على هذا الحقل
-      // وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله فقط.
       allow update: if (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
         request.resource.data.clicksCount == resource.data.clicksCount + 1
@@ -457,6 +545,35 @@ service cloud.firestore {
          request.resource.data.registeredCount == resource.data.registeredCount + 1)
       );
       allow delete: if false;
+    }
+
+    match /bridgeEvents/{eventId} {
+      allow read: if true;
+
+      allow create: if isOwner();
+
+      allow update: if isOwner() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
+      );
+
+      allow delete: if isOwner();
+
+      match /players/{uid} {
+        allow read: if true;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        allow update: if request.auth != null && (
+          request.auth.uid == uid ||
+          isOwner() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
+        );
+        allow delete: if isOwner();
+      }
+
+      match /state/{docId} {
+        allow read: if true;
+        allow write: if isOwner();
+      }
     }
 
     match /{document=**} {
