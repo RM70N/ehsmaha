@@ -2995,6 +2995,78 @@ body{padding-top:64px;}
     border:2px solid rgba(196,176,255,.38);
     box-shadow:0 6px 22px -8px rgba(124,58,237,.95);
   }
+  & .vl-lobby-grid{ gap:18px 14px; justify-content:center; }
+
+  /* ---------- ألعاب بلا لوحة مشاركين قياسية: نفس الهوية بالضبط ----------
+     (الطريق الزجاجي، شد الحبل، الزر المشحون، توب 10) */
+
+  /* الطريق الزجاجي — شبكة المنضمين صارت مسرحاً مثل بقية شاشات الانتظار */
+  & .glz-lobby-grid{
+    position:relative; overflow:hidden; width:100%; max-width:760px;
+    display:flex; flex-wrap:wrap; justify-content:center; gap:18px 14px;
+    margin:14px auto; padding:22px 20px;
+    border-radius:22px;
+    background:radial-gradient(130% 100% at 70% -10%,#180d2e 0%,#0d0620 48%,#07030f 100%);
+    border:1px solid rgba(167,139,255,.18);
+    box-shadow:0 40px 100px -46px rgba(124,58,237,.6),inset 0 1px 0 rgba(196,176,255,.12);
+    animation:sgRise .6s cubic-bezier(.2,.8,.2,1) .16s both;
+  }
+  & .glz-lobby-grid:empty{ display:none; }
+
+  /* شد الحبل — صندوقا الفريقين بنفس لغة البطاقات */
+  & .tug-team-box{
+    border-radius:22px; padding:20px;
+    background:radial-gradient(130% 100% at 70% -10%,#180d2e 0%,#0d0620 48%,#07030f 100%);
+    border:1px solid rgba(167,139,255,.18);
+    box-shadow:0 40px 100px -46px rgba(124,58,237,.6),inset 0 1px 0 rgba(196,176,255,.12);
+    animation:sgRise .6s cubic-bezier(.2,.8,.2,1) .16s both;
+  }
+  & .tug-team-box.tug-team-a{ border-color:rgba(236,72,153,.4); }
+  & .tug-team-box.tug-team-b{ border-color:rgba(34,211,238,.4); }
+  & .tug-team-box-name{ font-family:var(--font-brand); font-weight:900; font-size:17px; }
+  & .tug-team-box-kw{ color:var(--sgmute); }
+  & .tug-team-box-kw b{ font-family:var(--font-brand); color:var(--sggoldl); }
+  & .tug-team-box-count{
+    align-self:flex-start; padding:5px 13px; border-radius:var(--radius-pill);
+    background:rgba(255,255,255,.05); border:1px solid rgba(167,139,255,.24);
+    color:var(--sggreen); font-weight:800; font-size:12.5px;
+  }
+  & .tug-team-list{ gap:16px 12px; min-height:96px; max-height:250px; }
+  & .tug-team-vs{ filter:drop-shadow(0 0 16px rgba(245,158,11,.7)); }
+
+  /* الزر المشحون — مسرح البطارية */
+  & .battery-stage{
+    position:relative; border-radius:22px; padding:22px;
+    background:radial-gradient(130% 100% at 70% -10%,#180d2e 0%,#0d0620 48%,#07030f 100%);
+    border:1px solid rgba(167,139,255,.18);
+    box-shadow:0 40px 100px -46px rgba(124,58,237,.6),inset 0 1px 0 rgba(196,176,255,.12);
+    animation:sgRise .6s cubic-bezier(.2,.8,.2,1) .16s both;
+  }
+  & .battery-last-charger{ font-family:var(--font-brand); font-weight:900; color:var(--sggoldl); }
+  & .battery-last-line{ color:var(--sgmute); }
+
+  /* شارات الجولة (توب 10 / الطريق الزجاجي) */
+  & .tt10-round-badge, & .glz-round-badge{
+    border-radius:var(--radius-pill); padding:10px 22px;
+    background:linear-gradient(100deg,rgba(124,58,237,.32),rgba(245,158,11,.18));
+    border:1px solid rgba(253,230,138,.4); color:var(--sgtext);
+    box-shadow:0 0 34px -14px rgba(124,58,237,.95); backdrop-filter:blur(10px);
+    font-family:var(--font-brand); font-weight:800;
+  }
+  & .tt10-lb, & .glz-roster-box{
+    border-radius:20px; background:var(--sgpanel);
+    border:1px solid var(--sgpanel-bd); box-shadow:var(--sgpanel-sh);
+  }
+  & .tt10-lb-title, & .glz-roster-title{ font-family:var(--font-brand); font-weight:800; color:var(--accent-light); }
+  & .glz-roster-avatar, & .glz-roster-avatar-fb{
+    border:2px solid rgba(196,176,255,.38); box-shadow:0 4px 16px -6px rgba(124,58,237,.95);
+  }
+  & .btn-secondary{
+    background:linear-gradient(180deg,rgba(32,20,58,.95),rgba(19,10,37,.85));
+    border:1px solid rgba(167,139,255,.22); color:var(--accent-light);
+    border-radius:var(--radius-pill); font-weight:700;
+  }
+  & .btn-secondary:hover{ border-color:rgba(167,139,255,.4); color:var(--sgtext); }
 
   /* ---------- شاشة الفوز ---------- */
   & .w-congrats{ font-family:var(--font-brand); background:linear-gradient(150deg,#FBCFE8,var(--brand-pink)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
@@ -71545,7 +71617,18 @@ document.addEventListener('DOMContentLoaded', function () {
     var players = engine.allPlayers();
     if (grid.childElementCount === players.length) return;   // لا إعادة بناء بلا داعٍ
     grid.textContent = '';
-    players.forEach(function (p) {
+    // نفس بطاقة المشارك المستخدمة بكل شاشات انتظار الستريمر: الأفتار الحقيقي
+    // + الاسم + رقم اللاعب + الإطار المُفعَّل. نفس مصدر البيانات
+    // (engine.allPlayers) — الشكل فقط هو اللي تغيّر.
+    players.forEach(function (p, i) {
+      if (typeof buildParticipantChip === 'function') {
+        grid.appendChild(buildParticipantChip({
+          uniqueId: p.userId,
+          nickname: p.nickname,
+          avatar: avatarUrlFor(p.userId, p.avatarUrl) || ''
+        }, i + 1, 'vltag-' + p.userId));
+        return;
+      }
       var wrap = document.createElement('div');
       wrap.className = 'vl-lobby-player';
       wrap.appendChild(buildAvatar(p, 'vl-avatar'));
@@ -76301,8 +76384,6 @@ gamePlatform['tt10'] = 'tiktok';
 <style>
 .glz-round-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.4);color:#C9B7E8;font-weight:800;font-size:13px;padding:4px 16px;border-radius:20px;margin-bottom:10px;}
 .glz-lobby-grid{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0;max-width:520px;}
-.glz-lobby-avatar,.glz-lobby-avatar-fb{width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid var(--border-strong);}
-.glz-lobby-avatar-fb{background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;}
 .glz-qbanner{width:100%;max-width:560px;background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(245,158,11,.10));border:1px solid var(--border);border-radius:14px;padding:14px 18px;text-align:center;margin:0 auto 10px;}
 .glz-qbanner-tag{display:inline-block;font-size:11px;font-weight:800;color:var(--accent2);background:rgba(124,58,237,.15);border:1px solid var(--border);border-radius:20px;padding:3px 10px;margin-bottom:8px;}
 .glz-qbanner-text{font-size:16px;font-weight:800;color:var(--text);line-height:1.6;}
@@ -77258,7 +77339,14 @@ function glzAddParticipant(user) {
 
 function glzRenderLobby() {
   const grid = document.getElementById('glz-lobby-grid');
-  if (grid) grid.innerHTML = Array.from(glzParticipants.values()).map(u => avatarHTML(u, 'glz-lobby-avatar')).join('');
+  // نفس بطاقة المشارك المستخدمة بكل شاشات انتظار الستريمر: الأفتار الحقيقي
+  // + الاسم + رقم اللاعب + الإطار المُفعَّل (يُلبَس تلقائياً داخل الدالة).
+  // نفس مصدر البيانات (glzParticipants) — الشكل فقط هو اللي تغيّر.
+  if (grid) {
+    grid.textContent = '';
+    let n = 0;
+    glzParticipants.forEach(u => { n++; grid.appendChild(buildParticipantChip(u, n, 'glztag-' + u.uniqueId)); });
+  }
   const countEl = document.getElementById('glz-lobby-count');
   if (countEl) countEl.textContent = glzParticipants.size;
   const btn = document.getElementById('glz-btn-startfirst');
