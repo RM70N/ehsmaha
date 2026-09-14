@@ -6683,6 +6683,8 @@ function landingCtaClick(){
         <div class="home-hero-badge offline" id="home-conn-badge">
           <span class="home-hero-badge-dot"></span><span id="home-conn-badge-text">غير متصل</span>
         </div>
+        <!-- شريط حالة المنصات — يظهر تلقائياً عند الربط ويعرض نقطة لكل منصة -->
+        <div id="home-platform-status-bar" style="display:none;"></div>
         <div class="home-live-counter" id="home-live-counter">
           <div class="home-live-counter-num-row">
             <span class="home-live-counter-dot"></span>
@@ -7042,6 +7044,19 @@ function landingCtaClick(){
   </div>
 </div>
 
+<style>
+/* عناصر وضع "أكثر من منصة" وشريط حالة المنصات بالرئيسية */
+.qc-multi-switch{background:linear-gradient(100deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:800;}
+.qc-multi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.qc-multi-title{font-weight:900;font-size:14px;}
+.qc-multi-back{padding:6px 12px;font-size:12px;}
+.qc-multi-checks{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
+.qc-multi-check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer;}
+#home-platform-status-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.home-plat-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);}
+.home-plat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
+</style>
+
 <!-- ====== QUICK CONNECT (ابدأ بثاً سريعاً) ====== -->
 <div class="mod-modal-overlay" id="qc-overlay" onclick="if(event.target===this) homeQcCancel()">
   <div class="qc-modal">
@@ -7055,17 +7070,51 @@ function landingCtaClick(){
         <button type="button" class="ptab" data-platform="twitch" onclick="homeQcPickPlatform('twitch')">📺 تويتش</button>
         <button type="button" class="ptab" data-platform="kick" onclick="homeQcPickPlatform('kick')">🥊 كيك</button>
         <button type="button" class="ptab" data-platform="youtube" onclick="homeQcPickPlatform('youtube')">▶️ يوتيوب</button>
+        <button type="button" class="ptab qc-multi-switch" onclick="homeQcToggleMulti(true)">🌐 أكثر من منصة</button>
       </div>
 
-      <div class="field">
-        <label id="qc-main-label">يوزر تيك توك (بدون @)</label>
-        <input type="text" id="qc-main-input" placeholder="username123" dir="ltr" style="direction:ltr;text-align:right" />
-        <div class="qc-field-hint" id="qc-main-hint">اليوزرنيم اللي تبث فيه الحين</div>
+      <div id="qc-single-wrap">
+        <div class="field">
+          <label id="qc-main-label">يوزر تيك توك (بدون @)</label>
+          <input type="text" id="qc-main-input" placeholder="username123" dir="ltr" style="direction:ltr;text-align:right" />
+          <div class="qc-field-hint" id="qc-main-hint">اليوزرنيم اللي تبث فيه الحين</div>
+        </div>
+
+        <div class="field" id="qc-ytkey-field" style="display:none;">
+          <label>مفتاح يوتيوب Google API</label>
+          <input type="password" id="qc-ytkey-input" placeholder="Google API key" dir="ltr" style="direction:ltr;text-align:right" autocomplete="off" />
+        </div>
       </div>
 
-      <div class="field" id="qc-ytkey-field" style="display:none;">
-        <label>مفتاح يوتيوب Google API</label>
-        <input type="password" id="qc-ytkey-input" placeholder="Google API key" dir="ltr" style="direction:ltr;text-align:right" autocomplete="off" />
+      <!-- وضع أكثر من منصة: اختيار متعدد + حقل يوزر مستقل لكل منصة مختارة -->
+      <div id="qc-multi-wrap" style="display:none;">
+        <div class="qc-multi-head">
+          <div class="qc-multi-title">🌐 اختر منصتين على الأقل</div>
+          <button type="button" class="ptab qc-multi-back" onclick="homeQcToggleMulti(false)">↩️ منصة وحدة</button>
+        </div>
+        <div class="qc-multi-checks">
+          <label class="qc-multi-check"><input type="checkbox" id="qc-multi-check-tiktok" onchange="homeQcToggleCheck('tiktok', this.checked)" /> 🎵 تيك توك</label>
+          <label class="qc-multi-check"><input type="checkbox" id="qc-multi-check-twitch" onchange="homeQcToggleCheck('twitch', this.checked)" /> 💜 تويتش</label>
+          <label class="qc-multi-check"><input type="checkbox" id="qc-multi-check-kick" onchange="homeQcToggleCheck('kick', this.checked)" /> 🟢 كيك</label>
+          <label class="qc-multi-check"><input type="checkbox" id="qc-multi-check-youtube" onchange="homeQcToggleCheck('youtube', this.checked)" /> ▶️ يوتيوب</label>
+        </div>
+        <div class="field" id="qc-multi-field-tiktok" style="display:none;">
+          <label>🎵 يوزر تيك توك (بدون @)</label>
+          <input type="text" id="qc-multi-user-tiktok" placeholder="username123" dir="ltr" style="direction:ltr;text-align:right" />
+        </div>
+        <div class="field" id="qc-multi-field-twitch" style="display:none;">
+          <label>💜 اسم قناة تويتش</label>
+          <input type="text" id="qc-multi-user-twitch" placeholder="username123" dir="ltr" style="direction:ltr;text-align:right" />
+        </div>
+        <div class="field" id="qc-multi-field-kick" style="display:none;">
+          <label>🟢 يوزر قناتك على كيك</label>
+          <input type="text" id="qc-multi-user-kick" placeholder="username أو kick.com/username" dir="ltr" style="direction:ltr;text-align:right" />
+          <div class="qc-field-hint">بدون أي توكن أو تسجيل دخول — يوزرك فقط</div>
+        </div>
+        <div class="field" id="qc-multi-field-youtube" style="display:none;">
+          <label>▶️ يوزر قناتك على يوتيوب</label>
+          <input type="text" id="qc-multi-user-youtube" placeholder="channelname أو رابط البث" dir="ltr" style="direction:ltr;text-align:right" />
+        </div>
       </div>
 
       <div class="qc-status" id="qc-status"></div>
@@ -21044,14 +21093,14 @@ function tiktokConnectModalStart() {
 
 // زر "ابدأ بثاً سريعاً" لحساب محفوظ — يعيد نفس تدفق tiktokConnectModalStart
 // لكن مباشرة من الصفحة الرئيسية بدون فتح المودال، ويغذّي كل الألعاب عبر
-// homeDispatchToGameListeners بنفس آلية connectOnePlatform الموحّدة.
+// homeDispatchToGameListeners بنفس آلية platformConnect الموحّدة.
 function tiktokQuickReconnect(username) {
   if (!tiktokSavedUsersIsEnabled(username)) {
     toast('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
     return;
   }
   document.getElementById('qc-connecting-overlay').classList.add('visible');
-  connectOnePlatform('home', 'tiktok', { username, apiKey: '' }, homeDispatchToGameListeners, function (p, status) {
+  platformConnect('tiktok', { username }, homeDispatchToGameListeners, function (p, status) {
     document.getElementById('qc-connecting-overlay').classList.remove('visible');
     if (status === 'connected') {
       homeUpdateConnectionBadge(true, 'تيك توك');
@@ -21075,7 +21124,7 @@ function tiktokQuickReconnect(username) {
 // getTikTokApiKey — لا يوجد أي مفتاح API بعد الآن (السيرفر المستضاف يتصل
 // بيوزرنيم الستريمر فقط)؛ هذه الدالة باقية فقط لأن عشرات دوال launch<Game>
 // بكل لعبة تستدعيها قبل الاتصال الفعلي (الذي يمر بالكامل عبر homeHasActiveConnection
-// + connectOnePlatform من الصفحة الرئيسية) — إزالتها من كل موقع استدعاء أمر
+// + platformConnect من الصفحة الرئيسية) — إزالتها من كل موقع استدعاء أمر
 // خطير على ملف بهذا الحجم، فتُبقى كدالة فارغة متوافقة بدل حذف عشرات الأسطر.
 function getTikTokApiKey() { return ''; }
 
@@ -21168,352 +21217,143 @@ function setPlatform(tag, platform) {
   }
 }
 
-// ==================== وضع "أكثر من منصة" (Multi-Platform Mode) ====================
-// إضافة موازية لـ gamePlatform (اللي يبقى تماماً كما هو لوضع "منصة واحدة")
-// — ما نغيّر شكله لأن 272 موضع بالكود يقرأه كنص واحد. بدلها:
-//   gameMultiPlatformActive[tag]  -> true لو الستريمر فعّل "أكثر من منصة" لهذي اللعبة
-//   gamePlatformMulti[tag]        -> Set من أسماء المنصات المختارة (2+)
-//   gameConnections[tag]          -> { tiktok: {ws, reconnectAttempts, reconnectTimer}, kick: {...}, ... }
-let gameMultiPlatformActive = {};
-let gamePlatformMulti = {};
-let gameConnections = {};
-const MULTI_PLATFORM_BADGES = {
+// ==================== نظام المنصات الموحّد (Unified Platform Layer) ====================
+// نقطة الحقيقة الوحيدة لكل ما يخص "من أي منصة جاء هذا الحدث".
+//
+// المعمارية: الستريمر يربط بثه مرة واحدة من الصفحة الرئيسية ("ابدأ بثاً
+// سريعاً")، ويقدر يختار منصة وحدة أو أكثر بنفس الوقت. كل الاتصالات المفتوحة
+// تصبّ في ناقل أحداث واحد (homeDispatchToGameListeners)، وكل لعبة مسجّلة
+// تستقبل نفس التدفق — فمشاهدو كل المنصات يدخلون نفس الراوند تلقائياً، بدون
+// سطر واحد خاص بأي لعبة. الألعاب لا تفتح اتصالات إطلاقاً؛ كلها تتحقق من
+// homeHasActiveConnection() وتسجّل معالجها عبر homeRegisterGameListener.
+const PLATFORMS = {
   tiktok:  { icon: '🎵', color: '#f5d67f', label: 'تيك توك' },
   twitch:  { icon: '💜', color: '#a855f7', label: 'تويتش' },
   kick:    { icon: '🟢', color: '#4ade80', label: 'كيك' },
-  youtube: { icon: '▶️', color: '#ef4444', label: 'يوتيوب' }
+  youtube: { icon: '▶️', color: '#ef4444', label: 'يوتيوب' },
 };
+const PLATFORM_KEYS = Object.keys(PLATFORMS);
+const PLATFORM_PREFIX_RE = /^(tiktok|twitch|kick|youtube):/;
 
-function toggleMultiPlatformMode(tag, enabled) {
-  gameMultiPlatformActive[tag] = enabled;
-  if (!gamePlatformMulti[tag]) gamePlatformMulti[tag] = new Set();
-  const singleUI = document.getElementById(tag + '-platform-toggle');
-  const multiUI = document.getElementById(tag + '-multi-platform-picker');
-  if (singleUI) singleUI.style.display = enabled ? 'none' : '';
-  if (multiUI) multiUI.style.display = enabled ? '' : 'none';
-  // خفّ كل أقسام حقول منصة-وحدة (تيك توك/تويتش/كيك/يوتيوب) أثناء وضع
-  // الأكثر من منصة، عشان الستريمر ما يتوه بين حقلين لنفس المنصة بنفس الوقت.
-  ['tiktok', 'twitch', 'kick', 'youtube'].forEach(p => {
-    const sec = document.getElementById(tag + '-' + p + '-section');
-    if (sec && enabled) sec.style.display = 'none';
-    else if (sec && !enabled) sec.style.display = (gamePlatform[tag] === p) ? '' : 'none';
-  });
-  const kf = document.getElementById(tag + '-kick-field');
-  if (kf) kf.style.display = (!enabled && gamePlatform[tag] === 'kick') ? '' : 'none';
-  const yf = document.getElementById(tag + '-youtube-field');
-  if (yf) yf.style.display = (!enabled && gamePlatform[tag] === 'youtube') ? '' : 'none';
-  updateMultiPlatformStartState(tag);
+// ---------- المعرّف المركّب (platform:username) ----------
+// كل لاعب يُعرَّف داخلياً بـ"منصته + يوزره" حتى لا يتصادم ahmed على تيك توك
+// مع ahmed على كيك (شخصان مختلفان تماماً). اليوزر الخام يبقى متاحاً دائماً
+// عبر platformStripPrefix لأي مقارنة تحتاج الاسم وحده.
+function platformStripPrefix(id) {
+  return String(id == null ? '' : id).replace(PLATFORM_PREFIX_RE, '');
+}
+function platformOf(id) {
+  const m = String(id == null ? '' : id).match(PLATFORM_PREFIX_RE);
+  return m ? m[1] : null;
 }
 
-function toggleMultiPlatformCheckbox(tag, platform, checked) {
-  if (!gamePlatformMulti[tag]) gamePlatformMulti[tag] = new Set();
-  const set = gamePlatformMulti[tag];
-  if (checked) set.add(platform); else set.delete(platform);
-  ['tiktok', 'twitch', 'kick', 'youtube'].forEach(p => {
-    const sec = document.getElementById(tag + '-multi-' + p + '-section');
-    if (sec) sec.style.display = set.has(p) ? '' : 'none';
-  });
-  updateMultiPlatformStartState(tag);
+// ---------- الاتصالات المفتوحة ----------
+// homeConnections[platform] = { ws, attempts, timer, username }
+let homeConnections = {};
+const PLATFORM_MAX_RETRIES = 6;
+const PLATFORM_RETRY_MS = 4000;
+
+function platformConnectedList() {
+  return Object.keys(homeConnections).filter(p => homeConnections[p] && homeConnections[p].ws);
 }
 
-// يفعّل/يعطّل زر البدء حسب الحد الأدنى (منصتين على الأقل)، ويظهر تنبيه واضح
-function updateMultiPlatformStartState(tag) {
-  const set = gamePlatformMulti[tag] || new Set();
-  const btn = document.getElementById(tag + '-multi-start-btn');
-  const warn = document.getElementById(tag + '-multi-warn');
-  const ok = set.size >= 2;
-  if (btn) btn.disabled = !ok;
-  if (warn) warn.style.display = ok ? 'none' : '';
-  return ok;
+// الشارة تظهر فقط حين يكون أكثر من منصة موصولة — بمنصة وحدة ما فيه لبس
+// بالمصدر أصلاً، فتبقى الواجهة نظيفة تماماً كما كانت قبل هذي الميزة.
+function platformBadgeVisible() {
+  return platformConnectedList().length > 1;
+}
+function platformBadgeFor(platform) {
+  const meta = PLATFORMS[platform];
+  return meta ? meta.icon : '';
 }
 
-// يرجّع قائمة المنصات الفعّالة لهذي اللعبة (مصفوفة من منصة وحدة، أو Set
-// كامل لوضع الأكثر من منصة) — نقطة مرجعية واحدة لكل دوال اللانش/الاتصال.
-function getActivePlatforms(tag) {
-  if (gameMultiPlatformActive[tag]) return Array.from(gamePlatformMulti[tag] || []);
-  return gamePlatform[tag] ? [gamePlatform[tag]] : [];
-}
-
-// يفتح اتصال واحد لمنصة معيّنة، بنفس الـ 4 أدوات المشتركة الموجودة أصلاً
-// (tiktokOpenWS/twitchOpenIRC/kickBridgeOpenWS/youtubeBridgeOpenWS) — الفرق
-// الوحيد هنا إنه بدل ما يخزّن نتيجة الاتصال بمتغيّر واحد (findballWs مثلاً)
-// يخزّنها بخانتها الخاصة داخل gameConnections[tag][platform]، فيقدر يفتح
-// عدة اتصالات بنفس الوقت بدون ما توحد بعضها.
-function connectOnePlatform(tag, platform, creds, onUnifiedEvent, onStatus) {
-  if (!gameConnections[tag]) gameConnections[tag] = {};
-  const slot = gameConnections[tag][platform] || { ws: null, reconnectAttempts: 0, reconnectTimer: null };
-  gameConnections[tag][platform] = slot;
-  if (slot.reconnectTimer) { clearTimeout(slot.reconnectTimer); slot.reconnectTimer = null; }
+// ---------- فتح اتصال واحد لمنصة واحدة ----------
+// onEvent يستقبل الحدث الخام الموحّد ({messages:[...]}) بعد وسم كل رسالة
+// بمنصتها. onStatus(platform, status) حيث status:
+// connected | disconnected | failed | disabled
+function platformConnect(platform, creds, onEvent, onStatus) {
+  const slot = homeConnections[platform] || { ws: null, attempts: 0, timer: null, username: '' };
+  homeConnections[platform] = slot;
+  slot.username = (creds && creds.username) || '';
+  if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
 
-  // يحوّل أي حدث خام (من أي منصة) لنفس الغلاف الموحّد، يضيف sourcePlatform،
-  // ويسبق uniqueId باسم المنصة عشان يبقى كل حساب بمنصة مستقل تماماً عن نفس
-  // الاسم بمنصة ثانية (مثلاً tiktok:ahmed لا يتصادم مع kick:ahmed).
+  // يوسم كل رسالة بمنصتها ويحوّل uniqueId لمعرّف مركّب فريد.
   function dispatch(rawData) {
+    if (!rawData) return;
     const messages = rawData.messages || (rawData.type ? [rawData] : []);
     messages.forEach(msg => {
-      const u = msg.user || msg.data?.user || {};
-      const rawUid = u.uniqueId || u.username || u.id || msg.userId || '?';
-      if (rawUid !== '?' && !String(rawUid).includes(':')) {
-        u.uniqueId = platform + ':' + rawUid;
-        if (!msg.user) msg.user = u;
-      }
+      if (!msg) return;
       msg.sourcePlatform = platform;
+      const u = msg.user || (msg.data && msg.data.user);
+      if (!u) return; // رسائل الحالة (bridge_status) ما فيها مستخدم
+      const raw = platformStripPrefix(u.uniqueId || u.username || u.id || msg.userId || '?');
+      u.platform = platform;
+      u.rawUniqueId = raw;
+      u.uniqueId = (raw && raw !== '?') ? (platform + ':' + raw) : '?';
+      if (!msg.user) msg.user = u;
     });
-    onUnifiedEvent({ messages, sourcePlatform: platform });
+    onEvent({ messages: messages, sourcePlatform: platform });
   }
 
-  const retry = () => {
-    slot.reconnectAttempts++;
-    if (slot.reconnectAttempts > 6) { if (onStatus) onStatus(platform, 'failed'); return; }
-    slot.reconnectTimer = setTimeout(() => connectOnePlatform(tag, platform, creds, onUnifiedEvent, onStatus), 4000);
-  };
+  function retry() {
+    slot.attempts++;
+    if (slot.attempts > PLATFORM_MAX_RETRIES) { if (onStatus) onStatus(platform, 'failed'); return; }
+    slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), PLATFORM_RETRY_MS);
+  }
+  function onOpen() { slot.attempts = 0; if (onStatus) onStatus(platform, 'connected'); }
+  // 4403 = السيرفر رفض الاتصال لأن الحساب معطّل من الإدارة — رفض دائم،
+  // إعادة المحاولة عبثية وتُحمّل السيرفر بلا فائدة.
+  function onClose(e) {
+    slot.ws = null;
+    if (e && e.code === 4403) { delete homeConnections[platform]; if (onStatus) onStatus(platform, 'disabled'); return; }
+    if (onStatus) onStatus(platform, 'disconnected');
+    retry();
+  }
 
+  const user = (creds && creds.username) || '';
   if (platform === 'tiktok') {
-    slot.ws = tiktokOpenWS(creds.username, creds.apiKey,
-      dispatch,
-      () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => {
-        // 4403 = السيرفر رفض الاتصال لأن الحساب معطّل (bridgeStreamers/{user}.enabled
-        // === false) — رفض دائم، إعادة المحاولة عبثية وتحمّل السيرفر بلا فائدة.
-        if (e && e.code === 4403) { if (onStatus) onStatus(platform, 'disabled'); return; }
-        if (onStatus) onStatus(platform, 'disconnected'); retry();
-      });
+    slot.ws = tiktokOpenWS(user, '', dispatch, onOpen, onClose);
   } else if (platform === 'twitch') {
-    slot.ws = twitchOpenIRC(creds.username,
+    slot.ws = twitchOpenIRC(user,
       (displayName, uniqueId, message) => dispatch(twitchEventShape(displayName, uniqueId, message)),
-      () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => { if (onStatus) onStatus(platform, 'disconnected'); retry(); });
+      onOpen, onClose);
   } else if (platform === 'kick') {
-    slot.ws = kickBridgeOpenWS(creds.username, dispatch,
-      () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => {
-        if (e && e.code === 4403) { if (onStatus) onStatus(platform, 'disabled'); return; }
-        if (onStatus) onStatus(platform, 'disconnected'); retry();
-      });
+    slot.ws = kickBridgeOpenWS(user, dispatch, onOpen, onClose);
   } else if (platform === 'youtube') {
-    slot.ws = youtubeBridgeOpenWS(creds.username, dispatch,
-      () => { slot.reconnectAttempts = 0; if (onStatus) onStatus(platform, 'connected'); },
-      (e) => {
-        if (e && e.code === 4403) { if (onStatus) onStatus(platform, 'disabled'); return; }
-        if (onStatus) onStatus(platform, 'disconnected'); retry();
-      });
+    slot.ws = youtubeBridgeOpenWS(user, dispatch, onOpen, onClose);
   }
+  if (!slot.ws) delete homeConnections[platform];
 }
 
-// نقطة الدخول العامة لكل الألعاب — تفتح اتصال بكل منصة مختارة بالتوازي
-// (Promise.all-style عبر forEach المتزامن، كل fetch/WebSocket يبدأ فوراً بدون
-// انتظار سابقه)، وتمرّر كل الأحداث لنفس دالة معالجة اللعبة (onUnifiedEvent)
-// بغض النظر عن مصدرها — بدون أي تكرار لمنطق اللعبة نفسه.
-function startMultiPlatformConnections(tag, credsByPlatform, onUnifiedEvent, onStatus) {
-  const platforms = getActivePlatforms(tag);
-  if (platforms.length < 2) { toast('⚠️ اختر منصتين على الأقل'); return false; }
-  disconnectMultiPlatform(tag);
-  platforms.forEach(platform => {
-    connectOnePlatform(tag, platform, credsByPlatform[platform] || {}, onUnifiedEvent, onStatus);
-  });
-  return true;
+function platformDisconnect(platform) {
+  const slot = homeConnections[platform];
+  if (!slot) return;
+  if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
+  if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
+  delete homeConnections[platform];
 }
 
-function disconnectMultiPlatform(tag) {
-  const conns = gameConnections[tag];
-  if (!conns) return;
-  Object.keys(conns).forEach(platform => {
-    const slot = conns[platform];
-    if (slot.reconnectTimer) { clearTimeout(slot.reconnectTimer); slot.reconnectTimer = null; }
-    if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
-  });
+function platformDisconnectAll() {
+  Object.keys(homeConnections).forEach(platformDisconnect);
+  homeConnections = {};
 }
 
-// ==================== حقن واجهة "أكثر من منصة" تلقائياً بكل لعبة ====================
-// بدل تكرار نفس الماركب 19 مرة يدوياً، نولّد مجموعة حقول مستقلة كاملة خاصة
-// بوضع الأكثر من منصة لكل لعبة، بمعرّفات ثابتة يمكن التنبؤ فيها دائماً
-// (tag-multi-<platform>-...)، فما نحتاج نعرف تفاصيل حقول كل لعبة الفردية.
-function buildMultiPlatformFieldsHTML(tag, platform) {
-  if (platform === 'tiktok') {
-    return `<div class="field" style="margin-bottom:0">
-      <div class="field-hint" style="margin-bottom:8px">🎵 بدون أي مفتاح API — يوزرنيمك فقط</div>
-      <label>يوزر تيك توك (بدون @)</label>
-      <input type="text" id="${tag}-multi-tiktok-user" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-    </div>`;
-  }
-  if (platform === 'twitch') {
-    return `<div class="field" style="margin-bottom:0">
-      <label>🟣 اسم قناة تويتش (بدون @)</label>
-      <input type="text" id="${tag}-multi-twitch-user" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-    </div>`;
-  }
-  if (platform === 'kick') {
-    return `<div class="field" style="margin-bottom:0">
-      <div class="field-hint" style="margin-bottom:8px">🟢 بدون أي إعداد يدوي — يوزرك فقط</div>
-      <label>يوزر قناتك على كيك (أو رابط بثك لو ما ضبط)</label>
-      <input type="text" id="${tag}-multi-kick-user" placeholder="مثال: username أو kick.com/username" dir="ltr" style="direction:ltr;text-align:right" />
-    </div>`;
-  }
-  if (platform === 'youtube') {
-    return `<div class="field" style="margin-bottom:0">
-      <div class="field-hint" style="margin-bottom:8px">▶️ بدون أي مفتاح API — يوزرك فقط</div>
-      <label>يوزر قناتك على يوتيوب (أو رابط بثك لو ما ضبط)</label>
-      <input type="text" id="${tag}-multi-youtube-user" placeholder="مثال: channelname أو رابط البث" dir="ltr" style="direction:ltr;text-align:right" />
-    </div>`;
-  }
-  return '';
-}
-
-// يبني ويحقن كتلة "أكثر من منصة" مباشرة بعد .platform-toggle الموجودة أصلاً
-// لكل لعبة — يُستدعى مرة واحدة بالتحميل لكل عناصر platform-toggle بالصفحة.
-function injectMultiPlatformUI(toggleEl) {
-  // يستنتج الـ tag من أول زر داخل platform-toggle (id="<tag>-tab-tiktok")
-  const firstBtn = toggleEl.querySelector('[id$="-tab-tiktok"]');
-  if (!firstBtn) return;
-  const tag = firstBtn.id.replace('-tab-tiktok', '');
-  if (document.getElementById(tag + '-multi-platform-picker')) return; // تجنّب الحقن المكرر
-
-  const switchBtn = document.createElement('button');
-  switchBtn.type = 'button';
-  switchBtn.className = 'ptab';
-  switchBtn.style.cssText = 'background:linear-gradient(100deg,var(--accent),var(--accent2));color:#fff;border:none;';
-  switchBtn.textContent = '🌐 أكثر من منصة';
-  switchBtn.onclick = () => toggleMultiPlatformMode(tag, true);
-  toggleEl.appendChild(switchBtn);
-  toggleEl.id = tag + '-platform-toggle';
-
-  const picker = document.createElement('div');
-  picker.id = tag + '-multi-platform-picker';
-  picker.style.cssText = 'display:none;margin-top:12px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--surface2);';
-  picker.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-weight:900;font-size:14px;">🌐 اختر منصتين على الأقل</div>
-      <button type="button" class="ptab" style="padding:6px 12px;font-size:12px;" onclick="toggleMultiPlatformMode('${tag}', false)">↩️ رجوع لمنصة واحدة</button>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-      ${['tiktok','twitch','kick','youtube'].map(p => `
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer;">
-          <input type="checkbox" id="${tag}-multi-check-${p}" onchange="toggleMultiPlatformCheckbox('${tag}','${p}', this.checked)" />
-          ${MULTI_PLATFORM_BADGES[p].icon} ${MULTI_PLATFORM_BADGES[p].label}
-        </label>
-      `).join('')}
-    </div>
-    <div id="${tag}-multi-warn" style="color:var(--red);font-size:12px;font-weight:700;margin-bottom:10px;">⚠️ اختر منصتين على الأقل</div>
-    ${['tiktok','twitch','kick','youtube'].map(p => `
-      <div id="${tag}-multi-${p}-section" style="display:none;margin-bottom:10px;">${buildMultiPlatformFieldsHTML(tag, p)}</div>
-    `).join('')}
-  `;
-  toggleEl.parentNode.insertBefore(picker, toggleEl.nextSibling);
-}
-
-window.addEventListener('load', () => {
-  document.querySelectorAll('.platform-toggle').forEach(injectMultiPlatformUI);
-});
-
-// يقرأ بيانات الاعتماد من حقول وضع الأكثر من منصة، فقط للمنصات المختارة فعلياً
-function readMultiPlatformCreds(tag) {
-  const platforms = getActivePlatforms(tag);
-  const creds = {};
-  platforms.forEach(p => {
-    if (p === 'tiktok') {
-      creds.tiktok = {
-        apiKey: '',
-        username: (document.getElementById(tag + '-multi-tiktok-user') || {}).value?.trim().replace('@', '') || ''
-      };
-    } else if (p === 'twitch') {
-      creds.twitch = { username: (document.getElementById(tag + '-multi-twitch-user') || {}).value?.trim().replace('@', '') || '' };
-    } else if (p === 'kick') {
-      creds.kick = { username: (document.getElementById(tag + '-multi-kick-user') || {}).value?.trim() || '' };
-    } else if (p === 'youtube') {
-      creds.youtube = { username: (document.getElementById(tag + '-multi-youtube-user') || {}).value?.trim() || '' };
-    }
-  });
-  return creds;
-}
-
-// يتحقق من اكتمال حقول كل منصة مختارة، يرجّع رسالة الخطأ الأولى أو null
-function validateMultiPlatformCreds(tag, creds) {
-  const platforms = getActivePlatforms(tag);
-  for (const p of platforms) {
-    if (p === 'tiktok' && !creds.tiktok?.username) return '⚠️ أدخل يوزر تيك توك';
-    if (p === 'tiktok' && !tiktokSavedUsersIsEnabled(creds.tiktok.username)) return '⛔ هذا الحساب معطّل — فعّله من "ربط حساب تيك توك"';
-    if (p === 'twitch' && !creds.twitch?.username) return '⚠️ أدخل اسم قناة تويتش';
-    if (p === 'kick' && !creds.kick?.username) return '⚠️ أدخل يوزر قناتك على كيك (أو رابط بثك)';
-    if (p === 'youtube' && !creds.youtube?.username) return '⚠️ أدخل يوزر قناتك على يوتيوب (أو رابط بثك)';
-  }
-  return null;
-}
-
-// نقطة الدخول العامة الوحيدة اللي كل لعبة تستدعيها بدل connect<Game>TikTok
-// مباشرة — لو وضع الأكثر من منصة مو مفعّل لهذي اللعبة، تكمل بنفس السلوك
-// القديم تماماً (singlePlatformConnectFn بدون أي تغيير). لو مفعّل، تتحقق من
-// اكتمال البيانات وتفتح كل الاتصالات المختارة بالتوازي، وكل حدث من أي
-// منصة يمرّ لنفس handleEventFn اللي اللعبة أصلاً تستخدمها بوضع منصة واحدة.
-function startGameConnection(tag, singlePlatformConnectFn, handleEventFn) {
-  if (!gameMultiPlatformActive[tag]) { singlePlatformConnectFn(); return; }
-
-  const creds = readMultiPlatformCreds(tag);
-  const err = validateMultiPlatformCreds(tag, creds);
-  if (err) { toast(err); return; }
-
-  // إصلاح: كل دوال launch<Game> تضبط scoreCurrentStreamer من حقل المنصة
-  // الواحدة العام (مثلاً inp-user) قبل ما توصل هنا — هذا الحقل ما له أي علاقة
-  // ببيانات اعتماد "أكثر من منصة" الفعلية (creds فوق)، فيصير مفتاح غير ثابت/
-  // غير متطابق مع الستريمر الحقيقي المتصل. هذا هو سبب عدم احتساب الفوزات
-  // والدقائق بفعالية "أفضل ستريمر" لأي ستريمر يبث بوضع أكثر من منصة: كل جلسة
-  // (contestNoteActivity/contestNoteRoundStarted/sevtRecordContestWin) كانت
-  // تُكتب بمفتاح مختلف عن المتوقع بدل ما تتراكم بمستند واحد صحيح.
-  // نعيد هنا ضبط scoreCurrentStreamer من نفس بيانات الاعتماد الحقيقية
-  // المتصلة فعلاً (أولوية: تيك توك ثم تويتش ثم كيك ثم يوتيوب) قبل فتح أي
-  // اتصال، عشان أي نشاط/راوند/فوز لاحق يُسجَّل بمفتاح صحيح وثابت.
-  const canonicalKey = (creds.tiktok && creds.tiktok.username) ||
-    (creds.twitch && creds.twitch.username) ||
-    (creds.kick && creds.kick.username ? ('كيك ' + creds.kick.username) : '') ||
-    (creds.youtube && creds.youtube.username ? ('يوتيوب ' + creds.youtube.username) : '');
-  if (canonicalKey) {
-    scoreCurrentStreamer = canonicalKey;
-    ownerRegisterActiveStreamer(tag, canonicalKey, 'multi', null);
-    contestNoteActivity();
-  }
-
-  const platforms = getActivePlatforms(tag);
-  toast('⏳ جاري الاتصال بـ' + platforms.length + ' منصات...');
-  startMultiPlatformConnections(tag, creds, handleEventFn, (platform, status, reason) => {
-    updateMultiPlatformDot(tag, platform, status);
-    if (status === 'connected') toast('✅ متصل بـ' + MULTI_PLATFORM_BADGES[platform].label);
-    else if (status === 'failed') toast('❌ تعذّر الاتصال بـ' + MULTI_PLATFORM_BADGES[platform].label + (reason ? (' — ' + reason) : ''));
-  });
-}
-
-// نقاط حالة صغيرة لكل منصة داخل وضع الأكثر من منصة — تُبنى تلقائياً أول
-// اتصال ناجح لو مو موجودة، بدون ما تحتاج كل لعبة تضيف HTML خاص فيها.
-function updateMultiPlatformDot(tag, platform, status) {
-  let bar = document.getElementById(tag + '-multi-status-bar');
-  if (!bar) {
-    const hostDot = document.querySelector('#' + tag + ' .live-dot, #' + tag + ' [id$="-dot"]');
-    if (!hostDot || !hostDot.parentNode) return;
-    bar = document.createElement('div');
-    bar.id = tag + '-multi-status-bar';
-    bar.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap;';
-    hostDot.parentNode.insertBefore(bar, hostDot.nextSibling);
-  }
-  let dot = document.getElementById(tag + '-multi-dot-' + platform);
-  if (!dot) {
-    dot = document.createElement('span');
-    dot.id = tag + '-multi-dot-' + platform;
-    dot.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:800;padding:3px 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);';
-    bar.appendChild(dot);
-  }
-  const badge = MULTI_PLATFORM_BADGES[platform];
-  const colorMap = { connected: '#4ade80', disconnected: '#f59e0b', failed: '#ef4444' };
-  dot.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:' + (colorMap[status] || '#888') + ';display:inline-block;"></span>' + badge.icon + ' ' + badge.label;
-}
-
-// يضيف رسالة شات لقائمة شات اللعبة الموجودة أصلاً (appendFn هي دالة الشات
-// الحالية لتلك اللعبة، مثل findballAddChatMsg) مع شارة صغيرة تدل على مصدر
-// المنصة بجانب الاسم — بدون ما يغيّر بنية DOM/state الشات الأساسية.
-function renderUnifiedChatMessage(tag, user, text, sourcePlatform, appendFn) {
-  const badge = MULTI_PLATFORM_BADGES[sourcePlatform];
-  if (badge && !user.nickname?.startsWith(badge.icon)) {
-    user = Object.assign({}, user, { nickname: badge.icon + ' ' + (user.nickname || user.uniqueId) });
-  }
-  appendFn(user, text);
+// ---------- شريط حالة المنصات بالصفحة الرئيسية ----------
+// نقطة ملوّنة لكل منصة موصولة، تُبنى تلقائياً بجانب شارة الاتصال الحالية.
+function platformStatusBarRender(statusByPlatform) {
+  const bar = document.getElementById('home-platform-status-bar');
+  if (!bar) return;
+  const entries = Object.keys(statusByPlatform || {});
+  if (!entries.length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  const colorMap = { connected: '#4ade80', disconnected: '#f59e0b', failed: '#ef4444', disabled: '#ef4444', connecting: '#888' };
+  bar.innerHTML = entries.map(p => {
+    const meta = PLATFORMS[p]; if (!meta) return '';
+    const c = colorMap[statusByPlatform[p]] || '#888';
+    return '<span class="home-plat-chip"><span class="home-plat-dot" style="background:' + c + '"></span>' +
+           meta.icon + ' ' + meta.label + '</span>';
+  }).join('');
 }
 
 // ==================== حفظ يوزر البث تلقائياً بالمتصفح ====================
@@ -21710,7 +21550,7 @@ function homeApplyFilter(cat) {
 }
 
 // ==================== ابدأ بثاً سريعاً (ربط منصة موحّد من الصفحة الرئيسية) ====================
-// يعيد استخدام نفس آليات الاتصال الموجودة (connectOnePlatform لكل منصة، نفس
+// يعيد استخدام نفس آليات الاتصال الموجودة (platformConnect لكل منصة، نفس
 // STREAMER_USER_STORAGE_KEY اللي تعبّي حقل اليوزر بكل الألعاب تلقائياً) —
 // بدون أي تعديل على تلك الدوال نفسها. تيك توك بدون أي مفتاح API ولا نافذة
 // إضافية — اتصال WebSocket واحد من نفس الصفحة عبر tiktokOpenWS.
@@ -21823,50 +21663,134 @@ function homeLiveCounterBoot() {
   }, (err) => { /* best-effort */ });
 }
 
-function homeStartQuickConnect() {
-  const platform = homeQcPlatform;
-  const mainValue = document.getElementById('qc-main-input').value.trim().replace(/^@/, '');
-  if (!mainValue) { homeQcSetStatus('⚠️ عبّي الحقل أولاً'); return; }
+// ---------- وضع "أكثر من منصة" داخل نافذة الربط السريع ----------
+// اختيار منصة وحدة يبقى بسلوكه القديم حرفياً؛ وضع الأكثر من منصة يضيف
+// اختياراً متعدداً بحقل يوزر مستقل لكل منصة مختارة.
+let homeQcMulti = false;
 
-  if (platform === 'tiktok' && !tiktokSavedUsersIsEnabled(mainValue)) {
-    homeQcSetStatus('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
-    return;
+function homeQcToggleMulti(on) {
+  homeQcMulti = !!on;
+  const single = document.getElementById('qc-single-wrap');
+  const multi = document.getElementById('qc-multi-wrap');
+  const toggle = document.getElementById('qc-platform-toggle');
+  if (single) single.style.display = on ? 'none' : '';
+  if (multi) multi.style.display = on ? '' : 'none';
+  if (toggle) toggle.style.display = on ? 'none' : '';
+  document.getElementById('qc-status').className = 'qc-status';
+}
+
+function homeQcToggleCheck(platform, checked) {
+  const field = document.getElementById('qc-multi-field-' + platform);
+  if (field) field.style.display = checked ? '' : 'none';
+}
+
+function homeQcSelectedPlatforms() {
+  return PLATFORM_KEYS.filter(p => {
+    const cb = document.getElementById('qc-multi-check-' + p);
+    return cb && cb.checked;
+  });
+}
+
+// يجمع المنصات المطلوبة + يوزر كل وحدة، ويتحقق من اكتمالها.
+// يرجّع مصفوفة [{platform, username}] أو null مع عرض سبب الرفض.
+function homeQcCollectTargets() {
+  if (!homeQcMulti) {
+    const username = (document.getElementById('qc-main-input').value || '').trim().replace(/^@/, '');
+    if (!username) { homeQcSetStatus('⚠️ عبّي الحقل أولاً'); return null; }
+    if (homeQcPlatform === 'tiktok' && !tiktokSavedUsersIsEnabled(username)) {
+      homeQcSetStatus('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
+      return null;
+    }
+    return [{ platform: homeQcPlatform, username: username }];
   }
 
-  // يوزرنيم تيك توك/تويتش يُحفظ بنفس آلية "احفظ يوزر البث" الموجودة أصلاً —
+  const chosen = homeQcSelectedPlatforms();
+  if (chosen.length < 2) { homeQcSetStatus('⚠️ اختر منصتين على الأقل'); return null; }
+  const targets = [];
+  for (const p of chosen) {
+    const el = document.getElementById('qc-multi-user-' + p);
+    const username = ((el && el.value) || '').trim().replace(/^@/, '');
+    if (!username) { homeQcSetStatus('⚠️ عبّي يوزر ' + PLATFORMS[p].label); return null; }
+    if (p === 'tiktok' && !tiktokSavedUsersIsEnabled(username)) {
+      homeQcSetStatus('⛔ حساب تيك توك معطّل — فعّله أولاً من "ربط حساب تيك توك"');
+      return null;
+    }
+    targets.push({ platform: p, username: username });
+  }
+  return targets;
+}
+
+function homeStartQuickConnect() {
+  const targets = homeQcCollectTargets();
+  if (!targets) return;
+
+  // يوزر المنصة الأولى يُحفظ بنفس آلية "احفظ يوزر البث" الموجودة أصلاً —
   // يتعبّى تلقائياً بكل شاشات "ابدأ اللعبة" بعدها بدون أي تعديل عليها.
-  // نفس القيمة تُستخدم أيضاً كمعرّف اتصال موحّد تستهلكه كل الألعاب مباشرة
-  // (بدل ما تفتح كل لعبة اتصالها الخاص) — راجع homeRegisterGameListener.
   try {
-    localStorage.setItem(STREAMER_USER_STORAGE_KEY, mainValue);
-    localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, platform);
+    localStorage.setItem(STREAMER_USER_STORAGE_KEY, targets[0].username);
+    localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, targets.map(t => t.platform).join(','));
   } catch (e) {}
 
   homeCloseQuickConnect();
   document.getElementById('qc-connecting-overlay').classList.add('visible');
 
-  const platformLabels = { tiktok: 'تيك توك', twitch: 'تويتش', kick: 'كيك', youtube: 'يوتيوب' };
+  // أي ربط جديد يغلق كل الاتصالات السابقة أولاً — فما تتراكم اتصالات
+  // معلّقة لمنصة تراجع عنها الستريمر (أو عند إعادة الربط بمنصات مختلفة).
+  platformDisconnectAll();
 
-  const creds = (platform === 'kick' || platform === 'youtube') ? { username: mainValue }
-    : { username: mainValue, apiKey: '' };
+  const statusByPlatform = {};
+  targets.forEach(t => { statusByPlatform[t.platform] = 'connecting'; });
+  platformStatusBarRender(statusByPlatform);
 
-  connectOnePlatform('home', platform, creds, homeDispatchToGameListeners, function homeQcOnStatus(p, status) {
+  let overlayHidden = false;
+  const hideOverlay = () => {
+    if (overlayHidden) return;
+    overlayHidden = true;
     document.getElementById('qc-connecting-overlay').classList.remove('visible');
-    if (status === 'connected') {
-      homeUpdateConnectionBadge(true, platformLabels[p] || p);
-      if (p === 'tiktok') { tiktokSavedUsersUpsert(mainValue); tiktokBridgeStreamerSetEnabled(mainValue, true); homeQuickReconnectButtonRefresh(); }
-      if (typeof homeQcResumeFn === 'function') {
-        const resumeFn = homeQcResumeFn;
-        homeQcResumeFn = null;
-        try { resumeFn(); } catch (e) {}
-      }
-    } else if (status === 'disabled') {
-      homeUpdateConnectionBadge(false, '');
-      toast('⛔ هذا الحساب معطّل من إدارة المنصة');
-    } else if (status === 'failed') {
-      homeUpdateConnectionBadge(false, '');
-      toast('⚠️ تعذّر الاتصال — تأكد إنك لايف فعلاً حالياً وحاول مرة ثانية');
-    }
+  };
+  // حزام أمان: لو ما رجعت أي منصة بحالة نهائية، ما نخلي الشاشة معلّقة للأبد.
+  const overlayTimer = setTimeout(hideOverlay, 20000);
+
+  function refreshBadge() {
+    const live = platformConnectedList();
+    if (!live.length) { homeUpdateConnectionBadge(false, ''); return; }
+    const label = live.length === 1
+      ? PLATFORMS[live[0]].label
+      : live.map(p => PLATFORMS[p].icon).join(' ') + ' ' + live.length + ' منصات';
+    homeUpdateConnectionBadge(true, label);
+  }
+
+  targets.forEach(t => {
+    platformConnect(t.platform, { username: t.username }, homeDispatchToGameListeners,
+      function homeQcOnStatus(p, status) {
+        statusByPlatform[p] = status;
+        platformStatusBarRender(statusByPlatform);
+
+        if (status === 'connected') {
+          clearTimeout(overlayTimer);
+          hideOverlay();
+          refreshBadge();
+          if (p === 'tiktok') {
+            tiktokSavedUsersUpsert(t.username);
+            tiktokBridgeStreamerSetEnabled(t.username, true);
+            homeQuickReconnectButtonRefresh();
+          }
+          toast('✅ متصل بـ' + PLATFORMS[p].label);
+          if (typeof homeQcResumeFn === 'function') {
+            const resumeFn = homeQcResumeFn;
+            homeQcResumeFn = null;
+            try { resumeFn(); } catch (e) {}
+          }
+        } else if (status === 'disabled') {
+          refreshBadge();
+          toast('⛔ حساب ' + PLATFORMS[p].label + ' معطّل من إدارة المنصة');
+          if (!platformConnectedList().length) { clearTimeout(overlayTimer); hideOverlay(); }
+        } else if (status === 'failed') {
+          refreshBadge();
+          toast('⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية');
+          if (!platformConnectedList().length) { clearTimeout(overlayTimer); hideOverlay(); }
+        }
+      });
   });
 }
 
@@ -21897,23 +21821,20 @@ function homeUnregisterGameListener(tag) {
 }
 
 function homeHasActiveConnection() {
-  return !!(gameConnections['home'] && Object.keys(gameConnections['home']).length);
+  return platformConnectedList().length > 0;
 }
 
-// تُمرَّر كـonUnifiedEvent لـconnectOnePlatform('home', ...) — تستقبل كل
+// تُمرَّر كـonEvent لـplatformConnect(platform, ...) — تستقبل كل
 // رسالة واردة (بالشكل {messages, sourcePlatform} اللي ينتجه dispatch())،
 // تشيل بادئة "platform:" اللي يضيفها dispatch() على uniqueId (عشان يبقى
 // المعرّف بنفس الشكل الخام اللي تتوقعه كل لعبة اليوم عبر extractUser)،
 // ثم توزّع نفس الحدث لكل لعبة مسجّلة حالياً.
 function homeDispatchToGameListeners(evt) {
-  const messages = (evt && evt.messages) || [];
-  messages.forEach(msg => {
-    const u = msg.user;
-    if (u && typeof u.uniqueId === 'string') {
-      const idx = u.uniqueId.indexOf(':');
-      if (idx > -1) u.uniqueId = u.uniqueId.slice(idx + 1);
-    }
-  });
+  // ملاحظة مهمة: لا نجرّد بادئة المنصة من uniqueId هنا. النسخة السابقة كانت
+  // تجرّدها، فتُلغي بالضبط الحماية التي يبنيها platformConnect ويصير
+  // tiktok:ahmed و kick:ahmed نفس اللاعب. كل دوال الهوية التي تقارن باسم
+  // خام (isDeveloperUser / isAlfawzanUser / isGhnamUser / isCurrentStreamerSelf)
+  // تجرّد البادئة عندها قبل المقارنة، فالمعرّف المركّب آمن عليها.
   Object.keys(homeGameListeners).forEach(tag => {
     try { homeGameListeners[tag](evt); } catch (e) { /* best-effort — خطأ بلعبة وحدة ما يوقف الباقي */ }
   });
@@ -23351,9 +23272,19 @@ function extractUser(msg) {
   const u = msg.user || msg.data?.user || {};
   const uniqueId = u.uniqueId || u.username || u.id || msg.userId || '?';
   const override = liveCommandNicknameOverrides[uniqueId];
+  // شارة المنصة: نقطة واحدة هنا تكفي لكل الألعاب، لأن كل لعبة بالمشروع تمرّ
+  // من extractUser لقراءة صاحب أي رسالة. تظهر فقط حين تكون أكثر من منصة
+  // موصولة (platformBadgeVisible) — فبمنصة وحدة يبقى الشكل كما كان تماماً.
+  // platformStripPrefix على الاحتياطي ضروري: بدونه يتسرّب "tiktok:" للعرض
+  // في أي رسالة بلا nickname.
+  const sourcePlatform = u.platform || msg.sourcePlatform || platformOf(uniqueId);
+  const badge = platformBadgeVisible() ? platformBadgeFor(sourcePlatform) : '';
+  const baseNickname = override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?';
   const extracted = {
     uniqueId,
-    nickname: override || u.nickname || u.displayName || u.uniqueId || '?',
+    platform: sourcePlatform || null,
+    rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
+    nickname: badge ? (badge + ' ' + baseNickname) : baseNickname,
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
     isFollower: !!(
       u.followInfo?.followStatus === 1 ||
