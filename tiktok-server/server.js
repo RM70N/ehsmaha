@@ -12,9 +12,10 @@
 //   - tiktok  : tiktok-live-connector (كما كان بالضبط — لم يُغيَّر سلوكه).
 //   - youtube : مكتبة youtube-chat — تقبل يوزر/هاندل القناة، رابط القناة،
 //               رابط البث المباشر، أو معرف الفيديو. بدون مفتاح YouTube API.
-//   - kick    : مكتبة @retconned/kick-js بوضع readOnly (بدون تسجيل دخول أو
-//               بيانات اعتماد) — تقبل يوزرنيم القناة أو رابط kick.com/يوزر،
-//               وتحل chatroomId تلقائياً من داخل المكتبة (بدل إدخاله يدوياً).
+//   - kick    : مكتبة kick-live-connector (lox-x) — بدون تسجيل دخول أو أي
+//               توكن. تقبل يوزرنيم القناة أو رابط kick.com/يوزر، وتحل
+//               بيانات القناة وغرفة الشات تلقائياً من الاسم وحده. إعادة
+//               الاتصال التلقائية من طرفنا (المكتبة لا توفّرها).
 //
 // معمارية الجلسات (نفس الفكرة لكل منصة):
 //   - "Room" واحدة لكل (platform + معرّف). أول عميل يطلب معرّفاً معيّناً
@@ -32,6 +33,15 @@
 //     لو كانت بأسماء مختلفة؛ لازم مستند bridgeStreamers منفصل لكل معرّف لو
 //     أردت تغطية كل منصات نفس الستريمر.
 //
+// متطلب نشر خاص بكيك:
+//   kick-live-connector تعتمد على Playwright لجلب بيانات القناة من kick.com،
+//   أي أنها تحتاج متصفح Chromium مثبتاً على السيرفر (وليس حزمة npm فقط).
+//   لذلك أُضيف postinstall بـpackage.json يشغّل `playwright install chromium`.
+//   الـ`|| true` هناك مقصودة: لو فشل التنزيل (شبكة/صلاحيات المستضيف) ما ينكسر
+//   النشر كله — تتعطّل كيك وحدها وتكمل تيك توك/يوتيوب بشكل طبيعي.
+//   انتبه أيضاً: كل محاولة اتصال بكيك تشغّل Chromium ثلاث مرات، فهي أثقل
+//   بكثير على الذاكرة/المعالج من تيك توك ويوتيوب.
+
 // شكل الأحداث المُرسَلة للموقع — نفس الغلاف الذي تفهمه كل الألعاب اليوم
 // ({messages:[...]}) بنفس حقول user (uniqueId/nickname/profilePictureUrl/
 // isFollower/followInfo) التي تستهلكها extractUser() في index.html، حتى لا
@@ -45,7 +55,7 @@ const {
   TikTokLiveConnection, WebcastEvent, ControlEvent, UserOfflineError,
 } = require('tiktok-live-connector');
 const { LiveChat: YoutubeLiveChat } = require('youtube-chat');
-const { createClient: createKickClient } = require('@retconned/kick-js');
+const { KickConnection, Events: KickEvents } = require('kick-live-connector');
 
 // مفتاح Euler Stream اختياري بالكامل (متغير بيئة على السيرفر فقط — لا علاقة
 // له بالستريمر ولا يُطلب منه أبداً). بدونه تعمل المكتبة على الطبقة المجانية
@@ -66,6 +76,17 @@ const ROOM_IDLE_GRACE_MS = 5000; // مهلة قبل إغلاق الغرفة بع
 // jitter عشوائي يُضاف لكل تأخير إعادة محاولة حتى لا تُعيد كل الغرف الاتصال في
 // نفس اللحظة (thundering herd) فتضرب خدمة التوقيع دفعة واحدة وتستهلك الحد.
 function withJitter(base) { return base + Math.floor(Math.random() * 4000); }
+
+// يسابق أي وعد بمهلة زمنية. ضروري لأي وعد قادم من مكتبة خارجية قد لا يُحسم
+// أبداً (راجع ملاحظة connect() بصنف KickRoom تحت) — بدونه تعلّق الغرفة للأبد
+// بحالة 'connecting' ولا تُعيد المحاولة إطلاقاً.
+function withTimeout(promise, ms, timeoutMessage) {
+  let timer = null;
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(timeoutMessage)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => { if (timer) clearTimeout(timer); });
+}
 
 // ------------------------------------------------------------------ Firestore (تفعيل/تعطيل الستريمرز)
 // نفس مشروع فايربيس الذي يستخدمه index.html (streamgame-180b8). نقرأ فقط
@@ -257,8 +278,9 @@ function youtubeIdentifierLabel(ytId) {
   return ytId.handle || ytId.channelId || ytId.liveId || '?';
 }
 
-// يقبل يوزرنيم كيك مجرد أو رابط kick.com/username — @retconned/kick-js يحل
-// chatroomId تلقائياً من الاسم داخلياً (بدل إدخاله يدوياً كما كان سابقاً).
+// يقبل يوزرنيم كيك مجرد أو رابط kick.com/username ويرجّع اليوزر المجرّد
+// بحروف صغيرة — kick-live-connector تحتاج الاسم وحده، وتحل بيانات القناة
+// وغرفة الشات منه داخلياً (بدل إدخال chatroomId يدوياً كما كان سابقاً).
 function parseKickIdentifier(raw) {
   const input = (raw || '').trim();
   if (!input) return null;
@@ -271,6 +293,12 @@ function parseKickIdentifier(raw) {
     } catch (e) { /* يكمل للمسار العادي تحت */ }
   }
   return input.replace(/^@/, '').toLowerCase();
+}
+
+// المعرّف الموحَّد لكيك — نقطة الحقيقة الوحيدة المستخدمة لمفتاح الغرفة
+// ولفحص التفعيل/التعطيل بـ Firestore، حتى لا يختلف الاثنان أبداً.
+function canonicalKickId(rawIdentifier) {
+  return parseKickIdentifier(rawIdentifier) || (rawIdentifier || '').trim().toLowerCase();
 }
 
 // ==================================================================
@@ -574,13 +602,44 @@ class YoutubeRoom extends BaseRoom {
   }
 }
 
-// ------------------------------------------------------------------ كيك (@retconned/kick-js — readOnly، بدون أي بيانات اعتماد)
+// ------------------------------------------------------------------ كيك (kick-live-connector — يوزر القناة فقط، بدون أي توكن/تسجيل دخول)
+//
+// المكتبة تحل كل شيء داخلياً انطلاقاً من اسم القناة فقط: تجيب بيانات البث
+// (livestream) وبيانات غرفة الشات (chatroom id) وبيانات القناة (channel id)
+// من واجهات kick.com العامة، ثم تفتح الويب سوكيت وتشترك بالقنوات الصحيحة.
+// لا chatroomId يدوي ولا أي reverse-engineering من طرفنا بعد اليوم.
+//
+// ⚠️ ملاحظتان مهمتان عن سلوك المكتبة (نسخة 1.0.0) — هذا الصنف مبني للتعامل
+//    معهما، فلا تُبسّطه بحسن نية:
+//    1) connect() لا يُحسم أبداً (لا resolve ولا reject) لو فشل أي جلب أولي
+//       لبيانات القناة، لأن المكتبة ترمي داخل `new Promise(async …)` —
+//       الاستثناء يضيع ويصير unhandledRejection والوعد يعلّق للأبد. لذلك
+//       نسابقه بمهلة KICK_CONNECT_TIMEOUT_MS بدل انتظاره.
+//    2) لا يوجد أي إعادة اتصال داخل المكتبة إطلاقاً — حدث disconnected يُطلق
+//       ويتوقف كل شيء. إعادة الاتصال التلقائية كلها من مسؤوليتنا هنا عبر
+//       scheduleReconnect الموجود بـ BaseRoom.
+//
+// مهلة الاتصال سخيّة عمداً: كل محاولة connect() تشغّل متصفح Chromium
+// (Playwright) ثلاث مرات لجلب البيانات الأولية، وهذا بطيء بطبيعته.
+const KICK_CONNECT_TIMEOUT_MS = 90000;
+
+// نص مقروء لأي خطأ يجي من المكتبة — مهم لأن المكتبة ترفض أحياناً بسلسلة نصية
+// عادية (`"<user> is offline"`) وليس بكائن Error، فـ err.message يكون undefined.
+function kickErrorText(err) {
+  if (!err) return 'خطأ غير معروف';
+  if (typeof err === 'string') return err;
+  return err.message || String(err);
+}
+
 class KickRoom extends BaseRoom {
   constructor(rawIdentifier) {
     const channelName = parseKickIdentifier(rawIdentifier);
     super('kick:' + rawIdentifier.toLowerCase(), '@' + (channelName || rawIdentifier));
     this.rawIdentifier = rawIdentifier;
     this.channelName = channelName;
+    // رمز المحاولة الحالية — يبطل مستمعي أي عميل قديم فوراً، فما يقدر عميل
+    // ميت يغيّر حالة الغرفة أو يبث رسائل بعد ما استبدلناه بمحاولة جديدة.
+    this.connectToken = 0;
   }
 
   async start() {
@@ -595,57 +654,114 @@ class KickRoom extends BaseRoom {
       return;
     }
 
+    const token = ++this.connectToken;
+    const fresh = () => !this.stopped && token === this.connectToken;
+
     let client;
     try {
-      client = createKickClient(this.channelName, { readOnly: true, logger: false });
+      client = new KickConnection(this.channelName);
     } catch (err) {
       this.handleConnectError(err);
       return;
     }
     this.connection = client;
 
-    client.on('ready', () => {
-      log('info', 'kick:' + this.channelName + ' — متصل');
+    // لازم يكون مستمع 'error' مربوطاً دائماً: EventEmitter يرمي استثناءً
+    // قاتلاً لو أُطلق حدث 'error' بلا مستمع، وهذا كان يسقط السيرفر كله.
+    client.on(KickEvents.Error, (err) => {
+      if (!fresh()) return;
+      this.handleConnectError(err);
+    });
+
+    client.on(KickEvents.Connected, (data) => {
+      if (!fresh()) return;
+      log('info', 'kick:' + this.channelName + ' — متصل (roomID: ' + ((data && data.roomID) || '?') + ')');
       this.setState('connected');
     });
 
-    client.on('ChatMessage', (data) => {
+    client.on(KickEvents.ChatMessage, (data) => {
+      if (!fresh()) return;
       this.broadcast({ messages: [buildKickComment(data)] });
     });
 
-    // المكتبة تدير إعادة اتصال الـ WebSocket الداخلي (Pusher) بنفسها — نكتفي
-    // هنا بإشعار العملاء بصرياً، بدون إعادة إنشاء العميل بالكامل.
-    client.on('disconnect', () => {
-      log('info', 'kick:' + this.channelName + ' — انفصل (إعادة الاتصال تُدار داخلياً بالمكتبة)');
-      if (!this.stopped) this.setState('reconnecting');
+    // المكتبة ما تعيد الاتصال بنفسها — نحن من يعيده.
+    client.on(KickEvents.Disconnected, () => {
+      if (!fresh()) return;
+      log('info', 'kick:' + this.channelName + ' — انقطع الاتصال، إعادة المحاولة تلقائياً');
+      this.setState('reconnecting');
+      this.disconnect();
+      this.scheduleReconnect(withJitter(RECONNECT_DELAY_MS));
     });
 
-    client.on('error', (err) => {
-      this.handleConnectError(err);
+    // انتهاء البث ليس خطأ: نبقى بالغرفة ونعيد المحاولة بوتيرة أهدأ حتى يرجع.
+    client.on(KickEvents.StreamEnd, () => {
+      if (!fresh()) return;
+      log('info', 'kick:' + this.channelName + ' — انتهى البث');
+      this.setState('not_live');
+      this.disconnect();
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
     });
+
+    // ملاحظة مقصودة: ما نشترك بحدث viewerCount إطلاقاً. المكتبة تشغّل
+    // Chromium من جديد كل 60 ثانية لجلبه لو وُجد مستمع واحد فقط — كلفة
+    // ضخمة بلا فائدة، وكيك أصلاً ما كانت ترسل عدد المشاهدين للفرونت إند.
+
+    try {
+      const result = await withTimeout(
+        client.connect(),
+        KICK_CONNECT_TIMEOUT_MS,
+        'انتهت مهلة الاتصال بكيك (' + this.channelName + ')'
+      );
+      // المكتبة ترجّع {roomID:''} بدل ما ترمي لو فشل الإقلاع مبكراً.
+      if (fresh() && result && result.roomID === '') {
+        this.handleConnectError(new Error('تعذّر جلب بيانات قناة كيك'));
+      }
+    } catch (err) {
+      if (fresh()) this.handleConnectError(err);
+    }
   }
 
   handleConnectError(err) {
-    const status = err && err.status;
-    if (status === 404) {
+    const text = kickErrorText(err);
+
+    // "<username> is offline" — القناة موجودة لكن ما فيها بث الآن.
+    if (/is offline/i.test(text)) {
+      log('info', 'kick:' + this.channelName + ' — ما عنده بث مباشر الآن');
+      this.setState('not_live');
+      this.disconnect();
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
+      return;
+    }
+
+    // 404 من واجهة kick.com = يوزر/قناة غير موجودة أصلاً.
+    if ((err && err.status === 404) || /\b404\b/.test(text)) {
       log('info', 'kick:' + this.channelName + ' — يوزرنيم/قناة غير موجودة');
       this.setState('error', { code: 'user_not_found' });
       this.disconnect();
       this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
       return;
     }
-    const msg = (err && err.message) || String(err);
-    log('warn', 'kick:' + this.channelName + ' — خطأ: ' + msg);
+
+    // أي شيء آخر (فشل جلب أولي، تعذّر تشغيل المتصفح، مهلة، شبكة…) — خطأ
+    // مؤقت: نُعلم العملاء ونعيد المحاولة، بدون ما يسقط السيرفر أو تعلّق الغرفة.
+    log('warn', 'kick:' + this.channelName + ' — خطأ: ' + text);
     this.setState('error', { code: 'connect_failed' });
     this.disconnect();
     this.scheduleReconnect(withJitter(RECONNECT_DELAY_MS));
   }
 
   disconnect() {
-    if (this.connection) {
-      try { this.connection.destroy(); } catch (e) { /* ignore */ }
-      this.connection = null;
-    }
+    const client = this.connection;
+    this.connection = null;
+    // إبطال مستمعي العميل القديم قبل إغلاقه، حتى لا يرتد حدث disconnected
+    // الناتج عن إغلاقنا نحن فيُطلق دورة إعادة اتصال ثانية بالتوازي.
+    this.connectToken++;
+    if (!client) return;
+    try { client.removeAllListeners(); } catch (e) { /* ignore */ }
+    // مستمع خطأ صامت يبقى بعد إزالة الباقي — أي حدث 'error' متأخر من
+    // ويب سوكيت يُغلق الآن ما يرمي استثناءً قاتلاً.
+    try { client.on(KickEvents.Error, () => {}); } catch (e) { /* ignore */ }
+    try { client.disconnect(); } catch (e) { /* ignore */ }
   }
 }
 
@@ -653,14 +769,17 @@ class KickRoom extends BaseRoom {
 const rooms = new Map();
 
 function getOrCreateRoom(platform, rawIdentifier) {
-  const lower = rawIdentifier.toLowerCase();
-  const key = platform + ':' + lower;
+  // كيك: نوحّد المعرّف قبل أي شيء (يوزر مجرّد أو رابط kick.com/يوزر ينتهيان
+  // لنفس الاسم). بدون هذا التوحيد يفتح "xqc" و"https://kick.com/xqc" غرفتين
+  // منفصلتين ومعهما اتصالان كاملان لنفس القناة — وكل اتصال يشغّل Chromium.
+  const canonical = platform === 'kick' ? canonicalKickId(rawIdentifier) : rawIdentifier.toLowerCase();
+  const key = platform + ':' + canonical;
   let room = rooms.get(key);
   if (room) return room;
 
   if (platform === 'youtube') room = new YoutubeRoom(rawIdentifier);
-  else if (platform === 'kick') room = new KickRoom(rawIdentifier);
-  else room = new TikTokRoom(lower); // 'tiktok' والافتراضي
+  else if (platform === 'kick') room = new KickRoom(canonical);
+  else room = new TikTokRoom(canonical); // 'tiktok' والافتراضي
 
   rooms.set(key, room);
   room.start();
@@ -799,7 +918,10 @@ wss.on('connection', async (ws, req) => {
 
   // مفتاح فحص Firestore: نفس المعرّف المستخدم لفتح الاتصال الفعلي بهذي
   // المنصة (uniqueId تيك توك بحروف صغيرة، أو يوزر/هاندل يوتيوب، أو يوزر كيك).
-  const checkId = rawUser.toLowerCase();
+  // لازم يطابق تماماً المعرّف الذي تُسجَّل به الغرفة (canonicalKickId لكيك).
+  // لو فحصنا النص الخام هنا، كان أي حساب معطّل يتخطّى الحظر بلصق رابط قناته
+  // (kick.com/user) بدل يوزره المجرّد، لأن مستند bridgeStreamers مخزّن باليوزر.
+  const checkId = platform === 'kick' ? canonicalKickId(rawUser) : rawUser.toLowerCase();
   const enabled = await isStreamerEnabled(checkId);
   if (!enabled) {
     log('info', platform + ':' + checkId + ' — الاتصال مرفوض (الحساب معطّل من المالك)');
@@ -850,8 +972,37 @@ server.listen(PORT, () => {
   startKeepAlive();
 });
 
-process.on('SIGTERM', () => {
-  log('info', 'إيقاف السيرفر (SIGTERM)…');
-  for (const room of rooms.values()) room.teardown();
-  server.close(() => process.exit(0));
+// ------------------------------------------------------------------ شبكة أمان على مستوى العملية
+// مكتبة kick-live-connector ترمي داخل `new Promise(async …)`، فأي فشل بجلب
+// بيانات القناة يتحول لـ unhandledRejection — وسلوك Node الافتراضي عليه هو
+// إسقاط العملية. الغرف تتعافى بنفسها عبر scheduleReconnect، فإسقاط السيرفر
+// كله (ويقطع كل الستريمرز على كل المنصات) هو أسوأ رد ممكن.
+process.on('unhandledRejection', (reason) => {
+  log('warn', 'وعد مرفوض بلا معالجة (تم احتواؤه): ' + ((reason && reason.message) || String(reason)));
 });
+
+process.on('uncaughtException', (err) => {
+  log('warn', 'استثناء غير ملتقط (تم احتواؤه): ' + ((err && err.stack) || String(err)));
+});
+
+function shutdown(signal) {
+  log('info', 'إيقاف السيرفر (' + signal + ')…');
+  for (const room of rooms.values()) room.teardown();
+
+  // لازم نغلق سوكيتات العملاء صراحةً: server.close() ينتظر انتهاء كل اتصال
+  // مفتوح، واتصال WebSocket لا ينتهي من نفسه أبداً — فبدون هذا السطر ما تخرج
+  // العملية إطلاقاً وتظل معلّقة حتى يقتلها المستضيف بـSIGKILL عند كل نشر.
+  for (const ws of wss.clients) {
+    try { ws.close(1001, 'السيرفر يُعاد تشغيله'); } catch (e) { /* ignore */ }
+  }
+  try { wss.close(); } catch (e) { /* ignore */ }
+
+  let done = false;
+  server.close(() => { if (!done) { done = true; process.exit(0); } });
+  // حزام أمان: لو بقي شيء متعلّقاً لأي سبب، نخرج بنظافة بدل ما ننتظر للأبد.
+  const force = setTimeout(() => { if (!done) { done = true; process.exit(0); } }, 5000);
+  force.unref();
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
