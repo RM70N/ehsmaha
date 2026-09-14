@@ -7052,6 +7052,9 @@ function landingCtaClick(){
 .qc-multi-back{padding:6px 12px;font-size:12px;}
 .qc-multi-checks{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
 .qc-multi-check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer;}
+.plat-av-wrap{position:relative;display:inline-block;line-height:0;}
+.plat-av-badge{position:absolute;inset-inline-end:-3px;bottom:-3px;font-size:9px;line-height:1;padding:1px;border-radius:50%;background:var(--surface,#fff);border:1.5px solid;}
+.plat-name-badge{font-size:11px;margin-inline-end:3px;}
 #home-platform-status-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
 .home-plat-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);}
 .home-plat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}
@@ -21728,7 +21731,11 @@ function homeStartQuickConnect() {
   // يتعبّى تلقائياً بكل شاشات "ابدأ اللعبة" بعدها بدون أي تعديل عليها.
   try {
     localStorage.setItem(STREAMER_USER_STORAGE_KEY, targets[0].username);
-    localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, targets.map(t => t.platform).join(','));
+    // كل لعبة تقرأ هذا المفتاح مباشرة داخل gamePlatform[tag] وتتعامل معه
+    // كاسم منصة مفرد، فلا يجوز تخزين قائمة مفصولة بفواصل هنا إطلاقاً.
+    // المنصة الأولى هي "الأساسية"، والقائمة الكاملة بمفتاح منفصل.
+    localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, targets[0].platform);
+    localStorage.setItem(HOME_CONNECTED_PLATFORMS_KEY, targets.map(t => t.platform).join(','));
   } catch (e) {}
 
   homeCloseQuickConnect();
@@ -21801,6 +21808,9 @@ function homeStartQuickConnect() {
 // عند الانتقال بين الألعاب. كل لعبة تسجّل معالجها الخاص (نفس handle<X>Event
 // الموجود أصلاً بكل لعبة، بدون أي تعديل على منطقه الداخلي).
 const HOME_CONNECTED_PLATFORM_KEY = 'homeConnectedPlatform';
+// قائمة كل المنصات الموصولة (للعرض/التشخيص فقط) — منفصلة عن المفتاح أعلاه
+// الذي يجب أن يبقى اسم منصة مفرداً لأن كل لعبة تسنده لـgamePlatform[tag].
+const HOME_CONNECTED_PLATFORMS_KEY = 'homeConnectedPlatforms';
 let homeGameListeners = {};
 
 // دالة اختيارية تُنفَّذ تلقائياً بعد أول اتصال ناجح عبر نافذة الربط السريع —
@@ -23272,19 +23282,19 @@ function extractUser(msg) {
   const u = msg.user || msg.data?.user || {};
   const uniqueId = u.uniqueId || u.username || u.id || msg.userId || '?';
   const override = liveCommandNicknameOverrides[uniqueId];
-  // شارة المنصة: نقطة واحدة هنا تكفي لكل الألعاب، لأن كل لعبة بالمشروع تمرّ
-  // من extractUser لقراءة صاحب أي رسالة. تظهر فقط حين تكون أكثر من منصة
-  // موصولة (platformBadgeVisible) — فبمنصة وحدة يبقى الشكل كما كان تماماً.
+  // ملاحظة مهمة: nickname يبقى نظيفاً بلا أي شارة. شارة المنصة تُضاف وقت
+  // العرض فقط (buildParticipantChip و avatarHTML)، لأن عدة ألعاب تطابق
+  // اللاعبين بأسمائهم المكتوبة بالشات (الروليت تطابق الاسم بـ5 مواضع،
+  // وتصويت "ev" بالاسم، وخريطة الأدمن، ولوحة الفائزين) — أي رمز داخل
+  // nickname يكسر هذي المطابقات كلها.
   // platformStripPrefix على الاحتياطي ضروري: بدونه يتسرّب "tiktok:" للعرض
   // في أي رسالة بلا nickname.
   const sourcePlatform = u.platform || msg.sourcePlatform || platformOf(uniqueId);
-  const badge = platformBadgeVisible() ? platformBadgeFor(sourcePlatform) : '';
-  const baseNickname = override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?';
   const extracted = {
     uniqueId,
     platform: sourcePlatform || null,
     rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
-    nickname: badge ? (badge + ' ' + baseNickname) : baseNickname,
+    nickname: override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
     isFollower: !!(
       u.followInfo?.followStatus === 1 ||
@@ -24331,13 +24341,29 @@ function showWinner(user, isFirstAttempt) {
 
 function avatarHTML(user, cls) {
   const milestone = isMilestone2MUser(user && user.uniqueId);
+  let inner;
   if (user.avatar) {
     const fallbackDiv = `<div class="${cls}-fb">${esc((user.nickname||'?')[0])}</div>`;
     const img = `<img class="${cls}" src="${esc(user.avatar)}" data-avatar-src="${esc(user.avatar)}" data-avatar-fallback="${escAttr(fallbackDiv)}" referrerpolicy="no-referrer" onerror="avatarOnErrorHandler(this)" />`;
-    return milestone ? ghMilestoneBadgeWrap(img, cls) : img;
+    inner = milestone ? ghMilestoneBadgeWrap(img, cls) : img;
+  } else {
+    const fb = `<div class="${cls}-fb">${esc((user.nickname || '?')[0])}</div>`;
+    inner = milestone ? ghMilestoneBadgeWrap(fb, cls) : fb;
   }
-  const fb = `<div class="${cls}-fb">${esc((user.nickname || '?')[0])}</div>`;
-  return milestone ? ghMilestoneBadgeWrap(fb, cls) : fb;
+  // شارة المنصة على ركن الصورة — نقطة واحدة تغطي شات كل الألعاب، وبصرية
+  // بحتة فلا تلمس أي نص يُقارَن عليه منطق اللعب.
+  return platformAvatarBadgeWrap(inner, user);
+}
+
+// يلفّ أي صورة/حرف أفتار بشارة منصة صغيرة بالركن. يرجّع المحتوى كما هو
+// تماماً حين تكون منصة وحدة موصولة (لا لبس بالمصدر) أو حين تكون المنصة مجهولة.
+function platformAvatarBadgeWrap(innerHTML, user) {
+  if (!platformBadgeVisible()) return innerHTML;
+  const pf = (user && user.platform) || platformOf(user && user.uniqueId);
+  const meta = pf && PLATFORMS[pf];
+  if (!meta) return innerHTML;
+  return '<span class="plat-av-wrap" title="' + escAttr(meta.label) + '">' + innerHTML +
+         '<span class="plat-av-badge" style="border-color:' + meta.color + '">' + meta.icon + '</span></span>';
 }
 
 // صور أفتار تيك توك موقّعة (p16-sign-va.tiktokcdn.com وشبيهاتها) — منصة تيك توك
@@ -24398,6 +24424,15 @@ function participantChipColor(uid) {
 }
 
 // يبني بطاقة مشارك واحدة (دائرة ملونة بحرف/صورة + اسمه تحتها) — يحل محل وسم p-username-tag المسطّح القديم في كل الألعاب
+// شارة منصة صغيرة تُعرض قبل اسم المشارك — بصرية بحتة، والاسم نفسه يبقى نظيفاً.
+function platformNameBadgeHTML(user) {
+  if (!platformBadgeVisible()) return '';
+  const pf = (user && user.platform) || platformOf(user && user.uniqueId);
+  const meta = pf && PLATFORMS[pf];
+  if (!meta) return '';
+  return '<span class="plat-name-badge" title="' + escAttr(meta.label) + '">' + meta.icon + '</span>';
+}
+
 function buildParticipantChip(user, playerNumber, tagId) {
   const nickname = (user && (user.nickname || user.uniqueId)) || '؟';
   const uid = (user && user.uniqueId) || '';
@@ -24416,6 +24451,7 @@ function buildParticipantChip(user, playerNumber, tagId) {
   tag.innerHTML = '<div class="p-avatar-wrap">' + circleInner +
     '<span class="p-username-number">#' + playerNumber + '</span></div>' +
     (prefix ? `<span class="p-username-prefix">${prefix}</span>` : '') +
+    platformNameBadgeHTML(user) +
     `<span class="p-username-name">${esc(nickname)}</span>`;
   // نظام الإطارات: يلبس تلقائياً إطار الأفتار المُفعَّل (إن وُجد) حول دائرة
   // المشارك. Fire-and-forget بالكامل ومعزول عن مسار الانضمام: مؤجَّل بـ
