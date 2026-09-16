@@ -10722,44 +10722,92 @@ async function authRenameUsername(uid, oldUsername, newUsername) {
 
 // ==================== SECRET CODES (أكواد سرية) ====================
 // Realtime Database فقط بالكامل (بدون Firestore ولا localStorage):
-//   secretCodes/{codeId} = {
-//     name, indexKey, frameId, frameName, durationDays, maxUses, usedCount,
-//     active, createdAt, createdBy, createdByUsername, expiresAt,
+//   secretCodes/{codeKey} = {
+//     name, frameId, frameName, durationDays, maxUses, usedCount, active,
+//     createdAt, createdBy, createdByUsername, expiresAt,
 //     usedBy: { [uid]: { username, usedAt } }
 //   }
-//   secretCodesIndex/{normalizedName} = codeId  (فهرس بحث سريع بنص الكود المكتوب)
 //   framesCatalogExtra/{id} — فقط لو الجائزة "إطار خاص" مرفوع لهذا الكود تحديداً
-//   (تُكتب هنا بـRTDB فقط بدون Firestore، ونظام framesResolveFrame/framesReadFrameDoc
-//   أصلاً عنده فولباك RTDB يقرأها بدون أي تعديل إضافي).
+//   (تُكتب بـRTDB فقط بدون Firestore، وframesResolveFrame/framesReadFrameDoc
+//   أصلاً عندها فولباك RTDB يقرأها بدون أي تعديل إضافي).
+//
+// codeKey = نص الكود نفسه بعد التطبيع (scodeCodeKey) — مفتاح واحد ومصدر حقيقة
+// واحد. النسخة الأولى كانت تخزّن الكود بمعرّف عشوائي + فهرس منفصل
+// (secretCodesIndex) يربط النص بالمعرّف؛ أي فشل بكتابة الفهرس وحده كان يخلّي
+// الكود ظاهراً بلوحة المالك لكن "غير صحيح" عند اللاعب. بمفتاح واحد هذا مستحيل.
 
-// نفس تطبيع الأسماء: أحرف صغيرة + تقليم المسافات الزايدة + إزالة رموز RTDB
-// الممنوعة كمفتاح (. # $ [ ]) — يضمن إن أي طريقة كتب فيها اللاعب نفس الكود
-// (مسافات زايدة، أحرف كبيرة) توصل لنفس الفهرس.
+const SCODE_MAX_NAME_LEN = 60;
+const SCODE_NETWORK_TIMEOUT_MS = 15000;
+
 function scodeNormalizeText(raw) {
   return (raw || '').toString().trim().replace(/\s+/g, ' ');
 }
+
 // أشكال حروف عربية شائع تبادلها بالكتابة على الجوال (أ/إ/آ/ٱ ↔ ا، ى ↔ ي،
-// ة ↔ ه) — بدونها كود يبدو متطابق تماماً بالعين لكنه يفشل لأنه بالحرف
-// الفعلي مختلف تقنياً (خصوصاً لو المالك كتبه بجهاز والزائر كتبه بجهاز ثاني).
+// ة ↔ ه) — بدونها كود يبدو متطابق تماماً بالعين لكنه يفشل لأنه بالحرف الفعلي
+// مختلف تقنياً (المالك كتبه بجهاز واللاعب كتبه بجهاز/كيبورد ثاني).
 const SCODE_CHAR_MAP = { 'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا', 'ى': 'ي', 'ة': 'ه' };
-function scodeIndexKey(raw) {
+
+// يحوّل نص الكود لمفتاح RTDB ثابت: أحرف صغيرة، بلا مسافات زايدة، بلا رموز
+// غير مرئية، وبلا أي رمز ممنوع كمفتاح ( . # $ [ ] / ورموز التحكّم ).
+function scodeCodeKey(raw) {
   const normalized = scodeNormalizeText(raw).toLowerCase();
   let out = '';
   for (let i = 0; i < normalized.length; i++) {
     const ch = normalized[i];
     const code = normalized.charCodeAt(i);
     if (code <= 31 || code === 127) continue; // رموز تحكّم غير مرئية
-    if (code >= 8203 && code <= 8207) continue; // مسافات/علامات اتجاه صفرية غير مرئية (zero-width/LRM/RLM) — تنضاف أحياناً تلقائياً بكيبورد الجوال العربي
-    if (code >= 8234 && code <= 8238) continue; // علامات تضمين اتجاه النص (bidi embedding/override)
-    if (code >= 8294 && code <= 8297) continue; // علامات عزل اتجاه النص (bidi isolate)
+    if (code >= 8203 && code <= 8207) continue; // zero-width/LRM/RLM — يضيفها كيبورد الجوال العربي أحياناً
+    if (code >= 8234 && code <= 8238) continue; // علامات تضمين اتجاه النص
+    if (code >= 8294 && code <= 8297) continue; // علامات عزل اتجاه النص
     if (code === 65279) continue; // BOM
     if (code === 1600) continue; // تطويل (ـ)
-    if (code >= 1611 && code <= 1621) continue; // تشكيل عربي (فتحة/ضمة/كسرة/شدة/سكون...)
+    if (code >= 1611 && code <= 1621) continue; // تشكيل عربي
     if (code === 1648) continue; // ألف خنجرية علوية
-    if (ch === '.' || ch === '#' || ch === '$' || ch === '[' || ch === ']') continue; // رموز ممنوعة كمفتاح RTDB
+    if (ch === '.' || ch === '#' || ch === '$' || ch === '[' || ch === ']' || ch === '/') continue; // ممنوعة كمفتاح RTDB
     out += SCODE_CHAR_MAP[ch] || ch;
   }
-  return out;
+  return out.slice(0, SCODE_MAX_NAME_LEN);
+}
+
+function scodeErrText(err) {
+  if (!err) return 'خطأ غير معروف';
+  if (typeof err === 'string') return err;
+  const code = err.code ? (' [' + err.code + ']') : '';
+  return (err.message || String(err)) + code;
+}
+
+// يفتح مستمعاً حياً على مسار الكود وينتظر أول قيمة فعلية قبل أي معاملة.
+// ضروري وإلزامي: rtdbRunTransaction بـFirebase تنادي دالتها **فوراً** بالقيمة
+// المخزّنة محلياً فقط (repoGetLatestState → الكاش، بلا أي اتصال بالسيرفر)، وهي
+// null لو الصفحة ما سبق لها تقرأ هذا المسار. وإرجاع undefined وقتها يلغي
+// المعاملة نهائياً بلا أي إعادة محاولة ويرجّع committed:false — وهذا بالضبط
+// اللي كان يخلي كل محاولة استلام تفشل برسالة "الكود غير صحيح" رغم إن الكود
+// موجود وسليم. المستمع يعبّي الكاش، فتشتغل المعاملة على القيمة الحقيقية.
+function scodeWatchCode(codeKey) {
+  return new Promise((resolve, reject) => {
+    const ref = fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeKey);
+    const holder = { unsub: null, settled: false };
+    const stop = () => { if (holder.unsub) { holder.unsub(); holder.unsub = null; } };
+    const timer = setTimeout(() => {
+      if (holder.settled) return;
+      holder.settled = true;
+      stop();
+      reject(new Error('انتهت مهلة الاتصال بقاعدة البيانات'));
+    }, SCODE_NETWORK_TIMEOUT_MS);
+    holder.unsub = fb.rtdbOnValue(ref, (snap) => {
+      if (holder.settled) return;
+      holder.settled = true;
+      clearTimeout(timer);
+      resolve({ ref: ref, val: snap.exists() ? snap.val() : null, stop: stop });
+    }, (err) => {
+      if (holder.settled) return;
+      holder.settled = true;
+      clearTimeout(timer);
+      stop();
+      reject(err);
+    });
+  });
 }
 
 // ---- واجهة اللاعب ----
@@ -10785,16 +10833,22 @@ const SCODE_REDEEM_ERROR_MESSAGES = {
   STOPPED: '⚠️ هذا الكود متوقف حالياً',
   EXPIRED: '⚠️ انتهت صلاحية هذا الكود',
   MAXED: '⚠️ وصل هذا الكود للحد الأقصى من عدد المستخدمين',
-  ALREADY: '⚠️ استخدمت هذا الكود من قبل'
+  ALREADY: '⚠️ استخدمت هذا الكود من قبل',
+  RETRY: '⚠️ تعذّر تأكيد الاستلام — حاول مرة ثانية'
 };
 
-// يستلم الجائزة: معاملة RTDB واحدة (rtdbRunTransaction) على secretCodes/{codeId}
-// تتحقق (الكود نفسه فعّال + لسا بضمن مدته + ما وصل الحد الأقصى + نفس الحساب
-// ما استخدمه قبل) وتسجّل الاستخدام ذرّياً بنفس الكتابة — يمنع أي سباق بين
-// محاولتين متزامنتين على آخر استخدام متاح أو نفس الحساب يستخدمه مرتين.
-// بعد نجاح المعاملة نمنح الإطار فعلياً (framesGrantToUser، نفس آلية منح لوحة
-// المالك)؛ لو فشل المنح بكل المفاتيح، نتراجع عن الاستخدام (نفس المعاملة
-// بالعكس) عشان اللاعب يقدر يحاول ثانية بدل ما يخسر فرصته بلا مقابل.
+// يقرأ سبب الرفض من نسخة الكود الحالية — يُستخدم مرتين: فحص مبدئي ودّي قبل
+// المعاملة (رسالة دقيقة فوراً)، وفحص ذرّي داخل المعاملة نفسها (الحماية
+// الحقيقية ضد التسابق على آخر استخدام متاح أو استخدام نفس الحساب مرتين).
+function scodeRejectionReason(code, uid) {
+  if (!code) return 'NOTFOUND';
+  if (code.active === false) return 'STOPPED';
+  if (code.expiresAt && Date.now() > code.expiresAt) return 'EXPIRED';
+  if (code.usedBy && code.usedBy[uid]) return 'ALREADY';
+  if ((code.usedCount || 0) >= (code.maxUses || 0)) return 'MAXED';
+  return null;
+}
+
 let scodeRedeemBusy = false;
 async function scodeRedeem() {
   if (scodeRedeemBusy) return;
@@ -10810,8 +10864,8 @@ async function scodeRedeem() {
     statusEl.textContent = '⚠️ لازم تسجّل دخول أول';
     return;
   }
-  const indexKey = scodeIndexKey(document.getElementById('scode-input').value);
-  if (!indexKey) {
+  const codeKey = scodeCodeKey(document.getElementById('scode-input').value);
+  if (!codeKey) {
     statusEl.className = 'status-msg err';
     statusEl.textContent = '⚠️ اكتب الكود أولاً';
     return;
@@ -10823,65 +10877,72 @@ async function scodeRedeem() {
   statusEl.textContent = 'جارِ التحقق...';
   const uid = currentUser.uid;
   const username = currentUsername;
+  let watch = null;
   try {
-    let codeId = null;
     try {
-      const idxSnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey));
-      if (!idxSnap.exists()) {
-        statusEl.className = 'status-msg err';
-        statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES.NOTFOUND;
-        return;
-      }
-      codeId = idxSnap.val();
+      watch = await scodeWatchCode(codeKey);
     } catch (err) {
+      console.error('🔑 scodeRedeem: تعذّرت قراءة secretCodes/' + codeKey + ' —', err);
       statusEl.className = 'status-msg err';
-      statusEl.textContent = '⚠️ تعذّر التحقق من الكود: ' + (err && err.message ? err.message : err);
+      statusEl.textContent = '⚠️ تعذّر التحقق من الكود: ' + scodeErrText(err);
+      return;
+    }
+
+    const preReason = scodeRejectionReason(watch.val, uid);
+    if (preReason) {
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES[preReason] || SCODE_REDEEM_ERROR_MESSAGES.NOTFOUND;
       return;
     }
 
     let abortReason = null;
-    let grantedFrameId = null;
-    let grantedFrameName = null;
+    let frameId = null;
+    let frameName = null;
+    let result = null;
     try {
-      const result = await fb.rtdbRunTransaction(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), (cur) => {
-        abortReason = null;
-        if (!cur) { abortReason = 'NOTFOUND'; return undefined; }
-        if (cur.active === false) { abortReason = 'STOPPED'; return undefined; }
-        if (cur.expiresAt && Date.now() > cur.expiresAt) { abortReason = 'EXPIRED'; return undefined; }
-        if (cur.usedBy && cur.usedBy[uid]) { abortReason = 'ALREADY'; return undefined; }
-        if ((cur.usedCount || 0) >= (cur.maxUses || 0)) { abortReason = 'MAXED'; return undefined; }
+      result = await fb.rtdbRunTransaction(watch.ref, (cur) => {
+        abortReason = scodeRejectionReason(cur, uid);
+        if (abortReason) return undefined;
         const next = Object.assign({}, cur);
         next.usedCount = (cur.usedCount || 0) + 1;
         next.usedBy = Object.assign({}, cur.usedBy || {});
-        next.usedBy[uid] = { username, usedAt: Date.now() };
-        grantedFrameId = cur.frameId;
-        grantedFrameName = cur.frameName;
+        next.usedBy[uid] = { username: username, usedAt: Date.now() };
+        frameId = cur.frameId;
+        frameName = cur.frameName;
         return next;
       });
-      if (!result.committed) {
-        statusEl.className = 'status-msg err';
-        statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES[abortReason] || '⚠️ تعذّر استخدام الكود';
-        return;
-      }
     } catch (err) {
+      console.error('🔑 scodeRedeem: فشلت معاملة تسجيل استخدام الكود "' + codeKey + '" —', err);
       statusEl.className = 'status-msg err';
-      statusEl.textContent = '⚠️ تعذّر استخدام الكود: ' + (err && err.message ? err.message : err);
+      statusEl.textContent = '⚠️ تعذّر تسجيل استخدام الكود: ' + scodeErrText(err);
+      return;
+    }
+
+    if (!result.committed) {
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES[abortReason] || SCODE_REDEEM_ERROR_MESSAGES.RETRY;
+      return;
+    }
+    if (!frameId) {
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = '⚠️ هذا الكود ما عليه جائزة مربوطة — كلّم الإدارة';
       return;
     }
 
     statusEl.textContent = 'جارِ منح الجائزة...';
     const keys = [framesSiteKey(), framesTiktokKey()].filter((k, i, arr) => k && arr.indexOf(k) === i);
     let granted = false;
+    let lastGrantError = null;
     for (const k of keys) {
-      try { await framesGrantToUser(k, grantedFrameId); granted = true; }
-      catch (e) { console.error('🔑 scodeRedeem: فشل منح الإطار بمفتاح "' + k + '" —', e); }
+      try { await framesGrantToUser(k, frameId); granted = true; }
+      catch (e) { lastGrantError = e; console.error('🔑 scodeRedeem: فشل منح الإطار بمفتاح "' + k + '" —', e); }
     }
 
     if (!granted) {
       // نتراجع عن تسجيل الاستخدام عشان اللاعب ما يخسر فرصته بلا مقابل — أفضل
-      // جهد فقط (لو تعذّر التراجع نفسه، يبقى الاستخدام مسجّلاً لكن نخبره بالمشكلة).
+      // جهد فقط (لو تعذّر التراجع، يبقى الاستخدام مسجّلاً لكن نخبره بالمشكلة).
       try {
-        await fb.rtdbRunTransaction(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), (cur) => {
+        await fb.rtdbRunTransaction(watch.ref, (cur) => {
           if (!cur) return undefined;
           const next = Object.assign({}, cur);
           next.usedCount = Math.max(0, (cur.usedCount || 0) - 1);
@@ -10889,17 +10950,21 @@ async function scodeRedeem() {
           delete next.usedBy[uid];
           return next;
         });
-      } catch (e) { /* أفضل جهد */ }
+      } catch (e) { console.error('🔑 scodeRedeem: تعذّر التراجع عن تسجيل الاستخدام —', e); }
       statusEl.className = 'status-msg err';
-      statusEl.textContent = '⚠️ تعذّر منح الإطار — حاول ثانية';
+      statusEl.textContent = '⚠️ تعذّر منح الإطار: ' + scodeErrText(lastGrantError) + ' — حاول ثانية';
       return;
     }
 
+    // تحديث فوري لقائمة "إطاراتي" عند نفس اللاعب بدون ما يحتاج يعيد تحميل الصفحة
+    if (typeof framesLoadSelf === 'function') { try { framesLoadSelf(); } catch (e) { /* أفضل جهد */ } }
+
     statusEl.className = 'status-msg ok';
-    statusEl.textContent = '✅ مبروك! حصلت على إطار "' + (grantedFrameName || '') + '"';
-    if (typeof toast === 'function') toast('🎁 تم استلام إطار "' + (grantedFrameName || '') + '"');
-    setTimeout(scodeClosePanel, 1400);
+    statusEl.textContent = '✅ مبروك! حصلت على إطار "' + (frameName || '') + '" — تلقاه بصفحة الإطارات';
+    if (typeof toast === 'function') toast('🎁 تم استلام إطار "' + (frameName || '') + '"');
+    setTimeout(scodeClosePanel, 1800);
   } finally {
+    if (watch) watch.stop();
     scodeRedeemBusy = false;
     btn.disabled = false;
   }
@@ -10907,6 +10972,7 @@ async function scodeRedeem() {
 
 // ---- لوحة المالك: تاب "أكواد سرية" ----
 let scodeOwnerUnsub = null;
+let scodeOwnerRows = []; // نمرّر الفهرس للأزرار بدل نص الكود — يمنع أي كسر لو الكود فيه علامة اقتباس
 function scodeOwnerListStop() {
   if (scodeOwnerUnsub) { scodeOwnerUnsub(); scodeOwnerUnsub = null; }
 }
@@ -10930,32 +10996,42 @@ function scodeRenderTab() {
   scodeOwnerListStop();
   scodeOwnerUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'secretCodes'), (snap) => {
     const val = snap.val() || {};
-    const rows = Object.keys(val).map(id => Object.assign({ id: id }, val[id]));
-    rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    scodeOwnerRows = Object.keys(val).map(key => Object.assign({ id: key }, val[key]));
+    scodeOwnerRows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     const countEl = document.getElementById('owner-scode-count');
-    if (countEl) countEl.textContent = rows.length;
+    if (countEl) countEl.textContent = scodeOwnerRows.length;
     if (!list) return;
-    if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما فيه أكواد بعد</div>'; return; }
-    list.innerHTML = rows.map(c => {
+    if (!scodeOwnerRows.length) { list.innerHTML = '<div class="owner-empty">ما فيه أكواد بعد</div>'; return; }
+    list.innerHTML = scodeOwnerRows.map((c, i) => {
       const usedCount = c.usedCount || 0;
       const maxUses = c.maxUses || 0;
       const stopped = c.active === false;
       const expired = !!(c.expiresAt && Date.now() > c.expiresAt);
       const statusTxt = stopped ? '⛔ متوقف' : (expired ? '⌛ منتهي' : '🟢 فعّال');
+      // كود محفوظ بالنظام القديم (معرّف عشوائي + فهرس منفصل) — اللاعب ما يقدر
+      // يلقاه أبداً، فنبيّنه صراحة بدل ما يبقى يفشل بصمت.
+      const legacy = scodeCodeKey(c.name || '') !== c.id;
       return `
       <div class="owner-row">
         <div class="owner-row-main">
           <div class="owner-row-name">${ownerEscape(c.name || c.id)} <span style="color:var(--muted);font-size:11px;">${statusTxt}</span></div>
           <div class="owner-row-sub">🎁 ${ownerEscape(c.frameName || '—')} · ⏳ ${expired ? 'منتهي' : scodeFormatRemaining(c.expiresAt)} · 👥 ${usedCount}/${maxUses}</div>
+          ${legacy ? '<div class="owner-row-sub" style="color:#f59e0b;">⚠️ كود بالنظام القديم — احذفه وأنشئه من جديد عشان يشتغل</div>' : ''}
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button type="button" class="btn-primary mod-add-btn" onclick="scodeOpenUsers('${ownerEscape(c.id)}')">المستخدمين</button>
-          ${stopped ? '' : `<button type="button" class="btn-secondary mod-add-btn" onclick="scodeStopCode('${ownerEscape(c.id)}')">إيقاف</button>`}
-          <button type="button" class="btn-secondary mod-add-btn" style="color:#ef4444;" onclick="scodeDeleteCode('${ownerEscape(c.id)}')">حذف</button>
+          <button type="button" class="btn-primary mod-add-btn" onclick="scodeOpenUsers(${i})">المستخدمين</button>
+          ${stopped ? '' : `<button type="button" class="btn-secondary mod-add-btn" onclick="scodeStopCode(${i})">إيقاف</button>`}
+          <button type="button" class="btn-secondary mod-add-btn" style="color:#ef4444;" onclick="scodeDeleteCode(${i})">حذف</button>
         </div>
       </div>`;
     }).join('');
-  }, (err) => { console.error('🔑 scodeRenderTab: تعذّرت متابعة secretCodes حياً —', err); });
+  }, (err) => {
+    console.error('🔑 scodeRenderTab: تعذّرت متابعة secretCodes حياً —', err);
+    if (list) {
+      list.innerHTML = '<div class="owner-empty">⚠️ تعذّرت قراءة الأكواد: ' + ownerEscape(scodeErrText(err))
+        + '<br>راجع قواعد Realtime Database — إيميل حسابك الحالي: ' + ownerEscape((currentUser && currentUser.email) || '—') + '</div>';
+    }
+  });
 }
 
 let scodeSelectedFrameId = '';
@@ -11006,22 +11082,22 @@ function scodeSelectFrame(id) {
   scodeRenderFrameGrid();
 }
 
-function scodeGenId() {
+function scodeGenFrameId() {
   return 'sc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
 async function scodePublishCode() {
-  if (!isOwnerAccount()) return;
   const statusEl = document.getElementById('scode-publish-status');
   const btn = document.getElementById('scode-publish-btn');
-  const name = document.getElementById('scode-name-new-input').value.trim();
+  if (!isOwnerAccount()) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ هذا الإجراء للمالك فقط'; return; }
+  const name = scodeNormalizeText(document.getElementById('scode-name-new-input').value);
   const durationDays = parseFloat(document.getElementById('scode-duration-input').value);
   const maxUses = parseInt(document.getElementById('scode-maxuses-input').value, 10);
 
   if (!fb || !fb.rtdb) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ لا يوجد Realtime Database مهيّأ بهذا المشروع'; return; }
   if (!name) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب اسم الكود أولاً'; return; }
-  const indexKey = scodeIndexKey(name);
-  if (!indexKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اسم الكود غير صالح'; return; }
+  const codeKey = scodeCodeKey(name);
+  if (!codeKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اسم الكود غير صالح — جرّب اسماً بحروف وأرقام'; return; }
   if (!durationDays || durationDays <= 0) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب مدة تفعيل صحيحة (بالأيام)'; return; }
   if (!maxUses || maxUses <= 0) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب حداً أقصى صحيح لعدد الاستخدامات'; return; }
 
@@ -11029,7 +11105,7 @@ async function scodePublishCode() {
   statusEl.className = 'status-msg load';
   statusEl.textContent = 'جارِ التحقق من الكود...';
   try {
-    const existing = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey));
+    const existing = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeKey));
     if (existing.exists()) throw new Error('هذا الاسم مستخدم لكود آخر بالفعل');
 
     let frameId, frameName;
@@ -11045,70 +11121,94 @@ async function scodePublishCode() {
       if (!holeFields.name) throw new Error('اكتب اسم الإطار أولاً');
       statusEl.textContent = 'جارِ ضغط الصورة...';
       const uploaded = await ownerUploadFrameImage('scode');
-      const id = scodeGenId();
+      const id = scodeGenFrameId();
       await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'framesCatalogExtra/' + id), {
         id: id, name: holeFields.name, imageUrl: uploaded.imageUrl,
         hole: [holeFields.l, holeFields.t, holeFields.w, holeFields.h], ratio: holeFields.ratio,
         visibility: 'private', createdAt: fb.rtdbServerTimestamp(), createdBy: (currentUser && currentUser.uid) || null
       });
+      // تحقق فعلي إن الإطار انكتب — بدونه ينمنح الكود إطاراً غير موجود
+      const frameVerify = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'framesCatalogExtra/' + id));
+      if (!frameVerify.exists()) throw new Error('تعذّر حفظ صورة الإطار الخاص — راجع قواعد Realtime Database');
       frameId = id; frameName = holeFields.name;
     }
 
     statusEl.textContent = 'جارِ النشر...';
-    const codeId = scodeGenId();
     const expiresAt = Date.now() + Math.round(durationDays * 86400000);
-    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), {
-      name: name, indexKey: indexKey, frameId: frameId, frameName: frameName,
+    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeKey), {
+      name: name, frameId: frameId, frameName: frameName,
       durationDays: durationDays, maxUses: maxUses, usedCount: 0, active: true,
       createdAt: fb.rtdbServerTimestamp(), createdBy: (currentUser && currentUser.uid) || null,
       createdByUsername: currentUsername || null,
       expiresAt: expiresAt
     });
-    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey), codeId);
+
+    // تحقق فعلي بعد الكتابة — ما نقول "تم النشر" إلا لما نقرأ الكود فعلياً من
+    // قاعدة البيانات. بدون هذا، أي رفض بالقواعد كان يمر بصمت والمالك يظن إن
+    // الكود منشور بينما اللاعب يشوف "الكود غير صحيح".
+    const verify = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeKey));
+    if (!verify.exists()) throw new Error('الكتابة ما رجّعت خطأ لكن التحقق ما لقى الكود — راجع قواعد Realtime Database');
 
     statusEl.className = 'status-msg ok';
-    statusEl.textContent = '✅ تم نشر الكود';
+    statusEl.textContent = '✅ تم نشر الكود وتأكيد حفظه';
     if (typeof toast === 'function') toast('✅ تم نشر كود "' + name + '"');
     setTimeout(scodeCloseNew, 900);
   } catch (err) {
+    console.error('🔑 scodePublishCode فشلت —', err);
     statusEl.className = 'status-msg err';
-    statusEl.textContent = '⚠️ تعذّر النشر: ' + (err && err.message ? err.message : err);
+    statusEl.textContent = '⚠️ تعذّر النشر: ' + scodeErrText(err);
   } finally {
     btn.disabled = false;
   }
 }
 
-async function scodeStopCode(codeId) {
-  if (!isOwnerAccount() || !fb || !fb.rtdb) return;
-  if (!confirm('إيقاف هذا الكود؟ ما يقدر أحد يستخدمه بعدها.')) return;
-  try {
-    await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), { active: false });
-    if (typeof toast === 'function') toast('⛔ تم إيقاف الكود');
-  } catch (e) { alert('⚠️ تعذّر الإيقاف: ' + (e && e.message ? e.message : e)); }
+function scodeRowAt(index) {
+  const row = scodeOwnerRows[index];
+  return row && row.id ? row : null;
 }
 
-async function scodeDeleteCode(codeId) {
+async function scodeStopCode(index) {
   if (!isOwnerAccount() || !fb || !fb.rtdb) return;
-  if (!confirm('حذف هذا الكود نهائياً؟ ما يمكن التراجع.')) return;
+  const row = scodeRowAt(index);
+  if (!row) return;
+  if (!confirm('إيقاف كود "' + (row.name || row.id) + '"؟ ما يقدر أحد يستخدمه بعدها.')) return;
   try {
-    const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId));
-    const data = snap.exists() ? snap.val() : null;
-    await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId));
-    if (data && data.indexKey) {
-      await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + data.indexKey));
+    await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, 'secretCodes/' + row.id), { active: false });
+    if (typeof toast === 'function') toast('⛔ تم إيقاف الكود');
+  } catch (e) {
+    console.error('🔑 scodeStopCode فشلت —', e);
+    alert('⚠️ تعذّر الإيقاف: ' + scodeErrText(e));
+  }
+}
+
+async function scodeDeleteCode(index) {
+  if (!isOwnerAccount() || !fb || !fb.rtdb) return;
+  const row = scodeRowAt(index);
+  if (!row) return;
+  if (!confirm('حذف كود "' + (row.name || row.id) + '" نهائياً؟ ما يمكن التراجع.')) return;
+  try {
+    await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodes/' + row.id));
+    // تنظيف أثر النظام القديم (فهرس منفصل) لو كان الكود منشوراً قبل التوحيد
+    if (row.indexKey) {
+      try { await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + row.indexKey)); } catch (e) { /* أفضل جهد */ }
     }
     if (typeof toast === 'function') toast('🗑️ تم حذف الكود');
-  } catch (e) { alert('⚠️ تعذّر الحذف: ' + (e && e.message ? e.message : e)); }
+  } catch (e) {
+    console.error('🔑 scodeDeleteCode فشلت —', e);
+    alert('⚠️ تعذّر الحذف: ' + scodeErrText(e));
+  }
 }
 
 let scodeUsersUnsub = null;
-function scodeOpenUsers(codeId) {
-  document.getElementById('scode-users-modal-code').textContent = codeId;
+function scodeOpenUsers(index) {
+  const row = scodeRowAt(index);
+  if (!row) return;
+  document.getElementById('scode-users-modal-code').textContent = row.name || row.id;
   document.getElementById('scode-users-modal-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
   document.getElementById('scode-users-overlay').classList.add('visible');
   if (scodeUsersUnsub) { scodeUsersUnsub(); scodeUsersUnsub = null; }
   if (!fb || !fb.rtdb) return;
-  scodeUsersUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId + '/usedBy'), (snap) => {
+  scodeUsersUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'secretCodes/' + row.id + '/usedBy'), (snap) => {
     const val = snap.val() || {};
     const rows = Object.keys(val).map(uid => Object.assign({ uid: uid }, val[uid]));
     rows.sort((a, b) => (b.usedAt || 0) - (a.usedAt || 0));
@@ -11119,14 +11219,17 @@ function scodeOpenUsers(codeId) {
       const t = r.usedAt ? new Date(r.usedAt).toLocaleString('ar-SA') : '—';
       return `<div class="owner-row"><div class="owner-row-main"><div class="owner-row-name">${ownerEscape(r.username || '—')}</div><div class="owner-row-sub">${ownerEscape(t)}</div></div></div>`;
     }).join('');
-  }, (err) => { console.error('🔑 scodeOpenUsers(' + codeId + '): تعذّرت متابعة usedBy حياً —', err); });
+  }, (err) => {
+    console.error('🔑 scodeOpenUsers: تعذّرت متابعة usedBy حياً —', err);
+    const list = document.getElementById('scode-users-modal-list');
+    if (list) list.innerHTML = '<div class="owner-empty">⚠️ تعذّرت القراءة: ' + ownerEscape(scodeErrText(err)) + '</div>';
+  });
 }
 function scodeCloseUsers() {
   const overlay = document.getElementById('scode-users-overlay');
   if (overlay) overlay.classList.remove('visible');
   if (scodeUsersUnsub) { scodeUsersUnsub(); scodeUsersUnsub = null; }
 }
-
 
 // ---- Forms ----
 function authValidateUsernameFormat(username) {
