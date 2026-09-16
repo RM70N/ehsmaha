@@ -4541,8 +4541,8 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="drawer-item" onclick="sideDrawerRunHelp()">
         <span class="drawer-ic">؟</span><span class="drawer-item-label">كيف ألعب</span>
       </button>
-      <button type="button" class="drawer-item" onclick="refOpenPanel()">
-        <span class="drawer-ic">🔗</span><span class="drawer-item-label">رابط خاص</span>
+      <button type="button" class="drawer-item" onclick="scodeOpenPanel()">
+        <span class="drawer-ic">🔑</span><span class="drawer-item-label">كود سري</span>
       </button>
     </nav>
 
@@ -4826,33 +4826,21 @@ if (location.hostname === 'streamgame1.netlify.app') {
   </div>
 </div>
 
-<!-- ====== REFERRAL LINK MODAL (رابط خاص) ====== -->
-<div class="owner-modal-overlay" id="ref-modal-overlay" onclick="if(event.target===this) refClosePanel()">
+<!-- ====== SECRET CODE MODAL (كود سري) ====== -->
+<div class="owner-modal-overlay" id="scode-modal-overlay" onclick="if(event.target===this) scodeClosePanel()">
   <div class="owner-modal help-modal">
     <div class="owner-modal-head">
-      <div class="owner-modal-title help-modal-title">🔗 رابط خاص</div>
-      <button class="owner-modal-close" onclick="refClosePanel()">✕</button>
+      <div class="owner-modal-title help-modal-title">🔑 كود سري</div>
+      <button class="owner-modal-close" onclick="scodeClosePanel()">✕</button>
     </div>
     <div class="help-body">
-      <div id="ref-form-block">
-        <div class="field">
-          <label>كود الرابط (إنجليزي فقط، 3-20 حرف)</label>
-          <input type="text" id="ref-code-input" placeholder="مثال: ahmed-2024" autocomplete="off" maxlength="20" oninput="refFormatInput()" onkeydown="if(event.key==='Enter') refSaveLink();" />
-        </div>
-        <button type="button" class="btn-primary" id="ref-save-btn" onclick="refSaveLink()">حفظ الرابط</button>
-        <div class="status-msg" id="ref-status"></div>
+      <p class="help-text">تحقق من حسابنا في تيك توك <a class="api-link" href="https://www.tiktok.com/@ehsmaha7" target="_blank" rel="noopener">@ehsmaha7</a></p>
+      <div class="field">
+        <label>عندك كود؟</label>
+        <input type="text" id="scode-input" placeholder="اكتب الكود هنا..." autocomplete="off" onkeydown="if(event.key==='Enter') scodeRedeem();" />
       </div>
-      <div id="ref-result-block" style="display:none;">
-        <div class="field">
-          <label>رابطك الكامل</label>
-          <div class="mod-add-row">
-            <input type="text" id="ref-full-link" readonly />
-            <button type="button" class="btn-primary mod-add-btn" onclick="refCopyLink()">نسخ</button>
-          </div>
-        </div>
-        <div class="owner-count-badge">عدد الداخلين: <b id="ref-entrants-count">0</b></div>
-        <button type="button" class="btn-secondary" style="width:100%;margin-top:10px;" onclick="refEditLink()">تعديل الكود</button>
-      </div>
+      <button type="button" class="btn-primary" id="scode-redeem-btn" onclick="scodeRedeem()">استلام الجائزة</button>
+      <div class="status-msg" id="scode-status"></div>
     </div>
   </div>
 </div>
@@ -5109,7 +5097,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="owner-tab" id="owner-tab-event100" onclick="ownerSwitchTab('event100')">🎪 عدد جديد</button>
       <button type="button" class="owner-tab" id="owner-tab-protection" onclick="ownerSwitchTab('protection')">🛡️ الحماية</button>
       <button type="button" class="owner-tab" id="owner-tab-ahsemha" onclick="ownerSwitchTab('ahsemha')">فئات</button>
-      <button type="button" class="owner-tab" id="owner-tab-links" onclick="ownerSwitchTab('links')">🔗 روابط</button>
+      <button type="button" class="owner-tab" id="owner-tab-scode" onclick="ownerSwitchTab('scode')">🔑 أكواد سرية</button>
       <button type="button" class="owner-tab" id="owner-tab-sevt" onclick="ownerSwitchTab('sevt')">🏆 فعاليات الستريمرز</button>
     </div>
 
@@ -5325,23 +5313,83 @@ if (location.hostname === 'streamgame1.netlify.app') {
       </div>
     </div>
 
-    <!-- LINKS TAB (روابط خاصة / Referral Links) -->
-    <div class="owner-panel-body" id="owner-panel-links">
-      <div class="owner-count-badge">عدد الروابط: <b id="owner-links-count">0</b></div>
-      <div class="owner-list" id="owner-links-list">
+    <!-- SECRET CODES TAB (أكواد سرية) -->
+    <div class="owner-panel-body" id="owner-panel-scode">
+      <button type="button" class="btn-primary" style="width:100%;margin-bottom:14px;" onclick="scodeOpenNew()">➕ كود جديد</button>
+      <div class="owner-count-badge">عدد الأكواد: <b id="owner-scode-count">0</b></div>
+      <div class="owner-list" id="owner-scode-list">
         <div class="owner-empty">جارِ التحميل...</div>
       </div>
     </div>
 
-    <!-- LINK ENTRANTS MODAL (قائمة داخلين رابط معيّن) -->
-    <div class="owner-modal-overlay" id="ref-entrants-modal-overlay" onclick="if(event.target===this) ownerCloseLinkEntrants()">
+    <!-- SECRET CODE: NEW CODE MODAL (نموذج إنشاء كود جديد) -->
+    <div class="owner-modal-overlay" id="scode-new-overlay" onclick="if(event.target===this) scodeCloseNew()">
       <div class="owner-modal help-modal">
         <div class="owner-modal-head">
-          <div class="owner-modal-title help-modal-title">الداخلين عبر: <span id="ref-entrants-modal-code">—</span></div>
-          <button class="owner-modal-close" onclick="ownerCloseLinkEntrants()">✕</button>
+          <div class="owner-modal-title help-modal-title">🔑 كود جديد</div>
+          <button class="owner-modal-close" onclick="scodeCloseNew()">✕</button>
         </div>
         <div class="help-body">
-          <div class="owner-list" id="ref-entrants-modal-list">
+          <div class="field">
+            <label>اسم الكود (اللي يكتبه اللاعب)</label>
+            <input type="text" id="scode-name-new-input" placeholder="مثال: VIP2024" autocomplete="off" />
+          </div>
+
+          <div class="mod-settings-title">🎁 الجائزة (الإطار)</div>
+          <div class="frm-grant-subtabs">
+            <button type="button" class="owner-tab active" id="scode-frame-subtab-existing" onclick="scodeSwitchFrameSubtab('existing')">من الموجود</button>
+            <button type="button" class="owner-tab" id="scode-frame-subtab-upload" onclick="scodeSwitchFrameSubtab('upload')">إطار خاص</button>
+          </div>
+          <div id="scode-frame-existing-body">
+            <div class="frm-grant-existing-grid" id="scode-frame-grid"></div>
+          </div>
+          <div id="scode-frame-upload-body" style="display:none;">
+            <div class="field">
+              <label>صورة الإطار الخاص</label>
+              <input type="file" id="frm-owner-scode-file" accept="image/*" onchange="ownerFrameFilePreview('scode')" />
+              <div class="field-hint">تُحفظ داخل قاعدة البيانات مباشرة (بلا استضافة خارجية) — تُضغَّط وتُصغَّر تلقائياً قبل الحفظ، أي حجم/أبعاد تصلح</div>
+            </div>
+            <div class="frm-owner-editor" id="frm-owner-scode-editor" style="display:none;">
+              <div class="frm-owner-preview-wrap">
+                <img id="frm-owner-scode-preview-img" class="frm-owner-preview-img" alt="" />
+                <div class="frm-owner-hole-rect" id="frm-owner-scode-hole-rect"></div>
+              </div>
+              <div class="frm-owner-bgwarn" id="frm-owner-scode-bgwarn" style="display:none;">⚠️ خلفية الصورة تبين بيضاء معتمة وليست شفافة — بيظهر مربع أبيض حول الإطار وقت الاستخدام. صدّر الصورة بخلفية شفافة (PNG/WebP بقناة ألفا) قبل الرفع.</div>
+              <div class="field"><label>اسم الإطار</label><input type="text" id="frm-owner-scode-name" placeholder="مثال: تصميم خاص" /></div>
+              <div class="frm-owner-hole-fields">
+                <div class="field"><label>يسار %</label><input type="number" id="frm-owner-scode-l" value="10" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+                <div class="field"><label>أعلى %</label><input type="number" id="frm-owner-scode-t" value="15" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+                <div class="field"><label>عرض %</label><input type="number" id="frm-owner-scode-w" value="25" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+                <div class="field"><label>ارتفاع %</label><input type="number" id="frm-owner-scode-h" value="70" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+              </div>
+              <div class="field"><label>نسبة عرض:ارتفاع صورة الإطار (ratio)</label><input type="number" id="frm-owner-scode-ratio" value="2.5" min="0.1" step="0.01" /></div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>مدة التفعيل (أيام)</label>
+            <input type="number" id="scode-duration-input" placeholder="مثال: 2" min="1" step="1" />
+          </div>
+          <div class="field">
+            <label>عدد الأشخاص المسموح لهم استخدام الكود</label>
+            <input type="number" id="scode-maxuses-input" placeholder="مثال: 50" min="1" step="1" />
+          </div>
+
+          <button type="button" class="btn-primary" id="scode-publish-btn" onclick="scodePublishCode()">نشر</button>
+          <div class="status-msg" id="scode-publish-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECRET CODE: USERS MODAL (قائمة من استخدم كوداً معيّناً) -->
+    <div class="owner-modal-overlay" id="scode-users-overlay" onclick="if(event.target===this) scodeCloseUsers()">
+      <div class="owner-modal help-modal">
+        <div class="owner-modal-head">
+          <div class="owner-modal-title help-modal-title">استخدموا كود: <span id="scode-users-modal-code">—</span></div>
+          <button class="owner-modal-close" onclick="scodeCloseUsers()">✕</button>
+        </div>
+        <div class="help-body">
+          <div class="owner-list" id="scode-users-modal-list">
             <div class="owner-empty">جارِ التحميل...</div>
           </div>
         </div>
@@ -10672,426 +10720,400 @@ async function authRenameUsername(uid, oldUsername, newUsername) {
 }
 
 
-// ==================== REFERRAL LINKS (روابط خاصة) ====================
-// Firestore: referralLinks/{code} = { code, ownerUid, ownerUsername, createdAt, clicksCount }
-//            referralLinks/{code}/entrants/{uid} = { username, enteredAt }
-//            users/{uid}.referredByCode (يُكتب مرة وحدة بس، أول تسجيل قادم من رابط)
-//
-// قواعد الأمان المطلوبة (Firestore Rules — تُضاف يدوياً بمشروعك، الكود هنا
-// ما يقدر يعدّل قواعدك مباشرة):
-//   match /referralLinks/{code} {
-//     allow read: if true;
-//     allow create: if request.auth != null && request.resource.data.ownerUid == request.auth.uid;
-//     allow update: if request.auth != null && (
-//       resource.data.ownerUid == request.auth.uid ||
-//       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount'])
-//     );
-//     allow delete: if request.auth != null && resource.data.ownerUid == request.auth.uid;
-//     match /entrants/{uid} {
-//       allow read: if request.auth != null;
-//       allow create: if request.auth != null && request.auth.uid == uid;
-//       allow update, delete: if false;
-//     }
+// ==================== SECRET CODES (أكواد سرية) ====================
+// Realtime Database فقط بالكامل (بدون Firestore ولا localStorage):
+//   secretCodes/{codeId} = {
+//     name, indexKey, frameId, frameName, durationDays, maxUses, usedCount,
+//     active, createdAt, createdBy, createdByUsername, expiresAt,
+//     usedBy: { [uid]: { username, usedAt } }
 //   }
+//   secretCodesIndex/{normalizedName} = codeId  (فهرس بحث سريع بنص الكود المكتوب)
+//   framesCatalogExtra/{id} — فقط لو الجائزة "إطار خاص" مرفوع لهذا الكود تحديداً
+//   (تُكتب هنا بـRTDB فقط بدون Firestore، ونظام framesResolveFrame/framesReadFrameDoc
+//   أصلاً عنده فولباك RTDB يقرأها بدون أي تعديل إضافي).
 
-// كل قيم page المستخدمة فعلياً بـshow() (كل عنصر id="pg-*" موجود بالصفحة) +
-// كلمات إضافية شائعة نحجزها احتياطاً — يُحسب حياً من الـDOM نفسه، فيبقى دقيق
-// تلقائياً حتى لو انضافت صفحات جديدة مستقبلاً بدون ما نحدّث هذي القائمة يدوياً.
-function refGetReservedWords() {
-  const words = new Set(['home', 'admin', 'login', 'api', 'www', 'app', 'static', 'favicon', 'robots', 'sitemap', 'index', 'null', 'undefined', 'ehsmaha', 'ref', 'refs', 'link', 'links', 'assets', 'css', 'js']);
-  document.querySelectorAll('.page[id^="pg-"]').forEach(el => words.add(el.id.slice(3).toLowerCase()));
-  return words;
+// نفس تطبيع الأسماء: أحرف صغيرة + تقليم المسافات الزايدة + إزالة رموز RTDB
+// الممنوعة كمفتاح (. # $ [ ]) — يضمن إن أي طريقة كتب فيها اللاعب نفس الكود
+// (مسافات زايدة، أحرف كبيرة) توصل لنفس الفهرس.
+function scodeNormalizeText(raw) {
+  return (raw || '').toString().trim().replace(/\s+/g, ' ');
+}
+function scodeIndexKey(raw) {
+  const normalized = scodeNormalizeText(raw).toLowerCase();
+  let out = '';
+  for (let i = 0; i < normalized.length; i++) {
+    const ch = normalized[i];
+    const code = normalized.charCodeAt(i);
+    if (code <= 31 || code === 127) continue; // رموز تحكّم غير مرئية
+    if (ch === '.' || ch === '#' || ch === '$' || ch === '[' || ch === ']') continue; // رموز ممنوعة كمفتاح RTDB
+    out += ch;
+  }
+  return out;
 }
 
-function refFormatInput() {
-  const el = document.getElementById('ref-code-input');
-  if (!el) return;
-  const pos = el.selectionStart;
-  el.value = el.value.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '');
-}
-
-let refBusy = false;
-let refMyCode = null; // الكود الحالي لصاحب الحساب لو عنده رابط مسجّل، وإلا null
-let refEntrantsUnsub = null;
-
-function refOpenPanel() {
+// ---- واجهة اللاعب ----
+function scodeOpenPanel() {
   sideDrawerClose();
   if (!fb || !currentUser || !currentUsername) {
-    alert('لازم تسجّل دخول أول عشان تسوي رابط خاص');
+    alert('لازم تسجّل دخول أول عشان تستخدم كود سري');
     return;
   }
-  document.getElementById('ref-status').textContent = '';
-  document.getElementById('ref-modal-overlay').classList.add('visible');
-  refRenderMyLink();
+  const input = document.getElementById('scode-input');
+  const statusEl = document.getElementById('scode-status');
+  if (input) input.value = '';
+  if (statusEl) { statusEl.className = 'status-msg'; statusEl.textContent = ''; }
+  document.getElementById('scode-modal-overlay').classList.add('visible');
 }
-
-function refClosePanel() {
-  const overlay = document.getElementById('ref-modal-overlay');
+function scodeClosePanel() {
+  const overlay = document.getElementById('scode-modal-overlay');
   if (overlay) overlay.classList.remove('visible');
-  if (refEntrantsUnsub) { refEntrantsUnsub(); refEntrantsUnsub = null; }
 }
 
-// يجيب رابط المستخدم الحالي (لو عنده) عبر استعلام ownerUid == uid — بدل ما
-// نخزّن الكود بمستند users/{uid} (تفادياً لتكرار مصدر الحقيقة)، referralLinks
-// نفسها هي المصدر الوحيد.
-async function refRenderMyLink() {
-  if (!fb || !currentUser) return;
-  try {
-    const q = fb.query(fb.collection(fb.db, 'referralLinks'), fb.where('ownerUid', '==', currentUser.uid));
-    const snap = await fb.getDocs(q);
-    if (snap.empty) {
-      // ما لقينا شي بـFirestore — قبل ما نعتبره "ما عنده رابط"، نتحقق من
-      // النظام الاحتياطي (RTDB) لو فيه رابط اتحفظ هناك مؤقتاً (وقت انتهاء
-      // حصة Firestore) ولسا ما تزامن. بدون هذا التحقق، رابط المستخدم كان
-      // "يختفي" له بصرياً كل ريفرش رغم إنه محفوظ فعلياً بالاحتياطي.
-      const pendingInfo = await refGetPendingFallbackLink(currentUser.uid);
-      if (pendingInfo) {
-        refMyCode = pendingInfo.code;
-        document.getElementById('ref-form-block').style.display = 'none';
-        document.getElementById('ref-result-block').style.display = 'block';
-        document.getElementById('ref-full-link').value = location.origin + '/' + refMyCode;
-        document.getElementById('ref-entrants-count').textContent = '0';
-        refShowPendingSyncNotice(true);
-        return;
-      }
-      refMyCode = null;
-      document.getElementById('ref-form-block').style.display = 'block';
-      document.getElementById('ref-result-block').style.display = 'none';
-      document.getElementById('ref-code-input').value = '';
-      return;
-    }
-    refShowPendingSyncNotice(false);
-    const d = snap.docs[0];
-    refMyCode = d.id;
-    document.getElementById('ref-form-block').style.display = 'none';
-    document.getElementById('ref-result-block').style.display = 'block';
-    document.getElementById('ref-full-link').value = location.origin + '/' + refMyCode;
-    if (refEntrantsUnsub) { refEntrantsUnsub(); refEntrantsUnsub = null; }
-    refEntrantsUnsub = fb.onSnapshot(fb.collection(fb.db, 'referralLinks', refMyCode, 'entrants'), (esnap) => {
-      const el = document.getElementById('ref-entrants-count');
-      if (el) el.textContent = esnap.size;
-    }, (err) => { console.error('🔗 refRenderMyLink: تعذّرت متابعة entrants حياً —', err); });
-  } catch (e) { console.error('🔗 refRenderMyLink فشلت —', e); }
-}
+const SCODE_REDEEM_ERROR_MESSAGES = {
+  NOTFOUND: '⚠️ الكود غير صحيح',
+  STOPPED: '⚠️ هذا الكود متوقف حالياً',
+  EXPIRED: '⚠️ انتهت صلاحية هذا الكود',
+  MAXED: '⚠️ وصل هذا الكود للحد الأقصى من عدد المستخدمين',
+  ALREADY: '⚠️ استخدمت هذا الكود من قبل'
+};
 
-// يقرأ pendingReferralUsers/{uid} من النظام الاحتياطي (RTDB) — يرجّع
-// {code} لو فيه رابط معلّق مزامنة، أو null لو ما فيه شي.
-async function refGetPendingFallbackLink(uid) {
-  if (!fb.rtdb) return null;
-  try {
-    const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingReferralUsers/' + uid));
-    if (!snap.exists()) return null;
-    const val = snap.val();
-    return val && val.code ? { code: val.code } : null;
-  } catch (e) { return null; }
-}
-
-// الإشعار النصي انحذف بطلب صريح (ما يظهر للمستخدمين) — الدالة نفسها تبقى
-// موجودة كمكان استدعاء فارغ عشان باقي الكود اللي ينادي refShowPendingSyncNotice(true/false)
-// ما يحتاج يتعدّل، بس ما تسوي أي شي مرئي بعد الآن. منطق الحفظ/العرض الاحتياطي
-// نفسه (RTDB fallback) يبقى شغّال بالخلفية بدون تغيير — بس بصمت، بدون رسالة.
-function refShowPendingSyncNotice(show) {
-  const el = document.getElementById('ref-pending-sync-notice');
-  if (el) el.style.display = 'none';
-}
-
-function refEditLink() {
-  document.getElementById('ref-form-block').style.display = 'block';
-  document.getElementById('ref-result-block').style.display = 'none';
-  document.getElementById('ref-code-input').value = refMyCode || '';
-  document.getElementById('ref-status').textContent = '';
-  refShowPendingSyncNotice(false);
-}
-
-// يحفظ/يعدّل الرابط بمعاملة واحدة (نفس نمط authRenameUsername بالضبط): يتحقق
-// إن الكود الجديد فاضٍ أو مملوك له فعلاً، يفكّ حجز الكود القديم (لو كان يعدّل
-// كود موجود)، ويحجز الجديد.
-// نظام احتياطي عند انتهاء حصة Firestore اليومية (نفس نمط authReserveUsernameFallback
-// بالحرف): يحجز الكود بـRealtime Database بدلاً، ويتحقق أولاً إن الكود مو محجوز
-// لحساب ثاني بنفس المخزن الاحتياطي.
-async function refSaveLinkFallback(uid, code, username, oldCode) {
-  const codeRef = fb.rtdbRef(fb.rtdb, 'pendingReferralLinks/' + code);
-  const existing = await fb.rtdbGet(codeRef);
-  if (existing.exists() && existing.val().ownerUid !== uid) {
-    throw new Error('CODE_TAKEN');
+// يستلم الجائزة: معاملة RTDB واحدة (rtdbRunTransaction) على secretCodes/{codeId}
+// تتحقق (الكود نفسه فعّال + لسا بضمن مدته + ما وصل الحد الأقصى + نفس الحساب
+// ما استخدمه قبل) وتسجّل الاستخدام ذرّياً بنفس الكتابة — يمنع أي سباق بين
+// محاولتين متزامنتين على آخر استخدام متاح أو نفس الحساب يستخدمه مرتين.
+// بعد نجاح المعاملة نمنح الإطار فعلياً (framesGrantToUser، نفس آلية منح لوحة
+// المالك)؛ لو فشل المنح بكل المفاتيح، نتراجع عن الاستخدام (نفس المعاملة
+// بالعكس) عشان اللاعب يقدر يحاول ثانية بدل ما يخسر فرصته بلا مقابل.
+let scodeRedeemBusy = false;
+async function scodeRedeem() {
+  if (scodeRedeemBusy) return;
+  const statusEl = document.getElementById('scode-status');
+  const btn = document.getElementById('scode-redeem-btn');
+  if (!fb || !fb.rtdb) {
+    statusEl.className = 'status-msg err';
+    statusEl.textContent = '⚠️ تعذّر الاتصال بقاعدة البيانات';
+    return;
   }
-  await fb.rtdbSet(codeRef, { code, ownerUid: uid, ownerUsername: username, reservedAt: Date.now() });
-  await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'pendingReferralUsers/' + uid), { code, oldCode: oldCode || null });
-}
-
-// تُستدعى بنفس مكان وطريقة authSyncPendingUserIfAny بالضبط — تحاول تنقل أي
-// رابط اتحجز مؤقتاً بالمخزن الاحتياطي (وقت انقطاع Firestore) إلى Firestore
-// الحقيقي أول ما الحصة ترجع تشتغل. تفشل بهدوء لو الحصة لسا منتهية وتحاول
-// بالمرة الجاية.
-async function refSyncPendingLinkIfAny(uid) {
-  if (!fb.rtdb || !uid) return;
-  let pending = null;
-  try {
-    const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingReferralUsers/' + uid));
-    if (!snap.exists()) return;
-    pending = snap.val();
-  } catch (e) { return; }
-
-  try {
-    await fb.runTransaction(fb.db, async (tx) => {
-      const newRef = fb.doc(fb.db, 'referralLinks', pending.code);
-      const newSnap = await tx.get(newRef);
-      if (newSnap.exists() && newSnap.data().ownerUid !== uid) {
-        throw new Error('CODE_TAKEN_ON_SYNC');
-      }
-      if (pending.oldCode && pending.oldCode !== pending.code) {
-        tx.delete(fb.doc(fb.db, 'referralLinks', pending.oldCode));
-      }
-      tx.set(newRef, {
-        code: pending.code, ownerUid: uid, ownerUsername: currentUsername || '',
-        createdAt: fb.serverTimestamp(),
-        clicksCount: (newSnap.exists() ? (newSnap.data().clicksCount || 0) : 0)
-      });
-    });
-    await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'pendingReferralUsers/' + uid));
-    await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'pendingReferralLinks/' + pending.code));
-    if (refMyCode !== pending.code) { refMyCode = pending.code; if (typeof refRenderMyLink === 'function') refRenderMyLink(); }
-  } catch (err) {
-    // لسا الحصة منتهية أو صار تعارض — نتجاهل بهدوء ونحاول بالمرة الجاية.
-  }
-}
-
-async function refSaveLink() {
-  if (refBusy) return;
-  const statusEl = document.getElementById('ref-status');
-  if (!fb || !currentUser || !currentUsername) {
+  if (!currentUser || !currentUsername) {
     statusEl.className = 'status-msg err';
     statusEl.textContent = '⚠️ لازم تسجّل دخول أول';
     return;
   }
-  const input = document.getElementById('ref-code-input');
-  const code = (input.value || '').toLowerCase().trim();
-  if (!/^[a-z0-9_-]{3,20}$/.test(code)) {
+  const indexKey = scodeIndexKey(document.getElementById('scode-input').value);
+  if (!indexKey) {
     statusEl.className = 'status-msg err';
-    statusEl.textContent = '⚠️ الكود لازم يكون إنجليزي بس (حروف صغيرة/أرقام/شرطة/underscore)، من 3 إلى 20 حرف';
+    statusEl.textContent = '⚠️ اكتب الكود أولاً';
     return;
   }
-  if (refGetReservedWords().has(code)) {
-    statusEl.className = 'status-msg err';
-    statusEl.textContent = '⚠️ هذا الكود محجوز، جرّب كود ثاني';
-    return;
-  }
-  refBusy = true;
-  document.getElementById('ref-save-btn').disabled = true;
-  statusEl.className = 'status-msg';
-  statusEl.textContent = 'جارِ الحفظ...';
+
+  scodeRedeemBusy = true;
+  btn.disabled = true;
+  statusEl.className = 'status-msg load';
+  statusEl.textContent = 'جارِ التحقق...';
+  const uid = currentUser.uid;
+  const username = currentUsername;
   try {
-    const uid = currentUser.uid;
-    const uname = currentUsername;
-    const oldCode = refMyCode;
-    await fb.runTransaction(fb.db, async (tx) => {
-      const newRef = fb.doc(fb.db, 'referralLinks', code);
-      const newSnap = await tx.get(newRef);
-      if (newSnap.exists() && newSnap.data().ownerUid !== uid) {
-        throw new Error('CODE_TAKEN');
-      }
-      if (oldCode && oldCode !== code) {
-        tx.delete(fb.doc(fb.db, 'referralLinks', oldCode));
-      }
-      tx.set(newRef, {
-        code,
-        ownerUid: uid,
-        ownerUsername: uname,
-        createdAt: fb.serverTimestamp(),
-        clicksCount: (newSnap.exists() ? (newSnap.data().clicksCount || 0) : 0)
-      });
-    });
-    refMyCode = code;
-    statusEl.className = 'status-msg ok';
-    statusEl.textContent = '✅ تم الحفظ';
-    refRenderMyLink();
-  } catch (err) {
-    // Firestore منتهية الحصة اليومية (شائع بالخطة المجانية بعد استخدام كثيف)؟
-    // نفس نمط authReserveUsernameFallback بالضبط: نحجز بالمخزن الاحتياطي
-    // (Realtime Database) بدلاً، وتتزامن لاحقاً مع Firestore تلقائياً أول ما
-    // الحصة ترجع (نفس آلية authSyncPendingUserIfAny المستخدمة لليوزرنيمات).
-    if (authIsQuotaError(err) && fb.rtdb) {
-      try {
-        await refSaveLinkFallback(currentUser.uid, code, currentUsername, refMyCode);
-        refMyCode = code;
-        statusEl.className = 'status-msg ok';
-        statusEl.textContent = '✅ تم الحفظ مؤقتاً (قاعدة البيانات الرئيسية وصلت حصتها اليومية) — بيتزامن تلقائياً خلال ساعات';
-        // نعرض النتيجة مباشرة من القيمة اللي عرفناها للتو، بدل ما نعيد الاستعلام
-        // من Firestore (اللي ما وصلته البيانات لسا — بيرجّع "ما فيه رابط" غلط).
-        document.getElementById('ref-form-block').style.display = 'none';
-        document.getElementById('ref-result-block').style.display = 'block';
-        document.getElementById('ref-full-link').value = location.origin + '/' + refMyCode;
-        document.getElementById('ref-entrants-count').textContent = '0';
-        refShowPendingSyncNotice(true);
-      } catch (err2) {
+    let codeId = null;
+    try {
+      const idxSnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey));
+      if (!idxSnap.exists()) {
         statusEl.className = 'status-msg err';
-        statusEl.textContent = '⚠️ تعذّر الحفظ حتى بالنظام الاحتياطي: ' + (err2 && err2.message === 'CODE_TAKEN' ? 'الكود مستخدم من شخص ثاني' : (err2 && err2.message ? err2.message : err2));
+        statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES.NOTFOUND;
+        return;
       }
-    } else {
+      codeId = idxSnap.val();
+    } catch (err) {
       statusEl.className = 'status-msg err';
-      statusEl.textContent = (err && err.message === 'CODE_TAKEN') ? '⚠️ هذا الكود مستخدم من شخص ثاني، جرّب كود آخر' : ('⚠️ تعذّر الحفظ: ' + (err && err.message ? err.message : err));
+      statusEl.textContent = '⚠️ تعذّر التحقق من الكود: ' + (err && err.message ? err.message : err);
+      return;
     }
+
+    let abortReason = null;
+    let grantedFrameId = null;
+    let grantedFrameName = null;
+    try {
+      const result = await fb.rtdbRunTransaction(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), (cur) => {
+        abortReason = null;
+        if (!cur) { abortReason = 'NOTFOUND'; return undefined; }
+        if (cur.active === false) { abortReason = 'STOPPED'; return undefined; }
+        if (cur.expiresAt && Date.now() > cur.expiresAt) { abortReason = 'EXPIRED'; return undefined; }
+        if (cur.usedBy && cur.usedBy[uid]) { abortReason = 'ALREADY'; return undefined; }
+        if ((cur.usedCount || 0) >= (cur.maxUses || 0)) { abortReason = 'MAXED'; return undefined; }
+        const next = Object.assign({}, cur);
+        next.usedCount = (cur.usedCount || 0) + 1;
+        next.usedBy = Object.assign({}, cur.usedBy || {});
+        next.usedBy[uid] = { username, usedAt: Date.now() };
+        grantedFrameId = cur.frameId;
+        grantedFrameName = cur.frameName;
+        return next;
+      });
+      if (!result.committed) {
+        statusEl.className = 'status-msg err';
+        statusEl.textContent = SCODE_REDEEM_ERROR_MESSAGES[abortReason] || '⚠️ تعذّر استخدام الكود';
+        return;
+      }
+    } catch (err) {
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = '⚠️ تعذّر استخدام الكود: ' + (err && err.message ? err.message : err);
+      return;
+    }
+
+    statusEl.textContent = 'جارِ منح الجائزة...';
+    const keys = [framesSiteKey(), framesTiktokKey()].filter((k, i, arr) => k && arr.indexOf(k) === i);
+    let granted = false;
+    for (const k of keys) {
+      try { await framesGrantToUser(k, grantedFrameId); granted = true; }
+      catch (e) { console.error('🔑 scodeRedeem: فشل منح الإطار بمفتاح "' + k + '" —', e); }
+    }
+
+    if (!granted) {
+      // نتراجع عن تسجيل الاستخدام عشان اللاعب ما يخسر فرصته بلا مقابل — أفضل
+      // جهد فقط (لو تعذّر التراجع نفسه، يبقى الاستخدام مسجّلاً لكن نخبره بالمشكلة).
+      try {
+        await fb.rtdbRunTransaction(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), (cur) => {
+          if (!cur) return undefined;
+          const next = Object.assign({}, cur);
+          next.usedCount = Math.max(0, (cur.usedCount || 0) - 1);
+          next.usedBy = Object.assign({}, cur.usedBy || {});
+          delete next.usedBy[uid];
+          return next;
+        });
+      } catch (e) { /* أفضل جهد */ }
+      statusEl.className = 'status-msg err';
+      statusEl.textContent = '⚠️ تعذّر منح الإطار — حاول ثانية';
+      return;
+    }
+
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = '✅ مبروك! حصلت على إطار "' + (grantedFrameName || '') + '"';
+    if (typeof toast === 'function') toast('🎁 تم استلام إطار "' + (grantedFrameName || '') + '"');
+    setTimeout(scodeClosePanel, 1400);
   } finally {
-    refBusy = false;
-    document.getElementById('ref-save-btn').disabled = false;
+    scodeRedeemBusy = false;
+    btn.disabled = false;
   }
 }
 
-function refCopyLink() {
-  const el = document.getElementById('ref-full-link');
-  if (!el) return;
-  el.select();
-  el.setSelectionRange(0, 99999);
-  try { document.execCommand('copy'); } catch (e) {}
-  if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(el.value).catch(() => {}); }
-  toast('✅ تم نسخ الرابط');
+// ---- لوحة المالك: تاب "أكواد سرية" ----
+let scodeOwnerUnsub = null;
+function scodeOwnerListStop() {
+  if (scodeOwnerUnsub) { scodeOwnerUnsub(); scodeOwnerUnsub = null; }
 }
 
-// ---- استقبال الزيارة عبر رابط خاص ----
-
-async function refAddEntrantIfMissing(code, uid, username) {
-  try {
-    const entrantRef = fb.doc(fb.db, 'referralLinks', code, 'entrants', uid);
-    const esnap = await fb.getDoc(entrantRef);
-    if (esnap.exists()) return;
-    await fb.setDoc(entrantRef, { username, enteredAt: fb.serverTimestamp() });
-  } catch (e) { console.error('🔗 refAddEntrantIfMissing(' + code + ', ' + uid + ') فشلت —', e); }
+function scodeFormatRemaining(expiresAt) {
+  const ms = (expiresAt || 0) - Date.now();
+  if (ms <= 0) return 'منتهي';
+  const days = Math.floor(ms / 86400000);
+  if (days > 0) return days + ' يوم';
+  const hours = Math.floor(ms / 3600000);
+  if (hours > 0) return hours + ' ساعة';
+  return Math.max(1, Math.floor(ms / 60000)) + ' دقيقة';
 }
 
-// تُستدعى مرة وحدة عند إقلاع التطبيق (من authBoot، قبل أي show()). تنظّف
-// الرابط بالمتصفح فوراً بدون reload، وتتحقق إن كان كود رابط حقيقي، وتعدّ
-// الزيارة مرة وحدة لكل جهاز، وتربط الداخل الحالي (لو مسجّل دخول) أو تحفظ
-// الكود مؤقتاً بـlocalStorage لحين تسجيل الدخول أو إنشاء حساب.
-async function refHandleIncomingVisit() {
-  try {
-    const path = (location.pathname || '').replace(/^\/+|\/+$/g, '');
-    if (!path || path.indexOf('/') !== -1) return; // مو segment واحد، أو الصفحة الرئيسية أصلاً
-    const codeLower = path.toLowerCase();
-    if (!/^[a-z0-9_-]{1,40}$/.test(codeLower)) { history.replaceState(null, '', '/'); return; }
-    if (refGetReservedWords().has(codeLower)) return; // مسار موقع حقيقي — لا تلمسه
-    history.replaceState(null, '', '/');
-    if (!fb) return;
-    const linkRef = fb.doc(fb.db, 'referralLinks', codeLower);
-    const linkSnap = await fb.getDoc(linkRef);
-    if (!linkSnap.exists()) return; // كود غير موجود — تجاهل بصمت، تابع الإقلاع عادي
-    const data = linkSnap.data() || {};
-    const seenKey = 'refSeen_' + codeLower;
-    if (!localStorage.getItem(seenKey)) {
-      // نعلّم "شوفناها" فقط بعد نجاح الكتابة الفعلي — لو فشلت (مثلاً بسبب
-      // قاعدة أمان لسا ما تسمح بزيادة anonymous)، تبقى الفرصة قائمة لزيارة
-      // لاحقة تحتسب صح، بدل ما تُقفل نهائياً بهذا المتصفح بالغلط.
-      try {
-        await fb.updateDoc(linkRef, { clicksCount: fb.increment(1) });
-        localStorage.setItem(seenKey, '1');
-      } catch (e) {
-        console.error('🔗 refHandleIncomingVisit: فشلت زيادة clicksCount لكود "' + codeLower + '" —', e);
-      }
-    }
-    if (currentUser && currentUsername) {
-      if (currentUser.uid !== data.ownerUid) await refAddEntrantIfMissing(codeLower, currentUser.uid, currentUsername);
-    } else {
-      localStorage.setItem('pendingRefCode', codeLower);
-    }
-  } catch (e) { console.error('🔗 refHandleIncomingVisit فشلت —', e); }
-}
-
-// تُستدعى بعد ما currentUser/currentUsername يصيرون معروفين (دخول عادي أو
-// إنشاء حساب جديد) — تكمل ربط referredByCode (مرة وحدة بس، ما يكتب فوق قيمة
-// موجودة) وتضيف entrant لو فيه كود معلّق بـlocalStorage من زيارة قبل تسجيل الدخول.
-async function refSyncPendingCodeIfAny() {
-  if (!fb || !currentUser || !currentUsername) return;
-  const pending = localStorage.getItem('pendingRefCode');
-  if (!pending) return;
-  try {
-    const linkSnap = await fb.getDoc(fb.doc(fb.db, 'referralLinks', pending));
-    if (linkSnap.exists()) {
-      const ownerUid = (linkSnap.data() || {}).ownerUid;
-      if (ownerUid !== currentUser.uid) {
-        const userRef = fb.doc(fb.db, 'users', currentUser.uid);
-        const userSnap = await fb.getDoc(userRef);
-        if (userSnap.exists() && !userSnap.data().referredByCode) {
-          await fb.updateDoc(userRef, { referredByCode: pending });
-        }
-        await refAddEntrantIfMissing(pending, currentUser.uid, currentUsername);
-      }
-    }
-  } catch (e) { console.error('🔗 refSyncPendingCodeIfAny(' + pending + ') فشلت —', e); }
-  localStorage.removeItem('pendingRefCode');
-}
-
-// ---- لوحة المالك: تاب "روابط" ----
-let refOwnerUnsub = null;
-function refOwnerListStop() {
-  if (refOwnerUnsub) { refOwnerUnsub(); refOwnerUnsub = null; }
-}
-
-// يجمع روابط Firestore (النهائية) مع أي روابط لسا معلّقة بالنظام الاحتياطي
-// (RTDB، وقت انتهاء حصة Firestore) — بدونها كانت لوحة المالك تعرض "0 روابط"
-// رغم وجود روابط فعلية محفوظة مؤقتاً بالاحتياطي.
-async function ownerGetPendingFallbackLinks() {
-  if (!fb.rtdb) return [];
-  try {
-    const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingReferralLinks'));
-    if (!snap.exists()) return [];
+function scodeRenderTab() {
+  const list = document.getElementById('owner-scode-list');
+  if (!fb || !fb.rtdb) {
+    if (list) list.innerHTML = '<div class="owner-empty">لا يوجد Realtime Database مهيّأ بهذا المشروع</div>';
+    return;
+  }
+  scodeOwnerListStop();
+  scodeOwnerUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'secretCodes'), (snap) => {
     const val = snap.val() || {};
-    return Object.keys(val).map(code => ({
-      id: code, code, ownerUid: val[code].ownerUid, ownerUsername: val[code].ownerUsername,
-      clicksCount: 0, pending: true
-    }));
-  } catch (e) { return []; }
-}
-
-function ownerRenderLinksTab() {
-  if (!fb) return;
-  refOwnerListStop();
-  const renderCombined = async (fromDb) => {
-    const pending = await ownerGetPendingFallbackLinks();
-    const dbCodes = new Set(fromDb.map(l => l.id));
-    const rows = fromDb.concat(pending.filter(p => !dbCodes.has(p.id)));
-    rows.sort((a, b) => (b.clicksCount || 0) - (a.clicksCount || 0));
-    const countEl = document.getElementById('owner-links-count');
+    const rows = Object.keys(val).map(id => Object.assign({ id: id }, val[id]));
+    rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const countEl = document.getElementById('owner-scode-count');
     if (countEl) countEl.textContent = rows.length;
-    const list = document.getElementById('owner-links-list');
     if (!list) return;
-    if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما فيه روابط بعد</div>'; return; }
-    list.innerHTML = rows.map(l => `
+    if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما فيه أكواد بعد</div>'; return; }
+    list.innerHTML = rows.map(c => {
+      const usedCount = c.usedCount || 0;
+      const maxUses = c.maxUses || 0;
+      const stopped = c.active === false;
+      const expired = !!(c.expiresAt && Date.now() > c.expiresAt);
+      const statusTxt = stopped ? '⛔ متوقف' : (expired ? '⌛ منتهي' : '🟢 فعّال');
+      return `
       <div class="owner-row">
         <div class="owner-row-main">
-          <div class="owner-row-name">${ownerEscape(l.code || l.id)}${l.pending ? ' <span style="color:var(--muted);font-size:11px;">⏳ معلّق مزامنة</span>' : ''}</div>
-          <div class="owner-row-sub">${ownerEscape(l.ownerUsername || '—')} · ${l.clicksCount || 0} زيارة</div>
+          <div class="owner-row-name">${ownerEscape(c.name || c.id)} <span style="color:var(--muted);font-size:11px;">${statusTxt}</span></div>
+          <div class="owner-row-sub">🎁 ${ownerEscape(c.frameName || '—')} · ⏳ ${expired ? 'منتهي' : scodeFormatRemaining(c.expiresAt)} · 👥 ${usedCount}/${maxUses}</div>
         </div>
-        ${l.pending ? '' : `<button type="button" class="btn-primary mod-add-btn" onclick="ownerOpenLinkEntrants('${ownerEscape(l.id)}')">عرض الداخلين</button>`}
-      </div>
-    `).join('');
-  };
-  refOwnerUnsub = fb.onSnapshot(fb.collection(fb.db, 'referralLinks'), (snap) => {
-    const rows = [];
-    snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
-    renderCombined(rows);
-  }, (err) => { console.error('🔗 ownerRenderLinksTab: تعذّرت متابعة referralLinks حياً —', err); renderCombined([]); });
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button type="button" class="btn-primary mod-add-btn" onclick="scodeOpenUsers('${ownerEscape(c.id)}')">المستخدمين</button>
+          ${stopped ? '' : `<button type="button" class="btn-secondary mod-add-btn" onclick="scodeStopCode('${ownerEscape(c.id)}')">إيقاف</button>`}
+          <button type="button" class="btn-secondary mod-add-btn" style="color:#ef4444;" onclick="scodeDeleteCode('${ownerEscape(c.id)}')">حذف</button>
+        </div>
+      </div>`;
+    }).join('');
+  }, (err) => { console.error('🔑 scodeRenderTab: تعذّرت متابعة secretCodes حياً —', err); });
 }
 
-let refEntrantsModalUnsub = null;
-function ownerOpenLinkEntrants(code) {
-  const codeEl = document.getElementById('ref-entrants-modal-code');
-  if (codeEl) codeEl.textContent = code;
-  document.getElementById('ref-entrants-modal-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
-  document.getElementById('ref-entrants-modal-overlay').classList.add('visible');
-  if (refEntrantsModalUnsub) { refEntrantsModalUnsub(); refEntrantsModalUnsub = null; }
-  if (!fb) return;
-  refEntrantsModalUnsub = fb.onSnapshot(fb.collection(fb.db, 'referralLinks', code, 'entrants'), (snap) => {
-    const rows = [];
-    snap.forEach(d => rows.push({ id: d.id, ...d.data() }));
-    const list = document.getElementById('ref-entrants-modal-list');
-    if (!list) return;
-    if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما دخل أحد بعد</div>'; return; }
-    list.innerHTML = rows.map(r => `<div class="owner-row"><div class="owner-row-main"><div class="owner-row-name">${ownerEscape(r.username || '—')}</div></div></div>`).join('');
-  }, (err) => { console.error('🔗 ownerOpenLinkEntrants(' + code + '): تعذّرت متابعة entrants حياً —', err); });
+let scodeSelectedFrameId = '';
+let scodeFrameSubtab = 'existing';
+
+function scodeOpenNew() {
+  document.getElementById('scode-name-new-input').value = '';
+  document.getElementById('scode-duration-input').value = '';
+  document.getElementById('scode-maxuses-input').value = '';
+  document.getElementById('scode-publish-status').className = 'status-msg';
+  document.getElementById('scode-publish-status').textContent = '';
+  scodeSelectedFrameId = '';
+  scodeSwitchFrameSubtab('existing');
+  scodeRenderFrameGrid();
+  ownerFrameResetEditor('scode');
+  document.getElementById('scode-new-overlay').classList.add('visible');
 }
-function ownerCloseLinkEntrants() {
-  const overlay = document.getElementById('ref-entrants-modal-overlay');
+function scodeCloseNew() {
+  const overlay = document.getElementById('scode-new-overlay');
   if (overlay) overlay.classList.remove('visible');
-  if (refEntrantsModalUnsub) { refEntrantsModalUnsub(); refEntrantsModalUnsub = null; }
+}
+
+function scodeSwitchFrameSubtab(which) {
+  scodeFrameSubtab = which;
+  document.getElementById('scode-frame-subtab-existing').classList.toggle('active', which === 'existing');
+  document.getElementById('scode-frame-subtab-upload').classList.toggle('active', which === 'upload');
+  document.getElementById('scode-frame-existing-body').style.display = which === 'existing' ? '' : 'none';
+  document.getElementById('scode-frame-upload-body').style.display = which === 'upload' ? '' : 'none';
+}
+
+// شبكة اختيار إطار موجود — نفس فلترة ownerRenderGrantExistingGrid بالضبط
+// (بدون إطار المالك الخاص ولا إطارات "احسمها" القديمة المحذوفة).
+function scodeRenderFrameGrid() {
+  const grid = document.getElementById('scode-frame-grid');
+  if (!grid) return;
+  const all = framesEffectiveCatalog().filter(f => f && f.id !== FRAMES_OWNER_ONLY_ID && !f.ownerOnly && !framesNameIsLegacyEhsmaha(f.name));
+  grid.innerHTML = all.map(f => {
+    const img = f.gallery || f.imageUrl || '';
+    const selected = scodeSelectedFrameId === f.id;
+    return `<div class="frm-grant-existing-card${selected ? ' selected' : ''}" onclick="scodeSelectFrame('${ownerEscape(f.id)}')">
+      <img src="${escAttr(img)}" alt="" />
+      <div class="frm-grant-existing-card-name">${ownerEscape(f.name || f.id)}</div>
+    </div>`;
+  }).join('');
+}
+function scodeSelectFrame(id) {
+  scodeSelectedFrameId = id;
+  scodeRenderFrameGrid();
+}
+
+function scodeGenId() {
+  return 'sc' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+async function scodePublishCode() {
+  if (!isOwnerAccount()) return;
+  const statusEl = document.getElementById('scode-publish-status');
+  const btn = document.getElementById('scode-publish-btn');
+  const name = document.getElementById('scode-name-new-input').value.trim();
+  const durationDays = parseFloat(document.getElementById('scode-duration-input').value);
+  const maxUses = parseInt(document.getElementById('scode-maxuses-input').value, 10);
+
+  if (!fb || !fb.rtdb) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ لا يوجد Realtime Database مهيّأ بهذا المشروع'; return; }
+  if (!name) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب اسم الكود أولاً'; return; }
+  const indexKey = scodeIndexKey(name);
+  if (!indexKey) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اسم الكود غير صالح'; return; }
+  if (!durationDays || durationDays <= 0) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب مدة تفعيل صحيحة (بالأيام)'; return; }
+  if (!maxUses || maxUses <= 0) { statusEl.className = 'status-msg err'; statusEl.textContent = '⚠️ اكتب حداً أقصى صحيح لعدد الاستخدامات'; return; }
+
+  btn.disabled = true;
+  statusEl.className = 'status-msg load';
+  statusEl.textContent = 'جارِ التحقق من الكود...';
+  try {
+    const existing = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey));
+    if (existing.exists()) throw new Error('هذا الاسم مستخدم لكود آخر بالفعل');
+
+    let frameId, frameName;
+    if (scodeFrameSubtab === 'existing') {
+      if (!scodeSelectedFrameId) throw new Error('اختر إطاراً من الشبكة فوق أولاً');
+      const f = framesEffectiveCatalog().find(x => x.id === scodeSelectedFrameId);
+      if (!f) throw new Error('الإطار المختار غير موجود');
+      frameId = f.id; frameName = f.name || f.id;
+    } else {
+      const fileInput = document.getElementById('frm-owner-scode-file');
+      if (!fileInput || !fileInput.files || !fileInput.files[0]) throw new Error('اختر صورة الإطار الخاص أولاً');
+      const holeFields = ownerFrameReadHoleFields('scode');
+      if (!holeFields.name) throw new Error('اكتب اسم الإطار أولاً');
+      statusEl.textContent = 'جارِ ضغط الصورة...';
+      const uploaded = await ownerUploadFrameImage('scode');
+      const id = scodeGenId();
+      await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'framesCatalogExtra/' + id), {
+        id: id, name: holeFields.name, imageUrl: uploaded.imageUrl,
+        hole: [holeFields.l, holeFields.t, holeFields.w, holeFields.h], ratio: holeFields.ratio,
+        visibility: 'private', createdAt: fb.rtdbServerTimestamp(), createdBy: (currentUser && currentUser.uid) || null
+      });
+      frameId = id; frameName = holeFields.name;
+    }
+
+    statusEl.textContent = 'جارِ النشر...';
+    const codeId = scodeGenId();
+    const expiresAt = Date.now() + Math.round(durationDays * 86400000);
+    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), {
+      name: name, indexKey: indexKey, frameId: frameId, frameName: frameName,
+      durationDays: durationDays, maxUses: maxUses, usedCount: 0, active: true,
+      createdAt: fb.rtdbServerTimestamp(), createdBy: (currentUser && currentUser.uid) || null,
+      createdByUsername: currentUsername || null,
+      expiresAt: expiresAt
+    });
+    await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + indexKey), codeId);
+
+    statusEl.className = 'status-msg ok';
+    statusEl.textContent = '✅ تم نشر الكود';
+    if (typeof toast === 'function') toast('✅ تم نشر كود "' + name + '"');
+    setTimeout(scodeCloseNew, 900);
+  } catch (err) {
+    statusEl.className = 'status-msg err';
+    statusEl.textContent = '⚠️ تعذّر النشر: ' + (err && err.message ? err.message : err);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function scodeStopCode(codeId) {
+  if (!isOwnerAccount() || !fb || !fb.rtdb) return;
+  if (!confirm('إيقاف هذا الكود؟ ما يقدر أحد يستخدمه بعدها.')) return;
+  try {
+    await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId), { active: false });
+    if (typeof toast === 'function') toast('⛔ تم إيقاف الكود');
+  } catch (e) { alert('⚠️ تعذّر الإيقاف: ' + (e && e.message ? e.message : e)); }
+}
+
+async function scodeDeleteCode(codeId) {
+  if (!isOwnerAccount() || !fb || !fb.rtdb) return;
+  if (!confirm('حذف هذا الكود نهائياً؟ ما يمكن التراجع.')) return;
+  try {
+    const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId));
+    const data = snap.exists() ? snap.val() : null;
+    await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId));
+    if (data && data.indexKey) {
+      await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'secretCodesIndex/' + data.indexKey));
+    }
+    if (typeof toast === 'function') toast('🗑️ تم حذف الكود');
+  } catch (e) { alert('⚠️ تعذّر الحذف: ' + (e && e.message ? e.message : e)); }
+}
+
+let scodeUsersUnsub = null;
+function scodeOpenUsers(codeId) {
+  document.getElementById('scode-users-modal-code').textContent = codeId;
+  document.getElementById('scode-users-modal-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
+  document.getElementById('scode-users-overlay').classList.add('visible');
+  if (scodeUsersUnsub) { scodeUsersUnsub(); scodeUsersUnsub = null; }
+  if (!fb || !fb.rtdb) return;
+  scodeUsersUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'secretCodes/' + codeId + '/usedBy'), (snap) => {
+    const val = snap.val() || {};
+    const rows = Object.keys(val).map(uid => Object.assign({ uid: uid }, val[uid]));
+    rows.sort((a, b) => (b.usedAt || 0) - (a.usedAt || 0));
+    const list = document.getElementById('scode-users-modal-list');
+    if (!list) return;
+    if (!rows.length) { list.innerHTML = '<div class="owner-empty">ما استخدمه أحد بعد</div>'; return; }
+    list.innerHTML = rows.map(r => {
+      const t = r.usedAt ? new Date(r.usedAt).toLocaleString('ar-SA') : '—';
+      return `<div class="owner-row"><div class="owner-row-main"><div class="owner-row-name">${ownerEscape(r.username || '—')}</div><div class="owner-row-sub">${ownerEscape(t)}</div></div></div>`;
+    }).join('');
+  }, (err) => { console.error('🔑 scodeOpenUsers(' + codeId + '): تعذّرت متابعة usedBy حياً —', err); });
+}
+function scodeCloseUsers() {
+  const overlay = document.getElementById('scode-users-overlay');
+  if (overlay) overlay.classList.remove('visible');
+  if (scodeUsersUnsub) { scodeUsersUnsub(); scodeUsersUnsub = null; }
 }
 
 
@@ -16988,12 +17010,9 @@ function authBoot() {
   fb = window.__fb;
   modPreloadSettings();
   homeLiveCounterBoot();
-  // رابط خاص: يقرأ المسار الحالي فوراً عند الإقلاع (قبل أي show()) وينظّفه —
-  // best-effort بالكامل، ما يوقف أو يبطئ باقي الإقلاع لو تأخر أو فشل.
-  refHandleIncomingVisit();
-  // رابط مشاركة إطار (?frame=ID) — نفس نمط refHandleIncomingVisit، لكن مسار
-  // مستقل تماماً (query param لا segment) عشان ما يتعارض مع أكواد الروابط
-  // المرجعية أعلاه.
+  // رابط مشاركة إطار (?frame=ID) — يقرأ المسار الحالي فوراً عند الإقلاع (قبل
+  // أي show()) وينظّفه — best-effort بالكامل، ما يوقف أو يبطئ باقي الإقلاع
+  // لو تأخر أو فشل.
   framesHandleIncomingShareLink();
   // Surface errors from a signInWithRedirect() round-trip (e.g. unauthorized
   // domain) instead of letting them fail silently on page reload.
@@ -17075,8 +17094,6 @@ function authBoot() {
 // يُعاد إطلاقه) فتترك هذي الأنظمة كلها معطّلة لحد ما المستخدم يعيد تحميل الصفحة.
 async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   if (currentUser) authSyncPendingUserIfAny(currentUser.uid); // best-effort، ما ننتظره
-  if (currentUser) refSyncPendingCodeIfAny(); // رابط خاص: يربط الزيارة المعلّقة (لو فيه) — best-effort
-  if (currentUser) refSyncPendingLinkIfAny(currentUser.uid); // رابط خاص: يزامن أي حجز اتحفظ بالنظام الاحتياطي وقت انقطاع Firestore — best-effort
   if (currentUser) framesOpenPendingShareIfAny(); // رابط مشاركة إطار (?frame=ID) معلّق (لو فيه) — best-effort
   publicBadgesBoot();
   publicGameOrderBoot();
@@ -18531,7 +18548,7 @@ function ownerClosePanel() {
   if (typeof event100Render === 'function') event100Render();
 }
 function ownerSwitchTab(tab) {
-  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','events','gifts','online','store','event100','protection','ahsemha','links','sevt'].forEach(t => {
+  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','events','gifts','online','store','event100','protection','ahsemha','scode','sevt'].forEach(t => {
     document.getElementById('owner-tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('owner-panel-' + t).classList.toggle('active', t === tab);
   });
@@ -18540,7 +18557,7 @@ function ownerSwitchTab(tab) {
   if (tab !== 'moderators') modAdminListStop();
   if (tab !== 'events') evtAdminListStop();
   if (tab !== 'ahsemha') ahsemhaAdminListStop();
-  if (tab !== 'links') refOwnerListStop();
+  if (tab !== 'scode') scodeOwnerListStop();
   if (tab !== 'stats') ownerStatsStop();
   if (tab === 'stats') ownerStatsBoot();
   if (tab === 'updates') ownerUpdatesBoot();
@@ -18557,7 +18574,7 @@ function ownerSwitchTab(tab) {
   if (tab === 'event100') event100AdminRenderPanel();
   if (tab === 'protection') protBootPanel();
   if (tab === 'ahsemha') { ahsemhaAdminListBoot(); ahsemhaRenderEditorsList(); ahsemhaAdminRenderList('ahsemha-categories-list', 'ahsemha-categories-count'); }
-  if (tab === 'links') ownerRenderLinksTab();
+  if (tab === 'scode') scodeRenderTab();
   if (tab === 'sevt') { sevtAdminBoot(); homeStatsAdminBoot(); if (typeof brgOwnerBoot === 'function') brgOwnerBoot(); }
 }
 
@@ -26832,11 +26849,10 @@ function framesShareLinkFallbackCopy(url) {
   }
 }
 
-// تُستدعى مرة وحدة عند إقلاع التطبيق (من authBoot، مع refHandleIncomingVisit) —
-// تقرأ معامل frame من الرابط (?frame=ID) وتنظّفه من شريط العنوان فوراً بدون
-// reload، وتحفظه مؤقتاً بـlocalStorage لحين تسجيل الدخول (يصمد حتى لو
-// signInWithRedirect أعاد تحميل الصفحة بالمنتصف — نفس نمط pendingRefCode).
-// ما يفعّل أي شيء تلقائياً بحد ذاته.
+// تُستدعى مرة وحدة عند إقلاع التطبيق (من authBoot) — تقرأ معامل frame من
+// الرابط (?frame=ID) وتنظّفه من شريط العنوان فوراً بدون reload، وتحفظه مؤقتاً
+// بـlocalStorage لحين تسجيل الدخول (يصمد حتى لو signInWithRedirect أعاد
+// تحميل الصفحة بالمنتصف). ما يفعّل أي شيء تلقائياً بحد ذاته.
 function framesHandleIncomingShareLink() {
   try {
     const params = new URLSearchParams(location.search);
@@ -26849,8 +26865,8 @@ function framesHandleIncomingShareLink() {
   } catch (e) { console.error('🖼️ framesHandleIncomingShareLink فشلت —', e); }
 }
 
-// تُستدعى بعد تسجيل الدخول (من authRunPostAuthBootChain، مع refSyncPendingCodeIfAny) —
-// لو فيه إطار معلّق من رابط مشاركة، تفتح صفحة الإطارات مباشرة على بطاقته
+// تُستدعى بعد تسجيل الدخول (من authRunPostAuthBootChain) — لو فيه إطار معلّق
+// من رابط مشاركة، تفتح صفحة الإطارات مباشرة على بطاقته
 // عشان المستخدم يشوفه (بلا أي تملّك — المنح من لوحة المالك فقط).
 async function framesOpenPendingShareIfAny() {
   const frameId = localStorage.getItem('pendingFrameShareId');
