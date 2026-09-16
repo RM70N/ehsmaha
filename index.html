@@ -10738,6 +10738,10 @@ async function authRenameUsername(uid, oldUsername, newUsername) {
 function scodeNormalizeText(raw) {
   return (raw || '').toString().trim().replace(/\s+/g, ' ');
 }
+// أشكال حروف عربية شائع تبادلها بالكتابة على الجوال (أ/إ/آ/ٱ ↔ ا، ى ↔ ي،
+// ة ↔ ه) — بدونها كود يبدو متطابق تماماً بالعين لكنه يفشل لأنه بالحرف
+// الفعلي مختلف تقنياً (خصوصاً لو المالك كتبه بجهاز والزائر كتبه بجهاز ثاني).
+const SCODE_CHAR_MAP = { 'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا', 'ى': 'ي', 'ة': 'ه' };
 function scodeIndexKey(raw) {
   const normalized = scodeNormalizeText(raw).toLowerCase();
   let out = '';
@@ -10745,8 +10749,15 @@ function scodeIndexKey(raw) {
     const ch = normalized[i];
     const code = normalized.charCodeAt(i);
     if (code <= 31 || code === 127) continue; // رموز تحكّم غير مرئية
+    if (code >= 8203 && code <= 8207) continue; // مسافات/علامات اتجاه صفرية غير مرئية (zero-width/LRM/RLM) — تنضاف أحياناً تلقائياً بكيبورد الجوال العربي
+    if (code >= 8234 && code <= 8238) continue; // علامات تضمين اتجاه النص (bidi embedding/override)
+    if (code >= 8294 && code <= 8297) continue; // علامات عزل اتجاه النص (bidi isolate)
+    if (code === 65279) continue; // BOM
+    if (code === 1600) continue; // تطويل (ـ)
+    if (code >= 1611 && code <= 1621) continue; // تشكيل عربي (فتحة/ضمة/كسرة/شدة/سكون...)
+    if (code === 1648) continue; // ألف خنجرية علوية
     if (ch === '.' || ch === '#' || ch === '$' || ch === '[' || ch === ']') continue; // رموز ممنوعة كمفتاح RTDB
-    out += ch;
+    out += SCODE_CHAR_MAP[ch] || ch;
   }
   return out;
 }
