@@ -1520,7 +1520,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:84px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;display:flex;align-items:center;justify-content:center;}
 .p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;}
-.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:13px;text-align:center;}
+.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
 .p-has-full-frame .p-username-prefix{position:absolute;top:3px;right:4%;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);z-index:1;}
 
 /* زر خاص باللعبة (مثل "انفجار" ببومب) — نفس أسلوب الصورة المرجعية: حدود مضيئة بدون تعبئة */
@@ -2945,6 +2945,12 @@ body{padding-top:64px;}
     border:2px solid rgba(11,5,24,.92); box-shadow:0 0 12px -2px rgba(245,158,11,.95);
   }
   & .p-username-name{ font-weight:700; font-size:12px; color:#CBBDF3; max-width:80px; }
+  /* الاسم فوق الإطار الكامل له مساحة مخصّصة أوسع بالإطار نفسه (بين فتحة
+     الأفتار وحافة البطاقة) — max-width:80px أعلاه يكسر تمدّد يسار/يمين
+     المحسوب بالجافاسكربت (framesInjectRingWithFrame) فيطلّع الاسم غير
+     متمركز بمكانه الصحيح. لازم أكثر تحديداً من القاعدة العامة فوق حتى تفوز
+     بالتخصيص بدون !important. */
+  & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
 
   /* صف أزرار شاشة الانتظار */
   & .game-bottom-row{ max-width:760px; gap:12px; }
