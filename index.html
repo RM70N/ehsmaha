@@ -1517,7 +1517,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
    عنده إطار مُفعَّل): بدل حلقة صغيرة حول الأفتار، تعرض صورة الإطار العريضة
    كاملة (دائرة الأفتار + لوحة الاسم) كخلفية للبطاقة، والأفتار/الاسم
    يتموضعان داخلها حسب حقل hole بـFRAMES_CATALOG (framesInjectRing بالجافاسكربت). */
-.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:92px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
+.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:74px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;display:flex;align-items:center;justify-content:center;}
 .p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;}
 .p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
@@ -27244,7 +27244,7 @@ const framesActiveWraps = new Map();       // levelsKey -> Map<Element, sizePx>
 // بناءً على حقل hole المخزّن بكل عنصر كتالوج ([left%, top%, width%, height%]
 // لموضع فتحة الأفتار داخل صورة الإطار العريضة). f = كائن الإطار المُحلّل مسبقاً
 // (ثابت أو ديناميكي — بنفس الشكل: gallery/imageUrl + hole).
-const FRAMES_BANNER_H = 92; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
+const FRAMES_BANNER_H = 74; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
 const FRAMES_BANNER_RATIO_FALLBACK = 2.8; // يطابق aspect-ratio بـCSS — يُستخدم فقط لو الإطار بلا ratio
 
 function framesInjectRingWithFrame(tagEl, f, sizePx) {
