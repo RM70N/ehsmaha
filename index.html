@@ -21049,6 +21049,34 @@ function tiktokBridgeWsUrl(username) {
   return `${TIKTOK_BRIDGE_SERVER_URL}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
 }
 
+// ---------- إيقاظ السيرفر قبل أول اتصال (علاج Cold Start) ----------
+// خطة Render المجانية توقف الخدمة بعد ~15 دقيقة بلا طلبات، وأول اتصال
+// بعدها ياخذ 30-60ث لإقلاع الخدمة — وهذا أكبر سبب مفرد لبطء أول ربط.
+// فتح WebSocket على خدمة نائمة يفشل فوراً (ويحرق محاولات إعادة الاتصال
+// واحدة تلو الأخرى قبل ما تقوم الخدمة)، بينما طلب HTTP عادي يبقى معلقاً
+// حتى تقوم الخدمة ثم يرد — فنستخدمه كـ"إيقاظ" قبل فتح الويب سوكيت.
+// خاص بتيك توك فقط (ما يُستدعى إطلاقاً من مسارات تويتش/كيك/يوتيوب).
+const TIKTOK_BRIDGE_HTTP_ORIGIN = TIKTOK_BRIDGE_SERVER_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
+const TIKTOK_WARMUP_TTL_MS = 60000;   // ما نكرر الإيقاظ طوال هذه المدة
+const TIKTOK_WARMUP_MAX_MS = 25000;   // سقف انتظار الإقلاع قبل ما نحاول الاتصال على أي حال
+let tiktokBridgeWarmPromise = null;
+let tiktokBridgeWarmAt = 0;
+
+function tiktokBridgeWarmUp() {
+  if (tiktokBridgeWarmPromise && (Date.now() - tiktokBridgeWarmAt) < TIKTOK_WARMUP_TTL_MS) return tiktokBridgeWarmPromise;
+  tiktokBridgeWarmAt = Date.now();
+  let done = null;
+  const capped = new Promise((resolve) => { done = resolve; });
+  const timer = setTimeout(() => done(), TIKTOK_WARMUP_MAX_MS);
+  try {
+    fetch(TIKTOK_BRIDGE_HTTP_ORIGIN + '/healthz', { cache: 'no-store' })
+      .then(() => { clearTimeout(timer); done(); })
+      .catch(() => { clearTimeout(timer); done(); });
+  } catch (e) { clearTimeout(timer); done(); }
+  tiktokBridgeWarmPromise = capped;
+  return capped;
+}
+
 // ==================== TIKTOK (سيرفر الجسر المستضاف) — نسخة مشتركة (مطابقة
 // لشكل twitchOpenIRC/kickBridgeOpenWS/youtubeBridgeOpenWS) عشان يقدر وضع "أكثر
 // من منصة" يفتح اتصال تيك توك بالتوازي مع باقي المنصات بنفس الطريقة، بدل ما
@@ -21065,7 +21093,10 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose) {
     let d; try { d = JSON.parse(e.data); } catch (err) { return; }
     if (d && d.type === 'bridge_status') {
       if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
-      onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code });
+      // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
+      // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
+      // ما تظل تعرض "جاري الاتصال" للأبد.
+      onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
       return;
     }
     onEvent(d);
@@ -21137,6 +21168,9 @@ async function tiktokBridgeStreamerSetEnabled(username, enabled) {
 }
 
 function tiktokConnectModalOpen() {
+  // إيقاظ مبكر للسيرفر: المستخدم على وشك يضغط "ربط"، فنخلي Cold Start
+  // يمر أثناء كتابته لليوزرنيم بدل ما ينتظره بعد الضغط.
+  try { tiktokBridgeWarmUp(); } catch (e) {}
   document.getElementById('tiktok-apikey-modal-overlay').classList.add('visible');
   const savedList = tiktokSavedUsersLoad();
   const input = document.getElementById('tiktok-connect-username');
@@ -21182,6 +21216,72 @@ function tiktokSavedUserToggle(username, enabled) {
   toast(enabled ? ('✅ @' + username + ' مفعّل') : ('⛔ @' + username + ' معطّل — ما يقدر يلعب أي لعبة'));
 }
 
+// ==================== مراقب نتيجة محاولة الربط ====================
+// السبب الجذري لـ"جاري الاتصال" اللي ما يخلص: السيرفر يظل يعيد المحاولة
+// داخلياً (تجاوز حد خدمة التوقيع، أو بث مقفل) وما يغلق الويب سوكيت أبداً —
+// فما توصل الواجهة أي إشارة نهائية (onClose ما يُطلق، وonOpen ما يُطلق لأنه
+// مربوط بـconnected حقيقي)، فيظل الاسبنر يدور للأبد. هذا المراقب يقرأ
+// أحداث bridge_status ويحوّلها لنتيجة نهائية واحدة واضحة.
+const TIKTOK_CONNECT_MAX_FAILS = 3;       // فشل متتالٍ قبل إعلان الفشل النهائي
+const TIKTOK_CONNECT_DEADLINE_MS = 30000; // سقف زمني لأي محاولة ربط واحدة (بعد إيقاظ السيرفر)
+
+function tiktokConnectFailMessage(code) {
+  if (code === 'user_not_found') return '⚠️ يوزرنيم غير موجود — تأكد من كتابته صح';
+  if (code === 'rate_limited') return '⛔ خدمة تيك توك مزدحمة الآن ورفضت طلب الربط — انتظر دقيقة وحاول مرة ثانية';
+  if (code === 'timeout') return '⚠️ سيرفر الربط ما رد خلال الوقت المتوقع — تأكد من إنترنتك وحاول مرة ثانية';
+  return '⚠️ تعذّر الاتصال بتيك توك بعد عدة محاولات — تأكد إن البث مفتوح فعلاً وحاول مرة ثانية';
+}
+
+// onFail(message, code): تُستدعى مرة وحدة فقط عند الفشل النهائي.
+// onNotLive(): تُستدعى مرة وحدة عند أول "مو لايف" — وهي ليست فشلاً: نوقف
+//   المراقبة ونبقي الاتصال مفتوحاً لأن السيرفر بيربط تلقائياً أول ما يفتح البث.
+function tiktokConnectWatcher(onFail, onNotLive) {
+  const w = { fails: 0, lastCode: 'connect_failed', done: false, timer: null };
+  w.start = function () {
+    if (w.done || w.timer) return w;
+    w.timer = setTimeout(() => {
+      // لو وصلتنا أخطاء فعلاً، السيرفر رد وما صمت — المشكلة هي سبب
+      // آخر خطأ (مثلاً rate_limited وتراجعه أطول من مهلتنا)، فنعرض سببه
+      // الحقيقي. 'timeout' تُعرض فقط لو ما وصل أي خطأ إطلاقاً (صمت تام).
+      w.fail(w.fails > 0 ? w.lastCode : 'timeout');
+    }, TIKTOK_CONNECT_DEADLINE_MS);
+    return w;
+  };
+  w.stop = function () {
+    if (w.timer) { clearTimeout(w.timer); w.timer = null; }
+    w.done = true;
+  };
+  w.fail = function (code) {
+    if (w.done) return;
+    w.stop();
+    if (typeof onFail === 'function') onFail(tiktokConnectFailMessage(code), code);
+  };
+  w.note = function (evt) {
+    if (w.done || !evt || evt.type !== 'bridge_status') return;
+    if (evt.state === 'connected') { w.stop(); return; }
+    if (evt.state === 'not_live') {
+      w.stop();
+      if (typeof onNotLive === 'function') onNotLive();
+      return;
+    }
+    if (evt.state !== 'error') return; // connecting/reconnecting — ما زال يحاول
+    w.lastCode = evt.code || 'connect_failed';
+    // يوزرنيم غير موجود، أو fatal من السيرفر = لا داعي لانتظار محاولات إضافية.
+    if (w.lastCode === 'user_not_found' || evt.fatal) { w.fail(w.lastCode); return; }
+    w.fails++;
+    if (w.fails >= TIKTOK_CONNECT_MAX_FAILS) w.fail(w.lastCode);
+  };
+  return w;
+}
+
+// نص السطر التوضيحي داخل شاشة "جاري الربط" — نرجّعه لأصله دائماً
+// بعد الانتهاء حتى ما يتسرّب نص خاص بتيك توك لنافذة الربط السريع المشتركة.
+const TIKTOK_QC_SUB_DEFAULT = 'نتحقق من اتصال حقيقي ببثك المباشر — لحظات...';
+function tiktokQcSubSet(text) {
+  const el = document.getElementById('qc-connecting-sub');
+  if (el) el.textContent = text || TIKTOK_QC_SUB_DEFAULT;
+}
+
 // يفتح اتصال حقيقي بالسيرفر المستضاف ويستنى فعلياً bridge_status:connected
 // (اتصال ببث حقيقي، مو مجرد فتح WebSocket) قبل ما يُعتبر الربط ناجحاً.
 function tiktokConnectModalStart() {
@@ -21194,19 +21294,38 @@ function tiktokConnectModalStart() {
   tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
 
   try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
-  window._tkModalSock = tiktokOpenWS(uname, '',
+  try { if (window._tkModalWatcher) window._tkModalWatcher.stop(); } catch (e) {}
+
+  // المراقب هو اللي يوقف "جاري الاتصال" بعد عدد معقول من المحاولات
+  // الفاشلة المتتالية ويعرض سبباً نهائياً واضحاً، بدل ما تظل رسالة "إعادة
+  // المحاولة تلقائياً" معروضة للأبد بلا أي نتيجة.
+  const watcher = tiktokConnectWatcher((message) => {
+    tiktokConnectSetStatus('error', message);
+    try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
+    window._tkModalSock = null;
+  }, null);
+  window._tkModalWatcher = watcher;
+
+  // نوقظ السيرفر أولاً (Cold Start) ثم نفتح الويب سوكيت — لو كان مستيقظاً
+  // أصلاً (الحالة الشائعة) الوعد محسوم من قبل فما يضيف أي تأخير يُذكر.
+  tiktokBridgeWarmUp().then(() => {
+    if (watcher.done) return; // المستخدم بدأ محاولة ثانية أثناء الإيقاظ
+    watcher.start();
+    window._tkModalSock = tiktokOpenWS(uname, '',
     (evt) => {
+      watcher.note(evt);
       if (evt && evt.type === 'bridge_status') {
         if (evt.state === 'connecting') tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
         else if (evt.state === 'not_live') tiktokConnectSetStatus('error', '⚠️ @' + uname + ' مو مفتوح بث الآن — تأكد إنك لايف وحاول ثانية');
         else if (evt.state === 'reconnecting') tiktokConnectSetStatus('connecting', '🔄 انقطع الاتصال — إعادة المحاولة تلقائياً…');
         else if (evt.state === 'error' && evt.code === 'user_not_found') tiktokConnectSetStatus('error', '⚠️ يوزرنيم غير موجود — تأكد من كتابته صح');
-        else if (evt.state === 'error') tiktokConnectSetStatus('error', '⚠️ خطأ مؤقت — إعادة المحاولة تلقائياً');
+        else if (evt.state === 'error' && !evt.fatal) tiktokConnectSetStatus('error', '⚠️ خطأ مؤقت — إعادة المحاولة تلقائياً');
       }
     },
     () => {
       // onOpen يُطلق فقط بعد bridge_status:connected حقيقي (راجع tiktokOpenWS) —
       // هذا فعلاً ConnectEvent وصل من تيك توك، مو مجرد نجاح فتح WebSocket.
+      watcher.stop();
       tiktokConnectSetStatus('connected', '✅ متصل بالبث المباشر — تأكد إن الشات يتحرك على تيك توك نفسه');
       tiktokSavedUsersUpsert(uname);
       tiktokBridgeStreamerSetEnabled(uname, true);
@@ -21221,37 +21340,93 @@ function tiktokConnectModalStart() {
     (e) => {
       // كود 4403 = السيرفر رفض الاتصال لأن bridgeStreamers/{user}.enabled === false
       // (تحقق حقيقي من السيرفر، مو من التخزين المحلي فقط).
-      if (e && e.code === 4403) tiktokConnectSetStatus('error', '⛔ هذا الحساب معطّل من إدارة المنصة');
+      if (e && e.code === 4403) { watcher.stop(); tiktokConnectSetStatus('error', '⛔ هذا الحساب معطّل من إدارة المنصة'); }
     });
+  });
 }
 
 // زر "ابدأ بثاً سريعاً" لحساب محفوظ — يعيد نفس تدفق tiktokConnectModalStart
 // لكن مباشرة من الصفحة الرئيسية بدون فتح المودال، ويغذّي كل الألعاب عبر
 // homeDispatchToGameListeners بنفس آلية platformConnect الموحّدة.
-function tiktokQuickReconnect(username) {
+function tiktokQuickReconnect(username, opts) {
+  // silent = الربط التلقائي عند فتح الصفحة: بدون شاشة "جاري الربط" اللي
+  // تغطي الموقع كله (المستخدم ما طلب شيء، فما يصح نحجب عنه الواجهة).
+  const silent = !!(opts && opts.silent);
   if (!tiktokSavedUsersIsEnabled(username)) {
-    toast('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
+    if (!silent) toast('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
     return;
   }
-  document.getElementById('qc-connecting-overlay').classList.add('visible');
-  platformConnect('tiktok', { username }, homeDispatchToGameListeners, function (p, status) {
-    document.getElementById('qc-connecting-overlay').classList.remove('visible');
-    if (status === 'connected') {
-      homeUpdateConnectionBadge(true, 'تيك توك');
-      try {
-        localStorage.setItem(STREAMER_USER_STORAGE_KEY, username);
-        localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, 'tiktok');
-      } catch (e) {}
-      tiktokSavedUsersUpsert(username);
-      homeQuickReconnectButtonRefresh();
-      toast('✅ متصل بـ @' + username);
-    } else if (status === 'disabled') {
+  const overlay = document.getElementById('qc-connecting-overlay');
+  const hideOverlay = () => {
+    if (silent || !overlay) return;
+    overlay.classList.remove('visible');
+    tiktokQcSubSet('');
+  };
+  if (!silent && overlay) {
+    tiktokQcSubSet('نجهّز سيرفر الربط… أول اتصال بعد فترة خمول ياخذ وقتاً أطول شوي');
+    overlay.classList.add('visible');
+  }
+
+  // محاولة جديدة تلغي مراقب المحاولة السابقة (ضغطتين متتاليتين، أو ضغطة
+  // يدوية فوق الربط التلقائي) — وإلا تطلع رسالة فشل قديمة فوق محاولة ناجحة.
+  try { if (window._tkQuickWatcher) window._tkQuickWatcher.stop(); } catch (e) {}
+
+  // نفس مراقب المودال: نهاية واضحة لكل محاولة بدل اسبنر يدور بلا نهاية.
+  const watcher = tiktokConnectWatcher(
+    (message) => {
+      hideOverlay();
       homeUpdateConnectionBadge(false, '');
-      toast('⛔ هذا الحساب معطّل من إدارة المنصة');
-    } else if (status === 'failed') {
-      homeUpdateConnectionBadge(false, '');
-      toast('⚠️ تعذّر الاتصال — تأكد إنك لايف حالياً وحاول مرة ثانية');
+      toast(message);
+      // ملاحظة مقصودة: ما نستدعي platformDisconnect هنا. إغلاق السوكيت
+      // يُطلق onClose داخل platformConnect اللي يجدول إعادة محاولة بعد 4ث —
+      // فالإغلاق كان بيرجّع المحاولات بدل ما يوقفها. نكتفي برسالة نهائية
+      // ونترك السوكيت مفتوحاً: السيرفر صار عنده تراجع تصاعدي (حتى دقيقتين)
+      // فما فيه أي دق متواصل، ولو رجعت الخدمة يتصل تلقائياً بلا أي ضغطة.
+    },
+    () => {
+      // "مو لايف" مو فشل: نخفي شاشة الانتظار ونبقي الاتصال مفتوحاً —
+      // السيرفر يعيد المحاولة دورياً ويربط تلقائياً أول ما يفتح البث.
+      hideOverlay();
+      toast('⚠️ @' + username + ' مو مفتوح بث الآن — بنربطك تلقائياً أول ما تفتح البث');
     }
+  );
+  window._tkQuickWatcher = watcher;
+
+  // إيقاظ السيرفر أولاً (Cold Start)، ثم الاتصال وتشغيل مهلة المراقب.
+  tiktokBridgeWarmUp().then(() => {
+    if (watcher.done) return;
+    if (!silent) tiktokQcSubSet('');
+    watcher.start();
+    platformConnect('tiktok', { username }, function (evt) {
+      // أحداث الحالة تصل هنا مغلّفة بـ{messages:[...]} من dispatch() داخل platformConnect.
+      if (evt && evt.messages && evt.messages.length) watcher.note(evt.messages[0]);
+      homeDispatchToGameListeners(evt);
+    }, function (p, status) {
+      if (status === 'connected') {
+        watcher.stop();
+        hideOverlay();
+        homeUpdateConnectionBadge(true, 'تيك توك');
+        try {
+          localStorage.setItem(STREAMER_USER_STORAGE_KEY, username);
+          localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, 'tiktok');
+        } catch (e) {}
+        tiktokSavedUsersUpsert(username);
+        homeQuickReconnectButtonRefresh();
+        toast('✅ متصل بـ @' + username);
+      } else if (status === 'disabled') {
+        watcher.stop();
+        hideOverlay();
+        homeUpdateConnectionBadge(false, '');
+        toast('⛔ هذا الحساب معطّل من إدارة المنصة');
+      } else if (status === 'failed') {
+        watcher.stop();
+        hideOverlay();
+        homeUpdateConnectionBadge(false, '');
+        toast('⚠️ تعذّر الاتصال — تأكد إنك لايف حالياً وحاول مرة ثانية');
+      }
+      // 'disconnected' ما يخفي الشاشة: platformConnect لسا يعيد المحاولة،
+      // والمراقب هو اللي يضمن إنها ما تبقى معروضة للأبد.
+    });
   });
 }
 
@@ -21280,8 +21455,32 @@ function homeQuickReconnectClick() {
   tiktokQuickReconnect(saved.username);
 }
 
+// ==================== ربط تيك توك التلقائي عند فتح الصفحة ====================
+// قبل هذا كان لازم الستريمر يضغط "ابدأ بثاً سريعاً" بنفسه كل مرة يفتح
+// الموقع أو يسوي Refresh. الآن: لو سبق ونجح ربط حساب تيك توك مرة وحدة
+// (bridge_status:connected حقيقي — وهو وحده اللي يستدعي tiktokSavedUsersUpsert)
+// وهو لسا مفعّل — يتصل تلقائياً بدون أي ضغطة.
+//
+// شروط التشغيل (كلها تحترم منطق enabled/disabled كما هو بلا أي تغيير):
+//   - فيه حساب تيك توك محفوظ محلياً وenabled !== false.
+//   - آخر منصة موصولة كانت تيك توك (أو ما فيه قيمة محفوظة بعد) — حتى ما
+//     نغيّر شيء على ستريمر ربطه الأخير كان تويتش/كيك/يوتيوب.
+//   - ما فيه أي اتصال مفتوح أصلاً بهذه الجلسة.
+// والتعطيل من السيرفر (bridgeStreamers/{user}.enabled === false) يبقى هو الحكم النهائي:
+// الاتصال يُرفض برمز 4403 وplatformConnect يترجمه لحالة 'disabled' بدون إعادة محاولة.
+function tiktokAutoReconnectOnLoad() {
+  if (homeHasActiveConnection()) return;
+  const saved = tiktokSavedUsersLoad().find(u => u.enabled !== false);
+  if (!saved) return;
+  let lastPlatform = '';
+  try { lastPlatform = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || ''; } catch (e) {}
+  if (lastPlatform && lastPlatform !== 'tiktok') return;
+  tiktokQuickReconnect(saved.username, { silent: true });
+}
+
 window.addEventListener('load', () => {
   try { homeQuickReconnectButtonRefresh(); } catch (e) {}
+  try { tiktokAutoReconnectOnLoad(); } catch (e) {}
 });
 
 function profileTiktokStatusRefresh() {
