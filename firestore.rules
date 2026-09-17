@@ -200,21 +200,92 @@ service cloud.firestore {
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
-      allow create, update: if request.auth != null
-                    && request.resource.data.keys().hasOnly([
-                         'key', 'username', 'avatar',
-                         'xp', 'level', 'roundsPlayed',
-                         'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
-                       ])
-                    && request.resource.data.xp is number
-                    && request.resource.data.xp >= 0
-                    && request.resource.data.level is number
-                    && request.resource.data.level >= 1
-                    && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+      function levelsAllowedKeys() {
+        return [
+          'key', 'username', 'avatar',
+          'xp', 'level', 'roundsPlayed',
+          'isRegistered', 'isStreamer', 'isViewer', 'uid',
+          'createdAt', 'updatedAt',
+          'ownedFrames', 'levelFrames', 'activeFrame', 'activeFrameAt',
+          'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
+        ];
+      }
 
-      allow delete: if isOwner();
+      function levelsTypesValid() {
+        return request.resource.data.get('xp', 0) is number
+               && request.resource.data.get('xp', 0) >= 0
+               && request.resource.data.get('level', 1) is number
+               && request.resource.data.get('level', 1) >= 1
+               && request.resource.data.get('roundsPlayed', 0) is number
+               && request.resource.data.get('roundsPlayed', 0) >= 0
+               && request.resource.data.get('ownedFrames', []) is list
+               && request.resource.data.get('levelFrames', []) is list
+               && request.resource.data.get('activeFrame', '') is string
+               && request.resource.data.get('activeFrameAt', 0) is number
+               && request.resource.data.get('lastGamePlayed', '') is string
+               && request.resource.data.get('lastGamePlayedAt', request.time) is timestamp
+               && request.resource.data.get('gamesPlayCount', {}) is map
+               && request.resource.data.get('activityLog', []) is list;
+      }
+
+      function levelsChangedTypesValid() {
+        let ch = request.resource.data.diff(resource.data).affectedKeys();
+        return (!ch.hasAny(['xp']) || (request.resource.data.get('xp', 0) is number && request.resource.data.get('xp', 0) >= 0))
+               && (!ch.hasAny(['level']) || (request.resource.data.get('level', 1) is number && request.resource.data.get('level', 1) >= 1))
+               && (!ch.hasAny(['roundsPlayed']) || (request.resource.data.get('roundsPlayed', 0) is number && request.resource.data.get('roundsPlayed', 0) >= 0))
+               && (!ch.hasAny(['ownedFrames']) || request.resource.data.get('ownedFrames', []) is list)
+               && (!ch.hasAny(['levelFrames']) || request.resource.data.get('levelFrames', []) is list)
+               && (!ch.hasAny(['activeFrame']) || request.resource.data.get('activeFrame', '') is string)
+               && (!ch.hasAny(['activeFrameAt']) || request.resource.data.get('activeFrameAt', 0) is number)
+               && (!ch.hasAny(['lastGamePlayed']) || request.resource.data.get('lastGamePlayed', '') is string)
+               && (!ch.hasAny(['lastGamePlayedAt']) || request.resource.data.get('lastGamePlayedAt', request.time) is timestamp)
+               && (!ch.hasAny(['gamesPlayCount']) || request.resource.data.get('gamesPlayCount', {}) is map)
+               && (!ch.hasAny(['activityLog']) || request.resource.data.get('activityLog', []) is list);
+      }
+
+      function framesCountSane() {
+        return request.resource.data.get('ownedFrames', []).size() <= 60
+               && request.resource.data.get('levelFrames', []).size() <= 60;
+      }
+
+      function framesNoRemovals() {
+        return request.resource.data.get('ownedFrames', []).hasAll(resource.data.get('ownedFrames', []))
+               && request.resource.data.get('levelFrames', []).hasAll(resource.data.get('levelFrames', []));
+      }
+
+      function framesAdditionsRecordedAsPicks() {
+        return request.resource.data.get('ownedFrames', [])
+                 .removeAll(resource.data.get('ownedFrames', []))
+                 .hasOnly(request.resource.data.get('levelFrames', []));
+      }
+
+      function framesSelfPickAllowed() {
+        return framesNoRemovals() && framesAdditionsRecordedAsPicks() && framesCountSane();
+      }
+
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasOnly(levelsAllowedKeys())
+                    && levelsTypesValid()
+                    && (isOwner() || (
+                         request.resource.data.get('ownedFrames', [])
+                           .hasOnly(request.resource.data.get('levelFrames', []))
+                         && framesCountSane()
+                       ));
+
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(levelsAllowedKeys())
+                    && levelsChangedTypesValid()
+                    && (isOwner() || framesSelfPickAllowed());
+
+      allow delete: if isOwner()
+                    && resource.data.get('ownedFrames', []).size() == 0
+                    && resource.data.get('levelFrames', []).size() == 0
+                    && resource.data.get('activeFrame', '') == '';
+    }
+
+    match /framesCatalogExtra/{frameId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isOwner();
     }
 
     match /shopProducts/{productId} {
@@ -373,11 +444,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;
-      // زيادة clicksCount مسموحة للجميع حتى بدون تسجيل دخول — أغلب من يفتح
-      // رابط إحالة لأول مرة زائر غير مسجّل أصلاً، وهذا الشرط هو اللي كان
-      // يمنع احتساب زيارته بصمت (request.auth != null كان شرطاً عاماً على
-      // كل تحديث بما فيها هذا). محصور تماماً بزيادة +1 بالضبط على هذا الحقل
-      // وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله فقط.
       allow update: if (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
         request.resource.data.clicksCount == resource.data.clicksCount + 1
@@ -429,6 +495,35 @@ service cloud.firestore {
          request.resource.data.registeredCount == resource.data.registeredCount + 1)
       );
       allow delete: if false;
+    }
+
+    match /bridgeEvents/{eventId} {
+      allow read: if true;
+
+      allow create: if isOwner();
+
+      allow update: if isOwner() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
+      );
+
+      allow delete: if isOwner();
+
+      match /players/{uid} {
+        allow read: if true;
+        allow create: if request.auth != null && request.auth.uid == uid;
+        allow update: if request.auth != null && (
+          request.auth.uid == uid ||
+          isOwner() ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
+        );
+        allow delete: if isOwner();
+      }
+
+      match /state/{docId} {
+        allow read: if true;
+        allow write: if isOwner();
+      }
     }
 
     match /{document=**} {
