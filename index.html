@@ -19004,13 +19004,29 @@ function ownerStatsStop() {
 // عند تبديله أو إغلاق اللوحة — بدل onSnapshot دائم على مجموعة كاملة يستنزف
 // الحصة المجانية. الاستثناء الوحيد هو مودال "عرض" (مستند واحد بعينه، حي).
 const CW_SESSIONS_POLL_MS = 30000; // كل 30 ثانية بالضبط
-const CW_SESSION_STALE_MS = 60000; // مستند ما تحدّث خلال 60 ثانية = ستريمر غير متصل
+// نافذة اعتبار الجلسة "متصلة". كانت 60 ثانية والنبضة كل 20 — نظرياً كافية،
+// عملياً لا: المتصفحات تخنق setInterval بشدة في التبويبات غير المرئية (كروم
+// ينزّلها لمرة كل دقيقة تقريباً)، وتبويب لعبة الستريمر يكون بالخلفية دايماً
+// لأنه يبث ويشتغل على نوافذ ثانية. النتيجة كانت أن ستريمر شغّال فعلاً يُحسب
+// "غير متصل" ويختفي من القائمة. ثلاث دقائق تستوعب الخنق بأمان وتبقى قصيرة
+// كفاية لتنظيف المستندات اليتيمة.
+const CW_SESSION_STALE_MS = 180000;
 
 let cwSessionsPollTimer = null;
 let cwSessionsListenersStarted = false;
 let cwSessionsCache = [];        // آخر نتيجة جلب: [{ id, username, gameStatus, ... }]
+let cwSessionsLastRawCount = 0;  // كم مستند رجع فعلاً قبل فلترة "غير متصل"
 let cwSessionModalUnsub = null;  // onSnapshot الحي — موجود فقط طول ما المودال مفتوح
 let cwSessionModalId = null;
+
+// وقت آخر تحديث للمستند: ختم الخادم هو المرجع، وختم العميل (updatedAtMs)
+// احتياطي يُقرأ فقط لو ختم الخادم لسا ما ثبّت (يرجع null بالنسخة المحليّة
+// مباشرة بعد الكتابة) — وإلا كنا نستبعد جلسة حيّة توّها انكتبت.
+function cwSessionUpdatedMs(data) {
+  const serverMs = (data.updatedAt && data.updatedAt.toMillis) ? data.updatedAt.toMillis() : 0;
+  if (serverMs) return serverMs;
+  return (typeof data.updatedAtMs === 'number') ? data.updatedAtMs : 0;
+}
 
 async function cwSessionsFetchOnce() {
   if (!fb || !isOwnerAccount()) return;
@@ -19019,22 +19035,35 @@ async function cwSessionsFetchOnce() {
     const snap = await fb.getDocs(fb.collection(fb.db, 'cwOwnerSessions'));
     const now = Date.now();
     const rows = [];
+    let raw = 0;
     snap.forEach(d => {
+      raw++;
       const data = d.data() || {};
       // مستندات "يتيمة" (ستريمر سكّر المتصفح فجأة بدون أي تنظيف) تُستبعد
-      // بالاعتماد على updatedAt بدل الاعتماد على حذف يدوي مضمون 100%.
-      const t = (data.updatedAt && data.updatedAt.toMillis) ? data.updatedAt.toMillis() : 0;
-      if (!t || (now - t) > CW_SESSION_STALE_MS) return;
-      rows.push(Object.assign({ id: d.id }, data));
+      // بالاعتماد على وقت آخر تحديث بدل الاعتماد على حذف يدوي مضمون 100%.
+      // مهم: نستبعد فقط لو نعرف يقيناً إنه قديم — مستند بلا أي ختم وقت
+      // يُعرض بدل ما يُخفى، عشان ما نخفي ستريمر شغّال بسبب ختم ناقص.
+      const t = cwSessionUpdatedMs(data);
+      if (t && (now - t) > CW_SESSION_STALE_MS) return;
+      rows.push(Object.assign({ id: d.id }, data, { __updatedMs: t }));
     });
-    rows.sort((a, b) => ((b.updatedAt && b.updatedAt.seconds) || 0) - ((a.updatedAt && a.updatedAt.seconds) || 0));
+    rows.sort((a, b) => (b.__updatedMs || 0) - (a.__updatedMs || 0));
     cwSessionsCache = rows;
+    cwSessionsLastRawCount = raw;
     cwSessionsRenderList();
-    if (noteEl) noteEl.textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-SA') + ' (يتحدّث كل 30 ثانية)';
+    if (noteEl) {
+      noteEl.textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-SA') +
+        ' (كل 30 ثانية) — قُرئ ' + raw + ' مستند، ' + rows.length + ' متصل';
+    }
   } catch (err) {
     if (noteEl) noteEl.textContent = '';
+    // خطأ الصلاحيات هو الحالة الأشيع لو ما انتشرت قواعد cwOwnerSessions —
+    // نسمّيها صراحة بدل رسالة عامة، عشان يُعرف العلاج فوراً.
+    const isPerm = err && (err.code === 'permission-denied' || /permission/i.test(err.message || ''));
     document.getElementById('owner-cwsessions-list').innerHTML =
-      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err.message) + '</div>';
+      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err.message) +
+      (isPerm ? '<br>قاعدة cwOwnerSessions غير منشورة — نفّذ: firebase deploy --only firestore:rules' : '') +
+      '</div>';
   }
 }
 
@@ -19043,7 +19072,12 @@ function cwSessionsRenderList() {
   document.getElementById('owner-cwsessions-count').textContent = rows.length;
   const list = document.getElementById('owner-cwsessions-list');
   if (!rows.length) {
-    list.innerHTML = '<div class="owner-empty">ما فيه أحد يلعب الدول الآن</div>';
+    // نفرّق بين "ما فيه ولا مستند أصلاً" (الكتابة من جهة الستريمر ما وصلت)
+    // و"فيه مستندات لكن كلها قديمة" (الستريمر سكّر أو تبويبه مخنوق) — بدون
+    // هالتفريق كانت القائمة الفاضية ما تقول شيئاً عن سبب المشكلة.
+    list.innerHTML = cwSessionsLastRawCount
+      ? '<div class="owner-empty">فيه ' + cwSessionsLastRawCount + ' جلسة مسجّلة لكن ما وصلت منها نبضة حياة خلال آخر 3 دقائق — يبدو إن أصحابها سكّروا صفحة الدول</div>'
+      : '<div class="owner-empty">ما فيه أحد يلعب الدول الآن<br><span style="font-size:11px;opacity:.7">لو فيه ستريمر شغّال فعلاً: لازم صفحة الدول عنده تكون مفتوحة وعلى آخر نسخة من الموقع (تحديث قسري لصفحته)</span></div>';
     return;
   }
   // ownerEscape يهرّب وسوم HTML لكن مو علامة الاقتباس المفردة — والوسيطان هنا
@@ -19057,12 +19091,13 @@ function cwSessionsRenderList() {
     const count = (typeof sn.participantsCount === 'number')
       ? sn.participantsCount
       : ((sn.participants && sn.participants.length) || 0);
+    const cCount = (sn.countries && sn.countries.length) || 0;
     return `
     <div class="rounds-row">
       <div class="rounds-row-top">
         <div>
           <div class="rounds-row-name">${ownerEscape(sn.username || sn.id || '—')}</div>
-          <div class="rounds-row-sub">عدد المشاركين: ${count} — ${ownerEscape(statusText)}</div>
+          <div class="rounds-row-sub">عدد المشاركين: ${count} — الدول الحية: ${cCount} — ${ownerEscape(statusText)}</div>
         </div>
       </div>
       <div class="rounds-btn-row">
@@ -19113,18 +19148,27 @@ function cwSessionsRenderModal(data) {
     return;
   }
   const countries = data.countries || [];
-  if (!countries.length) {
-    // ستريمر ما بدأ أي راوند بعد: نوضّح السبب بدل قائمة فاضية
-    list.innerHTML = (data.gameStatus === 'waiting')
-      ? '<div class="owner-empty">لسا ما بدأ الراوند — ' + ((data.participants && data.participants.length) || 0) + ' مشارك بالانتظار</div>'
-      : '<div class="owner-empty">ما فيه دول حية بهذا الراوند</div>';
+  const participants = data.participants || [];
+
+  if (countries.length) {
+    list.innerHTML = countries.map(c => `
+      <div class="rounds-pick-row">
+        <div class="rounds-pick-name">${ownerEscape(c.country || '—')} = ${ownerEscape(c.nickname || c.uniqueId || '—')}</div>
+      </div>
+    `).join('');
     return;
   }
-  list.innerHTML = countries.map(c => `
+
+  // ما فيه توزيع دول بعد. بدل قائمة فاضية نعرض المشاركين أنفسهم — الستريمر
+  // اللي ما بدأ راوند لسا عنده ناس منتظرين، والمالك يبي يشوفهم.
+  const head = (data.gameStatus === 'waiting')
+    ? '<div class="owner-empty">لسا ما بدأ الراوند — المشاركون بالانتظار (' + participants.length + ')</div>'
+    : '<div class="owner-empty">ما فيه دول حية بهذا الراوند — المشاركون (' + participants.length + ')</div>';
+  list.innerHTML = head + (participants.length ? participants.map(pt => `
     <div class="rounds-pick-row">
-      <div class="rounds-pick-name">${ownerEscape(c.country || '—')} = ${ownerEscape(c.nickname || c.uniqueId || '—')}</div>
+      <div class="rounds-pick-name">${ownerEscape(pt.nickname || pt.uniqueId || '—')}</div>
     </div>
-  `).join('');
+  `).join('') : '');
 }
 
 function cwSessionsCloseModal() {
@@ -43480,6 +43524,11 @@ function renderCWCountriesGrid() {
     grid.appendChild(card);
   });
   cwUpdateStageHead();
+  // مرآة لوحة المالك فقط (إضافي، best-effort، مخنوقة). هذي دالة رسم بحتة
+  // تُستدعى بعد كل تغيّر فعلي على cwActiveCountries (بداية راوند، انضمام وسط
+  // راوند، إقصاء، إنعاش) — فهي أضمن نقطة وحدة تخلّي قائمة الدول عند المالك
+  // مطابقة للواقع بدل ما تتأخر لحد النبضة التالية. ما تغيّر أي سلوك باللعبة.
+  cwOwnerSessionMirror();
 }
 
 // ==================== SPIN — PICK WHOSE TURN ====================
@@ -43892,28 +43941,58 @@ function cwAddChatMsg(user, text) {
 // راوندات). هنا المعرّف = uid الستريمر، فكل جلسة مستقلة.
 //
 // ⚠️ قواعد أمان Firestore: مجموعة cwOwnerSessions تحتاج قاعدة خاصة (كتابة من
-// المستخدم المسجّل لمستنده هو فقط + قراءة للمالك فقط) — موجودة بملف
-// firestore.rules بالمستودع ولازم تُنشر. لو ما انتشرت، كل الكتابات هنا تفشل
-// بصمت (best-effort) ولا تأثر على اللعبة إطلاقاً.
+// أي مستخدم مسجّل دخول + قراءة للمالك وحده) — موجودة بملف firestore.rules
+// بالمستودع ولازم تُنشر. لو ما انتشرت، كل الكتابات هنا تفشل (best-effort، ما
+// تأثر على اللعبة إطلاقاً) وتطلع رسالة تحذير بكونسول المتصفح توضّح السبب.
 const CW_OWNER_SESSION_HEARTBEAT_MS = 20000;    // نبضة حياة كل 20 ثانية طول ما اللعبة نشطة
 const CW_OWNER_SESSION_FINISHED_TTL_MS = 40000; // بعد انتهاء اللعبة بهالمدة يُحذف المستند
+const CW_OWNER_SESSION_MIN_WRITE_GAP_MS = 2500; // خنق: أسرع من كذا نأجّل الكتابة بدل ما نكررها
 let cwOwnerSessionTimer = null;
 let cwOwnerSessionFinishedAt = 0;
+let cwOwnerSessionLastWriteAt = 0;
+let cwOwnerSessionTrailingTimer = null;
+let cwOwnerSessionBootRetries = 0;
 
-// معرّف المستند: uid الستريمر إذا متوفر، وإلا يوزرنيم البث كبديل.
+// معرّف المستند: uid الستريمر. نقرأه من fb.auth.currentUser أولاً لأنه المصدر
+// الحي والمؤكّد من SDK نفسه — المتغير currentUser نسخة مخزّنة يضبطها
+// onAuthStateChanged، وممكن يكون لسا null لو الستريمر ضغط "ابدأ" قبل ما تكتمل
+// دورة المصادقة. وإلا يوزرنيم البث كبديل أخير.
 function cwOwnerSessionDocId() {
-  return String((currentUser && currentUser.uid) || cwUser || '').trim();
+  const authUid = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.uid) || '';
+  return String(authUid || (currentUser && currentUser.uid) || cwUser || '').trim();
 }
 
-// الكتابة الوحيدة لهذه المجموعة — best-effort بالكامل (نفس أسلوب
-// liveRoundsMirror): try/catch + .catch(()=>{}) وبدون await، فما توقف ولا
-// تبطّئ أي مسار بواجهة الستريمر ولا التفاعل مع الشات.
+function cwOwnerSessionOnCwPage() {
+  const cwPage = document.getElementById('pg-countrywar');
+  const cwWinPage = document.getElementById('pg-countrywar-winner');
+  return (cwPage && cwPage.classList.contains('active')) ||
+         (cwWinPage && cwWinPage.classList.contains('active'));
+}
+
+// المدخل العام — مخنوق. الاستدعاءات المتلاحقة (إقصاء ورا إقصاء، انضمام جماعي)
+// تنكتب مرة وحدة بدل عشر كتابات، مع كتابة أخيرة مضمونة عشان ما تضيع آخر حالة.
 function cwOwnerSessionMirror() {
+  if (!fb) return;
+  const since = Date.now() - cwOwnerSessionLastWriteAt;
+  if (since >= CW_OWNER_SESSION_MIN_WRITE_GAP_MS) { cwOwnerSessionWriteNow(); return; }
+  if (cwOwnerSessionTrailingTimer) return;
+  cwOwnerSessionTrailingTimer = setTimeout(() => {
+    cwOwnerSessionTrailingTimer = null;
+    cwOwnerSessionWriteNow();
+  }, CW_OWNER_SESSION_MIN_WRITE_GAP_MS - since);
+}
+
+// الكتابة الفعلية — best-effort بالكامل (نفس أسلوب liveRoundsMirror): try/catch
+// وبدون await، فما توقف ولا تبطّئ أي مسار بواجهة الستريمر ولا التفاعل مع الشات.
+// الفرق الوحيد عن السابق: الفشل يُطبع بالكونسول بدل ما يُبلع تماماً — كان
+// مستحيل نعرف ليش المالك يشوف القائمة فاضية، لأن رفض القواعد ما يترك أي أثر.
+function cwOwnerSessionWriteNow() {
   if (!fb) return;
   try {
     const id = cwOwnerSessionDocId();
-    if (!id) return;
+    if (!id) { cwOwnerSessionScheduleBootRetry(); return; }
     cwOwnerSessionArmHeartbeat();
+    cwOwnerSessionLastWriteAt = Date.now();
     const participants = [...cwParticipants.values()].map(u => ({
       uniqueId: u.uniqueId, nickname: u.nickname || u.uniqueId
     }));
@@ -43924,28 +44003,50 @@ function cwOwnerSessionMirror() {
       return { country: c.name, uniqueId: c.uid, nickname: (u && u.nickname) || c.uid };
     });
     fb.setDoc(fb.doc(fb.db, 'cwOwnerSessions', id), {
+      uid: id,
       username: cwUser || '',
       platform: gamePlatform['cw'] || null,
       gameStatus: cwGameStatus,
       participants,
       countries,
       participantsCount: participants.length,
-      updatedAt: fb.serverTimestamp()
-    }).catch(() => {});
-  } catch (err) { /* best-effort — never block game logic */ }
+      countriesCount: countries.length,
+      updatedAt: fb.serverTimestamp(),
+      // ختم وقت من العميل بجانب serverTimestamp: قيمة serverTimestamp تبقى null
+      // بالنسخة المحليّة لحد ما الخادم يثبّتها، وكان أي مستند بهالحالة يُستبعد
+      // من قائمة المالك كأن صاحبه غير متصل. هذا احتياطي يُقرأ فقط لو الخادم
+      // ما ثبّت ختمه بعد.
+      updatedAtMs: Date.now()
+    }).catch((err) => {
+      console.warn('[cwOwnerSession] تعذّرت كتابة مرآة جلسة الدول — اللعبة ما تتأثر. السبب:',
+                   (err && err.code) || '', (err && err.message) || err);
+    });
+  } catch (err) {
+    console.warn('[cwOwnerSession] خطأ ببناء مرآة جلسة الدول — اللعبة ما تتأثر:', err);
+  }
+}
+
+// لو المصادقة ما خلصت بعد لحظة ما ضغط الستريمر "ابدأ"، نعيد المحاولة بهدوء
+// بدل ما تضيع الجلسة للأبد (كانت أول كتابة ترجع بلا معرّف وما فيه شي يوقظها).
+function cwOwnerSessionScheduleBootRetry() {
+  if (cwOwnerSessionBootRetries >= 10) return;
+  cwOwnerSessionBootRetries++;
+  setTimeout(() => { if (cwOwnerSessionOnCwPage()) cwOwnerSessionWriteNow(); }, 2000);
 }
 
 // بداية الجلسة: ننظّف أثر أي جلسة سابقة ونكتب أول صورة فوراً.
 function cwOwnerSessionBoot() {
   cwOwnerSessionFinishedAt = 0;
-  cwOwnerSessionMirror();
+  cwOwnerSessionBootRetries = 0;
+  cwOwnerSessionLastWriteAt = 0;
+  cwOwnerSessionWriteNow();
 }
 
 // نهاية اللعبة (شاشة الفائز): نحدّث الحالة لـ'finished' ونؤشّر وقت الانتهاء —
 // النبضة تحذف المستند بعد CW_OWNER_SESSION_FINISHED_TTL_MS.
 function cwOwnerSessionFinish() {
   cwOwnerSessionFinishedAt = Date.now();
-  cwOwnerSessionMirror();
+  cwOwnerSessionWriteNow();
 }
 
 function cwOwnerSessionArmHeartbeat() {
@@ -43957,23 +44058,20 @@ function cwOwnerSessionArmHeartbeat() {
 // disconnectAllGames / cwDisconnectWS): لو الستريمر غادر صفحة الدول (رجع
 // للرئيسية أو بدّل لعبة) أو انتهت اللعبة من زمان، توقف نفسها وتحذف المستند.
 // حتى لو انقفل المتصفح فجأة وما اشتغلت، المالك يستبعد أي مستند ما تحدّث خلال
-// 60 ثانية (CW_SESSION_STALE_MS) فما تبقى مستندات يتيمة معروضة.
+// CW_SESSION_STALE_MS فما تبقى مستندات يتيمة معروضة.
 function cwOwnerSessionTick() {
-  const cwPage = document.getElementById('pg-countrywar');
-  const cwWinPage = document.getElementById('pg-countrywar-winner');
-  const onCwPage = (cwPage && cwPage.classList.contains('active')) ||
-                   (cwWinPage && cwWinPage.classList.contains('active'));
-  if (!onCwPage) { cwOwnerSessionStop(true); return; }
+  if (!cwOwnerSessionOnCwPage()) { cwOwnerSessionStop(true); return; }
   if (cwGameStatus === 'finished' && cwOwnerSessionFinishedAt &&
       (Date.now() - cwOwnerSessionFinishedAt) >= CW_OWNER_SESSION_FINISHED_TTL_MS) {
     cwOwnerSessionStop(true);
     return;
   }
-  cwOwnerSessionMirror();
+  cwOwnerSessionWriteNow(); // النبضة تتجاوز الخنق — هي أصلاً كل 20 ثانية
 }
 
 function cwOwnerSessionStop(deleteDocToo) {
   if (cwOwnerSessionTimer) { clearInterval(cwOwnerSessionTimer); cwOwnerSessionTimer = null; }
+  if (cwOwnerSessionTrailingTimer) { clearTimeout(cwOwnerSessionTrailingTimer); cwOwnerSessionTrailingTimer = null; }
   if (!deleteDocToo || !fb) return;
   try {
     const id = cwOwnerSessionDocId();
