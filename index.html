@@ -1517,7 +1517,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
    عنده إطار مُفعَّل): بدل حلقة صغيرة حول الأفتار، تعرض صورة الإطار العريضة
    كاملة (دائرة الأفتار + لوحة الاسم) كخلفية للبطاقة، والأفتار/الاسم
    يتموضعان داخلها حسب حقل hole بـFRAMES_CATALOG (framesInjectRing بالجافاسكربت). */
-.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:92px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
+.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:84px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;display:flex;align-items:center;justify-content:center;}
 .p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;}
 .p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
@@ -2945,6 +2945,12 @@ body{padding-top:64px;}
     border:2px solid rgba(11,5,24,.92); box-shadow:0 0 12px -2px rgba(245,158,11,.95);
   }
   & .p-username-name{ font-weight:700; font-size:12px; color:#CBBDF3; max-width:80px; }
+  /* الاسم فوق الإطار الكامل له مساحة مخصّصة أوسع بالإطار نفسه (بين فتحة
+     الأفتار وحافة البطاقة) — max-width:80px أعلاه يكسر تمدّد يسار/يمين
+     المحسوب بالجافاسكربت (framesInjectRingWithFrame) فيطلّع الاسم غير
+     متمركز بمكانه الصحيح. لازم أكثر تحديداً من القاعدة العامة فوق حتى تفوز
+     بالتخصيص بدون !important. */
+  & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
 
   /* صف أزرار شاشة الانتظار */
   & .game-bottom-row{ max-width:760px; gap:12px; }
@@ -5090,6 +5096,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="owner-tab" id="owner-tab-feedback" onclick="ownerSwitchTab('feedback')">💡 اقتراحات</button>
       <button type="button" class="owner-tab" id="owner-tab-messages" onclick="ownerSwitchTab('messages')">💬 رسائل</button>
       <button type="button" class="owner-tab" id="owner-tab-rounds" onclick="ownerSwitchTab('rounds')">🎮 راوندات</button>
+      <button type="button" class="owner-tab" id="owner-tab-cwsessions" onclick="ownerSwitchTab('cwsessions')">🌍 الدول</button>
       <button type="button" class="owner-tab" id="owner-tab-events" onclick="ownerSwitchTab('events')">🎉 فعاليات</button>
       <button type="button" class="owner-tab" id="owner-tab-gifts" onclick="ownerSwitchTab('gifts')">🎁 هدايا</button>
       <button type="button" class="owner-tab" id="owner-tab-online" onclick="ownerSwitchTab('online')">🌐 اونلاين</button>
@@ -5214,6 +5221,18 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="owner-list" id="owner-rounds-list">
         <div class="owner-empty">جارِ التحميل...</div>
       </div>
+    </div>
+
+    <!-- COUNTRY-WAR LIVE SESSIONS TAB (🌍 الدول) -->
+    <!-- كل ستريمر يشغّل لعبة الدول له مستند مستقل بمجموعة cwOwnerSessions
+         (المعرف = uid الستريمر)، فتظهر هنا كل الجلسات المتوازية مرة وحدة —
+         بعكس activeStreamers اللي مستندها واحد لكل لعبة فيمسح بعضه. -->
+    <div class="owner-panel-body" id="owner-panel-cwsessions">
+      <div class="owner-count-badge">ستريمرز يلعبون الدول الآن: <b id="owner-cwsessions-count">0</b></div>
+      <div class="owner-list" id="owner-cwsessions-list">
+        <div class="owner-empty">جارِ التحميل...</div>
+      </div>
+      <div class="owner-row-sub" id="owner-cwsessions-note" style="text-align:center;"></div>
     </div>
 
     <!-- EVENTS ACCESS TAB -->
@@ -5795,6 +5814,22 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button class="owner-modal-close" onclick="ownerRoundsClosePickWinner()">✕</button>
     </div>
     <div class="owner-list" id="rounds-pickwinner-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== OWNER: COUNTRY-WAR SESSION DETAILS MODAL (تاب 🌍 الدول) ====== -->
+<!-- طول ما هذا المودال مفتوح فقط، نفتح onSnapshot حي على مستند الجلسة الواحد
+     عشان توزيع الدول يتحدّث فوراً لحظة ما الستريمر يبدأ راوند جديد (بدون انتظار
+     دورة الـ30 ثانية). يُلغى الاشتراك فوراً عند الإغلاق. -->
+<div class="owner-modal-overlay" id="owner-cwsession-overlay" onclick="if(event.target===this) cwSessionsCloseModal()">
+  <div class="owner-modal rounds-pickwinner-modal">
+    <div class="owner-modal-head">
+      <div class="owner-modal-title">🌍 توزيع الدول — <span id="owner-cwsession-streamer">—</span></div>
+      <button class="owner-modal-close" onclick="cwSessionsCloseModal()">✕</button>
+    </div>
+    <div class="owner-list" id="owner-cwsession-list">
       <div class="owner-empty">جارِ التحميل...</div>
     </div>
   </div>
@@ -18657,12 +18692,13 @@ function ownerClosePanel() {
   evtAdminListStop();
   ahsemhaAdminListStop();
   ownerStatsStop();
+  cwSessionsStop();
   // لو فعالية 100 لاعب شغّالة، خليها تظهر فوراً للمالك نفسه بعد ما يسكّر لوحته
   // (event100Render ما يُستدعى تلقائياً هنا لأنه مربوط بمستمع Firestore فقط).
   if (typeof event100Render === 'function') event100Render();
 }
 function ownerSwitchTab(tab) {
-  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','events','gifts','online','store','event100','protection','ahsemha','scode','sevt'].forEach(t => {
+  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','cwsessions','events','gifts','online','store','event100','protection','ahsemha','scode','sevt'].forEach(t => {
     document.getElementById('owner-tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('owner-panel-' + t).classList.toggle('active', t === tab);
   });
@@ -18674,6 +18710,8 @@ function ownerSwitchTab(tab) {
   if (tab !== 'scode') scodeOwnerListStop();
   if (tab !== 'stats') ownerStatsStop();
   if (tab === 'stats') ownerStatsBoot();
+  if (tab !== 'cwsessions') cwSessionsStop();
+  if (tab === 'cwsessions') cwSessionsBoot();
   if (tab === 'updates') ownerUpdatesBoot();
   if (tab === 'moderators') { modAdminListBoot(); ownerRenderModeratorsList(); }
   if (tab === 'frames') ownerFramesTabBoot();
@@ -18945,6 +18983,155 @@ function ownerStatsBoot() {
 function ownerStatsStop() {
   if (ownerStatsPollTimer) { clearInterval(ownerStatsPollTimer); ownerStatsPollTimer = null; }
   ownerStatsListenersStarted = false;
+}
+
+// ==================== OWNER TAB: 🌍 الدول (جلسات لعبة الدول الحية) ====================
+// المشكلة اللي يحلها هذا التاب: activeStreamers مستند واحد لكل لعبة بمعرّفه =
+// اسم اللعبة ('cw')، فآخر ستريمر يشغّل الدول يمسح بيانات اللي قبله ولا يمكن عرض
+// أكثر من جلسة بنفس اللحظة. مجموعة cwOwnerSessions الجديدة مستند لكل ستريمر
+// (المعرّف = uid الستريمر)، فكل الجلسات المتوازية تظهر هنا كل وحدة بمشاركيها
+// ودولها. المجموعة إضافية بحتة: ما تلمس activeStreamers ولا liveRounds ولا أي
+// منطق داخل لعبة الدول.
+//
+// ⚠️ قواعد أمان Firestore: مجموعة cwOwnerSessions تحتاج قاعدة خاصة فيها، شبيهة
+// بقاعدتَي activeStreamers/liveRounds الموجودتين لكن أضيق: كتابة من أي مستخدم
+// مسجّل دخول لمستنده هو فقط (معرّف المستند = uid الكاتب)، وقراءة محصورة بالمالك.
+// ملف القواعد بالمستودع (firestore.rules) محدَّث بهذا فعلاً — لكن لازم يُنشر
+// (firebase deploy --only firestore:rules) وإلا التاب راح يطلع برسالة صلاحيات
+// والـmirror من جهة الستريمر يفشل بصمت (best-effort، ما يأثر على اللعبة).
+//
+// نفس فلسفة تاب "احصائيات": جلب دوري محدود (getDocs) يبدأ عند فتح التاب ويتوقف
+// عند تبديله أو إغلاق اللوحة — بدل onSnapshot دائم على مجموعة كاملة يستنزف
+// الحصة المجانية. الاستثناء الوحيد هو مودال "عرض" (مستند واحد بعينه، حي).
+const CW_SESSIONS_POLL_MS = 30000; // كل 30 ثانية بالضبط
+const CW_SESSION_STALE_MS = 60000; // مستند ما تحدّث خلال 60 ثانية = ستريمر غير متصل
+
+let cwSessionsPollTimer = null;
+let cwSessionsListenersStarted = false;
+let cwSessionsCache = [];        // آخر نتيجة جلب: [{ id, username, gameStatus, ... }]
+let cwSessionModalUnsub = null;  // onSnapshot الحي — موجود فقط طول ما المودال مفتوح
+let cwSessionModalId = null;
+
+async function cwSessionsFetchOnce() {
+  if (!fb || !isOwnerAccount()) return;
+  const noteEl = document.getElementById('owner-cwsessions-note');
+  try {
+    const snap = await fb.getDocs(fb.collection(fb.db, 'cwOwnerSessions'));
+    const now = Date.now();
+    const rows = [];
+    snap.forEach(d => {
+      const data = d.data() || {};
+      // مستندات "يتيمة" (ستريمر سكّر المتصفح فجأة بدون أي تنظيف) تُستبعد
+      // بالاعتماد على updatedAt بدل الاعتماد على حذف يدوي مضمون 100%.
+      const t = (data.updatedAt && data.updatedAt.toMillis) ? data.updatedAt.toMillis() : 0;
+      if (!t || (now - t) > CW_SESSION_STALE_MS) return;
+      rows.push(Object.assign({ id: d.id }, data));
+    });
+    rows.sort((a, b) => ((b.updatedAt && b.updatedAt.seconds) || 0) - ((a.updatedAt && a.updatedAt.seconds) || 0));
+    cwSessionsCache = rows;
+    cwSessionsRenderList();
+    if (noteEl) noteEl.textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-SA') + ' (يتحدّث كل 30 ثانية)';
+  } catch (err) {
+    if (noteEl) noteEl.textContent = '';
+    document.getElementById('owner-cwsessions-list').innerHTML =
+      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err.message) + '</div>';
+  }
+}
+
+function cwSessionsRenderList() {
+  const rows = cwSessionsCache;
+  document.getElementById('owner-cwsessions-count').textContent = rows.length;
+  const list = document.getElementById('owner-cwsessions-list');
+  if (!rows.length) {
+    list.innerHTML = '<div class="owner-empty">ما فيه أحد يلعب الدول الآن</div>';
+    return;
+  }
+  // ownerEscape يهرّب وسوم HTML لكن مو علامة الاقتباس المفردة — والوسيطان هنا
+  // يدخلان داخل نص JS بعلامات مفردة جوّا onclick، فنهرّبها عشان أي يوزر فيه
+  // ' ما يكسر الزر.
+  const attrArg = (v) => ownerEscape(v).replace(/'/g, "\\'");
+  list.innerHTML = rows.map(sn => {
+    const statusText = sn.gameStatus === 'active'   ? '🌍 الراوند شغّال'
+                     : sn.gameStatus === 'finished' ? '🏆 انتهى الراوند'
+                     : '⏳ بالانتظار';
+    const count = (typeof sn.participantsCount === 'number')
+      ? sn.participantsCount
+      : ((sn.participants && sn.participants.length) || 0);
+    return `
+    <div class="rounds-row">
+      <div class="rounds-row-top">
+        <div>
+          <div class="rounds-row-name">${ownerEscape(sn.username || sn.id || '—')}</div>
+          <div class="rounds-row-sub">عدد المشاركين: ${count} — ${ownerEscape(statusText)}</div>
+        </div>
+      </div>
+      <div class="rounds-btn-row">
+        <button type="button" class="rounds-btn rounds-btn-pickwinner" onclick="cwSessionsOpenModal('${attrArg(sn.id)}','${attrArg(sn.username || sn.id || '—')}')">👁️ عرض</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cwSessionsBoot() {
+  if (!isOwnerAccount() || cwSessionsListenersStarted) return;
+  cwSessionsListenersStarted = true;
+
+  cwSessionsFetchOnce();
+  if (cwSessionsPollTimer) clearInterval(cwSessionsPollTimer);
+  cwSessionsPollTimer = setInterval(cwSessionsFetchOnce, CW_SESSIONS_POLL_MS);
+}
+
+// يوقف الاستطلاع الدوري (وأي مودال حي مفتوح) عند مغادرة التاب أو إغلاق اللوحة
+function cwSessionsStop() {
+  if (cwSessionsPollTimer) { clearInterval(cwSessionsPollTimer); cwSessionsPollTimer = null; }
+  cwSessionsListenersStarted = false;
+  cwSessionsCloseModal();
+}
+
+// ---------- مودال "عرض": اسم الدولة = اسم اللاعب (حي على مستند واحد فقط) ----------
+function cwSessionsOpenModal(sessionId, username) {
+  if (!fb || !isOwnerAccount()) return;
+  cwSessionsCloseModal(); // لا نترك اشتراكاً سابقاً شغّالاً أبداً
+  cwSessionModalId = sessionId;
+  document.getElementById('owner-cwsession-streamer').textContent = username || sessionId;
+  document.getElementById('owner-cwsession-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
+  document.getElementById('owner-cwsession-overlay').classList.add('visible');
+
+  cwSessionModalUnsub = fb.onSnapshot(fb.doc(fb.db, 'cwOwnerSessions', sessionId), (snap) => {
+    if (cwSessionModalId !== sessionId) return; // المودال انقفل/تبدّل أثناء الرحلة
+    cwSessionsRenderModal(snap.exists() ? snap.data() : null);
+  }, (err) => {
+    document.getElementById('owner-cwsession-list').innerHTML =
+      '<div class="owner-empty">⚠️ تعذّر تحميل التوزيع: ' + ownerEscape(err.message) + '</div>';
+  });
+}
+
+function cwSessionsRenderModal(data) {
+  const list = document.getElementById('owner-cwsession-list');
+  if (!data) {
+    list.innerHTML = '<div class="owner-empty">انتهت جلسة هذا الستريمر</div>';
+    return;
+  }
+  const countries = data.countries || [];
+  if (!countries.length) {
+    // ستريمر ما بدأ أي راوند بعد: نوضّح السبب بدل قائمة فاضية
+    list.innerHTML = (data.gameStatus === 'waiting')
+      ? '<div class="owner-empty">لسا ما بدأ الراوند — ' + ((data.participants && data.participants.length) || 0) + ' مشارك بالانتظار</div>'
+      : '<div class="owner-empty">ما فيه دول حية بهذا الراوند</div>';
+    return;
+  }
+  list.innerHTML = countries.map(c => `
+    <div class="rounds-pick-row">
+      <div class="rounds-pick-name">${ownerEscape(c.country || '—')} = ${ownerEscape(c.nickname || c.uniqueId || '—')}</div>
+    </div>
+  `).join('');
+}
+
+function cwSessionsCloseModal() {
+  if (cwSessionModalUnsub) { try { cwSessionModalUnsub(); } catch (e) {} cwSessionModalUnsub = null; }
+  cwSessionModalId = null;
+  const overlay = document.getElementById('owner-cwsession-overlay');
+  if (overlay) overlay.classList.remove('visible');
 }
 
 function ownerOpenOnlineNow() {
@@ -27244,8 +27431,8 @@ const framesActiveWraps = new Map();       // levelsKey -> Map<Element, sizePx>
 // بناءً على حقل hole المخزّن بكل عنصر كتالوج ([left%, top%, width%, height%]
 // لموضع فتحة الأفتار داخل صورة الإطار العريضة). f = كائن الإطار المُحلّل مسبقاً
 // (ثابت أو ديناميكي — بنفس الشكل: gallery/imageUrl + hole).
-const FRAMES_BANNER_H = 92; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
-const FRAMES_BANNER_RATIO_FALLBACK = 2.8; // يطابق aspect-ratio بـCSS — يُستخدم فقط لو الإطار بلا ratio
+const FRAMES_BANNER_H = 84; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
+const FRAMES_BANNER_RATIO = 2.8; // يطابق aspect-ratio بـCSS — نسبة ثابتة تُطبَّق على كل الإطارات
 
 function framesInjectRingWithFrame(tagEl, f, sizePx) {
   if (!tagEl || !f || tagEl.classList.contains('p-has-full-frame')) return;
@@ -27256,11 +27443,12 @@ function framesInjectRingWithFrame(tagEl, f, sizePx) {
   const [l, t, w, h] = f.hole;
   tagEl.classList.add('p-has-full-frame');
   tagEl.style.backgroundImage = "url('" + img + "')";
-  // نسبة البطاقة = نسبة صورة الإطار نفسها، مو قيمة ثابتة. الخلفية مرسومة
-  // بـbackground-size:100% 100%، فإطار نسبته تختلف عن نسبة البطاقة كان يتمدّد
-  // عرضاً/طولاً وتزيح فتحة الأفتار عن مكانها بالتصميم — يظهر الأفتار خارج
-  // الفتحة أو فوق حدود الإطار.
-  const ratio = (Number(f.ratio) > 0) ? Number(f.ratio) : FRAMES_BANNER_RATIO_FALLBACK;
+  // نسبة البطاقة ثابتة (FRAMES_BANNER_RATIO) لكل الإطارات — بغض النظر عن نسبة
+  // صورة الإطار نفسها — عشان كل الإطارات تبين بنفس الحجم بالضبط بدل ما يختلف
+  // حجم كل إطار حسب تصميمه. الخلفية مرسومة بـbackground-size:100% 100% فتتمدّد
+  // مع الصندوق، وفتحة الأفتار (hole) نسبة مئوية من نفس الصندوق فتضل متمركزة
+  // بمكانها الصحيح حتى مع اختلاف النسبة الأصلية للصورة عن نسبة الصندوق.
+  const ratio = FRAMES_BANNER_RATIO;
   tagEl.style.aspectRatio = String(ratio);
   wrap.style.left = l + '%';
   wrap.style.top = t + '%';
@@ -42863,6 +43051,7 @@ function launchCountryWar() {
   homeRegisterGameListener('cw', cwHandleEvent);
   document.getElementById('btn-cw-launch').disabled = false;
   document.getElementById('cw-status').className = 'status-msg';
+  cwOwnerSessionBoot(); // مرآة لوحة المالك فقط (إضافي، best-effort) — لا يغيّر أي سلوك باللعبة
 }
 
 function cwSetStatus(type, msg) {
@@ -43100,6 +43289,7 @@ function cwJoinParticipant(user) {
   }
 
   liveRoundsMirror('cw', cwParticipants);
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 function cwRemoveParticipant(uniqueId) {
@@ -43119,6 +43309,7 @@ function cwRemoveParticipant(uniqueId) {
   const tag = document.getElementById('cwtag-' + uniqueId);
   if (tag) tag.remove();
   liveRoundsMirror('cw', cwParticipants);
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 // يطرد لاعباً من زر "🚫 اطرد لاعب" بداشبورد الستريمر نفسه — نفس منطق bomb.
@@ -43246,6 +43437,7 @@ function startCountryWarRound() {
   __cwHint.textContent = 'اضغط لتدوير منشور القرعة';
   __cwHint.className = 'cw-spin-result show';
   toast('🌍 تم توزيع الدول سراً على الجميع! اضغط ابدأ الاختيار لتحديد من يقصي');
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort) — يلتقط التوزيع الجديد لحظة بدايته
 }
 
 // يبني وسم صورة علم حقيقية من flagcdn (يظهر على كل الأجهزة بما فيها ويندوز).
@@ -43582,6 +43774,7 @@ function showCWWinner(user, countryName, flag) {
     wrap.innerHTML = `<div class="w-avatar-fb">${esc((user.nickname||'?')[0])}</div>`;
   }
   show('countrywar-winner');
+  cwOwnerSessionFinish(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 function cwSetGameStatus(s) {
@@ -43683,6 +43876,109 @@ function cwAddChatMsg(user, text) {
   list.appendChild(item);
   list.scrollTop = list.scrollHeight;
   while (list.children.length > 120) list.removeChild(list.firstChild);
+}
+
+// ==================== OWNER MIRROR — جلسة الدول الحية (إضافي بحت) ====================
+// قسم مستقل تماماً بأسفل كود cw: ما يعدّل أي متغير أو دالة أو ترتيب عملية
+// بمنطق اللعبة. كل اللي يسويه أنه ينسخ (mirror) صورة القراءة فقط لجلسة هذا
+// الستريمر إلى مستند Firestore خاص فيه، عشان تاب "🌍 الدول" بلوحة المالك يقدر
+// يعرض كل الستريمرز اللي يلعبون الدول بنفس اللحظة — كل واحد بمشاركيه وتوزيع
+// دوله. يُستدعى من 4 مواضع بسطر واحد لكل موضع (بداية الجلسة، انضمام مشارك،
+// خروج مشارك، بداية راوند جديد) + نبضة حياة دورية.
+//
+// ليش مجموعة جديدة بدل liveRoundsMirror الموجودة؟ لأن liveRounds مستندها
+// بمعرّف gameTag فقط (مستند واحد لكل لعبة) فيتضارب بين ستريمرَين يلعبان نفس
+// اللعبة بنفس اللحظة، وهي مستخدمة أصلاً لغرض ثاني (منتقي "فوز شخص" بتاب
+// راوندات). هنا المعرّف = uid الستريمر، فكل جلسة مستقلة.
+//
+// ⚠️ قواعد أمان Firestore: مجموعة cwOwnerSessions تحتاج قاعدة خاصة (كتابة من
+// المستخدم المسجّل لمستنده هو فقط + قراءة للمالك فقط) — موجودة بملف
+// firestore.rules بالمستودع ولازم تُنشر. لو ما انتشرت، كل الكتابات هنا تفشل
+// بصمت (best-effort) ولا تأثر على اللعبة إطلاقاً.
+const CW_OWNER_SESSION_HEARTBEAT_MS = 20000;    // نبضة حياة كل 20 ثانية طول ما اللعبة نشطة
+const CW_OWNER_SESSION_FINISHED_TTL_MS = 40000; // بعد انتهاء اللعبة بهالمدة يُحذف المستند
+let cwOwnerSessionTimer = null;
+let cwOwnerSessionFinishedAt = 0;
+
+// معرّف المستند: uid الستريمر إذا متوفر، وإلا يوزرنيم البث كبديل.
+function cwOwnerSessionDocId() {
+  return String((currentUser && currentUser.uid) || cwUser || '').trim();
+}
+
+// الكتابة الوحيدة لهذه المجموعة — best-effort بالكامل (نفس أسلوب
+// liveRoundsMirror): try/catch + .catch(()=>{}) وبدون await، فما توقف ولا
+// تبطّئ أي مسار بواجهة الستريمر ولا التفاعل مع الشات.
+function cwOwnerSessionMirror() {
+  if (!fb) return;
+  try {
+    const id = cwOwnerSessionDocId();
+    if (!id) return;
+    cwOwnerSessionArmHeartbeat();
+    const participants = [...cwParticipants.values()].map(u => ({
+      uniqueId: u.uniqueId, nickname: u.nickname || u.uniqueId
+    }));
+    // countries = الدول الحية بالراوند الحالي مدموجة مع cwParticipants لجلب
+    // اسم كل لاعب، فيصير كل عنصر يمثّل حرفياً: اسم الدولة = اسم اللاعب.
+    const countries = cwActiveCountries.map(c => {
+      const u = cwParticipants.get(c.uid);
+      return { country: c.name, uniqueId: c.uid, nickname: (u && u.nickname) || c.uid };
+    });
+    fb.setDoc(fb.doc(fb.db, 'cwOwnerSessions', id), {
+      username: cwUser || '',
+      platform: gamePlatform['cw'] || null,
+      gameStatus: cwGameStatus,
+      participants,
+      countries,
+      participantsCount: participants.length,
+      updatedAt: fb.serverTimestamp()
+    }).catch(() => {});
+  } catch (err) { /* best-effort — never block game logic */ }
+}
+
+// بداية الجلسة: ننظّف أثر أي جلسة سابقة ونكتب أول صورة فوراً.
+function cwOwnerSessionBoot() {
+  cwOwnerSessionFinishedAt = 0;
+  cwOwnerSessionMirror();
+}
+
+// نهاية اللعبة (شاشة الفائز): نحدّث الحالة لـ'finished' ونؤشّر وقت الانتهاء —
+// النبضة تحذف المستند بعد CW_OWNER_SESSION_FINISHED_TTL_MS.
+function cwOwnerSessionFinish() {
+  cwOwnerSessionFinishedAt = Date.now();
+  cwOwnerSessionMirror();
+}
+
+function cwOwnerSessionArmHeartbeat() {
+  if (cwOwnerSessionTimer) return;
+  cwOwnerSessionTimer = setInterval(cwOwnerSessionTick, CW_OWNER_SESSION_HEARTBEAT_MS);
+}
+
+// النبضة تدير نفسها بنفسها بدل ما نعدّل دوال الخروج الموجودة (goHome /
+// disconnectAllGames / cwDisconnectWS): لو الستريمر غادر صفحة الدول (رجع
+// للرئيسية أو بدّل لعبة) أو انتهت اللعبة من زمان، توقف نفسها وتحذف المستند.
+// حتى لو انقفل المتصفح فجأة وما اشتغلت، المالك يستبعد أي مستند ما تحدّث خلال
+// 60 ثانية (CW_SESSION_STALE_MS) فما تبقى مستندات يتيمة معروضة.
+function cwOwnerSessionTick() {
+  const cwPage = document.getElementById('pg-countrywar');
+  const cwWinPage = document.getElementById('pg-countrywar-winner');
+  const onCwPage = (cwPage && cwPage.classList.contains('active')) ||
+                   (cwWinPage && cwWinPage.classList.contains('active'));
+  if (!onCwPage) { cwOwnerSessionStop(true); return; }
+  if (cwGameStatus === 'finished' && cwOwnerSessionFinishedAt &&
+      (Date.now() - cwOwnerSessionFinishedAt) >= CW_OWNER_SESSION_FINISHED_TTL_MS) {
+    cwOwnerSessionStop(true);
+    return;
+  }
+  cwOwnerSessionMirror();
+}
+
+function cwOwnerSessionStop(deleteDocToo) {
+  if (cwOwnerSessionTimer) { clearInterval(cwOwnerSessionTimer); cwOwnerSessionTimer = null; }
+  if (!deleteDocToo || !fb) return;
+  try {
+    const id = cwOwnerSessionDocId();
+    if (id) fb.deleteDoc(fb.doc(fb.db, 'cwOwnerSessions', id)).catch(() => {});
+  } catch (err) { /* best-effort */ }
 }
 
 // Load saved API key for country war setup
