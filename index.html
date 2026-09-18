@@ -650,7 +650,8 @@
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
     update as rtdbUpdate, onValue as rtdbOnValue, off as rtdbOff, runTransaction as rtdbRunTransaction,
-    serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild
+    serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild,
+    onDisconnect as rtdbOnDisconnect
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
   const firebaseConfig = {
@@ -696,7 +697,10 @@
     doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
-    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild
+    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
+    // onDisconnect: الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع اتصال الستريمر
+    // (سكّر التبويب/المتصفح/انقطعت شبكته) — تنظيف مضمون ما يحتاج أي نبضة حياة.
+    rtdbOnDisconnect
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -18988,82 +18992,72 @@ function ownerStatsStop() {
 // ==================== OWNER TAB: 🌍 الدول (جلسات لعبة الدول الحية) ====================
 // المشكلة اللي يحلها هذا التاب: activeStreamers مستند واحد لكل لعبة بمعرّفه =
 // اسم اللعبة ('cw')، فآخر ستريمر يشغّل الدول يمسح بيانات اللي قبله ولا يمكن عرض
-// أكثر من جلسة بنفس اللحظة. مجموعة cwOwnerSessions الجديدة مستند لكل ستريمر
-// (المعرّف = uid الستريمر)، فكل الجلسات المتوازية تظهر هنا كل وحدة بمشاركيها
-// ودولها. المجموعة إضافية بحتة: ما تلمس activeStreamers ولا liveRounds ولا أي
+// أكثر من جلسة بنفس اللحظة. عقدة cwOwnerSessions بـRealtime Database عقدة لكل
+// ستريمر (المفتاح = uid الستريمر)، فكل الجلسات المتوازية تظهر هنا كل وحدة
+// بمشاركيها ودولها. إضافية بحتة: ما تلمس activeStreamers ولا liveRounds ولا أي
 // منطق داخل لعبة الدول.
 //
-// ⚠️ قواعد أمان Firestore: مجموعة cwOwnerSessions تحتاج قاعدة خاصة فيها، شبيهة
-// بقاعدتَي activeStreamers/liveRounds الموجودتين لكن أضيق: كتابة من أي مستخدم
-// مسجّل دخول لمستنده هو فقط (معرّف المستند = uid الكاتب)، وقراءة محصورة بالمالك.
-// ملف القواعد بالمستودع (firestore.rules) محدَّث بهذا فعلاً — لكن لازم يُنشر
-// (firebase deploy --only firestore:rules) وإلا التاب راح يطلع برسالة صلاحيات
-// والـmirror من جهة الستريمر يفشل بصمت (best-effort، ما يأثر على اللعبة).
+// ليش RTDB مو Firestore؟ النسخة الأولى كانت Firestore وما وصلت منها ولا كتابة
+// للخادم (التشخيص طلع "قُرئ 0 مستند") — وهذا سلوك موثّق بهذا المشروع نفسه: بعض
+// شبكات الجوال تقطع اتصال Firestore الصامد بصمت، ولهذا RTDB معتمد أصلاً
+// كالقاعدة الاحتياطية. تفاصيل أوفى بتعليق قسم المرآة داخل كود cw.
 //
-// نفس فلسفة تاب "احصائيات": جلب دوري محدود (getDocs) يبدأ عند فتح التاب ويتوقف
-// عند تبديله أو إغلاق اللوحة — بدل onSnapshot دائم على مجموعة كاملة يستنزف
-// الحصة المجانية. الاستثناء الوحيد هو مودال "عرض" (مستند واحد بعينه، حي).
-const CW_SESSIONS_POLL_MS = 30000; // كل 30 ثانية بالضبط
-// نافذة اعتبار الجلسة "متصلة". كانت 60 ثانية والنبضة كل 20 — نظرياً كافية،
-// عملياً لا: المتصفحات تخنق setInterval بشدة في التبويبات غير المرئية (كروم
-// ينزّلها لمرة كل دقيقة تقريباً)، وتبويب لعبة الستريمر يكون بالخلفية دايماً
-// لأنه يبث ويشتغل على نوافذ ثانية. النتيجة كانت أن ستريمر شغّال فعلاً يُحسب
-// "غير متصل" ويختفي من القائمة. ثلاث دقائق تستوعب الخنق بأمان وتبقى قصيرة
-// كفاية لتنظيف المستندات اليتيمة.
-const CW_SESSION_STALE_MS = 180000;
+// هنا نستخدم مستمع onValue حي على العقدة كلها بدل الاستطلاع الدوري: RTDB ما
+// يحاسب بعدد قراءات المستندات مثل Firestore (يحاسب بالباندويث)، والعقدة صغيرة،
+// فالمستمع الحي أرخص وأدق وأسرع. يبدأ عند فتح التاب ويتوقف عند تبديله أو إغلاق
+// اللوحة، فما يضل شي شغّال بالخلفية.
+const CW_SESSION_STALE_MS = 180000; // احتياطي: عقدة ما وصل منها تحديث خلال 3 دقائق = غير متصلة
 
-let cwSessionsPollTimer = null;
+let cwSessionsUnsub = null;      // مستمع onValue الحي على كل الجلسات
 let cwSessionsListenersStarted = false;
-let cwSessionsCache = [];        // آخر نتيجة جلب: [{ id, username, gameStatus, ... }]
-let cwSessionsLastRawCount = 0;  // كم مستند رجع فعلاً قبل فلترة "غير متصل"
-let cwSessionModalUnsub = null;  // onSnapshot الحي — موجود فقط طول ما المودال مفتوح
+let cwSessionsCache = [];        // آخر لقطة: [{ id, username, gameStatus, ... }]
+let cwSessionsLastRawCount = 0;  // كم عقدة رجعت فعلاً قبل فلترة "غير متصل"
+let cwSessionModalUnsub = null;  // مستمع حي على جلسة واحدة — فقط طول ما المودال مفتوح
 let cwSessionModalId = null;
 
-// وقت آخر تحديث للمستند: ختم الخادم هو المرجع، وختم العميل (updatedAtMs)
-// احتياطي يُقرأ فقط لو ختم الخادم لسا ما ثبّت (يرجع null بالنسخة المحليّة
-// مباشرة بعد الكتابة) — وإلا كنا نستبعد جلسة حيّة توّها انكتبت.
+// وقت آخر تحديث: ختم الخادم هو المرجع، وختم العميل (updatedAtMs) احتياطي.
 function cwSessionUpdatedMs(data) {
-  const serverMs = (data.updatedAt && data.updatedAt.toMillis) ? data.updatedAt.toMillis() : 0;
+  const serverMs = (typeof data.updatedAt === 'number') ? data.updatedAt : 0;
   if (serverMs) return serverMs;
   return (typeof data.updatedAtMs === 'number') ? data.updatedAtMs : 0;
 }
 
-async function cwSessionsFetchOnce() {
-  if (!fb || !isOwnerAccount()) return;
+// RTDB يرجّع المصفوفات أحياناً ككائن بمفاتيح رقمية (لو فيها فجوات) — نوحّدها.
+function cwSessionsToArray(v) {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (v && typeof v === 'object') return Object.keys(v).map(k => v[k]).filter(Boolean);
+  return [];
+}
+
+function cwSessionsApplySnapshot(val) {
+  const now = Date.now();
+  const rows = [];
+  let raw = 0;
+  const all = (val && typeof val === 'object') ? val : {};
+  Object.keys(all).forEach(id => {
+    const data = all[id];
+    if (!data || typeof data !== 'object') return;
+    raw++;
+    // onDisconnect بالخادم يحذف الجلسة لحظة انقطاع الستريمر، فهذا الفلتر صار
+    // مجرد حزام أمان إضافي. ومهم: نستبعد فقط لو نعرف يقيناً إنه قديم — عقدة
+    // بلا أي ختم وقت تُعرض بدل ما تُخفى، عشان ما نخفي ستريمر شغّال بسبب ختم ناقص.
+    const t = cwSessionUpdatedMs(data);
+    if (t && (now - t) > CW_SESSION_STALE_MS) return;
+    rows.push(Object.assign({}, data, {
+      id,
+      participants: cwSessionsToArray(data.participants),
+      countries: cwSessionsToArray(data.countries),
+      __updatedMs: t
+    }));
+  });
+  rows.sort((a, b) => (b.__updatedMs || 0) - (a.__updatedMs || 0));
+  cwSessionsCache = rows;
+  cwSessionsLastRawCount = raw;
+  cwSessionsRenderList();
   const noteEl = document.getElementById('owner-cwsessions-note');
-  try {
-    const snap = await fb.getDocs(fb.collection(fb.db, 'cwOwnerSessions'));
-    const now = Date.now();
-    const rows = [];
-    let raw = 0;
-    snap.forEach(d => {
-      raw++;
-      const data = d.data() || {};
-      // مستندات "يتيمة" (ستريمر سكّر المتصفح فجأة بدون أي تنظيف) تُستبعد
-      // بالاعتماد على وقت آخر تحديث بدل الاعتماد على حذف يدوي مضمون 100%.
-      // مهم: نستبعد فقط لو نعرف يقيناً إنه قديم — مستند بلا أي ختم وقت
-      // يُعرض بدل ما يُخفى، عشان ما نخفي ستريمر شغّال بسبب ختم ناقص.
-      const t = cwSessionUpdatedMs(data);
-      if (t && (now - t) > CW_SESSION_STALE_MS) return;
-      rows.push(Object.assign({ id: d.id }, data, { __updatedMs: t }));
-    });
-    rows.sort((a, b) => (b.__updatedMs || 0) - (a.__updatedMs || 0));
-    cwSessionsCache = rows;
-    cwSessionsLastRawCount = raw;
-    cwSessionsRenderList();
-    if (noteEl) {
-      noteEl.textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-SA') +
-        ' (كل 30 ثانية) — قُرئ ' + raw + ' مستند، ' + rows.length + ' متصل';
-    }
-  } catch (err) {
-    if (noteEl) noteEl.textContent = '';
-    // خطأ الصلاحيات هو الحالة الأشيع لو ما انتشرت قواعد cwOwnerSessions —
-    // نسمّيها صراحة بدل رسالة عامة، عشان يُعرف العلاج فوراً.
-    const isPerm = err && (err.code === 'permission-denied' || /permission/i.test(err.message || ''));
-    document.getElementById('owner-cwsessions-list').innerHTML =
-      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err.message) +
-      (isPerm ? '<br>قاعدة cwOwnerSessions غير منشورة — نفّذ: firebase deploy --only firestore:rules' : '') +
-      '</div>';
+  if (noteEl) {
+    noteEl.textContent = 'مباشر (Realtime Database) — آخر تحديث: ' +
+      new Date().toLocaleTimeString('ar-SA') + ' — قُرئ ' + raw + ' جلسة، ' + rows.length + ' متصلة';
   }
 }
 
@@ -19072,11 +19066,11 @@ function cwSessionsRenderList() {
   document.getElementById('owner-cwsessions-count').textContent = rows.length;
   const list = document.getElementById('owner-cwsessions-list');
   if (!rows.length) {
-    // نفرّق بين "ما فيه ولا مستند أصلاً" (الكتابة من جهة الستريمر ما وصلت)
-    // و"فيه مستندات لكن كلها قديمة" (الستريمر سكّر أو تبويبه مخنوق) — بدون
-    // هالتفريق كانت القائمة الفاضية ما تقول شيئاً عن سبب المشكلة.
+    // نفرّق بين "ما فيه ولا عقدة أصلاً" (الكتابة من جهة الستريمر ما وصلت)
+    // و"فيه عقد لكن كلها قديمة" — بدون هالتفريق القائمة الفاضية ما تقول شيئاً
+    // عن سبب المشكلة.
     list.innerHTML = cwSessionsLastRawCount
-      ? '<div class="owner-empty">فيه ' + cwSessionsLastRawCount + ' جلسة مسجّلة لكن ما وصلت منها نبضة حياة خلال آخر 3 دقائق — يبدو إن أصحابها سكّروا صفحة الدول</div>'
+      ? '<div class="owner-empty">فيه ' + cwSessionsLastRawCount + ' جلسة مسجّلة لكن ما وصل منها تحديث خلال آخر 3 دقائق</div>'
       : '<div class="owner-empty">ما فيه أحد يلعب الدول الآن<br><span style="font-size:11px;opacity:.7">لو فيه ستريمر شغّال فعلاً: لازم صفحة الدول عنده تكون مفتوحة وعلى آخر نسخة من الموقع (تحديث قسري لصفحته)</span></div>';
     return;
   }
@@ -19090,8 +19084,8 @@ function cwSessionsRenderList() {
                      : '⏳ بالانتظار';
     const count = (typeof sn.participantsCount === 'number')
       ? sn.participantsCount
-      : ((sn.participants && sn.participants.length) || 0);
-    const cCount = (sn.countries && sn.countries.length) || 0;
+      : (sn.participants.length || 0);
+    const cCount = sn.countries.length || 0;
     return `
     <div class="rounds-row">
       <div class="rounds-row-top">
@@ -19109,46 +19103,60 @@ function cwSessionsRenderList() {
 
 function cwSessionsBoot() {
   if (!isOwnerAccount() || cwSessionsListenersStarted) return;
+  if (!fb || !fb.rtdb) {
+    document.getElementById('owner-cwsessions-list').innerHTML =
+      '<div class="owner-empty">⚠️ Realtime Database غير مهيّأة بهذا الموقع</div>';
+    return;
+  }
   cwSessionsListenersStarted = true;
 
-  cwSessionsFetchOnce();
-  if (cwSessionsPollTimer) clearInterval(cwSessionsPollTimer);
-  cwSessionsPollTimer = setInterval(cwSessionsFetchOnce, CW_SESSIONS_POLL_MS);
+  cwSessionsUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'cwOwnerSessions'), (snap) => {
+    cwSessionsApplySnapshot(snap.val());
+  }, (err) => {
+    document.getElementById('owner-cwsessions-note').textContent = '';
+    // خطأ الصلاحيات هو الحالة الأشيع لو ما انتشرت قواعد RTDB — نسمّيها صراحة
+    // بدل رسالة عامة، عشان يُعرف العلاج فوراً.
+    const isPerm = err && (/permission|denied/i.test((err.code || '') + ' ' + (err.message || '')));
+    document.getElementById('owner-cwsessions-list').innerHTML =
+      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err && err.message) +
+      (isPerm ? '<br>قاعدة cwOwnerSessions غير منشورة بقواعد Realtime Database' : '') +
+      '</div>';
+  });
 }
 
-// يوقف الاستطلاع الدوري (وأي مودال حي مفتوح) عند مغادرة التاب أو إغلاق اللوحة
+// يوقف المستمع الحي (وأي مودال مفتوح) عند مغادرة التاب أو إغلاق اللوحة
 function cwSessionsStop() {
-  if (cwSessionsPollTimer) { clearInterval(cwSessionsPollTimer); cwSessionsPollTimer = null; }
+  if (cwSessionsUnsub) { try { cwSessionsUnsub(); } catch (e) {} cwSessionsUnsub = null; }
   cwSessionsListenersStarted = false;
   cwSessionsCloseModal();
 }
 
-// ---------- مودال "عرض": اسم الدولة = اسم اللاعب (حي على مستند واحد فقط) ----------
+// ---------- مودال "عرض": اسم الدولة = اسم اللاعب (حي على جلسة واحدة فقط) ----------
 function cwSessionsOpenModal(sessionId, username) {
-  if (!fb || !isOwnerAccount()) return;
-  cwSessionsCloseModal(); // لا نترك اشتراكاً سابقاً شغّالاً أبداً
+  if (!fb || !fb.rtdb || !isOwnerAccount()) return;
+  cwSessionsCloseModal(); // لا نترك مستمعاً سابقاً شغّالاً أبداً
   cwSessionModalId = sessionId;
   document.getElementById('owner-cwsession-streamer').textContent = username || sessionId;
   document.getElementById('owner-cwsession-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
   document.getElementById('owner-cwsession-overlay').classList.add('visible');
 
-  cwSessionModalUnsub = fb.onSnapshot(fb.doc(fb.db, 'cwOwnerSessions', sessionId), (snap) => {
+  cwSessionModalUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'cwOwnerSessions/' + sessionId), (snap) => {
     if (cwSessionModalId !== sessionId) return; // المودال انقفل/تبدّل أثناء الرحلة
-    cwSessionsRenderModal(snap.exists() ? snap.data() : null);
+    cwSessionsRenderModal(snap.val());
   }, (err) => {
     document.getElementById('owner-cwsession-list').innerHTML =
-      '<div class="owner-empty">⚠️ تعذّر تحميل التوزيع: ' + ownerEscape(err.message) + '</div>';
+      '<div class="owner-empty">⚠️ تعذّر تحميل التوزيع: ' + ownerEscape(err && err.message) + '</div>';
   });
 }
 
 function cwSessionsRenderModal(data) {
   const list = document.getElementById('owner-cwsession-list');
-  if (!data) {
+  if (!data || typeof data !== 'object') {
     list.innerHTML = '<div class="owner-empty">انتهت جلسة هذا الستريمر</div>';
     return;
   }
-  const countries = data.countries || [];
-  const participants = data.participants || [];
+  const countries = cwSessionsToArray(data.countries);
+  const participants = cwSessionsToArray(data.participants);
 
   if (countries.length) {
     list.innerHTML = countries.map(c => `
@@ -43930,36 +43938,54 @@ function cwAddChatMsg(user, text) {
 // ==================== OWNER MIRROR — جلسة الدول الحية (إضافي بحت) ====================
 // قسم مستقل تماماً بأسفل كود cw: ما يعدّل أي متغير أو دالة أو ترتيب عملية
 // بمنطق اللعبة. كل اللي يسويه أنه ينسخ (mirror) صورة القراءة فقط لجلسة هذا
-// الستريمر إلى مستند Firestore خاص فيه، عشان تاب "🌍 الدول" بلوحة المالك يقدر
-// يعرض كل الستريمرز اللي يلعبون الدول بنفس اللحظة — كل واحد بمشاركيه وتوزيع
-// دوله. يُستدعى من 4 مواضع بسطر واحد لكل موضع (بداية الجلسة، انضمام مشارك،
-// خروج مشارك، بداية راوند جديد) + نبضة حياة دورية.
+// الستريمر إلى Realtime Database، عشان تاب "🌍 الدول" بلوحة المالك يقدر يعرض
+// كل الستريمرز اللي يلعبون الدول بنفس اللحظة — كل واحد بمشاركيه وتوزيع دوله.
 //
-// ليش مجموعة جديدة بدل liveRoundsMirror الموجودة؟ لأن liveRounds مستندها
-// بمعرّف gameTag فقط (مستند واحد لكل لعبة) فيتضارب بين ستريمرَين يلعبان نفس
-// اللعبة بنفس اللحظة، وهي مستخدمة أصلاً لغرض ثاني (منتقي "فوز شخص" بتاب
-// راوندات). هنا المعرّف = uid الستريمر، فكل جلسة مستقلة.
+// ليش Realtime Database مو Firestore؟ النسخة الأولى كانت على Firestore وما
+// كانت تشتغل أبداً: تشخيص لوحة المالك طلع "قُرئ 0 مستند" — يعني ولا كتابة
+// وصلت الخادم إطلاقاً. والسبب موثّق أصلاً بأعلى هذا الملف عند إعداد Firebase:
+// بعض شبكات الجوال (خصوصاً بالخليج) تمرّ عبر بروكسي شفّاف يقطع اتصال Firestore
+// الصامد بلا أي خطأ ظاهر، فتعلّق الكتابات للأبد بصمت — ولهذا المشروع أصلاً
+// يعتبر RTDB "القاعدة الاحتياطية". وتبويب لعبة الستريمر بالذات هو أسوأ حالة:
+// جوال + شبكة بيانات + تبويب بالخلفية. RTDB يستخدم WebSocket مختلف تماماً وهو
+// المسار الموثوق بهذا المشروع.
 //
-// ⚠️ قواعد أمان Firestore: مجموعة cwOwnerSessions تحتاج قاعدة خاصة (كتابة من
-// أي مستخدم مسجّل دخول + قراءة للمالك وحده) — موجودة بملف firestore.rules
-// بالمستودع ولازم تُنشر. لو ما انتشرت، كل الكتابات هنا تفشل (best-effort، ما
-// تأثر على اللعبة إطلاقاً) وتطلع رسالة تحذير بكونسول المتصفح توضّح السبب.
+// ومكسب ثاني أهم: onDisconnect — الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع
+// اتصال الستريمر (سكّر التبويب، المتصفح، أو انقطعت شبكته). يعني التنظيف مضمون
+// من الخادم بدل ما يعتمد على نبضة حياة من متصفح المتصفحات تخنقه بالخلفية —
+// وهذا كان سبب اختفاء ستريمرز شغالين فعلاً بالنسخة السابقة.
+//
+// ⚠️ قواعد RTDB: العقدة cwOwnerSessions تحتاج قاعدة (كتابة من أي مستخدم مسجّل
+// دخول على عقدته + قراءة للمالك وحده) — لازم تُنشر بقواعد Realtime Database.
+// لو ما انتشرت، الكتابة تفشل (best-effort، ما تأثر على اللعبة إطلاقاً) وتطلع
+// رسالة تحذير بكونسول المتصفح توضّح السبب.
 const CW_OWNER_SESSION_HEARTBEAT_MS = 20000;    // نبضة حياة كل 20 ثانية طول ما اللعبة نشطة
-const CW_OWNER_SESSION_FINISHED_TTL_MS = 40000; // بعد انتهاء اللعبة بهالمدة يُحذف المستند
+const CW_OWNER_SESSION_FINISHED_TTL_MS = 40000; // بعد انتهاء اللعبة بهالمدة تُحذف العقدة
 const CW_OWNER_SESSION_MIN_WRITE_GAP_MS = 2500; // خنق: أسرع من كذا نأجّل الكتابة بدل ما نكررها
 let cwOwnerSessionTimer = null;
 let cwOwnerSessionFinishedAt = 0;
 let cwOwnerSessionLastWriteAt = 0;
 let cwOwnerSessionTrailingTimer = null;
 let cwOwnerSessionBootRetries = 0;
+let cwOwnerSessionDisconnectArmedFor = null; // أي مفتاح سُلّح له onDisconnect
 
-// معرّف المستند: uid الستريمر. نقرأه من fb.auth.currentUser أولاً لأنه المصدر
+// مفاتيح RTDB ممنوع فيها . $ # [ ] / — ويوزرات البث فيها نقاط كثير
+// (مثل glorious.sg)، فمفتاح غير منظّف يرمي استثناء وتضيع الجلسة بالكامل.
+function cwOwnerSessionSafeKey(v) {
+  return String(v || '').trim().replace(/[.$#\[\]\/\x00-\x1F\x7F]/g, '_');
+}
+
+// مفتاح العقدة: uid الستريمر. نقرأه من fb.auth.currentUser أولاً لأنه المصدر
 // الحي والمؤكّد من SDK نفسه — المتغير currentUser نسخة مخزّنة يضبطها
 // onAuthStateChanged، وممكن يكون لسا null لو الستريمر ضغط "ابدأ" قبل ما تكتمل
-// دورة المصادقة. وإلا يوزرنيم البث كبديل أخير.
+// دورة المصادقة. وإلا يوزرنيم البث (منظّفاً) كبديل أخير.
 function cwOwnerSessionDocId() {
   const authUid = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.uid) || '';
-  return String(authUid || (currentUser && currentUser.uid) || cwUser || '').trim();
+  return cwOwnerSessionSafeKey(authUid || (currentUser && currentUser.uid) || cwUser || '');
+}
+
+function cwOwnerSessionRef(id) {
+  return fb.rtdbRef(fb.rtdb, 'cwOwnerSessions/' + id);
 }
 
 function cwOwnerSessionOnCwPage() {
@@ -43972,7 +43998,7 @@ function cwOwnerSessionOnCwPage() {
 // المدخل العام — مخنوق. الاستدعاءات المتلاحقة (إقصاء ورا إقصاء، انضمام جماعي)
 // تنكتب مرة وحدة بدل عشر كتابات، مع كتابة أخيرة مضمونة عشان ما تضيع آخر حالة.
 function cwOwnerSessionMirror() {
-  if (!fb) return;
+  if (!fb || !fb.rtdb) return;
   const since = Date.now() - cwOwnerSessionLastWriteAt;
   if (since >= CW_OWNER_SESSION_MIN_WRITE_GAP_MS) { cwOwnerSessionWriteNow(); return; }
   if (cwOwnerSessionTrailingTimer) return;
@@ -43984,25 +44010,28 @@ function cwOwnerSessionMirror() {
 
 // الكتابة الفعلية — best-effort بالكامل (نفس أسلوب liveRoundsMirror): try/catch
 // وبدون await، فما توقف ولا تبطّئ أي مسار بواجهة الستريمر ولا التفاعل مع الشات.
-// الفرق الوحيد عن السابق: الفشل يُطبع بالكونسول بدل ما يُبلع تماماً — كان
-// مستحيل نعرف ليش المالك يشوف القائمة فاضية، لأن رفض القواعد ما يترك أي أثر.
 function cwOwnerSessionWriteNow() {
-  if (!fb) return;
+  if (!fb || !fb.rtdb) return;
   try {
     const id = cwOwnerSessionDocId();
     if (!id) { cwOwnerSessionScheduleBootRetry(); return; }
     cwOwnerSessionArmHeartbeat();
+    cwOwnerSessionArmDisconnect(id);
     cwOwnerSessionLastWriteAt = Date.now();
     const participants = [...cwParticipants.values()].map(u => ({
-      uniqueId: u.uniqueId, nickname: u.nickname || u.uniqueId
+      uniqueId: String(u.uniqueId || ''), nickname: String(u.nickname || u.uniqueId || '')
     }));
     // countries = الدول الحية بالراوند الحالي مدموجة مع cwParticipants لجلب
     // اسم كل لاعب، فيصير كل عنصر يمثّل حرفياً: اسم الدولة = اسم اللاعب.
     const countries = cwActiveCountries.map(c => {
       const u = cwParticipants.get(c.uid);
-      return { country: c.name, uniqueId: c.uid, nickname: (u && u.nickname) || c.uid };
+      return {
+        country: String(c.name || ''),
+        uniqueId: String(c.uid || ''),
+        nickname: String((u && u.nickname) || c.uid || '')
+      };
     });
-    fb.setDoc(fb.doc(fb.db, 'cwOwnerSessions', id), {
+    fb.rtdbSet(cwOwnerSessionRef(id), {
       uid: id,
       username: cwUser || '',
       platform: gamePlatform['cw'] || null,
@@ -44011,11 +44040,9 @@ function cwOwnerSessionWriteNow() {
       countries,
       participantsCount: participants.length,
       countriesCount: countries.length,
-      updatedAt: fb.serverTimestamp(),
-      // ختم وقت من العميل بجانب serverTimestamp: قيمة serverTimestamp تبقى null
-      // بالنسخة المحليّة لحد ما الخادم يثبّتها، وكان أي مستند بهالحالة يُستبعد
-      // من قائمة المالك كأن صاحبه غير متصل. هذا احتياطي يُقرأ فقط لو الخادم
-      // ما ثبّت ختمه بعد.
+      updatedAt: fb.rtdbServerTimestamp(),
+      // ختم وقت من العميل بجانب ختم الخادم: ختم الخادم يتثبّت على الخادم فقط،
+      // وهذا احتياطي يُقرأ لو ما وصل ختم الخادم لأي سبب.
       updatedAtMs: Date.now()
     }).catch((err) => {
       console.warn('[cwOwnerSession] تعذّرت كتابة مرآة جلسة الدول — اللعبة ما تتأثر. السبب:',
@@ -44026,8 +44053,20 @@ function cwOwnerSessionWriteNow() {
   }
 }
 
+// تنظيف من جهة الخادم: لحظة ما ينقطع اتصال هذا العميل (سكّر التبويب، أغلق
+// المتصفح، انقطعت شبكته) يحذف الخادم عقدة الجلسة تلقائياً. هذا اللي يخلّي
+// القائمة عند المالك دقيقة بلا أي اعتماد على نبضة حياة من متصفح مخنوق.
+function cwOwnerSessionArmDisconnect(id) {
+  if (!fb || !fb.rtdb || !fb.rtdbOnDisconnect) return;
+  if (cwOwnerSessionDisconnectArmedFor === id) return;
+  cwOwnerSessionDisconnectArmedFor = id;
+  try {
+    fb.rtdbOnDisconnect(cwOwnerSessionRef(id)).remove().catch(() => {});
+  } catch (err) { /* best-effort */ }
+}
+
 // لو المصادقة ما خلصت بعد لحظة ما ضغط الستريمر "ابدأ"، نعيد المحاولة بهدوء
-// بدل ما تضيع الجلسة للأبد (كانت أول كتابة ترجع بلا معرّف وما فيه شي يوقظها).
+// بدل ما تضيع الجلسة للأبد.
 function cwOwnerSessionScheduleBootRetry() {
   if (cwOwnerSessionBootRetries >= 10) return;
   cwOwnerSessionBootRetries++;
@@ -44043,7 +44082,7 @@ function cwOwnerSessionBoot() {
 }
 
 // نهاية اللعبة (شاشة الفائز): نحدّث الحالة لـ'finished' ونؤشّر وقت الانتهاء —
-// النبضة تحذف المستند بعد CW_OWNER_SESSION_FINISHED_TTL_MS.
+// النبضة تحذف العقدة بعد CW_OWNER_SESSION_FINISHED_TTL_MS.
 function cwOwnerSessionFinish() {
   cwOwnerSessionFinishedAt = Date.now();
   cwOwnerSessionWriteNow();
@@ -44056,9 +44095,9 @@ function cwOwnerSessionArmHeartbeat() {
 
 // النبضة تدير نفسها بنفسها بدل ما نعدّل دوال الخروج الموجودة (goHome /
 // disconnectAllGames / cwDisconnectWS): لو الستريمر غادر صفحة الدول (رجع
-// للرئيسية أو بدّل لعبة) أو انتهت اللعبة من زمان، توقف نفسها وتحذف المستند.
-// حتى لو انقفل المتصفح فجأة وما اشتغلت، المالك يستبعد أي مستند ما تحدّث خلال
-// CW_SESSION_STALE_MS فما تبقى مستندات يتيمة معروضة.
+// للرئيسية أو بدّل لعبة) أو انتهت اللعبة من زمان، توقف نفسها وتحذف العقدة.
+// ما عادت خط الدفاع الوحيد ضد الجلسات اليتيمة — onDisconnect يغطي الانقطاع
+// المفاجئ من جهة الخادم — فبقيت للتنقّل الطبيعي داخل الموقع (ما فيه انقطاع).
 function cwOwnerSessionTick() {
   if (!cwOwnerSessionOnCwPage()) { cwOwnerSessionStop(true); return; }
   if (cwGameStatus === 'finished' && cwOwnerSessionFinishedAt &&
@@ -44069,13 +44108,18 @@ function cwOwnerSessionTick() {
   cwOwnerSessionWriteNow(); // النبضة تتجاوز الخنق — هي أصلاً كل 20 ثانية
 }
 
-function cwOwnerSessionStop(deleteDocToo) {
+function cwOwnerSessionStop(deleteNodeToo) {
   if (cwOwnerSessionTimer) { clearInterval(cwOwnerSessionTimer); cwOwnerSessionTimer = null; }
   if (cwOwnerSessionTrailingTimer) { clearTimeout(cwOwnerSessionTrailingTimer); cwOwnerSessionTrailingTimer = null; }
-  if (!deleteDocToo || !fb) return;
+  if (!deleteNodeToo || !fb || !fb.rtdb) return;
   try {
     const id = cwOwnerSessionDocId();
-    if (id) fb.deleteDoc(fb.doc(fb.db, 'cwOwnerSessions', id)).catch(() => {});
+    if (!id) return;
+    // نلغي onDisconnect المسلَّح قبل الحذف اليدوي — وإلا يبقى مسلّحاً على عقدة
+    // ممكن يعيد الستريمر إنشاءها بجلسة جديدة بنفس المفتاح.
+    cwOwnerSessionDisconnectArmedFor = null;
+    try { if (fb.rtdbOnDisconnect) fb.rtdbOnDisconnect(cwOwnerSessionRef(id)).cancel().catch(() => {}); } catch (e) {}
+    fb.rtdbRemove(cwOwnerSessionRef(id)).catch(() => {});
   } catch (err) { /* best-effort */ }
 }
 

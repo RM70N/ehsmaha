@@ -1,0 +1,94 @@
+{
+  "rules": {
+    "pendingUsernames": {
+      ".read": true,
+      "$usernameLower": {
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid) && (!newData.exists() || newData.child('uid').val() === auth.uid)"
+      }
+    },
+    "pendingUsers": {
+      ".read": true,
+      "$uid": { ".write": "auth != null && auth.uid === $uid" }
+    },
+
+    "cwOwnerSessions": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$sessionId": {
+        ".write": "auth != null"
+      }
+    },
+
+    "bridgeEvents": {
+      ".read": true,
+      "$eventId": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "globalFx": { ".write": "auth != null" }
+      }
+    },
+
+    "bridgePlayers": {
+      "$eventId": {
+        ".read": true,
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+          "pendingFx": { ".write": "auth != null" }
+        }
+      }
+    },
+
+    "bridgeBoard": {
+      "$eventId": {
+        ".read": true,
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+
+    "levels": {
+      ".read": "auth != null",
+      "$key": { ".write": "auth != null" }
+    },
+
+    "framesCatalogExtra": {
+      ".read": "auth != null",
+      "$frameId": { ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'" }
+    },
+
+    "secretCodes": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$codeKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || data.exists())",
+        ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (data.exists() && newData.exists())",
+
+        "name": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "frameId": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "frameName": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "durationDays": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "maxUses": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "active": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "createdAt": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "createdBy": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "createdByUsername": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+        "expiresAt": { ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()" },
+
+        "usedCount": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (newData.val() === data.val() + 1 && !data.parent().child('usedBy').child(auth.uid).exists() && newData.parent().child('usedBy').child(auth.uid).exists()) || (newData.val() === data.val() - 1 && data.parent().child('usedBy').child(auth.uid).exists() && !newData.parent().child('usedBy').child(auth.uid).exists())"
+        },
+
+        "usedBy": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+            ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.hasChildren(['username', 'usedAt'])"
+          }
+        }
+      }
+    },
+
+    "secretCodesIndex": {
+      "$indexKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    }
+  }
+}
