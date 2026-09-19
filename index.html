@@ -53950,6 +53950,31 @@ let rmHeartbeatTimer = null;
 let rmMembersCache = [];
 let rmLastSweepAt = 0;
 
+// دالة تنظيف اللعبة النشطة حالياً (إن وُجدت) — كل *EnterGame تسجّل هنا كيف
+// تُلغي اشتراك onSnapshot الخاص بمستند game/state لغرفتها فور ما تناديها.
+// بدون هذا، مغادرة غرفة وسط جولة شغّالة (rmLeaveRoom، أو الدخول لغرفة/راوند
+// تالٍ عبر rmEnterRoom) كانت تترك مستمع اللعبة القديمة شغّالاً للأبد بالخلفية
+// — فيه لا يعلّق شيء ظاهرياً، لكن لو تغيّر مستند تلك الغرفة القديمة لاحقاً
+// (مثلاً مضيفها الأصلي أكمل الجولة بعدك بدل عنك)، المستمع اليتيم هذا يطلق
+// ويستدعي show() على شاشة تلك اللعبة القديمة فجأة — يقطع أي شاشة ثانية
+// مفتوحة حالياً (حتى لو لعبة مختلفة تماماً). اكتشفناها فعلياً باختبار آلي
+// شغّل 26 لعبة بالتتابع بنفس الجلسة: شاشة فوز لعبة "التوقيت" قاطعت شاشة
+// لعبة الرسم لاحقاً بسبب هذا بالضبط.
+// ملاحظة تصميم: هذي دالة "تعيين" بحتة — ما تستدعي التنظيف القديم فوراً عند
+// التسجيل. لو استدعتها، إعادة الاشتراك الطبيعية لنفس اللعبة (مثلاً محاولة
+// ogEnterGame التلقائية بعد انقطاع onSnapshot) كانت راح تُلغي اشتراكها هي
+// نفسها لحظة تسجيلها (لأن ogUnsubs[tag] بذاك الوقت أصبح مُعرَّفاً على
+// الاشتراك الجديد، والقفلة القديمة تقرأه وقت التنفيذ لا وقت الإنشاء). التنظيف
+// الفعلي يصير فقط من rmClearActiveGameCleanup، وتُستدعى حصراً لحظة مغادرة
+// الغرفة فعلياً (rmEnterRoom لغرفة جديدة، أو rmLeaveRoom) — مو عند كل تسجيل.
+let rmActiveGameCleanup = null;
+function rmRegisterGameCleanup(fn) {
+  rmActiveGameCleanup = fn;
+}
+function rmClearActiveGameCleanup() {
+  if (rmActiveGameCleanup) { try { rmActiveGameCleanup(); } catch (e) {} rmActiveGameCleanup = null; }
+}
+
 // كل لعبة أونلاين تسجّل معالج الدخول الخاص فيها هنا (gameTag -> function(roomId))
 // بدل ما نربط rmBootMembers مباشرة بلعبة وحدة — يسمح بإضافة ألعاب جديدة بدون
 // تعديل منطق الرومات العام.
@@ -54065,6 +54090,9 @@ async function rmJoinRoomFromCodeChecked(code, statusEl) {
 // الخاصة/دعوة صديق حيث المضيف ينتظر أعضاء وينشر كوداً، وما تنطبق على
 // المطابقة العشوائية اللي المفروض تبدأ تلقائياً بدون أي شعور بـ"غرفة خاصة".
 function rmEnterRoom(roomId, isHost, skipLobbyScreen) {
+  // نظّف أي مستمع لعبة سابقة (غرفة/راوند قبل هذا) قبل ما ندخل الجديدة — وإلا
+  // يبقى يراقب مستند الغرفة القديمة ويقدر يقاطع هذي الشاشة لاحقاً لو تغيّر.
+  rmClearActiveGameCleanup();
   rmCurrentRoomId = roomId;
   rmIsHost = isHost;
   show(skipLobbyScreen ? 'online-mm-starting' : 'online-room');
@@ -54207,6 +54235,7 @@ async function rmLeaveRoom() {
   const roomId = rmCurrentRoomId;
   rmHeartbeatStop();
   rmStopFallbackPoll();
+  rmClearActiveGameCleanup();
   if (rmMembersUnsub) { rmMembersUnsub(); rmMembersUnsub = null; }
   if (rmRoomDocUnsub) { rmRoomDocUnsub(); rmRoomDocUnsub = null; }
   if (fb && currentUser && roomId) {
@@ -54914,6 +54943,10 @@ function obombEnterGame(roomId) {
     obombRunHostLogicIfAuthority(roomId);
     obombPromoteAuthorityIfStale(roomId);
   }, (err) => { /* best-effort */ });
+  rmRegisterGameCleanup(() => {
+    if (obombGameUnsub) { obombGameUnsub(); obombGameUnsub = null; }
+    if (obombRenderTickInterval) { clearInterval(obombRenderTickInterval); obombRenderTickInterval = null; }
+  });
 
   // العدّاد المرئي (الدائرة/الرقم) يحتاج يتحدّث محلياً كل 100ms على كل عميل —
   // onSnapshot وحده ما يكفي لأنه ما يطلق إلا لما تتغيّر الحالة فعلياً بـ
@@ -55157,6 +55190,11 @@ function otimerEnterGame(roomId) {
     otimerRenderPlay(roomId);
     otimerRunHostLogicIfAuthority(roomId);
   }, (err) => { /* best-effort */ });
+  rmRegisterGameCleanup(() => {
+    if (otimerGameUnsub) { otimerGameUnsub(); otimerGameUnsub = null; }
+    if (otimerRenderTickInterval) { clearInterval(otimerRenderTickInterval); otimerRenderTickInterval = null; }
+    if (otimerHostTickInterval) { clearInterval(otimerHostTickInterval); otimerHostTickInterval = null; }
+  });
 
   // عدّاد العرض (الساعة الحالية) يتحدّث محلياً كل 100ms لكل عميل — نفس سبب
   // obombRenderTickInterval: onSnapshot وحده ما يكفي لأن الحالة ما تتغيّر إلا
@@ -55423,6 +55461,7 @@ function gwOnlineEnterGame(roomId) {
   document.getElementById('gwonline-hint-bar').style.display = 'none';
 
   if (gwOnlineGameUnsub) { gwOnlineGameUnsub(); gwOnlineGameUnsub = null; }
+  rmRegisterGameCleanup(() => { if (gwOnlineGameUnsub) { gwOnlineGameUnsub(); gwOnlineGameUnsub = null; } });
   gwOnlineGameUnsub = fb.onSnapshot(fb.doc(fb.db, 'rooms', roomId, 'game', 'state'), (snap) => {
     if (!snap.exists()) return;
     gwOnlineLocalState = snap.data();
@@ -55670,6 +55709,10 @@ function findballOnlineEnterGame(roomId) {
     findballOnlineRenderPlay(roomId);
     findballOnlineRunHostLogicIfAuthority(roomId);
   }, (err) => { /* best-effort */ });
+  rmRegisterGameCleanup(() => {
+    if (findballOnlineGameUnsub) { findballOnlineGameUnsub(); findballOnlineGameUnsub = null; }
+    if (findballOnlineTimerInterval) { clearInterval(findballOnlineTimerInterval); findballOnlineTimerInterval = null; }
+  });
 }
 
 // كل عميل يبني نفس تسلسل الخلط محلياً من shuffleSeed (مولّد أرقام عشوائية
@@ -56059,6 +56102,12 @@ function ogEnterGame(tag, roomId) {
     ogLogErr(tag, 'state-watch', err);
     toast('⚠️ انقطعت مزامنة الجولة — جارِ إعادة المحاولة...');
     setTimeout(() => { if (rmCurrentRoomId === roomId) ogEnterGame(tag, roomId); }, 3000);
+  });
+  rmRegisterGameCleanup(() => {
+    if (ogUnsubs[tag]) { ogUnsubs[tag](); ogUnsubs[tag] = null; }
+    ogHostTickStop();
+    ogClearTimer(tag);
+    ogCancelProgress(tag);
   });
 }
 
@@ -58183,6 +58232,7 @@ function owordraceEnterGame(roomId) {
   document.getElementById('owordrace-submit-status').className = 'status-msg';
 
   if (owordraceGameUnsub) { owordraceGameUnsub(); owordraceGameUnsub = null; }
+  rmRegisterGameCleanup(() => { if (owordraceGameUnsub) { owordraceGameUnsub(); owordraceGameUnsub = null; } });
   owordraceGameUnsub = fb.onSnapshot(fb.doc(fb.db, 'rooms', roomId, 'game', 'state'), (snap) => {
     if (!snap.exists()) return;
     owordraceLocalState = snap.data();
@@ -58416,6 +58466,7 @@ function odrawEnterGame(roomId) {
     odrawLocalState = snap.data();
     odrawRenderState(roomId);
   }, (err) => { /* best-effort */ });
+  rmRegisterGameCleanup(() => { if (odrawGameUnsub) { odrawGameUnsub(); odrawGameUnsub = null; } });
 }
 
 function odrawRenderState(roomId) {
@@ -58809,6 +58860,7 @@ function otop10EnterGame(roomId) {
     otop10LocalState = snap.data();
     otop10RenderState(roomId);
   }, (err) => { /* best-effort */ });
+  rmRegisterGameCleanup(() => { if (otop10GameUnsub) { otop10GameUnsub(); otop10GameUnsub = null; } });
 }
 
 function otop10RenderState(roomId) {
