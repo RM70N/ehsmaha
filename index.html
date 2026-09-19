@@ -54323,6 +54323,9 @@ const MM_FINALIZE_ATTEMPT_TIMEOUT_MS = 20000;
 const MM_TICK_MS = 250;
 
 let mmQueueUnsub = null;
+// مراقب صفّنا الشخصي. كان محلياً داخل mmWatchOwnEntry ولا يُلغى إلا بمسار
+// المطابقة الناجحة — فأي انضمام جديد كان يترك مراقباً قديماً حياً فوقه.
+let mmOwnEntryUnsub = null;
 let mmHeartbeatTimer = null;
 let mmQueueCache = [];
 let mmInQueue = false;
@@ -54387,8 +54390,96 @@ function mmSweepGhosts(rows) {
   });
 }
 
+// هل نحن واقفون فعلياً على شاشة انتظار المطابقة الآن؟ مصدر الحقيقة الحقيقي
+// لحالة "داخل الطابور" هو الـDOM، مو العلَم mmInQueue وحده: العلَم كان يُنزَّل
+// فقط من زر "← إلغاء" (mmLeaveQueue) ومن مسار المطابقة الناجحة، فلو غادر
+// المستخدم شاشة الانتظار بأي طريقة ثانية (رجوع المتصفح، القائمة الجانبية،
+// الشعار، أي show()) يبقى مرفوعاً للأبد — ويصير الحارس الصامت في أول
+// mmJoinQueue يبتلع كل ضغطة "لعب عشوائي" في **كل** الألعاب لبقية الجلسة بلا
+// أي رسالة ولا أي أثر. هذا بالضبط عطل "أضغط الزر وما يصير أي شيء".
+function mmOnWaitingScreen() {
+  // هذي الدالة تنفّذ داخل mmTick كل 250ms، وأي استثناء فيها يفجّر النبضة نفسها
+  // ويوقف منطق المطابقة كله — فما نفترض شيئاً عن الـDOM. وعند أي شك نرجّع true
+  // (أي: ما نطرد أحداً من الطابور) لأن الطرد الخاطئ أسوأ بكثير من بقاء علَم.
+  try {
+    const el = document.getElementById('pg-online-mm-waiting');
+    if (!el || !el.classList) return true;
+    return el.classList.contains('active');
+  } catch (e) { return true; }
+}
+
+// تصفير كامل لحالة الطابور بلا أي تنقّل — يُستخدم عند اكتشاف حالة عالقة أو عند
+// فشل الانضمام. نفس محتوى mmLeaveQueue بالضبط ما عدا الحذف والتنقّل.
+function mmResetQueueState() {
+  mmInQueue = false;
+  mmCurrentGameTag = null;
+  mmHeartbeatStop();
+  mmStopCountdown();
+  mmLastKnownQueueCount = 0;
+  mmMinFirstReachedAtMs = null;
+  mmSoloBotCheckDone = false;
+  mmSoloBotCount = 0;
+  mmFinalizingInProgress = false;
+  mmFinalizeStartedAtMs = null;
+  if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
+  if (mmOwnEntryUnsub) { mmOwnEntryUnsub(); mmOwnEntryUnsub = null; }
+}
+
+// خروج صامت من الطابور: ينظّف الحالة ويحذف صفّنا بأفضل جهد، بلا أي تنقّل ولا
+// رسالة — لأن المستخدم أصلاً راح لمكان ثاني بإرادته.
+function mmLeaveQueueSilent() {
+  mmResetQueueState();
+  if (fb && currentUser) {
+    try { fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', currentUser.uid)).catch(() => {}); }
+    catch (e) {}
+  }
+}
+
 async function mmJoinQueue(gameTag) {
-  if (!fb || !currentUser || !currentUsername || mmInQueue) return;
+  // كان السطر الأول هنا: `if (!fb || !currentUser || !currentUsername || mmInQueue) return;`
+  // — رجوع صامت تماماً بأربع حالات مختلفة. أي وحدة منها تخلي الزر يبدو ميتاً
+  // حرفياً (ولا شاشة انتظار ولا رسالة ولا خطأ بالكونسول). الآن كل حالة لها
+  // معالجة صريحة: إما تُشفى ذاتياً أو تشرح نفسها للمستخدم.
+
+  // 1) Firebase لسا ما جهز (استيراد ESM بطيء أو متعثّر على شبكة ضعيفة).
+  //    نلتقط النسخة الجاهزة لو وصلت متأخرة، وإلا ننتظر إشارة fb-ready مرة
+  //    واحدة ونعيد المحاولة تلقائياً بدل ما نموت بصمت.
+  if (!fb && window.__fb) fb = window.__fb;
+  if (!fb || !fb.db) {
+    toast('⏳ جارِ تجهيز الاتصال بالخادم... ثانية وحدة');
+    window.addEventListener('fb-ready', () => { mmJoinQueue(gameTag); }, { once: true });
+    return;
+  }
+
+  // 2) غير مسجّل دخول.
+  if (!currentUser) {
+    toast('⚠️ سجّل الدخول عشان تلعب أونلاين');
+    show('auth');
+    return;
+  }
+
+  // 3) مسجّل دخول لكن الاسم ما انحلّ (فشلت قراءة مستند المستخدم وقت الإقلاع على
+  //    شبكة متعثّرة مثلاً). هذي كانت تقتل الزر في كل الألعاب بلا أي أثر — الآن
+  //    نعيد حلّه فوراً بقراءة واحدة بدل ما نرجع صامتين.
+  if (!currentUsername) {
+    try {
+      const doc0 = (typeof authGetUserDoc === 'function') ? await authGetUserDoc(currentUser.uid) : null;
+      if (doc0 && doc0.username) currentUsername = doc0.username;
+    } catch (err) { mmLogErr('resolve-username', err); }
+    if (!currentUsername) {
+      toast('⚠️ ما قدرنا نجيب اسم حسابك — حدّث الصفحة وحاول مرة ثانية');
+      return;
+    }
+  }
+
+  // 4) العلَم مرفوع. لو نحن فعلاً على شاشة الانتظار فهذي ضغطة مكرّرة ولا شيء
+  //    نسويه؛ أما لو لسنا عليها فهي حالة عالقة من خروج سابق بغير زر "إلغاء"
+  //    — ننظّفها ونكمل عادي بدل ما نبتلع الضغطة.
+  if (mmInQueue) {
+    if (mmOnWaitingScreen()) return;
+    mmLeaveQueueSilent();
+  }
+
   mmInQueue = true;
   mmCurrentGameTag = gameTag;
   mmLastKnownQueueCount = 0;
@@ -54399,26 +54490,34 @@ async function mmJoinQueue(gameTag) {
   mmFinalizingInProgress = false;
   mmFinalizeStartedAtMs = null;
   const myUid = currentUser.uid;
+  const myName = currentUsername;
 
-  try {
-    await fb.setDoc(fb.doc(fb.db, 'matchmakingQueue', myUid), {
-      uid: myUid, username: currentUsername, gameTag,
-      joinedAt: fb.serverTimestamp(), lastSeen: fb.serverTimestamp(),
-      status: 'waiting', matchedRoomId: null
-    });
-  } catch (err) {
-    mmInQueue = false;
-    mmCurrentGameTag = null;
-    mmLogErr('join', err);
-    toast('⚠️ تعذّر الانضمام للطابور: ' + err.message);
-    return;
-  }
-
+  // شاشة الانتظار تُعرض **قبل** الكتابة ولا ننتظرها إطلاقاً. الكود السابق كان
+  // `await fb.setDoc(...)` ثم `show(...)` — ووعد Firestore ما ينحل إلا بتأكيد
+  // الخادم، فعلى شبكة جوال متعثّرة (نفس السبب اللي خلّى الملف يفرض
+  // experimentalForceLongPolling) يمكن ما ينحل ولا يُرفض أبداً: لا شاشة انتظار
+  // ولا رسالة خطأ ⇒ الزر يبدو ميتاً تماماً. الكتابة محلية أولاً عند Firestore
+  // فالمراقبات تشتغل فوراً، والتأكيد يوصل متى ما وصل.
   show('online-mm-waiting');
   mmHeartbeatStart();
   mmBootQueueWatch(gameTag);
-  mmWatchOwnEntry();
+  mmWatchOwnEntry(gameTag);
   mmTickStart(gameTag);
+
+  fb.setDoc(fb.doc(fb.db, 'matchmakingQueue', myUid), {
+    uid: myUid, username: myName, gameTag,
+    joinedAt: fb.serverTimestamp(), lastSeen: fb.serverTimestamp(),
+    status: 'waiting', matchedRoomId: null
+  }).catch(err => {
+    // رفض فعلي (صلاحيات/قواعد) — نتراجع بوضوح بدل ما نخلّيه ينتظر بلا فايدة.
+    // لو كان غادر أصلاً أو بدأ طابوراً ثانياً بهالأثناء، ما نلمس شيء.
+    if (!mmInQueue || mmCurrentGameTag !== gameTag) return;
+    mmResetQueueState();
+    mmLogErr('join', err);
+    toast('⚠️ تعذّر الانضمام للطابور: ' + ((err && err.message) ? err.message : err));
+    const back = 'online-' + gameTag + '-instructions';
+    show(document.getElementById('pg-' + back) ? back : 'online-home');
+  });
 }
 
 function mmHeartbeatStart() {
@@ -54567,6 +54666,11 @@ function mmTickStart() {
 
 function mmTick() {
   if (!mmInQueue) { mmStopCountdown(); return; }
+  // غادر المستخدم شاشة الانتظار بغير زر "← إلغاء" (رجوع المتصفح، القائمة
+  // الجانبية، الشعار...). قبل هذا السطر ما كان في شيء ينزّل العلَم بهذي الحالة،
+  // فيبقى مرفوعاً لبقية الجلسة ويقتل زر "لعب عشوائي" في كل الألعاب. نستثني
+  // لحظة الإنهاء الجاري لأن المطابقة الناجحة تنقلنا خارج الشاشة بنفسها.
+  if (!mmOnWaitingScreen() && !mmFinalizeInFlight()) { mmLeaveQueueSilent(); return; }
   const gameTag = mmCurrentGameTag;
   const countdownEl = document.getElementById('mm-waiting-countdown');
   if (mmCountdownAnchorMs === null) {
@@ -54787,14 +54891,24 @@ async function rmCreateRoomSilent(gameTag) {
 }
 
 // كل عميل بالطابور يراقب مستنده الخاص — لو تحوّل matched، ينتقل تلقائياً لغرفته
-function mmWatchOwnEntry() {
+function mmWatchOwnEntry(gameTag) {
   if (!fb || !currentUser) return;
+  if (mmOwnEntryUnsub) { mmOwnEntryUnsub(); mmOwnEntryUnsub = null; }
   const myUid = currentUser.uid;
+  // بوابة "شفنا صفّنا الجديد": ما نصدّق أي status:'matched' إلا بعد ما نشوف
+  // الصف اللي كتبناه نحن لهذا الانضمام (status:'waiting' بنفس gameTag). بدونها
+  // يقدر صفّ قديم باقٍ من مباراة سابقة (status:'matched' + matchedRoomId قديم)
+  // يُقرأ أول ما نشترك فيرجّعنا لغرفة اللعبة السابقة بدل اللعبة الجديدة.
+  let sawOwnWaitingRow = false;
   const unsub = fb.onSnapshot(fb.doc(fb.db, 'matchmakingQueue', myUid), (snap) => {
     if (!snap.exists()) return;
     const data = snap.data();
+    if (!sawOwnWaitingRow) {
+      if (data.status === 'waiting' && data.gameTag === gameTag) sawOwnWaitingRow = true;
+      return;
+    }
     if (data.status === 'matched' && data.matchedRoomId) {
-      unsub();
+      if (mmOwnEntryUnsub) { mmOwnEntryUnsub(); mmOwnEntryUnsub = null; }
       mmCleanupAfterMatch();
       // المضيف الفعلي هو من نفّذ mmFinalizeMatch؛ نحدّد بقراءة الغرفة
       fb.getDoc(fb.doc(fb.db, 'rooms', data.matchedRoomId)).then(roomSnap => {
@@ -54803,6 +54917,7 @@ function mmWatchOwnEntry() {
       }).catch(err => mmLogErr('enter-matched-room', err, true));
     }
   }, (err) => mmLogErr('own-entry-watch', err, true));
+  mmOwnEntryUnsub = unsub;
 }
 
 function mmCleanupAfterMatch() {
@@ -54815,6 +54930,12 @@ function mmCleanupAfterMatch() {
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
+  if (mmOwnEntryUnsub) { mmOwnEntryUnsub(); mmOwnEntryUnsub = null; }
+  // ملاحظة مقصودة: ما نحذف صفّنا هنا. يبقى بحالة 'matched' — ومعرّف المستند هو
+  // الـuid فما ينمو أبداً، وأي انضمام لاحق يكتب فوقه. وبوابة sawOwnWaitingRow
+  // في mmWatchOwnEntry هي اللي تمنع قراءته كأنه مطابقة قائمة. الحذف هنا كان
+  // راح يسحب الصف من تحت مسار التراجع في mmFinalizeMatch (اللي يرجّع الصفوف
+  // 'waiting' لما تختفي البوتات) فيخسر لاعبين بلا داعٍ.
 }
 
 async function mmLeaveQueue() {
@@ -54822,17 +54943,7 @@ async function mmLeaveQueue() {
   // 'online-obomb-instructions' دائماً، فإلغاء الانتظار بأي لعبة ثانية كان
   // يرمي المستخدم على تعليمات القنبلة.
   const backTag = mmCurrentGameTag;
-  mmInQueue = false;
-  mmCurrentGameTag = null;
-  mmHeartbeatStop();
-  mmStopCountdown();
-  mmLastKnownQueueCount = 0;
-  mmMinFirstReachedAtMs = null;
-  mmSoloBotCheckDone = false;
-  mmSoloBotCount = 0;
-  mmFinalizingInProgress = false;
-  mmFinalizeStartedAtMs = null;
-  if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
+  mmResetQueueState(); // نفس التصفير السابق حرفياً — بمصدر واحد الآن
   if (fb && currentUser) {
     try { await fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', currentUser.uid)); }
     catch (err) { mmLogErr('leave', err); }
