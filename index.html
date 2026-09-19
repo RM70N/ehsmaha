@@ -7574,7 +7574,370 @@ function landingCtaClick(){
       <div class="gcard-desc">الكورة تختبئ تحت كوب عشوائي، والكل يخمّن بنفس الجولة — من يخطئ يُقصى، وآخر لاعب متبقٍ يفوز!</div>
     </div>
 
+    <div class="gcard" data-tag="osniper" onclick="show('online-osniper-instructions')">
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8" fill="none"/><circle cx="12" cy="12" r="2.5" fill="none"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg></div>
+      <div class="gcard-name">القناص أونلاين</div>
+      <div class="gcard-desc">اختبئ بمربع سري من الشبكة، والقناص يطلق رصاصه على مربعات عشوائية — من ينضرب يُقصى، وآخر ناجٍ يفوز!</div>
     </div>
+
+    <div class="gcard" data-tag="obox" onclick="show('online-obox-instructions')">
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v12H3z"/><path d="M3 8l2-4h14l2 4"/><path d="M12 4v16"/></svg></div>
+      <div class="gcard-name">الصندوق العشوائي أونلاين</div>
+      <div class="gcard-desc">اللعب بالدور — كل لاعب يفتح صندوقاً، نصفها إقصاء ونصفها حصانة والترتيب يتغيّر كل دور. آخر ناجٍ يفوز!</div>
+    </div>
+
+    <div class="gcard" data-tag="ochairs" onclick="show('online-ochairs-instructions')">
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v8h10V4"/><path d="M5 12h14"/><path d="M8 12v8"/><path d="M16 12v8"/></svg></div>
+      <div class="gcard-name">الكرسي المتحرك أونلاين</div>
+      <div class="gcard-desc">كراسي أقل من عدد اللاعبين بواحد — أول من يضغط على كرسي يحجزه، ومن يبقى واقفاً يُقصى حتى يبقى فائز واحد!</div>
+    </div>
+
+    <div class="gcard" data-tag="olsc" onclick="show('online-olsc-instructions')">
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h6"/><path d="M7 7v10"/><path d="M14 17l3-10 3 10"/><path d="M14.8 14h4.4"/></svg></div>
+      <div class="gcard-name">ترتيب الحروف أونلاين</div>
+      <div class="gcard-desc">حروف الكلمة تظهر مبعثرة للجميع بنفس اللحظة — أول من يرتّبها صح ياخذ الجولة، وأول من يجمع 3 نقاط يفوز!</div>
+    </div>
+
+    </div>
+  </div>
+</div>
+
+
+<!-- ====== ONLINE BATCH 2 — STYLES (og* + الألعاب الأربع الجديدة) ====== -->
+<!-- كل الألوان من متغيرات :root الموجودة، وكل الشاشات RTL مثل باقي الموقع.
+     ما فيه ولا قاعدة تلمس أي كلاس يخص أقسام الستريمر — كلها كلاسات جديدة. -->
+<style>
+.og-play-wrap{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 16px 28px;direction:rtl;}
+.og-play-head{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.og-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-pill,999px);padding:7px 14px;font-size:13px;font-weight:700;color:var(--muted);}
+.og-chip b{color:var(--text);font-size:15px;margin-inline-start:4px;}
+.og-status{font-size:15px;font-weight:700;color:var(--text);text-align:center;min-height:22px;line-height:1.6;}
+.og-turn{font-size:14px;color:var(--muted);font-weight:700;}
+.og-turn b{color:var(--gold,#F59E0B);}
+.og-timer-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:8px 18px;font-size:15px;font-weight:900;color:var(--text);transition:color .2s,border-color .2s;}
+.og-timer-box.danger{color:#ff6b6b;border-color:rgba(255,107,107,.5);}
+.og-log{width:100%;display:flex;flex-direction:column;gap:6px;min-height:20px;}
+.og-log-line{font-size:13px;font-weight:700;color:var(--muted);text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;}
+.og-log-good{color:#3ddc97;border-color:rgba(61,220,151,.35);}
+.og-log-bad{color:#ff6b6b;border-color:rgba(255,107,107,.35);}
+.og-scores{width:100%;display:flex;flex-direction:column;gap:6px;}
+.og-score-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 14px;font-size:14px;font-weight:700;color:var(--muted);}
+.og-score-row.me{border-color:var(--border-strong);color:var(--text);}
+.og-score-row b{color:var(--gold,#F59E0B);font-size:16px;}
+
+/* القناص: شبكة مخابئ */
+.osniper-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:360px;}
+.osniper-cell{aspect-ratio:1;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;font-weight:900;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;font-family:inherit;}
+.osniper-cell:hover:not(:disabled){transform:translateY(-2px);border-color:var(--border-strong);color:var(--text);}
+.osniper-cell:disabled{cursor:default;opacity:.55;}
+.osniper-cell.mine{background:linear-gradient(135deg,#F59E0B,#d97706);color:#0d0620;opacity:1;border-color:transparent;}
+
+/* الصندوق العشوائي */
+.obox-stage{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.obox-item{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 22px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:default;transition:transform .15s,border-color .15s;font-family:inherit;}
+.obox-item.pickable{cursor:pointer;}
+.obox-item.pickable:hover{transform:translateY(-3px);border-color:var(--border-strong);}
+.obox-item:disabled{opacity:.6;}
+.obox-num{font-size:14px;font-weight:900;color:var(--muted);}
+.obox-shape{font-size:38px;line-height:1;}
+
+/* الكرسي المتحرك */
+.ochairs-stage{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ochairs-seat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform .15s,border-color .15s,opacity .15s;font-family:inherit;}
+.ochairs-seat:hover:not(:disabled){transform:translateY(-3px);border-color:var(--border-strong);}
+.ochairs-seat:disabled{cursor:default;opacity:.45;}
+.ochairs-seat-icon{font-size:30px;line-height:1;}
+.ochairs-seat-num{font-size:14px;font-weight:900;color:var(--muted);}
+.ochairs-seat.taken{opacity:.4;}
+.ochairs-seat.mine{opacity:1;border-color:transparent;background:linear-gradient(135deg,#3ddc97,#16a34a);}
+.ochairs-seat.mine .ochairs-seat-num{color:#04120b;}
+
+/* ترتيب الحروف */
+.olsc-letters{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.olsc-letter{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:52px;padding:0 8px;border-radius:12px;background:var(--surface2);border:1px solid var(--border-strong);font-size:24px;font-weight:900;color:var(--text);}
+.olsc-hint{font-size:14px;font-weight:700;color:var(--gold,#F59E0B);text-align:center;}
+.olsc-answer-row{display:flex;gap:8px;width:100%;max-width:420px;}
+.olsc-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;color:var(--text);font-size:16px;font-family:inherit;text-align:center;direction:rtl;}
+.olsc-input:focus{outline:none;border-color:var(--border-strong);}
+.olsc-send{flex:0 0 auto;padding:12px 20px;}
+
+@media (max-width:480px){
+  .osniper-grid{max-width:300px;gap:6px;}
+  .osniper-cell{font-size:12px;border-radius:9px;}
+  .olsc-letter{min-width:36px;height:44px;font-size:20px;}
+}
+</style>
+
+<!-- ============================================================================
+     ONLINE BATCH 2 — أربع ألعاب منقولة من قسم الستريمر لقسم الأونلاين.
+     نفس بنية وتسمية الألعاب الأونلاين الموجودة بالضبط (instructions /
+     friend-entry / play / winner)، ونفس مصدر الحقيقة: مستند واحد
+     rooms/{roomId}/game/state والمضيف (authorityUid) هو الوحيد اللي يحسم.
+     اللي تغيّر عن نسخة الستريمر هو مصدر الإدخال فقط: بدل رسالة بشات منصة
+     خارجية، اللاعب يضغط بالتطبيق مباشرة — وقواعد اللعبة نفسها محفوظة.
+     ============================================================================ -->
+
+<!-- ====== ONLINE: القناص — INSTRUCTIONS ====== -->
+<div id="pg-online-osniper-instructions" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-home')">← رجوع</button>
+    <div class="setup-title">🎯 القناص أونلاين</div>
+    <div class="setup-sub">العب مع أصدقائك أو مع أشخاص عشوائيين من الموقع</div>
+
+    <div class="api-section">
+      <div class="api-section-title">🎮 كيف تلعب</div>
+      <div class="api-steps">
+        <div class="api-step"><span class="api-step-num">1</span> اختبئ: اضغط على أي مربع فاضي من الشبكة — المربع يصير مخبأك السري</div>
+        <div class="api-step"><span class="api-step-num">2</span> ما أحد يشوف مخبأ غيره — كل واحد يشوف مربعه هو فقط</div>
+        <div class="api-step"><span class="api-step-num">3</span> بعد ما يختبئ الجميع، القناص يطلق رصاصاته على مربعات عشوائية</div>
+        <div class="api-step"><span class="api-step-num">4</span> من كان مخبأه بمربع مضروب يُقصى — اختر مربعاً ما أحد يتوقعه!</div>
+        <div class="api-step"><span class="api-step-num">5</span> آخر ناجٍ يفوز 🏆</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="mmJoinQueue('osniper')">🎲 لعب عشوائي</button>
+    <button class="btn-secondary" onclick="osniperGoFriendEntry()">👥 دخول مع صديق</button>
+    <button class="btn-secondary" onclick="rmCreateRoom('osniper')">🚪 إنشاء غرفة</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: القناص — FRIEND ENTRY ====== -->
+<div id="pg-online-osniper-friend-entry" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-osniper-instructions')">← رجوع</button>
+    <div class="setup-title">👥 ادعُ صديق للعب</div>
+    <div class="setup-sub">اخترت "دخول مع صديق" — اختر صديق لدعوته، وبعد قبوله ينضم لغرفتك تلقائياً</div>
+    <div class="owner-list" id="osniper-friend-invite-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ONLINE: القناص — PLAY ====== -->
+<div id="pg-online-osniper-play" class="page" data-skin="legacy">
+  <div class="og-play-wrap">
+    <div class="og-play-head">
+      <div class="og-chip">🏆 الجولة <b id="osniper-round-num">1</b></div>
+      <div class="og-chip">👥 الصامدون <b id="osniper-survivors">0</b></div>
+    </div>
+    <div class="og-status" id="osniper-status-msg">بانتظار المضيف يبدأ الجولة...</div>
+    <div class="og-timer-box" id="osniper-timer-box" style="display:none;">⏱️ <span id="osniper-timer-num">0</span> ثانية</div>
+    <div class="osniper-grid" id="osniper-grid"></div>
+    <div class="og-log" id="osniper-log"></div>
+    <button class="back-btn" onclick="rmLeaveRoom()">← خروج</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: القناص — WINNER ====== -->
+<div id="pg-online-osniper-winner" class="page" data-skin="legacy">
+  <div class="winner-box">
+    <div class="w-confetti">🎉</div>
+    <div class="w-congrats">🏆 مبروك للفائز!</div>
+    <div class="w-name" id="osniperw-name">—</div>
+    <div class="w-label">آخر ناجٍ من رصاص القناص</div>
+    <button class="btn-primary" id="osniperw-btn-again" onclick="osniperStartRoundFromRoom()" style="display:none;">🔁 جولة جديدة</button>
+    <button class="back-btn" onclick="rmLeaveRoom()">← الرئيسية</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الصندوق العشوائي — INSTRUCTIONS ====== -->
+<div id="pg-online-obox-instructions" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-home')">← رجوع</button>
+    <div class="setup-title">🎁 الصندوق العشوائي أونلاين</div>
+    <div class="setup-sub">العب مع أصدقائك أو مع أشخاص عشوائيين من الموقع</div>
+
+    <div class="api-section">
+      <div class="api-section-title">🎮 كيف تلعب</div>
+      <div class="api-steps">
+        <div class="api-step"><span class="api-step-num">1</span> اللعب بالدور — كل جولة يجي دور لاعب واحد</div>
+        <div class="api-step"><span class="api-step-num">2</span> صاحب الدور يختار صندوقاً من الثلاثة</div>
+        <div class="api-step"><span class="api-step-num">3</span> نصف الصناديق تقريباً فيها إقصاء والباقي حصانة — الترتيب عشوائي كل دور</div>
+        <div class="api-step"><span class="api-step-num">4</span> من يفتح صندوق إقصاء يخرج، ومن يفتح حصانة ينجو ويكمل</div>
+        <div class="api-step"><span class="api-step-num">5</span> آخر ناجٍ يفوز 🏆</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="mmJoinQueue('obox')">🎲 لعب عشوائي</button>
+    <button class="btn-secondary" onclick="oboxGoFriendEntry()">👥 دخول مع صديق</button>
+    <button class="btn-secondary" onclick="rmCreateRoom('obox')">🚪 إنشاء غرفة</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الصندوق العشوائي — FRIEND ENTRY ====== -->
+<div id="pg-online-obox-friend-entry" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-obox-instructions')">← رجوع</button>
+    <div class="setup-title">👥 ادعُ صديق للعب</div>
+    <div class="setup-sub">اخترت "دخول مع صديق" — اختر صديق لدعوته، وبعد قبوله ينضم لغرفتك تلقائياً</div>
+    <div class="owner-list" id="obox-friend-invite-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الصندوق العشوائي — PLAY ====== -->
+<div id="pg-online-obox-play" class="page" data-skin="legacy">
+  <div class="og-play-wrap">
+    <div class="og-play-head">
+      <div class="og-chip">🏆 الدور <b id="obox-round-num">1</b></div>
+      <div class="og-chip">👥 الصامدون <b id="obox-survivors">0</b></div>
+    </div>
+    <div class="og-status" id="obox-status-msg">بانتظار المضيف يبدأ الجولة...</div>
+    <div class="og-turn" id="obox-turn-line">الدور على: <b id="obox-turn-name">—</b></div>
+    <div class="og-timer-box" id="obox-timer-box" style="display:none;">⏱️ <span id="obox-timer-num">0</span> ثانية</div>
+    <div class="obox-stage" id="obox-stage"></div>
+    <div class="og-log" id="obox-log"></div>
+    <button class="back-btn" onclick="rmLeaveRoom()">← خروج</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الصندوق العشوائي — WINNER ====== -->
+<div id="pg-online-obox-winner" class="page" data-skin="legacy">
+  <div class="winner-box">
+    <div class="w-confetti">🎉</div>
+    <div class="w-congrats">🏆 مبروك للفائز!</div>
+    <div class="w-name" id="oboxw-name">—</div>
+    <div class="w-label">آخر ناجٍ من الصناديق</div>
+    <button class="btn-primary" id="oboxw-btn-again" onclick="oboxStartRoundFromRoom()" style="display:none;">🔁 جولة جديدة</button>
+    <button class="back-btn" onclick="rmLeaveRoom()">← الرئيسية</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الكرسي المتحرك — INSTRUCTIONS ====== -->
+<div id="pg-online-ochairs-instructions" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-home')">← رجوع</button>
+    <div class="setup-title">🪑 الكرسي المتحرك أونلاين</div>
+    <div class="setup-sub">العب مع أصدقائك أو مع أشخاص عشوائيين من الموقع</div>
+
+    <div class="api-section">
+      <div class="api-section-title">🎮 كيف تلعب</div>
+      <div class="api-steps">
+        <div class="api-step"><span class="api-step-num">1</span> كل جولة تظهر كراسي بأرقام عشوائية — عددها أقل من عدد اللاعبين بواحد</div>
+        <div class="api-step"><span class="api-step-num">2</span> اضغط على كرسي بسرعة لتحجزه — أول من يضغط ياخذه</div>
+        <div class="api-step"><span class="api-step-num">3</span> الكرسي المحجوز يُقفل فوراً على الباقين</div>
+        <div class="api-step"><span class="api-step-num">4</span> من يبقى بلا كرسي عند انتهاء الوقت يُقصى</div>
+        <div class="api-step"><span class="api-step-num">5</span> آخر جولة كرسي واحد بين لاعبين — من يحجزه يفوز 🏆</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="mmJoinQueue('ochairs')">🎲 لعب عشوائي</button>
+    <button class="btn-secondary" onclick="ochairsGoFriendEntry()">👥 دخول مع صديق</button>
+    <button class="btn-secondary" onclick="rmCreateRoom('ochairs')">🚪 إنشاء غرفة</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الكرسي المتحرك — FRIEND ENTRY ====== -->
+<div id="pg-online-ochairs-friend-entry" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-ochairs-instructions')">← رجوع</button>
+    <div class="setup-title">👥 ادعُ صديق للعب</div>
+    <div class="setup-sub">اخترت "دخول مع صديق" — اختر صديق لدعوته، وبعد قبوله ينضم لغرفتك تلقائياً</div>
+    <div class="owner-list" id="ochairs-friend-invite-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الكرسي المتحرك — PLAY ====== -->
+<div id="pg-online-ochairs-play" class="page" data-skin="legacy">
+  <div class="og-play-wrap">
+    <div class="og-play-head">
+      <div class="og-chip">🏆 الجولة <b id="ochairs-round-num">1</b></div>
+      <div class="og-chip">👥 الصامدون <b id="ochairs-survivors">0</b></div>
+    </div>
+    <div class="og-status" id="ochairs-status-msg">بانتظار المضيف يبدأ الجولة...</div>
+    <div class="og-timer-box" id="ochairs-timer-box" style="display:none;">⏱️ <span id="ochairs-timer-num">0</span> ثانية</div>
+    <div class="ochairs-stage" id="ochairs-stage"></div>
+    <div class="og-log" id="ochairs-log"></div>
+    <button class="back-btn" onclick="rmLeaveRoom()">← خروج</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: الكرسي المتحرك — WINNER ====== -->
+<div id="pg-online-ochairs-winner" class="page" data-skin="legacy">
+  <div class="winner-box">
+    <div class="w-confetti">🎉</div>
+    <div class="w-congrats">🏆 مبروك للفائز!</div>
+    <div class="w-name" id="ochairsw-name">—</div>
+    <div class="w-label">آخر من بقي على كرسيه</div>
+    <button class="btn-primary" id="ochairsw-btn-again" onclick="ochairsStartRoundFromRoom()" style="display:none;">🔁 جولة جديدة</button>
+    <button class="back-btn" onclick="rmLeaveRoom()">← الرئيسية</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: ترتيب الحروف — INSTRUCTIONS ====== -->
+<div id="pg-online-olsc-instructions" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-home')">← رجوع</button>
+    <div class="setup-title">🔀 ترتيب الحروف أونلاين</div>
+    <div class="setup-sub">العب مع أصدقائك أو مع أشخاص عشوائيين من الموقع</div>
+
+    <div class="api-section">
+      <div class="api-section-title">🎮 كيف تلعب</div>
+      <div class="api-steps">
+        <div class="api-step"><span class="api-step-num">1</span> النظام يختار كلمة سرية ويبعثر حروفها — نفس البعثرة لكل اللاعبين</div>
+        <div class="api-step"><span class="api-step-num">2</span> رتّب الحروف بذهنك واكتب الكلمة الصحيحة بالحقل</div>
+        <div class="api-step"><span class="api-step-num">3</span> أول واحد يكتبها صح ياخذ نقطة الجولة</div>
+        <div class="api-step"><span class="api-step-num">4</span> بعد مرور ثلث الوقت يظهر تلميح بأول حرف</div>
+        <div class="api-step"><span class="api-step-num">5</span> أول لاعب يوصل 3 نقاط يفوز 🏆</div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="mmJoinQueue('olsc')">🎲 لعب عشوائي</button>
+    <button class="btn-secondary" onclick="olscGoFriendEntry()">👥 دخول مع صديق</button>
+    <button class="btn-secondary" onclick="rmCreateRoom('olsc')">🚪 إنشاء غرفة</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: ترتيب الحروف — FRIEND ENTRY ====== -->
+<div id="pg-online-olsc-friend-entry" class="page" data-skin="legacy">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('online-olsc-instructions')">← رجوع</button>
+    <div class="setup-title">👥 ادعُ صديق للعب</div>
+    <div class="setup-sub">اخترت "دخول مع صديق" — اختر صديق لدعوته، وبعد قبوله ينضم لغرفتك تلقائياً</div>
+    <div class="owner-list" id="olsc-friend-invite-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== ONLINE: ترتيب الحروف — PLAY ====== -->
+<div id="pg-online-olsc-play" class="page" data-skin="legacy">
+  <div class="og-play-wrap">
+    <div class="og-play-head">
+      <div class="og-chip">🏆 الجولة <b id="olsc-round-num">1</b></div>
+      <div class="og-chip">🎯 للفوز <b id="olsc-target">3</b> نقاط</div>
+    </div>
+    <div class="og-status" id="olsc-status-msg">بانتظار المضيف يبدأ الجولة...</div>
+    <div class="og-timer-box" id="olsc-timer-box" style="display:none;">⏱️ <span id="olsc-timer-num">0</span> ثانية</div>
+    <div class="olsc-letters" id="olsc-letters"></div>
+    <div class="olsc-hint" id="olsc-hint" style="display:none;"></div>
+    <div class="olsc-answer-row">
+      <input type="text" id="olsc-answer" class="olsc-input" placeholder="اكتب الكلمة الصحيحة..." autocomplete="off"
+             onkeydown="if(event.key==='Enter') olscSubmitAnswer();" />
+      <button type="button" class="btn-primary olsc-send" onclick="olscSubmitAnswer()">إرسال</button>
+    </div>
+    <div class="og-scores" id="olsc-scores"></div>
+    <div class="og-log" id="olsc-log"></div>
+    <button class="back-btn" onclick="rmLeaveRoom()">← خروج</button>
+  </div>
+</div>
+
+<!-- ====== ONLINE: ترتيب الحروف — WINNER ====== -->
+<div id="pg-online-olsc-winner" class="page" data-skin="legacy">
+  <div class="winner-box">
+    <div class="w-confetti">🎉</div>
+    <div class="w-congrats">🏆 مبروك للفائز!</div>
+    <div class="w-name" id="olscw-name">—</div>
+    <div class="w-label">آخر كلمة كانت: <b id="olscw-word" style="color:var(--gold);">—</b></div>
+    <button class="btn-primary" id="olscw-btn-again" onclick="olscStartRoundFromRoom()" style="display:none;">🔁 جولة جديدة</button>
+    <button class="back-btn" onclick="rmLeaveRoom()">← الرئيسية</button>
   </div>
 </div>
 
@@ -54294,6 +54657,949 @@ function findballOnlineShowWinner(s) {
 rmGameEntryHandlers['findballonline'] = findballOnlineEnterGame;
 rmGameStartHandlers['findballonline'] = findballOnlineStartRoundFromRoom;
 rmGameStartWithMembersHandlers['findballonline'] = findballOnlineStartRound;
+</script>
+
+<!-- ====== ONLINE BATCH 2: أربع ألعاب منقولة من الستريمر (osniper/obox/ochairs/olsc) ====== -->
+<script>
+// ==================== ONLINE BATCH 2 — نواة مشتركة (og*) ====================
+// الألعاب الأربع المنقولة (القناص/الصندوق/الكرسي/ترتيب الحروف) تشترك بنفس
+// السقالة اللي تكررت حرفياً بالألعاب السبع السابقة: شاشة دعوة صديق، الاشتراك
+// بمستند الحالة، سلطة المضيف، شاشة الفائز. بدل ما نكررها أربع مرات جديدة
+// (وتتكرر معها أي ثغرة أربع مرات)، جمعناها هنا مرة وحدة — وكل لعبة تبقى لها
+// دوالها بأسمائها المتوقعة تماماً بنفس نمط الألعاب الموجودة.
+//
+// مصدر الحقيقة واحد لكل الألعاب: rooms/{roomId}/game/state، والمضيف
+// (authorityUid) هو الوحيد المخوّل يحسم الجولة ويكتب النتيجة. باقي اللاعبين
+// يكتبون إدخالهم الخام بحقل pending* فقط وينتظرون حسم المضيف — نفس نمط
+// findballOnline/gwOnline بالضبط.
+// مهلة إضافية بعد انتهاء وقت الجولة يتسلّم بعدها لاعب احتياطي سلطة الحسم لو
+// كان المضيف نفسه مجمّداً/خارج التبويب. نفس درس المطابقة العشوائية بالضبط:
+// ما نخلي تقدّم اللعبة كلها معلّقاً بجهاز واحد بعينه.
+const OG_AUTHORITY_GRACE_MS = 12000;
+// نبضة المضيف. الحسم كان يعتمد حصرياً على وصول onSnapshot، وonSnapshot ما
+// يوصل إلا لما يكتب أحد شيئاً — فلو ما تحرّك ولا لاعب (كلهم مترددين أو تاركين
+// التبويب) ما يوصل المضيف أي حدث، وما يتحقق من انتهاء وقت الجولة أبداً،
+// فتعلق الجولة للأبد. هذي النبضة هي اللي تضمن فحص المهلة بلا أي إدخال.
+const OG_HOST_TICK_MS = 1000;
+let ogHostTickTimer = null;
+let ogHostTickRoom = null;
+
+const OG_GAMES = {};   // tag -> تعريف اللعبة (render/hostLogic/...)
+const ogUnsubs = {};   // tag -> دالة إلغاء الاشتراك
+const ogState  = {};   // tag -> آخر نسخة من مستند الحالة
+const ogTimers = {};   // tag -> معرّف مؤقت العرض
+const ogHostBusy = {}; // tag -> يمنع تداخل حسم المضيف مع نفسه
+
+function ogDef(tag) { return OG_GAMES[tag]; }
+function ogEl(id) { return document.getElementById(id); }
+function ogSetText(id, v) { const e = ogEl(id); if (e) e.textContent = v; }
+
+function ogLogErr(tag, where, err) {
+  try { console.error('[' + tag + '] ' + where + ':', err); } catch (e) {}
+}
+
+// نفس شاشة "دعوة صديق" بكل الألعاب — نص واحد بدل أربع نسخ متطابقة.
+function ogGoFriendEntry(tag) {
+  show('online-' + tag + '-friend-entry');
+  ogRenderFriendInviteList(tag);
+}
+
+function ogRenderFriendInviteList(tag) {
+  const list = ogEl(tag + '-friend-invite-list');
+  if (!list) return;
+  if (!frnFriendsCache.length) {
+    list.innerHTML = '<div class="owner-empty">ما عندك أصدقاء بعد — ضيفهم من "أصدقائي"</div>';
+    return;
+  }
+  const myUid = currentUser.uid;
+  list.innerHTML = frnFriendsCache.map(f => {
+    const otherUid = f.uids.find(u => u !== myUid);
+    const otherName = (f.usernames && f.usernames[otherUid]) || '—';
+    return `
+      <div class="rounds-row">
+        <div class="rounds-row-top">
+          <div class="rounds-row-name">${ownerEscape(otherName)}</div>
+        </div>
+        <div class="rounds-btn-row">
+          <button type="button" class="rounds-btn rounds-btn-winme" onclick="ogInviteFriend('${tag}','${ownerEscape(otherUid)}','${ownerEscape(otherName)}')">📩 دعوة</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function ogInviteFriend(tag, friendUid, friendName) {
+  if (!rmCurrentRoomId || !rmIsHost) {
+    const code = await rmCreateRoom(tag);
+    if (!code) return;
+  }
+  const sent = await notifSend(friendUid, {
+    type: 'gameInvite', fromUid: currentUser.uid, fromUsername: currentUsername,
+    roomId: rmCurrentRoomId, gameTag: tag
+  });
+  toast(sent ? ('✅ تم إرسال الدعوة لـ' + friendName) : ('⚠️ تعذّر إرسال الدعوة لـ' + friendName));
+}
+
+// يبني خريطة المشاركين المشتركة لكل الألعاب. score يخص الألعاب بالنقاط
+// (ترتيب الحروف)، وeliminated يخص ألعاب الإقصاء — وجودهما معاً غير ضار.
+function ogBuildParticipants(members) {
+  const participants = {};
+  members.forEach(m => { participants[m.uid] = { username: m.username, eliminated: false, score: 0 }; });
+  return participants;
+}
+
+function ogAliveUids(s) {
+  return Object.keys(s.participants || {}).filter(uid => !s.participants[uid].eliminated);
+}
+
+// بدء جولة/لعبة جديدة: يكتب مستند الحالة الابتدائي ثم يدخل اللعبة. الحقول
+// الخاصة بكل لعبة تجي من def.initialState().
+async function ogStartRound(tag, roomId, members) {
+  const def = ogDef(tag);
+  const btn = ogEl('rm-btn-start');
+  if (btn) btn.disabled = true;
+
+  const prior = (ogState[tag] && ogState[tag].gameTag === tag) ? (ogState[tag].roundNum || 0) : 0;
+  const participants = ogBuildParticipants(members);
+  const base = {
+    status: 'active', gameTag: tag, participants,
+    roundNum: prior + 1, authorityUid: currentUser.uid, winnerUid: null,
+    roundStartedAt: fb.serverTimestamp()
+  };
+  const state = Object.assign(base, def.initialState(participants, prior + 1));
+
+  // كتابة مستند الحالة هي الحرجة وحدها — لو فشلت ما فيه جولة أصلاً.
+  try {
+    await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, 'game', 'state'), state);
+  } catch (err) {
+    if (btn) btn.disabled = false;
+    ogLogErr(tag, 'start-round', err);
+    toast('⚠️ تعذّر بدء الجولة: ' + err.message);
+    return;
+  }
+  // تحديث حالة الغرفة لـ'in-game' تجميلي (يخص عرض اللوبي فقط) — فشله يجب
+  // ألا يمنع المضيف من دخول جولة كُتبت فعلاً، وإلا يعلق الضيوف باللعب
+  // والمضيف بَرّا بلا أي طريقة يحسم بها الجولة (هو صاحب السلطة).
+  try {
+    await fb.updateDoc(fb.doc(fb.db, 'rooms', roomId), { status: 'in-game' });
+  } catch (err) { ogLogErr(tag, 'room-status', err); }
+  if (btn) btn.disabled = false;
+  ogEnterGame(tag, roomId);
+}
+
+async function ogStartRoundFromRoom(tag) {
+  if (!rmIsHost || !rmCurrentRoomId) return;
+  if (rmMembersCache.length < 2) { toast('⚠️ لازم لاعبان على الأقل'); return; }
+  await ogStartRound(tag, rmCurrentRoomId, rmMembersCache);
+}
+
+// الاشتراك بمستند الحالة — كل تحديث يعيد الرسم ثم يشغّل منطق المضيف (لو كنا
+// المضيف). هذا هو قلب المزامنة بكل الألعاب.
+function ogEnterGame(tag, roomId) {
+  const def = ogDef(tag);
+  show('online-' + tag + '-play');
+  ogState[tag] = null;
+  if (def.onEnter) def.onEnter();
+  ogSetText(tag + '-status-msg', 'بانتظار المضيف يبدأ الجولة...');
+
+  ogHostTickStart(tag, roomId);
+  if (ogUnsubs[tag]) { ogUnsubs[tag](); ogUnsubs[tag] = null; }
+  ogUnsubs[tag] = fb.onSnapshot(fb.doc(fb.db, 'rooms', roomId, 'game', 'state'), (snap) => {
+    if (!snap.exists()) return;
+    ogState[tag] = snap.data();
+    ogRenderPlay(tag, roomId);
+    ogRunHostLogicIfAuthority(tag, roomId);
+  }, (err) => {
+    // المعالجات الصامتة بالألعاب السابقة كانت تخفي فشل الاشتراك تماماً
+    // وتخلي الشاشة تتجمّد بلا أي إشارة — هنا نطبع ونبلّغ.
+    ogLogErr(tag, 'state-watch', err);
+    toast('⚠️ انقطعت مزامنة الجولة — جارِ إعادة المحاولة...');
+    setTimeout(() => { if (rmCurrentRoomId === roomId) ogEnterGame(tag, roomId); }, 3000);
+  });
+}
+
+function ogRenderPlay(tag, roomId) {
+  const def = ogDef(tag);
+  const s = ogState[tag];
+  if (!s || s.gameTag !== tag) return;
+
+  ogSetText(tag + '-round-num', s.roundNum || 1);
+  const survEl = ogEl(tag + '-survivors');
+  if (survEl) survEl.textContent = ogAliveUids(s).length;
+
+  if (s.status === 'finished') {
+    ogClearTimer(tag);
+    ogHostTickStop();
+    if (ogUnsubs[tag]) { ogUnsubs[tag](); ogUnsubs[tag] = null; }
+    if (rmEnteredGameForRoomId === roomId) rmEnteredGameForRoomId = null;
+    ogShowWinner(tag, s);
+    return;
+  }
+  if (s.status !== 'active') return;
+  def.render(s, roomId);
+}
+
+// نبضة دورية تعيد فحص المهلة بلا حاجة لأي إدخال من أي لاعب.
+function ogHostTickStart(tag, roomId) {
+  ogHostTickStop();
+  ogHostTickRoom = roomId;
+  ogHostTickTimer = setInterval(() => ogRunHostLogicIfAuthority(tag, roomId), OG_HOST_TICK_MS);
+}
+
+function ogHostTickStop() {
+  if (ogHostTickTimer) { clearInterval(ogHostTickTimer); ogHostTickTimer = null; }
+  ogHostTickRoom = null;
+}
+
+// من يحق له حسم الجولة الآن؟ المضيف دائماً. وإذا تأخّر الحسم عن موعده بأكثر
+// من OG_AUTHORITY_GRACE_MS (يعني المضيف نفسه مجمّد أو خرج)، يتسلّم لاعب
+// احتياطي واحد محدَّد بشكل قاطع — أصغر معرّف بين الأحياء غير المضيف — حتى ما
+// يتسابق أكثر من واحد على الحسم. قواعد الأمان تسمح بهذا أصلاً لأي مشارك.
+function ogMayResolve(s, overdueMs) {
+  const myUid = currentUser.uid;
+  if (s.authorityUid === myUid) return true;
+  if (overdueMs < OG_AUTHORITY_GRACE_MS) return false;
+  const backups = ogAliveUids(s).filter(uid => uid !== s.authorityUid).sort();
+  return backups.length > 0 && backups[0] === myUid;
+}
+
+// حسم الجولة. ينفّذ لما يرسل كل الأحياء إدخالهم، أو لما ينتهي وقت الجولة
+// المحسوب من roundStartedAt (وقت الخادم) — فما يعلق أحد لو ترك لاعب التبويب
+// أو لو ما تحرّك ولا لاعب إطلاقاً.
+async function ogRunHostLogicIfAuthority(tag, roomId) {
+  const def = ogDef(tag);
+  const s = ogState[tag];
+  if (!s || s.gameTag !== tag || s.status !== 'active') return;
+  if (ogHostBusy[tag]) return;
+
+  const startedMs = (s.roundStartedAt && s.roundStartedAt.toMillis) ? s.roundStartedAt.toMillis() : 0;
+  const deadlineMs = startedMs > 0 ? startedMs + def.roundDeadlineMs(s) : Infinity;
+  const timeIsUp = Date.now() > deadlineMs;
+  const overdueMs = timeIsUp ? (Date.now() - deadlineMs) : 0;
+  if (!ogMayResolve(s, overdueMs)) return;
+  if (!def.readyToResolve(s) && !timeIsUp) return;
+
+  ogHostBusy[tag] = true;
+  try {
+    const payload = def.resolve(s, timeIsUp);
+    if (payload) {
+      // لو كنا احتياطياً تسلّم الحسم، نثبّت السلطة باسمنا حتى تكمل الجولات
+      // التالية بلا انتظار نفس المهلة كل مرة.
+      if (s.authorityUid !== currentUser.uid) payload.authorityUid = currentUser.uid;
+      await fb.updateDoc(fb.doc(fb.db, 'rooms', roomId, 'game', 'state'), payload);
+    }
+  } catch (err) {
+    ogLogErr(tag, 'host-resolve', err);
+  } finally {
+    ogHostBusy[tag] = false;
+  }
+}
+
+// يحسم نهاية اللعبة بشكل موحّد لألعاب الإقصاء: لو بقي واحد أو أقل تنتهي.
+function ogFinishIfOver(payload, updatedParticipants) {
+  const stillAlive = Object.keys(updatedParticipants).filter(uid => !updatedParticipants[uid].eliminated);
+  if (stillAlive.length <= 1) {
+    payload.status = 'finished';
+    payload.winnerUid = stillAlive.length === 1 ? stillAlive[0] : null;
+  }
+  return payload;
+}
+
+function ogShowWinner(tag, s) {
+  const def = ogDef(tag);
+  const winner = s.winnerUid ? (s.participants[s.winnerUid] || {}) : null;
+  ogSetText(tag + 'w-name', winner ? (winner.username || '—') : 'لا يوجد فائز');
+  const again = ogEl(tag + 'w-btn-again');
+  if (again) again.style.display = rmIsHost ? 'block' : 'none';
+  if (def.onWinner) def.onWinner(s);
+  if (s.winnerUid === currentUser.uid) onlineGrantWinPoints(currentUser.uid);
+  show('online-' + tag + '-winner');
+}
+
+// مؤقت العرض. ينتهي عند deadline محسوب من وقت الخادم فكل الأجهزة تشوف نفس
+// الرقم تقريباً، والحسم الفعلي بيد المضيف لا بيد هذا المؤقت.
+function ogClearTimer(tag) {
+  if (ogTimers[tag]) { clearInterval(ogTimers[tag]); ogTimers[tag] = null; }
+  const box = ogEl(tag + '-timer-box');
+  if (box) box.style.display = 'none';
+}
+
+function ogStartTimer(tag, endsAtMs, onZero) {
+  ogClearTimer(tag);
+  const box = ogEl(tag + '-timer-box');
+  const num = ogEl(tag + '-timer-num');
+  if (box) box.style.display = 'block';
+  const tick = () => {
+    const left = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+    if (num) num.textContent = left;
+    if (box) box.classList.toggle('danger', left <= 3);
+    if (left <= 0) { ogClearTimer(tag); if (onZero) onZero(); }
+  };
+  tick();
+  ogTimers[tag] = setInterval(tick, 250);
+}
+
+function ogLog(tag, html) {
+  const box = ogEl(tag + '-log');
+  if (!box) return;
+  box.innerHTML = html;
+}
+
+// مولّد عشوائي ببذرة — يخلي كل الأجهزة تبني نفس الترتيب/البعثرة من نفس
+// الرقم المخزَّن بالمستند بدون مزامنة إضافية (نفس فكرة shuffleSeed بـfindball).
+function ogSeeded(seed) {
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function ogShuffleSeeded(arr, seed) {
+  const rnd = ogSeeded(seed);
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// يسجّل اللعبة بكل السجلات المتوقعة بنفس طريقة الألعاب الموجودة، ويولّد
+// الدوال بأسمائها المتوقعة (XGoFriendEntry / XStartRound / ...) حتى تبقى
+// البنية والتسمية مطابقة تماماً لنمط الألعاب السابقة.
+function ogRegister(tag, def) {
+  OG_GAMES[tag] = def;
+  const N = def.fnPrefix;
+  window[N + 'GoFriendEntry']      = () => ogGoFriendEntry(tag);
+  window[N + 'StartRound']         = (roomId, members) => ogStartRound(tag, roomId, members);
+  window[N + 'StartRoundFromRoom'] = () => ogStartRoundFromRoom(tag);
+  window[N + 'EnterGame']          = (roomId) => ogEnterGame(tag, roomId);
+  rmGameEntryHandlers[tag]            = (roomId) => ogEnterGame(tag, roomId);
+  rmGameStartHandlers[tag]            = () => ogStartRoundFromRoom(tag);
+  rmGameStartWithMembersHandlers[tag] = (roomId, members) => ogStartRound(tag, roomId, members);
+}
+
+// ==================== القناص أونلاين (osniper) ====================
+// قاعدة لعبة الستريمر محفوظة: كل لاعب يختار مربع اختباء من شبكة كبيرة، ثم
+// تُطلَق رصاصات على مربعات عشوائية ومن كان مخبأه بمربع مضروب يُقصى. الفرق
+// الوحيد: الاختيار بضغطة بالتطبيق بدل كتابة الرقم بشات المنصة، والقناص هو
+// النظام (عشوائي) بدل الستريمر — فتبقى ميزة "اختر مربعاً ما أحد يتوقعه"
+// قائمة تماماً لأن الرصاص يوزَّع على الشبكة كلها لا على المربعات المشغولة.
+const OSNIPER_GRID_SIZE = 25;       // حجم الشبكة (أصغر من نسخة الستريمر لأن عدد لاعبي المباراة أقل بكثير)
+const OSNIPER_PICK_SECONDS = 15;    // مهلة اختيار المخبأ
+const OSNIPER_SHOTS_PER_ROUND = 5;  // عدد الرصاصات بالجولة الواحدة
+
+let osniperMyCell = null;
+let osniperLastRoundRendered = 0;
+
+ogRegister('osniper', {
+  fnPrefix: 'osniper',
+
+  initialState() {
+    return { pendingCells: {}, shots: [], lastHits: [] };
+  },
+
+  onEnter() { osniperMyCell = null; osniperLastRoundRendered = 0; },
+
+  roundDeadlineMs() { return (OSNIPER_PICK_SECONDS * 1000) + 3000; },
+
+  // جاهز للحسم لما يختار كل الأحياء مخبأهم.
+  readyToResolve(s) {
+    const pending = s.pendingCells || {};
+    return ogAliveUids(s).every(uid => Object.prototype.hasOwnProperty.call(pending, uid));
+  },
+
+  resolve(s) {
+    const alive = ogAliveUids(s);
+    const pending = s.pendingCells || {};
+    // من ما اختار بالوقت يُوضع بمربع عشوائي (ما يُقصى مجاناً — نفس روح
+    // نسخة الستريمر اللي توزّع تلقائياً على من ما اختار).
+    const cellOf = {};
+    alive.forEach(uid => {
+      cellOf[uid] = pending[uid] || (1 + Math.floor(Math.random() * OSNIPER_GRID_SIZE));
+    });
+
+    // رصاصات على مربعات عشوائية مختلفة من الشبكة كلها.
+    const shots = [];
+    while (shots.length < Math.min(OSNIPER_SHOTS_PER_ROUND, OSNIPER_GRID_SIZE)) {
+      const c = 1 + Math.floor(Math.random() * OSNIPER_GRID_SIZE);
+      if (!shots.includes(c)) shots.push(c);
+    }
+
+    let hitUids = alive.filter(uid => shots.includes(cellOf[uid]));
+    // ما نسمح بإقصاء الجميع بجولة وحدة — لو صار كذا تنتهي اللعبة بلا فائز.
+    // نعتبرها "طلقة طائشة": ينجو الكل وتكمل اللعبة بجولة جديدة.
+    if (hitUids.length >= alive.length) hitUids = [];
+
+    const updated = { ...s.participants };
+    hitUids.forEach(uid => { updated[uid] = { ...updated[uid], eliminated: true }; });
+
+    const payload = {
+      participants: updated,
+      pendingCells: {},
+      shots,
+      lastHits: hitUids.map(uid => (s.participants[uid] || {}).username || '—'),
+      roundNum: (s.roundNum || 1) + 1,
+      roundStartedAt: fb.serverTimestamp()
+    };
+    return ogFinishIfOver(payload, updated);
+  },
+
+  render(s) {
+    const myUid = currentUser.uid;
+    const me = s.participants[myUid];
+    const grid = ogEl('osniper-grid');
+    if (!grid) return;
+
+    // نتيجة الجولة السابقة (من انضرب) — تُعرض بسطر السجل.
+    const hits = s.lastHits || [];
+    ogLog('osniper', (s.shots || []).length
+      ? '<div class="og-log-line">🔫 الرصاص وقع على: ' + (s.shots || []).join('، ') + '</div>' +
+        (hits.length ? '<div class="og-log-line og-log-bad">💀 انضرب: ' + hits.map(ownerEscape).join('، ') + '</div>'
+                     : '<div class="og-log-line og-log-good">✅ طلقة طائشة — محد انضرب</div>')
+      : '');
+
+    if (me && me.eliminated) {
+      ogSetText('osniper-status-msg', '💀 انضربت — بتتفرّج لحد نهاية اللعبة');
+      ogClearTimer('osniper');
+      grid.innerHTML = '';
+      return;
+    }
+
+    // جولة جديدة — أعد بناء الشبكة وافتح الاختيار.
+    if (osniperLastRoundRendered !== s.roundNum) {
+      osniperLastRoundRendered = s.roundNum;
+      osniperMyCell = null;
+      grid.innerHTML = '';
+      for (let i = 1; i <= OSNIPER_GRID_SIZE; i++) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.className = 'osniper-cell';
+        cell.id = 'osniper-cell-' + i;
+        cell.textContent = i;
+        cell.onclick = () => osniperPickCell(i);
+        grid.appendChild(cell);
+      }
+      const startedMs = (s.roundStartedAt && s.roundStartedAt.toMillis) ? s.roundStartedAt.toMillis() : Date.now();
+      ogStartTimer('osniper', startedMs + OSNIPER_PICK_SECONDS * 1000);
+    }
+
+    const alreadyPicked = (s.pendingCells || {})[myUid];
+    if (alreadyPicked) {
+      ogSetText('osniper-status-msg', '🫣 مختبئ بالمربع ' + alreadyPicked + ' — بانتظار الباقين...');
+      const el = ogEl('osniper-cell-' + alreadyPicked);
+      if (el) el.classList.add('mine');
+      document.querySelectorAll('#osniper-grid .osniper-cell').forEach(c => { c.disabled = true; });
+    } else {
+      ogSetText('osniper-status-msg', 'اختر مربعاً تختبئ فيه — ما أحد يشوف مخبأك!');
+    }
+  }
+});
+
+// يكتب اختيار اللاعب الخام فقط — المضيف وحده يحسم من انضرب.
+async function osniperPickCell(cell) {
+  const s = ogState['osniper'];
+  if (!s || s.status !== 'active') return;
+  if ((s.pendingCells || {})[currentUser.uid]) return;   // اختار أصلاً
+  osniperMyCell = cell;
+  try {
+    await fb.updateDoc(fb.doc(fb.db, 'rooms', rmCurrentRoomId, 'game', 'state'), {
+      ['pendingCells.' + currentUser.uid]: cell
+    });
+  } catch (err) {
+    ogLogErr('osniper', 'pick', err);
+    toast('⚠️ تعذّر إرسال اختيارك: ' + err.message);
+  }
+}
+
+// ==================== الصندوق العشوائي أونلاين (obox) ====================
+// قاعدة لعبة الستريمر محفوظة كما هي: اللعب بالدور، صاحب الدور يفتح صندوقاً
+// من BOX_COUNT، والمحتوى موزّع إقصاء/حصانة بنفس معادلة boxBuildContents
+// (الإقصاء = ceil(n/2) وياخذ الفائض الفردي) ويُخلط من جديد كل دور. الفرق
+// الوحيد: الاختيار بضغطة بالتطبيق بدل كتابة الرقم بشات المنصة.
+const OBOX_COUNT = 3;
+const OBOX_TURN_SECONDS = 15;
+
+let oboxLastTurnRendered = '';
+
+// نفس توزيع boxBuildContents بنسخة الستريمر: نصف الصناديق تقريباً إقصاء
+// (والإقصاء ياخذ الفائض لو العدد فردي) والباقي حصانة، ثم خلط بالبذرة حتى
+// يشوف كل اللاعبين نفس الترتيب بلا مزامنة إضافية.
+function oboxBuildContents(seed) {
+  const n = OBOX_COUNT;
+  const elimCount = Math.ceil(n / 2);
+  const contents = [];
+  for (let i = 0; i < elimCount; i++) contents.push('elim');
+  for (let i = 0; i < n - elimCount; i++) contents.push('immune');
+  return ogShuffleSeeded(contents, seed);
+}
+
+// ترتيب الأدوار ثابت طول اللعبة (مخزَّن بالمستند) — نتنقّل فيه ونتخطّى
+// المقصيين، نفس boxStartTurn بنسخة الستريمر.
+function oboxNextTurnUid(s, fromIdx) {
+  const order = s.turnOrder || [];
+  for (let step = 1; step <= order.length; step++) {
+    const uid = order[(fromIdx + step) % order.length];
+    if (s.participants[uid] && !s.participants[uid].eliminated) return uid;
+  }
+  return null;
+}
+
+ogRegister('obox', {
+  fnPrefix: 'obox',
+
+  initialState(participants) {
+    const order = Object.keys(participants);
+    return {
+      turnOrder: order,
+      turnUid: order[0],
+      boxSeed: Math.floor(Math.random() * 1000000),
+      pendingPick: null,
+      lastResult: null
+    };
+  },
+
+  onEnter() { oboxLastTurnRendered = ''; },
+
+  roundDeadlineMs() { return (OBOX_TURN_SECONDS * 1000) + 3000; },
+
+  // الدور يُحسم لما يختار صاحب الدور (أو ينتهي وقته فيُختار له عشوائياً).
+  readyToResolve(s) { return s.pendingPick !== null && s.pendingPick !== undefined; },
+
+  resolve(s, timeIsUp) {
+    const turnUid = s.turnUid;
+    if (!turnUid || !s.participants[turnUid] || s.participants[turnUid].eliminated) {
+      // صاحب الدور غادر/أُقصي — مرّر الدور بلا أي عقوبة.
+      const idx = (s.turnOrder || []).indexOf(turnUid);
+      const next = oboxNextTurnUid(s, idx < 0 ? 0 : idx);
+      return ogFinishIfOver({
+        turnUid: next, pendingPick: null, lastResult: null,
+        boxSeed: Math.floor(Math.random() * 1000000),
+        roundNum: (s.roundNum || 1) + 1, roundStartedAt: fb.serverTimestamp()
+      }, s.participants);
+    }
+
+    const contents = oboxBuildContents(s.boxSeed);
+    const pick = (s.pendingPick !== null && s.pendingPick !== undefined)
+      ? s.pendingPick
+      : (1 + Math.floor(Math.random() * OBOX_COUNT));   // ما اختار بالوقت — اختيار تلقائي، نفس نسخة الستريمر
+    const content = contents[pick - 1];
+
+    const updated = { ...s.participants };
+    if (content === 'elim') updated[turnUid] = { ...updated[turnUid], eliminated: true };
+
+    const idx = (s.turnOrder || []).indexOf(turnUid);
+    const payload = {
+      participants: updated,
+      turnUid: oboxNextTurnUid({ ...s, participants: updated }, idx < 0 ? 0 : idx),
+      pendingPick: null,
+      boxSeed: Math.floor(Math.random() * 1000000),
+      lastResult: {
+        username: (s.participants[turnUid] || {}).username || '—',
+        pick, content, auto: !!timeIsUp && (s.pendingPick === null || s.pendingPick === undefined),
+        contents
+      },
+      roundNum: (s.roundNum || 1) + 1,
+      roundStartedAt: fb.serverTimestamp()
+    };
+    return ogFinishIfOver(payload, updated);
+  },
+
+  render(s) {
+    const myUid = currentUser.uid;
+    const myTurn = s.turnUid === myUid;
+    const turnName = (s.participants[s.turnUid] || {}).username || '—';
+    ogSetText('obox-turn-name', turnName);
+
+    const last = s.lastResult;
+    ogLog('obox', last
+      ? '<div class="og-log-line' + (last.content === 'elim' ? ' og-log-bad' : ' og-log-good') + '">' +
+        (last.content === 'elim' ? '💥 ' : '🛡️ ') + ownerEscape(last.username) +
+        ' فتح الصندوق ' + last.pick + (last.auto ? ' (تلقائي — خلص وقته)' : '') +
+        (last.content === 'elim' ? ' — إقصاء!' : ' — حصانة، نجا!') + '</div>'
+      : '');
+
+    if (s.participants[myUid] && s.participants[myUid].eliminated) {
+      ogSetText('obox-status-msg', '💀 أُقصيت — بتتفرّج لحد نهاية اللعبة');
+    } else {
+      ogSetText('obox-status-msg', myTurn ? 'دورك! اختر صندوقاً' : 'بانتظار ' + turnName + '...');
+    }
+
+    // أعِد بناء الصناديق عند كل دور جديد (بذرة جديدة = ترتيب محتوى جديد).
+    const turnKey = s.roundNum + ':' + s.turnUid;
+    if (oboxLastTurnRendered !== turnKey) {
+      oboxLastTurnRendered = turnKey;
+      const stage = ogEl('obox-stage');
+      if (stage) {
+        stage.innerHTML = '';
+        for (let i = 1; i <= OBOX_COUNT; i++) {
+          const item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'obox-item';
+          item.id = 'obox-item-' + i;
+          item.innerHTML = '<div class="obox-num">' + i + '</div><div class="obox-shape">🎁</div>';
+          item.onclick = () => oboxPick(i);
+          stage.appendChild(item);
+        }
+      }
+      const startedMs = (s.roundStartedAt && s.roundStartedAt.toMillis) ? s.roundStartedAt.toMillis() : Date.now();
+      ogStartTimer('obox', startedMs + OBOX_TURN_SECONDS * 1000);
+    }
+
+    const canPick = myTurn && (s.pendingPick === null || s.pendingPick === undefined);
+    document.querySelectorAll('#obox-stage .obox-item').forEach(el => {
+      el.disabled = !canPick;
+      el.classList.toggle('pickable', canPick);
+    });
+  }
+});
+
+async function oboxPick(n) {
+  const s = ogState['obox'];
+  if (!s || s.status !== 'active') return;
+  if (s.turnUid !== currentUser.uid) return;                       // مو دورك
+  if (s.pendingPick !== null && s.pendingPick !== undefined) return; // اخترت أصلاً
+  try {
+    await fb.updateDoc(fb.doc(fb.db, 'rooms', rmCurrentRoomId, 'game', 'state'), { pendingPick: n });
+  } catch (err) {
+    ogLogErr('obox', 'pick', err);
+    toast('⚠️ تعذّر إرسال اختيارك: ' + err.message);
+  }
+}
+
+// ==================== الكرسي المتحرك أونلاين (ochairs) ====================
+// قاعدة لعبة الستريمر محفوظة: كل جولة تظهر كراسي بأرقام عشوائية من 1-100
+// وعددها = عدد الأحياء ناقص واحد، واللاعبون يتسابقون على حجزها — أول من
+// يحجز الكرسي ياخذه، ومن يبقى بلا كرسي يُقصى، وآخر جولة كرسي واحد بين
+// لاعبين. الفرق الوحيد: الحجز بضغطة بالتطبيق بدل كتابة رقم الكرسي بالشات.
+//
+// السبق (من ضغط أولاً) يُحسم عند المضيف لا عند العميل: كل لاعب يكتب طلبه
+// بـpendingClaims مع ختم وقت الخادم، والمضيف يرتّب الطلبات بالوقت ويوزّع
+// الكراسي — فالنتيجة عادلة وموحّدة مهما اختلفت سرعات الشبكة بالعرض.
+const OCHAIRS_CLAIM_SECONDS = 12;
+
+let ochairsLastRoundRendered = 0;
+
+function ochairsPickNumbers(count, seed) {
+  const pool = [];
+  for (let i = 1; i <= 100; i++) pool.push(i);
+  return ogShuffleSeeded(pool, seed).slice(0, count).sort((a, b) => a - b);
+}
+
+ogRegister('ochairs', {
+  fnPrefix: 'ochairs',
+
+  initialState(participants) {
+    const alive = Object.keys(participants).length;
+    const seed = Math.floor(Math.random() * 1000000);
+    return {
+      chairSeed: seed,
+      chairs: ochairsPickNumbers(Math.max(1, alive - 1), seed),
+      pendingClaims: {},
+      lastEliminated: []
+    };
+  },
+
+  onEnter() { ochairsLastRoundRendered = 0; },
+
+  roundDeadlineMs() { return (OCHAIRS_CLAIM_SECONDS * 1000) + 3000; },
+
+  // نحسم مبكراً لو انحجزت كل الكراسي (ما فيه داعي ننتظر باقي الوقت).
+  readyToResolve(s) {
+    const claims = s.pendingClaims || {};
+    const taken = new Set(Object.values(claims).map(c => c.chair));
+    return taken.size >= (s.chairs || []).length;
+  },
+
+  resolve(s) {
+    const alive = ogAliveUids(s);
+    const claims = s.pendingClaims || {};
+    // ترتيب الطلبات بوقت وصولها — الأسبق ياخذ الكرسي. عند تساوي الوقت
+    // (نادر جداً) نرتّب بالمعرّف حتى يكون الحسم ثابتاً لا عشوائياً.
+    const ordered = alive
+      .filter(uid => claims[uid])
+      .map(uid => ({ uid, chair: claims[uid].chair, at: Number(claims[uid].at) || 0 }))
+      .sort((a, b) => (a.at - b.at) || (a.uid < b.uid ? -1 : 1));
+
+    const seated = {};        // chair -> uid
+    const seatedUids = new Set();
+    ordered.forEach(req => {
+      if (!(s.chairs || []).includes(req.chair)) return;  // كرسي غير موجود
+      if (seated[req.chair] !== undefined) return;        // محجوز قبله
+      if (seatedUids.has(req.uid)) return;                // حجز كرسيين
+      seated[req.chair] = req.uid;
+      seatedUids.add(req.uid);
+    });
+
+    const updated = { ...s.participants };
+    const eliminatedNames = [];
+    alive.forEach(uid => {
+      if (!seatedUids.has(uid)) {
+        updated[uid] = { ...updated[uid], eliminated: true };
+        eliminatedNames.push((s.participants[uid] || {}).username || '—');
+      }
+    });
+
+    const stillAlive = Object.keys(updated).filter(uid => !updated[uid].eliminated);
+    const nextSeed = Math.floor(Math.random() * 1000000);
+    const payload = {
+      participants: updated,
+      pendingClaims: {},
+      lastEliminated: eliminatedNames,
+      chairSeed: nextSeed,
+      chairs: ochairsPickNumbers(Math.max(1, stillAlive.length - 1), nextSeed),
+      roundNum: (s.roundNum || 1) + 1,
+      roundStartedAt: fb.serverTimestamp()
+    };
+    return ogFinishIfOver(payload, updated);
+  },
+
+  render(s) {
+    const myUid = currentUser.uid;
+    const out = s.participants[myUid] && s.participants[myUid].eliminated;
+
+    const gone = s.lastEliminated || [];
+    ogLog('ochairs', gone.length
+      ? '<div class="og-log-line og-log-bad">💀 خرج بلا كرسي: ' + gone.map(ownerEscape).join('، ') + '</div>'
+      : '');
+
+    if (out) {
+      ogSetText('ochairs-status-msg', '💀 بقيت بلا كرسي — بتتفرّج لحد نهاية اللعبة');
+      ogClearTimer('ochairs');
+      const stage = ogEl('ochairs-stage');
+      if (stage) stage.innerHTML = '';
+      return;
+    }
+
+    if (ochairsLastRoundRendered !== s.roundNum) {
+      ochairsLastRoundRendered = s.roundNum;
+      const stage = ogEl('ochairs-stage');
+      if (stage) {
+        stage.innerHTML = '';
+        (s.chairs || []).forEach(num => {
+          const el = document.createElement('button');
+          el.type = 'button';
+          el.className = 'ochairs-seat';
+          el.id = 'ochairs-seat-' + num;
+          el.innerHTML = '<div class="ochairs-seat-icon">🪑</div><div class="ochairs-seat-num">' + num + '</div>';
+          el.onclick = () => ochairsClaim(num);
+          stage.appendChild(el);
+        });
+      }
+      const startedMs = (s.roundStartedAt && s.roundStartedAt.toMillis) ? s.roundStartedAt.toMillis() : Date.now();
+      ogStartTimer('ochairs', startedMs + OCHAIRS_CLAIM_SECONDS * 1000);
+    }
+
+    // عرض حي لمن حجز ماذا (تقديري — الحسم النهائي عند المضيف).
+    const claims = s.pendingClaims || {};
+    const takenBy = {};
+    Object.keys(claims).forEach(uid => { 
+      const c = claims[uid];
+      if (takenBy[c.chair] === undefined || (Number(c.at)||0) < (Number(claims[takenBy[c.chair]].at)||0)) takenBy[c.chair] = uid;
+    });
+    const iClaimed = claims[myUid];
+    (s.chairs || []).forEach(num => {
+      const el = ogEl('ochairs-seat-' + num);
+      if (!el) return;
+      const owner = takenBy[num];
+      el.classList.toggle('taken', !!owner);
+      el.classList.toggle('mine', owner === myUid);
+      el.disabled = !!iClaimed || !!owner;
+    });
+
+    ogSetText('ochairs-status-msg', iClaimed
+      ? '🪑 حجزت الكرسي ' + iClaimed.chair + ' — بانتظار حسم الجولة...'
+      : 'بسرعة! اضغط على كرسي فاضي قبل ما ينحجز');
+  }
+});
+
+// يكتب طلب الحجز مع ختم وقت العميل — المضيف يرتّب الطلبات ويحسم السبق.
+// نستخدم Date.now() (لا serverTimestamp) لأن الحقل داخل خريطة متداخلة،
+// والفارق بين اللاعبين هنا بالميلي ثانية ومحسوم عند المضيف بترتيب ثابت.
+async function ochairsClaim(chairNum) {
+  const s = ogState['ochairs'];
+  if (!s || s.status !== 'active') return;
+  if ((s.pendingClaims || {})[currentUser.uid]) return;   // حجزت أصلاً
+  if (!(s.chairs || []).includes(chairNum)) return;
+  try {
+    await fb.updateDoc(fb.doc(fb.db, 'rooms', rmCurrentRoomId, 'game', 'state'), {
+      ['pendingClaims.' + currentUser.uid]: { chair: chairNum, at: Date.now() }
+    });
+  } catch (err) {
+    ogLogErr('ochairs', 'claim', err);
+    toast('⚠️ تعذّر حجز الكرسي: ' + err.message);
+  }
+}
+
+// ==================== ترتيب الحروف أونلاين (olsc) ====================
+// قاعدة لعبة الستريمر محفوظة: كلمة سرية تُعرض حروفها مبعثرة، وأول من يكتبها
+// صحيحة ياخذ الجولة، ومود التلميح يكشف حرفاً بعد مرور جزء من الوقت. الفرق
+// الوحيد: الإجابة تُكتب بحقل داخل التطبيق بدل شات المنصة. وبما إن الأونلاين
+// مباراة بين لاعبين لا بث مفتوح، اللعبة صارت عدة جولات بنقاط (أول من يوصل
+// OLSC_TARGET_SCORE يفوز) بدل جولة واحدة تنتهي بأول إجابة.
+const OLSC_WORDS = [
+  'مدرسة', 'سيارة', 'برتقال', 'مفتاح', 'قهوة', 'كتاب', 'نافذة', 'حديقة',
+  'طائرة', 'ساعة', 'قلم', 'بحر', 'جبل', 'مطر', 'شمس', 'قمر', 'نجمة',
+  'مستشفى', 'مكتبة', 'ملعب', 'مطعم', 'شاطئ', 'صحراء', 'غابة', 'جسر',
+  'دراجة', 'حاسوب', 'هاتف', 'كرسي', 'طاولة', 'مرآة', 'وسادة', 'سلّم'
+];
+const OLSC_ROUND_SECONDS = 45;
+const OLSC_TARGET_SCORE = 3;
+const OLSC_HINT_AFTER_RATIO = 1 / 3;   // التلميح يظهر بعد ثلث الوقت
+
+let olscLastRoundRendered = 0;
+
+function olscNormalizeAnswer(t) {
+  return (typeof normalize === 'function' ? normalize(String(t || '')) : String(t || '').trim());
+}
+
+// نفس فكرة البعثرة بنسخة الستريمر: نعيد الخلط حتى تختلف النتيجة عن الأصل.
+// البذرة مخزَّنة بالمستند فيشوف كل اللاعبين نفس البعثرة بالضبط.
+function olscScramble(word, seed) {
+  const letters = Array.from(word);
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const out = ogShuffleSeeded(letters, seed + attempt);
+    if (out.join('') !== letters.join('')) return out;
+  }
+  return letters.slice().reverse();
+}
+
+function olscPickWord(seed, roundNum) {
+  return ogShuffleSeeded(OLSC_WORDS, seed)[roundNum % OLSC_WORDS.length];
+}
+
+ogRegister('olsc', {
+  fnPrefix: 'olsc',
+
+  initialState() {
+    const seed = Math.floor(Math.random() * 1000000);
+    return {
+      wordSeed: seed,
+      word: olscPickWord(seed, 0),
+      scrambleSeed: Math.floor(Math.random() * 1000000),
+      pendingAnswers: {},
+      lastWinnerName: null
+    };
+  },
+
+  onEnter() { olscLastRoundRendered = 0; },
+
+  roundDeadlineMs() { return (OLSC_ROUND_SECONDS * 1000) + 2000; },
+
+  // نحسم فوراً لحظة ما يرسل أي لاعب إجابة صحيحة — هي لعبة سبق.
+  readyToResolve(s) {
+    const answers = s.pendingAnswers || {};
+    const target = olscNormalizeAnswer(s.word);
+    return Object.keys(answers).some(uid => olscNormalizeAnswer(answers[uid].text) === target);
+  },
+
+  resolve(s) {
+    const answers = s.pendingAnswers || {};
+    const target = olscNormalizeAnswer(s.word);
+    // الأسبق زمنياً بين الإجابات الصحيحة هو صاحب الجولة.
+    const correct = Object.keys(answers)
+      .filter(uid => olscNormalizeAnswer(answers[uid].text) === target)
+      .map(uid => ({ uid, at: Number(answers[uid].at) || 0 }))
+      .sort((a, b) => (a.at - b.at) || (a.uid < b.uid ? -1 : 1));
+
+    const updated = { ...s.participants };
+    let winnerName = null;
+    if (correct.length) {
+      const uid = correct[0].uid;
+      updated[uid] = { ...updated[uid], score: (updated[uid].score || 0) + 1 };
+      winnerName = (updated[uid].username) || '—';
+    }
+
+    const nextRound = (s.roundNum || 1) + 1;
+    const payload = {
+      participants: updated,
+      pendingAnswers: {},
+      lastWinnerName: winnerName,
+      word: olscPickWord(s.wordSeed, nextRound),
+      scrambleSeed: Math.floor(Math.random() * 1000000),
+      roundNum: nextRound,
+      roundStartedAt: fb.serverTimestamp()
+    };
+
+    // أول من يوصل النقاط المطلوبة يفوز باللعبة كلها.
+    const champion = Object.keys(updated).find(uid => (updated[uid].score || 0) >= OLSC_TARGET_SCORE);
+    if (champion) {
+      payload.status = 'finished';
+      payload.winnerUid = champion;
+      payload.word = s.word;   // خلّ الكلمة الأخيرة ظاهرة بشاشة الفوز
+    }
+    return payload;
+  },
+
+  render(s) {
+    const myUid = currentUser.uid;
+    ogSetText('olsc-target', OLSC_TARGET_SCORE);
+
+    const lw = s.lastWinnerName;
+    ogLog('olsc', lw ? '<div class="og-log-line og-log-good">✅ الجولة السابقة لـ' + ownerEscape(lw) + '</div>' : '');
+
+    // لوحة النقاط
+    const scores = ogEl('olsc-scores');
+    if (scores) {
+      scores.innerHTML = Object.keys(s.participants || {}).map(uid => {
+        const p = s.participants[uid];
+        return '<div class="og-score-row' + (uid === myUid ? ' me' : '') + '"><span>' +
+               ownerEscape(p.username || '—') + '</span><b>' + (p.score || 0) + '</b></div>';
+      }).join('');
+    }
+
+    if (olscLastRoundRendered !== s.roundNum) {
+      olscLastRoundRendered = s.roundNum;
+      const box = ogEl('olsc-letters');
+      if (box) {
+        box.innerHTML = olscScramble(s.word, s.scrambleSeed)
+          .map(ch => '<span class="olsc-letter">' + ownerEscape(ch) + '</span>').join('');
+      }
+      const input = ogEl('olsc-answer');
+      if (input) { input.value = ''; input.disabled = false; }
+      const hint = ogEl('olsc-hint');
+      if (hint) { hint.style.display = 'none'; hint.textContent = ''; }
+
+      const startedMs = (s.roundStartedAt && s.roundStartedAt.toMillis) ? s.roundStartedAt.toMillis() : Date.now();
+      const endsAt = startedMs + OLSC_ROUND_SECONDS * 1000;
+      ogStartTimer('olsc', endsAt);
+      // مود التلميح: يكشف أول حرف بعد ثلث الوقت، نفس روح lscRevealLetterHint.
+      const hintAt = startedMs + OLSC_ROUND_SECONDS * 1000 * OLSC_HINT_AFTER_RATIO;
+      setTimeout(() => {
+        const cur = ogState['olsc'];
+        if (!cur || cur.roundNum !== s.roundNum || cur.status !== 'active') return;
+        const h = ogEl('olsc-hint');
+        if (h) { h.textContent = '💡 تلميح: الكلمة تبدأ بحرف "' + Array.from(cur.word)[0] + '"'; h.style.display = 'block'; }
+      }, Math.max(0, hintAt - Date.now()));
+    }
+
+    const mine = (s.pendingAnswers || {})[myUid];
+    ogSetText('olsc-status-msg', mine
+      ? 'أرسلت: ' + mine.text + ' — بانتظار حسم الجولة...'
+      : 'رتّب الحروف واكتب الكلمة الصحيحة!');
+  },
+
+  onWinner(s) { ogSetText('olscw-word', s.word || '—'); }
+});
+
+async function olscSubmitAnswer() {
+  const s = ogState['olsc'];
+  if (!s || s.status !== 'active') return;
+  const input = ogEl('olsc-answer');
+  if (!input) return;
+  const text = (input.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  try {
+    await fb.updateDoc(fb.doc(fb.db, 'rooms', rmCurrentRoomId, 'game', 'state'), {
+      ['pendingAnswers.' + currentUser.uid]: { text, at: Date.now() }
+    });
+  } catch (err) {
+    ogLogErr('olsc', 'answer', err);
+    toast('⚠️ تعذّر إرسال إجابتك: ' + err.message);
+  }
+}
+</script>
+
+<script>
 
 // ==================== WORD RACE ONLINE (سباق الكلمات السريع) ====================
 const OWORDRACE_PHRASES = [
