@@ -52615,33 +52615,152 @@ window.addEventListener('pagehide', () => { rmHeartbeatStop(); rmStopFallbackPol
 <!-- ====== ONLINE GAMES: MATCHMAKING QUEUE ====== -->
 <script>
 // ==================== MATCHMAKING (mm*) ====================
+// ملاحظة معمارية مهمة (سبب إعادة التصميم):
+// النسخة السابقة كانت تربط تنفيذ mmFinalizeMatch بعميل واحد بعينه — "أقدم لاعب
+// بالطابور" (mmQueueCache[0]) — بعد انتهاء عدّاد setInterval محلي بمتصفحه. هذا
+// نقطة فشل وحيدة (SPOF) حقيقية، وكانت تسبب تعليق "جارِ البحث عن لاعبين..." للأبد
+// رغم ظهور "2 / 10 لاعبين"، بأربعة مسارات فشل مستقلة كلها واقعية:
+//
+//  (أ) خنق المؤقتات بالخلفية: المتصفحات تخنق setInterval لثانية واحدة كحد أقصى
+//      بالتبويبات الخلفية، وiOS Safari يعلّقها تماماً عند تصغير التطبيق أو قفل
+//      الشاشة. لو كان "الأقدم" بالخلفية، عدّاده ما يوصل صفر أبداً ومحد ينهي
+//      المطابقة — والبقية ينتظرون للأبد.
+//  (ب) صفوف الأشباح: ما كان فيه أي تنظيف لصفوف الطابور القديمة. أي تبويب انقفل
+//      فجأة يترك صفّه status:'waiting' للأبد (وقواعد الأمان ما تسمح لغيره
+//      يحذفه)، فيجلس الشبح دائماً على رأس الترتيب — يعني "الأقدم" شخص غير
+//      موجود أصلاً، فما ينفّذ أحد الإنهاء أبداً. وهذا يفسّر تماماً ظهور عدد
+//      كافٍ بالشاشة مع عدم بدء الراوند ولا مرة.
+//  (ج) علَم عالق: mmFinalizingInProgress كان يُرفع عند وصول العدّاد للصفر لدى
+//      **كل** عميل بالطابور، بينما ما يُنزله إلا مسار mmFinalizeMatch — واللي
+//      ما ينفّذه إلا الأقدم. فأي عميل غير الأقدم يرفع العلم ويضل مرفوع للأبد،
+//      وmmMaybeScheduleFinalize ترجع من أول سطر بعدها، فتتجمّد شاشته نهائياً
+//      حتى لو رجع الطابور للحياة.
+//  (د) صفر معالجة أخطاء: mmFinalizeMatch كانت تلغي مراقبة الطابور (mmQueueUnsub)
+//      ثم تنفّذ سلسلة await طويلة بلا try/catch. أي استثناء (شبكة، صلاحيات،
+//      دالة بوتات ترمي) يترك العميل بلا مراقبة + بعلَم مرفوع = موت نهائي صامت.
+//
+// التصميم الجديد يزيل الاعتماد على عميل بعينه بالكامل:
+//  1. العدّاد مرساته وقت الحائط المحلي (Date.now) لكل عميل، ويُصفَّر عند نفس
+//     الحدث المشترك بالضبط: لقطة onSnapshot اللي تُظهر انضمام لاعب جديد. فكل
+//     العملاء يصفّرون بنفس اللحظة عملياً (بفارق زمن الشبكة فقط) بدون أي كتابة
+//     إضافية لـFirestore، وبدون أي اعتماد على ساعة الخادم أو ساعة عميل آخر —
+//     فما فيه أي احتمال انحراف ساعات ولا عميل مجمّد يفرض موعداً قديماً.
+//  2. أي عميل حيّ (مو الأقدم فقط) يحق له تنفيذ الإنهاء، لكن بتدرّج زمني حسب
+//     ترتيبه: الأقدم يحاول فوراً، والتالي بعد MM_CLAIM_STAGGER_MS، وهكذا. فلو
+//     تجمّد الأقدم يتسلّم اللي بعده تلقائياً خلال ثوانٍ بدل انتظار أبدي.
+//  3. الحجز ذرّي بـfb.runTransaction على صفوف الطابور نفسها: المعاملة تقرأ كل
+//     الصفوف وتتأكد إنها لسا 'waiting' قبل ما تقلبها 'matched' دفعة واحدة. لو
+//     تسابق عميلان، معاملة واحدة بس تنجح والثانية تشوف 'matched' فتنسحب وتحذف
+//     غرفتها — فيستحيل تنشأ غرفتان أو يُستهلك نفس الصف مرتين.
+//  4. صفوف الأشباح تُستبعد من الحساب والترتيب بفلترة lastSeen محلياً (تشتغل
+//     فوراً بلا أي تغيير بقواعد الأمان)، مع محاولة حذفها فعلياً كأفضل جهد.
+//  5. مصادر إيقاظ مستقلة عن المؤقتات: onSnapshot يوصل حتى بالتبويبات الخلفية،
+//     وvisibilitychange يعيد التقييم لحظة رجوع التبويب، وكل الحسابات بـDate.now()
+//     (وقت الحائط) بدل عدّ نبضات setInterval — فالخنق يأخّر العرض فقط لا المنطق.
+//  6. سقف زمني مطلق: لو مرّ MM_HARD_TIMEOUT_MS من لحظة اكتمال الحد الأدنى بلا
+//     نتيجة، أي عميل حيّ يحاول الإنهاء فوراً بغض النظر عن ترتيبه.
+//
+// كل هذا داخل الدوال المشتركة mm* — فيستفيد منه تلقائياً كل ألعاب الأونلاين
+// الحالية والجديدة بدون أي تكرار لكل لعبة.
 const MM_MIN_PLAYERS = 2;
 const MM_MAX_PLAYERS = 10;
 const MM_COUNTDOWN_SECONDS = 10; // من لحظة اكتمال الحد الأدنى (لاعبان)، ينطلق عدّاد 10 ثوانٍ — أي لاعب جديد ينضم يعيد تصفيره من جديد، ولو خلص بدون انضمام جديد يبدأ الراوند تلقائياً
+// صف الطابور يُعد "شبح" لو ما وصلت منه نبضة حياة خلال هذي المدة. النبضة كل
+// PRESENCE_HEARTBEAT_MS (20 ثانية)، فـ60 ثانية = ثلاث نبضات فائتة — هامش واسع
+// يتحمّل تذبذب الشبكة وخنق الخلفية بدون ما يطرد لاعباً حيّاً.
+const MM_STALE_MS = 60000;
+// التدرّج بين محاولات الإنهاء حسب ترتيب اللاعب بالطابور: الأقدم فوراً (0)،
+// التالي بعد 4 ثوانٍ، وهكذا. يخلي الحالة الطبيعية "عميل واحد يحاول" (فما فيه
+// ضغط زائد على Firestore) مع تسليم تلقائي خلال ثوانٍ لو تجمّد الأقدم.
+const MM_CLAIM_STAGGER_MS = 4000;
+// السقف المطلق: بعد مروره من لحظة اكتمال الحد الأدنى، كل عميل حيّ يحاول فوراً
+// بلا تدرّج — شبكة أمان أخيرة ضد أي سيناريو ما توقعناه.
+const MM_HARD_TIMEOUT_MS = 45000;
+// أقصى مهلة لمحاولة إنهاء واحدة قبل ما نعتبرها ميتة ونسمح بمحاولة جديدة. تمنع
+// بقاء mmFinalizingInProgress مرفوعاً للأبد لو علقت المعاملة بالشبكة.
+const MM_FINALIZE_ATTEMPT_TIMEOUT_MS = 20000;
+// كل كم نعيد تقييم الحالة. العدّاد المعروض يتحدّث كل 250ms، لكن المنطق نفسه
+// يعتمد على Date.now() فقط — فلو خنق المتصفح النبضات لثانية أو علّقها تماماً
+// وقت الخلفية، ما يضيع شيء: أول نبضة أو أول onSnapshot أو أول visibilitychange
+// بعد رجوع التبويب يحسب الفرق الزمني الحقيقي ويتصرف على أساسه.
+const MM_TICK_MS = 250;
 
 let mmQueueUnsub = null;
 let mmHeartbeatTimer = null;
 let mmQueueCache = [];
-let mmFinalizeTimer = null;
 let mmInQueue = false;
-let mmCountdownInterval = null;
-let mmCountdownEndsAtMs = null;
+let mmTickInterval = null;
 let mmLastKnownQueueCount = 0; // يخص كشف "انضم لاعب جديد" لإعادة تصفير العدّاد
-// يمنع mmMaybeScheduleFinalize من إعادة تشغيل عدّاد جديد أثناء ما mmFinalizeMatch
-// شغّالة فعلياً (كانت الثغرة: العدّاد يوصل صفر، mmStopCountdown يصفّر
-// mmCountdownInterval، لكن mmFinalizeMatch نفسها async وفيها عدة await — أي
-// onSnapshot يوصل بهذي الأثناء (حتى لو من كتابة عضو غرفة جزئية) يشوف
-// mmCountdownInterval=null فيعيد تشغيل عدّاد 10 ثوانٍ جديد من الصفر، والراوند
-// الفعلي يبدأ لاحقاً لكن العدّاد المعروض يبدو "يرجع من جديد بلا نهاية").
+let mmCurrentGameTag = null;   // اللعبة اللي ننتظر طابورها الآن (للرجوع الصحيح عند الإلغاء وللمحاولات المتكررة)
+// مرساتا التوقيت. كلاهما بوقت الحائط المحلي (Date.now) — لا نعتمد على ساعة
+// الخادم ولا على ساعة عميل آخر إطلاقاً، فما فيه أي احتمال انحراف ساعات:
+//  - mmCountdownAnchorMs: لحظة آخر تغيّر بالطابور (اكتمال الحد الأدنى أو انضمام
+//    لاعب جديد). العدّاد المعروض = هذي + MM_COUNTDOWN_SECONDS. إعادة التصفير عند
+//    انضمام لاعب جديد تصير بتحديثها فقط — بلا أي كتابة لـFirestore ولا تفاوض.
+//  - mmMinFirstReachedAtMs: أول لحظة اكتمل فيها الحد الأدنى، وما تُصفَّر أبداً
+//    بانضمام لاعبين جدد — أساس السقف المطلق MM_HARD_TIMEOUT_MS وحده.
+let mmCountdownAnchorMs = null;
+let mmMinFirstReachedAtMs = null;
+// يُرفع **فقط** داخل mmFinalizeMatch ويُنزَل حتماً بـfinally — بعكس النسخة
+// السابقة اللي كان يرفعه كل عميل عند وصول عدّاده للصفر فيعلق للأبد عند غير
+// المنفّذ. mmFinalizeStartedAtMs يخلي العلم نفسه قابلاً لانتهاء الصلاحية.
 let mmFinalizingInProgress = false;
+let mmFinalizeStartedAtMs = null;
+
+// معالج أخطاء موحّد لكل مسارات الأونلاين: بدل `(err) => { /* best-effort */ }`
+// الصامت اللي كان يخفي فشل الفهارس/الصلاحيات/الشبكة ويخلي الشاشة تتجمّد بلا
+// أي أثر، نطبع الخطأ بالكونسول دائماً (تشخيص) ونعرض toast للمستخدم عند الأخطاء
+// اللي تهمه فعلاً (notify=true) بدل ما ينتظر بلا ما يدري إن فيه عطل.
+function mmLogErr(where, err, notify) {
+  try { console.error('[matchmaking] ' + where + ':', err); } catch (e) {}
+  if (notify && typeof toast === 'function') {
+    const msg = (err && err.message) ? err.message : String(err || 'خطأ غير معروف');
+    toast('⚠️ مشكلة بالمطابقة (' + where + '): ' + msg);
+  }
+}
+
+// هل هذا الصف حيّ؟ الأشباح (تبويب انقفل فجأة) تبقى status:'waiting' للأبد لأن
+// قواعد الأمان ما تسمح لغير صاحب الصف بحذفه — فنستبعدها هنا محلياً حتى ما
+// تُحسب ضمن العدد ولا تجلس على رأس الترتيب فتمنع الإنهاء للأبد.
+// ملاحظة: صفّنا نحن يُعتبر حيّاً دائماً حتى لو ما انعكست نبضتنا الأولى بعد
+// (serverTimestamp يرجع null محلياً للحظة قبل تأكيد الخادم).
+function mmRowIsAlive(row) {
+  if (!row) return false;
+  if (currentUser && row.uid === currentUser.uid) return true;
+  const seen = (row.lastSeen && row.lastSeen.toMillis) ? row.lastSeen.toMillis()
+             : (row.joinedAt && row.joinedAt.toMillis) ? row.joinedAt.toMillis() : 0;
+  if (!seen) return true; // لسا ما تأكد من الخادم — نعطيه فرصة بدل ما نطرده ظلماً
+  return (Date.now() - seen) <= MM_STALE_MS;
+}
+
+function mmRowMillis(row, field) {
+  const v = row && row[field];
+  return (v && v.toMillis) ? v.toMillis() : 0;
+}
+
+// أفضل جهد لحذف صفوف الأشباح فعلياً من Firestore. ينجح فقط لو كانت قواعد
+// الأمان المحدّثة منشورة (تسمح بحذف صف ميت تماماً مثل rooms/{id}/members)؛
+// ولو ما كانت منشورة يفشل بصمت ولا يضر — الفلترة المحلية فوق كافية لوحدها
+// لعمل المطابقة، وهذا مجرد تنظيف إضافي للمخزن.
+function mmSweepGhosts(rows) {
+  if (!fb || !currentUser) return;
+  rows.forEach(row => {
+    if (!row || !row.uid || row.uid === currentUser.uid) return;
+    fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', row.uid)).catch(() => {});
+  });
+}
 
 async function mmJoinQueue(gameTag) {
   if (!fb || !currentUser || !currentUsername || mmInQueue) return;
   mmInQueue = true;
+  mmCurrentGameTag = gameTag;
   mmLastKnownQueueCount = 0;
+  mmCountdownAnchorMs = null;
+  mmMinFirstReachedAtMs = null;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   mmFinalizingInProgress = false;
+  mmFinalizeStartedAtMs = null;
   const myUid = currentUser.uid;
 
   try {
@@ -52652,6 +52771,8 @@ async function mmJoinQueue(gameTag) {
     });
   } catch (err) {
     mmInQueue = false;
+    mmCurrentGameTag = null;
+    mmLogErr('join', err);
     toast('⚠️ تعذّر الانضمام للطابور: ' + err.message);
     return;
   }
@@ -52660,6 +52781,7 @@ async function mmJoinQueue(gameTag) {
   mmHeartbeatStart();
   mmBootQueueWatch(gameTag);
   mmWatchOwnEntry();
+  mmTickStart(gameTag);
 }
 
 function mmHeartbeatStart() {
@@ -52675,20 +52797,29 @@ function mmHeartbeatStop() {
 
 function mmBootQueueWatch(gameTag) {
   if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
+  // استعلام بمرشّحَي مساواة فقط وبدون orderBy — Firestore يخدمه بدمج الفهارس
+  // أحادية الحقل (zigzag merge) فما يحتاج فهرساً مركّباً. الترتيب يصير محلياً
+  // تحت على joinedAt، لأن إضافة orderBy هنا هي اللي كانت راح تفرض فهرساً
+  // مركّباً وتخلي الاستعلام يفشل لو ما كان منشوراً.
   mmQueueUnsub = fb.onSnapshot(
     fb.query(fb.collection(fb.db, 'matchmakingQueue'), fb.where('gameTag', '==', gameTag), fb.where('status', '==', 'waiting')),
     (snap) => {
-      mmQueueCache = [];
-      snap.forEach(d => mmQueueCache.push(d.data()));
-      mmQueueCache.sort((a, b) => {
-        const at = a.joinedAt && a.joinedAt.toMillis ? a.joinedAt.toMillis() : 0;
-        const bt = b.joinedAt && b.joinedAt.toMillis ? b.joinedAt.toMillis() : 0;
-        return at - bt;
-      });
+      const all = [];
+      snap.forEach(d => all.push(d.data()));
+      const ghosts = all.filter(r => !mmRowIsAlive(r));
+      mmQueueCache = all.filter(mmRowIsAlive);
+      mmQueueCache.sort((a, b) => mmRowMillis(a, 'joinedAt') - mmRowMillis(b, 'joinedAt'));
+      if (ghosts.length) mmSweepGhosts(ghosts);
       mmRenderWaiting();
       mmMaybeScheduleFinalize(gameTag);
     },
-    (err) => { /* best-effort */ }
+    (err) => {
+      // كان هذا المعالج فارغاً تماماً — فأي فشل استعلام (صلاحيات/فهرس/شبكة)
+      // كان يوقف تحديث الطابور بصمت ويخلي الشاشة تتجمّد بلا أي إشارة للمستخدم.
+      mmLogErr('queue-watch', err, true);
+      // إعادة محاولة تلقائية: الاشتراك مات، فبدونها يضل العميل أعمى للأبد.
+      setTimeout(() => { if (mmInQueue && mmCurrentGameTag === gameTag) mmBootQueueWatch(gameTag); }, 3000);
+    }
   );
 }
 
@@ -52705,12 +52836,6 @@ function mmRenderWaiting() {
   el.textContent = Math.min(combined, MM_MAX_PLAYERS) + ' / ' + MM_MAX_PLAYERS + ' لاعبين';
 }
 
-// عدّاد 30 ثانية حقيقي، مرئي، يُعاد تصفيره لـ30 كل ما انضم لاعب جديد للطابور —
-// ولو خلص بدون أي انضمام جديد يبدأ الراوند تلقائياً. كل عميل بالطابور يشغّل
-// نفس العدّاد محلياً (لعرض الرقم فقط)، لكن التنفيذ الفعلي لـmmFinalizeMatch
-// يصير من "أقدم لاعب بالطابور" فقط (نفس نمط "المسؤول المؤقت" السابق) عشان
-// ما تصير محاولتين متزامنتين تبدآن نفس المباراة.
-//
 // لاعب حقيقي واحد بس + بوتات "الحماية" نشطة لنفس اللعبة يكفي لبدء العدّاد (مو
 // شرط وجود لاعبين حقيقيين اثنين) — نفحص عدد البوتات المتاحة عبر
 // protCountAvailableBots فقط لما العدد بالطابور=1 (تفادي استعلام Firestore زيادة
@@ -52720,14 +52845,16 @@ let mmSoloBotCheckDone = false;
 let mmSoloBotCheckResult = false;
 
 async function mmMaybeScheduleFinalize(gameTag) {
-  // لو fينالايز شغّالة فعلياً الآن (سواء بهذا العميل أو ينتظر أن ينعكس أثرها
-  // على الطابور)، ما نعيد جدولة عدّاد جديد إطلاقاً — هذا هو إصلاح ثغرة
-  // "العدّاد يرجع من الصفر ومايبدأ الراوند أبداً".
-  if (mmFinalizingInProgress) return;
+  // محاولة إنهاء شغّالة فعلياً الآن — ما نلمس العدّاد. لكن بعكس النسخة
+  // السابقة، العلم هذا يرفعه **المنفّذ فقط** وله مهلة انتهاء صلاحية، فيستحيل
+  // يعلق للأبد ويجمّد العميل.
+  if (mmFinalizeInFlight()) return;
 
   if (mmQueueCache.length < 1) {
     mmStopCountdown();
     mmLastKnownQueueCount = mmQueueCache.length;
+    mmCountdownAnchorMs = null;
+    mmMinFirstReachedAtMs = null;
     mmSoloBotCheckDone = false;
     mmSoloBotCount = 0;
     return;
@@ -52736,7 +52863,9 @@ async function mmMaybeScheduleFinalize(gameTag) {
   if (mmQueueCache.length < MM_MIN_PLAYERS) {
     if (!mmSoloBotCheckDone) {
       mmSoloBotCheckDone = true;
-      mmSoloBotCount = (typeof protCountAvailableBots === 'function') ? await protCountAvailableBots(gameTag) : 0;
+      try {
+        mmSoloBotCount = (typeof protCountAvailableBots === 'function') ? await protCountAvailableBots(gameTag) : 0;
+      } catch (err) { mmLogErr('bot-count', err); mmSoloBotCount = 0; }
       mmSoloBotCheckResult = mmSoloBotCount > 0;
       mmRenderWaiting(); // العدد المعروض كان مبني على mmSoloBotCount=0 قبل ما يوصل الفحص — حدّثه الآن بالرقم الفعلي
       // إعادة فحص الحالة الحالية بعد الـawait (قد يكون لاعب ثاني انضم فعلاً
@@ -52746,6 +52875,8 @@ async function mmMaybeScheduleFinalize(gameTag) {
     if (mmQueueCache.length < MM_MIN_PLAYERS && !mmSoloBotCheckResult) {
       mmStopCountdown();
       mmLastKnownQueueCount = mmQueueCache.length;
+      mmCountdownAnchorMs = null;
+      mmMinFirstReachedAtMs = null;
       return;
     }
   } else {
@@ -52753,157 +52884,239 @@ async function mmMaybeScheduleFinalize(gameTag) {
     mmSoloBotCount = 0;
   }
 
+  if (!mmMinFirstReachedAtMs) mmMinFirstReachedAtMs = Date.now(); // أساس السقف المطلق — ما يُصفَّر أبداً
+
   // انضم لاعب جديد منذ آخر لقطة (أو هذي أول مرة نوصل للحد الأدنى) — نصفّر
-  // العدّاد لـ30 ثانية من جديد بغض النظر مين شغّل العدّاد أول مرة.
+  // العدّاد من جديد. كل عميل يصفّر مرساته المحلية عند نفس الحدث (نفس لقطة
+  // onSnapshot)، فالعدّادات المعروضة متطابقة عملياً عند الجميع بفارق زمن
+  // الشبكة فقط — بلا أي كتابة إضافية ولا اعتماد على ساعة أي طرف آخر.
   const queueGrew = mmQueueCache.length > mmLastKnownQueueCount;
   mmLastKnownQueueCount = mmQueueCache.length;
 
-  if (!mmCountdownInterval || queueGrew) {
-    mmStartOrResetCountdown(gameTag);
-  }
+  if (queueGrew || mmCountdownAnchorMs === null) mmCountdownAnchorMs = Date.now();
+  const el = document.getElementById('mm-waiting-countdown');
+  if (el) el.style.display = 'block';
+  mmTickStart();
 }
 
-function mmStartOrResetCountdown(gameTag) {
-  mmCountdownEndsAtMs = Date.now() + MM_COUNTDOWN_SECONDS * 1000;
+// ترتيبنا بين اللاعبين الأحياء — يحدّد كم ننتظر قبل ما نحاول الإنهاء بأنفسنا.
+function mmMyRank() {
+  if (!currentUser) return 999;
+  const i = mmQueueCache.findIndex(r => r.uid === currentUser.uid);
+  return i < 0 ? 999 : i;
+}
+
+function mmFinalizeInFlight() {
+  if (!mmFinalizingInProgress) return false;
+  // العلم له انتهاء صلاحية: لو علقت محاولة بالشبكة ما نموت للأبد — نسمح
+  // بمحاولة جديدة بعد المهلة بدل ما يضل العميل مجمّداً كما كان يصير سابقاً.
+  if (mmFinalizeStartedAtMs && (Date.now() - mmFinalizeStartedAtMs) > MM_FINALIZE_ATTEMPT_TIMEOUT_MS) {
+    mmFinalizingInProgress = false;
+    mmFinalizeStartedAtMs = null;
+    return false;
+  }
+  return true;
+}
+
+// النبضة الموحّدة. كل قراراتها مبنية على Date.now() (وقت الحائط) لا على عدد
+// مرات تنفيذها — فخنق المتصفح بالخلفية يأخّر تحديث الرقم المعروض فقط، وأول
+// نبضة (أو أول onSnapshot أو أول رجوع للواجهة) بعدها تحسب الفرق الحقيقي
+// وتتصرف فوراً. هذا بالضبط ما يمنع التعليق الأبدي لما يكون تبويب الطرف الثاني
+// بالخلفية.
+function mmTickStart() {
+  if (mmTickInterval) return;
+  mmTickInterval = setInterval(mmTick, MM_TICK_MS);
+}
+
+function mmTick() {
+  if (!mmInQueue) { mmStopCountdown(); return; }
+  const gameTag = mmCurrentGameTag;
   const countdownEl = document.getElementById('mm-waiting-countdown');
-  if (countdownEl) countdownEl.style.display = 'block';
+  if (mmCountdownAnchorMs === null) {
+    if (countdownEl) countdownEl.style.display = 'none';
+    return;
+  }
+  const endsAtMs = mmCountdownAnchorMs + MM_COUNTDOWN_SECONDS * 1000;
+  const remaining = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
+  if (countdownEl) {
+    countdownEl.style.display = 'block';
+    countdownEl.textContent = '⏳ يبدأ الراوند خلال ' + remaining + ' ثانية';
+  }
+  if (remaining > 0) return;
+  if (mmFinalizeInFlight()) return;
+  if (mmQueueCache.length < 1) return;
 
-  if (mmCountdownInterval) return; // فاصل العرض شغّال أصلاً، بس صفّرنا وقت الانتهاء فوق
+  // انتهى الموعد المشترك. أي عميل حيّ يحق له التنفيذ — لكن بتدرّج حسب ترتيبه
+  // حتى تكون الحالة الطبيعية "واحد يحاول" بلا ضغط زائد. لو تجمّد الأقدم
+  // (تبويب بالخلفية/شبكة مقطوعة/تبويب مقفول) يتسلّم اللي بعده تلقائياً بعد
+  // MM_CLAIM_STAGGER_MS — وهذا هو جوهر إزالة نقطة الفشل الوحيدة.
+  const overdueMs = Date.now() - endsAtMs;
+  const hardTimeoutHit = mmMinFirstReachedAtMs && (Date.now() - mmMinFirstReachedAtMs) > MM_HARD_TIMEOUT_MS;
+  const myTurnAfterMs = hardTimeoutHit ? 0 : mmMyRank() * MM_CLAIM_STAGGER_MS;
+  if (overdueMs < myTurnAfterMs) return;
 
-  mmCountdownInterval = setInterval(() => {
-    const remaining = Math.max(0, Math.ceil((mmCountdownEndsAtMs - Date.now()) / 1000));
-    if (countdownEl) countdownEl.textContent = '⏳ يبدأ الراوند خلال ' + remaining + ' ثانية';
-    if (remaining <= 0) {
-      // نرفع العلم قبل أي شيء ثاني (حتى قبل mmStopCountdown) — أي onSnapshot
-      // يوصل بعد هالنقطة (سواء لهذا العميل "الأقدم" وهو ينفّذ mmFinalizeMatch
-      // بعدة await، أو لأي عميل ثاني بالطابور ينتظر يتحوّل لغرفته) ما يعيد
-      // تشغيل عدّاد جديد إطلاقاً لحد ما تخلص المطابقة فعلياً أو يفشل الانضمام.
-      mmFinalizingInProgress = true;
-      mmStopCountdown();
-      const myUid = currentUser.uid;
-      const isEarliest = mmQueueCache.length && mmQueueCache[0].uid === myUid;
-      if (isEarliest && !mmFinalizeTimer) {
-        mmFinalizeTimer = setTimeout(() => { mmFinalizeTimer = null; mmFinalizeMatch(gameTag); }, 0);
-      }
-    }
-  }, 250);
+  mmFinalizeMatch(gameTag);
 }
 
 function mmStopCountdown() {
-  if (mmCountdownInterval) { clearInterval(mmCountdownInterval); mmCountdownInterval = null; }
-  mmCountdownEndsAtMs = null;
+  if (mmTickInterval) { clearInterval(mmTickInterval); mmTickInterval = null; }
+  mmCountdownAnchorMs = null;
   const countdownEl = document.getElementById('mm-waiting-countdown');
   if (countdownEl) countdownEl.style.display = 'none';
 }
 
+// يحجز صفوف الطابور المطلوبة ذرّياً. المعاملة تقرأ كل صف وتتأكد إنه لسا
+// 'waiting' قبل ما تقلبه 'matched' — فلو عميلان حاولا بنفس اللحظة، واحد بس
+// ينجح والثاني يفشل كلياً (Firestore يعيد تشغيل المعاملة فيشوف 'matched')
+// فينسحب ويحذف غرفته. يستحيل تنشأ غرفتان ولا يُستهلك نفس الصف مرتين.
+// نكتب uid صراحةً لأن قاعدة الأمان تشترط request.resource.data.uid == resource.data.uid.
+async function mmClaimRowsTx(rows, roomId) {
+  return fb.runTransaction(fb.db, async (tx) => {
+    const refs = rows.map(r => fb.doc(fb.db, 'matchmakingQueue', r.uid));
+    const snaps = [];
+    for (const ref of refs) snaps.push(await tx.get(ref)); // كل القراءات قبل أي كتابة (شرط معاملات Firestore)
+    for (const s of snaps) {
+      if (!s.exists()) return false;                       // غادر الطابور بهذي الأثناء
+      if (s.data().status !== 'waiting') return false;     // عميل آخر سبقنا للحجز
+    }
+    snaps.forEach((s, i) => {
+      tx.set(refs[i], { uid: rows[i].uid, status: 'matched', matchedRoomId: roomId }, { merge: true });
+    });
+    return true;
+  });
+}
+
 async function mmFinalizeMatch(gameTag) {
-  mmFinalizeTimer = null;
-  if (!mmInQueue) { mmFinalizingInProgress = false; return; } // انسحبنا قبل ما ينفّذ
+  if (!mmInQueue) return;              // انسحبنا قبل ما ينفّذ
+  if (mmFinalizeInFlight()) return;    // محاولة أخرى شغّالة فعلياً
+  mmFinalizingInProgress = true;
+  mmFinalizeStartedAtMs = Date.now();
 
-  // نوقف مراقبة قائمة الطابور فوراً قبل أي كتابة — لو تركناها شغالة، كل
-  // fb.setDoc نسويه بحلقة تحويل اللاعبين تحت (status:'matched') يشغّل onSnapshot
-  // من جديد على نفس العميل (المسؤول المؤقت نفسه)، وبما إن بعض اللاعبين لسا ما
-  // تحوّلوا "matched" وقت التنفيذ الجزئي، العدد يبين لسا ≥ الحد الأدنى فتتكرر
-  // mmMaybeScheduleFinalize. mmFinalizingInProgress (مرفوع أصلاً من لحظة وصول
-  // العدّاد للصفر) هو خط الدفاع الحقيقي ضد إعادة تشغيل عدّاد جديد أثناء هذا —
-  // نتأكد نعيده false في كل مسار خروج من هذي الدالة (نجاح أو فشل) بدون استثناء.
-  mmStopCountdown();
-  if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
+  let roomId = null;
+  let claimed = false;
+  try {
+    // نوقف مراقبة قائمة الطابور فوراً قبل أي كتابة — لو تركناها شغالة، كل
+    // كتابة نسويها تحت تشغّل onSnapshot من جديد على نفس العميل وتربك الحساب.
+    if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
 
-  // أعد القراءة الطازجة وقت التنفيذ الفعلي (مو الكاش القديم) لتفادي مطابقة لاعبين غادروا
-  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'matchmakingQueue'), fb.where('gameTag', '==', gameTag), fb.where('status', '==', 'waiting')));
-  let rows = [];
-  snap.forEach(d => rows.push(d.data()));
-  if (rows.length < 1) {
-    mmFinalizingInProgress = false;
-    if (mmInQueue) mmBootQueueWatch(gameTag);
-    return;
-  }
-  // لاعب حقيقي واحد بس مقبول فقط لو فيه بوت "حماية" نشط متاح فعلاً الآن لنفس
-  // اللعبة (فحص طازج وقت التنفيذ، مو نتيجة mmSoloBotCheckResult المخزّنة أثناء
-  // العدّاد — قد يكون بوت آخر انسحب من التوفر بهذي الأثناء).
-  if (rows.length < MM_MIN_PLAYERS) {
-    const hasBot = (typeof protHasActiveBots === 'function') ? await protHasActiveBots(gameTag) : false;
-    if (!hasBot) {
-      // رجعنا لعدد أقل من الحد الأدنى بدون بوتات تعوّض (مثلاً لاعبين انسحبوا) —
-      // أعد تشغيل مراقبة الطابور عشان العميل يرجع ينتظر عدد كافٍ من جديد
-      mmFinalizingInProgress = false;
-      if (mmInQueue) mmBootQueueWatch(gameTag);
+    // أعد القراءة الطازجة وقت التنفيذ الفعلي (مو الكاش القديم) لتفادي مطابقة
+    // لاعبين غادروا، ثم استبعد الأشباح تماماً مثل مسار العرض.
+    const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'matchmakingQueue'), fb.where('gameTag', '==', gameTag), fb.where('status', '==', 'waiting')));
+    let rows = [];
+    snap.forEach(d => rows.push(d.data()));
+    const ghosts = rows.filter(r => !mmRowIsAlive(r));
+    if (ghosts.length) mmSweepGhosts(ghosts);
+    rows = rows.filter(mmRowIsAlive);
+
+    if (rows.length < 1) return;               // finally يعيد المراقبة والعلم
+    // لازم نكون نحن ضمن الصفوف — لو صفّنا اختفى (حُذف/تحوّل matched) فمحد
+    // ينتظرنا هنا، ومسار mmWatchOwnEntry هو اللي بينقلنا.
+    if (!rows.some(r => r.uid === currentUser.uid)) return;
+
+    // لاعب حقيقي واحد بس مقبول فقط لو فيه بوت "حماية" نشط متاح فعلاً الآن لنفس
+    // اللعبة (فحص طازج وقت التنفيذ، مو نتيجة mmSoloBotCheckResult المخزّنة أثناء
+    // العدّاد — قد يكون بوت آخر انسحب من التوفر بهذي الأثناء).
+    if (rows.length < MM_MIN_PLAYERS) {
+      let hasBot = false;
+      try { hasBot = (typeof protHasActiveBots === 'function') ? await protHasActiveBots(gameTag) : false; }
+      catch (err) { mmLogErr('bot-check', err); }
+      if (!hasBot) return;                     // نرجع ننتظر عدداً كافياً
+    }
+
+    // خذ أقدم MM_MAX_PLAYERS فقط — الباقي (لو زاد العدد عن السقف) يبقى بالطابور لمباراة تالية
+    rows.sort((a, b) => mmRowMillis(a, 'joinedAt') - mmRowMillis(b, 'joinedAt'));
+    rows = rows.slice(0, MM_MAX_PLAYERS);
+
+    const myUid = currentUser.uid;
+    roomId = await rmCreateRoomSilent(gameTag);
+    if (!roomId) return;                       // فشل إنشاء الغرفة (نادر)
+
+    // الحجز الذرّي — هذا هو الحكم النهائي بين العملاء المتسابقين.
+    claimed = await mmClaimRowsTx(rows, roomId);
+    if (!claimed) {
+      // عميل آخر سبقنا وحجز نفس الصفوف. غرفتنا زائدة — نحذفها ونخرج بهدوء،
+      // وmmWatchOwnEntry بينقلنا لغرفة الفائز بمجرد ما يصل التحديث.
+      try { await fb.deleteDoc(fb.doc(fb.db, 'rooms', roomId)); } catch (e) {}
+      roomId = null;
       return;
     }
-  }
 
-  // خذ أقدم MM_MAX_PLAYERS فقط — الباقي (لو زاد العدد عن السقف) يبقى بالطابور لمباراة تالية
-  rows.sort((a, b) => {
-    const at = a.joinedAt && a.joinedAt.toMillis ? a.joinedAt.toMillis() : 0;
-    const bt = b.joinedAt && b.joinedAt.toMillis ? b.joinedAt.toMillis() : 0;
-    return at - bt;
-  });
-  rows = rows.slice(0, MM_MAX_PLAYERS);
+    for (const row of rows) {
+      if (row.uid !== myUid) {
+        await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, 'members', row.uid), {
+          uid: row.uid, username: row.username, joinedAt: fb.serverTimestamp(),
+          lastSeen: fb.serverTimestamp(), isHost: false
+        });
+      }
+    }
 
-  const myUid = currentUser.uid;
-  const roomId = await rmCreateRoomSilent(gameTag);
-  if (!roomId) {
-    // فشل إنشاء الغرفة (نادر) — لا نترك العميل عالق بلا مراقبة، نرجّعه ينتظر من جديد
-    mmFinalizingInProgress = false;
-    if (mmInQueue) mmBootQueueWatch(gameTag);
-    return;
-  }
+    // حقن بوتات "الحماية" — يصير فقط هنا (بعد تأكد وجود لاعب حقيقي واحد على
+    // الأقل بالطابور، وهو شرط أصلاً مضمون لأن هذي الدالة ما تُستدعى إلا من عميل
+    // حقيقي متصل حياً بالطابور). البوتات تُكتب كأعضاء غرفة عاديين تماماً (نفس
+    // شكل الأعضاء الحقيقيين) فتظهر بقائمة اللاعبين بدون أي علامة تميّزها.
+    let botRows = [];
+    try { botRows = await protPickBotsForMatch(gameTag, rows.length, roomId) || []; }
+    catch (err) { mmLogErr('bot-pick', err); botRows = []; }
 
-  for (const row of rows) {
-    if (row.uid !== myUid) {
-      await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, 'members', row.uid), {
-        uid: row.uid, username: row.username, joinedAt: fb.serverTimestamp(),
+    // لو ما زلنا تحت الحد الأدنى بعد محاولة حقن البوتات (مثلاً كل البوتات
+    // انسحبت لغرف ثانية بنفس اللحظة عبر سباق نادر) — ما نبدأ راوند بلاعب وحيد
+    // فاضي. الصفوف محجوزة فعلاً، فنرجّعها 'waiting' حتى ما تعلق بالطابور للأبد.
+    if (rows.length + botRows.length < MM_MIN_PLAYERS) {
+      for (const row of rows) {
+        try {
+          await fb.setDoc(fb.doc(fb.db, 'matchmakingQueue', row.uid),
+            { uid: row.uid, status: 'waiting', matchedRoomId: null }, { merge: true });
+        } catch (e) {}
+      }
+      try { await fb.deleteDoc(fb.doc(fb.db, 'rooms', roomId)); } catch (e) {}
+      roomId = null;
+      return;
+    }
+
+    for (const bot of botRows) {
+      await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, 'members', bot.uid), {
+        uid: bot.uid, username: bot.username, joinedAt: fb.serverTimestamp(),
         lastSeen: fb.serverTimestamp(), isHost: false
       });
     }
-    await fb.setDoc(fb.doc(fb.db, 'matchmakingQueue', row.uid), { status: 'matched', matchedRoomId: roomId }, { merge: true });
-  }
+    // نظام المستويات — راوند لكل لاعب حقيقي بالمباراة. نناديها قبل دمج البوتات
+    // عشان rows هنا لاعبين حقيقيين فقط، ونسجّل معرّفات البوتات لتُستثنى لو وصلت
+    // لاحقاً عبر قائمة أعضاء الغرفة.
+    levelsNoteOnlineBots(botRows);
+    levelsNoteOnlineRound(gameTag, rows);
+    rows = rows.concat(botRows);
 
-  // حقن بوتات "الحماية" — يصير فقط هنا (بعد تأكد وجود لاعب حقيقي واحد على
-  // الأقل بالطابور، وهو شرط أصلاً مضمون لأن هذي الدالة ما تُستدعى إلا من عميل
-  // حقيقي متصل حياً بالطابور). البوتات تُكتب كأعضاء غرفة عاديين تماماً (نفس
-  // شكل الأعضاء الحقيقيين) فتظهر بقائمة اللاعبين بدون أي علامة تميّزها.
-  const botRows = await protPickBotsForMatch(gameTag, rows.length, roomId);
-
-  // لو ما زلنا تحت الحد الأدنى بعد محاولة حقن البوتات (مثلاً كل البوتات
-  // انسحبت لغرف ثانية بنفس اللحظة عبر سباق نادر) — ما نبدأ راوند بلاعب وحيد
-  // فاضي، نرجّع اللاعب الحقيقي ينتظر بالطابور من جديد بدل غرفة عالقة بلا فايدة
-  if (rows.length + botRows.length < MM_MIN_PLAYERS) {
+    // المطابقة العشوائية ما فيها "مضيف" طبيعي يعرف يضغط "ابدأ الجولة" — المنظّم
+    // المؤقت (اللي نجح حجزه أعلاه) يدخل الغرفة فعلياً كمضيف ويبدأ الجولة
+    // تلقائياً فور اكتمال العدد الأدنى، بدل ما يوقف الجميع بلوبي فاضي.
+    // نستخدم قائمة rows المتوفرة بالذاكرة مباشرة (مو rmMembersCache) لتفادي سباق
+    // توقيت مع onSnapshot الخاص بقائمة الأعضاء اللي لسا ما وصل.
+    mmCleanupAfterMatch();
+    rmEnterRoom(roomId, true, true);
+    if (botRows.length && typeof isOwnerAccount === 'function' && isOwnerAccount()) {
+      botEngineStartWatchingRoom(roomId, gameTag);
+    }
+    const starter = rmGameStartWithMembersHandlers[gameTag];
+    // العلَم الثالث (isMatchmaking=true) يخص odrawStartRound فقط (يقصّر مهلة طلب
+    // فكرة الذكاء الاصطناعي) — الألعاب الأونلاين الثانية (obomb/otimer/owordrace)
+    // ما تستقبل ولا تستخدم وسيط ثالث، فتمريره لها آمن تماماً (JS يتجاهل أي
+    // وسيط زائد ما تعلن عنه الدالة بلا أي تأثير).
+    if (starter) await starter(roomId, rows, true);
+  } catch (err) {
+    // كان هذا المسار بلا try/catch إطلاقاً: أي استثناء هنا كان يترك العميل بلا
+    // مراقبة طابور وبعلَم مرفوع للأبد = تعليق نهائي صامت. الآن نحرّر كل شيء.
+    mmLogErr('finalize', err, true);
+    if (roomId && !claimed) { try { await fb.deleteDoc(fb.doc(fb.db, 'rooms', roomId)); } catch (e) {} }
+  } finally {
+    // يُنفَّذ بكل المسارات بلا استثناء (نجاح/انسحاب/خطأ) — هذا اللي يضمن إنه
+    // ما فيه ولا حالة يعلق فيها العلم أو تنقطع فيها مراقبة الطابور نهائياً.
     mmFinalizingInProgress = false;
-    if (mmInQueue) mmBootQueueWatch(gameTag);
-    return;
+    mmFinalizeStartedAtMs = null;
+    if (mmInQueue) {
+      if (!mmQueueUnsub) mmBootQueueWatch(gameTag);
+      mmTickStart();
+    }
   }
-
-  for (const bot of botRows) {
-    await fb.setDoc(fb.doc(fb.db, 'rooms', roomId, 'members', bot.uid), {
-      uid: bot.uid, username: bot.username, joinedAt: fb.serverTimestamp(),
-      lastSeen: fb.serverTimestamp(), isHost: false
-    });
-  }
-  // نظام المستويات — راوند لكل لاعب حقيقي بالمباراة. نناديها قبل دمج البوتات
-  // عشان rows هنا لاعبين حقيقيين فقط، ونسجّل معرّفات البوتات لتُستثنى لو وصلت
-  // لاحقاً عبر قائمة أعضاء الغرفة.
-  levelsNoteOnlineBots(botRows);
-  levelsNoteOnlineRound(gameTag, rows);
-  rows = rows.concat(botRows);
-
-  // المطابقة العشوائية ما فيها "مضيف" طبيعي يعرف يضغط "ابدأ الجولة" — المنظّم
-  // المؤقت (أقدم لاعب بالطابور، اللي نفّذ هالدالة) يدخل الغرفة فعلياً كمضيف
-  // ويبدأ الجولة تلقائياً فور اكتمال العدد الأدنى، بدل ما يوقف الجميع بلوبي فاضي.
-  // نستخدم قائمة rows المتوفرة بالذاكرة مباشرة (مو rmMembersCache) لتفادي سباق
-  // توقيت مع onSnapshot الخاص بقائمة الأعضاء اللي لسا ما وصل.
-  rmEnterRoom(roomId, true, true);
-  if (botRows.length && typeof isOwnerAccount === 'function' && isOwnerAccount()) {
-    botEngineStartWatchingRoom(roomId, gameTag);
-  }
-  const starter = rmGameStartWithMembersHandlers[gameTag];
-  // العلَم الثالث (isMatchmaking=true) يخص odrawStartRound فقط (يقصّر مهلة طلب
-  // فكرة الذكاء الاصطناعي) — الألعاب الأونلاين الثانية (obomb/otimer/owordrace)
-  // ما تستقبل ولا تستخدم وسيط ثالث، فتمريره لها آمن تماماً (JS يتجاهل أي
-  // وسيط زائد ما تعلن عنه الدالة بلا أي تأثير).
-  if (starter) await starter(roomId, rows, true);
-  mmFinalizingInProgress = false;
 }
 
 // مثل rmCreateRoom لكن بدون التنقّل لشاشة الروم فوراً (المُنشئ هنا هو "المسؤول
@@ -52931,7 +53144,7 @@ async function rmCreateRoomSilent(gameTag) {
         });
         return candidate;
       }
-    } catch (err) { /* retry with a new code */ }
+    } catch (err) { mmLogErr('create-room', err); /* retry with a new code */ }
   }
   return null;
 }
@@ -52946,42 +53159,62 @@ function mmWatchOwnEntry() {
     if (data.status === 'matched' && data.matchedRoomId) {
       unsub();
       mmCleanupAfterMatch();
-      const isHost = false; // المضيف الفعلي هو من نفّذ mmFinalizeMatch؛ نحدّد بقراءة الغرفة
+      // المضيف الفعلي هو من نفّذ mmFinalizeMatch؛ نحدّد بقراءة الغرفة
       fb.getDoc(fb.doc(fb.db, 'rooms', data.matchedRoomId)).then(roomSnap => {
         const amHost = roomSnap.exists() && roomSnap.data().hostUid === myUid;
         rmEnterRoom(data.matchedRoomId, amHost, true);
-      });
+      }).catch(err => mmLogErr('enter-matched-room', err, true));
     }
-  }, (err) => { /* best-effort */ });
+  }, (err) => mmLogErr('own-entry-watch', err, true));
 }
 
 function mmCleanupAfterMatch() {
   mmInQueue = false;
+  mmCurrentGameTag = null;
   mmHeartbeatStop();
   mmStopCountdown();
   mmLastKnownQueueCount = 0;
+  mmMinFirstReachedAtMs = null;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
-  mmFinalizingInProgress = false;
   if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
-  if (mmFinalizeTimer) { clearTimeout(mmFinalizeTimer); mmFinalizeTimer = null; }
 }
 
 async function mmLeaveQueue() {
+  // شاشة الرجوع الصحيحة للعبة اللي كنا ننتظرها — سابقاً كانت مثبّتة على
+  // 'online-obomb-instructions' دائماً، فإلغاء الانتظار بأي لعبة ثانية كان
+  // يرمي المستخدم على تعليمات القنبلة.
+  const backTag = mmCurrentGameTag;
   mmInQueue = false;
+  mmCurrentGameTag = null;
   mmHeartbeatStop();
   mmStopCountdown();
   mmLastKnownQueueCount = 0;
+  mmMinFirstReachedAtMs = null;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   mmFinalizingInProgress = false;
+  mmFinalizeStartedAtMs = null;
   if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
-  if (mmFinalizeTimer) { clearTimeout(mmFinalizeTimer); mmFinalizeTimer = null; }
   if (fb && currentUser) {
-    try { await fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', currentUser.uid)); } catch (err) { /* best-effort */ }
+    try { await fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', currentUser.uid)); }
+    catch (err) { mmLogErr('leave', err); }
   }
-  show('online-obomb-instructions');
+  const target = backTag ? 'online-' + backTag + '-instructions' : 'online-obomb-instructions';
+  show(document.getElementById('pg-' + target) ? target : 'online-home');
 }
+
+// مصدر إيقاظ مستقل تماماً عن المؤقتات: لما يرجع التبويب للواجهة بعد ما كان
+// بالخلفية (وكانت نبضاته مخنوقة أو معلّقة)، نعيد التقييم فوراً بوقت الحائط.
+// هذا مع onSnapshot (اللي يوصل حتى بالخلفية) يخلي التعليق الأبدي مستحيلاً حتى
+// بأسوأ سيناريو خنق مؤقتات.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible' || !mmInQueue) return;
+  const tag = mmCurrentGameTag;
+  if (!mmQueueUnsub && tag) mmBootQueueWatch(tag);
+  mmTickStart();
+  mmTick();
+});
 
 window.addEventListener('pagehide', () => { mmHeartbeatStop(); });
 </script>
