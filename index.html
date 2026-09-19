@@ -770,6 +770,20 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .page{display:none;min-height:100vh;min-height:100dvh;}
 .page.active{display:flex;flex-direction:column;}
 
+/* شاشات الأونلاين (إعداد/انتظار/راوند/فوز) — تمركز أفقي على كل صفحات
+   pg-online-*. الألعاب السبع الأصلية عندها هذا التمركز مكتوباً لكل صفحة
+   بمعرّفها مباشرة (انتشرت عبر الملف)؛ الألعاب الأحدث المبنية على القوالب
+   المشتركة (setup-box / og-play-wrap / winner-box) ما ورثت تلك القواعد
+   المكتوبة يدوياً فبقيت بطاقتها ملتصقة بحافة الصفحة (RTL) بدل نص الشاشة
+   على أي عرض أوسع من عرض البطاقة. قاعدة واحدة هنا تغطي كل صفحات pg-online-*
+   دفعة واحدة (قواعد المعرّف المباشر الأخص تبقى فعّالة كما هي بلا أي تعارض
+   لأن خصوصية #id تفوق [id^=] دائماً) — فتُطبَّق تلقائياً على أي لعبة أونلاين
+   جديدة لاحقاً بلا حاجة لتكرارها.
+   استثناء عملي: pg-online-odraw-play (تخطيط شبكي ثنائي الأعمدة بعرض كامل
+   للوحة الرسم + الشات) له قاعدة معرّف مباشر بنفس align-items:center أصلاً،
+   فسلوكه الحالي محفوظ بلا تغيير. */
+.page[id^="pg-online-"]{ align-items:center; }
+
 /* ===== STATIC LANDING (تظهر فوراً قبل أي جافاسكريبت، تختفي عند تفعيل show()) ===== */
 .static-landing{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:100px 20px 40px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.34) 0%,transparent 60%),var(--bg);text-align:center;}
 .static-landing.hidden{display:none;}
