@@ -54313,6 +54313,12 @@ const MM_CLAIM_STAGGER_MS = 4000;
 // السقف المطلق: بعد مروره من لحظة اكتمال الحد الأدنى، كل عميل حيّ يحاول فوراً
 // بلا تدرّج — شبكة أمان أخيرة ضد أي سيناريو ما توقعناه.
 const MM_HARD_TIMEOUT_MS = 45000;
+// نافذة "اللاعبون الحقيقيون أولاً". لاعب حقيقي وحيد بالطابور ما يُسحب لغرفة
+// بوتات إلا بعد مرور هذي المدة كاملة. بدونها كان أول ضاغط يُطابَق مع بوتات
+// خلال MM_COUNTDOWN_SECONDS (10 ثوانٍ) فيخرج من الطابور، فيلقى الضاغط الثاني
+// طابوراً فاضياً ويروح لسيرفر لحاله — وهذا بالضبط "كل واحد يروح سيرفر لحاله".
+// 25 ثانية تغطي فرق الضغط الطبيعي بين شخصين، وأقصر من السقف المطلق (45s).
+const MM_BOT_FALLBACK_MS = 25000;
 // أقصى مهلة لمحاولة إنهاء واحدة قبل ما نعتبرها ميتة ونسمح بمحاولة جديدة. تمنع
 // بقاء mmFinalizingInProgress مرفوعاً للأبد لو علقت المعاملة بالشبكة.
 const MM_FINALIZE_ATTEMPT_TIMEOUT_MS = 20000;
@@ -54341,6 +54347,12 @@ let mmCurrentGameTag = null;   // اللعبة اللي ننتظر طابوره�
 //    بانضمام لاعبين جدد — أساس السقف المطلق MM_HARD_TIMEOUT_MS وحده.
 let mmCountdownAnchorMs = null;
 let mmMinFirstReachedAtMs = null;
+// أول لحظة صار فيها أحد بالطابور (نحن أو غيرنا) — أساس نافذة MM_BOT_FALLBACK_MS.
+// ما تُصفَّر بانضمام لاعبين جدد، فقط لما يفرغ الطابور تماماً.
+let mmSoloWaitStartedAtMs = null;
+// هل ننتظر الآن بلاعبين حقيقيين أقل من الحد الأدنى (أي البوتات هي اللي
+// ستكمل العدد)؟ يقرر أي موعد نستخدم في mmDeadlineMs.
+let mmWaitingWithBotsOnly = false;
 // يُرفع **فقط** داخل mmFinalizeMatch ويُنزَل حتماً بـfinally — بعكس النسخة
 // السابقة اللي كان يرفعه كل عميل عند وصول عدّاده للصفر فيعلق للأبد عند غير
 // المنفّذ. mmFinalizeStartedAtMs يخلي العلم نفسه قابلاً لانتهاء الصلاحية.
@@ -54417,6 +54429,8 @@ function mmResetQueueState() {
   mmStopCountdown();
   mmLastKnownQueueCount = 0;
   mmMinFirstReachedAtMs = null;
+  mmSoloWaitStartedAtMs = null;
+  mmWaitingWithBotsOnly = false;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   mmFinalizingInProgress = false;
@@ -54485,6 +54499,8 @@ async function mmJoinQueue(gameTag) {
   mmLastKnownQueueCount = 0;
   mmCountdownAnchorMs = null;
   mmMinFirstReachedAtMs = null;
+  mmSoloWaitStartedAtMs = null;
+  mmWaitingWithBotsOnly = false;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   mmFinalizingInProgress = false;
@@ -54591,10 +54607,16 @@ async function mmMaybeScheduleFinalize(gameTag) {
     mmLastKnownQueueCount = mmQueueCache.length;
     mmCountdownAnchorMs = null;
     mmMinFirstReachedAtMs = null;
+    mmSoloWaitStartedAtMs = null;
+    mmWaitingWithBotsOnly = false;
     mmSoloBotCheckDone = false;
     mmSoloBotCount = 0;
     return;
   }
+
+  // بدأ الانتظار فعلياً (فيه أحد بالطابور). هذي المرساة ما تُصفَّر بانضمام
+  // لاعبين جدد — عليها وحدها تُحسب نافذة "اللاعبون الحقيقيون أولاً".
+  if (!mmSoloWaitStartedAtMs) mmSoloWaitStartedAtMs = Date.now();
 
   if (mmQueueCache.length < MM_MIN_PLAYERS) {
     if (!mmSoloBotCheckDone) {
@@ -54615,7 +54637,12 @@ async function mmMaybeScheduleFinalize(gameTag) {
       mmMinFirstReachedAtMs = null;
       return;
     }
+    // لاعبون حقيقيون أقل من الحد الأدنى، والبوتات هي اللي ستكمل العدد —
+    // فالموعد يُحسب على نافذة MM_BOT_FALLBACK_MS الطويلة لا على عدّاد الـ10 ثوانٍ.
+    mmWaitingWithBotsOnly = true;
   } else {
+    // اكتمل العدد بلاعبين حقيقيين — عدّاد قصير عادي.
+    mmWaitingWithBotsOnly = false;
     mmSoloBotCheckDone = false;
     mmSoloBotCount = 0;
   }
@@ -54633,6 +54660,31 @@ async function mmMaybeScheduleFinalize(gameTag) {
   const el = document.getElementById('mm-waiting-countdown');
   if (el) el.style.display = 'block';
   mmTickStart();
+}
+
+// الموعد الفعلي لبدء الراوند — مصدر واحد يستخدمه العرض والمنطق معاً.
+//
+// ثلاث قواعد مرتّبة، وكلها بوقت الحائط المحلي فقط:
+//  1) لاعبون حقيقيون كفاية ⇒ عدّاد قصير من آخر انضمام (يتصفّر مع كل منضم جديد
+//     حتى يلحق الجميع ويدخلون سوا).
+//  2) لاعب حقيقي وحيد + بوتات ⇒ ما نستعجل أبداً: ننتظر نافذة MM_BOT_FALLBACK_MS
+//     كاملة من بداية الانتظار حتى نعطي اللاعبين الحقيقيين فرصة يلتقون. هذي هي
+//     النقطة اللي كانت تكسر كل شيء: الاستعجال للبوتات كان يفرّق كل لاعبَين.
+//  3) امتلأت الغرفة (MM_MAX_PLAYERS) ⇒ ابدأ فوراً، واللي بعدهم يكوّنون طابوراً
+//     جديداً لسيرفر مستقل.
+// وفوق الكل: السقف المطلق MM_HARD_TIMEOUT_MS حتى لا يمدّد تدفّق منضمّين متتابع
+// الانتظار للأبد.
+function mmDeadlineMs() {
+  if (mmCountdownAnchorMs === null) return null;
+  let ends = mmCountdownAnchorMs + MM_COUNTDOWN_SECONDS * 1000;
+  if (mmWaitingWithBotsOnly && mmSoloWaitStartedAtMs) {
+    ends = Math.max(ends, mmSoloWaitStartedAtMs + MM_BOT_FALLBACK_MS);
+  }
+  if (mmMinFirstReachedAtMs) {
+    ends = Math.min(ends, mmMinFirstReachedAtMs + MM_HARD_TIMEOUT_MS);
+  }
+  if (mmQueueCache.length >= MM_MAX_PLAYERS) ends = Math.min(ends, Date.now());
+  return ends;
 }
 
 // ترتيبنا بين اللاعبين الأحياء — يحدّد كم ننتظر قبل ما نحاول الإنهاء بأنفسنا.
@@ -54677,7 +54729,8 @@ function mmTick() {
     if (countdownEl) countdownEl.style.display = 'none';
     return;
   }
-  const endsAtMs = mmCountdownAnchorMs + MM_COUNTDOWN_SECONDS * 1000;
+  const endsAtMs = mmDeadlineMs();
+  if (endsAtMs === null) { if (countdownEl) countdownEl.style.display = 'none'; return; }
   const remaining = Math.max(0, Math.ceil((endsAtMs - Date.now()) / 1000));
   if (countdownEl) {
     countdownEl.style.display = 'block';
@@ -54758,6 +54811,11 @@ async function mmFinalizeMatch(gameTag) {
     // اللعبة (فحص طازج وقت التنفيذ، مو نتيجة mmSoloBotCheckResult المخزّنة أثناء
     // العدّاد — قد يكون بوت آخر انسحب من التوفر بهذي الأثناء).
     if (rows.length < MM_MIN_PLAYERS) {
+      // نافذة "اللاعبون الحقيقيون أولاً" لازم تمر كاملة قبل أي سقوط للبوتات.
+      // الفحص مكرّر هنا عمداً (مو بالعرض فقط): أي عميل يوصل لهذي النقطة من
+      // مسار ثانٍ — سقف مطلق، تسلّم سلطة، رجوع تبويب من الخلفية — ما يقدر
+      // يسحب اللاعب لغرفة بوتات قبل الأوان ويفرّق اللاعبين الحقيقيين.
+      if (!mmSoloWaitStartedAtMs || (Date.now() - mmSoloWaitStartedAtMs) < MM_BOT_FALLBACK_MS) return;
       let hasBot = false;
       try { hasBot = (typeof protHasActiveBots === 'function') ? await protHasActiveBots(gameTag) : false; }
       catch (err) { mmLogErr('bot-check', err); }
@@ -54927,6 +54985,8 @@ function mmCleanupAfterMatch() {
   mmStopCountdown();
   mmLastKnownQueueCount = 0;
   mmMinFirstReachedAtMs = null;
+  mmSoloWaitStartedAtMs = null;
+  mmWaitingWithBotsOnly = false;
   mmSoloBotCheckDone = false;
   mmSoloBotCount = 0;
   if (mmQueueUnsub) { mmQueueUnsub(); mmQueueUnsub = null; }
@@ -54943,13 +55003,19 @@ async function mmLeaveQueue() {
   // 'online-obomb-instructions' دائماً، فإلغاء الانتظار بأي لعبة ثانية كان
   // يرمي المستخدم على تعليمات القنبلة.
   const backTag = mmCurrentGameTag;
+  const myUid = (currentUser && currentUser.uid) || null;
   mmResetQueueState(); // نفس التصفير السابق حرفياً — بمصدر واحد الآن
-  if (fb && currentUser) {
-    try { await fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', currentUser.uid)); }
-    catch (err) { mmLogErr('leave', err); }
-  }
+  // التنقّل أولاً وبلا أي انتظار. كان `await deleteDoc(...)` قبل show()، ووعد
+  // Firestore ما ينحل إلا بتأكيد الخادم — فعلى شبكة جوال متعثّرة ما ينحل ولا
+  // يُرفض أبداً، فيبقى المستخدم على شاشة الانتظار مهما ضغط "إلغاء" والزر يبدو
+  // ميتاً تماماً. الحذف الآن أفضل جهد بالخلفية، ولو فشل نهائياً فصفّنا يُعتبر
+  // شبحاً بعد MM_STALE_MS ويُكنس تلقائياً فما يعطّل أحداً.
   const target = backTag ? 'online-' + backTag + '-instructions' : 'online-obomb-instructions';
   show(document.getElementById('pg-' + target) ? target : 'online-home');
+  if (fb && myUid) {
+    try { fb.deleteDoc(fb.doc(fb.db, 'matchmakingQueue', myUid)).catch(err => mmLogErr('leave', err)); }
+    catch (err) { mmLogErr('leave', err); }
+  }
 }
 
 // مصدر إيقاظ مستقل تماماً عن المؤقتات: لما يرجع التبويب للواجهة بعد ما كان
