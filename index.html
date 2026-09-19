@@ -1512,8 +1512,28 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .p-avatar-wrap{position:relative;}
 .p-avatar-circle{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0;object-fit:cover;border:2px solid rgba(255,255,255,.15);box-shadow:0 2px 14px rgba(124,58,237,.35);transition:transform .2s ease;}
 .p-username-tag:hover .p-avatar-circle{transform:translateY(-2px);}
-/* رقم اللاعب الثابت — ضروري وظيفياً (منشن/تمرير بالرقم لمنصات كيك/يوتيوب/تويتش اللي ما تدعم @منشن)، مو مجرد ديكور */
-.p-username-number{position:absolute;bottom:-3px;left:-3px;background:linear-gradient(135deg,#F59E0B,#d97706);color:#0d0620;font-size:10px;font-weight:900;line-height:1;padding:3px 6px;border-radius:999px;border:2px solid var(--bg);box-shadow:0 1px 6px rgba(245,158,11,.5);z-index:3;}
+/* رقم اللاعب الثابت — ضروري وظيفياً (منشن/تمرير بالرقم لمنصات كيك/يوتيوب/تويتش اللي ما تدعم @منشن)، مو مجرد ديكور —
+   بس ما كل لعبة تحتاجه ولا كل لحظة فيها. القاعدة: مخفي افتراضياً بكل مكان — شاشات
+   الانتظار كلها بلا استثناء، وكل لعبة ما تستخدم رقم البطاقة وظيفياً — ويظهر
+   فقط بالاستثناءين تحت، وهما الموضعان الوحيدان اللي فيهما الشات يستهدف
+   اللاعب برقم هذي البطاقة بالذات أثناء الراوند نفسه.
+   (الروليت يستخدم الأرقام وظيفياً بردو، لكنه يعرضها بكشّاف مسرح الراوند
+    #rou-roster ويخفي لوحة المشاركين كاملة وقتها، فما يحتاج استثناء هنا.
+    ونفس الشيء للألعاب اللي أرقامها مو رقم اللاعب أصلاً — القناص (رقم خلية)،
+    الكراسي (رقم كرسي)، لقطة الكورة (رقم كوب) — فتبقى مخفية دائماً.) */
+.p-username-number{display:none;position:absolute;bottom:-3px;left:-3px;background:linear-gradient(135deg,#F59E0B,#d97706);color:#0d0620;font-size:10px;font-weight:900;line-height:1;padding:3px 6px;border-radius:999px;border:2px solid var(--bg);box-shadow:0 1px 6px rgba(245,158,11,.5);z-index:3;}
+/* استثناء ١ — القنبلة أثناء الراوند فقط: bombPassToByNumber() تمرّر القنبلة
+   برقم اللاعب المعروض على هذي البطاقة، ولوحة المشاركين تبقى ظاهرة طول
+   الراوند. نعتمد على حالة موجودة أصلاً بدل ما نضيف منطق جديد: شريط الحالة
+   #bomb-status-strip شقيق سابق للوحة بنفس الحاوية، وsetBombGameStatus() تحطّ عليه
+   كلاس active لحظة يبدأ الراوند وتشيله عند waiting/finished — فالرقم يظهر
+   ويختفي تلقائياً مع الحالة حتى للبطاقات اللي انبنت قبل البدء. */
+#bomb-status-strip.active ~ .participants-overlay .p-username-number{display:block;}
+/* استثناء ٢ — التصويت الإقصائي: evProcessVote() تطابق رقم اللاعب من الشات.
+   شبكة التصويت #ev-grid تُبنى فقط داخل startEvRound() (ولوحة الانتظار تُخفى
+   عندها)، فوجود بطاقة داخلها = راوند شغّال بحد ذاته — وبطاقات شاشة
+   الانتظار نفسها (#ev-p-usernames) تظل مخفية بالقاعدة العامة فوق. */
+#ev-grid .p-username-number{display:block;}
 .p-username-name{font-size:12px;color:var(--muted);font-weight:700;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;}
 .p-username-prefix{font-size:10px;line-height:1;}
 
