@@ -650,7 +650,8 @@
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
     update as rtdbUpdate, onValue as rtdbOnValue, off as rtdbOff, runTransaction as rtdbRunTransaction,
-    serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild
+    serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild,
+    onDisconnect as rtdbOnDisconnect
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
   const firebaseConfig = {
@@ -696,7 +697,10 @@
     doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
-    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild
+    rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
+    // onDisconnect: الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع اتصال الستريمر
+    // (سكّر التبويب/المتصفح/انقطعت شبكته) — تنظيف مضمون ما يحتاج أي نبضة حياة.
+    rtdbOnDisconnect
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -1517,7 +1521,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
    عنده إطار مُفعَّل): بدل حلقة صغيرة حول الأفتار، تعرض صورة الإطار العريضة
    كاملة (دائرة الأفتار + لوحة الاسم) كخلفية للبطاقة، والأفتار/الاسم
    يتموضعان داخلها حسب حقل hole بـFRAMES_CATALOG (framesInjectRing بالجافاسكربت). */
-.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:92px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
+.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:84px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;display:flex;align-items:center;justify-content:center;}
 .p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;}
 .p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
@@ -2945,6 +2949,12 @@ body{padding-top:64px;}
     border:2px solid rgba(11,5,24,.92); box-shadow:0 0 12px -2px rgba(245,158,11,.95);
   }
   & .p-username-name{ font-weight:700; font-size:12px; color:#CBBDF3; max-width:80px; }
+  /* الاسم فوق الإطار الكامل له مساحة مخصّصة أوسع بالإطار نفسه (بين فتحة
+     الأفتار وحافة البطاقة) — max-width:80px أعلاه يكسر تمدّد يسار/يمين
+     المحسوب بالجافاسكربت (framesInjectRingWithFrame) فيطلّع الاسم غير
+     متمركز بمكانه الصحيح. لازم أكثر تحديداً من القاعدة العامة فوق حتى تفوز
+     بالتخصيص بدون !important. */
+  & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
 
   /* صف أزرار شاشة الانتظار */
   & .game-bottom-row{ max-width:760px; gap:12px; }
@@ -5090,6 +5100,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="owner-tab" id="owner-tab-feedback" onclick="ownerSwitchTab('feedback')">💡 اقتراحات</button>
       <button type="button" class="owner-tab" id="owner-tab-messages" onclick="ownerSwitchTab('messages')">💬 رسائل</button>
       <button type="button" class="owner-tab" id="owner-tab-rounds" onclick="ownerSwitchTab('rounds')">🎮 راوندات</button>
+      <button type="button" class="owner-tab" id="owner-tab-cwsessions" onclick="ownerSwitchTab('cwsessions')">🌍 الدول</button>
       <button type="button" class="owner-tab" id="owner-tab-events" onclick="ownerSwitchTab('events')">🎉 فعاليات</button>
       <button type="button" class="owner-tab" id="owner-tab-gifts" onclick="ownerSwitchTab('gifts')">🎁 هدايا</button>
       <button type="button" class="owner-tab" id="owner-tab-online" onclick="ownerSwitchTab('online')">🌐 اونلاين</button>
@@ -5214,6 +5225,18 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="owner-list" id="owner-rounds-list">
         <div class="owner-empty">جارِ التحميل...</div>
       </div>
+    </div>
+
+    <!-- COUNTRY-WAR LIVE SESSIONS TAB (🌍 الدول) -->
+    <!-- كل ستريمر يشغّل لعبة الدول له مستند مستقل بمجموعة cwOwnerSessions
+         (المعرف = uid الستريمر)، فتظهر هنا كل الجلسات المتوازية مرة وحدة —
+         بعكس activeStreamers اللي مستندها واحد لكل لعبة فيمسح بعضه. -->
+    <div class="owner-panel-body" id="owner-panel-cwsessions">
+      <div class="owner-count-badge">ستريمرز يلعبون الدول الآن: <b id="owner-cwsessions-count">0</b></div>
+      <div class="owner-list" id="owner-cwsessions-list">
+        <div class="owner-empty">جارِ التحميل...</div>
+      </div>
+      <div class="owner-row-sub" id="owner-cwsessions-note" style="text-align:center;"></div>
     </div>
 
     <!-- EVENTS ACCESS TAB -->
@@ -5795,6 +5818,22 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button class="owner-modal-close" onclick="ownerRoundsClosePickWinner()">✕</button>
     </div>
     <div class="owner-list" id="rounds-pickwinner-list">
+      <div class="owner-empty">جارِ التحميل...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== OWNER: COUNTRY-WAR SESSION DETAILS MODAL (تاب 🌍 الدول) ====== -->
+<!-- طول ما هذا المودال مفتوح فقط، نفتح onSnapshot حي على مستند الجلسة الواحد
+     عشان توزيع الدول يتحدّث فوراً لحظة ما الستريمر يبدأ راوند جديد (بدون انتظار
+     دورة الـ30 ثانية). يُلغى الاشتراك فوراً عند الإغلاق. -->
+<div class="owner-modal-overlay" id="owner-cwsession-overlay" onclick="if(event.target===this) cwSessionsCloseModal()">
+  <div class="owner-modal rounds-pickwinner-modal">
+    <div class="owner-modal-head">
+      <div class="owner-modal-title">🌍 توزيع الدول — <span id="owner-cwsession-streamer">—</span></div>
+      <button class="owner-modal-close" onclick="cwSessionsCloseModal()">✕</button>
+    </div>
+    <div class="owner-list" id="owner-cwsession-list">
       <div class="owner-empty">جارِ التحميل...</div>
     </div>
   </div>
@@ -18657,12 +18696,13 @@ function ownerClosePanel() {
   evtAdminListStop();
   ahsemhaAdminListStop();
   ownerStatsStop();
+  cwSessionsStop();
   // لو فعالية 100 لاعب شغّالة، خليها تظهر فوراً للمالك نفسه بعد ما يسكّر لوحته
   // (event100Render ما يُستدعى تلقائياً هنا لأنه مربوط بمستمع Firestore فقط).
   if (typeof event100Render === 'function') event100Render();
 }
 function ownerSwitchTab(tab) {
-  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','events','gifts','online','store','event100','protection','ahsemha','scode','sevt'].forEach(t => {
+  ['users','streamers','games','stats','updates','moderators','frames','devspecial','feedback','messages','rounds','cwsessions','events','gifts','online','store','event100','protection','ahsemha','scode','sevt'].forEach(t => {
     document.getElementById('owner-tab-' + t).classList.toggle('active', t === tab);
     document.getElementById('owner-panel-' + t).classList.toggle('active', t === tab);
   });
@@ -18674,6 +18714,8 @@ function ownerSwitchTab(tab) {
   if (tab !== 'scode') scodeOwnerListStop();
   if (tab !== 'stats') ownerStatsStop();
   if (tab === 'stats') ownerStatsBoot();
+  if (tab !== 'cwsessions') cwSessionsStop();
+  if (tab === 'cwsessions') cwSessionsBoot();
   if (tab === 'updates') ownerUpdatesBoot();
   if (tab === 'moderators') { modAdminListBoot(); ownerRenderModeratorsList(); }
   if (tab === 'frames') ownerFramesTabBoot();
@@ -18945,6 +18987,203 @@ function ownerStatsBoot() {
 function ownerStatsStop() {
   if (ownerStatsPollTimer) { clearInterval(ownerStatsPollTimer); ownerStatsPollTimer = null; }
   ownerStatsListenersStarted = false;
+}
+
+// ==================== OWNER TAB: 🌍 الدول (جلسات لعبة الدول الحية) ====================
+// المشكلة اللي يحلها هذا التاب: activeStreamers مستند واحد لكل لعبة بمعرّفه =
+// اسم اللعبة ('cw')، فآخر ستريمر يشغّل الدول يمسح بيانات اللي قبله ولا يمكن عرض
+// أكثر من جلسة بنفس اللحظة. عقدة cwOwnerSessions بـRealtime Database عقدة لكل
+// ستريمر (المفتاح = uid الستريمر)، فكل الجلسات المتوازية تظهر هنا كل وحدة
+// بمشاركيها ودولها. إضافية بحتة: ما تلمس activeStreamers ولا liveRounds ولا أي
+// منطق داخل لعبة الدول.
+//
+// ليش RTDB مو Firestore؟ النسخة الأولى كانت Firestore وما وصلت منها ولا كتابة
+// للخادم (التشخيص طلع "قُرئ 0 مستند") — وهذا سلوك موثّق بهذا المشروع نفسه: بعض
+// شبكات الجوال تقطع اتصال Firestore الصامد بصمت، ولهذا RTDB معتمد أصلاً
+// كالقاعدة الاحتياطية. تفاصيل أوفى بتعليق قسم المرآة داخل كود cw.
+//
+// هنا نستخدم مستمع onValue حي على العقدة كلها بدل الاستطلاع الدوري: RTDB ما
+// يحاسب بعدد قراءات المستندات مثل Firestore (يحاسب بالباندويث)، والعقدة صغيرة،
+// فالمستمع الحي أرخص وأدق وأسرع. يبدأ عند فتح التاب ويتوقف عند تبديله أو إغلاق
+// اللوحة، فما يضل شي شغّال بالخلفية.
+const CW_SESSION_STALE_MS = 180000; // احتياطي: عقدة ما وصل منها تحديث خلال 3 دقائق = غير متصلة
+
+let cwSessionsUnsub = null;      // مستمع onValue الحي على كل الجلسات
+let cwSessionsListenersStarted = false;
+let cwSessionsCache = [];        // آخر لقطة: [{ id, username, gameStatus, ... }]
+let cwSessionsLastRawCount = 0;  // كم عقدة رجعت فعلاً قبل فلترة "غير متصل"
+let cwSessionModalUnsub = null;  // مستمع حي على جلسة واحدة — فقط طول ما المودال مفتوح
+let cwSessionModalId = null;
+
+// وقت آخر تحديث: ختم الخادم هو المرجع، وختم العميل (updatedAtMs) احتياطي.
+function cwSessionUpdatedMs(data) {
+  const serverMs = (typeof data.updatedAt === 'number') ? data.updatedAt : 0;
+  if (serverMs) return serverMs;
+  return (typeof data.updatedAtMs === 'number') ? data.updatedAtMs : 0;
+}
+
+// RTDB يرجّع المصفوفات أحياناً ككائن بمفاتيح رقمية (لو فيها فجوات) — نوحّدها.
+function cwSessionsToArray(v) {
+  if (Array.isArray(v)) return v.filter(Boolean);
+  if (v && typeof v === 'object') return Object.keys(v).map(k => v[k]).filter(Boolean);
+  return [];
+}
+
+function cwSessionsApplySnapshot(val) {
+  const now = Date.now();
+  const rows = [];
+  let raw = 0;
+  const all = (val && typeof val === 'object') ? val : {};
+  Object.keys(all).forEach(id => {
+    const data = all[id];
+    if (!data || typeof data !== 'object') return;
+    raw++;
+    // onDisconnect بالخادم يحذف الجلسة لحظة انقطاع الستريمر، فهذا الفلتر صار
+    // مجرد حزام أمان إضافي. ومهم: نستبعد فقط لو نعرف يقيناً إنه قديم — عقدة
+    // بلا أي ختم وقت تُعرض بدل ما تُخفى، عشان ما نخفي ستريمر شغّال بسبب ختم ناقص.
+    const t = cwSessionUpdatedMs(data);
+    if (t && (now - t) > CW_SESSION_STALE_MS) return;
+    rows.push(Object.assign({}, data, {
+      id,
+      participants: cwSessionsToArray(data.participants),
+      countries: cwSessionsToArray(data.countries),
+      __updatedMs: t
+    }));
+  });
+  rows.sort((a, b) => (b.__updatedMs || 0) - (a.__updatedMs || 0));
+  cwSessionsCache = rows;
+  cwSessionsLastRawCount = raw;
+  cwSessionsRenderList();
+  const noteEl = document.getElementById('owner-cwsessions-note');
+  if (noteEl) {
+    noteEl.textContent = 'مباشر (Realtime Database) — آخر تحديث: ' +
+      new Date().toLocaleTimeString('ar-SA') + ' — قُرئ ' + raw + ' جلسة، ' + rows.length + ' متصلة';
+  }
+}
+
+function cwSessionsRenderList() {
+  const rows = cwSessionsCache;
+  document.getElementById('owner-cwsessions-count').textContent = rows.length;
+  const list = document.getElementById('owner-cwsessions-list');
+  if (!rows.length) {
+    // نفرّق بين "ما فيه ولا عقدة أصلاً" (الكتابة من جهة الستريمر ما وصلت)
+    // و"فيه عقد لكن كلها قديمة" — بدون هالتفريق القائمة الفاضية ما تقول شيئاً
+    // عن سبب المشكلة.
+    list.innerHTML = cwSessionsLastRawCount
+      ? '<div class="owner-empty">فيه ' + cwSessionsLastRawCount + ' جلسة مسجّلة لكن ما وصل منها تحديث خلال آخر 3 دقائق</div>'
+      : '<div class="owner-empty">ما فيه أحد يلعب الدول الآن<br><span style="font-size:11px;opacity:.7">لو فيه ستريمر شغّال فعلاً: لازم صفحة الدول عنده تكون مفتوحة وعلى آخر نسخة من الموقع (تحديث قسري لصفحته)</span></div>';
+    return;
+  }
+  // ownerEscape يهرّب وسوم HTML لكن مو علامة الاقتباس المفردة — والوسيطان هنا
+  // يدخلان داخل نص JS بعلامات مفردة جوّا onclick، فنهرّبها عشان أي يوزر فيه
+  // ' ما يكسر الزر.
+  const attrArg = (v) => ownerEscape(v).replace(/'/g, "\\'");
+  list.innerHTML = rows.map(sn => {
+    const statusText = sn.gameStatus === 'active'   ? '🌍 الراوند شغّال'
+                     : sn.gameStatus === 'finished' ? '🏆 انتهى الراوند'
+                     : '⏳ بالانتظار';
+    const count = (typeof sn.participantsCount === 'number')
+      ? sn.participantsCount
+      : (sn.participants.length || 0);
+    const cCount = sn.countries.length || 0;
+    return `
+    <div class="rounds-row">
+      <div class="rounds-row-top">
+        <div>
+          <div class="rounds-row-name">${ownerEscape(sn.username || sn.id || '—')}</div>
+          <div class="rounds-row-sub">عدد المشاركين: ${count} — الدول الحية: ${cCount} — ${ownerEscape(statusText)}</div>
+        </div>
+      </div>
+      <div class="rounds-btn-row">
+        <button type="button" class="rounds-btn rounds-btn-pickwinner" onclick="cwSessionsOpenModal('${attrArg(sn.id)}','${attrArg(sn.username || sn.id || '—')}')">👁️ عرض</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cwSessionsBoot() {
+  if (!isOwnerAccount() || cwSessionsListenersStarted) return;
+  if (!fb || !fb.rtdb) {
+    document.getElementById('owner-cwsessions-list').innerHTML =
+      '<div class="owner-empty">⚠️ Realtime Database غير مهيّأة بهذا الموقع</div>';
+    return;
+  }
+  cwSessionsListenersStarted = true;
+
+  cwSessionsUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'cwOwnerSessions'), (snap) => {
+    cwSessionsApplySnapshot(snap.val());
+  }, (err) => {
+    document.getElementById('owner-cwsessions-note').textContent = '';
+    // خطأ الصلاحيات هو الحالة الأشيع لو ما انتشرت قواعد RTDB — نسمّيها صراحة
+    // بدل رسالة عامة، عشان يُعرف العلاج فوراً.
+    const isPerm = err && (/permission|denied/i.test((err.code || '') + ' ' + (err.message || '')));
+    document.getElementById('owner-cwsessions-list').innerHTML =
+      '<div class="owner-empty">⚠️ تعذّر تحميل جلسات الدول: ' + ownerEscape(err && err.message) +
+      (isPerm ? '<br>قاعدة cwOwnerSessions غير منشورة بقواعد Realtime Database' : '') +
+      '</div>';
+  });
+}
+
+// يوقف المستمع الحي (وأي مودال مفتوح) عند مغادرة التاب أو إغلاق اللوحة
+function cwSessionsStop() {
+  if (cwSessionsUnsub) { try { cwSessionsUnsub(); } catch (e) {} cwSessionsUnsub = null; }
+  cwSessionsListenersStarted = false;
+  cwSessionsCloseModal();
+}
+
+// ---------- مودال "عرض": اسم الدولة = اسم اللاعب (حي على جلسة واحدة فقط) ----------
+function cwSessionsOpenModal(sessionId, username) {
+  if (!fb || !fb.rtdb || !isOwnerAccount()) return;
+  cwSessionsCloseModal(); // لا نترك مستمعاً سابقاً شغّالاً أبداً
+  cwSessionModalId = sessionId;
+  document.getElementById('owner-cwsession-streamer').textContent = username || sessionId;
+  document.getElementById('owner-cwsession-list').innerHTML = '<div class="owner-empty">جارِ التحميل...</div>';
+  document.getElementById('owner-cwsession-overlay').classList.add('visible');
+
+  cwSessionModalUnsub = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'cwOwnerSessions/' + sessionId), (snap) => {
+    if (cwSessionModalId !== sessionId) return; // المودال انقفل/تبدّل أثناء الرحلة
+    cwSessionsRenderModal(snap.val());
+  }, (err) => {
+    document.getElementById('owner-cwsession-list').innerHTML =
+      '<div class="owner-empty">⚠️ تعذّر تحميل التوزيع: ' + ownerEscape(err && err.message) + '</div>';
+  });
+}
+
+function cwSessionsRenderModal(data) {
+  const list = document.getElementById('owner-cwsession-list');
+  if (!data || typeof data !== 'object') {
+    list.innerHTML = '<div class="owner-empty">انتهت جلسة هذا الستريمر</div>';
+    return;
+  }
+  const countries = cwSessionsToArray(data.countries);
+  const participants = cwSessionsToArray(data.participants);
+
+  if (countries.length) {
+    list.innerHTML = countries.map(c => `
+      <div class="rounds-pick-row">
+        <div class="rounds-pick-name">${ownerEscape(c.country || '—')} = ${ownerEscape(c.nickname || c.uniqueId || '—')}</div>
+      </div>
+    `).join('');
+    return;
+  }
+
+  // ما فيه توزيع دول بعد. بدل قائمة فاضية نعرض المشاركين أنفسهم — الستريمر
+  // اللي ما بدأ راوند لسا عنده ناس منتظرين، والمالك يبي يشوفهم.
+  const head = (data.gameStatus === 'waiting')
+    ? '<div class="owner-empty">لسا ما بدأ الراوند — المشاركون بالانتظار (' + participants.length + ')</div>'
+    : '<div class="owner-empty">ما فيه دول حية بهذا الراوند — المشاركون (' + participants.length + ')</div>';
+  list.innerHTML = head + (participants.length ? participants.map(pt => `
+    <div class="rounds-pick-row">
+      <div class="rounds-pick-name">${ownerEscape(pt.nickname || pt.uniqueId || '—')}</div>
+    </div>
+  `).join('') : '');
+}
+
+function cwSessionsCloseModal() {
+  if (cwSessionModalUnsub) { try { cwSessionModalUnsub(); } catch (e) {} cwSessionModalUnsub = null; }
+  cwSessionModalId = null;
+  const overlay = document.getElementById('owner-cwsession-overlay');
+  if (overlay) overlay.classList.remove('visible');
 }
 
 function ownerOpenOnlineNow() {
@@ -27244,8 +27483,8 @@ const framesActiveWraps = new Map();       // levelsKey -> Map<Element, sizePx>
 // بناءً على حقل hole المخزّن بكل عنصر كتالوج ([left%, top%, width%, height%]
 // لموضع فتحة الأفتار داخل صورة الإطار العريضة). f = كائن الإطار المُحلّل مسبقاً
 // (ثابت أو ديناميكي — بنفس الشكل: gallery/imageUrl + hole).
-const FRAMES_BANNER_H = 92; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
-const FRAMES_BANNER_RATIO_FALLBACK = 2.8; // يطابق aspect-ratio بـCSS — يُستخدم فقط لو الإطار بلا ratio
+const FRAMES_BANNER_H = 84; // px — ارتفاع بطاقة المشارك بوضع الإطار الكامل (يطابق height بـCSS)
+const FRAMES_BANNER_RATIO = 2.8; // يطابق aspect-ratio بـCSS — نسبة ثابتة تُطبَّق على كل الإطارات
 
 function framesInjectRingWithFrame(tagEl, f, sizePx) {
   if (!tagEl || !f || tagEl.classList.contains('p-has-full-frame')) return;
@@ -27256,11 +27495,12 @@ function framesInjectRingWithFrame(tagEl, f, sizePx) {
   const [l, t, w, h] = f.hole;
   tagEl.classList.add('p-has-full-frame');
   tagEl.style.backgroundImage = "url('" + img + "')";
-  // نسبة البطاقة = نسبة صورة الإطار نفسها، مو قيمة ثابتة. الخلفية مرسومة
-  // بـbackground-size:100% 100%، فإطار نسبته تختلف عن نسبة البطاقة كان يتمدّد
-  // عرضاً/طولاً وتزيح فتحة الأفتار عن مكانها بالتصميم — يظهر الأفتار خارج
-  // الفتحة أو فوق حدود الإطار.
-  const ratio = (Number(f.ratio) > 0) ? Number(f.ratio) : FRAMES_BANNER_RATIO_FALLBACK;
+  // نسبة البطاقة ثابتة (FRAMES_BANNER_RATIO) لكل الإطارات — بغض النظر عن نسبة
+  // صورة الإطار نفسها — عشان كل الإطارات تبين بنفس الحجم بالضبط بدل ما يختلف
+  // حجم كل إطار حسب تصميمه. الخلفية مرسومة بـbackground-size:100% 100% فتتمدّد
+  // مع الصندوق، وفتحة الأفتار (hole) نسبة مئوية من نفس الصندوق فتضل متمركزة
+  // بمكانها الصحيح حتى مع اختلاف النسبة الأصلية للصورة عن نسبة الصندوق.
+  const ratio = FRAMES_BANNER_RATIO;
   tagEl.style.aspectRatio = String(ratio);
   wrap.style.left = l + '%';
   wrap.style.top = t + '%';
@@ -42863,6 +43103,7 @@ function launchCountryWar() {
   homeRegisterGameListener('cw', cwHandleEvent);
   document.getElementById('btn-cw-launch').disabled = false;
   document.getElementById('cw-status').className = 'status-msg';
+  cwOwnerSessionBoot(); // مرآة لوحة المالك فقط (إضافي، best-effort) — لا يغيّر أي سلوك باللعبة
 }
 
 function cwSetStatus(type, msg) {
@@ -43100,6 +43341,7 @@ function cwJoinParticipant(user) {
   }
 
   liveRoundsMirror('cw', cwParticipants);
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 function cwRemoveParticipant(uniqueId) {
@@ -43119,6 +43361,7 @@ function cwRemoveParticipant(uniqueId) {
   const tag = document.getElementById('cwtag-' + uniqueId);
   if (tag) tag.remove();
   liveRoundsMirror('cw', cwParticipants);
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 // يطرد لاعباً من زر "🚫 اطرد لاعب" بداشبورد الستريمر نفسه — نفس منطق bomb.
@@ -43246,6 +43489,7 @@ function startCountryWarRound() {
   __cwHint.textContent = 'اضغط لتدوير منشور القرعة';
   __cwHint.className = 'cw-spin-result show';
   toast('🌍 تم توزيع الدول سراً على الجميع! اضغط ابدأ الاختيار لتحديد من يقصي');
+  cwOwnerSessionMirror(); // مرآة لوحة المالك فقط (إضافي، best-effort) — يلتقط التوزيع الجديد لحظة بدايته
 }
 
 // يبني وسم صورة علم حقيقية من flagcdn (يظهر على كل الأجهزة بما فيها ويندوز).
@@ -43288,6 +43532,11 @@ function renderCWCountriesGrid() {
     grid.appendChild(card);
   });
   cwUpdateStageHead();
+  // مرآة لوحة المالك فقط (إضافي، best-effort، مخنوقة). هذي دالة رسم بحتة
+  // تُستدعى بعد كل تغيّر فعلي على cwActiveCountries (بداية راوند، انضمام وسط
+  // راوند، إقصاء، إنعاش) — فهي أضمن نقطة وحدة تخلّي قائمة الدول عند المالك
+  // مطابقة للواقع بدل ما تتأخر لحد النبضة التالية. ما تغيّر أي سلوك باللعبة.
+  cwOwnerSessionMirror();
 }
 
 // ==================== SPIN — PICK WHOSE TURN ====================
@@ -43582,6 +43831,7 @@ function showCWWinner(user, countryName, flag) {
     wrap.innerHTML = `<div class="w-avatar-fb">${esc((user.nickname||'?')[0])}</div>`;
   }
   show('countrywar-winner');
+  cwOwnerSessionFinish(); // مرآة لوحة المالك فقط (إضافي، best-effort)
 }
 
 function cwSetGameStatus(s) {
@@ -43683,6 +43933,194 @@ function cwAddChatMsg(user, text) {
   list.appendChild(item);
   list.scrollTop = list.scrollHeight;
   while (list.children.length > 120) list.removeChild(list.firstChild);
+}
+
+// ==================== OWNER MIRROR — جلسة الدول الحية (إضافي بحت) ====================
+// قسم مستقل تماماً بأسفل كود cw: ما يعدّل أي متغير أو دالة أو ترتيب عملية
+// بمنطق اللعبة. كل اللي يسويه أنه ينسخ (mirror) صورة القراءة فقط لجلسة هذا
+// الستريمر إلى Realtime Database، عشان تاب "🌍 الدول" بلوحة المالك يقدر يعرض
+// كل الستريمرز اللي يلعبون الدول بنفس اللحظة — كل واحد بمشاركيه وتوزيع دوله.
+//
+// ليش Realtime Database مو Firestore؟ النسخة الأولى كانت على Firestore وما
+// كانت تشتغل أبداً: تشخيص لوحة المالك طلع "قُرئ 0 مستند" — يعني ولا كتابة
+// وصلت الخادم إطلاقاً. والسبب موثّق أصلاً بأعلى هذا الملف عند إعداد Firebase:
+// بعض شبكات الجوال (خصوصاً بالخليج) تمرّ عبر بروكسي شفّاف يقطع اتصال Firestore
+// الصامد بلا أي خطأ ظاهر، فتعلّق الكتابات للأبد بصمت — ولهذا المشروع أصلاً
+// يعتبر RTDB "القاعدة الاحتياطية". وتبويب لعبة الستريمر بالذات هو أسوأ حالة:
+// جوال + شبكة بيانات + تبويب بالخلفية. RTDB يستخدم WebSocket مختلف تماماً وهو
+// المسار الموثوق بهذا المشروع.
+//
+// ومكسب ثاني أهم: onDisconnect — الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع
+// اتصال الستريمر (سكّر التبويب، المتصفح، أو انقطعت شبكته). يعني التنظيف مضمون
+// من الخادم بدل ما يعتمد على نبضة حياة من متصفح المتصفحات تخنقه بالخلفية —
+// وهذا كان سبب اختفاء ستريمرز شغالين فعلاً بالنسخة السابقة.
+//
+// ⚠️ قواعد RTDB: العقدة cwOwnerSessions تحتاج قاعدة (كتابة من أي مستخدم مسجّل
+// دخول على عقدته + قراءة للمالك وحده) — لازم تُنشر بقواعد Realtime Database.
+// لو ما انتشرت، الكتابة تفشل (best-effort، ما تأثر على اللعبة إطلاقاً) وتطلع
+// رسالة تحذير بكونسول المتصفح توضّح السبب.
+const CW_OWNER_SESSION_HEARTBEAT_MS = 20000;    // نبضة حياة كل 20 ثانية طول ما اللعبة نشطة
+const CW_OWNER_SESSION_FINISHED_TTL_MS = 40000; // بعد انتهاء اللعبة بهالمدة تُحذف العقدة
+const CW_OWNER_SESSION_MIN_WRITE_GAP_MS = 2500; // خنق: أسرع من كذا نأجّل الكتابة بدل ما نكررها
+let cwOwnerSessionTimer = null;
+let cwOwnerSessionFinishedAt = 0;
+let cwOwnerSessionLastWriteAt = 0;
+let cwOwnerSessionTrailingTimer = null;
+let cwOwnerSessionBootRetries = 0;
+let cwOwnerSessionDisconnectArmedFor = null; // أي مفتاح سُلّح له onDisconnect
+
+// مفاتيح RTDB ممنوع فيها . $ # [ ] / — ويوزرات البث فيها نقاط كثير
+// (مثل glorious.sg)، فمفتاح غير منظّف يرمي استثناء وتضيع الجلسة بالكامل.
+function cwOwnerSessionSafeKey(v) {
+  return String(v || '').trim().replace(/[.$#\[\]\/\x00-\x1F\x7F]/g, '_');
+}
+
+// مفتاح العقدة: uid الستريمر. نقرأه من fb.auth.currentUser أولاً لأنه المصدر
+// الحي والمؤكّد من SDK نفسه — المتغير currentUser نسخة مخزّنة يضبطها
+// onAuthStateChanged، وممكن يكون لسا null لو الستريمر ضغط "ابدأ" قبل ما تكتمل
+// دورة المصادقة. وإلا يوزرنيم البث (منظّفاً) كبديل أخير.
+function cwOwnerSessionDocId() {
+  const authUid = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.uid) || '';
+  return cwOwnerSessionSafeKey(authUid || (currentUser && currentUser.uid) || cwUser || '');
+}
+
+function cwOwnerSessionRef(id) {
+  return fb.rtdbRef(fb.rtdb, 'cwOwnerSessions/' + id);
+}
+
+function cwOwnerSessionOnCwPage() {
+  const cwPage = document.getElementById('pg-countrywar');
+  const cwWinPage = document.getElementById('pg-countrywar-winner');
+  return (cwPage && cwPage.classList.contains('active')) ||
+         (cwWinPage && cwWinPage.classList.contains('active'));
+}
+
+// المدخل العام — مخنوق. الاستدعاءات المتلاحقة (إقصاء ورا إقصاء، انضمام جماعي)
+// تنكتب مرة وحدة بدل عشر كتابات، مع كتابة أخيرة مضمونة عشان ما تضيع آخر حالة.
+function cwOwnerSessionMirror() {
+  if (!fb || !fb.rtdb) return;
+  const since = Date.now() - cwOwnerSessionLastWriteAt;
+  if (since >= CW_OWNER_SESSION_MIN_WRITE_GAP_MS) { cwOwnerSessionWriteNow(); return; }
+  if (cwOwnerSessionTrailingTimer) return;
+  cwOwnerSessionTrailingTimer = setTimeout(() => {
+    cwOwnerSessionTrailingTimer = null;
+    cwOwnerSessionWriteNow();
+  }, CW_OWNER_SESSION_MIN_WRITE_GAP_MS - since);
+}
+
+// الكتابة الفعلية — best-effort بالكامل (نفس أسلوب liveRoundsMirror): try/catch
+// وبدون await، فما توقف ولا تبطّئ أي مسار بواجهة الستريمر ولا التفاعل مع الشات.
+function cwOwnerSessionWriteNow() {
+  if (!fb || !fb.rtdb) return;
+  try {
+    const id = cwOwnerSessionDocId();
+    if (!id) { cwOwnerSessionScheduleBootRetry(); return; }
+    cwOwnerSessionArmHeartbeat();
+    cwOwnerSessionArmDisconnect(id);
+    cwOwnerSessionLastWriteAt = Date.now();
+    const participants = [...cwParticipants.values()].map(u => ({
+      uniqueId: String(u.uniqueId || ''), nickname: String(u.nickname || u.uniqueId || '')
+    }));
+    // countries = الدول الحية بالراوند الحالي مدموجة مع cwParticipants لجلب
+    // اسم كل لاعب، فيصير كل عنصر يمثّل حرفياً: اسم الدولة = اسم اللاعب.
+    const countries = cwActiveCountries.map(c => {
+      const u = cwParticipants.get(c.uid);
+      return {
+        country: String(c.name || ''),
+        uniqueId: String(c.uid || ''),
+        nickname: String((u && u.nickname) || c.uid || '')
+      };
+    });
+    fb.rtdbSet(cwOwnerSessionRef(id), {
+      uid: id,
+      username: cwUser || '',
+      platform: gamePlatform['cw'] || null,
+      gameStatus: cwGameStatus,
+      participants,
+      countries,
+      participantsCount: participants.length,
+      countriesCount: countries.length,
+      updatedAt: fb.rtdbServerTimestamp(),
+      // ختم وقت من العميل بجانب ختم الخادم: ختم الخادم يتثبّت على الخادم فقط،
+      // وهذا احتياطي يُقرأ لو ما وصل ختم الخادم لأي سبب.
+      updatedAtMs: Date.now()
+    }).catch((err) => {
+      console.warn('[cwOwnerSession] تعذّرت كتابة مرآة جلسة الدول — اللعبة ما تتأثر. السبب:',
+                   (err && err.code) || '', (err && err.message) || err);
+    });
+  } catch (err) {
+    console.warn('[cwOwnerSession] خطأ ببناء مرآة جلسة الدول — اللعبة ما تتأثر:', err);
+  }
+}
+
+// تنظيف من جهة الخادم: لحظة ما ينقطع اتصال هذا العميل (سكّر التبويب، أغلق
+// المتصفح، انقطعت شبكته) يحذف الخادم عقدة الجلسة تلقائياً. هذا اللي يخلّي
+// القائمة عند المالك دقيقة بلا أي اعتماد على نبضة حياة من متصفح مخنوق.
+function cwOwnerSessionArmDisconnect(id) {
+  if (!fb || !fb.rtdb || !fb.rtdbOnDisconnect) return;
+  if (cwOwnerSessionDisconnectArmedFor === id) return;
+  cwOwnerSessionDisconnectArmedFor = id;
+  try {
+    fb.rtdbOnDisconnect(cwOwnerSessionRef(id)).remove().catch(() => {});
+  } catch (err) { /* best-effort */ }
+}
+
+// لو المصادقة ما خلصت بعد لحظة ما ضغط الستريمر "ابدأ"، نعيد المحاولة بهدوء
+// بدل ما تضيع الجلسة للأبد.
+function cwOwnerSessionScheduleBootRetry() {
+  if (cwOwnerSessionBootRetries >= 10) return;
+  cwOwnerSessionBootRetries++;
+  setTimeout(() => { if (cwOwnerSessionOnCwPage()) cwOwnerSessionWriteNow(); }, 2000);
+}
+
+// بداية الجلسة: ننظّف أثر أي جلسة سابقة ونكتب أول صورة فوراً.
+function cwOwnerSessionBoot() {
+  cwOwnerSessionFinishedAt = 0;
+  cwOwnerSessionBootRetries = 0;
+  cwOwnerSessionLastWriteAt = 0;
+  cwOwnerSessionWriteNow();
+}
+
+// نهاية اللعبة (شاشة الفائز): نحدّث الحالة لـ'finished' ونؤشّر وقت الانتهاء —
+// النبضة تحذف العقدة بعد CW_OWNER_SESSION_FINISHED_TTL_MS.
+function cwOwnerSessionFinish() {
+  cwOwnerSessionFinishedAt = Date.now();
+  cwOwnerSessionWriteNow();
+}
+
+function cwOwnerSessionArmHeartbeat() {
+  if (cwOwnerSessionTimer) return;
+  cwOwnerSessionTimer = setInterval(cwOwnerSessionTick, CW_OWNER_SESSION_HEARTBEAT_MS);
+}
+
+// النبضة تدير نفسها بنفسها بدل ما نعدّل دوال الخروج الموجودة (goHome /
+// disconnectAllGames / cwDisconnectWS): لو الستريمر غادر صفحة الدول (رجع
+// للرئيسية أو بدّل لعبة) أو انتهت اللعبة من زمان، توقف نفسها وتحذف العقدة.
+// ما عادت خط الدفاع الوحيد ضد الجلسات اليتيمة — onDisconnect يغطي الانقطاع
+// المفاجئ من جهة الخادم — فبقيت للتنقّل الطبيعي داخل الموقع (ما فيه انقطاع).
+function cwOwnerSessionTick() {
+  if (!cwOwnerSessionOnCwPage()) { cwOwnerSessionStop(true); return; }
+  if (cwGameStatus === 'finished' && cwOwnerSessionFinishedAt &&
+      (Date.now() - cwOwnerSessionFinishedAt) >= CW_OWNER_SESSION_FINISHED_TTL_MS) {
+    cwOwnerSessionStop(true);
+    return;
+  }
+  cwOwnerSessionWriteNow(); // النبضة تتجاوز الخنق — هي أصلاً كل 20 ثانية
+}
+
+function cwOwnerSessionStop(deleteNodeToo) {
+  if (cwOwnerSessionTimer) { clearInterval(cwOwnerSessionTimer); cwOwnerSessionTimer = null; }
+  if (cwOwnerSessionTrailingTimer) { clearTimeout(cwOwnerSessionTrailingTimer); cwOwnerSessionTrailingTimer = null; }
+  if (!deleteNodeToo || !fb || !fb.rtdb) return;
+  try {
+    const id = cwOwnerSessionDocId();
+    if (!id) return;
+    // نلغي onDisconnect المسلَّح قبل الحذف اليدوي — وإلا يبقى مسلّحاً على عقدة
+    // ممكن يعيد الستريمر إنشاءها بجلسة جديدة بنفس المفتاح.
+    cwOwnerSessionDisconnectArmedFor = null;
+    try { if (fb.rtdbOnDisconnect) fb.rtdbOnDisconnect(cwOwnerSessionRef(id)).cancel().catch(() => {}); } catch (e) {}
+    fb.rtdbRemove(cwOwnerSessionRef(id)).catch(() => {});
+  } catch (err) { /* best-effort */ }
 }
 
 // Load saved API key for country war setup
