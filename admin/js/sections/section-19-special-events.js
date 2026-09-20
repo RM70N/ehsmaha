@@ -1,6 +1,9 @@
 // ==================== القسم 19 — إدارة الفعاليات الخاصة ====================
-// "جسر المصير" مبني فعلياً على Realtime Database (bridgeEvents/*) — نستخدم
-// نفس القاعدة والمسارات الحقيقية اللي يستخدمها كود اللعبة نفسه بالضبط.
+// تصحيح مهم: "جسر المصير" مبني فعلياً على Firestore (bridgeEvents/{eventId}
+// + subcollections players/state) — تأكّدنا من قواعد Firestore الحية نفسها،
+// وليس Realtime Database كما افترضنا بدايةً. نستخدم هنا نفس المسارات
+// والحقول الحقيقية اللي يستخدمها كود اللعبة (bridgeEvents/current كمؤشر
+// للفعالية المفتوحة حالياً، ضمن نفس كولكشن bridgeEvents).
 // إعدادات جسر المصير المتقدّمة بالتفصيل بقسم 34 المخصَّص لها.
 import { AdminFB } from '../core/firebase.js';
 import { AdminAuth } from '../core/auth.js';
@@ -11,25 +14,22 @@ import { defineSection } from '../core/section-kit.js';
 import { fmtDate, csvDownload } from '../core/format.js';
 
 const fb = AdminFB;
-const rtdbReady = () => !!fb.rtdb;
 
 async function getCurrentBridge() {
-  if (!rtdbReady()) return null;
-  const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'bridgeEvents/current'));
-  return snap.exists() ? snap.val() : null;
+  const snap = await fb.getDoc(fb.doc(fb.db, 'bridgeEvents', 'current'));
+  return snap.exists() ? snap.data() : null;
 }
 
 defineSection({
   id: 19,
   title: 'الفعاليات الخاصة',
-  description: 'جسر المصير حقيقي عبر Realtime Database (bridgeEvents) — التفاصيل الكاملة بقسم 34.',
+  description: 'جسر المصير حقيقي عبر Firestore (bridgeEvents) — التفاصيل الكاملة بقسم 34.',
   tools: [
     {
       title: 'قائمة كل الفعاليات الخاصة المتاحة حالياً',
       keywords: 'قائمة فعاليات خاصة متاحة',
       run: async () => {
         const body = document.createElement('div');
-        if (!rtdbReady()) { body.innerHTML = '<p>Realtime Database غير مهيَّأة بهذا المتصفح</p>'; openModal({ title: 'الفعاليات المتاحة', bodyEl: body, size: 'sm' }); return; }
         const current = await getCurrentBridge();
         body.innerHTML = `<p>جسر المصير: ${current ? `الحالة "${current.status}" (${current.eventId})` : 'ما فيه فعالية مفتوحة حالياً'}</p><p class="admin-field__hint">الأراضي البركانية ومصيرك تُدار كألعاب دائمة (أقسام 33/35/39) لا كفعالية موسمية مجدولة.</p>`;
         openModal({ title: 'الفعاليات الخاصة المتاحة', bodyEl: body, size: 'md' });
@@ -66,7 +66,6 @@ defineSection({
       title: 'بدء الفعالية يدوياً فوراً',
       keywords: 'بدء فعالية يدوي فورا',
       run: async () => {
-        if (!rtdbReady()) { AdminToast.error('Realtime Database غير مهيَّأة'); return; }
         const current = await getCurrentBridge();
         if (current && current.status !== 'ended') { AdminToast.error('فيه فعالية جسر مصير مفتوحة أصلاً — أنهها أول من أداة "إيقاف فعالية"'); return; }
         openConfirm({
@@ -74,9 +73,9 @@ defineSection({
           message: 'يفتح فعالية جسر مصير جديدة بإعدادات افتراضية (30 جولة، 10 ثواني لكل جولة) — عدّل التفاصيل الكاملة من قسم 34 بعد الفتح.',
           onConfirm: async () => {
             const eventId = 'bridge_' + Date.now();
-            const payload = { type: 'bridgeFate', status: 'lobby', title: 'جسر المصير', settings: { roundDuration: 10, maxRounds: 30, totalPlanks: 30, joinUntilRound: 3, allowLateJoin: true }, round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 }, usedQids: [], globalFx: [], playerCount: 0, createdAt: fb.rtdbServerTimestamp(), createdByUid: AdminAuth.currentAdmin.uid, endedAt: null, winnerName: null, winnerKey: null };
-            await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'bridgeEvents/' + eventId), payload);
-            await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'bridgeEvents/current'), { eventId, status: 'lobby', updatedAt: fb.rtdbServerTimestamp() });
+            const payload = { type: 'bridgeFate', status: 'lobby', title: 'جسر المصير', settings: { roundDuration: 10, maxRounds: 30, totalPlanks: 30, joinUntilRound: 3, allowLateJoin: true }, round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 }, usedQids: [], globalFx: [], playerCount: 0, createdAt: fb.serverTimestamp(), createdByUid: AdminAuth.currentAdmin.uid, endedAt: null, winnerName: null, winnerKey: null };
+            await fb.setDoc(fb.doc(fb.db, 'bridgeEvents', eventId), payload);
+            await fb.setDoc(fb.doc(fb.db, 'bridgeEvents', 'current'), { eventId, status: 'lobby', updatedAt: fb.serverTimestamp() });
             await AdminAudit.log({ section: 19, sectionTitle: 'الفعاليات الخاصة', actionKey: 'events.start', actionLabel: 'بدء فعالية جسر المصير', targetType: 'bridgeEvent', targetId: eventId, sensitive: true });
             AdminToast.success('تم فتح الفعالية — أعدل الإعدادات التفصيلية من قسم 34');
           }
@@ -87,15 +86,14 @@ defineSection({
       title: 'إيقاف فعالية جارية عن بُعد عند مشكلة',
       keywords: 'ايقاف فعالية جارية',
       run: async () => {
-        if (!rtdbReady()) { AdminToast.error('Realtime Database غير مهيَّأة'); return; }
         const current = await getCurrentBridge();
         if (!current || current.status === 'ended') { AdminToast.info('ولا فعالية جارية حالياً'); return; }
         openConfirm({
           title: 'إيقاف فعالية جسر المصير', danger: true,
           message: `إيقاف الفعالية الجارية (${current.eventId}) فوراً.`,
           onConfirm: async () => {
-            await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, 'bridgeEvents/' + current.eventId), { status: 'ended', endedAt: fb.rtdbServerTimestamp() });
-            await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, 'bridgeEvents/current'), { status: 'ended' });
+            await fb.updateDoc(fb.doc(fb.db, 'bridgeEvents', current.eventId), { status: 'ended', endedAt: fb.serverTimestamp() });
+            await fb.updateDoc(fb.doc(fb.db, 'bridgeEvents', 'current'), { status: 'ended' });
             await AdminAudit.log({ section: 19, sectionTitle: 'الفعاليات الخاصة', actionKey: 'events.stop', actionLabel: 'إيقاف فعالية جسر المصير', targetType: 'bridgeEvent', targetId: current.eventId, sensitive: true });
             AdminToast.success('تم الإيقاف');
           }
@@ -124,12 +122,10 @@ defineSection({
       title: 'عرض نتائج فعالية سابقة كاملة',
       keywords: 'نتائج فعالية سابقة',
       run: async () => {
-        if (!rtdbReady()) { AdminToast.error('Realtime Database غير مهيَّأة'); return; }
-        const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'bridgeEvents'));
-        const all = snap.exists() ? snap.val() : {};
-        const ended = Object.entries(all).filter(([k, v]) => k !== 'current' && v && v.status === 'ended');
+        const snap = await fb.getDocs(fb.collection(fb.db, 'bridgeEvents'));
+        const ended = snap.docs.filter((d) => d.id !== 'current' && d.data().status === 'ended');
         const body = document.createElement('div');
-        body.innerHTML = ended.length ? `<table class="admin-table"><thead><tr><th>المعرّف</th><th>الفائز</th></tr></thead><tbody>${ended.map(([k, v]) => `<tr><td class="is-primary" data-label="المعرّف">${k}</td><td data-label="الفائز">${v.winnerName || '—'}</td></tr>`).join('')}</tbody></table>` : '<p>ولا فعالية منتهية بعد</p>';
+        body.innerHTML = ended.length ? `<table class="admin-table"><thead><tr><th>المعرّف</th><th>الفائز</th></tr></thead><tbody>${ended.map((d) => `<tr><td class="is-primary" data-label="المعرّف">${d.id}</td><td data-label="الفائز">${d.data().winnerName || '—'}</td></tr>`).join('')}</tbody></table>` : '<p>ولا فعالية منتهية بعد</p>';
         openModal({ title: 'فعاليات جسر مصير سابقة', bodyEl: body, size: 'lg' });
       }
     },
@@ -160,17 +156,16 @@ defineSection({
     {
       title: 'أرشفة فعالية منتهية مع كل بياناتها',
       keywords: 'ارشفة فعالية منتهية بيانات',
-      run: async () => {
-        if (!rtdbReady()) { AdminToast.error('Realtime Database غير مهيَّأة'); return; }
+      run: () => {
         const body = document.createElement('div');
         body.innerHTML = `<div class="admin-field"><span class="admin-field__label">معرّف الفعالية (bridge_...)</span><input class="admin-input" id="ar-id" /></div><button class="admin-btn admin-btn--primary admin-btn--sm" id="ar-go" style="margin-top:8px;">أرشفة الآن</button>`;
         const modal = openModal({ title: 'أرشفة فعالية', bodyEl: body, size: 'sm' });
         body.querySelector('#ar-go').addEventListener('click', async () => {
           if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
           const id = body.querySelector('#ar-id').value.trim();
-          const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'bridgeEvents/' + id));
+          const snap = await fb.getDoc(fb.doc(fb.db, 'bridgeEvents', id));
           if (!snap.exists()) { AdminToast.error('ما فيه فعالية بهذا المعرّف'); return; }
-          await fb.setDoc(fb.doc(fb.db, 'specialEventsArchive', id), { data: snap.val(), archivedAt: fb.serverTimestamp() });
+          await fb.setDoc(fb.doc(fb.db, 'specialEventsArchive', id), { data: snap.data(), archivedAt: fb.serverTimestamp() });
           AdminToast.success('تمت الأرشفة');
           modal.close();
         });
@@ -188,7 +183,7 @@ defineSection({
           onSubmit: async (v) => {
             const a = archives.find((x) => x.id === v.archiveId);
             const newId = 'bridge_' + Date.now();
-            await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'bridgeEvents/' + newId), { ...a.data.data, status: 'lobby', round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 }, playerCount: 0, endedAt: null, winnerName: null, createdAt: fb.rtdbServerTimestamp() });
+            await fb.setDoc(fb.doc(fb.db, 'bridgeEvents', newId), { ...a.data, status: 'lobby', round: { no: 0, phase: 'idle', question: '', options: [], correctIndex: -1, startAtMs: 0 }, playerCount: 0, endedAt: null, winnerName: null, createdAt: fb.serverTimestamp() });
             AdminToast.success(`تم إنشاء نسخة جديدة: ${newId} — فعّلها بأداة "بدء فعالية"`);
           }
         });
@@ -198,19 +193,17 @@ defineSection({
       title: 'مراقبة الفعالية لحظياً أثناء تشغيلها',
       keywords: 'مراقبة فعالية لحظيا تشغيل',
       run: async () => {
-        if (!rtdbReady()) { AdminToast.error('Realtime Database غير مهيَّأة'); return; }
         const current = await getCurrentBridge();
         if (!current) { AdminToast.info('ولا فعالية جارية حالياً'); return; }
         const body = document.createElement('div');
         body.textContent = 'جارٍ المراقبة...';
-        let listenerRef = null;
-        openModal({ title: 'مراقبة حية — ' + current.eventId, bodyEl: body, size: 'md', onClose: () => { if (listenerRef) fb.rtdbOff(listenerRef); } });
-        listenerRef = fb.rtdbRef(fb.rtdb, 'bridgeEvents/' + current.eventId);
-        fb.rtdbOnValue(listenerRef, (snap) => {
-          const v = snap.val();
+        let unsub = () => {};
+        openModal({ title: 'مراقبة حية — ' + current.eventId, bodyEl: body, size: 'md', onClose: () => unsub() });
+        unsub = fb.onSnapshot(fb.doc(fb.db, 'bridgeEvents', current.eventId), (snap) => {
+          const v = snap.data();
           if (!v) return;
           body.innerHTML = `<dl class="admin-kv"><dt>الحالة</dt><dd>${v.status}</dd><dt>الجولة</dt><dd>${v.round ? v.round.no : 0}</dd><dt>عدد اللاعبين</dt><dd>${v.playerCount || 0}</dd></dl>`;
-        });
+        }, () => {});
       }
     },
     {
