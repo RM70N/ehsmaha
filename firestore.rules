@@ -570,6 +570,32 @@ service cloud.firestore {
       allow read, write: if isOwner();
     }
 
+    match /financialTransactions/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /subscriptionPlans/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /overlayArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /specialEvents/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /specialEventsArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /apiHealthLog/{id} {
+      allow read, write: if isOwner();
+    }
+
     match /contests/{id} {
       allow read: if true;
       allow write: if isOwner();

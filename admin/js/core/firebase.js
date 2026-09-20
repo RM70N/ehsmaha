@@ -14,6 +14,10 @@ import {
   limit, startAfter, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove,
   deleteField, writeBatch, documentId
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+import {
+  getDatabase, ref as rtdbRef, get as rtdbGet, set as rtdbSet, update as rtdbUpdate,
+  remove as rtdbRemove, onValue as rtdbOnValue, off as rtdbOff, serverTimestamp as rtdbServerTimestamp
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE",
@@ -31,20 +35,25 @@ const auth = getAuth(app);
 // نفس سبب الفرض بالموقع الرئيسي: بعض الشبكات (خصوصاً بالجوال) تقطع اتصال
 // gRPC الصامد بصمت فتُعلَّق كل القراءات/الكتابات الحيّة بدون أي خطأ ظاهر.
 const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+// جسر المصير (bridgeEvents) وframesCatalogExtra يستخدمان Realtime Database
+// كنظام احتياطي/أساسي منفصل تماماً عن Firestore — نحتاجه لقسم 34.
+let rtdb;
+try { rtdb = getDatabase(app); } catch (err) { rtdb = undefined; }
 
 // الحساب الوحيد المصرَّح له بدخول هذي اللوحة — نفس isOwner() المستخدم أصلاً
 // بقواعد Firestore الحالية (firestore.rules) للموقع الرئيسي.
 export const OWNER_EMAIL = 'malshaifan1@gmail.com';
 
 export const AdminFB = {
-  app, auth, db,
+  app, auth, db, rtdb,
   setPersistence, browserLocalPersistence, onAuthStateChanged,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential,
   EmailAuthProvider, sendPasswordResetEmail,
   doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
   collection, onSnapshot, query, where, orderBy, limit, startAfter, getDocs,
   getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, writeBatch,
-  documentId
+  documentId,
+  rtdbRef, rtdbGet, rtdbSet, rtdbUpdate, rtdbRemove, rtdbOnValue, rtdbOff, rtdbServerTimestamp
 };
 
 window.AdminFB = AdminFB;

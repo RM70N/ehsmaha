@@ -23,6 +23,12 @@ import '../sections/section-13-ai-game-gen.js';
 import '../sections/section-14-contests.js';
 import '../sections/section-15-seo.js';
 import '../sections/section-16-audit-log.js';
+import '../sections/section-17-platform-apis.js';
+import '../sections/section-18-growth.js';
+import '../sections/section-19-special-events.js';
+import '../sections/section-20-overlays.js';
+import '../sections/section-21-question-banks.js';
+import '../sections/section-22-financial.js';
 import '../sections/section-23-devices.js';
 import '../sections/section-30-settings.js';
 
@@ -54,7 +60,7 @@ export const SECTION_TITLES = {
   58: 'هوية العلامة', 59: 'قنوات الستريمر المتعددة', 60: 'كلمات الدخول للفرق'
 };
 
-const BUILT_SECTIONS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 23, 30]);
+const BUILT_SECTIONS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 30]);
 
 let sidebarEl, topbarEl, contentEl, shellEl;
 let settingsCache = { shortcuts: [], soundAlerts: false, theme: 'dark', readOnlyMode: false, refreshMs: 5000 };
