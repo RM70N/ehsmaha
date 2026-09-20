@@ -24,9 +24,10 @@ service cloud.firestore {
     match /usernames/{usernameLower} {
       allow read: if true;
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+                    && (request.resource.data.uid == request.auth.uid || isOwner());
       allow update: if false;
-      allow delete: if false;
+      // الحذف مسموح للمالك فقط — يلزم لقسم 12 (تغيير يوزر قسري لمخالفة القواعد).
+      allow delete: if isOwner();
     }
 
     match /gameBadges/{gameTag} {
@@ -537,6 +538,44 @@ service cloud.firestore {
     }
 
     match /feedbackCannedResponses/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /contentReports/{id} {
+      // بلاغ من أي مستخدم مسجَّل (زر إبلاغ مستقبلي) — القراءة/المراجعة للأدمن فقط.
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /aiGameSubmissions/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /aiGameTemplates/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /siteContent/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /scheduledContent/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /siteContentArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /contests/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /recurringContestTemplates/{id} {
       allow read, write: if isOwner();
     }
 
