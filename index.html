@@ -51964,16 +51964,19 @@ function notifRenderPanel() {
       `;
     }
     if (n.type === 'adminMessage') {
-      // رسالة مباشرة من لوحة "ادمن احسمها" (قسم 2.5) أو إشعار جماعي (قسم 10).
+      // رسالة مباشرة من لوحة "ادمن احسمها" (قسم 2.5) أو إشعار جماعي (قسم 10)
+      // — يدعم رابط/صورة اختياريين (قسم 10.10).
       return `
         <div class="rounds-row">
           <div class="rounds-row-top">
             <div>
               <div class="rounds-row-name">${ownerEscape(n.fromLabel || 'إدارة المنصة')}</div>
               <div class="rounds-row-sub">${ownerEscape(n.message || '')}</div>
+              ${n.imageUrl ? `<img src="${ownerEscape(n.imageUrl)}" style="max-width:100%;border-radius:8px;margin-top:6px;" />` : ''}
             </div>
           </div>
           <div class="rounds-btn-row">
+            ${n.link ? `<a class="rounds-btn" href="${ownerEscape(n.link)}" target="_blank" rel="noopener">فتح الرابط</a>` : ''}
             <button type="button" class="rounds-btn" onclick="notifMarkRead('${ownerEscape(n.id)}')">تم</button>
           </div>
         </div>

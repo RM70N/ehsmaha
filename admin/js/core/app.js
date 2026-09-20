@@ -12,6 +12,11 @@ import '../sections/section-02-players.js';
 import '../sections/section-03-streamers.js';
 import '../sections/section-04-frames.js';
 import '../sections/section-05-badges.js';
+import '../sections/section-06-game-stats.js';
+import '../sections/section-07-live-sessions.js';
+import '../sections/section-08-xp-economy.js';
+import '../sections/section-09-tickets.js';
+import '../sections/section-10-notifications.js';
 import '../sections/section-11-security.js';
 import '../sections/section-16-audit-log.js';
 import '../sections/section-23-devices.js';
@@ -45,7 +50,7 @@ export const SECTION_TITLES = {
   58: 'هوية العلامة', 59: 'قنوات الستريمر المتعددة', 60: 'كلمات الدخول للفرق'
 };
 
-const BUILT_SECTIONS = new Set([1, 2, 3, 4, 5, 11, 16, 23, 30]);
+const BUILT_SECTIONS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 23, 30]);
 
 let sidebarEl, topbarEl, contentEl, shellEl;
 let settingsCache = { shortcuts: [], soundAlerts: false, theme: 'dark', readOnlyMode: false, refreshMs: 5000 };

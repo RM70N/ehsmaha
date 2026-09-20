@@ -149,6 +149,7 @@ service cloud.firestore {
         allow update: if request.auth != null && request.auth.uid == memberUid;
         allow delete: if request.auth != null && (
           request.auth.uid == memberUid ||
+          isOwner() ||
           (resource.data.lastSeen != null && request.time.toMillis() - resource.data.lastSeen.toMillis() > 60000)
         );
       }
@@ -532,6 +533,26 @@ service cloud.firestore {
     }
 
     match /adminNotes/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /feedbackCannedResponses/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /broadcastCampaigns/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /scheduledNotifications/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /notifTemplates/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /xpSeasonsArchive/{seasonId}/players/{uid} {
       allow read, write: if isOwner();
     }
 
