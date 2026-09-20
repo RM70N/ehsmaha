@@ -11281,6 +11281,17 @@ async function feedbackSubmit() {
     statusEl.textContent = '⚠️ لازم تسجّل دخول أول';
     return;
   }
+  // كشف بسيط لمحتوى مشبوه (وسوم سكربت/روابط جافاسكربت) بحقل نصي حر — يُسجَّل
+  // فقط لمراجعة لوحة "ادمن احسمها" قسم 11، وما يمنع إرسال الملاحظة نفسها.
+  if (/<script|javascript:|onerror=|onload=/i.test(text)) {
+    try {
+      fb.setDoc(fb.doc(fb.collection(fb.db, 'adminSecurityAlerts')), {
+        field: 'feedback.text', snippet: text.slice(0, 200),
+        username: currentUsername || null, uid: currentUser.uid,
+        ts: fb.serverTimestamp()
+      }).catch(() => {});
+    } catch (err) {}
+  }
   feedbackBusy = true;
   document.getElementById('feedback-submit-btn').disabled = true;
   try {
@@ -11697,6 +11708,14 @@ async function authHandleSignup(e) {
 
   if (!authValidateUsernameFormat(username)) {
     authSetStatus('auth-status', 'err', 'اليوزر لازم يكون بين 3 و20 حرف (إنجليزي/أرقام/_) بدون مسافات');
+    return false;
+  }
+
+  // فحوصات أمنية بسيطة (تسجيل موقوف مؤقتاً / قائمة سوداء / IP محظور / حد
+  // معدل الطلبات) — تُدار كلها من لوحة "ادمن احسمها" قسم 11.
+  const securityGate = await adminSecurityPreSignupCheck(username.toLowerCase());
+  if (securityGate.blocked) {
+    authSetStatus('auth-status', 'err', securityGate.reason);
     return false;
   }
 
@@ -17154,6 +17173,7 @@ function authBoot() {
         // يتعرف إنه مو مسجّل ويوديه لـshow('auth') الفعلية.
         show('landing');
         presenceStop();
+        adminDeviceGuardStop();
         return;
       }
       try {
@@ -17212,6 +17232,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   publicBadgesBoot();
   publicGameOrderBoot();
   presenceStart();
+  adminDeviceGuardStart(); // تتبع/حماية جهاز — لوحة "ادمن احسمها" قسم 23
   whatsNewCheck(lastSeenUpdateAt || null);
   personalMessageBoot();
   await broadcastMessageCheckOnLoad();
@@ -18418,6 +18439,154 @@ function presenceStop() {
 }
 
 window.addEventListener('pagehide', () => { presenceStop(); });
+
+// ==================== دعم لوحة "ادمن احسمها" (لوحة إدارة منفصلة) ====================
+// كل دالة هنا إضافية بالكامل وbest-effort — أي فشل فيها لا يوقف ولا يبطئ أي
+// شي بالموقع الرئيسي. تغذّي لوحة الإدارة المنفصلة (admin/) ببيانات حقيقية:
+// بصمة جهاز محلية (deviceSessions لقسم 23)، فحوصات أمنية بسيطة وقت التسجيل
+// (siteFlags لقسم 11)، وسجل أخطاء عميل خفيف (clientErrorLog لقسم 1/24).
+// راجع admin/README.md لتفاصيل كل كولكشن وقواعد Firestore المرتبطة فيها.
+
+function adminGetDeviceId() {
+  try {
+    let id = localStorage.getItem('ehsmaha_device_id');
+    if (!id) {
+      id = 'dev_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem('ehsmaha_device_id', id);
+    }
+    return id;
+  } catch (err) { return 'dev_unknown'; }
+}
+
+// موقع تقريبي (مدينة/دولة/IP) عبر خدمة عامة بلا مفتاح — أفضل مجهود فقط،
+// يُخزَّن بالذاكرة لهذي الجلسة عشان ما نكرر الطلب لكل استخدام.
+let __adminGeoCache = null;
+async function adminFetchApproxGeo() {
+  if (__adminGeoCache) return __adminGeoCache;
+  try {
+    const res = await fetch('https://ipapi.co/json/', { cache: 'no-store' });
+    if (!res.ok) throw new Error('geo lookup failed');
+    const data = await res.json();
+    __adminGeoCache = { ip: data.ip || null, city: data.city || null, country: data.country_name || null };
+  } catch (err) {
+    __adminGeoCache = { ip: null, city: null, country: null };
+  }
+  return __adminGeoCache;
+}
+
+let adminDeviceUnsubs = [];
+function adminDeviceGuardStop() {
+  adminDeviceUnsubs.forEach((u) => { try { u(); } catch (err) {} });
+  adminDeviceUnsubs = [];
+}
+
+async function adminDeviceRegister(deviceId) {
+  if (!fb || !currentUser) return;
+  try {
+    const geo = await adminFetchApproxGeo();
+    const sessionRef = fb.doc(fb.db, 'deviceSessions', currentUser.uid);
+    const snap = await fb.getDoc(sessionRef);
+    const data = snap.exists() ? snap.data() : null;
+    const entry = { deviceId, userAgent: navigator.userAgent || '', platform: navigator.platform || '', ts: Date.now(), city: geo.city, country: geo.country };
+    const history = Array.isArray(data && data.history) ? data.history.filter((h) => h && h.deviceId !== deviceId) : [];
+    history.unshift(entry);
+    await fb.setDoc(sessionRef, {
+      username: currentUsername || null,
+      lastSeen: fb.serverTimestamp(),
+      current: entry,
+      history: history.slice(0, 20)
+    }, { merge: true });
+  } catch (err) { /* best-effort — لا يوقف الموقع أبداً */ }
+}
+
+// يفتح مراقبَين حيّين خفيفين (onSnapshot) لهذا الجهاز بالذات: حظر جهاز
+// (adminDeviceBans) وطلب تسجيل خروج قسري له تحديداً (deviceSessions
+// forceLogoutDeviceIds) — كلاهما يُدار من قسم 23 باللوحة الإدارية.
+function adminDeviceGuardStart() {
+  if (!fb || !currentUser) return;
+  adminDeviceGuardStop();
+  const deviceId = adminGetDeviceId();
+  try {
+    const banRef = fb.doc(fb.db, 'adminDeviceBans', deviceId);
+    adminDeviceUnsubs.push(fb.onSnapshot(banRef, (snap) => {
+      if (snap.exists()) { try { fb.signOut(fb.auth); } catch (err) {} }
+    }, () => {}));
+  } catch (err) {}
+  try {
+    const sessionRef = fb.doc(fb.db, 'deviceSessions', currentUser.uid);
+    adminDeviceUnsubs.push(fb.onSnapshot(sessionRef, (snap) => {
+      const data = snap.data();
+      if (data && Array.isArray(data.forceLogoutDeviceIds) && data.forceLogoutDeviceIds.includes(deviceId)) {
+        try { fb.updateDoc(sessionRef, { forceLogoutDeviceIds: fb.arrayRemove(deviceId) }); } catch (err) {}
+        try { fb.signOut(fb.auth); } catch (err) {}
+      }
+    }, () => {}));
+  } catch (err) {}
+  adminDeviceRegister(deviceId);
+}
+
+// فحوصات أمنية بسيطة قبل إنشاء أي حساب جديد — كلها best-effort: أي فشل بفحص
+// (شبكة بطيئة، خدمة IP غير متاحة...) يسمح بالتسجيل بدل ما يعلّق المستخدم.
+async function adminSecurityPreSignupCheck(usernameLower) {
+  if (!fb) return { blocked: false };
+  try {
+    const regSnap = await fb.getDoc(fb.doc(fb.db, 'siteFlags', 'registration'));
+    if (regSnap.exists() && regSnap.data().enabled === false) {
+      return { blocked: true, reason: 'التسجيل موقوف مؤقتاً حالياً، حاول لاحقاً' };
+    }
+  } catch (err) {}
+  try {
+    const blSnap = await fb.getDoc(fb.doc(fb.db, 'siteFlags', 'usernameBlacklist'));
+    const patterns = (blSnap.exists() && blSnap.data().patterns) || [];
+    if (patterns.some((p) => p && usernameLower.includes(String(p).toLowerCase()))) {
+      return { blocked: true, reason: 'هذا اليوزر غير مسموح، جرّب يوزر غير' };
+    }
+  } catch (err) {}
+  try {
+    const geo = await adminFetchApproxGeo();
+    if (geo.ip) {
+      const banSnap = await fb.getDoc(fb.doc(fb.db, 'adminIpBans', geo.ip));
+      if (banSnap.exists()) return { blocked: true, reason: 'تعذّر إكمال التسجيل' };
+
+      const rlSnap = await fb.getDoc(fb.doc(fb.db, 'siteFlags', 'rateLimiting'));
+      const rl = rlSnap.exists() ? rlSnap.data() : null;
+      if (rl && rl.enabled) {
+        const windowMs = (rl.windowMinutes || 10) * 60000;
+        const rlRef = fb.doc(fb.db, 'signupRateLimit', geo.ip);
+        const rlDocSnap = await fb.getDoc(rlRef);
+        const now = Date.now();
+        const rlData = rlDocSnap.exists() ? rlDocSnap.data() : { count: 0, windowStart: now };
+        if (now - (rlData.windowStart || 0) > windowMs) { rlData.count = 0; rlData.windowStart = now; }
+        if (rlData.count >= (rl.maxPerWindow || 5)) {
+          return { blocked: true, reason: 'محاولات تسجيل كثيرة من نفس الشبكة، حاول بعد شوي' };
+        }
+        try { await fb.setDoc(rlRef, { count: rlData.count + 1, windowStart: rlData.windowStart }); } catch (err) {}
+      }
+    }
+  } catch (err) { /* أي فشل بفحص IP/معدل الطلبات ما يوقف التسجيل أبداً */ }
+  return { blocked: false };
+}
+
+// سجل أخطاء عميل خفيف — بحد أقصى كتابة وحدة كل 10 ثواني حتى لو صار لوب
+// أخطاء متكرر، يمنع أي انفجار كتابات على Firestore.
+let __adminErrorLastWrite = 0;
+function adminLogClientError(message, stack) {
+  if (!fb) return;
+  const now = Date.now();
+  if (now - __adminErrorLastWrite < 10000) return;
+  __adminErrorLastWrite = now;
+  try {
+    fb.setDoc(fb.doc(fb.collection(fb.db, 'clientErrorLog')), {
+      message: String(message || '').slice(0, 500),
+      stack: String(stack || '').slice(0, 800),
+      url: location.href,
+      ts: now,
+      uid: (currentUser && currentUser.uid) || null
+    }).catch(() => {});
+  } catch (err) {}
+}
+window.addEventListener('error', (e) => adminLogClientError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', (e) => adminLogClientError('unhandledrejection: ' + ((e.reason && e.reason.message) || e.reason), e.reason && e.reason.stack));
 
 if (window.__fb) authBoot();
 else window.addEventListener('fb-ready', authBoot, { once: true });

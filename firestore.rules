@@ -431,6 +431,73 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ==================== لوحة "ادمن احسمها" (لوحة إدارة منفصلة) ====================
+    // كل الكولكشنات التالية تخدم admin/ (موقع Netlify منفصل تماماً عن الموقع
+    // الرئيسي، نفس مشروع Firebase) — isOwner() هو نفس حساب الأدمن الوحيد.
+    // بعضها يحتاج قراءة/كتابة محدودة من مستخدم غير مسجَّل دخول بعد (وقت
+    // التسجيل بالموقع الرئيسي) — موضَّح بالتعليق فوق كل استثناء.
+
+    match /adminAuditLog/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminLoginAttempts/{id} {
+      // يُسجَّل عند أي محاولة دخول للوحة (كلمة مرور خاطئة، أو حساب حقيقي
+      // غير مصرَّح له) — مقيّد بحقول محدودة حتى لو لم يوجد auth بعد.
+      allow create: if request.resource.data.keys().hasOnly(['ts', 'emailAttempted', 'success', 'reason', 'userAgent', 'ip', 'city', 'country'])
+                    && request.resource.data.success is bool;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /adminOwnSessions/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminSettings/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminIpBans/{ip} {
+      // يُقرأ وقت التسجيل بالموقع الرئيسي (قبل ما يملك المستخدم حساباً بعد).
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /adminDeviceBans/{deviceId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /adminSecurityAlerts/{id} {
+      // كشف محتوى مشبوه بحقل حر (مثل الملاحظات) — يُسجَّل من أي مستخدم مسجَّل.
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /clientErrorLog/{id} {
+      // سجل أخطاء عميل خفيف — يُكتب حتى قبل تسجيل الدخول (صفحة الهبوط مثلاً).
+      allow create: if true;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /deviceSessions/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isOwner());
+      allow write: if request.auth != null && (request.auth.uid == uid || isOwner());
+    }
+
+    match /siteFlags/{flagId} {
+      // تُقرأ من الموقع الرئيسي وقت التسجيل (registration/usernameBlacklist/
+      // rateLimiting) وقبل تسجيل الدخول — القراءة عامة، الكتابة للأدمن فقط.
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /signupRateLimit/{ip} {
+      // عداد حماية بسيط من جهة العميل (best-effort، بدون بيانات حساسة) —
+      // يُكتب قبل وجود حساب للمستخدم، فلازم يبقى عاماً.
+      allow read, write: if true;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

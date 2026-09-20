@@ -1,0 +1,62 @@
+/* ==================== الهوية البصرية — لوحة "ادمن احسمها" ====================
+   بنفسجي غامق + ذهبي + لمسات وردية ناعمة. بدون إيموجيز وبدون ألوان صارخة —
+   فخم هادئ، نفس روح ehsmaha.com بس بحلّة إدارية مرتّبة. */
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700;800&display=swap');
+
+:root {
+  --bg-deep: #0d0620;
+  --bg-panel: #1a0d33;
+  --bg-panel-alt: #241143;
+  --bg-elevated: #2c1650;
+  --gold: #d4af6a;
+  --gold-strong: #e8c887;
+  --pink-soft: #e3a8c4;
+  --pink-dim: #c98aa8;
+  --text-primary: #f5f1fb;
+  --text-secondary: #b8aed0;
+  --text-muted: #8677a8;
+  --border: rgba(212, 175, 106, 0.18);
+  --border-strong: rgba(212, 175, 106, 0.32);
+  --danger: #e2637a;
+  --danger-strong: #c94a61;
+  --success: #7fd9a8;
+  --warn: var(--gold-strong);
+  --info: #8fb4e8;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-md: 0 12px 30px rgba(5, 2, 16, 0.45);
+  --shadow-lg: 0 24px 60px rgba(5, 2, 16, 0.55);
+  --font-body: 'Cairo', 'Tajawal', system-ui, sans-serif;
+  --font-head: 'Tajawal', 'Cairo', system-ui, sans-serif;
+  --sidebar-w: 272px;
+  --topbar-h: 64px;
+}
+
+:root[data-theme="light"] {
+  --bg-deep: #f4effa;
+  --bg-panel: #ffffff;
+  --bg-panel-alt: #f8f2fd;
+  --bg-elevated: #ffffff;
+  --text-primary: #2a1745;
+  --text-secondary: #5c4c7a;
+  --text-muted: #8677a8;
+  --border: rgba(122, 74, 27, 0.16);
+  --border-strong: rgba(122, 74, 27, 0.3);
+  --shadow-md: 0 12px 30px rgba(122, 90, 30, 0.12);
+  --shadow-lg: 0 24px 60px rgba(122, 90, 30, 0.16);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  direction: rtl;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-family: var(--font-head); margin: 0; }
+button, input, select, textarea { font-family: inherit; }
+a { color: var(--gold-strong); }
