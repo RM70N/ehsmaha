@@ -138,7 +138,7 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.hostUid;
       allow update: if request.auth != null;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.hostUid;
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.hostUid || isOwner());
 
       match /members/{memberUid} {
         allow read: if request.auth != null;
@@ -182,7 +182,7 @@ service cloud.firestore {
                     && (
                       (request.resource.data.fromUid == request.auth.uid
                         && request.resource.data.type in ['friendRequest', 'gameInvite'])
-                      || (request.resource.data.type == 'immunityGrant'
+                      || (request.resource.data.type in ['immunityGrant', 'adminMessage']
                         && request.auth.token.email == 'malshaifan1@gmail.com')
                     );
     }
@@ -336,9 +336,11 @@ service cloud.firestore {
     }
 
     match /feedback/{docId} {
-      allow read: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow read: if isOwner();
       allow create: if request.auth != null;
-      allow update, delete: if false;
+      // تحديث/حذف مسموح للأدمن فقط — يلزم لقسم 9 (تذاكر الدعم): تصنيف،
+      // رد، إغلاق/إعادة فتح، أرشفة.
+      allow update, delete: if isOwner();
     }
 
     match /userGames/{gameId} {
@@ -496,6 +498,48 @@ service cloud.firestore {
       // عداد حماية بسيط من جهة العميل (best-effort، بدون بيانات حساسة) —
       // يُكتب قبل وجود حساب للمستخدم، فلازم يبقى عاماً.
       allow read, write: if true;
+    }
+
+    match /gameContentBanks/{bankId} {
+      // إضافات/استثناءات فوق بنوك محتوى مدمجة بالكود (أسئلة الطريق الزجاجي،
+      // مواضيع توب 10...) — تُقرأ من كل اللاعبين أثناء اللعب، تُكتب من الأدمن فقط.
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /framesCatalog/{frameId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /badgeDefs/{badgeId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /streamerProfiles/{usernameLower} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /streamerApplications/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /deletedUsersBackup/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminNotes/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /gameConfig/{gameTag} {
+      // إعدادات قابلة للتعديل لكل لعبة (نقاط، توقيت، صعوبة...) تقرأها اللعبة
+      // نفسها وقت التشغيل.
+      allow read: if true;
+      allow write: if isOwner();
     }
 
     match /{document=**} {

@@ -17178,6 +17178,22 @@ function authBoot() {
       }
       try {
         const userDoc = await authGetUserDoc(user.uid);
+        // حظر/تجميد مؤقت من لوحة "ادمن احسمها" (قسم 2) — يُفحص فوراً بعد كل
+        // تسجيل دخول، قبل أي شي ثاني.
+        if (userDoc && userDoc.banned && userDoc.banned.value) {
+          authSetStatus('auth-status', 'err', 'هذا الحساب محظور' + (userDoc.banned.reason ? (': ' + userDoc.banned.reason) : ''));
+          try { await fb.signOut(fb.auth); } catch (e) {}
+          currentUser = null; currentUsername = null; authUpdateChip();
+          show('auth');
+          return;
+        }
+        if (userDoc && userDoc.frozenUntil && typeof userDoc.frozenUntil.toMillis === 'function' && userDoc.frozenUntil.toMillis() > Date.now()) {
+          authSetStatus('auth-status', 'err', 'هذا الحساب مجمَّد مؤقتاً لين ' + new Date(userDoc.frozenUntil.toMillis()).toLocaleString('ar'));
+          try { await fb.signOut(fb.auth); } catch (e) {}
+          currentUser = null; currentUsername = null; authUpdateChip();
+          show('auth');
+          return;
+        }
         if (userDoc && userDoc.username) {
           currentUsername = userDoc.username;
           authUpdateChip();
@@ -18446,6 +18462,27 @@ window.addEventListener('pagehide', () => { presenceStop(); });
 // بصمة جهاز محلية (deviceSessions لقسم 23)، فحوصات أمنية بسيطة وقت التسجيل
 // (siteFlags لقسم 11)، وسجل أخطاء عميل خفيف (clientErrorLog لقسم 1/24).
 // راجع admin/README.md لتفاصيل كل كولكشن وقواعد Firestore المرتبطة فيها.
+
+// تعطيل/تفعيل لعبة معيّنة من لوحة "ادمن احسمها" (siteFlags/gameToggles =
+// { [gameTag]: false } يعني معطّلة) — كاش حي يُحمَّل مرة عند الإقلاع، يُستخدم
+// من دوال goSetupXxx() لأهم الألعاب. القيمة الافتراضية عند غياب الحقل: مفعّلة.
+let __adminGameToggles = {};
+try {
+  if (window.__fb) {
+    window.__fb.onSnapshot(window.__fb.doc(window.__fb.db, 'siteFlags', 'gameToggles'), (snap) => {
+      __adminGameToggles = snap.data() || {};
+    }, () => {});
+  } else {
+    window.addEventListener('fb-ready', () => {
+      fb.onSnapshot(fb.doc(fb.db, 'siteFlags', 'gameToggles'), (snap) => {
+        __adminGameToggles = snap.data() || {};
+      }, () => {});
+    }, { once: true });
+  }
+} catch (err) {}
+function adminIsGameEnabled(gameTag) {
+  return __adminGameToggles[gameTag] !== false;
+}
 
 function adminGetDeviceId() {
   try {
@@ -30599,7 +30636,7 @@ const rouPalette = [
 ];
 
 // ==================== ROULETTE NAV ====================
-function goSetupRoulette() { show('setup-roulette'); modInitAdvancedSection('roulette'); }
+function goSetupRoulette() { if (!adminIsGameEnabled('rou')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-roulette'); modInitAdvancedSection('roulette'); }
 
 // ==================== ROULETTE SETUP ====================
 function launchRoulette() {
@@ -43007,7 +43044,7 @@ const cwCountryBank = [
   { name: 'استراليا', code: 'au', flag: '🇦🇺' }, { name: 'نيوزيلندا', code: 'nz', flag: '🇳🇿' },
 ];
 
-function goSetupCountryWar() { show('setup-countrywar'); modInitAdvancedSection('countrywar'); }
+function goSetupCountryWar() { if (!adminIsGameEnabled('cw')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-countrywar'); modInitAdvancedSection('countrywar'); }
 
 // ==================== LAUNCH ====================
 function launchCountryWar() {
@@ -47753,7 +47790,7 @@ function chairsLookupChairCount(playerCount) {
   return Math.max(1, playerCount - 1);
 }
 
-function goSetupChairs() { show('setup-chairs'); modInitAdvancedSection('chairs'); }
+function goSetupChairs() { if (!adminIsGameEnabled('chairs')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-chairs'); modInitAdvancedSection('chairs'); }
 
 // ==================== LAUNCH ====================
 function launchChairs() {
@@ -48635,7 +48672,7 @@ function tugValidateWords(teamAName, teamBName, teamAKw, teamBKw, pullKw) {
   return null;
 }
 
-function goSetupTug() { show('setup-tug'); }
+function goSetupTug() { if (!adminIsGameEnabled('tug')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-tug'); }
 
 function launchTug() {
     tugApiKey = getTikTokApiKey();
@@ -49245,7 +49282,7 @@ function rlglSetStatus(type, msg) {
   el.textContent = msg;
 }
 
-function goSetupRlgl() { show('setup-rlgl'); }
+function goSetupRlgl() { if (!adminIsGameEnabled('rlgl')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-rlgl'); }
 
 function launchRlgl() {
     rlglApiKey = getTikTokApiKey();
@@ -51922,6 +51959,22 @@ function notifRenderPanel() {
           </div>
           <div class="rounds-btn-row">
             <button type="button" class="rounds-btn rounds-btn-winme" onclick="f100ImmunityClaimOpen('${ownerEscape(n.id)}')">🎁 تفعيل الحصانة</button>
+          </div>
+        </div>
+      `;
+    }
+    if (n.type === 'adminMessage') {
+      // رسالة مباشرة من لوحة "ادمن احسمها" (قسم 2.5) أو إشعار جماعي (قسم 10).
+      return `
+        <div class="rounds-row">
+          <div class="rounds-row-top">
+            <div>
+              <div class="rounds-row-name">${ownerEscape(n.fromLabel || 'إدارة المنصة')}</div>
+              <div class="rounds-row-sub">${ownerEscape(n.message || '')}</div>
+            </div>
+          </div>
+          <div class="rounds-btn-row">
+            <button type="button" class="rounds-btn" onclick="notifMarkRead('${ownerEscape(n.id)}')">تم</button>
           </div>
         </div>
       `;
@@ -73109,7 +73162,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // ------------------------------------------------------------------ الإقلاع
-  function goSetupVolcanicLands() { show('setup-' + TAG); }
+  function goSetupVolcanicLands() { if (!adminIsGameEnabled('volcanic-lands')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-' + TAG); }
 
   function vlSetStatus(kind, msg) {
     var node = $(TAG + '-status');
@@ -76832,6 +76885,7 @@ let tt10TimeLeft = 0;
 let tt10TimerInterval = null;
 
 function goSetupTT10() {
+  if (!adminIsGameEnabled('tt10')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; }
   show('setup-tt10');
 }
 
@@ -78016,7 +78070,7 @@ let glzCurrentQuestion = null;
 let glzTimerInterval = null, glzTimeLeft = 0;
 let glzSimMode = false;
 
-function goSetupGlz() { show('setup-glz'); }
+function goSetupGlz() { if (!adminIsGameEnabled('glz')) { alert('هذي اللعبة معطّلة مؤقتاً من الإدارة'); return; } show('setup-glz'); }
 
 // ==================== الاتصال بالبث (نفس أسلوب باقي ألعاب المنصة) ====================
 function glzConnectMainKick() {

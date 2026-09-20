@@ -6,7 +6,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/fireba
 import {
   getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential,
-  EmailAuthProvider
+  EmailAuthProvider, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 import {
   getFirestore, initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
@@ -40,7 +40,7 @@ export const AdminFB = {
   app, auth, db,
   setPersistence, browserLocalPersistence, onAuthStateChanged,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential,
-  EmailAuthProvider,
+  EmailAuthProvider, sendPasswordResetEmail,
   doc, getDoc, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
   collection, onSnapshot, query, where, orderBy, limit, startAfter, getDocs,
   getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, writeBatch,
