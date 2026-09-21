@@ -12,8 +12,13 @@
 <body>
   <div id="admin-shell">
     <div id="admin-boot-status" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#f5f1fb;font-family:system-ui,sans-serif;">
-      <div>جارٍ تحميل لوحة "ادمن احسمها"...</div>
+      <div style="width:34px;height:34px;border:3px solid rgba(255,255,255,.15);border-top-color:#a78bff;border-radius:50%;animation:admin-boot-spin .8s linear infinite;"></div>
+      <div style="font-weight:700;">جارٍ تحميل لوحة "ادمن احسمها"...</div>
+      <!-- سطر حيّ يقول وش بالضبط يتحمّل الآن — بدونه الانتظار الطويل على شبكة
+           بطيئة يبدو تعليقاً تاماً فيظن المستخدم إن اللوحة معطّلة. -->
+      <div id="admin-boot-note" style="font-size:12px;color:#8677a8;"></div>
     </div>
+    <style>@keyframes admin-boot-spin{to{transform:rotate(360deg);}}</style>
   </div>
   <script>
     // شبكة أمان: لو صار أي خطأ قبل ما يشتغل app.js (فشل تحميل Firebase SDK من
@@ -29,13 +34,17 @@
         el.innerHTML =
           '<div style="font-size:18px;font-weight:800;color:#e8c887;">تعذّر تحميل اللوحة</div>' +
           '<div style="font-size:13px;color:#b8aed0;max-width:480px;line-height:1.8;">' +
-            'الأسباب الشائعة: الاتصال بمكتبة Firebase (gstatic.com) محجوب بشبكتك أو بإضافة حظر إعلانات، ' +
-            'أو إعداد Netlify (Base directory) غير مضبوط على مجلد admin. جرّب شبكة/متصفح ثانٍ، ' +
-            'أو افتح أدوات المطوّر (F12 → Console) وابعث لي نص الخطأ بالأسفل.' +
+            'اللوحة تجرّب ثلاثة مصادر لمكتبة Firebase (gstatic ثم jsdelivr ثم unpkg) — ' +
+            'وصولك لهنا يعني إن الثلاثة تعذّروا. الأسباب الشائعة: شبكة بطيئة جداً أو منقطعة، ' +
+            'إضافة حظر إعلانات تمنع نطاقات المكتبات، أو إعداد Netlify (Base directory) مو مضبوط على مجلد admin. ' +
+            'جرّب "أعد المحاولة" تحت، أو شبكة/متصفح ثانٍ.' +
           '</div>' +
+          '<button type="button" id="admin-boot-retry" style="padding:11px 26px;border:none;border-radius:12px;cursor:pointer;background:#7C3AED;color:#fff;font-family:inherit;font-size:14px;font-weight:800;">أعد المحاولة</button>' +
           '<pre style="max-width:520px;white-space:pre-wrap;text-align:left;direction:ltr;font-size:11px;color:#8677a8;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;overflow:auto;max-height:200px;">' +
             (detail || '(no error detail captured)') +
           '</pre>';
+        var retry = document.getElementById('admin-boot-retry');
+        if (retry) retry.addEventListener('click', function () { location.reload(); });
       }
       // capture:true لازم هنا — أخطاء تحميل موارد فاشلة (سكربت/رابط 404 أو
       // محجوب) ما تنتشر (bubble) عادي، تُلتقط فقط بمرحلة الالتقاط بمستوى
@@ -52,15 +61,19 @@
         var reason = e && e.reason;
         showBootError((reason && (reason.stack || reason.message)) || String(reason));
       });
-      // لو ما صار أي خطأ لكن app.js ما استبدل محتوى admin-shell خلال 10 ثواني
-      // (لا شاشة دخول ولا اللوحة نفسها) — علّق مهلة انتظار غير طبيعية بدل ما
-      // تفضل الصفحة معلّقة صامتة للأبد. renderLogin/buildShell كلاهما يمسحان
-      // admin-boot-status فور ما يشتغلان، فبقاؤه دليل إن شي علّق قبلهما.
+      // مهلة الانتظار: كانت 10 ثواني وهذا **قصير جداً** — مكتبات Firebase
+      // الأربع (app/auth/firestore/database) حجمها كبير، وعلى شبكة جوال
+      // متوسطة تتجاوز العشر ثواني بسهولة، فكانت اللوحة تعلن الفشل وهي فعلياً
+      // لسا تحمّل. الآن 45 ثانية، وتغطي كمان زمن تجربة المصادر البديلة
+      // (12 ثانية لكل مصدر × 3). وبما إن سطر التقدّم يتحدّث لحظياً، الانتظار
+      // الطويل ما يبدو تعليقاً.
       setTimeout(function () {
         if (document.getElementById('admin-boot-status')) {
-          showBootError('انتهت مهلة الانتظار (10 ثواني) قبل ما يكمل التحميل — الأغلب انقطاع بتحميل مكتبة Firebase أو خطأ لم يُلتقط.');
+          var note = document.getElementById('admin-boot-note');
+          showBootError('انتهت مهلة الانتظار (45 ثانية) قبل ما يكمل التحميل.' +
+            (note && note.textContent ? '\nآخر خطوة وصلنا لها: ' + note.textContent : ''));
         }
-      }, 10000);
+      }, 45000);
     })();
   </script>
   <script type="module" src="js/core/app.js"></script>
