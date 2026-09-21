@@ -1,7 +1,7 @@
 // ==================== القسم 1 — نظرة عامة (Dashboard) ====================
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
-import { openModal, openConfirm } from '../core/modal.js';
+import { openModal, openConfirm, isReadOnly } from '../core/modal.js';
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, tsToMillis, printReport } from '../core/format.js';
@@ -10,17 +10,36 @@ import { renderBarChart } from '../core/chart.js';
 const fb = AdminFB;
 const BRIDGE_HTTP_ORIGIN = 'https://ehsmaha.onrender.com';
 
-function liveCountModal(title, collectionName, renderRow) {
+// staleField/staleMs (اختياري): يفلتر المستندات اللي تجاوز آخر تحديث لها
+// المهلة المعطاة قبل عدّها "حية الآن" — ضروري لـpresence تحديداً: نبضة
+// حياتها كل 90 ثانية (SITE_PRESENCE_HEARTBEAT_MS بالموقع الرئيسي) لكن حذف
+// المستند عند إغلاق التبويب best-effort فقط (presenceStop لا يضمن التنفيذ
+// على جوال يُغلَق تطبيقه قسرياً) — بدون هذا الفلتر يتراكم "أشباح" بلا حد،
+// فيصير الرقم يبدو عالقاً على قيمة قديمة رغم إن onSnapshot يحدَّث حياً فعلاً.
+function liveCountModal(title, collectionName, renderRow, opts) {
+  const staleMs = (opts && opts.staleMs) || null;
+  const staleField = (opts && opts.staleField) || 'lastSeen';
   const body = document.createElement('div');
   body.innerHTML = '<p class="admin-kv">جارٍ التحميل...</p>';
   let unsub = () => {};
   openModal({ title, bodyEl: body, size: 'lg', onClose: () => unsub() });
   unsub = fb.onSnapshot(fb.collection(fb.db, collectionName), (snap) => {
-    const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    let rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    let staleCount = 0;
+    if (staleMs) {
+      const cutoff = Date.now() - staleMs;
+      const fresh = rows.filter((r) => {
+        const ms = tsToMillis(r[staleField]);
+        return ms && ms >= cutoff;
+      });
+      staleCount = rows.length - fresh.length;
+      rows = fresh.sort((a, b) => tsToMillis(b[staleField]) - tsToMillis(a[staleField]));
+    }
     body.innerHTML = `
       <div class="admin-stat-card" style="margin-bottom:14px;">
         <div class="admin-stat-card__label">العدد الحي الآن</div>
         <div class="admin-stat-card__value">${fmtNum(rows.length)}</div>
+        ${staleMs ? `<div class="admin-field__hint">${fmtNum(staleCount)} سجل قديم (بدون نبضة حياة حديثة) مستبعَد من العدّ — استخدم أداة "تنظيف السجلات القديمة" لحذفها نهائياً</div>` : ''}
       </div>
       <div class="admin-table-wrap">
         <table class="admin-table">
@@ -59,7 +78,32 @@ defineSection({
       run: () => liveCountModal('المستخدمون المتصلون الآن', 'presence', {
         headers: ['اليوزر', 'آخر ظهور'],
         cells: (r) => [r.username || '—', fmtDate(r.lastSeen)]
-      })
+      }, { staleMs: 5 * 60000, staleField: 'lastSeen' })
+    },
+    {
+      title: 'تنظيف سجلات الحضور القديمة (أشباح بلا نبضة حياة حديثة)',
+      keywords: 'تنظيف presence اشباح قديمة',
+      meta: 'presenceStop على الموقع الرئيسي best-effort فقط — إغلاق تطبيق قسري بالجوال يترك مستنداً بلا حذف',
+      run: async () => {
+        const snap = await fb.getDocs(fb.collection(fb.db, 'presence'));
+        const cutoff = Date.now() - 5 * 60000;
+        const stale = snap.docs.filter((d) => {
+          const ms = tsToMillis(d.data().lastSeen);
+          return !ms || ms < cutoff;
+        });
+        if (!stale.length) { AdminToast.info('ولا سجل حضور قديم حالياً — كلها حديثة'); return; }
+        openConfirm({
+          title: 'تنظيف سجلات الحضور القديمة',
+          danger: true,
+          message: `سيُحذف ${stale.length} سجل حضور بلا نبضة حياة من آخر 5 دقائق (أشباح تبويبات مغلَقة).`,
+          onConfirm: async () => {
+            if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
+            for (const d of stale) await fb.deleteDoc(d.ref);
+            await AdminAudit.log({ section: 1, sectionTitle: 'نظرة عامة', actionKey: 'overview.cleanStalePresence', actionLabel: 'تنظيف سجلات حضور قديمة', after: { count: stale.length } });
+            AdminToast.success(`تم حذف ${stale.length} سجل قديم`);
+          }
+        });
+      }
     },
     {
       title: 'عدد جلسات البث النشطة حالياً',

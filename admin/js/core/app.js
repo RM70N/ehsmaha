@@ -202,6 +202,7 @@ function renderTopbar() {
     </button>
     <div class="admin-topbar__right">
       <span class="admin-topbar__readonly" id="admin-readonly-flag" hidden>وضع قراءة فقط</span>
+      <a class="admin-btn admin-btn--ghost" id="admin-open-site-btn" href="https://ehsmaha.com" target="_blank" rel="noopener">فتح الموقع الرئيسي ↗</a>
       <span class="admin-topbar__admin">${AdminAuth.currentAdmin ? AdminAuth.currentAdmin.email : ''}</span>
       <button type="button" class="admin-btn admin-btn--ghost" id="admin-logout-btn">تسجيل خروج</button>
     </div>
