@@ -1,11 +1,17 @@
 // ==================== القسم 2 — إدارة اللاعبين ====================
+// تنبيه مهم على مصادر البيانات: users/{uid} يخزّن الهوية والحالة (username,
+// email, createdAt, banned, frozenUntil, soloWinCount, onlineWinCount...)،
+// أما XP واللفل وعدد الراوندات وملكية الإطارات فكلها على **levels/{key}**
+// (المفتاح = levelsKey(username)) — الموقع ما يقرأ users.xp ولا users.points
+// إطلاقاً. لهذا كل أداة تلمس XP هنا تمرّ من xpSetForUsername/getLevelsDocForUsername
+// اللي تكتب على المكان الحقيقي وتعيد حساب حقل level معه.
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal.js';
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload, tsToMillis } from '../core/format.js';
-import { resolveUidByUsername, getUserByUsername, searchUsersByPrefix, playerSearchBox } from '../core/players.js';
+import { resolveUidByUsername, getUserByUsername, searchUsersByPrefix, playerSearchBox, levelsKey, levelsKeysForUsername, xpSetForUsername, getLevelsDocForUsername } from '../core/players.js';
 
 const fb = AdminFB;
 
@@ -66,13 +72,25 @@ defineSection({
     {
       title: 'عرض بروفايل كامل',
       keywords: 'بروفايل كامل xp لفل',
-      run: () => withPlayer('بروفايل اللاعب الكامل', (uid, data, box) => {
+      run: () => withPlayer('بروفايل اللاعب الكامل', async (uid, data, box) => {
+        appendResult(box, 'جارٍ التحميل...');
+        // XP/اللفل/الإطارات من levels/{key} (المصدر الحقيقي)، والباقي من users/{uid}.
+        const lv = await getLevelsDocForUsername(data.username);
+        const d = (lv && lv.data) || {};
         appendResult(box, `
           <dl class="admin-kv">
-            <dt>XP</dt><dd>${fmtNum(data.xp)}</dd>
-            <dt>اللفل</dt><dd>${fmtNum(data.level)}</dd>
-            <dt>النقاط</dt><dd>${fmtNum(data.points)}</dd>
-            <dt>الإطارات المملوكة</dt><dd>${(data.ownedFrames || []).join('، ') || '—'}</dd>
+            <dt>اليوزر</dt><dd>${data.username || '—'}</dd>
+            <dt>الإيميل</dt><dd>${data.email || '—'}</dd>
+            <dt>XP</dt><dd>${fmtNum(d.xp || 0)}</dd>
+            <dt>اللفل</dt><dd>${fmtNum(d.level || 1)}</dd>
+            <dt>الراوندات الملعوبة</dt><dd>${fmtNum(d.roundsPlayed || 0)}</dd>
+            <dt>فوزات فردية</dt><dd>${fmtNum(data.soloWinCount || 0)}</dd>
+            <dt>فوزات أونلاين</dt><dd>${fmtNum(data.onlineWinCount || 0)}</dd>
+            <dt>الإطارات المملوكة</dt><dd>${(d.ownedFrames || []).join('، ') || '—'}</dd>
+            <dt>الإطار المفعَّل</dt><dd>${d.activeFrame || '—'}</dd>
+            <dt>يوزر تيك توك المربوط</dt><dd>${data.linkedTiktokUsername || '—'}</dd>
+            <dt>مفاتيح levels</dt><dd>${(lv && lv.keys || []).join('، ') || '—'}</dd>
+            <dt>الحالة</dt><dd>${data.banned && data.banned.value ? ('محظور — ' + (data.banned.reason || '')) : 'عادي'}</dd>
             <dt>تاريخ التسجيل</dt><dd>${fmtDate(data.createdAt)}</dd>
             <dt>آخر تغيير يوزر</dt><dd>${fmtDate(data.usernameChangedAt)}</dd>
           </dl>`);
@@ -177,7 +195,11 @@ defineSection({
               message: `سيُحذف حساب "${data.username}" نهائياً بعد أخذ نسخة احتياطية.`,
               onConfirm: async () => {
                 await fb.setDoc(fb.doc(fb.db, 'deletedUsersBackup', uid), { ...data, deletedAt: fb.serverTimestamp() });
-                await fb.setDoc(fb.doc(fb.db, 'users', uid), { banned: { value: true, reason: 'الحساب محذوف من الإدارة' }, deleted: true, xp: 0, points: 0 });
+                await fb.setDoc(fb.doc(fb.db, 'users', uid), { banned: { value: true, reason: 'الحساب محذوف من الإدارة' }, deleted: true }, { merge: true });
+                // التصفير الفعلي يكون على levels/{key} — مكان XP/اللفل/الإطارات الحقيقي.
+                for (const k of await levelsKeysForUsername(data.username)) {
+                  await fb.setDoc(fb.doc(fb.db, 'levels', k), { xp: 0, level: 1, ownedFrames: [], levelFrames: [], activeFrame: '' }, { merge: true });
+                }
                 await AdminAudit.log({ section: 2, sectionTitle: 'إدارة اللاعبين', actionKey: 'players.delete', actionLabel: 'حذف حساب نهائياً', targetType: 'user', targetId: uid, targetLabel: data.username, before: data, sensitive: true, reversible: true });
                 AdminToast.success('تم الحذف (نسخة احتياطية محفوظة)');
               }
@@ -188,11 +210,15 @@ defineSection({
     {
       title: 'تعديل XP/نقاط يدوياً مع سبب إلزامي',
       keywords: 'تعديل xp نقاط يدوي',
-      run: () => withPlayer('تعديل XP/نقاط', (uid, data, box) => {
+      run: () => withPlayer('تعديل XP اللاعب', async (uid, data, box) => {
+        appendResult(box, 'جارٍ التحميل...');
+        const lv = await getLevelsDocForUsername(data.username);
+        const curXp = Math.max(0, Number(lv && lv.data.xp) || 0);
+        const curLevel = Math.max(1, Number(lv && lv.data.level) || 1);
         const form = document.createElement('div');
         form.innerHTML = `
-          <div class="admin-field"><span class="admin-field__label">XP الجديد (حالياً ${data.xp || 0})</span><input class="admin-input" id="pl-xp" type="number" value="${data.xp || 0}" /></div>
-          <div class="admin-field"><span class="admin-field__label">النقاط الجديدة (حالياً ${data.points || 0})</span><input class="admin-input" id="pl-points" type="number" value="${data.points || 0}" /></div>
+          <p class="admin-field__hint">المصدر الحقيقي: levels/${(lv && lv.keys || []).join('، ') || '—'} — يُكتب على كل مفاتيح اللاعب (يوزر الموقع + يوزر تيك توك المربوط) عشان يوصل التعديل فعلاً.</p>
+          <div class="admin-field"><span class="admin-field__label">XP الجديد (حالياً ${fmtNum(curXp)} — لفل ${fmtNum(curLevel)})</span><input class="admin-input" id="pl-xp" type="number" min="0" value="${curXp}" /></div>
           <div class="admin-field"><span class="admin-field__label">السبب (إلزامي)</span><input class="admin-input" id="pl-xp-reason" /></div>
           <button class="admin-btn admin-btn--primary admin-btn--sm" id="pl-xp-go" style="margin-top:8px;">حفظ</button>`;
         appendResult(box, '').appendChild(form);
@@ -201,10 +227,9 @@ defineSection({
           const reason = form.querySelector('#pl-xp-reason').value.trim();
           if (!reason) { AdminToast.error('السبب إلزامي'); return; }
           const newXp = Number(form.querySelector('#pl-xp').value);
-          const newPoints = Number(form.querySelector('#pl-points').value);
-          await fb.updateDoc(fb.doc(fb.db, 'users', uid), { xp: newXp, points: newPoints });
-          await AdminAudit.log({ section: 2, sectionTitle: 'إدارة اللاعبين', actionKey: 'players.editXp', actionLabel: 'تعديل XP/نقاط يدوياً', targetType: 'user', targetId: uid, targetLabel: data.username, before: { xp: data.xp, points: data.points }, after: { xp: newXp, points: newPoints }, note: reason, sensitive: true });
-          AdminToast.success('تم الحفظ');
+          const res = await xpSetForUsername(data.username, newXp);
+          await AdminAudit.log({ section: 2, sectionTitle: 'إدارة اللاعبين', actionKey: 'players.editXp', actionLabel: 'تعديل XP يدوياً', targetType: 'levels', targetId: (res.keys || []).join(','), targetLabel: data.username, before: { xp: curXp, level: curLevel }, after: { xp: res.xp, level: res.level }, note: reason, sensitive: true });
+          AdminToast.success(`تم الحفظ — XP ${fmtNum(res.xp)} ولفل ${fmtNum(res.level)}`);
         });
       })
     },
@@ -228,7 +253,7 @@ defineSection({
           <div class="admin-field"><span class="admin-field__label">اليوزر الأساسي (يبقى)</span><input class="admin-input" id="mg-main" /></div>
           <div class="admin-field"><span class="admin-field__label">اليوزر المكرر (يُدمج ويُحظر)</span><input class="admin-input" id="mg-dup" /></div>
           <button class="admin-btn admin-btn--primary admin-btn--sm" id="mg-go" style="margin-top:8px;">دمج الآن</button>
-          <p class="admin-field__hint">يجمع XP/النقاط من الحساب المكرر على الحساب الأساسي، ثم يحظر الحساب المكرر.</p>
+          <p class="admin-field__hint">يجمع XP الحقيقي (levels/{key}) من الحساب المكرر على الحساب الأساسي ويعيد حساب اللفل، ثم يحظر الحساب المكرر.</p>
         `;
         const modal = openModal({ title: 'دمج حسابين مكررين', bodyEl: body, size: 'md' });
         body.querySelector('#mg-go').addEventListener('click', async () => {
@@ -236,11 +261,16 @@ defineSection({
           const main = await getUserByUsername(body.querySelector('#mg-main').value);
           const dup = await getUserByUsername(body.querySelector('#mg-dup').value);
           if (!main || !dup) { AdminToast.error('ما لقيت أحد الحسابين'); return; }
-          const newXp = (main.xp || 0) + (dup.xp || 0);
-          const newPoints = (main.points || 0) + (dup.points || 0);
-          await fb.updateDoc(fb.doc(fb.db, 'users', main.uid), { xp: newXp, points: newPoints });
+          const mainLv = await getLevelsDocForUsername(main.username);
+          const dupLv = await getLevelsDocForUsername(dup.username);
+          const newXp = (Number(mainLv && mainLv.data.xp) || 0) + (Number(dupLv && dupLv.data.xp) || 0);
+          const res = await xpSetForUsername(main.username, newXp);
+          // نصفّر سجل المكرر عشان ما يظهر مرتين بقوائم المستويات/الترتيب.
+          if (dupLv && dupLv.keys.length) {
+            for (const k of dupLv.keys) await fb.setDoc(fb.doc(fb.db, 'levels', k), { xp: 0, level: 1 }, { merge: true });
+          }
           await fb.updateDoc(fb.doc(fb.db, 'users', dup.uid), { banned: { value: true, reason: `تم دمجه مع ${main.username}` } });
-          await AdminAudit.log({ section: 2, sectionTitle: 'إدارة اللاعبين', actionKey: 'players.merge', actionLabel: 'دمج حسابين مكررين', targetType: 'user', targetId: main.uid, targetLabel: `${main.username} <- ${dup.username}`, after: { newXp, newPoints }, sensitive: true });
+          await AdminAudit.log({ section: 2, sectionTitle: 'إدارة اللاعبين', actionKey: 'players.merge', actionLabel: 'دمج حسابين مكررين', targetType: 'user', targetId: main.uid, targetLabel: `${main.username} <- ${dup.username}`, after: { xp: res.xp, level: res.level }, sensitive: true });
           AdminToast.success('تم الدمج');
           modal.close();
         });
@@ -278,9 +308,19 @@ defineSection({
       title: 'تصدير قائمة اللاعبين المفلترة كملف CSV',
       keywords: 'تصدير csv قائمة لاعبين',
       run: async () => {
-        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.orderBy('createdAt', 'desc'), fb.limit(5000)));
-        const rows = snap.docs.map((d) => { const v = d.data(); return [v.username, v.email, fmtDate(v.createdAt), v.xp || 0, v.points || 0, v.banned && v.banned.value ? 'محظور' : 'عادي']; });
-        csvDownload('players.csv', [['اليوزر', 'الإيميل', 'تاريخ التسجيل', 'XP', 'النقاط', 'الحالة'], ...rows]);
+        // نقرأ levels مرة وحدة ونضم XP/اللفل الحقيقيين على كل صف بدل حقول
+        // users.xp/users.points اللي كانت تطلع أصفاراً دايماً لأنها غير موجودة.
+        const [snap, lvSnap] = await Promise.all([
+          fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.orderBy('createdAt', 'desc'), fb.limit(5000))),
+          fb.getDocs(fb.collection(fb.db, 'levels'))
+        ]);
+        const lvByKey = new Map(lvSnap.docs.map((d) => [d.id, d.data()]));
+        const rows = snap.docs.map((d) => {
+          const v = d.data();
+          const lv = lvByKey.get(levelsKey(v.username)) || {};
+          return [v.username, v.email, fmtDate(v.createdAt), lv.xp || 0, lv.level || 1, lv.roundsPlayed || 0, v.banned && v.banned.value ? 'محظور' : 'عادي'];
+        });
+        csvDownload('players.csv', [['اليوزر', 'الإيميل', 'تاريخ التسجيل', 'XP', 'اللفل', 'الراوندات', 'الحالة'], ...rows]);
         AdminToast.success(`تم تصدير ${rows.length} لاعب`);
       }
     }

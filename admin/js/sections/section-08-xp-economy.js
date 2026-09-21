@@ -1,7 +1,12 @@
 // ==================== القسم 8 — الاقتصاد الداخلي (XP) ====================
-// القراءة/التعديل المباشر على users.xp/points/level حقيقي بالكامل. إعدادات
-// المعادلة/العتبات/المضاعفة تُحفظ بـgameConfig/xpEconomy (جديد) — جاهزة
-// لقراءتها من الموقع الرئيسي، موضَّح بكل أداة إذا كانت مطبَّقة فعلياً هناك.
+// تصحيح جوهري (مُراجَع من كود الموقع الرئيسي): XP واللفل وroundsPlayed
+// **ليست** على users/{uid} — الموقع يخزّنها على levels/{key} (المفتاح =
+// levelsKey(username))، ويكتبها حصرياً بـlevelsCommit() كمعاملة. حقول users
+// الحقيقية المرتبطة بالنقاط هي onlinePoints/onlineWinCount/soloWinCount فقط.
+// كانت كل أدوات هذا القسم تقرأ users.xp (حقل غير موجود) فتعرض أصفاراً
+// دائماً، وتكتب عليه فما يتأثر شي بالموقع. الآن كلها على levels/{key}.
+// إعدادات المعادلة/العتبات/المضاعفة تُحفظ بـgameConfig/xpEconomy — الموقع
+// لا يقرأها بعد (معلَّم بوضوح على كل أداة منها).
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal.js';
@@ -9,29 +14,30 @@ import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload, printReport } from '../core/format.js';
 import { renderBarChart } from '../core/chart.js';
-import { resolveUidByUsername } from '../core/players.js';
+import { resolveUidByUsername, levelsKeysForUsername, xpSetForKeys } from '../core/players.js';
 
 const fb = AdminFB;
 const CFG = () => fb.doc(fb.db, 'gameConfig', 'xpEconomy');
 
 async function getCfg() { const s = await fb.getDoc(CFG()); return s.exists() ? s.data() : {}; }
-async function loadUsersCapped(limitN) {
-  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.limit(limitN || 5000)));
-  return snap.docs.map((d) => ({ uid: d.id, ...d.data() }));
+// سجلات المستويات الحقيقية — مصدر XP/اللفل الوحيد بالموقع.
+async function loadLevelsCapped(limitN) {
+  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'levels'), fb.limit(limitN || 5000)));
+  return snap.docs.map((d) => ({ key: d.id, ...d.data() }));
 }
 
 defineSection({
   id: 8,
   title: 'الاقتصاد الداخلي (XP)',
-  description: 'users.xp/points/level حقيقي بالكامل — إعدادات المعادلة/العتبات بـgameConfig/xpEconomy.',
+  description: 'XP واللفل الحقيقيان من levels/{key} (نفس مصدر الموقع) — إعدادات المعادلة بـgameConfig/xpEconomy لا يقرأها الموقع بعد.',
   tools: [
     {
       title: 'منحنى توزيع اللاعبين حسب اللفل الحالي',
       keywords: 'توزيع لاعبين لفل',
       run: async () => {
-        const users = await loadUsersCapped();
+        const rows = await loadLevelsCapped();
         const buckets = new Map();
-        users.forEach((u) => { const lvl = u.level || 0; buckets.set(lvl, (buckets.get(lvl) || 0) + 1); });
+        rows.forEach((u) => { const lvl = u.level || 0; buckets.set(lvl, (buckets.get(lvl) || 0) + 1); });
         const sorted = [...buckets.entries()].sort((a, b) => a[0] - b[0]);
         const body = document.createElement('div');
         body.innerHTML = sorted.length ? renderBarChart({ labels: sorted.map((s) => 'لفل ' + s[0]), values: sorted.map((s) => s[1]), height: 220 }) : '<p>ولا بيانات</p>';
@@ -103,9 +109,9 @@ defineSection({
         const body = document.createElement('div');
         body.textContent = 'جارٍ التحميل...';
         openModal({ title: 'أعلى 50 لاعب XP', bodyEl: body, size: 'lg' });
-        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.orderBy('xp', 'desc'), fb.limit(50)));
-        const rows = snap.docs.map((d) => d.data());
-        body.innerHTML = `<table class="admin-table"><thead><tr><th>#</th><th>اليوزر</th><th>XP</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td data-label="#">${i + 1}</td><td class="is-primary" data-label="اليوزر">${r.username}</td><td data-label="XP">${fmtNum(r.xp)}</td></tr>`).join('')}</tbody></table>`;
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'levels'), fb.orderBy('xp', 'desc'), fb.limit(50)));
+        const rows = snap.docs.map((d) => ({ key: d.id, ...d.data() }));
+        body.innerHTML = rows.length ? `<table class="admin-table"><thead><tr><th>#</th><th>المفتاح/اليوزر</th><th>اللفل</th><th>XP</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td data-label="#">${i + 1}</td><td class="is-primary" data-label="اليوزر">${r.username || r.key}</td><td data-label="اللفل">${fmtNum(r.level || 1)}</td><td data-label="XP">${fmtNum(r.xp || 0)}</td></tr>`).join('')}</tbody></table>` : '<p>ولا سجل مستويات بعد</p>';
       }
     },
     {
@@ -120,12 +126,16 @@ defineSection({
             { key: 'reason', label: 'سبب التصحيح', required: true }
           ],
           onSubmit: async (v) => {
-            const uid = await resolveUidByUsername(v.username);
-            if (!uid) throw new Error('ما لقيت هذا المستخدم');
-            const before = await fb.getDoc(fb.doc(fb.db, 'users', uid));
-            await fb.updateDoc(fb.doc(fb.db, 'users', uid), { xp: Number(v.newXp) });
-            await AdminAudit.log({ section: 8, sectionTitle: 'الاقتصاد الداخلي (XP)', actionKey: 'xp.correct', actionLabel: 'تصحيح رصيد XP', targetType: 'user', targetId: uid, targetLabel: v.username, before: { xp: before.data().xp }, after: { xp: v.newXp }, note: v.reason, sensitive: true });
-            AdminToast.success('تم التصحيح');
+            const keys = await levelsKeysForUsername(v.username);
+            if (!keys.length) throw new Error('ما لقيت هذا المستخدم');
+            const beforeSnap = await fb.getDoc(fb.doc(fb.db, 'levels', keys[0]));
+            const beforeXp = beforeSnap.exists() ? (beforeSnap.data().xp || 0) : 0;
+            // نكتب xp و level معاً بنفس معادلة الموقع — كتابة xp لحالها كانت
+            // تخلّي حقل level قديماً بالبروفايل وقائمة المستويات لحد ما يلعب
+            // الشخص راوند جديد (لأن الموقع ما يعيد حسابه إلا داخل levelsCommit).
+            const res = await xpSetForKeys(keys, Number(v.newXp));
+            await AdminAudit.log({ section: 8, sectionTitle: 'الاقتصاد الداخلي (XP)', actionKey: 'xp.correct', actionLabel: 'تصحيح رصيد XP', targetType: 'levels', targetId: keys.join(','), targetLabel: v.username, before: { xp: beforeXp }, after: { xp: res.xp, level: res.level }, note: v.reason, sensitive: true });
+            AdminToast.success('تم التصحيح على ' + keys.length + ' مفتاح — XP ' + res.xp + ' واللفل ' + res.level);
           }
         });
       }
@@ -134,10 +144,10 @@ defineSection({
       title: 'عرض إجمالي XP الممنوح في النظام كله',
       keywords: 'اجمالي xp نظام',
       run: async () => {
-        const users = await loadUsersCapped();
-        const total = users.reduce((s, u) => s + (u.xp || 0), 0);
+        const rows = await loadLevelsCapped();
+        const total = rows.reduce((s, u) => s + (u.xp || 0), 0);
         const body = document.createElement('div');
-        body.innerHTML = `<div class="admin-stat-card"><div class="admin-stat-card__label">إجمالي XP (أول ${fmtNum(users.length)} حساب)</div><div class="admin-stat-card__value">${fmtNum(total)}</div></div>`;
+        body.innerHTML = `<div class="admin-stat-card"><div class="admin-stat-card__label">إجمالي XP (${fmtNum(rows.length)} سجل مستويات)</div><div class="admin-stat-card__value">${fmtNum(total)}</div></div>`;
         openModal({ title: 'إجمالي XP بالنظام', bodyEl: body, size: 'sm' });
       }
     },
@@ -192,14 +202,14 @@ defineSection({
       title: 'محاكاة (simulation) تأثير تغيير معادلة قبل تطبيقها فعلياً',
       keywords: 'محاكاة تاثير معادلة xp',
       run: async () => {
-        const users = await loadUsersCapped(500);
+        const rows = await loadLevelsCapped(500);
         const body = document.createElement('div');
         body.innerHTML = `<div class="admin-field"><span class="admin-field__label">معدّل تحويل تجريبي</span><input class="admin-input" id="sim-rate" type="number" value="1" step="0.1" /></div><button class="admin-btn admin-btn--primary admin-btn--sm" id="sim-go" style="margin-top:8px;">محاكاة</button><div id="sim-result" style="margin-top:10px;"></div>`;
         openModal({ title: 'محاكاة تغيير المعادلة (عينة 500 حساب)', bodyEl: body, size: 'md' });
         body.querySelector('#sim-go').addEventListener('click', () => {
           const rate = Number(body.querySelector('#sim-rate').value);
-          const before = users.reduce((s, u) => s + (u.xp || 0), 0);
-          const after = users.reduce((s, u) => s + (u.points || 0) * rate, 0);
+          const before = rows.reduce((s, u) => s + (u.xp || 0), 0);
+          const after = rows.reduce((s, u) => s + (u.xp || 0) * rate, 0);
           body.querySelector('#sim-result').innerHTML = `<p>XP الحالي الإجمالي (العينة): ${fmtNum(before)}</p><p>XP لو طبّقنا المعدّل الجديد على النقاط الحالية: ${fmtNum(Math.round(after))}</p>`;
         });
       }
@@ -208,10 +218,10 @@ defineSection({
       title: 'تصدير تقرير اقتصادي شامل للفريق أو للمراجعة',
       keywords: 'تصدير تقرير اقتصادي شامل',
       run: async () => {
-        const users = await loadUsersCapped();
-        const total = users.reduce((s, u) => s + (u.xp || 0), 0);
-        const avgLevel = users.length ? (users.reduce((s, u) => s + (u.level || 0), 0) / users.length).toFixed(1) : 0;
-        printReport('التقرير الاقتصادي الشامل', `<p>عدد الحسابات: ${users.length}</p><p>إجمالي XP: ${total}</p><p>متوسط اللفل: ${avgLevel}</p>`);
+        const rows = await loadLevelsCapped();
+        const total = rows.reduce((s, u) => s + (u.xp || 0), 0);
+        const avgLevel = rows.length ? (rows.reduce((s, u) => s + (u.level || 0), 0) / rows.length).toFixed(1) : 0;
+        printReport('التقرير الاقتصادي الشامل', `<p>عدد سجلات المستويات: ${rows.length}</p><p>إجمالي XP: ${total}</p><p>متوسط اللفل: ${avgLevel}</p>`);
       }
     },
     {
@@ -237,12 +247,12 @@ defineSection({
           title: 'إعادة ضبط XP لموسم جديد', danger: true, doubleConfirm: true,
           message: 'يؤرشف XP/اللفل الحالي لكل الحسابات بمجموعة xpSeasonsArchive، ثم يصفّرها للجميع. لا يمكن التراجع عنه.',
           onConfirm: async () => {
-            const users = await loadUsersCapped(5000);
+            const rows = await loadLevelsCapped(5000);
             const seasonId = 'season-' + Date.now();
-            await Promise.all(users.map((u) => fb.setDoc(fb.doc(fb.db, 'xpSeasonsArchive', seasonId, 'players', u.uid), { username: u.username, xp: u.xp || 0, level: u.level || 0 })));
-            await Promise.all(users.map((u) => fb.updateDoc(fb.doc(fb.db, 'users', u.uid), { xp: 0, level: 0 })));
-            await AdminAudit.log({ section: 8, sectionTitle: 'الاقتصاد الداخلي (XP)', actionKey: 'xp.seasonReset', actionLabel: 'إعادة ضبط XP لموسم جديد', after: { seasonId, count: users.length }, sensitive: true });
-            AdminToast.success(`تمت الأرشفة (${seasonId}) وإعادة الضبط لـ${users.length} حساب`);
+            await Promise.all(rows.map((u) => fb.setDoc(fb.doc(fb.db, 'xpSeasonsArchive', seasonId, 'players', u.key), { username: u.username || u.key, xp: u.xp || 0, level: u.level || 1, roundsPlayed: u.roundsPlayed || 0 })));
+            await Promise.all(rows.map((u) => fb.setDoc(fb.doc(fb.db, 'levels', u.key), { xp: 0, level: 1 }, { merge: true })));
+            await AdminAudit.log({ section: 8, sectionTitle: 'الاقتصاد الداخلي (XP)', actionKey: 'xp.seasonReset', actionLabel: 'إعادة ضبط XP لموسم جديد', after: { seasonId, count: rows.length }, sensitive: true });
+            AdminToast.success(`تمت الأرشفة (${seasonId}) وإعادة الضبط لـ${rows.length} سجل`);
           }
         });
       }

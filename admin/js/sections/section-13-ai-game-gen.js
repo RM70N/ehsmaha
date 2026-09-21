@@ -9,6 +9,7 @@ import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
+import { xpAddForUsername } from '../core/players.js';
 
 const fb = AdminFB;
 
@@ -63,7 +64,9 @@ defineSection({
           const limits = limitsSnap.exists() ? limitsSnap.data() : {};
           await fb.updateDoc(fb.doc(fb.db, 'aiGameSubmissions', id), { status: 'approved', publishedCategory: body.querySelector('#ap-cat').value, approvedAt: fb.serverTimestamp() });
           if (r.uid) {
-            if (limits.rewardXp) await fb.updateDoc(fb.doc(fb.db, 'users', r.uid), { xp: fb.increment(Number(limits.rewardXp)) });
+            // XP يُضاف على levels/{key} (مصدر XP الحقيقي بالموقع) مع إعادة حساب
+            // اللفل — users.xp حقل غير موجود أصلاً وكانت الزيادة تضيع فيه.
+            if (limits.rewardXp && r.username) await xpAddForUsername(r.username, Number(limits.rewardXp));
             await fb.setDoc(fb.doc(fb.collection(fb.db, 'notifications', r.uid, 'items')), { type: 'adminMessage', message: `تم قبول لعبتك المقترحة "${r.name}" ونشرها!`, fromLabel: 'إدارة المنصة', read: false, createdAt: fb.serverTimestamp() });
           }
           await AdminAudit.log({ section: 13, sectionTitle: 'اصنع لعبتك', actionKey: 'aigame.approve', actionLabel: 'الموافقة على لعبة مولَّدة', targetType: 'aiGameSubmission', targetId: id, targetLabel: r.name });

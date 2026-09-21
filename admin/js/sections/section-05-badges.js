@@ -1,14 +1,22 @@
 // ==================== القسم 5 — الشارات والإنجازات ====================
-// تعريف الشارات: badgeDefs/{id}. حيازة اللاعب: users/{uid}.badges (حقل
-// جديد بنفس نمط ownedFrames). المنح اليدوي يطبّق فعلياً أي مكافأة مربوطة
-// (نقاط/إطار عبر framesCatalog) ويرسل إشعار عند شارة نادرة.
+// تعريف الشارات: badgeDefs/{id}. حيازة اللاعب: users/{uid}.badges.
+//
+// صراحة مهمة (مُراجَعة من كود الموقع الرئيسي): نظام "الإنجازات" الحقيقي
+// بالموقع (PROFILE_ACHIEVEMENTS، 14 إنجازاً) **محسوب لحظياً بالمتصفح** من
+// levels/{key} + users.soloWinCount/onlineWinCount — ما يُخزَّن بأي كولكشن،
+// وما فيه حقل users.badges يقرأه الموقع إطلاقاً. يعني: منح شارة من هنا
+// يُسجَّل فعلياً بقاعدة البيانات لكنه **لا يظهر ببروفايل اللاعب** حتى تُربط
+// قراءة users.badges بواجهة البروفايل بالموقع الرئيسي. أداة "الإنجازات
+// الحقيقية" أدناه تعرض النظام الفعلي الشغّال الآن بدل الإيهام بغيره.
+// المكافآت المربوطة (إطار/نقاط) تُطبَّق فعلياً وتصل للاعب: الإطار يُكتب على
+// levels/{key}.ownedFrames (المسار الحقيقي) والنقاط على users/{uid}.points.
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal.js';
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
-import { resolveUidByUsername } from '../core/players.js';
+import { resolveUidByUsername, framesGrant, levelsKey } from '../core/players.js';
 
 const fb = AdminFB;
 const RARE_HOLDER_THRESHOLD = 20;
@@ -25,7 +33,7 @@ async function countHolders(badgeId) {
 defineSection({
   id: 5,
   title: 'الشارات والإنجازات',
-  description: 'تعريف الشارات (badgeDefs) وحيازتها الفعلية على بروفايل اللاعب (users.badges).',
+  description: 'badgeDefs + users.badges يُداران هنا بالكامل — لكن بروفايل الموقع يعرض حالياً نظام الإنجازات المحسوب تلقائياً فقط (أداة \'الإنجازات الحقيقية\' أدناه).',
   tools: [
     {
       title: 'إنشاء شارة جديدة (اسم، أيقونة، وصف)',
@@ -87,7 +95,7 @@ defineSection({
               if (holders >= badge.limitedCount) throw new Error(`هذي شارة محدودة (${badge.limitedCount}) واكتمل العدد`);
             }
             await fb.updateDoc(fb.doc(fb.db, 'users', uid), { badges: fb.arrayUnion(v.badgeId) });
-            if (badge.rewardFrameId) await fb.updateDoc(fb.doc(fb.db, 'users', uid), { ownedFrames: fb.arrayUnion(badge.rewardFrameId) });
+            if (badge.rewardFrameId) await framesGrant(v.username, badge.rewardFrameId);
             if (badge.rewardPoints) await fb.updateDoc(fb.doc(fb.db, 'users', uid), { points: fb.increment(Number(badge.rewardPoints)) });
             const holdersAfter = await countHolders(v.badgeId);
             if (holdersAfter <= RARE_HOLDER_THRESHOLD) {
@@ -309,6 +317,56 @@ defineSection({
           AdminToast.success(`تم تصدير ${snap.size} لاعب`);
           modal.close();
         });
+      }
+    },
+    {
+      title: 'الإنجازات الحقيقية المعروضة ببروفايل اللاعبين (14 إنجازاً)',
+      keywords: 'انجازات حقيقية بروفايل محسوبة',
+      run: async () => {
+        const body = document.createElement('div');
+        body.textContent = 'جارٍ الحساب من levels + users...';
+        openModal({ title: 'الإنجازات الحقيقية — محسوبة كما يحسبها الموقع', bodyEl: body, size: 'xl' });
+        const [levelsSnap, usersSnap] = await Promise.all([
+          fb.getDocs(fb.collection(fb.db, 'levels')),
+          fb.getDocs(fb.collection(fb.db, 'users'))
+        ]);
+        // users مفهرسة بيوزرنيم مطبَّع عشان نطابقها بمفاتيح levels.
+        const byName = new Map();
+        usersSnap.docs.forEach((d) => {
+          const v = d.data() || {};
+          if (v.username) byName.set(levelsKey(v.username), v);
+        });
+        // نفس قائمة PROFILE_ACHIEVEMENTS الحرفية بالموقع الرئيسي ونفس شروطها.
+        const ACHV = [
+          ['lvl5', 'الخطوة الأولى', (d) => d.level >= 5], ['lvl10', 'لاعب نشيط', (d) => d.level >= 10],
+          ['lvl20', 'محترف', (d) => d.level >= 20], ['lvl30', 'أسطورة', (d) => d.level >= 30],
+          ['rounds10', 'بداية الطريق', (d) => d.roundsPlayed >= 10], ['rounds50', 'مدمن ألعاب', (d) => d.roundsPlayed >= 50],
+          ['rounds200', 'محترف الراوندات', (d) => d.roundsPlayed >= 200],
+          ['solo5', 'بطل الفردي', (d) => d.soloWinCount >= 5], ['solo20', 'أسطورة الفردي', (d) => d.soloWinCount >= 20],
+          ['online5', 'بطل الأونلاين', (d) => d.onlineWinCount >= 5], ['online20', 'أسطورة الأونلاين', (d) => d.onlineWinCount >= 20],
+          ['frames1', 'مزيّن', (d) => d.ownedFramesCount >= 1],
+          ['games3', 'متنوع', (d) => d.gamesVariety >= 3], ['games8', 'مستكشف الألعاب', (d) => d.gamesVariety >= 8]
+        ];
+        const counts = new Map(ACHV.map(([id]) => [id, 0]));
+        let scanned = 0;
+        levelsSnap.docs.forEach((ld) => {
+          const l = ld.data() || {};
+          const u = byName.get(levelsKey(l.username || ld.id)) || {};
+          const d = {
+            level: Number(l.level) || 1,
+            roundsPlayed: Number(l.roundsPlayed) || 0,
+            soloWinCount: Number(u.soloWinCount) || 0,
+            onlineWinCount: Number(u.onlineWinCount) || 0,
+            ownedFramesCount: Array.isArray(l.ownedFrames) ? l.ownedFrames.length : 0,
+            gamesVariety: Object.keys(l.gamesPlayCount || {}).length
+          };
+          scanned++;
+          ACHV.forEach(([id, , check]) => { if (check(d)) counts.set(id, counts.get(id) + 1); });
+        });
+        body.innerHTML = `
+          <p class="admin-field__hint">محسوبة الآن من ${fmtNum(levelsSnap.size)} سجل مستويات — بنفس شروط PROFILE_ACHIEVEMENTS بالموقع الرئيسي حرفياً. هذي هي الإنجازات الوحيدة اللي يشوفها اللاعب فعلاً ببروفايله.</p>
+          <table class="admin-table"><thead><tr><th>الإنجاز</th><th>المعرّف</th><th>عدد من حققه</th></tr></thead>
+          <tbody>${ACHV.map(([id, name]) => `<tr><td class="is-primary" data-label="الإنجاز">${name}</td><td data-label="المعرّف">${id}</td><td data-label="العدد">${fmtNum(counts.get(id))}</td></tr>`).join('')}</tbody></table>`;
       }
     }
   ]

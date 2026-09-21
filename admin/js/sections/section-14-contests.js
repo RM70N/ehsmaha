@@ -1,14 +1,19 @@
 // ==================== القسم 14 — لوحة الفائزين والمسابقات ====================
-// كولكشن جديد contests/{id} — نظام مسابقات إداري كامل فوق users.xp الحقيقي
-// كمعيار افتراضي. "الإعلان التلقائي" هنا يعني زر حساب+تطبيق فوري (بدون
-// Cloud Functions/Cron لا يوجد تنفيذ مجدول حقيقي بالخلفية).
+// كولكشن جديد contests/{id} — نظام مسابقات إداري كامل فوق **levels/{key}**،
+// وهو المكان الحقيقي الوحيد اللي يخزّن فيه الموقع XP واللفل وعدد الراوندات
+// وملكية الإطارات. (كان هذا القسم يقرأ ويكتب users.xp / users.points /
+// users.ownedFrames — كلها حقول غير موجودة أصلاً بالموقع، فكان الترتيب يطلع
+// فاضي والجوائز ما توصل لأحد.) الحقول الحقيقية المتاحة كمعيار فوز:
+// xp، level، roundsPlayed.
+// "الإعلان التلقائي" هنا يعني زر حساب+تطبيق فوري (بدون Cloud Functions/Cron
+// لا يوجد تنفيذ مجدول حقيقي بالخلفية).
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal.js';
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
-import { resolveUidByUsername } from '../core/players.js';
+import { resolveUidByUsername, levelsKey, framesGrant } from '../core/players.js';
 
 const fb = AdminFB;
 
@@ -16,15 +21,30 @@ async function loadContests() {
   const snap = await fb.getDocs(fb.collection(fb.db, 'contests'));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
+// الترتيب يُحسب من levels/{key} — نجيب أكثر من المطلوب بشوي عشان الاستبعاد
+// ما يقلّص القائمة تحت العدد المطلوب، ثم نقصّها بعد الفلترة.
 async function computeLeaderboard(contest, limitN) {
-  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.orderBy(contest.criterionField || 'xp', 'desc'), fb.limit(limitN || 50)));
-  return snap.docs.map((d) => ({ uid: d.id, ...d.data() })).filter((u) => !(contest.excludedUids || []).includes(u.uid));
+  const want = limitN || 50;
+  const field = contest.criterionField || 'xp';
+  const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'levels'), fb.orderBy(field, 'desc'), fb.limit(want + 20)));
+  const excluded = new Set((contest.excludedKeys || []).map((k) => levelsKey(k)));
+  return snap.docs
+    .map((d) => ({ key: d.id, username: (d.data().username || d.id), ...d.data() }))
+    .filter((u) => !excluded.has(levelsKey(u.key)) && !excluded.has(levelsKey(u.username)))
+    .slice(0, want);
+}
+
+// الإشعارات تُكتب على notifications/{uid}/items — و levels مفهرس باليوزر مو
+// بالـuid، فنترجم اليوزر لـuid قبل الإرسال (ونتخطى بهدوء أي مفتاح ما له حساب
+// موقع، مثل مفاتيح تيك توك المربوطة).
+async function uidForRow(row) {
+  try { return await resolveUidByUsername(row.username || row.key); } catch (err) { return null; }
 }
 
 defineSection({
   id: 14,
   title: 'الفائزين والمسابقات',
-  description: 'مسابقات حقيقية فوق أرصدة اللاعبين (contests + users.xp/points).',
+  description: 'مسابقات حقيقية فوق أرصدة اللاعبين الفعلية (contests + levels/{key}: xp/level/roundsPlayed).',
   tools: [
     {
       title: 'إنشاء مسابقة موسمية جديدة',
@@ -55,7 +75,7 @@ defineSection({
           title: 'معيار الفوز',
           fields: [
             { key: 'contestId', label: 'المسابقة', type: 'select', options: contests.map((c) => ({ value: c.id, label: c.name })), required: true },
-            { key: 'criterionField', label: 'المعيار', type: 'select', options: [{ value: 'xp', label: 'أعلى XP' }, { value: 'points', label: 'أعلى نقاط' }] }
+            { key: 'criterionField', label: 'المعيار', type: 'select', options: [{ value: 'xp', label: 'أعلى XP' }, { value: 'level', label: 'أعلى لفل' }, { value: 'roundsPlayed', label: 'أكثر راوندات ملعوبة' }] }
           ],
           onSubmit: async (v) => { await fb.updateDoc(fb.doc(fb.db, 'contests', v.contestId), { criterionField: v.criterionField }); AdminToast.success('تم الحفظ'); }
         });
@@ -73,10 +93,10 @@ defineSection({
           fields: [
             { key: 'contestId', label: 'المسابقة', type: 'select', options: contests.map((c) => ({ value: c.id, label: c.name })), required: true },
             { key: 'prizeFrameId', label: 'إطار الجائزة', type: 'select', options: [{ value: '', label: '(بدون)' }, ...frames.map((f) => ({ value: f.id, label: f.name }))] },
-            { key: 'prizeBadgeId', label: 'شارة الجائزة', type: 'select', options: [{ value: '', label: '(بدون)' }, ...badges.map((b) => ({ value: b.id, label: b.name }))] },
-            { key: 'prizePoints', label: 'نقاط إضافية', type: 'number' }
+            { key: 'prizeBadgeId', label: 'شارة إدارية (سجل داخلي فقط — البروفايل يعرض إنجازاته المحسوبة تلقائياً)', type: 'select', options: [{ value: '', label: '(بدون)' }, ...badges.map((b) => ({ value: b.id, label: b.name }))] },
+            { key: 'prizeXp', label: 'XP إضافي للفائز', type: 'number' }
           ],
-          onSubmit: async (v) => { await fb.updateDoc(fb.doc(fb.db, 'contests', v.contestId), { prizeFrameId: v.prizeFrameId || null, prizeBadgeId: v.prizeBadgeId || null, prizePoints: Number(v.prizePoints) || 0 }); AdminToast.success('تم الحفظ'); }
+          onSubmit: async (v) => { await fb.updateDoc(fb.doc(fb.db, 'contests', v.contestId), { prizeFrameId: v.prizeFrameId || null, prizeBadgeId: v.prizeBadgeId || null, prizeXp: Number(v.prizeXp) || 0 }); AdminToast.success('تم الحفظ'); }
         });
       }
     },
@@ -93,12 +113,18 @@ defineSection({
           const contest = contests.find((c) => c.id === body.querySelector('#an-select').value);
           const top3 = await computeLeaderboard(contest, 3);
           for (const w of top3) {
-            if (contest.prizePoints) await fb.updateDoc(fb.doc(fb.db, 'users', w.uid), { points: fb.increment(contest.prizePoints) });
-            if (contest.prizeFrameId) await fb.updateDoc(fb.doc(fb.db, 'users', w.uid), { ownedFrames: fb.arrayUnion(contest.prizeFrameId) });
-            if (contest.prizeBadgeId) await fb.updateDoc(fb.doc(fb.db, 'users', w.uid), { badges: fb.arrayUnion(contest.prizeBadgeId) });
-            await fb.setDoc(fb.doc(fb.collection(fb.db, 'notifications', w.uid, 'items')), { type: 'adminMessage', message: `مبروك! فزت بمسابقة "${contest.name}"`, fromLabel: 'إدارة المنصة', read: false, createdAt: fb.serverTimestamp() });
+            // XP يُزاد على levels/{key} نفسه (نفس مكان حساب اللفل بالموقع، فيرتفع
+            // لفل الفائز تلقائياً بأول قراءة)، والإطار عبر framesGrant اللي يمنحه
+            // بمفتاحي اللاعب (يوزر الموقع + يوزر تيك توك المربوط) عشان يوصل فعلاً.
+            if (contest.prizeXp) await fb.setDoc(fb.doc(fb.db, 'levels', w.key), { xp: fb.increment(contest.prizeXp) }, { merge: true });
+            if (contest.prizeFrameId) await framesGrant(w.username || w.key, contest.prizeFrameId);
+            const uid = await uidForRow(w);
+            if (uid) {
+              if (contest.prizeBadgeId) await fb.setDoc(fb.doc(fb.db, 'users', uid), { adminBadges: fb.arrayUnion(contest.prizeBadgeId) }, { merge: true });
+              await fb.setDoc(fb.doc(fb.collection(fb.db, 'notifications', uid, 'items')), { type: 'adminMessage', message: `مبروك! فزت بمسابقة "${contest.name}"`, fromLabel: 'إدارة المنصة', read: false, createdAt: fb.serverTimestamp() });
+            }
           }
-          await fb.updateDoc(fb.doc(fb.db, 'contests', contest.id), { status: 'finished', winners: top3.map((w) => ({ uid: w.uid, username: w.username })) });
+          await fb.updateDoc(fb.doc(fb.db, 'contests', contest.id), { status: 'finished', winners: top3.map((w) => ({ key: w.key, username: w.username })) });
           await AdminAudit.log({ section: 14, sectionTitle: 'الفائزين والمسابقات', actionKey: 'contests.announce', actionLabel: 'إعلان فائزين مسابقة', targetType: 'contest', targetId: contest.id, after: { winners: top3.map((w) => w.username) }, sensitive: true });
           body.querySelector('#an-result').innerHTML = `<p>الفائزون: ${top3.map((w) => w.username).join('، ')}</p>`;
           AdminToast.success('تم الإعلان وتطبيق الجوائز');
@@ -178,8 +204,14 @@ defineSection({
           if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
           const contest = contests.find((c) => c.id === body.querySelector('#nt-select').value);
           const top = await computeLeaderboard(contest, 10);
-          await Promise.all(top.map((u, i) => fb.setDoc(fb.doc(fb.collection(fb.db, 'notifications', u.uid, 'items')), { type: 'adminMessage', message: `أنت بالمركز ${i + 1} بمسابقة "${contest.name}"!`, fromLabel: 'إدارة المنصة', read: false, createdAt: fb.serverTimestamp() })));
-          AdminToast.success(`تم إشعار ${top.length}`);
+          let sent = 0;
+          for (let i = 0; i < top.length; i++) {
+            const uid = await uidForRow(top[i]);
+            if (!uid) continue;
+            await fb.setDoc(fb.doc(fb.collection(fb.db, 'notifications', uid, 'items')), { type: 'adminMessage', message: `أنت بالمركز ${i + 1} بمسابقة "${contest.name}"!`, fromLabel: 'إدارة المنصة', read: false, createdAt: fb.serverTimestamp() });
+            sent++;
+          }
+          AdminToast.success(`تم إشعار ${sent} من ${top.length}`);
           modal.close();
         });
       }
@@ -198,7 +230,9 @@ defineSection({
           onSubmit: async (v) => {
             const uid = await resolveUidByUsername(v.username);
             if (!uid) throw new Error('ما لقيت هذا المستخدم');
-            await fb.updateDoc(fb.doc(fb.db, 'contests', v.contestId), { excludedUids: fb.arrayUnion(uid) });
+            // الترتيب مبني على levels/{key} فالاستبعاد لازم يُخزَّن بنفس المفتاح
+            // (نحتفظ بالـuid كمان للسجل والتتبّع).
+            await fb.updateDoc(fb.doc(fb.db, 'contests', v.contestId), { excludedUids: fb.arrayUnion(uid), excludedKeys: fb.arrayUnion(levelsKey(v.username)) });
             await AdminAudit.log({ section: 14, sectionTitle: 'الفائزين والمسابقات', actionKey: 'contests.exclude', actionLabel: 'استبعاد لاعب من مسابقة', targetType: 'contest', targetId: v.contestId, targetLabel: v.username, sensitive: true });
             AdminToast.success('تم الاستبعاد');
           }
@@ -231,7 +265,7 @@ defineSection({
         async function draw() {
           const contest = contests.find((c) => c.id === body.querySelector('#st-select').value);
           if (!contest) return;
-          const countSnap = await fb.getCountFromServer(fb.query(fb.collection(fb.db, 'users'), fb.where(contest.criterionField || 'xp', '>', 0)));
+          const countSnap = await fb.getCountFromServer(fb.query(fb.collection(fb.db, 'levels'), fb.where(contest.criterionField || 'xp', '>', 0)));
           body.querySelector('#st-result').innerHTML = `<p>عدد المشاركين المؤهَّلين (لديهم ${contest.criterionField} > 0): ${fmtNum(countSnap.data().count)}</p>`;
         }
         if (contests.length) { body.querySelector('#st-select').addEventListener('change', draw); draw(); }

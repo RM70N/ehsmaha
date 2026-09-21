@@ -4344,6 +4344,15 @@ if (location.hostname === 'streamgame1.netlify.app') {
   </div>
 </div>
 
+<!-- شاشة حظر/تجميد الحساب — يديرها قسم 2 باللوحة الإدارية (users/{uid}.banned و frozenUntil) -->
+<div id="admin-account-block-overlay" style="display:none;position:fixed;inset:0;z-index:999998;background:#0d0620;color:#f5f1fb;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:inherit;">
+  <div style="max-width:420px;">
+    <div id="admin-account-block-title" style="font-size:22px;font-weight:800;color:#e8c887;margin-bottom:12px;">الحساب محظور</div>
+    <div id="admin-account-block-message" style="font-size:14px;color:#b8aed0;line-height:1.8;"></div>
+    <button type="button" id="admin-account-block-logout" style="margin-top:18px;padding:10px 22px;border-radius:12px;border:none;cursor:pointer;background:#7C3AED;color:#fff;font-family:inherit;font-size:14px;font-weight:700;">تسجيل الخروج</button>
+  </div>
+</div>
+
 <!-- ====== TOP NAVBAR ====== -->
 <nav id="topnav">
   <div class="topnav-brand">
@@ -18834,6 +18843,8 @@ function authBoot() {
         // يتعرف إنه مو مسجّل ويوديه لـshow('auth') الفعلية.
         show('landing');
         presenceStop();
+        adminDeviceGuardStop();
+        adminAccountGuardStop();
         return;
       }
       try {
@@ -18910,6 +18921,11 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   sevtActiveEventBoot();
   sevtAnnounceBoot();
   homeEventWinnersCheckAndShow();
+  // مراقبة الجهاز (حظر جهاز/طرد قسري — قسم 23) وحالة الحساب (حظر/تجميد —
+  // قسم 2). كانت adminDeviceGuardStart() معرَّفة بلا أي نداء إطلاقاً، يعني
+  // تسجيل الأجهزة وحظرها ما كان يشتغل أبداً رغم إن اللوحة تعرض وتكتب فيه.
+  adminDeviceGuardStart();
+  adminAccountGuardStart();
 }
 
 // ==================== STREAMER EVENTS (فعاليات الستريمرز) — "أفضل ستريمر" أول نوع ====================
@@ -20250,6 +20266,80 @@ function adminDeviceGuardStart() {
     }, () => {}));
   } catch (err) {}
   adminDeviceRegister(deviceId);
+}
+
+// ==================== تنفيذ الحظر/التجميد على الموقع نفسه ====================
+// قسم 2 باللوحة الإدارية يكتب users/{uid}.banned = {value,reason,ts} و
+// users/{uid}.frozenUntil (تاريخ). بدون هذا المستمع كانت الكتابة تصير باللوحة
+// بس ما يصير لها أي أثر فعلي بالموقع — اللاعب المحظور يكمل لعب عادي. هنا
+// نراقب مستند المستخدم حيّاً: أول لقطة تمسك حالة سابقة موجودة أصلاً، وأي
+// تغيير لاحق ينفَّذ لحظياً بدون ما ينتظر اللاعب يعيد تحميل الصفحة.
+let adminAccountGuardUnsub = null;
+
+function adminTsToMillis(v) {
+  if (!v) return 0;
+  if (typeof v.toMillis === 'function') return v.toMillis();
+  if (v instanceof Date) return v.getTime();
+  if (typeof v === 'number') return v;
+  if (typeof v.seconds === 'number') return v.seconds * 1000;
+  return 0;
+}
+
+function adminAccountBlockShow(title, message) {
+  const overlay = document.getElementById('admin-account-block-overlay');
+  if (!overlay) return;
+  const t = document.getElementById('admin-account-block-title');
+  const m = document.getElementById('admin-account-block-message');
+  if (t) t.textContent = title;
+  if (m) m.textContent = message;
+  overlay.style.display = 'flex';
+  const btn = document.getElementById('admin-account-block-logout');
+  if (btn && !btn.__wired) {
+    btn.__wired = true;
+    btn.addEventListener('click', () => {
+      try { presenceStop(); } catch (err) {}
+      try { fb.signOut(fb.auth); } catch (err) {}
+      overlay.style.display = 'none';
+    });
+  }
+}
+
+function adminAccountBlockHide() {
+  const overlay = document.getElementById('admin-account-block-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+function adminAccountGuardStop() {
+  if (adminAccountGuardUnsub) { try { adminAccountGuardUnsub(); } catch (err) {} }
+  adminAccountGuardUnsub = null;
+  adminAccountBlockHide();
+}
+
+function adminAccountGuardStart() {
+  if (!fb || !currentUser) return;
+  adminAccountGuardStop();
+  const uid = currentUser.uid;
+  try {
+    adminAccountGuardUnsub = fb.onSnapshot(fb.doc(fb.db, 'users', uid), (snap) => {
+      const data = snap.exists() ? snap.data() : null;
+      if (!data) { adminAccountBlockHide(); return; }
+      if (data.banned && data.banned.value) {
+        // محظور دائماً: نوقف النبض ونعرض السبب ثم نخرجه من الحساب — العرض
+        // قبل signOut عشان يقرأ السبب (onAuthStateChanged راح يوديه للهبوط).
+        try { presenceStop(); } catch (err) {}
+        adminAccountBlockShow('الحساب محظور', data.banned.reason ? ('السبب: ' + data.banned.reason) : 'تم حظر هذا الحساب من إدارة المنصة.');
+        return;
+      }
+      const frozenMs = adminTsToMillis(data.frozenUntil);
+      if (frozenMs > Date.now()) {
+        try { presenceStop(); } catch (err) {}
+        adminAccountBlockShow('الحساب مجمَّد مؤقتاً', 'تقدر ترجع تلعب بعد: ' + new Date(frozenMs).toLocaleString('ar'));
+        return;
+      }
+      // انتهى التجميد أو رُفع الحظر — نرجّع الموقع طبيعي بدون إعادة تحميل.
+      adminAccountBlockHide();
+    }, () => { /* best-effort — أي فشل قراءة ما يقفل الموقع بوجه اللاعب */ });
+  } catch (err) {}
 }
 
 // فحوصات أمنية بسيطة قبل إنشاء أي حساب جديد — كلها best-effort: أي فشل بفحص

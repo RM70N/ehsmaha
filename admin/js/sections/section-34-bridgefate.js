@@ -172,19 +172,19 @@ defineSection({
       }
     },
     {
-      title: 'سجل كل الفعاليات السابقة (بحث بمعرّف معروف)',
+      title: 'سجل كل الفعاليات السابقة',
       keywords: 'سجل فعاليات سابقة',
-      badge: 'يحتاج معرّف الفعالية',
-      run: () => {
+      run: async () => {
         const body = document.createElement('div');
-        body.innerHTML = '<div class="admin-field"><span class="admin-field__label">معرّف الفعالية (bridge_...)</span><input class="admin-input" id="bf-id" /></div><div id="bf-result" style="margin-top:10px;"></div><p class="admin-field__hint">Realtime Database لا يدعم سرد كل الفعاليات السابقة تلقائياً من عميل ويب بدون فهرسة مسبقة — ابحث بمعرّف فعالية معروف (من سجل الأحداث قسم 16 مثلاً).</p>';
-        openModal({ title: 'البحث عن فعالية سابقة', bodyEl: body, size: 'md' });
-        body.querySelector('#bf-id').addEventListener('change', async (e) => {
-          const id = e.target.value.trim();
-          if (!id) return;
-          const ev = await getEvent(id);
-          body.querySelector('#bf-result').innerHTML = ev ? `<dl class="admin-kv"><dt>الحالة</dt><dd>${ev.status}</dd><dt>الفائز</dt><dd>${ev.winnerName || '—'}</dd></dl>` : '<p>ما لقيت فعالية بهذا المعرّف</p>';
-        });
+        body.textContent = 'جارٍ التحميل...';
+        openModal({ title: 'كل فعاليات جسر المصير', bodyEl: body, size: 'lg' });
+        const snap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'bridgeEvents'));
+        const all = snap.exists() ? snap.val() : null;
+        const rows = all && typeof all === 'object'
+          ? Object.entries(all).filter(([id, v]) => id !== 'current' && v && typeof v === 'object').map(([id, v]) => ({ id, ...v }))
+          : [];
+        rows.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        body.innerHTML = rows.length ? `<table class="admin-table"><thead><tr><th>المعرّف</th><th>الحالة</th><th>الفائز</th><th>البدء</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="is-primary" data-label="المعرّف">${r.id}</td><td data-label="الحالة"><span class="admin-badge ${r.status === 'ended' ? 'admin-badge--off' : 'admin-badge--on'}">${r.status || '—'}</span></td><td data-label="الفائز">${r.winnerName || '—'}</td><td data-label="البدء">${r.startedAt ? rtdbToDate(r.startedAt) : '—'}</td></tr>`).join('')}</tbody></table>` : '<p>ولا فعالية مخزَّنة بعد</p>';
       }
     },
     {

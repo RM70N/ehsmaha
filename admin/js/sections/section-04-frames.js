@@ -1,15 +1,19 @@
 // ==================== القسم 4 — إدارة الإطارات ====================
 // كتالوج جديد framesCatalog/{id} (كتالوج عام يديره الأدمن) — منفصل عن
 // framesCatalogExtra القديم (خاص بإطارات أكواد الجوائز، آلية مختلفة تماماً
-// ما نلمسها). المِلكية الفعلية تبقى دائماً على users/{uid}.ownedFrames
-// (الحقل الحقيقي الوحيد اللي تقرأه بروفايلات اللاعبين).
+// ما نلمسها).
+// تصحيح جوهري: الملكية الفعلية **ليست** على users/{uid}.ownedFrames — الموقع
+// الرئيسي يخزّنها على levels/{key}.ownedFrames (key = levelsKey(username))،
+// ويقرأها بمفتاحين: يوزر الموقع ويوزر تيك توك المربوط. كل منح/سحب هنا صار
+// يمر عبر framesGrant/framesRevoke المشتركة اللي تكتب على المفتاحين معاً —
+// قبل التصحيح كان المنح يكتب حقلاً لا أحد يقرأه فما يظهر الإطار للاعب أبداً.
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal.js';
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
-import { getUserByUsername, resolveUidByUsername } from '../core/players.js';
+import { getUserByUsername, resolveUidByUsername, framesGrant, framesRevoke, countFrameOwners, listFrameOwners, levelsKey } from '../core/players.js';
 
 const fb = AdminFB;
 
@@ -18,14 +22,13 @@ async function listFrames() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 async function countOwners(frameId) {
-  const snap = await fb.getCountFromServer(fb.query(fb.collection(fb.db, 'users'), fb.where('ownedFrames', 'array-contains', frameId)));
-  return snap.data().count;
+  return countFrameOwners(frameId);
 }
 
 defineSection({
   id: 4,
   title: 'الإطارات',
-  description: 'كتالوج الإطارات (framesCatalog) والملكية الفعلية على بروفايلات اللاعبين (users.ownedFrames).',
+  description: 'كتالوج الإطارات (framesCatalog) والملكية الفعلية على levels/{key}.ownedFrames — نفس المسار اللي يقرأه الموقع الرئيسي بالضبط.',
   tools: [
     {
       title: 'رفع إطار عام جديد يظهر لكل المستخدمين',
@@ -40,10 +43,10 @@ defineSection({
           ],
           onSubmit: async (v) => {
             await fb.setDoc(fb.doc(fb.db, 'framesCatalog', v.id), { name: v.name, imageUrl: v.imageUrl, active: true, global: true, createdAt: fb.serverTimestamp() });
-            const usersSnap = await fb.getDocs(fb.collection(fb.db, 'users'));
-            await Promise.all(usersSnap.docs.map((d) => fb.updateDoc(fb.doc(fb.db, 'users', d.id), { ownedFrames: fb.arrayUnion(v.id) })));
-            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.createGlobal', actionLabel: 'رفع إطار عام جديد', targetType: 'frame', targetId: v.id, after: { grantedTo: usersSnap.size } });
-            AdminToast.success(`تم الرفع ومنحه لـ${usersSnap.size} حساب حالي (الحسابات الجديدة بعدها تحتاج منح يدوي أو ربطه بشارة)`);
+            const levelsSnap = await fb.getDocs(fb.collection(fb.db, 'levels'));
+            await Promise.all(levelsSnap.docs.map((d) => fb.setDoc(fb.doc(fb.db, 'levels', d.id), { ownedFrames: fb.arrayUnion(v.id) }, { merge: true })));
+            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.createGlobal', actionLabel: 'رفع إطار عام جديد', targetType: 'frame', targetId: v.id, after: { grantedTo: levelsSnap.size } });
+            AdminToast.success(`تم الرفع ومنحه لـ${levelsSnap.size} سجل مستويات حالي (الحسابات الجديدة بعدها تحتاج منح يدوي)`);
           }
         });
       }
@@ -62,9 +65,9 @@ defineSection({
           onSubmit: async (v) => {
             const uid = await resolveUidByUsername(v.username);
             if (!uid) throw new Error('ما لقيت هذا المستخدم');
-            await fb.updateDoc(fb.doc(fb.db, 'users', uid), { ownedFrames: fb.arrayUnion(v.frameId) });
-            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.grant', actionLabel: 'منح إطار للاعب', targetType: 'user', targetId: uid, targetLabel: v.username, after: { frameId: v.frameId } });
-            AdminToast.success('تم المنح');
+            const keys = await framesGrant(v.username, v.frameId);
+            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.grant', actionLabel: 'منح إطار للاعب', targetType: 'user', targetId: uid, targetLabel: v.username, after: { frameId: v.frameId, levelsKeys: keys } });
+            AdminToast.success('تم المنح على ' + keys.length + ' مفتاح (' + keys.join('، ') + ')');
           }
         });
       }
@@ -83,9 +86,9 @@ defineSection({
           onSubmit: async (v) => {
             const uid = await resolveUidByUsername(v.username);
             if (!uid) throw new Error('ما لقيت هذا المستخدم');
-            await fb.updateDoc(fb.doc(fb.db, 'users', uid), { ownedFrames: fb.arrayRemove(v.frameId) });
-            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.revoke', actionLabel: 'سحب إطار من لاعب', targetType: 'user', targetId: uid, targetLabel: v.username, after: { frameId: v.frameId }, sensitive: true });
-            AdminToast.success('تم السحب');
+            const keys = await framesRevoke(v.username, v.frameId);
+            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.revoke', actionLabel: 'سحب إطار من لاعب', targetType: 'user', targetId: uid, targetLabel: v.username, after: { frameId: v.frameId, levelsKeys: keys }, sensitive: true });
+            AdminToast.success('تم السحب من ' + keys.length + ' مفتاح');
           }
         });
       }
@@ -158,8 +161,8 @@ defineSection({
             title: 'تأكيد الحذف', danger: true, doubleConfirm: true,
             message: 'يحذف الإطار من الكتالوج ومن كل من يملكه حالياً.',
             onConfirm: async () => {
-              const ownersSnap = await fb.getDocs(fb.query(fb.collection(fb.db, 'users'), fb.where('ownedFrames', 'array-contains', frameId)));
-              await Promise.all(ownersSnap.docs.map((d) => fb.updateDoc(fb.doc(fb.db, 'users', d.id), { ownedFrames: fb.arrayRemove(frameId) })));
+              const owners = await listFrameOwners(frameId);
+              await Promise.all(owners.map((o) => fb.setDoc(fb.doc(fb.db, 'levels', o.key), { ownedFrames: fb.arrayRemove(frameId) }, { merge: true })));
               await fb.deleteDoc(fb.doc(fb.db, 'framesCatalog', frameId));
               await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.delete', actionLabel: 'حذف إطار نهائياً', targetType: 'frame', targetId: frameId, after: { removedFrom: ownersSnap.size }, sensitive: true });
               AdminToast.success(`تم الحذف من ${ownersSnap.size} حساب`);
@@ -275,7 +278,7 @@ defineSection({
           let ok = 0;
           for (const name of names) {
             const uid = await resolveUidByUsername(name);
-            if (uid) { await fb.updateDoc(fb.doc(fb.db, 'users', uid), { ownedFrames: fb.arrayUnion(frameId) }); ok++; }
+            if (uid) { await framesGrant(name, frameId); ok++; }
           }
           await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.bulkGrant', actionLabel: 'منح إطار جماعي', targetType: 'frame', targetId: frameId, after: { count: ok, total: names.length } });
           AdminToast.success(`تم المنح لـ${ok} من أصل ${names.length}`);
