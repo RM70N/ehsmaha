@@ -202,6 +202,7 @@ function renderTopbar() {
     </button>
     <div class="admin-topbar__right">
       <span class="admin-topbar__readonly" id="admin-readonly-flag" hidden>وضع قراءة فقط</span>
+      <span class="admin-topbar__readonly" id="admin-backend-flag" hidden title="حصة Firestore انتهت — اللوحة تشتغل الآن على النسخة الاحتياطية (Realtime Database) وترجع تلقائياً أول ما ترجع الحصة">وضع احتياطي: Realtime DB</span>
       <a class="admin-btn admin-btn--ghost" id="admin-open-site-btn" href="https://ehsmaha.com" target="_blank" rel="noopener">فتح الموقع الرئيسي ↗</a>
       <span class="admin-topbar__admin">${AdminAuth.currentAdmin ? AdminAuth.currentAdmin.email : ''}</span>
       <button type="button" class="admin-btn admin-btn--ghost" id="admin-logout-btn">تسجيل خروج</button>
@@ -209,6 +210,14 @@ function renderTopbar() {
   `;
   document.getElementById('admin-palette-trigger').addEventListener('click', openPalette);
   document.getElementById('admin-logout-btn').addEventListener('click', () => AdminAuth.signOut());
+  // مؤشر القاعدة المستخدَمة الآن — يظهر فقط لما نكون بالوضع الاحتياطي، عشان
+  // المالك يعرف ليش الأرقام ممكن تتأخر شوي بدل ما يظن إن فيه عطل.
+  if (fb.__resilient) {
+    fb.__resilient.onBackendChange((st) => {
+      const el = document.getElementById('admin-backend-flag');
+      if (el) el.hidden = !st.blocked;
+    });
+  }
 }
 
 function applySettings(data) {

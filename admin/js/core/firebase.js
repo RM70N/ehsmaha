@@ -18,6 +18,7 @@ import {
   getDatabase, ref as rtdbRef, get as rtdbGet, set as rtdbSet, update as rtdbUpdate,
   remove as rtdbRemove, onValue as rtdbOnValue, off as rtdbOff, serverTimestamp as rtdbServerTimestamp
 } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { buildResilientFB } from './fb-resilient.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE",
@@ -35,8 +36,9 @@ const auth = getAuth(app);
 // نفس سبب الفرض بالموقع الرئيسي: بعض الشبكات (خصوصاً بالجوال) تقطع اتصال
 // gRPC الصامد بصمت فتُعلَّق كل القراءات/الكتابات الحيّة بدون أي خطأ ظاهر.
 const db = initializeFirestore(app, { experimentalForceLongPolling: true });
-// جسر المصير (bridgeEvents) وframesCatalogExtra يستخدمان Realtime Database
-// كنظام احتياطي/أساسي منفصل تماماً عن Firestore — نحتاجه لقسم 34.
+// Realtime Database: مصدر أساسي لبعض الأنظمة (جسر المصير bridgeEvents،
+// framesCatalogExtra) **وكمان** القاعدة الاحتياطية الكاملة للوحة كلها لو
+// خلصت حصة Firestore — راجع fb-resilient.js.
 let rtdb;
 try { rtdb = getDatabase(app); } catch (err) { rtdb = undefined; }
 
@@ -44,7 +46,8 @@ try { rtdb = getDatabase(app); } catch (err) { rtdb = undefined; }
 // بقواعد Firestore الحالية (firestore.rules) للموقع الرئيسي.
 export const OWNER_EMAIL = 'malshaifan1@gmail.com';
 
-export const AdminFB = {
+// الواجهة الخام (Firestore مباشرة) — ما تُستخدم إلا من داخل طبقة الصمود.
+const RawFB = {
   app, auth, db, rtdb,
   setPersistence, browserLocalPersistence, onAuthStateChanged,
   signInWithEmailAndPassword, signOut, updatePassword, reauthenticateWithCredential,
@@ -56,4 +59,10 @@ export const AdminFB = {
   rtdbRef, rtdbGet, rtdbSet, rtdbUpdate, rtdbRemove, rtdbOnValue, rtdbOff, rtdbServerTimestamp
 };
 
+// كل الأقسام الستين تستورد AdminFB وتستدعي fb.getDoc/fb.setDoc/... بنفس
+// الأسماء — فنلفّها هنا بطبقة الصمود بدل ما نعدّل 60 ملفاً. النتيجة: أي قسم
+// يشتغل تلقائياً على Firestore أو RTDB حسب توفّر الحصة بلا أي تغيير بكوده.
+export const AdminFB = buildResilientFB(RawFB);
+
 window.AdminFB = AdminFB;
+window.AdminFBRaw = RawFB;

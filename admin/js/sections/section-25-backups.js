@@ -19,6 +19,19 @@ const KNOWN_COLLECTIONS = [
   'gameConfig', 'siteContent', 'adminAuditLog', 'devSpecial', 'alfawzanSpecial', 'ghnamSpecial'
 ];
 
+// التجميعات اللي نبيها موجودة بالنسخة الحيّة على Realtime Database، عشان لو
+// خلصت حصة Firestore تلاقي اللوحة بيانات فعلية بدل قاعدة فاضية. أوسع شوي من
+// قائمة النسخ اليدوي فوق لأنها تشمل التشغيل اليومي (الحضور، الجلسات، الأجهزة،
+// التذاكر، الإشعارات المجدولة...).
+const MIRROR_COLLECTIONS = KNOWN_COLLECTIONS.concat([
+  'presence', 'activeStreamers', 'liveRounds', 'deviceSessions', 'adminSettings',
+  'adminRoles', 'adminNotes', 'adminIpBans', 'adminDeviceBans', 'adminSecurityAlerts',
+  'clientErrorLog', 'gameContentBanks', 'notifTemplates', 'scheduledNotifications',
+  'broadcastCampaigns', 'specialEvents', 'abExperiments', 'uiText', 'subscriptionPlans',
+  'streamerApplications', 'feedbackCannedResponses', 'aiGameTemplates', 'apiHealthLog',
+  'recurringContestTemplates', 'backupsLog', 'overlayArchive', 'scheduledContent'
+]);
+
 async function dumpCollections(names) {
   const dump = {};
   for (const name of names) {
@@ -53,6 +66,61 @@ defineSection({
   title: 'النسخ الاحتياطي والاستعادة',
   description: `نسخ حقيقي لـ${KNOWN_COLLECTIONS.length} كولكشن رئيسي (Firestore لا يدعم سرد الكولكشنات تلقائياً من المتصفح) — الملف يُنزَّل لجهازك مباشرة.`,
   tools: [
+    {
+      title: 'حالة قاعدة البيانات المستخدَمة الآن (Firestore / احتياطي Realtime)',
+      keywords: 'حالة قاعدة بيانات احتياطي realtime firestore حصة',
+      run: async () => {
+        const R = fb.__resilient;
+        const st = R.getBackendState();
+        const queued = await R.pendingSyncCount();
+        const body = document.createElement('div');
+        body.innerHTML = `
+          <div class="admin-stat-card"><div class="admin-stat-card__label">القاعدة المستخدَمة الآن</div>
+            <div class="admin-stat-card__value">${st.backend === 'rtdb' ? 'Realtime Database (احتياطي)' : 'Firestore (أساسي)'}</div></div>
+          <dl class="admin-kv" style="margin-top:10px;">
+            <dt>سبب التحويل</dt><dd>${st.blocked ? (st.reason || 'حصة Firestore انتهت') : '—'}</dd>
+            <dt>منذ</dt><dd>${st.blocked && st.since ? fmtDate(st.since) : '—'}</dd>
+            <dt>كتابات تنتظر المزامنة لـFirestore</dt><dd>${queued}</dd>
+          </dl>
+          <p class="admin-field__hint" style="margin-top:10px;">التحويل تلقائي بالكامل: أول خطأ "نفاد حصة" من Firestore تنتقل اللوحة لـRealtime Database، وتعيد المحاولة على Firestore كل 3 دقائق — وأول نجاح ترجع له وتزامن كل الكتابات اللي صارت أثناء الانقطاع.</p>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="admin-btn admin-btn--ghost admin-btn--sm" id="bk-force-rtdb">جرّب الوضع الاحتياطي الآن</button>
+            <button class="admin-btn admin-btn--ghost admin-btn--sm" id="bk-force-fs">ارجع لـFirestore</button>
+            <button class="admin-btn admin-btn--primary admin-btn--sm" id="bk-drain">زامن الكتابات المعلّقة الآن</button>
+          </div>`;
+        openModal({ title: 'حالة قاعدة البيانات', bodyEl: body, size: 'md' });
+        body.querySelector('#bk-force-rtdb').addEventListener('click', () => { R.forceRtdb(true); AdminToast.warn('تحوّلت يدوياً للوضع الاحتياطي — افتح أي أداة وشوفها تشتغل من Realtime Database'); });
+        body.querySelector('#bk-force-fs').addEventListener('click', () => { R.forceRtdb(false); AdminToast.success('رجعنا لـFirestore ونزامن المعلّق'); });
+        body.querySelector('#bk-drain').addEventListener('click', async () => { await R.drainSyncQueue(); AdminToast.success('تمت محاولة المزامنة — افتح الأداة من جديد لتحديث العدّاد'); });
+      }
+    },
+    {
+      title: 'تحديث النسخة الحيّة على Realtime Database (استعداد لنفاد حصة Firestore)',
+      keywords: 'مزامنة نسخة حية realtime احتياطي تحديث مرآة',
+      run: () => {
+        const body = document.createElement('div');
+        body.innerHTML = `<p>ينسخ ${MIRROR_COLLECTIONS.length} تجميعة من Firestore إلى Realtime Database، عشان لو خلصت الحصة تلاقي اللوحة بيانات حقيقية جاهزة بدل قاعدة فاضية.</p>
+        <p class="admin-field__hint">اللوحة أصلاً تحدّث هذي النسخة تلقائياً: كل كتابة تنكتب بالقاعدتين، وكل قراءة ناجحة تُنسخ كمان. هذي الأداة للتحديث الشامل دفعة وحدة (يُنصح بتشغيلها مرة أول ما تنشر اللوحة).</p>
+        <button class="admin-btn admin-btn--primary" id="bk-mirror-go" style="margin-top:8px;">ابدأ التحديث الشامل</button>
+        <div id="bk-mirror-out" style="margin-top:10px;"></div>`;
+        openModal({ title: 'تحديث النسخة الحيّة', bodyEl: body, size: 'lg' });
+        body.querySelector('#bk-mirror-go').addEventListener('click', async (e) => {
+          if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
+          e.target.disabled = true;
+          const out = body.querySelector('#bk-mirror-out');
+          out.innerHTML = 'جارٍ النسخ...';
+          const report = await fb.__resilient.backfillCollections(MIRROR_COLLECTIONS, (row, all) => {
+            out.innerHTML = `<p>${all.length} / ${MIRROR_COLLECTIONS.length} — آخر تجميعة: ${row.name} (${row.count})</p>`;
+          });
+          const total = report.reduce((n, r) => n + r.count, 0);
+          const failed = report.filter((r) => !r.ok);
+          out.innerHTML = `<table class="admin-table"><thead><tr><th>التجميعة</th><th>عدد المستندات</th><th>الحالة</th></tr></thead><tbody>${report.map((r) => `<tr><td class="is-primary" data-label="التجميعة">${r.name}</td><td data-label="العدد">${r.count}</td><td data-label="الحالة">${r.ok ? '✅' : '⚠️ ' + (r.error || '')}</td></tr>`).join('')}</tbody></table>`;
+          await AdminAudit.log({ section: 25, sectionTitle: 'النسخ الاحتياطي', actionKey: 'backup.mirrorRtdb', actionLabel: 'تحديث النسخة الحيّة على Realtime Database', after: { collections: report.length, docs: total, failed: failed.length } });
+          AdminToast.success(`تم نسخ ${total} مستند من ${report.length - failed.length} تجميعة`);
+          e.target.disabled = false;
+        });
+      }
+    },
     {
       title: 'إنشاء نسخة احتياطية يدوية فورية لقاعدة البيانات كاملة',
       keywords: 'نسخة احتياطية فورية يدوية',
