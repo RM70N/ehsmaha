@@ -4,11 +4,39 @@
 // استخداماً، وسجل الأخطاء التقنية — بدل تكرار نفس الكود بكل ملف قسم.
 import { AdminFB } from './firebase.js';
 import { AdminAudit } from './audit.js';
-import { openModal, isReadOnly } from './modal.js';
+import { openModal, openFormModal, isReadOnly } from './modal.js';
 import { AdminToast } from './toast.js';
 import { fmtDate, fmtNum, csvDownload } from './format.js';
 
 const fb = AdminFB;
+
+// -------- تعديل إعدادات اللعبة (نقاط/توقيت/صعوبة) — gameConfig/{gameTag} --------
+// صراحة مهمة: gameConfig كولكشن جاهز بـfirestore.rules لكن كود اللعبة
+// بـindex.html لا يقرأ منه حالياً لأي لعبة — القيم تُحفظ فعلياً بقاعدة
+// البيانات (مو وهمية) لكنها لن تُغيّر سلوك اللعبة الفعلي حتى تُربط قراءتها
+// بمنطق كل لعبة بمرحلة قادمة. نتركه هنا كأداة "تحضير قيم جاهزة" بدل حذفه.
+export function gameConfigTool(gameTag, gameName, fields) {
+  return {
+    title: `تعديل إعدادات "${gameName}" (${(fields || []).map((f) => f.label).join('، ')})`,
+    keywords: `اعدادات ضبط ${gameName} نقاط توقيت صعوبة`,
+    badge: 'يحتاج ربط بمنطق اللعبة',
+    run: async () => {
+      const snap = await fb.getDoc(fb.doc(fb.db, 'gameConfig', gameTag));
+      const cur = snap.exists() ? snap.data() : {};
+      openFormModal({
+        title: `إعدادات ${gameName}`,
+        fields: [
+          ...(fields || []).map((f) => ({ ...f, value: cur[f.key] !== undefined ? cur[f.key] : f.value }))
+        ],
+        onSubmit: async (v) => {
+          await fb.setDoc(fb.doc(fb.db, 'gameConfig', gameTag), v, { merge: true });
+          await AdminAudit.log({ actionKey: `game.${gameTag}.config`, actionLabel: `تعديل إعدادات ${gameName}`, targetType: 'gameConfig', targetId: gameTag });
+          AdminToast.success('تم الحفظ بقاعدة البيانات — تذكير: اللعبة نفسها ما تقرأ من gameConfig تلقائياً بعد، القيمة محفوظة وجاهزة لربط قادم');
+        }
+      });
+    }
+  };
+}
 
 // -------- مراقبة الجلسات الجارية الآن (من activeStreamers، مفلترة بالوسم) --------
 export function liveSessionsTool(gameTag, gameName) {
@@ -102,6 +130,25 @@ export function topStreamersTool(gameTag, gameName) {
       });
       const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
       body.innerHTML = top.length ? `<table class="admin-table"><thead><tr><th>الستريمر</th><th>عدد المرات</th></tr></thead><tbody>${top.map(([u, c]) => `<tr><td class="is-primary" data-label="الستريمر">${u}</td><td data-label="العدد">${fmtNum(c)}</td></tr>`).join('')}</tbody></table>` : '<p>ولا بيانات كافية بعد</p>';
+    }
+  };
+}
+
+// -------- المشاركون الحاليون بالراوند الجاري (liveRounds/{gameTag} — مرآة حقيقية من كود كل لعبة) --------
+export function liveRoundParticipantsTool(gameTag, gameName) {
+  return {
+    title: `عرض المشاركين بالراوند الجاري الآن لـ"${gameName}"`,
+    keywords: `مشاركون راوند جاري ${gameName}`,
+    run: () => {
+      const body = document.createElement('div');
+      body.textContent = 'جارٍ التحميل...';
+      let unsub = () => {};
+      openModal({ title: `المشاركون الآن — ${gameName}`, bodyEl: body, size: 'md', onClose: () => unsub() });
+      unsub = fb.onSnapshot(fb.doc(fb.db, 'liveRounds', gameTag), (snap) => {
+        const data = snap.exists() ? snap.data() : null;
+        const list = (data && data.participants) || [];
+        body.innerHTML = list.length ? `<p class="admin-field__hint">آخر تحديث: ${fmtDate(data.updatedAt)}</p><table class="admin-table"><thead><tr><th>الاسم المستعار</th><th>المعرّف</th></tr></thead><tbody>${list.map((p) => `<tr><td class="is-primary" data-label="الاسم">${p.nickname || '—'}</td><td data-label="المعرّف">${p.uniqueId || '—'}</td></tr>`).join('')}</tbody></table>` : '<p>ولا راوند شغّال الآن لهذي اللعبة (أو ولا مشارك دخل بعد)</p>';
+      }, () => { body.textContent = 'تعذّر التحميل'; });
     }
   };
 }
@@ -214,4 +261,129 @@ export function contentBankTools({ bankKey, gameName, itemLabel, addFields, rend
       }
     }
   };
+}
+
+// -------- لوحة فئة كاملة من الألعاب (أونلاين/جمعات/فردية) — أدوات مجمَّعة على قائمة tags --------
+// بدل بناء 20+ قسم مستقل بنفس الأدوات الخمسة، نجمّع كل ألعاب الفئة بنفس
+// أدوات النظرة العامة (جلسات، أكثر لعب، أخطاء، تفعيل جماعي) — كل لعبة
+// بالفئة تبقى مفلترة بنفس gameTag الحقيقي المستخدَم بـplayEvents/activeStreamers.
+export function categoryTools({ tags, categoryName, sectionId }) {
+  return [
+    {
+      title: `لوحة إحصائيات كل ألعاب "${categoryName}" (آخر 30 يوم)`,
+      keywords: `احصائيات فئة ${categoryName}`,
+      run: async () => {
+        const body = document.createElement('div');
+        body.textContent = 'جارٍ التحميل...';
+        openModal({ title: `إحصائيات ${categoryName}`, bodyEl: body, size: 'lg' });
+        const since = Date.now() - 30 * 86400000;
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'playEvents'), fb.orderBy('createdAt', 'desc'), fb.limit(5000)));
+        const rows = snap.docs.map((d) => d.data());
+        const counts = new Map(tags.map((t) => [t, 0]));
+        rows.forEach((r) => { if (counts.has(r.gameTag)) counts.set(r.gameTag, counts.get(r.gameTag) + 1); });
+        const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+        body.innerHTML = `<table class="admin-table"><thead><tr><th>اللعبة (tag)</th><th>عدد مرات اللعب (30 يوم)</th></tr></thead><tbody>${sorted.map(([t, c]) => `<tr><td class="is-primary" data-label="اللعبة">${t}</td><td data-label="العدد">${fmtNum(c)}</td></tr>`).join('')}</tbody></table>`;
+      }
+    },
+    {
+      title: `مراقبة الجلسات الجارية الآن لكل ألعاب "${categoryName}"`,
+      keywords: `جلسات جارية فئة ${categoryName}`,
+      run: () => {
+        const body = document.createElement('div');
+        body.textContent = 'جارٍ التحميل...';
+        let unsub = () => {};
+        openModal({ title: `الجلسات الجارية — ${categoryName}`, bodyEl: body, size: 'lg', onClose: () => unsub() });
+        unsub = fb.onSnapshot(fb.collection(fb.db, 'activeStreamers'), (snap) => {
+          const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((r) => tags.includes(r.gameTag));
+          body.innerHTML = rows.length ? `<table class="admin-table"><thead><tr><th>اللعبة</th><th>الستريمر</th><th>المنصة</th><th></th></tr></thead><tbody>${rows.map((r) => `<tr><td data-label="اللعبة">${r.gameTag}</td><td class="is-primary" data-label="الستريمر">${r.username || '—'}</td><td data-label="المنصة">${r.platform || '—'}</td><td><button class="admin-btn admin-btn--danger admin-btn--sm" data-end="${r.id}">إنهاء</button></td></tr>`).join('')}</tbody></table>` : `<p>ولا جلسة شغّالة الآن من ألعاب ${categoryName}</p>`;
+          body.querySelectorAll('[data-end]').forEach((btn) => btn.addEventListener('click', async () => {
+            if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
+            await fb.deleteDoc(fb.doc(fb.db, 'activeStreamers', btn.getAttribute('data-end')));
+            AdminToast.success('تم الإنهاء');
+          }));
+        }, () => { body.textContent = 'تعذّر التحميل'; });
+      }
+    },
+    {
+      title: `أكثر لعبة استخداماً ضمن فئة "${categoryName}"`,
+      keywords: `اكثر لعبة استخداما فئة ${categoryName}`,
+      run: async () => {
+        const body = document.createElement('div');
+        body.textContent = 'جارٍ التحميل...';
+        openModal({ title: `الأكثر استخداماً — ${categoryName}`, bodyEl: body, size: 'md' });
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'playEvents'), fb.orderBy('createdAt', 'desc'), fb.limit(5000)));
+        const rows = snap.docs.map((d) => d.data()).filter((r) => tags.includes(r.gameTag));
+        const counts = new Map();
+        rows.forEach((r) => counts.set(r.gameTag, (counts.get(r.gameTag) || 0) + 1));
+        const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+        body.innerHTML = top ? `<div class="admin-stat-card"><div class="admin-stat-card__label">الأكثر استخداماً</div><div class="admin-stat-card__value">${top[0]}</div><div class="admin-field__hint">${fmtNum(top[1])} مرة آخر ${fmtNum(rows.length)} حدث مسجَّل بالفئة</div></div>` : '<p>ولا بيانات كافية بعد</p>';
+      }
+    },
+    {
+      title: `تفعيل/تعطيل جماعي لكل ألعاب "${categoryName}"`,
+      keywords: `تفعيل تعطيل جماعي فئة ${categoryName}`,
+      run: () => {
+        const body = document.createElement('div');
+        body.innerHTML = `<p>يُطبَّق على ${tags.length} لعبة: ${tags.join('، ')}</p><div style="display:flex;gap:8px;margin-top:10px;"><button class="admin-btn admin-btn--primary admin-btn--sm" id="cat-enable-all">تفعيل الكل</button><button class="admin-btn admin-btn--danger admin-btn--sm" id="cat-disable-all">تعطيل الكل</button></div>`;
+        const modal = openModal({ title: `تفعيل/تعطيل جماعي — ${categoryName}`, bodyEl: body, size: 'sm' });
+        async function applyAll(enabled) {
+          if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
+          const patch = {};
+          tags.forEach((t) => { patch[t] = enabled; });
+          await fb.setDoc(fb.doc(fb.db, 'siteFlags', 'gameToggles'), patch, { merge: true });
+          await AdminAudit.log({ section: sectionId, sectionTitle: categoryName, actionKey: 'category.bulkToggle', actionLabel: `${enabled ? 'تفعيل' : 'تعطيل'} جماعي — ${categoryName}`, sensitive: true });
+          AdminToast.success('تم التطبيق على كل ألعاب الفئة');
+          modal.close();
+        }
+        body.querySelector('#cat-enable-all').addEventListener('click', () => applyAll(true));
+        body.querySelector('#cat-disable-all').addEventListener('click', () => applyAll(false));
+      }
+    },
+    {
+      title: `عرض حالة تفعيل كل لعبة ضمن فئة "${categoryName}" على حدة`,
+      keywords: `حالة تفعيل كل لعبة فئة ${categoryName}`,
+      run: async () => {
+        const snap = await fb.getDoc(fb.doc(fb.db, 'siteFlags', 'gameToggles'));
+        const data = snap.exists() ? snap.data() : {};
+        const body = document.createElement('div');
+        body.innerHTML = `<table class="admin-table"><thead><tr><th>اللعبة</th><th>الحالة</th><th></th></tr></thead><tbody>${tags.map((t) => {
+          const v = data[t];
+          const enabled = v !== false;
+          return `<tr><td class="is-primary" data-label="اللعبة">${t}</td><td data-label="الحالة"><span class="admin-badge ${enabled ? 'admin-badge--on' : 'admin-badge--off'}">${enabled ? 'مفعّلة' : 'معطّلة'}</span></td><td><button class="admin-btn admin-btn--ghost admin-btn--sm" data-tg="${t}" data-cur="${enabled}">${enabled ? 'تعطيل' : 'تفعيل'}</button></td></tr>`;
+        }).join('')}</tbody></table>`;
+        openModal({ title: `حالة تفعيل ألعاب ${categoryName}`, bodyEl: body, size: 'lg' });
+        body.querySelectorAll('[data-tg]').forEach((btn) => btn.addEventListener('click', async () => {
+          if (isReadOnly()) { AdminToast.warn('اللوحة بوضع قراءة فقط'); return; }
+          const t = btn.getAttribute('data-tg');
+          const cur = btn.getAttribute('data-cur') === 'true';
+          await fb.setDoc(fb.doc(fb.db, 'siteFlags', 'gameToggles'), { [t]: !cur }, { merge: true });
+          AdminToast.success('تم الحفظ');
+          btn.closest('tr').remove();
+        }));
+      }
+    },
+    {
+      title: `سجل الأخطاء التقنية المسجَّلة عبر كل ألعاب "${categoryName}"`,
+      keywords: `اخطاء تقنية فئة ${categoryName}`,
+      run: async () => {
+        const body = document.createElement('div');
+        body.textContent = 'جارٍ التحميل...';
+        openModal({ title: `أخطاء تقنية — ${categoryName}`, bodyEl: body, size: 'lg' });
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'clientErrorLog'), fb.orderBy('ts', 'desc'), fb.limit(500)));
+        const rows = snap.docs.map((d) => d.data()).filter((r) => tags.some((t) => (r.message || '').toLowerCase().includes(t.toLowerCase()) || (r.url || '').toLowerCase().includes(t.toLowerCase())));
+        body.innerHTML = rows.length ? `<table class="admin-table"><thead><tr><th>الوقت</th><th>الرسالة</th></tr></thead><tbody>${rows.map((r) => `<tr><td data-label="الوقت">${fmtDate(r.ts)}</td><td data-label="الرسالة">${(r.message || '').slice(0, 120)}</td></tr>`).join('')}</tbody></table>` : '<p>ولا خطأ مطابق مسجَّل — مطابقة نصية تقريبية بعنوان الصفحة/رسالة الخطأ.</p>';
+      }
+    },
+    {
+      title: `تصدير تقرير أداء شامل لكل ألعاب "${categoryName}"`,
+      keywords: `تصدير تقرير شامل فئة ${categoryName}`,
+      run: async () => {
+        const since = Date.now() - 30 * 86400000;
+        const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'playEvents'), fb.orderBy('createdAt', 'desc'), fb.limit(5000)));
+        const rows = snap.docs.map((d) => d.data()).filter((r) => tags.includes(r.gameTag));
+        csvDownload(`${categoryName}-report.csv`, [['الوقت', 'اللعبة', 'النوع', 'الستريمر/اللاعب', 'المنصة'], ...rows.map((r) => [fmtDate(r.createdAt), r.gameTag, r.type, r.username, r.platform])]);
+        AdminToast.success(`تم تصدير ${rows.length} حدث`);
+      }
+    }
+  ];
 }

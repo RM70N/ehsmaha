@@ -37,12 +37,44 @@ import '../sections/section-27-ab-testing.js';
 import '../sections/section-28-language.js';
 import '../sections/section-29-maintenance.js';
 import '../sections/section-30-settings.js';
+import '../sections/section-31-tug.js';
+import '../sections/section-32-rlgl.js';
+import '../sections/section-33-crownsteal.js';
+import '../sections/section-34-bridgefate.js';
+import '../sections/section-35-bomb.js';
+import '../sections/section-36-cw.js';
+import '../sections/section-37-rou.js';
+import '../sections/section-38-chairs.js';
+import '../sections/section-39-volcaniclands.js';
+import '../sections/section-40-glz.js';
+import '../sections/section-41-tt10.js';
+import '../sections/section-42-online.js';
+import '../sections/section-43-group-games.js';
+import '../sections/section-44-solo-games.js';
+import '../sections/section-45-setup-screen.js';
+import '../sections/section-46-waiting-screen.js';
+import '../sections/section-47-round-screen.js';
+import '../sections/section-48-elimination-screen.js';
+import '../sections/section-49-win-screen.js';
+import '../sections/section-50-streamer-linking.js';
+import '../sections/section-51-custom-overlays.js';
+import '../sections/section-52-player-profile.js';
+import '../sections/section-53-player-tiktok.js';
+import '../sections/section-54-sidebar-menu.js';
+import '../sections/section-55-public-leaderboard.js';
+import '../sections/section-56-make-your-game.js';
+import '../sections/section-57-published-seo-pages.js';
+import '../sections/section-58-brand-identity.js';
+import '../sections/section-59-multi-channel.js';
+import '../sections/section-60-team-join-codes.js';
 
 const fb = AdminFB;
 
-// القائمة الكاملة للأقسام الـ30 (البنية الكاملة تظهر دائماً بالقائمة الجانبية
-// حتى قبل ما تُبنى كل الأقسام — الأقسام غير المبنية بعد تظهر بوضوح "قريباً"
-// بدل ما تختفي، حتى تبقى الخريطة الكاملة مرئية من أول يوم).
+// القائمة الكاملة للأقسام الـ60 — كلها مبنية الآن (BUILT_SECTIONS أدناه).
+// تصحيحان بالتسمية عن الخطة الأولى: قسم 33 كان "نجاة من اللافا" (نفس لعبة
+// قسم 39 "الأراضي البركانية" حرفياً — لا لعبة منفصلة) واستُبدل بـ"سرقة
+// التاج"؛ قسم 35 كان "لعبة مصيرك" (مجرد جملة داخل واجهة قسم 34 "جسر
+// المصير"، لا لعبة منفصلة) واستُبدل بـ"القنبلة المتحركة".
 export const SECTION_TITLES = {
   1: 'نظرة عامة', 2: 'إدارة اللاعبين', 3: 'إدارة الستريمرز', 4: 'الإطارات',
   5: 'الشارات والإنجازات', 6: 'إحصائيات الألعاب', 7: 'الجلسات المباشرة',
@@ -54,8 +86,8 @@ export const SECTION_TITLES = {
   24: 'مراقبة الأداء التقني', 25: 'النسخ الاحتياطي', 26: 'صلاحيات المشرفين',
   27: 'اختبار A/B', 28: 'اللغة والترجمة', 29: 'الصيانة والحالة العامة',
   30: 'إعدادات اللوحة',
-  31: 'لعبة شد الحبل', 32: 'لعبة الضوء الأخضر الضوء الأحمر', 33: 'لعبة نجاة من اللافا',
-  34: 'فعالية جسر المصير', 35: 'لعبة مصيرك', 36: 'لعبة حرب الدول',
+  31: 'لعبة شد الحبل', 32: 'لعبة الضوء الأخضر الضوء الأحمر', 33: 'لعبة سرقة التاج',
+  34: 'فعالية جسر المصير', 35: 'لعبة القنبلة المتحركة', 36: 'لعبة حرب الدول',
   37: 'لعبة دائرة الإقصاء', 38: 'لعبة الكرسي المتحرك', 39: 'لعبة الأراضي البركانية',
   40: 'لعبة الطريق الزجاجي', 41: 'لعبة توب 10', 42: 'الألعاب الأونلاين',
   43: 'ألعاب الجمعات', 44: 'الألعاب الفردية', 45: 'شاشة الإعداد العامة',
@@ -66,7 +98,11 @@ export const SECTION_TITLES = {
   58: 'هوية العلامة', 59: 'قنوات الستريمر المتعددة', 60: 'كلمات الدخول للفرق'
 };
 
-const BUILT_SECTIONS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]);
+const BUILT_SECTIONS = new Set([
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
+  31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
+  45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60
+]);
 
 let sidebarEl, topbarEl, contentEl, shellEl;
 let settingsCache = { shortcuts: [], soundAlerts: false, theme: 'dark', readOnlyMode: false, refreshMs: 5000 };
@@ -124,6 +160,15 @@ function orderedSectionIds() {
   return [...custom, ...rest];
 }
 
+// قسم 54: إخفاء أقسام معيّنة من القائمة الجانبية فقط (تظهر لهدف التنظيم لا
+// الحظر) — تُخزَّن hiddenSections بنفس adminSettings/panel. القسم النشط
+// حالياً يبقى ظاهراً حتى لو مخفياً، والوصول يبقى ممكناً دائماً عبر لوحة
+// الأوامر (Ctrl+K) أو رابط مباشر (#/s/{id}) بغض النظر عن الإخفاء.
+function visibleSectionIds(activeId) {
+  const hidden = new Set(Array.isArray(settingsCache.hiddenSections) ? settingsCache.hiddenSections : []);
+  return orderedSectionIds().filter((id) => !hidden.has(id) || id === activeId);
+}
+
 function renderSidebar(activeId) {
   sidebarEl.innerHTML = `
     <div class="admin-sidebar__brand">
@@ -133,7 +178,7 @@ function renderSidebar(activeId) {
     <nav class="admin-sidebar__nav"></nav>
   `;
   const nav = sidebarEl.querySelector('.admin-sidebar__nav');
-  orderedSectionIds().forEach((id) => {
+  visibleSectionIds(activeId).forEach((id) => {
     const built = BUILT_SECTIONS.has(id);
     const item = document.createElement('button');
     item.type = 'button';

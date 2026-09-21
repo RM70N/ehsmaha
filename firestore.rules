@@ -604,34 +604,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /bridgeEvents/{eventId} {
-      allow read: if true;
-
-      allow create: if isOwner();
-
-      allow update: if isOwner() || (
-        request.auth != null &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['globalFx'])
-      );
-
-      allow delete: if isOwner();
-
-      match /players/{uid} {
-        allow read: if true;
-        allow create: if request.auth != null && request.auth.uid == uid;
-        allow update: if request.auth != null && (
-          request.auth.uid == uid ||
-          isOwner() ||
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingFx'])
-        );
-        allow delete: if isOwner();
-      }
-
-      match /state/{docId} {
-        allow read: if true;
-        allow write: if isOwner();
-      }
-    }
+    // تصحيح: "جسر المصير" (bridge-fate) لا يستخدم Firestore إطلاقاً — بيانات
+    // الفعالية الحية تُخزَّن بـRealtime Database (المسارات bridgeEvents/{id}،
+    // bridgePlayers/{eventId}/{key}، bridgeBoard/{eventId})، تفادياً لحصة
+    // قراءات/كتابات Firestore. كان هنا سابقاً قسم قواعد Firestore بنفس الاسم
+    // (بقايا افتراض خاطئ) — أُزيل لأنه ميت فعلياً (index.html ما يكتب/يقرأ
+    // Firestore بهذا المسار أبداً). أمان "جسر المصير" الحقيقي يُدار من
+    // Firebase Console → Realtime Database → Rules، خارج هذا الملف تماماً —
+    // لازم يتأكد المالك إن تلك القواعد تسمح بالقراءة للجميع والكتابة
+    // للمستخدمين المسجَّلين دخول فقط (نفس فكرة isOwner لكن بصياغة RTDB:
+    // auth.token.email === 'malshaifan1@gmail.com').
 
     // ==================== لوحة "ادمن احسمها" (لوحة إدارة منفصلة) ====================
     // كل الكولكشنات التالية تخدم admin/ (موقع Netlify منفصل تماماً عن الموقع
