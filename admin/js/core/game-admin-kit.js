@@ -258,6 +258,10 @@ export function contentBankTools({ bankKey, gameName, itemLabel, addFields, rend
         a.href = URL.createObjectURL(blob);
         a.download = `${bankKey}-backup.json`;
         a.click();
+        URL.revokeObjectURL(a.href);
+        // بدون هذا التأكيد كان الزر ينزّل الملف بصمت تام بلا أي إشارة —
+        // فيبدو للأدمن كأنه ما اشتغل.
+        AdminToast.success(`تم تنزيل نسخة احتياطية من بنك ${itemLabel} (${bankKey}-backup.json)`);
       }
     }
   };
