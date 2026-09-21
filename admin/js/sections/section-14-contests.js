@@ -85,7 +85,7 @@ defineSection({
       title: 'تحديد الجوائز (إطار، شارة، نقاط إضافية)',
       keywords: 'تحديد جوائز مسابقة',
       run: async () => {
-        const [contests, framesSnap, badgesSnap] = await Promise.all([loadContests(), fb.getDocs(fb.collection(fb.db, 'framesCatalog')), fb.getDocs(fb.collection(fb.db, 'badgeDefs'))]);
+        const [contests, framesSnap, badgesSnap] = await Promise.all([loadContests(), fb.getDocs(fb.collection(fb.db, 'framesCatalogExtra')), fb.getDocs(fb.collection(fb.db, 'badgeDefs'))]);
         const frames = framesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         const badges = badgesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         openFormModal({

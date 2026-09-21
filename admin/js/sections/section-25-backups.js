@@ -14,7 +14,7 @@ import { fmtDate, printReport } from '../core/format.js';
 const fb = AdminFB;
 const KNOWN_COLLECTIONS = [
   'users', 'usernames', 'gameBadges', 'levels', 'leaderboards', 'moderators',
-  'framesCatalog', 'badgeDefs', 'streamerProfiles', 'contests', 'feedback',
+  'framesCatalogExtra', 'badgeDefs', 'streamerProfiles', 'contests', 'feedback',
   'contentReports', 'aiGameSubmissions', 'financialTransactions', 'siteFlags',
   'gameConfig', 'siteContent', 'adminAuditLog', 'devSpecial', 'alfawzanSpecial', 'ghnamSpecial'
 ];

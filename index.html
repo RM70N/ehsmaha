@@ -54127,6 +54127,25 @@ function notifRenderPanel() {
         </div>
       `;
     }
+    // رسائل الإدارة (type:'adminMessage') — تُرسَل من لوحة الإدارة بأكثر من
+    // 15 أداة (رسالة مباشرة للاعب، رد على تذكرة، إعلان فوز بمسابقة، قبول
+    // لعبة مقترحة...). بدون هذا الفرع كانت ترجع '' فيشوف اللاعب رقماً بشارة
+    // الإشعارات ولوحة فاضية تماماً، وما يقرأ الرسالة أبداً.
+    if (n.type === 'adminMessage') {
+      return `
+        <div class="rounds-row">
+          <div class="rounds-row-top">
+            <div>
+              <div class="rounds-row-name">📢 ${ownerEscape(n.fromLabel || 'إدارة المنصة')}</div>
+              <div class="rounds-row-sub">${ownerEscape(n.message || '')}</div>
+            </div>
+          </div>
+          <div class="rounds-btn-row">
+            <button type="button" class="rounds-btn" onclick="notifMarkRead('${ownerEscape(n.id)}')">تم — قرأتها</button>
+          </div>
+        </div>
+      `;
+    }
     if (n.type === 'immunityGrant') {
       return `
         <div class="rounds-row">

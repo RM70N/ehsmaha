@@ -1,7 +1,17 @@
 // ==================== القسم 4 — إدارة الإطارات ====================
-// كتالوج جديد framesCatalog/{id} (كتالوج عام يديره الأدمن) — منفصل عن
-// framesCatalogExtra القديم (خاص بإطارات أكواد الجوائز، آلية مختلفة تماماً
-// ما نلمسها).
+// تصحيح ثانٍ جوهري: الكتالوج الحقيقي اللي يعرضه الموقع هو
+// **framesCatalogExtra** — الموقع يشتغل بـframesEffectiveCatalog() =
+// FRAMES_CATALOG (مصفوفة ثابتة داخل index.html) + framesPublicExtra، والثانية
+// مصدرها مستمع حيّ على framesCatalogExtra حيث visibility == 'public'
+// (Firestore وRTDB معاً، يُدمجان). الكتالوج اللي كان مستخدماً هنا سابقاً
+// (framesCatalog) ما يقرأه الموقع بأي مكان، يعني كل إطار يُرفع من اللوحة كان
+// ما يظهر بمعرض الإطارات إطلاقاً رغم نجاح الحفظ.
+// شروط الظهور بالموقع حرفياً (framesPublicExtraApplyDocs + framesInjectRingWithFrame):
+//   visibility === 'public'  و  imageUrl موجود  و  hole موجود
+// وhole = [left, top, width, height] كنِسَب مئوية لفتحة الأفتار داخل الإطار —
+// بدونه الإطار يُرمى بصمت من الكاش ولا يظهر.
+// نكتب على Firestore وRTDB معاً (نفس ما يسوي الموقع بـframesWriteKV) عشان
+// المصدرين ما يتناقضان.
 // تصحيح جوهري: الملكية الفعلية **ليست** على users/{uid}.ownedFrames — الموقع
 // الرئيسي يخزّنها على levels/{key}.ownedFrames (key = levelsKey(username))،
 // ويقرأها بمفتاحين: يوزر الموقع ويوزر تيك توك المربوط. كل منح/سحب هنا صار
@@ -17,9 +27,35 @@ import { getUserByUsername, resolveUidByUsername, framesGrant, framesRevoke, cou
 
 const fb = AdminFB;
 
+const FRAMES_COL = 'framesCatalogExtra';
+
 async function listFrames() {
-  const snap = await fb.getDocs(fb.collection(fb.db, 'framesCatalog'));
+  const snap = await fb.getDocs(fb.collection(fb.db, FRAMES_COL));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+// hole يُكتب كنص "l,t,w,h" بالنماذج ويتحوّل هنا لمصفوفة أرقام — الموقع
+// يفكّها بـ const [l, t, w, h] = f.hole مباشرة.
+function parseHole(raw) {
+  const parts = String(raw || '').split(',').map((x) => Number(String(x).trim()));
+  if (parts.length !== 4 || parts.some((n) => isNaN(n))) return null;
+  return parts;
+}
+
+// كتابة/تحديث على Firestore وRTDB معاً (أفضل جهد على RTDB — Firestore هو
+// المصدر الأساسي اللي يقرأه الموقع أولاً).
+async function frameWrite(id, patch, { merge = true } = {}) {
+  await fb.setDoc(fb.doc(fb.db, FRAMES_COL, id), patch, { merge });
+  if (fb.rtdb) {
+    try { await fb.rtdbUpdate(fb.rtdbRef(fb.rtdb, FRAMES_COL + '/' + id), patch); } catch (err) { /* أفضل جهد */ }
+  }
+}
+
+async function frameDelete(id) {
+  await fb.deleteDoc(fb.doc(fb.db, FRAMES_COL, id));
+  if (fb.rtdb) {
+    try { await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, FRAMES_COL + '/' + id)); } catch (err) { /* أفضل جهد */ }
+  }
 }
 async function countOwners(frameId) {
   return countFrameOwners(frameId);
@@ -28,7 +64,7 @@ async function countOwners(frameId) {
 defineSection({
   id: 4,
   title: 'الإطارات',
-  description: 'كتالوج الإطارات (framesCatalog) والملكية الفعلية على levels/{key}.ownedFrames — نفس المسار اللي يقرأه الموقع الرئيسي بالضبط.',
+  description: 'الكتالوج الحقيقي اللي يعرضه الموقع (framesCatalogExtra، visibility=public) والملكية الفعلية على levels/{key}.ownedFrames — نفس المسارين اللي يقرأهما الموقع بالضبط.',
   tools: [
     {
       title: 'رفع إطار عام جديد يظهر لكل المستخدمين',
@@ -39,14 +75,23 @@ defineSection({
           fields: [
             { key: 'id', label: 'معرّف الإطار (إنجليزي بدون مسافات)', required: true },
             { key: 'name', label: 'الاسم', required: true },
-            { key: 'imageUrl', label: 'رابط الصورة أو data URI', required: true }
+            { key: 'imageUrl', label: 'رابط الصورة أو data URI', required: true },
+            { key: 'hole', label: 'فتحة الأفتار hole (يسار,أعلى,عرض,ارتفاع — نِسَب مئوية)', value: '4,18,24,79', required: true, placeholder: '4,18,24,79' },
+            { key: 'grantAll', label: 'امنحه فوراً لكل سجلات المستويات الحالية', type: 'select', options: [{ value: 'no', label: 'لا — يظهر بالمعرض ويُختار باللفل' }, { value: 'yes', label: 'نعم — منح فوري للجميع' }] }
           ],
           onSubmit: async (v) => {
-            await fb.setDoc(fb.doc(fb.db, 'framesCatalog', v.id), { name: v.name, imageUrl: v.imageUrl, active: true, global: true, createdAt: fb.serverTimestamp() });
-            const levelsSnap = await fb.getDocs(fb.collection(fb.db, 'levels'));
-            await Promise.all(levelsSnap.docs.map((d) => fb.setDoc(fb.doc(fb.db, 'levels', d.id), { ownedFrames: fb.arrayUnion(v.id) }, { merge: true })));
-            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.createGlobal', actionLabel: 'رفع إطار عام جديد', targetType: 'frame', targetId: v.id, after: { grantedTo: levelsSnap.size } });
-            AdminToast.success(`تم الرفع ومنحه لـ${levelsSnap.size} سجل مستويات حالي (الحسابات الجديدة بعدها تحتاج منح يدوي)`);
+            const hole = parseHole(v.hole);
+            if (!hole) throw new Error('صيغة hole غير صحيحة — لازم أربعة أرقام مفصولة بفواصل، مثل 4,18,24,79');
+            // visibility:'public' شرط إلزامي — بدونه الموقع يتجاهل الإطار كلياً.
+            await frameWrite(v.id, { name: v.name, imageUrl: v.imageUrl, hole, visibility: 'public', createdAt: Date.now() }, { merge: false });
+            let granted = 0;
+            if (v.grantAll === 'yes') {
+              const levelsSnap = await fb.getDocs(fb.collection(fb.db, 'levels'));
+              await Promise.all(levelsSnap.docs.map((d) => fb.setDoc(fb.doc(fb.db, 'levels', d.id), { ownedFrames: fb.arrayUnion(v.id) }, { merge: true })));
+              granted = levelsSnap.size;
+            }
+            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.createGlobal', actionLabel: 'رفع إطار عام جديد', targetType: 'frame', targetId: v.id, after: { hole, grantedTo: granted } });
+            AdminToast.success(granted ? `تم الرفع بالمعرض ومنحه لـ${granted} سجل` : 'تم الرفع — يظهر بمعرض الإطارات لكل الزوار فوراً');
           }
         });
       }
@@ -118,7 +163,8 @@ defineSection({
             { key: 'expiresAt', label: 'تاريخ الانتهاء', type: 'date', required: true }
           ],
           onSubmit: async (v) => {
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { seasonal: true, expiresAt: new Date(v.expiresAt) });
+            // millis مو Date: RTDB ما يقبل كائن Date (والموقع ما يقرأ الحقل أصلاً، هذا سجل إداري).
+            await frameWrite(v.frameId, { seasonal: true, expiresAtMs: new Date(v.expiresAt).getTime() });
             await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.seasonal', actionLabel: 'تحديد إطار موسمي', targetType: 'frame', targetId: v.frameId, after: { expiresAt: v.expiresAt } });
             AdminToast.success('تم الحفظ — استخدم أداة "تعطيل إطار مؤقتاً" أو نظّف الملكية يدوياً بعد الانتهاء (لا يوجد تشغيل مجدول تلقائي بالخطة الحالية)');
           }
@@ -139,7 +185,7 @@ defineSection({
             { key: 'badgeId', label: 'الشارة (تُمنح تلقائياً عند نيلها — قسم 5)', type: 'select', options: badges.map((b) => ({ value: b.id, label: b.name })) }
           ],
           onSubmit: async (v) => {
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { linkedBadgeId: v.badgeId || null });
+            await frameWrite(v.frameId, { linkedBadgeId: v.badgeId || null });
             await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.linkBadge', actionLabel: 'ربط إطار بشارة', targetType: 'frame', targetId: v.frameId, after: { badgeId: v.badgeId } });
             AdminToast.success('تم الربط — قسم 5 يمنح هذا الإطار تلقائياً عند منح الشارة');
           }
@@ -163,7 +209,7 @@ defineSection({
             onConfirm: async () => {
               const owners = await listFrameOwners(frameId);
               await Promise.all(owners.map((o) => fb.setDoc(fb.doc(fb.db, 'levels', o.key), { ownedFrames: fb.arrayRemove(frameId) }, { merge: true })));
-              await fb.deleteDoc(fb.doc(fb.db, 'framesCatalog', frameId));
+              await frameDelete(frameId);
               await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.delete', actionLabel: 'حذف إطار نهائياً', targetType: 'frame', targetId: frameId, after: { removedFrom: ownersSnap.size }, sensitive: true });
               AdminToast.success(`تم الحذف من ${ownersSnap.size} حساب`);
               modal.close();
@@ -201,7 +247,7 @@ defineSection({
             { key: 'priority', label: 'الأولوية (رقم أكبر = أول بالعرض)', type: 'number', value: 0 }
           ],
           onSubmit: async (v) => {
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { priority: Number(v.priority) });
+            await frameWrite(v.frameId, { priority: Number(v.priority) });
             await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.priority', actionLabel: 'تعديل أولوية عرض إطار', targetType: 'frame', targetId: v.frameId, after: { priority: v.priority } });
             AdminToast.success('تم الحفظ');
           }
@@ -220,7 +266,7 @@ defineSection({
             { key: 'eventName', label: 'اسم الفعالية', required: true }
           ],
           onSubmit: async (v) => {
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { eventExclusive: v.eventName });
+            await frameWrite(v.frameId, { eventExclusive: v.eventName });
             await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.eventExclusive', actionLabel: 'تفعيل إطار حصري لفعالية', targetType: 'frame', targetId: v.frameId, after: { eventName: v.eventName } });
             AdminToast.success('تم الحفظ');
           }
@@ -252,7 +298,7 @@ defineSection({
             { key: 'imageUrl', label: 'رابط الصورة الجديد', required: true }
           ],
           onSubmit: async (v) => {
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { imageUrl: v.imageUrl });
+            await frameWrite(v.frameId, { imageUrl: v.imageUrl });
             await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.editImage', actionLabel: 'تعديل صورة إطار', targetType: 'frame', targetId: v.frameId });
             AdminToast.success('تم التحديث لكل من يملك هذا الإطار فوراً');
           }
@@ -294,15 +340,17 @@ defineSection({
         openFormModal({
           title: 'تعطيل/تفعيل إطار من الكتالوج',
           fields: [
-            { key: 'frameId', label: 'الإطار', type: 'select', options: frames.map((f) => ({ value: f.id, label: `${f.name} (${f.active === false ? 'معطَّل' : 'مفعّل'})` })), required: true }
+            { key: 'frameId', label: 'الإطار', type: 'select', options: frames.map((f) => ({ value: f.id, label: `${f.name} (${f.visibility === 'public' ? 'ظاهر' : 'مخفي'})` })), required: true }
           ],
           submitText: 'تبديل الحالة',
           onSubmit: async (v) => {
+            // الموقع يفلتر بـvisibility === 'public' حرفياً، فالتعطيل لازم يكون
+            // على هذا الحقل — أي علم آخر (active مثلاً) ما يقرأه أحد.
             const f = frames.find((x) => x.id === v.frameId);
-            const newActive = f.active === false;
-            await fb.updateDoc(fb.doc(fb.db, 'framesCatalog', v.frameId), { active: newActive });
-            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.toggleActive', actionLabel: newActive ? 'تفعيل إطار' : 'تعطيل إطار مؤقتاً', targetType: 'frame', targetId: v.frameId });
-            AdminToast.success('تم — يختفي من الكتالوج/المتجر فقط، من يملكه فعلياً يبقى محتفظاً فيه');
+            const nowPublic = f.visibility !== 'public';
+            await frameWrite(v.frameId, { visibility: nowPublic ? 'public' : 'hidden' });
+            await AdminAudit.log({ section: 4, sectionTitle: 'الإطارات', actionKey: 'frames.toggleVisibility', actionLabel: nowPublic ? 'إظهار إطار بالمعرض' : 'إخفاء إطار من المعرض', targetType: 'frame', targetId: v.frameId, after: { visibility: nowPublic ? 'public' : 'hidden' } });
+            AdminToast.success('تم — يختفي من معرض الإطارات فقط، ومن يملكه فعلاً يبقى إطاره شغّالاً ببطاقته');
           }
         });
       }

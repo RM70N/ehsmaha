@@ -689,9 +689,15 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // framesCatalog — كولكشن ميّت: كانت لوحة الإدارة ترفع الإطارات عليه لكن
+    // الموقع الرئيسي ما يقرأه بأي مكان، فالإطار المرفوع ما يظهر بالمعرض أبداً.
+    // القسم 4 صار يكتب على framesCatalogExtra (المعرّف بقواعده فوق) — وهو
+    // المصدر الحقيقي اللي يقرأه framesPublicExtraBoot بالموقع. القاعدة تُترك
+    // بصلاحية قراءة فقط عشان أي بيانات قديمة تظل قابلة للاطلاع/النقل يدوياً،
+    // بلا كتابة جديدة عليها.
     match /framesCatalog/{frameId} {
-      allow read: if true;
-      allow write: if isOwner();
+      allow read: if isOwner();
+      allow write: if false;
     }
 
     match /badgeDefs/{badgeId} {

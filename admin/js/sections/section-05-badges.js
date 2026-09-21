@@ -208,7 +208,7 @@ defineSection({
       title: 'ربط شارة بمكافأة (نقاط إضافية، إطار، لقب)',
       keywords: 'ربط شارة مكافأة نقاط اطار',
       run: async () => {
-        const [badges, framesSnap] = await Promise.all([listBadges(), fb.getDocs(fb.collection(fb.db, 'framesCatalog'))]);
+        const [badges, framesSnap] = await Promise.all([listBadges(), fb.getDocs(fb.collection(fb.db, 'framesCatalogExtra'))]);
         const frames = framesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         openFormModal({
           title: 'ربط مكافأة بشارة',
