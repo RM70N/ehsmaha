@@ -6428,6 +6428,20 @@ if (location.hostname === 'streamgame1.netlify.app') {
   <button class="msg-banner-close" onclick="personalMessageDismiss()">✕</button>
 </div>
 
+<!-- ====== INCOMING NOTIFICATION BANNER (وسط الشاشة، 10 ثواني) ====== -->
+<!-- أي إشعار يوصل للمستخدم (رسالة من الإدارة، طلب صداقة، دعوة لعب، حصانة...)
+     يظهر هنا بنص الشاشة فوراً. قبل هذا كان الإشعار ينزل بلوحة الجرس بس، فيرفع
+     الرقم على الأيقونة ولا يشوفه المستخدم إلا لو فتح اللوحة بنفسه — يعني
+     عملياً "ما يصير شي" لما ترسل من لوحة الإدارة. -->
+<div class="msg-banner pos-center" id="msg-notif-banner">
+  <div class="msg-banner-icon" id="msg-notif-banner-icon">📢</div>
+  <div class="msg-banner-body">
+    <div class="msg-banner-label" id="msg-notif-banner-label">إدارة المنصة</div>
+    <div class="msg-banner-text" id="msg-notif-banner-text">—</div>
+  </div>
+  <button class="msg-banner-close" onclick="notifBannerDismiss()">✕</button>
+</div>
+
 <!-- ====== BROADCAST MESSAGE BANNER ====== -->
 <div class="msg-banner pos-top" id="msg-broadcast-banner">
   <div class="msg-banner-icon">📣</div>
@@ -13367,8 +13381,12 @@ function profileSetStatus(type, msg) {
 // يُستدعى من كل شاشة نهاية لعبة فردية (أي إكمال جولة، فوز أو خسارة) — يزيد
 // عدّاد soloWinCount بحساب المستخدم المسجّل دخول، بدون أي تأثير على منطق
 // اللعبة نفسها لو فشل الطلب (best-effort).
-function soloRecordCompletion() {
+function soloRecordCompletion(gameTag) {
   levelsNoteSoloRound(); // نظام المستويات — إكمال لعبة فردية = راوند
+  // إحصائيات لوحة الإدارة: نقطة النهاية الموحّدة لكل الألعاب الفردية هي
+  // المكان الصح لتسجيل حدث اللعب — قبلها كانت لعبتان فقط من الست تسجّل
+  // بـplayEvents، فتظهر الباقيات بصفر مرات لعب بلوحة الإدارة رغم إنها تُلعب.
+  if (gameTag) ownerLogSoloRound(gameTag);
   if (!fb || !currentUser) return;
   fb.updateDoc(fb.doc(fb.db, 'users', currentUser.uid), { soloWinCount: fb.increment(1) }).catch(() => {});
 }
@@ -22090,13 +22108,18 @@ async function ownerClearBroadcastMessage() {
 // currently visible in "center" mode (the large glass-card presentation), and
 // hidden once neither is. Clicking the backdrop dismisses whichever banner is
 // centered-visible, same as pressing its ✕.
+// مدة عرض موحّدة لكل بانرات الرسائل — 10 ثواني.
+const MSG_BANNER_SHOW_MS = 10000;
+
 function msgBannerSyncBackdrop() {
   const personal = document.getElementById('msg-personal-banner');
   const broadcast = document.getElementById('msg-broadcast-banner');
   const sevtAnnounce = document.getElementById('sevt-announce-banner');
+  const notif = document.getElementById('msg-notif-banner');
   const anyCentered =
     (personal.classList.contains('visible') && personal.classList.contains('pos-center')) ||
     (broadcast.classList.contains('visible') && broadcast.classList.contains('pos-center')) ||
+    (notif && notif.classList.contains('visible')) ||
     (sevtAnnounce && sevtAnnounce.classList.contains('visible'));
   document.getElementById('msg-banner-backdrop').classList.toggle('visible', anyCentered);
 }
@@ -22105,8 +22128,10 @@ function msgBannerBackdropClick() {
   const personal = document.getElementById('msg-personal-banner');
   const broadcast = document.getElementById('msg-broadcast-banner');
   const sevtAnnounce = document.getElementById('sevt-announce-banner');
+  const notif = document.getElementById('msg-notif-banner');
   if (personal.classList.contains('visible') && personal.classList.contains('pos-center')) personalMessageDismiss();
   if (broadcast.classList.contains('visible') && broadcast.classList.contains('pos-center')) broadcastMessageDismiss();
+  if (notif && notif.classList.contains('visible')) notifBannerDismiss();
   if (sevtAnnounce && sevtAnnounce.classList.contains('visible')) sevtAnnounceDismiss();
 }
 
@@ -22130,14 +22155,17 @@ function personalMessageBoot() {
 function personalMessageShow(data) {
   const banner = document.getElementById('msg-personal-banner');
   banner.classList.remove('pos-top', 'pos-center');
-  banner.classList.add(data.position === 'center' ? 'pos-center' : 'pos-top');
+  // الافتراضي صار "نص الشاشة": الرسالة الموجّهة لشخص لازم يشوفها فعلاً، وبانر
+  // أعلى الصفحة كان يمر بلا ما ينتبه له. أعلى الصفحة يبقى متاحاً لكن باختيار
+  // صريح position:'top' فقط.
+  banner.classList.add(data.position === 'top' ? 'pos-top' : 'pos-center');
   document.getElementById('msg-personal-banner-text').textContent = data.text;
   banner.classList.add('visible');
   msgBannerSyncBackdrop();
 
   if (personalMsgTimeout) { clearTimeout(personalMsgTimeout); personalMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
-    personalMsgTimeout = setTimeout(personalMessageDismiss, 7000);
+    personalMsgTimeout = setTimeout(personalMessageDismiss, MSG_BANNER_SHOW_MS);
   }
 }
 
@@ -22190,14 +22218,14 @@ function broadcastMessageShow(data, sentMs) {
   broadcastMsgCurrentSentMs = sentMs;
   const banner = document.getElementById('msg-broadcast-banner');
   banner.classList.remove('pos-top', 'pos-center');
-  banner.classList.add(data.position === 'center' ? 'pos-center' : 'pos-top');
+  banner.classList.add(data.position === 'top' ? 'pos-top' : 'pos-center');
   document.getElementById('msg-broadcast-banner-text').textContent = data.text;
   banner.classList.add('visible');
   msgBannerSyncBackdrop();
 
   if (broadcastMsgTimeout) { clearTimeout(broadcastMsgTimeout); broadcastMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
-    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, 7000);
+    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, MSG_BANNER_SHOW_MS);
   }
 }
 
@@ -23524,6 +23552,53 @@ function tstShowErrorLog() {
 // Append-only log — one doc per game launch/session start. This is the only
 // source of truth for "how many people played in the last 24h/7d/30d";
 // activeStreamers only holds the current live snapshot, no history.
+// اسم اللعبة كما يعرضه الموقع نفسه (من بطاقة اللعبة) — مصدر واحد بدل جدول
+// أسماء مكرر يتعتّق.
+function ownerGameNameForTag(gameTag) {
+  try {
+    const card = document.querySelector('.gcard[data-tag="' + gameTag + '"] .gcard-name');
+    if (card) return (card.textContent || '').trim();
+  } catch (err) {}
+  return gameTag;
+}
+
+// تسجيل حدث لعب لجولة أونلاين. سبب وجوده: playEvents كان يُكتب من 9 أماكن
+// فقط من أصل 66 لعبة — كل الألعاب الأونلاين (26 لعبة) ما تسجّل ولا حدث، فجدول
+// "عدد مرات اللعب لكل لعبة" بلوحة الإدارة كان يطلع أصفاراً لها رغم إنها
+// تُلعب فعلاً (نظام المستويات يسجّل راوندها بـlevelsNoteOnlineRound).
+// نسجّله بنفس اللحظة اللي تنطلق فيها الجولة فعلاً — مو عند فتح البطاقة —
+// عشان الرقم يعني "جولة ملعوبة" بالضبط مثل باقي الأنواع.
+function ownerLogSoloRound(gameTag) {
+  if (!fb) return;
+  try {
+    fb.setDoc(fb.doc(fb.collection(fb.db, 'playEvents')), {
+      type: 'solo_play',
+      gameTag: gameTag || null,
+      gameName: ownerGameNameForTag(gameTag),
+      uid: (currentUser && currentUser.uid) || null,
+      username: currentUsername || null,
+      platform: 'solo',
+      createdAt: fb.serverTimestamp()
+    }).catch(() => {});
+  } catch (err) { /* best-effort */ }
+}
+
+function ownerLogOnlineRound(gameTag, playerCount) {
+  if (!fb) return;
+  try {
+    fb.setDoc(fb.doc(fb.collection(fb.db, 'playEvents')), {
+      type: 'online_play',
+      gameTag: gameTag || null,
+      gameName: ownerGameNameForTag(gameTag),
+      uid: (currentUser && currentUser.uid) || null,
+      username: currentUsername || null,
+      platform: 'online',
+      playerCount: Number(playerCount) || null,
+      createdAt: fb.serverTimestamp()
+    }).catch(() => {});
+  } catch (err) { /* best-effort — ما يوقف اللعب أبداً */ }
+}
+
 async function ownerLogPlayEvent(type, gameTag, gameName, username, platform) {
   levelsNotePlayEvent(gameTag, platform); // نظام المستويات — مباراة جمعات = راوند لصاحب الجهاز
   if (!fb) return;
@@ -25905,7 +25980,7 @@ function gwSoloRenderBoard() {
 }
 
 function gwSoloShowWinner() {
-  soloRecordCompletion();
+  soloRecordCompletion('gwsolo');
   document.getElementById('gwsolo-w-word').textContent = gwSoloSecretWord;
   document.getElementById('gwsolo-w-attempts').textContent = 'عدد المحاولات الكلي: ' + gwSoloAttemptCount;
   show('gwsolo-winner');
@@ -52685,7 +52760,7 @@ async function oneLetterSubmit() {
 }
 
 function oneLetterFinish() {
-  soloRecordCompletion();
+  soloRecordCompletion(); // يُسجَّل عند البدء بـoneLetterStart — بلا رمز هنا عشان ما ينعدّ مرتين
   document.getElementById('olw-score').textContent = olScore + ' / 5';
   let title, message;
   if (olScore === 5) { title = 'إنجاز مثالي! 🏆'; message = 'خمس من خمس! ما شاء الله عليك، عبقري!'; }
@@ -52866,7 +52941,7 @@ function gcSubmit() {
 function gcEnd(won, reason) {
   if (gcFinished) return;
   gcFinished = true;
-  soloRecordCompletion();
+  soloRecordCompletion('guesscountry');
   if (gcTimerInterval) { clearInterval(gcTimerInterval); gcTimerInterval = null; }
   document.getElementById('gc-answer-input').disabled = true;
   document.getElementById('gc-btn-submit').disabled = true;
@@ -52975,7 +53050,7 @@ function tsStopClock() {
   if (!tsRunning || tsFinished) return;
   tsRunning = false;
   tsFinished = true;
-  soloRecordCompletion();
+  soloRecordCompletion('timersolo');
   if (tsRafId) { cancelAnimationFrame(tsRafId); tsRafId = null; }
   document.getElementById('ts-btn-start').disabled = true;
   document.getElementById('ts-btn-stop').disabled = true;
@@ -53111,7 +53186,7 @@ function mbHandlePlayerPress(idx) {
 
 function mbLose() {
   mbPlaying = false;
-  soloRecordCompletion();
+  soloRecordCompletion(); // يُسجَّل عند البدء بـmbStart — بلا رمز هنا عشان ما ينعدّ مرتين
   document.getElementById('mbw-emoji').textContent = '😔';
   document.getElementById('mbw-title').textContent = 'خسرت!';
   document.getElementById('mbw-message').textContent = 'وصلت للمستوى ' + mbLevel + ' — جرّب مرة ثانية!';
@@ -53120,7 +53195,7 @@ function mbLose() {
 
 function mbWin() {
   mbPlaying = false;
-  soloRecordCompletion();
+  soloRecordCompletion(); // يُسجَّل عند البدء بـmbStart — بلا رمز هنا عشان ما ينعدّ مرتين
   document.getElementById('mbw-emoji').textContent = '🏆';
   document.getElementById('mbw-title').textContent = 'فوز كامل! 🎉';
   document.getElementById('mbw-message').textContent = 'أنهيت كل الـ ' + MB_MAX_LEVEL + ' مستوى! ذاكرة خارقة!';
@@ -54477,10 +54552,76 @@ async function frnDeclineRequest(reqId) {
 let notifListenerStarted = false;
 let notifCache = [];
 
+// ==================== عرض الإشعار الوارد بنص الشاشة ====================
+// المدة 10 ثواني لكل إشعار. لو وصلت أكثر من رسالة بنفس اللحظة (بث جماعي من
+// لوحة الإدارة مثلاً) نعرضها بالدور واحدة ورا الثانية بدل ما تتراكب.
+const NOTIF_POPUP_MS = 10000;
+// نافذة "طازج" لأول لقطة: الإشعارات غير المقروءة الموجودة أصلاً ما تنفجر كلها
+// بوجه المستخدم كل ما يفتح الصفحة — لكن اللي وصل قبل دقيقتين يظهر، عشان
+// الرسالة المُرسَلة والصفحة تحمّل ما تضيع.
+const NOTIF_POPUP_FRESH_MS = 2 * 60 * 1000;
+
+const notifSeenIds = new Set();
+let notifPopupQueue = [];
+let notifPopupTimer = null;
+let notifPopupShowing = false;
+
+function notifCreatedMs(n) {
+  const c = n && n.createdAt;
+  if (!c) return 0;
+  if (typeof c.toMillis === 'function') return c.toMillis();
+  if (typeof c === 'number') return c;
+  if (c instanceof Date) return c.getTime();
+  return 0;
+}
+
+// نص وأيقونة وعنوان لكل نوع إشعار — أي نوع جديد يوصل بلا تخصيص يظهر بصيغة
+// عامة بدل ما يُبلع بصمت (نفس الخطأ اللي كان بلوحة الجرس: أي نوع غير معروف
+// يرجّع نصاً فاضياً فيشوف المستخدم رقماً بلا محتوى).
+function notifPopupContent(n) {
+  if (n.type === 'friendRequest') return { icon: '👥', label: 'طلب صداقة', text: (n.fromUsername || 'لاعب') + ' يبي يضيفك صديق' };
+  if (n.type === 'gameInvite') return { icon: '🎮', label: 'دعوة للعب', text: (n.fromUsername || 'لاعب') + ' يدعوك للعب معه' };
+  if (n.type === 'immunityGrant') return { icon: '🛡️', label: 'حصانة مجانية', text: n.message || 'وصلتك حصانة — فعّلها من الجرس بأي لعبة ستريمر' };
+  return { icon: '📢', label: n.fromLabel || 'إدارة المنصة', text: n.message || n.text || '' };
+}
+
+function notifPopupEnqueue(n) {
+  const c = notifPopupContent(n);
+  if (!c.text) return;           // بلا نص ما فيه شي نعرضه
+  notifPopupQueue.push(c);
+  notifPopupNext();
+}
+
+function notifPopupNext() {
+  if (notifPopupShowing || !notifPopupQueue.length) return;
+  const banner = document.getElementById('msg-notif-banner');
+  if (!banner) return;
+  const c = notifPopupQueue.shift();
+  notifPopupShowing = true;
+  document.getElementById('msg-notif-banner-icon').textContent = c.icon;
+  document.getElementById('msg-notif-banner-label').textContent = c.label;
+  document.getElementById('msg-notif-banner-text').textContent = c.text;
+  banner.classList.add('visible');
+  msgBannerSyncBackdrop();
+  if (notifPopupTimer) clearTimeout(notifPopupTimer);
+  notifPopupTimer = setTimeout(notifBannerDismiss, NOTIF_POPUP_MS);
+}
+
+function notifBannerDismiss() {
+  const banner = document.getElementById('msg-notif-banner');
+  if (banner) banner.classList.remove('visible');
+  if (notifPopupTimer) { clearTimeout(notifPopupTimer); notifPopupTimer = null; }
+  notifPopupShowing = false;
+  msgBannerSyncBackdrop();
+  // لو فيه إشعار ثانٍ بالطابور نعرضه بعد لحظة قصيرة (انتقال واضح بين الرسالتين)
+  if (notifPopupQueue.length) setTimeout(notifPopupNext, 400);
+}
+
 function notifBoot() {
   if (!fb || !currentUser || notifListenerStarted) return;
   notifListenerStarted = true;
   const myUid = currentUser.uid;
+  let firstSnapshot = true;
 
   fb.onSnapshot(
     fb.query(fb.collection(fb.db, 'notifications', myUid, 'items'), fb.where('read', '==', false)),
@@ -54489,6 +54630,20 @@ function notifBoot() {
       snap.forEach(d => notifCache.push({ id: d.id, ...d.data() }));
       notifRenderBadge();
       notifRenderPanel();
+
+      // أي إشعار ما شفناه قبل بهذي الجلسة = وصل الآن → يظهر بنص الشاشة.
+      notifCache.forEach((n) => {
+        if (notifSeenIds.has(n.id)) return;
+        notifSeenIds.add(n.id);
+        if (firstSnapshot) {
+          // أول لقطة: نعرض الطازج فقط (createdAt قد يكون null للحظة واحدة قبل
+          // ما يحلّ serverTimestamp، ونعتبره طازجاً لأنه كُتب للتو).
+          const ms = notifCreatedMs(n);
+          if (ms && (Date.now() - ms) > NOTIF_POPUP_FRESH_MS) return;
+        }
+        notifPopupEnqueue(n);
+      });
+      firstSnapshot = false;
     },
     (err) => { /* best-effort */ }
   );
@@ -54733,6 +54888,7 @@ function rmStartRoundForCurrentGame() {
   if (!starter) return;
   // نظام المستويات — راوند لكل أعضاء الغرفة (متصفح المضيف وحده ينفّذ هذا)
   levelsNoteOnlineRound(rmCurrentGameTag, rmMembersCache);
+  ownerLogOnlineRound(rmCurrentGameTag, (rmMembersCache || []).length); // إحصائيات لوحة الإدارة
   starter();
 }
 const rmGameStartHandlers = {};
@@ -55632,6 +55788,7 @@ async function mmFinalizeMatch(gameTag) {
     // لاحقاً عبر قائمة أعضاء الغرفة.
     levelsNoteOnlineBots(botRows);
     levelsNoteOnlineRound(gameTag, rows);
+    ownerLogOnlineRound(gameTag, rows.length); // إحصائيات لوحة الإدارة
     rows = rows.concat(botRows);
 
     // المطابقة العشوائية ما فيها "مضيف" طبيعي يعرف يضغط "ابدأ الجولة" — المنظّم

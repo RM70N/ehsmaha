@@ -8,7 +8,7 @@ import { openModal, openConfirm, openFormModal, isReadOnly } from '../core/modal
 import { AdminToast } from '../core/toast.js';
 import { defineSection } from '../core/section-kit.js';
 import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
-import { resolveUidByUsername } from '../core/players.js';
+import { resolveUidByUsername, levelsKey } from '../core/players.js';
 
 const fb = AdminFB;
 
@@ -64,10 +64,20 @@ defineSection({
             { key: 'message', label: 'نص الإشعار', type: 'textarea', required: true }
           ],
           onSubmit: async (v) => {
-            const snap = await fb.getDocs(fb.collection(fb.db, 'users'));
+            // اللفل مو على users — هو على levels/{key}. كان الفلتر يقارن
+            // u.level (حقل غير موجود) فيطلع 0 للجميع، فإما يرسل للكل أو
+            // ما يرسل لأحد حسب الرقم المكتوب. نضم levels على users بالمفتاح.
+            const [snap, lvSnap] = await Promise.all([
+              fb.getDocs(fb.collection(fb.db, 'users')),
+              fb.getDocs(fb.collection(fb.db, 'levels'))
+            ]);
+            const lvByKey = new Map(lvSnap.docs.map((d) => [d.id, d.data()]));
             const uids = snap.docs.filter((d) => {
               const u = d.data();
-              if (v.minLevel && (u.level || 0) < Number(v.minLevel)) return false;
+              if (v.minLevel) {
+                const lv = lvByKey.get(levelsKey(u.username)) || {};
+                if ((Number(lv.level) || 1) < Number(v.minLevel)) return false;
+              }
               if (v.provider && u.provider !== v.provider) return false;
               return true;
             }).map((d) => d.id);

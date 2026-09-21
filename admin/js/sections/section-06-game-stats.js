@@ -1,7 +1,12 @@
 // ==================== القسم 6 — إحصائيات الألعاب ====================
-// كل الأرقام هنا من playEvents الحقيقي: type يكون streamer_launch (بث) أو
-// party_play (جمعات) أو solo_play (فردي/أونلاين) — هذي الأنواع الثلاثة فقط
-// موجودة فعلياً بالكود، فنعرضها كما هي بدل تصنيف مفترض.
+// كل الأرقام هنا من playEvents الحقيقي. أنواع الأحداث الموجودة فعلياً بالكود:
+//   streamer_launch (بث)، party_play (جمعات)، solo_play (فردي)،
+//   online_play (مباراة أونلاين).
+// ملاحظة على الدقة: كان playEvents يُكتب من 9 أماكن فقط من أصل 66 لعبة —
+// يعني كل الألعاب الأونلاين (26) وثلاث ألعاب فردية ما تسجّل ولا حدث، فتطلع
+// بصفر مرات لعب هنا رغم إنها تُلعب فعلاً. الآن كل مباراة أونلاين تُسجَّل
+// لحظة انطلاق الجولة (ownerLogOnlineRound) وكل لعبة فردية عند إكمالها
+// (soloRecordCompletion)، فالأرقام صارت تغطي كل الألعاب.
 import { AdminFB } from '../core/firebase.js';
 import { AdminAudit } from '../core/audit.js';
 import { openModal, openConfirm, isReadOnly } from '../core/modal.js';
@@ -11,7 +16,7 @@ import { fmtDate, fmtNum, csvDownload } from '../core/format.js';
 import { renderBarChart } from '../core/chart.js';
 
 const fb = AdminFB;
-const TYPE_LABELS = { streamer_launch: 'جلسة بث', party_play: 'جمعات', solo_play: 'فردي/أونلاين' };
+const TYPE_LABELS = { streamer_launch: 'جلسة بث', party_play: 'جمعات', solo_play: 'فردي', online_play: 'أونلاين' };
 
 async function loadEvents(limitN) {
   const snap = await fb.getDocs(fb.query(fb.collection(fb.db, 'playEvents'), fb.orderBy('createdAt', 'desc'), fb.limit(limitN || 5000)));
@@ -27,7 +32,7 @@ function topBy(events, sinceMs, key) {
 defineSection({
   id: 6,
   title: 'إحصائيات الألعاب',
-  description: 'إحصائيات حقيقية من playEvents لكل الألعاب — 41 لعبة موزّعة على 3 أنواع أحداث فعلية.',
+  description: 'إحصائيات حقيقية من playEvents لكل الألعاب — 66 لعبة موزّعة على 4 أنواع أحداث فعلية (بث/جمعات/فردي/أونلاين).',
   tools: [
     {
       title: 'جدول شامل بكل الألعاب وعدد مرات اللعب لكل واحدة',
