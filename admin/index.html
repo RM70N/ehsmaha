@@ -10,7 +10,59 @@
   <link rel="stylesheet" href="css/components.css" />
 </head>
 <body>
-  <div id="admin-shell"></div>
+  <div id="admin-shell">
+    <div id="admin-boot-status" style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#f5f1fb;font-family:system-ui,sans-serif;">
+      <div>جارٍ تحميل لوحة "ادمن احسمها"...</div>
+    </div>
+  </div>
+  <script>
+    // شبكة أمان: لو صار أي خطأ قبل ما يشتغل app.js (فشل تحميل Firebase SDK من
+    // gstatic.com بسبب حظر شبكة/إضافة متصفح، أو خطأ JS بأي قسم) كانت الصفحة
+    // تفضل فاضية تماماً بلا أي تلميح — هذا يحوّلها لرسالة مقروءة بدل صفحة سوداء.
+    (function () {
+      var shown = false;
+      function showBootError(detail) {
+        if (shown) return;
+        shown = true;
+        var el = document.getElementById('admin-boot-status');
+        if (!el) return;
+        el.innerHTML =
+          '<div style="font-size:18px;font-weight:800;color:#e8c887;">تعذّر تحميل اللوحة</div>' +
+          '<div style="font-size:13px;color:#b8aed0;max-width:480px;line-height:1.8;">' +
+            'الأسباب الشائعة: الاتصال بمكتبة Firebase (gstatic.com) محجوب بشبكتك أو بإضافة حظر إعلانات، ' +
+            'أو إعداد Netlify (Base directory) غير مضبوط على مجلد admin. جرّب شبكة/متصفح ثانٍ، ' +
+            'أو افتح أدوات المطوّر (F12 → Console) وابعث لي نص الخطأ بالأسفل.' +
+          '</div>' +
+          '<pre style="max-width:520px;white-space:pre-wrap;text-align:left;direction:ltr;font-size:11px;color:#8677a8;background:rgba(255,255,255,.05);border-radius:8px;padding:10px;overflow:auto;max-height:200px;">' +
+            (detail || '(no error detail captured)') +
+          '</pre>';
+      }
+      // capture:true لازم هنا — أخطاء تحميل موارد فاشلة (سكربت/رابط 404 أو
+      // محجوب) ما تنتشر (bubble) عادي، تُلتقط فقط بمرحلة الالتقاط بمستوى
+      // window، وهذا بالضبط سيناريو "js/core/app.js تعذّر تحميله".
+      window.addEventListener('error', function (e) {
+        var target = e && e.target;
+        if (target && target !== window && (target.src || target.href)) {
+          showBootError('تعذّر تحميل ملف: ' + (target.src || target.href));
+        } else {
+          showBootError((e && e.message) || String(e));
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = e && e.reason;
+        showBootError((reason && (reason.stack || reason.message)) || String(reason));
+      });
+      // لو ما صار أي خطأ لكن app.js ما استبدل محتوى admin-shell خلال 10 ثواني
+      // (لا شاشة دخول ولا اللوحة نفسها) — علّق مهلة انتظار غير طبيعية بدل ما
+      // تفضل الصفحة معلّقة صامتة للأبد. renderLogin/buildShell كلاهما يمسحان
+      // admin-boot-status فور ما يشتغلان، فبقاؤه دليل إن شي علّق قبلهما.
+      setTimeout(function () {
+        if (document.getElementById('admin-boot-status')) {
+          showBootError('انتهت مهلة الانتظار (10 ثواني) قبل ما يكمل التحميل — الأغلب انقطاع بتحميل مكتبة Firebase أو خطأ لم يُلتقط.');
+        }
+      }, 10000);
+    })();
+  </script>
   <script type="module" src="js/core/app.js"></script>
 </body>
 </html>
