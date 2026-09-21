@@ -76,10 +76,19 @@ function teardownOwnSession() {
   if (ownSessionInterval) { clearInterval(ownSessionInterval); ownSessionInterval = null; }
 }
 
+// resolveReady معرَّف بمتغيّر منفصل خارج الكائن — تمريره داخل executor
+// الـPromise ووصوله لخاصية على AdminAuth نفسه (AdminAuth._resolveReady) كان
+// يحاول يقرأ AdminAuth وهو لسه بمنطقة "temporal dead zone" (const لسه ما
+// خلص تعريفه)، فيرمي "Cannot access 'AdminAuth' before initialization" ويوقف
+// تحميل كل اللوحة فوراً — هذا بالضبط سبب الشاشة الفاضية بدون أي كتابة خطأ
+// ظاهرة قبل إضافة شبكة الأمان بـindex.html.
+let resolveReady;
+const readyPromise = new Promise((resolve) => { resolveReady = resolve; });
+
 export const AdminAuth = {
   currentAdmin: null,
   sessionId: null,
-  ready: new Promise((resolve) => { AdminAuth._resolveReady = resolve; }),
+  ready: readyPromise,
 
   onAuthChange(cb) {
     listeners.push(cb);
@@ -139,7 +148,7 @@ fb.setPersistence(fb.auth, fb.browserLocalPersistence).finally(() => {
       AdminAuth.sessionId = null;
     }
     authResolved = true;
-    AdminAuth._resolveReady();
+    resolveReady();
     listeners.forEach((cb) => { try { cb(AdminAuth.currentAdmin); } catch (err) {} });
   });
 });
