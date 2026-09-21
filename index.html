@@ -4288,6 +4288,18 @@ if (location.hostname === 'streamgame1.netlify.app') {
 }
 </script>
 
+<!-- ====== وضع الصيانة (لوحة "ادمن احسمها" قسم 29) ======
+     siteFlags/maintenance = { active, message, until, allowOwnerBypass }
+     — يُفحص حياً (onSnapshot) عبر adminMaintenanceBoot() بأسفل الصفحة. حساب
+     المالك نفسه (isOwnerAccount()) يتخطّى الحجب دائماً ليقدر يختبر الموقع. -->
+<div id="admin-maintenance-overlay" style="display:none;position:fixed;inset:0;z-index:999999;background:#0d0620;color:#f5f1fb;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:inherit;">
+  <div style="max-width:420px;">
+    <div style="font-size:22px;font-weight:800;color:#e8c887;margin-bottom:12px;">الموقع بصيانة مؤقتة</div>
+    <div id="admin-maintenance-message" style="font-size:14px;color:#b8aed0;line-height:1.8;">راح نرجع قريب — شكراً لصبرك.</div>
+    <div id="admin-maintenance-countdown" style="margin-top:16px;font-size:13px;color:#8677a8;"></div>
+  </div>
+</div>
+
 <!-- ====== TOP NAVBAR ====== -->
 <nav id="topnav">
   <div class="topnav-brand">
@@ -17164,6 +17176,7 @@ function authBoot() {
       // read that would incorrectly show the Google-only choose-username screen.
       if (authSignupInProgress) return;
       currentUser = user;
+      if (typeof adminMaintenanceApply === 'function') adminMaintenanceApply();
       document.getElementById('auth-loader').classList.add('hidden');
       if (!user) {
         currentUsername = null;
@@ -18480,8 +18493,55 @@ try {
     }, { once: true });
   }
 } catch (err) {}
+// دعم تجربة A/B بنسبة توزيع (قسم 27) — لو القيمة كائن فيه rolloutPercent
+// (بدل true/false)، نحسب hash ثابت من uid المستخدم الحالي عشان يفضل بنفس
+// المجموعة (A أو B) طول الوقت بدل ما يتغيّر عشوائياً كل تحميل صفحة.
+function adminHashUidPercent(uid) {
+  if (!uid) return 0;
+  let h = 0;
+  for (let i = 0; i < uid.length; i++) { h = (h * 31 + uid.charCodeAt(i)) >>> 0; }
+  return h % 100;
+}
+// وضع الصيانة العام (قسم 29) — يُفحص حياً، حساب المالك يتخطّاه دائماً.
+let __adminMaintenanceFlag = null;
+function adminMaintenanceApply() {
+  const overlay = document.getElementById('admin-maintenance-overlay');
+  if (!overlay) return;
+  const flag = __adminMaintenanceFlag;
+  const shouldShow = !!(flag && flag.active && !(typeof isOwnerAccount === 'function' && isOwnerAccount()));
+  overlay.style.display = shouldShow ? 'flex' : 'none';
+  if (shouldShow) {
+    const msgEl = document.getElementById('admin-maintenance-message');
+    if (msgEl) msgEl.textContent = flag.message || 'راح نرجع قريب — شكراً لصبرك.';
+    const countdownEl = document.getElementById('admin-maintenance-countdown');
+    if (countdownEl) {
+      if (flag.until && typeof flag.until.toMillis === 'function' && flag.until.toMillis() > Date.now()) {
+        countdownEl.textContent = 'الرجوع المتوقع: ' + new Date(flag.until.toMillis()).toLocaleString('ar');
+      } else {
+        countdownEl.textContent = '';
+      }
+    }
+  }
+}
+function adminMaintenanceBoot() {
+  if (!window.__fb) { window.addEventListener('fb-ready', adminMaintenanceBoot, { once: true }); return; }
+  try {
+    window.__fb.onSnapshot(window.__fb.doc(window.__fb.db, 'siteFlags', 'maintenance'), (snap) => {
+      __adminMaintenanceFlag = snap.data() || null;
+      adminMaintenanceApply();
+    }, () => {});
+  } catch (err) {}
+}
+adminMaintenanceBoot();
+
 function adminIsGameEnabled(gameTag) {
-  return __adminGameToggles[gameTag] !== false;
+  const v = __adminGameToggles[gameTag];
+  if (v === false) return false;
+  if (v && typeof v === 'object' && typeof v.rolloutPercent === 'number') {
+    const uid = currentUser && currentUser.uid;
+    return adminHashUidPercent(uid) < v.rolloutPercent;
+  }
+  return true;
 }
 
 function adminGetDeviceId() {
