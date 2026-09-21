@@ -20130,11 +20130,13 @@ try {
   if (window.__fb) {
     window.__fb.onSnapshot(window.__fb.doc(window.__fb.db, 'siteFlags', 'gameToggles'), (snap) => {
       __adminGameToggles = snap.data() || {};
+      adminApplyGameCardStates();
     }, () => {});
   } else {
     window.addEventListener('fb-ready', () => {
       fb.onSnapshot(fb.doc(fb.db, 'siteFlags', 'gameToggles'), (snap) => {
         __adminGameToggles = snap.data() || {};
+        adminApplyGameCardStates();
       }, () => {});
     }, { once: true });
   }
@@ -20189,6 +20191,43 @@ function adminIsGameEnabled(gameTag) {
   }
   return true;
 }
+
+// بوابة مركزية لتعطيل الألعاب — تغطي **كل** مداخل الألعاب دفعة واحدة.
+// السبب: باللوحة الإدارية أكثر من 36 مفتاح تعطيل (أقسام 31-44 + 6)، بينما
+// فحص adminIsGameEnabled كان مزروعاً داخل 8 دوال goSetupXxx() فقط — يعني
+// أغلب مفاتيح التعطيل ما كان لها أي أثر فعلي بالموقع. ومداخل الألعاب أصلاً
+// مو كلها goSetup: ألعاب الأونلاين تُفتح من بطاقتها مباشرة بـshow(...).
+// القاسم المشترك الوحيد لكل المداخل هو بطاقة اللعبة نفسها:
+// <div class="gcard" data-tag="..."> — فنعترض الضغط عليها بمرحلة الالتقاط
+// (capture) قبل ما يوصل لأي onclick، ونمنعه لو اللعبة معطّلة. الفحوصات
+// المزروعة داخل الدوال الثمانية تبقى كما هي (طبقة ثانية، غير ضارة).
+document.addEventListener('click', (ev) => {
+  try {
+    const card = ev.target && ev.target.closest ? ev.target.closest('.gcard[data-tag]') : null;
+    if (!card) return;
+    const tag = card.getAttribute('data-tag');
+    if (!tag || adminIsGameEnabled(tag)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    if (ev.stopImmediatePropagation) ev.stopImmediatePropagation();
+    alert('هذي اللعبة معطّلة مؤقتاً من الإدارة');
+  } catch (err) { /* أفضل جهد — ما نوقف أي ضغطة لو صار خطأ بالفحص */ }
+}, true);
+
+// يعلّم البطاقات المعطّلة بصرياً (شفافية + مؤشر ممنوع) عشان اللاعب يشوف
+// إنها موقوفة قبل ما يضغط، ويُحدَّث لحظياً مع أي تغيير باللوحة.
+function adminApplyGameCardStates() {
+  try {
+    document.querySelectorAll('.gcard[data-tag]').forEach((card) => {
+      const off = !adminIsGameEnabled(card.getAttribute('data-tag'));
+      card.style.opacity = off ? '0.45' : '';
+      card.style.cursor = off ? 'not-allowed' : '';
+      card.setAttribute('data-admin-disabled', off ? '1' : '0');
+    });
+  } catch (err) { /* أفضل جهد */ }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adminApplyGameCardStates, { once: true });
+else adminApplyGameCardStates();
 
 function adminGetDeviceId() {
   try {

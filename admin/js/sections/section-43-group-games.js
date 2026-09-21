@@ -9,11 +9,11 @@ import { openModal } from '../core/modal.js';
 import { defineSection } from '../core/section-kit.js';
 import { categoryTools } from '../core/game-admin-kit.js';
 
-const TAGS = ['battery', 'box', 'cr', 'draw', 'ev', 'findball', 'guessword', 'hz', 'ig', 'll', 'lsc', 'main', 'maze', 'pgs', 'sniper', 'tmr', 'wai', 'wr'];
+const TAGS = ['battery', 'box', 'cr', 'draw', 'ev', 'findball', 'guessword', 'hz', 'ig', 'll', 'lsc', 'main', 'maze', 'pgs', 'rw', 'sniper', 'tmr', 'wai', 'wr'];
 const NAMES = {
   battery: 'الزر المشحون', box: 'الصندوق العشوائي', cr: 'من أنا؟', draw: 'خمن الرسمة', ev: 'آخر حرف؟',
   findball: 'اعثر على الكورة', guessword: 'اوجد الكلمة', hz: 'ضربة الحظ', ig: 'خمّن الصورة', ll: 'آخر حرف',
-  lsc: 'ترتيب الحروف', main: 'احسمها (البنك الأصلي)', maze: 'المتاهة', pgs: 'تخمين السعر',
+  lsc: 'ترتيب الحروف', main: 'احسمها (البنك الأصلي)', maze: 'المتاهة', pgs: 'تخمين السعر', rw: 'عكس الكلمة',
   sniper: 'القناص', tmr: 'لعبة التوقيت', wai: 'من أنا؟', wr: 'عكس الكلمة'
 };
 
