@@ -334,9 +334,18 @@ async function boot() {
     }
     let data = {};
     try {
-      const snap = await fb.getDoc(fb.doc(fb.db, 'adminSettings', 'panel'));
-      data = snap.data() || {};
-    } catch (err) {}
+      // بمهلة: قراءة Firestore وهو مقطوع عن الشبكة ممكن تعلّق بلا ما ترفض،
+      // وهذي القراءة تقف بين تسجيل الدخول وبناء اللوحة — فتعليقها يعني شاشة
+      // إقلاع تدور بلا نهاية. الإعدادات لها قيم افتراضية أصلاً، فالأسوأ إن
+      // اللوحة تفتح بالإعدادات الافتراضية بدل ما ما تفتح.
+      const snap = await Promise.race([
+        fb.getDoc(fb.doc(fb.db, 'adminSettings', 'panel')),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('مهلة قراءة الإعدادات')), 6000)),
+      ]);
+      data = (snap && snap.data()) || {};
+    } catch (err) {
+      console.warn('تعذّرت قراءة إعدادات اللوحة — نكمل بالإعدادات الافتراضية:', err && err.message);
+    }
     settingsCache = Object.assign(settingsCache, data);
 
     const totpOk = sessionStorage.getItem('ehsmaha_admin_totp_ok') === '1';

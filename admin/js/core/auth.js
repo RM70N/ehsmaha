@@ -45,8 +45,13 @@ async function logAttempt({ emailAttempted, success, reason }) {
 }
 
 async function registerOwnSession() {
-  ownSessionId = localStorage.getItem('ehsmaha_admin_session_id') || genId('s');
-  localStorage.setItem('ehsmaha_admin_session_id', ownSessionId);
+  try {
+    ownSessionId = localStorage.getItem('ehsmaha_admin_session_id') || genId('s');
+    localStorage.setItem('ehsmaha_admin_session_id', ownSessionId);
+  } catch (err) {
+    // تخزين محلي محجوب (تصفّح خاص/إعدادات صارمة) — نكمل بمعرّف مؤقت بدل ما نرمي.
+    ownSessionId = ownSessionId || genId('s');
+  }
   try {
     await fb.setDoc(fb.doc(fb.db, 'adminOwnSessions', ownSessionId), {
       userAgent: navigator.userAgent || null,
@@ -84,6 +89,41 @@ function teardownOwnSession() {
 // ظاهرة قبل إضافة شبكة الأمان بـindex.html.
 let resolveReady;
 const readyPromise = new Promise((resolve) => { resolveReady = resolve; });
+
+// سطر التقدّم بشاشة الإقلاع — نكمل الحكاية من حيث وقّفتها firebase.js.
+function bootNote(text) {
+  try {
+    const el = document.getElementById('admin-boot-note');
+    if (el) el.textContent = text;
+  } catch (err) {}
+}
+
+// بوابة واحدة لحلّ ready — تُنادى من أكثر من مكان (حالة المصادقة، وحارس
+// المهلة) فلازم تكون آمنة للتكرار.
+let readyDone = false;
+function markAuthReady() {
+  if (readyDone) return;
+  readyDone = true;
+  authResolved = true;
+  resolveReady();
+}
+
+// حارس المهلة — أهم سطر بهذا الملف. app.js يبدأ بـ`await AdminAuth.ready`،
+// فأي تعليق قبل حلّها = دوران لا نهائي بشاشة الإقلاع بلا أي خطأ ظاهر
+// (وهذا بالضبط العطل اللي صار: المكتبات حمّلت، ثم وقف كل شي).
+// سببان معروفان يعلّقان بلا ما يرموا خطأ:
+//   • setPersistence ما يستقر (تخزين محجوب/مقسَّم بالمتصفح).
+//   • onAuthStateChanged ما ينطلق لأن Auth ما قدر يحسم الحالة الأولية.
+// بدل ما ننتظرهم للأبد، بعد 8 ثواني نعتبر المستخدم "غير مسجَّل دخول"
+// ونعرض شاشة الدخول — أسوأ حالة يضغط دخول ويشوف خطأ واضح، بدل شاشة تدور.
+const AUTH_READY_TIMEOUT_MS = 8000;
+setTimeout(() => {
+  if (readyDone) return;
+  console.warn('⚠️ حالة تسجيل الدخول ما انحسمت خلال ' + (AUTH_READY_TIMEOUT_MS / 1000) + ' ثواني — نعرض شاشة الدخول.');
+  bootNote('تعذّر تأكيد حالة تسجيل الدخول — جارٍ عرض شاشة الدخول...');
+  markAuthReady();
+  listeners.forEach((cb) => { try { cb(AdminAuth.currentAdmin); } catch (err) {} });
+}, AUTH_READY_TIMEOUT_MS);
 
 export const AdminAuth = {
   currentAdmin: null,
@@ -131,25 +171,42 @@ export const AdminAuth = {
   }
 };
 
-fb.setPersistence(fb.auth, fb.browserLocalPersistence).finally(() => {
-  fb.onAuthStateChanged(fb.auth, async (user) => {
+// setPersistence بمهلة: لو ما استقر (تخزين محجوب مثلاً) ما نعلّق تسجيل
+// المستمع عليه للأبد — نكمل بدونه، والجلسة تصير جلسة تبويب بس وهذا مقبول
+// جداً مقابل لوحة تشتغل. و.catch لازم عشان رفض متأخر ما يطلع غير معالَج.
+bootNote('جارٍ التحقق من تسجيل الدخول...');
+const persistence = fb.setPersistence(fb.auth, fb.browserLocalPersistence);
+persistence.catch(() => {});
+Promise.race([
+  persistence,
+  new Promise((resolve) => setTimeout(resolve, 4000)),
+]).catch(() => {}).finally(() => {
+  fb.onAuthStateChanged(fb.auth, (user) => {
     if (user && user.email === OWNER_EMAIL) {
       AdminAuth.currentAdmin = user;
-      await registerOwnSession();
       AdminAuth.sessionId = ownSessionId;
+      // **بدون await**: هذي كتابة Firestore، وكتابات Firestore وهو مقطوع عن
+      // الشبكة **ما ترفض** — تبقى معلّقة بالطابور المحلي للأبد لين يرجع
+      // الاتصال. انتظارها هنا كان يمنع حلّ ready، يعني اللوحة تدور بلا نهاية
+      // لمجرد إن تسجيل جلسة (بيانات تتبّع ثانوية) ما وصل الخادم.
+      registerOwnSession().then(() => { AdminAuth.sessionId = ownSessionId; }).catch(() => {});
     } else {
       if (user) {
         // احتياط إضافي فقط — login() أصلاً يسجّل خروج أي حساب غير مصرَّح له
         // قبل ما توصل الحالة هنا بمعظم الحالات.
-        try { await fb.signOut(fb.auth); } catch (err) {}
+        try { fb.signOut(fb.auth); } catch (err) {}
       }
       teardownOwnSession();
       AdminAuth.currentAdmin = null;
       AdminAuth.sessionId = null;
     }
-    authResolved = true;
-    resolveReady();
+    markAuthReady();
     listeners.forEach((cb) => { try { cb(AdminAuth.currentAdmin); } catch (err) {} });
+  }, (err) => {
+    // حتى لو فشل مستمع المصادقة نفسه — نعرض شاشة الدخول بدل ما نعلّق.
+    console.warn('onAuthStateChanged فشل:', err);
+    markAuthReady();
+    listeners.forEach((cb) => { try { cb(null); } catch (e) {} });
   });
 });
 
