@@ -1,0 +1,657 @@
+{
+  "rules": {
+    "pendingUsernames": {
+      ".read": true,
+      "$usernameLower": {
+        ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid) && (!newData.exists() || newData.child('uid').val() === auth.uid)"
+      }
+    },
+    "pendingUsers": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "cwOwnerSessions": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$sessionId": {
+        ".write": "auth != null"
+      }
+    },
+    "bridgeEvents": {
+      ".read": true,
+      "$eventId": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "globalFx": {
+          ".write": "auth != null"
+        }
+      }
+    },
+    "bridgePlayers": {
+      "$eventId": {
+        ".read": true,
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+          "pendingFx": {
+            ".write": "auth != null"
+          }
+        }
+      }
+    },
+    "bridgeBoard": {
+      "$eventId": {
+        ".read": true,
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+    "levels": {
+      ".read": "auth != null",
+      "$key": {
+        ".write": "auth != null"
+      }
+    },
+    "framesCatalogExtra": {
+      ".read": "auth != null",
+      "$frameId": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+    "secretCodes": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$codeKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || data.exists())",
+        ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (data.exists() && newData.exists())",
+        "name": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "frameId": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "frameName": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "durationDays": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "maxUses": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "active": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "createdAt": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "createdBy": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "createdByUsername": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "expiresAt": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
+        },
+        "usedCount": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (newData.val() === data.val() + 1 && !data.parent().child('usedBy').child(auth.uid).exists() && newData.parent().child('usedBy').child(auth.uid).exists()) || (newData.val() === data.val() - 1 && data.parent().child('usedBy').child(auth.uid).exists() && !newData.parent().child('usedBy').child(auth.uid).exists())"
+        },
+        "usedBy": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+            ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.hasChildren(['username', 'usedAt'])"
+          }
+        }
+      }
+    },
+    "secretCodesIndex": {
+      "$indexKey": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+    "siteSyncQueue": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$opId": {
+          ".validate": "newData.hasChildren(['op', 'path', 'ts']) && newData.child('op').val().matches(/^(set|update|delete)$/) && newData.child('path').isString() && newData.child('path').val().length < 512"
+        }
+      }
+    },
+    "adminSyncQueue": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "$opId": {
+          ".validate": "newData.hasChildren(['op', 'path', 'ts']) && newData.child('op').val().matches(/^(set|update|delete)$/) && newData.child('path').isString() && newData.child('path').val().length < 512"
+        }
+      }
+    },
+    "fsMirror": {
+      "abExperiments": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "activeDoublePoints": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "activeImmunities": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "activeRetries": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "activeRevivals": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "activeStreamers": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "adminAuditLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "adminCommandGrants": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "adminDeviceBans": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "adminIpBans": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "adminLoginAttempts": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "adminNotes": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "adminOwnSessions": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "adminReviveLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "adminRoles": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "adminSecurityAlerts": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "adminSettings": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "ahsemhaCategories": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "ahsemhaEditors": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "ahsemhaSettings": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "aiGameSubmissions": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "aiGameTemplates": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "alfawzanSpecial": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "apiHealthLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "backupsLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "badgeDefs": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "botRoster": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "bridgeStreamers": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "broadcastCampaigns": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "broadcastMessages": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "clientErrorLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "config": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "contentReports": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "contests": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "deletedUsersBackup": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "devSpecial": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "deviceSessions": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')"
+        }
+      },
+      "event100": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "event100Rewards": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "eventAccess": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "f100OnlinePointsMultiplier": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "f100WinMultiplier": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "feedback": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "feedbackCannedResponses": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "financialTransactions": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "framesCatalogExtra": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "friendRequests": {
+        "$id": {
+          ".read": "auth != null && (data.child('fromUid').val() === auth.uid || data.child('toUid').val() === auth.uid)",
+          ".write": "auth != null"
+        }
+      },
+      "friendships": {
+        "$id": {
+          ".read": "auth != null && $id.contains(auth.uid)",
+          ".write": "auth != null && $id.contains(auth.uid)"
+        }
+      },
+      "gameBadges": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "gameConfig": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "gameContentBanks": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "gameOrder": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "ghnamSpecial": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "giftShareLog": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "leaderboards": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "levels": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "liveCommands": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "liveRounds": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "matchmakingQueue": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "moderatorSettings": {
+        ".read": true,
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')"
+        }
+      },
+      "moderators": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "notifTemplates": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "notifications": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null"
+        }
+      },
+      "overlayArchive": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "personalMessages": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "playEvents": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "presence": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && (auth.uid === $id || auth.token.email === 'malshaifan1@gmail.com')"
+        }
+      },
+      "recurringContestTemplates": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "rooms": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "scheduledContent": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "scheduledNotifications": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "secrets": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "shopProducts": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "signupRateLimit": {
+        ".read": true,
+        "$id": {
+          ".write": true
+        }
+      },
+      "siteContent": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "siteContentArchive": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "siteFlags": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "siteUpdates": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "specialEvents": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "specialEventsArchive": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "storeNewAnnouncements": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "storeSales": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "streamerApplications": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "streamerBroadcastMessages": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "streamerEventAnnouncements": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "streamerEvents": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "streamerProfiles": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "strongestStreamer": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "subscriptionPlans": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "uiText": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+        }
+      },
+      "uiTextArchive": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "usernames": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null"
+        }
+      },
+      "users": {
+        ".read": true,
+        "$id": {
+          ".write": "auth != null && (auth.uid === $id || auth.token.email === 'malshaifan1@gmail.com')"
+        }
+      },
+      "xpSeasonsArchive": {
+        ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    }
+  }
+}

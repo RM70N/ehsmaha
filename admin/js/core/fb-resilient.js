@@ -34,7 +34,19 @@
 // كائناً شبيهاً بـTimestamp عند القراءة — فالكود اللي فوق ما يشعر بأي فرق.
 
 const RETRY_AFTER_MS = 3 * 60 * 1000;
-const SYNC_QUEUE_PATH = 'adminSyncQueue';
+// الطابور مقسَّم بحسب uid صاحبه، وكل جلسة تصرّف طابورها هي فقط. السبب أمني
+// مباشر: لو كان الطابور مشتركاً بعقدة وحدة، يقدر أي حساب يضيف عملية كتابة
+// لمسار حسّاس، وتجي جلسة المالك تصرّف الطابور فتنفّذها **بصلاحيات المالك**
+// (تصعيد امتيازات كامل). التقسيم بالـuid يقفل هذا الباب من الجذر، وقواعد
+// RTDB تفرضه ($uid === auth.uid).
+const SYNC_QUEUE_ROOT = 'adminSyncQueue';
+// كل المرآة تعيش تحت جذر خاص فيها. مهم جداً: RTDB أصلاً فيه عُقد يملكها
+// الموقع الرئيسي بصيغته الخاصة (levels، framesCatalogExtra، cwOwnerSessions،
+// secretCodes، bridgeEvents...). لو كتبنا المرآة على نفس الأسماء بجذر RTDB
+// راح تختلط صيغتان مختلفتان بنفس العقدة وتفسد بيانات حيّة — مثلاً
+// levels/{key}.activeFrameAt يقرأه الموقع رقماً ليقرر أي قاعدة تحمل أحدث
+// تفعيل إطار، والمرآة تكتبه موسوماً { __ts }. الجذر المنفصل يمنع هذا تماماً.
+const MIRROR_ROOT = 'fsMirror';
 // خنق مرآة القراءة: ما ننسخ نفس المسار لـRTDB أكثر من مرة كل دقيقتين.
 const MIRROR_THROTTLE_MS = 2 * 60 * 1000;
 // سقف عدد المستندات اللي ننسخها من نتيجة قراءة واحدة — حماية من نسخ
@@ -61,6 +73,11 @@ export function decKey(k) {
 }
 export function encPath(path) {
   return String(path).split('/').filter(Boolean).map(encKey).join('/');
+}
+
+// مسار المرآة الكامل لأي مسار Firestore.
+export function mirrorPath(path) {
+  return MIRROR_ROOT + '/' + encPath(path);
 }
 
 // ==================== حالة الحصة ====================
@@ -225,7 +242,7 @@ export function buildResilientFB(base) {
   const constraintDesc = new WeakMap(); // قيد حقيقي -> وصفه
 
   function rtdbRefFor(path) {
-    return base.rtdbRef(rtdb, encPath(path));
+    return base.rtdbRef(rtdb, mirrorPath(path));
   }
 
   // -------- قراءة/كتابة RTDB بشكل مستند واحد --------
@@ -337,11 +354,17 @@ export function buildResilientFB(base) {
   }
 
   // -------- طابور المزامنة --------
+  function myQueuePath() {
+    const uid = (base.auth && base.auth.currentUser && base.auth.currentUser.uid) || null;
+    return uid ? SYNC_QUEUE_ROOT + '/' + uid : null;
+  }
+
   async function enqueueSync(op) {
-    if (!rtdb) return;
+    const qp = myQueuePath();
+    if (!rtdb || !qp) return;
     try {
       const id = 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
-      await base.rtdbSet(base.rtdbRef(rtdb, SYNC_QUEUE_PATH + '/' + id), {
+      await base.rtdbSet(base.rtdbRef(rtdb, qp + '/' + id), {
         ...op,
         ts: Date.now(),
         data: op.data === undefined ? null : JSON.stringify(op.data),
@@ -352,9 +375,11 @@ export function buildResilientFB(base) {
   let draining = false;
   async function drainSyncQueue() {
     if (draining || !rtdb || state.blocked) return;
+    const qp = myQueuePath();
+    if (!qp) return;
     draining = true;
     try {
-      const snap = await base.rtdbGet(base.rtdbRef(rtdb, SYNC_QUEUE_PATH));
+      const snap = await base.rtdbGet(base.rtdbRef(rtdb, qp));
       const all = snap.exists() ? snap.val() : {};
       const ids = Object.keys(all || {}).sort((a, b) => (all[a].ts || 0) - (all[b].ts || 0));
       for (const id of ids) {
@@ -365,11 +390,11 @@ export function buildResilientFB(base) {
           if (item.op === 'delete') await base.deleteDoc(ref);
           else if (item.op === 'update') await base.updateDoc(ref, toFirestoreValue(data, fsApi));
           else await base.setDoc(ref, toFirestoreValue(data, fsApi), item.merge ? { merge: true } : undefined);
-          await base.rtdbRemove(base.rtdbRef(rtdb, SYNC_QUEUE_PATH + '/' + id));
+          await base.rtdbRemove(base.rtdbRef(rtdb, qp + '/' + id));
         } catch (err) {
           if (isQuotaError(err)) { markBlocked(err); break; }
           // عملية معطوبة (مستند محذوف مثلاً) — نشيلها بدل ما تعلّق الطابور للأبد.
-          try { await base.rtdbRemove(base.rtdbRef(rtdb, SYNC_QUEUE_PATH + '/' + id)); } catch (e) {}
+          try { await base.rtdbRemove(base.rtdbRef(rtdb, qp + '/' + id)); } catch (e) {}
         }
       }
     } catch (e) { /* أفضل جهد */ } finally { draining = false; }
@@ -635,9 +660,10 @@ export function buildResilientFB(base) {
         else { state.blocked = false; state.blockedAt = 0; state.lastReason = ''; notify(); drainSyncQueue(); }
       },
       async pendingSyncCount() {
-        if (!rtdb) return 0;
+        const qp = myQueuePath();
+        if (!rtdb || !qp) return 0;
         try {
-          const s = await base.rtdbGet(base.rtdbRef(rtdb, SYNC_QUEUE_PATH));
+          const s = await base.rtdbGet(base.rtdbRef(rtdb, qp));
           return s.exists() ? Object.keys(s.val() || {}).length : 0;
         } catch (e) { return 0; }
       },

@@ -687,6 +687,361 @@
     }
   } catch (e) { rtdb = undefined; }
 
+  // ==================== طبقة الصمود: Firestore أساسي، RTDB احتياطي ====================
+  // نفس منطق لوحة "ادمن احسمها" بالضبط (admin/js/core/fb-resilient.js) — لو
+  // خلصت حصة Firestore اليومية ما يتعطّل الموقع: يتحوّل تلقائياً لـRealtime
+  // Database ويكمل شغّال، وأول ما ترجع الحصة يرجع لـFirestore ويزامن كل
+  // اللي انكتب أثناء الانقطاع.
+  //
+  // ثلاث قطع تخلّي هذا مفيداً فعلاً مو مجرد تبديل لقاعدة فاضية:
+  //  1) مرآة باتجاهين وقت الصحة: كل كتابة تنكتب بالقاعدتين، وكل قراءة ناجحة
+  //     تُنسخ لـRTDB (بخنق زمني) — القراءة هي اللي تغطي البيانات القديمة اللي
+  //     ما راح تنكتب مرة ثانية أبداً.
+  //  2) كشف نفاد الحصة من كود 'resource-exhausted' فقط — أخطاء الشبكة
+  //     (unavailable) ما تُعتبر نفاد حصة لأنها تُحلّ بإعادة المحاولة.
+  //  3) طابور مزامنة بـRTDB يُعاد تشغيله على Firestore عند الرجوع.
+  //
+  // مفاتيح RTDB ترفض . # $ [ ] / بينما معرّفات Firestore تستعملها (يوزرات
+  // مثل ic.zx8) — فنرمّزها. والتواريخ تُخزَّن موسومة { __ts } وتُعاد كائناً
+  // فيه toMillis()/toDate() عشان الـ74 نداء toMillis() بالموقع ما تنكسر.
+  const FBR = (() => {
+    const RETRY_MS = 3 * 60 * 1000;
+    const MIRROR_THROTTLE_MS = 2 * 60 * 1000;
+    const MIRROR_MAX_DOCS = 400;
+    // طابور مقسَّم بحسب uid — كل جلسة تصرّف طابورها هي فقط. لو كان مشتركاً
+    // لقدر أي حساب يحشر عملية كتابة لمسار حسّاس وتنفّذها جلسة المالك
+    // بصلاحياتها (تصعيد امتيازات). قواعد RTDB تفرض $uid === auth.uid كمان.
+    const QUEUE_ROOT = 'siteSyncQueue';
+    const myQ = () => (auth && auth.currentUser && auth.currentUser.uid ? QUEUE_ROOT + '/' + auth.currentUser.uid : null);
+    // جذر خاص بالمرآة — ما نكتب أبداً على عُقد RTDB اللي يملكها الموقع أصلاً
+    // بصيغته (levels، framesCatalogExtra، cwOwnerSessions، secretCodes،
+    // pendingUsers، bridgeEvents)، وإلا اختلطت صيغتان بنفس العقدة وفسدت
+    // بيانات حيّة (مثال: levels/{key}.activeFrameAt يُقرأ رقماً).
+    const MIRROR_ROOT = 'fsMirror';
+    const ENC = { '%': '%25', '.': '%2E', '#': '%23', '$': '%24', '[': '%5B', ']': '%5D', '/': '%2F' };
+    const encKey = (k) => String(k).replace(/[%.#$[\]/]/g, (c) => ENC[c]);
+    const decKey = (k) => String(k).replace(/%2E|%23|%24|%5B|%5D|%2F|%25/gi, (m) => ({ '%2E': '.', '%23': '#', '%24': '$', '%5B': '[', '%5D': ']', '%2F': '/', '%25': '%' })[m.toUpperCase()]);
+    const encPath = (p) => String(p).split('/').filter(Boolean).map(encKey).join('/');
+
+    const st = { blocked: false, at: 0, reason: '' };
+    function isQuota(err) {
+      if (!err) return false;
+      if (String(err.code || '').toLowerCase().indexOf('resource-exhausted') >= 0) return true;
+      return /resource[_-]?exhausted|quota exceeded/i.test(String(err.message || err));
+    }
+    function block(err) {
+      if (st.blocked) return;
+      st.blocked = true; st.at = Date.now(); st.reason = String((err && err.message) || err || '');
+      console.warn('🔁 حصة Firestore انتهت — الموقع تحوّل لـRealtime Database');
+      try { window.dispatchEvent(new CustomEvent('fb-backend', { detail: { backend: 'rtdb' } })); } catch (e) {}
+    }
+    function heal() {
+      if (!st.blocked) return;
+      st.blocked = false; st.at = 0; st.reason = '';
+      console.info('✅ رجعت حصة Firestore');
+      try { window.dispatchEvent(new CustomEvent('fb-backend', { detail: { backend: 'firestore' } })); } catch (e) {}
+      drain();
+    }
+    const probe = () => !st.blocked || (Date.now() - st.at) > RETRY_MS;
+
+    const isFv = (v) => v && typeof v === 'object' && typeof v.__fv === 'string';
+    function toFs(v) {
+      if (isFv(v)) {
+        if (v.__fv === 'increment') return increment(v.value);
+        if (v.__fv === 'arrayUnion') return arrayUnion.apply(null, v.values);
+        if (v.__fv === 'arrayRemove') return arrayRemove.apply(null, v.values);
+        if (v.__fv === 'serverTimestamp') return serverTimestamp();
+        if (v.__fv === 'deleteField') return deleteField();
+      }
+      if (Array.isArray(v)) return v.map(toFs);
+      if (v && typeof v === 'object' && !(v instanceof Date) && typeof v.toDate !== 'function') {
+        const o = {}; Object.keys(v).forEach((k) => { o[k] = toFs(v[k]); }); return o;
+      }
+      return v;
+    }
+    function toRt(v, cur) {
+      if (isFv(v)) {
+        if (v.__fv === 'increment') return (Number(cur) || 0) + v.value;
+        if (v.__fv === 'arrayUnion') {
+          const a = Array.isArray(cur) ? cur.slice() : [];
+          v.values.forEach((x) => { if (!a.some((y) => JSON.stringify(y) === JSON.stringify(x))) a.push(x); });
+          return a;
+        }
+        if (v.__fv === 'arrayRemove') {
+          const a = Array.isArray(cur) ? cur.slice() : [];
+          return a.filter((y) => !v.values.some((x) => JSON.stringify(y) === JSON.stringify(x)));
+        }
+        if (v.__fv === 'serverTimestamp') return { __ts: Date.now() };
+        if (v.__fv === 'deleteField') return null;
+      }
+      if (v === undefined) return null;
+      if (v instanceof Date) return { __ts: v.getTime() };
+      if (v && typeof v.toMillis === 'function') return { __ts: v.toMillis() };
+      if (Array.isArray(v)) return v.map((x) => toRt(x, undefined));
+      if (v && typeof v === 'object') {
+        const o = {};
+        Object.keys(v).forEach((k) => {
+          const nv = toRt(v[k], cur && typeof cur === 'object' ? cur[encKey(k)] : undefined);
+          if (nv !== undefined) o[encKey(k)] = nv;
+        });
+        return o;
+      }
+      return v;
+    }
+    function mkTs(ms) {
+      const n = Number(ms) || 0;
+      return { __ts: n, seconds: Math.floor(n / 1000), nanoseconds: (n % 1000) * 1e6, toMillis: () => n, toDate: () => new Date(n), valueOf: () => n };
+    }
+    function fromRt(v) {
+      if (v === null || v === undefined) return v;
+      if (Array.isArray(v)) return v.map(fromRt);
+      if (typeof v === 'object') {
+        if (typeof v.__ts === 'number') return mkTs(v.__ts);
+        const o = {}; Object.keys(v).forEach((k) => { o[decKey(k)] = fromRt(v[k]); }); return o;
+      }
+      return v;
+    }
+    function plain(v) {
+      if (v === undefined || v === null) return null;
+      if (typeof v.toMillis === 'function') return { __ts: v.toMillis() };
+      if (v instanceof Date) return { __ts: v.getTime() };
+      if (Array.isArray(v)) return v.map(plain);
+      if (typeof v === 'object') {
+        if (typeof v.path === 'string' && typeof v.id === 'string') return v.path;
+        const o = {}; Object.keys(v).forEach((k) => { const n = plain(v[k]); if (n !== undefined) o[encKey(k)] = n; }); return o;
+      }
+      return v;
+    }
+
+    const R = (p) => rtdbRef(rtdb, MIRROR_ROOT + '/' + encPath(p));
+    const qDesc = new WeakMap();
+    const cDesc = new WeakMap();
+    const mirroredAt = new Map();
+    function canMirror(k) {
+      if (!rtdb) return false;
+      if (Date.now() - (mirroredAt.get(k) || 0) < MIRROR_THROTTLE_MS) return false;
+      mirroredAt.set(k, Date.now());
+      return true;
+    }
+    function mirrorDoc(path, snap) {
+      if (!path || !snap || !snap.exists || !snap.exists() || !canMirror(path)) return;
+      try { rtdbSet(R(path), plain(snap.data())).catch(() => {}); } catch (e) {}
+    }
+    function mirrorCol(path, snap) {
+      if (!path || !snap || !snap.docs || !canMirror('c:' + path)) return;
+      try {
+        const patch = {};
+        snap.docs.slice(0, MIRROR_MAX_DOCS).forEach((d) => { patch[encKey(d.id)] = plain(d.data()); });
+        if (Object.keys(patch).length) rtdbUpdate(R(path), patch).catch(() => {});
+      } catch (e) {}
+    }
+
+    async function rtGetDoc(path) {
+      const s2 = await rtdbGet(R(path));
+      const raw = s2.exists() ? s2.val() : null;
+      return { id: decKey(String(path).split('/').filter(Boolean).pop()), exists: () => raw !== null && raw !== undefined, data: () => (raw == null ? undefined : fromRt(raw)) };
+    }
+    async function rtWrite(path, data, merge) {
+      const ref = R(path);
+      let cur = null;
+      if (merge || JSON.stringify(data || {}).indexOf('"__fv"') >= 0) {
+        try { const g = await rtdbGet(ref); cur = g.exists() ? g.val() : null; } catch (e) {}
+      }
+      const conv = toRt(data, cur);
+      if (merge) { if (conv && typeof conv === 'object' && !Array.isArray(conv) && Object.keys(conv).length) await rtdbUpdate(ref, conv); }
+      else await rtdbSet(ref, conv);
+    }
+    function match(d, w) {
+      const v = String(w.field).split('.').reduce((o, k) => (o == null ? undefined : o[k]), d);
+      if (w.op === '==') return v === w.value;
+      if (w.op === '!=') return v !== w.value;
+      if (w.op === 'in') return Array.isArray(w.value) && w.value.includes(v);
+      if (w.op === 'array-contains') return Array.isArray(v) && v.includes(w.value);
+      if (w.op === '>') return v > w.value;
+      if (w.op === '>=') return v >= w.value;
+      if (w.op === '<') return v < w.value;
+      if (w.op === '<=') return v <= w.value;
+      return true;
+    }
+    function rowsFrom(val, desc) {
+      let rows = Object.keys(val || {}).map((k) => {
+        const d = fromRt(val[k]);
+        return { id: decKey(k), exists: () => true, data: () => d, __d: d };
+      });
+      (desc.wheres || []).forEach((w) => { rows = rows.filter((r) => match(r.__d, w)); });
+      return rows;
+    }
+    const snapOf = (rows) => ({ docs: rows, size: rows.length, empty: !rows.length, forEach: (f) => rows.forEach(f) });
+
+    async function enqueue(op) {
+      const qp = myQ();
+      if (!rtdb || !qp) return;
+      try {
+        const id = 'q_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        await rtdbSet(rtdbRef(rtdb, qp + '/' + id), Object.assign({}, op, { ts: Date.now(), data: op.data === undefined ? null : JSON.stringify(op.data) }));
+      } catch (e) {}
+    }
+    function reviveTs(v) {
+      if (v === null || v === undefined) return v;
+      if (Array.isArray(v)) return v.map(reviveTs);
+      if (typeof v === 'object') {
+        if (typeof v.__ts === 'number') return new Date(v.__ts);
+        const o = {}; Object.keys(v).forEach((k) => { o[k] = reviveTs(v[k]); }); return o;
+      }
+      return v;
+    }
+    let draining = false;
+    async function drain() {
+      const qp = myQ();
+      if (draining || !rtdb || st.blocked || !qp) return;
+      draining = true;
+      try {
+        const s2 = await rtdbGet(rtdbRef(rtdb, qp));
+        const all = s2.exists() ? s2.val() : {};
+        const ids = Object.keys(all || {}).sort((a, b) => (all[a].ts || 0) - (all[b].ts || 0));
+        for (const id of ids) {
+          const it = all[id];
+          try {
+            const data = reviveTs(it.data ? JSON.parse(it.data) : undefined);
+            const ref = doc.apply(null, [db].concat(String(it.path).split('/').filter(Boolean)));
+            if (it.op === 'delete') await deleteDoc(ref);
+            else if (it.op === 'update') await updateDoc(ref, toFs(data));
+            else await setDoc(ref, toFs(data), it.merge ? { merge: true } : undefined);
+            await rtdbRemove(rtdbRef(rtdb, qp + '/' + id));
+          } catch (err) {
+            if (isQuota(err)) { block(err); break; }
+            try { await rtdbRemove(rtdbRef(rtdb, qp + '/' + id)); } catch (e) {}
+          }
+        }
+      } catch (e) {} finally { draining = false; }
+    }
+
+    return {
+      state: () => ({ backend: st.blocked ? 'rtdb' : 'firestore', blocked: st.blocked, reason: st.reason, since: st.at }),
+      drain,
+      increment: (n) => ({ __fv: 'increment', value: Number(n) || 0 }),
+      arrayUnion: function () { return { __fv: 'arrayUnion', values: Array.prototype.slice.call(arguments) }; },
+      arrayRemove: function () { return { __fv: 'arrayRemove', values: Array.prototype.slice.call(arguments) }; },
+      serverTimestamp: () => ({ __fv: 'serverTimestamp' }),
+      deleteField: () => ({ __fv: 'deleteField' }),
+      where(f, op, v) { const c = where(f, op, v); cDesc.set(c, { kind: 'where', field: f, op, value: v }); return c; },
+      query(ref) {
+        const cs = Array.prototype.slice.call(arguments, 1);
+        const q = query.apply(null, [ref].concat(cs));
+        const desc = { path: ref && ref.path, wheres: [] };
+        const inh = qDesc.get(ref);
+        if (inh) { desc.path = desc.path || inh.path; desc.wheres = inh.wheres.slice(); }
+        cs.forEach((c) => { const d = cDesc.get(c); if (d && d.kind === 'where') desc.wheres.push(d); });
+        qDesc.set(q, desc);
+        return q;
+      },
+      async getDoc(ref) {
+        if (probe()) { try { const s2 = await getDoc(ref); heal(); mirrorDoc(ref.path, s2); return s2; } catch (e) { if (!isQuota(e)) throw e; block(e); } }
+        return rtGetDoc(ref.path);
+      },
+      async getDocFromServer(ref) {
+        if (probe()) { try { const s2 = await getDocFromServer(ref); heal(); mirrorDoc(ref.path, s2); return s2; } catch (e) { if (!isQuota(e)) throw e; block(e); } }
+        return rtGetDoc(ref.path);
+      },
+      async getDocs(q) {
+        if (probe()) { try { const s2 = await getDocs(q); heal(); mirrorCol((qDesc.get(q) || { path: q.path }).path, s2); return s2; } catch (e) { if (!isQuota(e)) throw e; block(e); } }
+        const desc = qDesc.get(q) || { path: q.path, wheres: [] };
+        const g = await rtdbGet(R(desc.path));
+        return snapOf(rowsFrom(g.exists() ? g.val() : {}, desc));
+      },
+      async getCountFromServer(q) {
+        if (probe()) { try { const s2 = await getCountFromServer(q); heal(); return s2; } catch (e) { if (!isQuota(e)) throw e; block(e); } }
+        const s3 = await this.getDocs(q);
+        return { data: () => ({ count: s3.size }) };
+      },
+      async setDoc(ref, data, opts) {
+        const merge = !!(opts && opts.merge);
+        if (probe()) {
+          try { await setDoc(ref, toFs(data), opts); heal(); rtWrite(ref.path, data, merge).catch(() => {}); return; }
+          catch (e) { if (!isQuota(e)) throw e; block(e); }
+        }
+        await rtWrite(ref.path, data, merge);
+        await enqueue({ op: 'set', path: ref.path, data, merge });
+      },
+      async updateDoc(ref, data) {
+        if (probe()) {
+          try { await updateDoc(ref, toFs(data)); heal(); rtWrite(ref.path, data, true).catch(() => {}); return; }
+          catch (e) { if (!isQuota(e)) throw e; block(e); }
+        }
+        await rtWrite(ref.path, data, true);
+        await enqueue({ op: 'update', path: ref.path, data });
+      },
+      async deleteDoc(ref) {
+        if (probe()) {
+          try { await deleteDoc(ref); heal(); rtdbRemove(R(ref.path)).catch(() => {}); return; }
+          catch (e) { if (!isQuota(e)) throw e; block(e); }
+        }
+        await rtdbRemove(R(ref.path));
+        await enqueue({ op: 'delete', path: ref.path });
+      },
+      // المعاملات: على Firestore معاملة حقيقية ذرّية. بالوضع الاحتياطي نحاكيها
+      // بقراءة-تعديل-كتابة على RTDB — مو ذرّية، وهذا تنازل مقبول ومقصود:
+      // البديل إن الموقع يتوقف تماماً طول فترة نفاد الحصة.
+      async runTransaction(_db, fn) {
+        if (probe()) {
+          try { const r = await runTransaction(db, async (tx) => fn(wrapTx(tx))); heal(); return r; }
+          catch (e) { if (!isQuota(e)) throw e; block(e); }
+        }
+        const writes = [];
+        const shim = {
+          get: async (ref) => rtGetDoc(ref.path),
+          set: (ref, data, opts) => { writes.push({ ref, data, merge: !!(opts && opts.merge), op: 'set' }); return shim; },
+          update: (ref, data) => { writes.push({ ref, data, merge: true, op: 'update' }); return shim; },
+          delete: (ref) => { writes.push({ ref, op: 'delete' }); return shim; },
+        };
+        const res = await fn(shim);
+        for (const w of writes) {
+          if (w.op === 'delete') { await rtdbRemove(R(w.ref.path)); await enqueue({ op: 'delete', path: w.ref.path }); }
+          else { await rtWrite(w.ref.path, w.data, w.merge); await enqueue({ op: w.op, path: w.ref.path, data: w.data, merge: w.merge }); }
+        }
+        return res;
+      },
+      onSnapshot(refOrQ, onNext, onErr) {
+        let stopped = false, unFs = null, unRt = null;
+        const isDoc = !!(refOrQ && refOrQ.type === 'document');
+        const desc = qDesc.get(refOrQ) || { path: refOrQ && refOrQ.path, wheres: [] };
+        function startRt() {
+          if (stopped || unRt || !rtdb || !desc.path) return;
+          const r = R(desc.path);
+          const cb = rtdbOnValue(r, (s2) => {
+            if (stopped) return;
+            const val = s2.exists() ? s2.val() : null;
+            if (isDoc) onNext({ id: decKey(String(desc.path).split('/').filter(Boolean).pop()), exists: () => val !== null, data: () => (val === null ? undefined : fromRt(val)) });
+            else onNext(snapOf(rowsFrom(val, desc)));
+          }, (e) => { if (onErr) onErr(e); });
+          unRt = () => { try { rtdbOff(r, 'value', cb); } catch (e) {} };
+        }
+        if (st.blocked) startRt();
+        else {
+          unFs = onSnapshot(refOrQ, (s2) => {
+            heal();
+            if (isDoc) mirrorDoc(desc.path, s2); else mirrorCol(desc.path, s2);
+            if (!stopped) onNext(s2);
+          }, (e) => {
+            if (isQuota(e)) { block(e); try { if (unFs) unFs(); } catch (x) {} unFs = null; startRt(); return; }
+            if (onErr) onErr(e);
+          });
+        }
+        return () => { stopped = true; try { if (unFs) unFs(); } catch (e) {} try { if (unRt) unRt(); } catch (e) {} };
+      },
+    };
+    // معاملة Firestore الحقيقية: نغلّف tx عشان تحوّل قيمنا الخاصة (__fv) قبل
+    // ما توصل للـSDK، بنفس ما تسوي setDoc/updateDoc فوق.
+    function wrapTx(tx) {
+      return {
+        get: (ref) => tx.get(ref),
+        set: (ref, data, opts) => tx.set(ref, toFs(data), opts),
+        update: (ref, data) => tx.update(ref, toFs(data)),
+        delete: (ref) => tx.delete(ref),
+      };
+    }
+  })();
+
   // Expose to the classic (non-module) script below via window.__fb
   window.__fb = {
     auth, db, googleProvider,
@@ -694,8 +1049,16 @@
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
     deleteUser,
-    doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
+    // القراءة/الكتابة كلها تمر عبر طبقة الصمود (FBR) بدل Firestore مباشرة —
+    // فكل كود الموقع تحت يشتغل كما هو ويستفيد من التحويل التلقائي بلا تعديل.
+    doc, collection,
+    getDoc: FBR.getDoc, getDocFromServer: FBR.getDocFromServer, setDoc: FBR.setDoc,
+    updateDoc: FBR.updateDoc, deleteDoc: FBR.deleteDoc, runTransaction: FBR.runTransaction,
+    serverTimestamp: FBR.serverTimestamp, onSnapshot: FBR.onSnapshot, query: FBR.query,
+    where: FBR.where, getDocs: FBR.getDocs, getCountFromServer: FBR.getCountFromServer,
+    increment: FBR.increment, arrayUnion: FBR.arrayUnion, arrayRemove: FBR.arrayRemove,
+    deleteField: FBR.deleteField,
+    backendState: FBR.state, syncPending: FBR.drain,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
     rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
     // onDisconnect: الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع اتصال الستريمر
@@ -20133,8 +20496,14 @@ try {
       adminApplyGameCardStates();
     }, () => {});
   } else {
+    // window.__fb مو fb: المتغير fb ما يُسنَد إلا داخل authBoot اللي يسجّل
+    // مستمعه لـfb-ready **بعد** هذا المستمع بترتيب المصدر، فيشتغل هذا أولاً
+    // وfb لسا null — وكان يرمي "Cannot read properties of null" ويقتل بقية
+    // الكتلة (ومنها مؤشرات البطاقات المعطّلة).
     window.addEventListener('fb-ready', () => {
-      fb.onSnapshot(fb.doc(fb.db, 'siteFlags', 'gameToggles'), (snap) => {
+      const F = window.__fb;
+      if (!F) return;
+      F.onSnapshot(F.doc(F.db, 'siteFlags', 'gameToggles'), (snap) => {
         __adminGameToggles = snap.data() || {};
         adminApplyGameCardStates();
       }, () => {});
@@ -27146,7 +27515,7 @@ function homeCardAnimObserverBoot() {
   cards.forEach(c => homeCardAnimObserver.observe(c));
 }
 document.addEventListener('DOMContentLoaded', () => { try { homeCardAnimObserverBoot(); } catch (e) {} });
-window.addEventListener('fb-ready', () => { try { gamesPinnedEnsureLoaded(); } catch (e) {} });
+window.addEventListener('fb-ready', () => { try { if (!fb && window.__fb) fb = window.__fb; gamesPinnedEnsureLoaded(); } catch (e) {} });
 
 // ==================== SCORE SYSTEM ====================
 // يخزن: { [streamerUid]: { [userUid]: { nickname, wins } } }
@@ -28673,6 +29042,9 @@ function framesPublicExtraMergeAndApply() {
 }
 
 function framesPublicExtraBoot() {
+  // نفس مصيدة الترتيب أعلاه: لو نودي من مستمع fb-ready قبل authBoot يكون fb
+  // لسا null، فنلتقط النسخة الجاهزة من window مباشرة بدل ما نخرج صامتين.
+  if (!fb && window.__fb) fb = window.__fb;
   if (!fb || framesPublicExtraFirestoreUnsub || framesPublicExtraRtdbUnsub) return;
   try {
     framesPublicExtraFirestoreUnsub = fb.onSnapshot(
