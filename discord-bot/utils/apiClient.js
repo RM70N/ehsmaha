@@ -67,7 +67,8 @@ function interpret(res) {
 
   const apiCode = body.error && body.error.code;
   const apiMessage = (body.error && body.error.message) || `HTTP ${res.status}`;
-  const retryable = res.status >= 500 || res.status === 429;
+  // الحصة اليومية خلصت: إعادة المحاولة ما تفيد (وتستهلك أكثر)
+  const retryable = (res.status >= 500 || res.status === 429) && apiCode !== 'QUOTA_EXCEEDED';
   let code = apiCode;
   if (!code) {
     if (res.status === 401 || res.status === 403) code = 'UNAUTHORIZED';
