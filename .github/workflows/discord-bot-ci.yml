@@ -66,4 +66,4 @@ jobs:
       - name: اختبارات قاعدة بيانات البوت على PostgreSQL
         env:
           TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/bottest
-        run: node --test --test-concurrency=1 tests/moderation.test.js tests/welcome_automod.test.js
+        run: node --test --test-concurrency=1 tests/moderation.test.js tests/welcome_automod.test.js tests/autoreply.test.js
