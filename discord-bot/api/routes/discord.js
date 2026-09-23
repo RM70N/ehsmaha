@@ -9,6 +9,7 @@
 //   GET /winners?streamer=...&limit=50           (لوحة الفائزين — كل الستريمرز أو ستريمر محدد)
 //   GET /winners/streamers?q=...                 (اقتراحات أسماء الستريمرز)
 //   GET /active-streams                           (البثوث النشطة الآن — مزامنة /بث بالبوت)
+//   POST /bot-state/claim · PUT /bot-state        (نسخة احتياطية دائمة لقاعدة بيانات البوت)
 //   GET /events
 //   GET /admin/stats
 //
@@ -25,6 +26,7 @@ const events = require('../services/events');
 const winners = require('../services/winners');
 const activeStreams = require('../services/activeStreams');
 const admin = require('../services/admin');
+const botState = require('../services/botState');
 
 const ok = (res, data, status = 200) => res.status(status).json({ ok: true, data });
 
@@ -91,6 +93,22 @@ function createDiscordRouter(config) {
 
   router.get('/admin/stats', async (req, res) => {
     ok(res, await admin.getAdminStats());
+  });
+
+  // النسخة الاحتياطية الدائمة لقاعدة بيانات البوت (يستخدمها البوت فقط)
+  const stateBody = express.json({ limit: '12mb' });
+  const bootAtOf = (body) => {
+    const n = Number(body && body.bootAt);
+    if (!Number.isSafeInteger(n) || n <= 0) throw errors.invalidInput('bootAt غير صالح');
+    return n;
+  };
+  router.post('/bot-state/claim', stateBody, async (req, res) => {
+    ok(res, await botState.claim(bootAtOf(req.body)));
+  });
+  router.put('/bot-state', stateBody, async (req, res) => {
+    const { data, sha256 } = req.body || {};
+    if (typeof data !== 'string' || typeof sha256 !== 'string') throw errors.invalidInput('data و sha256 مطلوبة');
+    ok(res, await botState.save({ bootAt: bootAtOf(req.body), data, sha: sha256 }));
   });
 
   return router;

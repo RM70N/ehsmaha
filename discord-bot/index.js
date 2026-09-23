@@ -7,7 +7,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes } = require('discord.js');
 const logger = require('./utils/logger');
 
 // ---- معالجات الأخطاء العامة: تسجّل ولا توقف العملية ----
@@ -36,6 +36,8 @@ const { loadCommands } = require('./utils/commandLoader');
 const botDb = require('./database/botDb');
 const liveStreams = require('./services/liveStreams');
 const { startWebServer } = require('./web/server');
+const stateBackup = require('./services/stateBackup');
+const api = require('./utils/apiClient');
 
 let loaded;
 try {
@@ -52,17 +54,21 @@ const ctx = {
   commands: loaded.commands,
   buttons: loaded.buttons,
   definitions: loaded.definitions,
-  membersIntent: false
+  membersIntent: false,
+  messageContentIntent: false
 };
 
 // ---- العميل ----
-// Guilds يكفي لكل الأوامر. GuildMembers (Privileged — يُفعَّل من Developer Portal
-// → Bot → Server Members Intent) نحتاجه فقط لعدّ أعضاء كل رتبة بـ/عرض_الرتب.
-// MEMBERS_INTENT=auto: نجرّبه، ولو ديسكورد رفضه (غير مفعّل) نرجع بدونه تلقائياً
+// Guilds + GuildMessages تكفي للأوامر وعدّ رسائل السبام. الـIntents المميزة
+// (Privileged — تُفعَّل من Developer Portal → Bot):
+//   • Server Members Intent: الترحيب (حدث انضمام عضو) + عدّ أعضاء الرتب.
+//   • Message Content Intent: الحماية من الروابط والرسائل المكررة (قراءة النص).
+// auto: نسأل ديسكورد وش المفعّل بالبورتال ونطلبه فقط — ولو رفض، نرجع بدونها
 // بدل ما يطيح البوت كامل.
-function createClient(withMembers) {
-  const intents = [GatewayIntentBits.Guilds];
-  if (withMembers) intents.push(GatewayIntentBits.GuildMembers);
+function createClient({ members, content }) {
+  const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
+  if (members) intents.push(GatewayIntentBits.GuildMembers);
+  if (content) intents.push(GatewayIntentBits.MessageContent);
   return new Client({
     intents,
     partials: [Partials.Channel],
@@ -102,24 +108,61 @@ function registerEvents(client) {
 const isDisallowedIntents = (err) =>
   !!err && (err.code === 'DisallowedIntents' || err.code === 4014 || /disallowed intent/i.test(String(err.message || '')));
 
-async function login() {
-  const wantMembers = config.membersIntent !== 'off';
-  ctx.client = createClient(wantMembers);
-  registerEvents(ctx.client);
+// أعلام التطبيق: 1<<14/1<<15 = Server Members، 1<<18/1<<19 = Message Content
+async function portalIntents() {
   try {
-    await ctx.client.login(config.token);
-    ctx.membersIntent = wantMembers;
+    const app = await new REST({ version: '10' }).setToken(config.token).get(Routes.currentApplication());
+    const f = Number(app.flags || 0);
+    return { known: true, members: !!(f & (1 << 14) || f & (1 << 15)), content: !!(f & (1 << 18) || f & (1 << 19)) };
   } catch (err) {
-    if (wantMembers && config.membersIntent === 'auto' && isDisallowedIntents(err)) {
-      logger.warn('Server Members Intent غير مفعّل بـDeveloper Portal — التشغيل بدونه (عدد أعضاء الرتب بـ/عرض_الرتب ما يظهر)');
+    logger.warn('تعذّر قراءة الـIntents المفعّلة من Developer Portal — بنجرّب مباشرة', { code: err.code || err.status });
+    return { known: false };
+  }
+}
+
+function decide(mode, portalValue) {
+  if (mode === 'on') return true;
+  if (mode === 'off') return false;
+  return portalValue === undefined ? true : portalValue;
+}
+
+async function login() {
+  const portal = await portalIntents();
+  const want = {
+    members: decide(config.membersIntent, portal.known ? portal.members : undefined),
+    content: decide(config.messageContentIntent, portal.known ? portal.content : undefined)
+  };
+  const tryLogin = async (w) => {
+    ctx.client = createClient(w);
+    registerEvents(ctx.client);
+    await ctx.client.login(config.token);
+    ctx.membersIntent = w.members;
+    ctx.messageContentIntent = w.content;
+  };
+  // لو ديسكورد رفض: نجرّب نشيل واحد واحد (المضبوط على on ما ينشال أبداً)
+  const keepM = config.membersIntent === 'on';
+  const keepC = config.messageContentIntent === 'on';
+  const candidates = [
+    want,
+    { members: want.members, content: keepC },
+    { members: keepM, content: want.content },
+    { members: keepM, content: keepC }
+  ].filter((c, i, arr) => arr.findIndex((o) => o.members === c.members && o.content === c.content) === i);
+  for (let i = 0; i < candidates.length; i++) {
+    try {
+      await tryLogin(candidates[i]);
+      if (i > 0) logger.warn('ديسكورد رفض Intent مميز — التشغيل بدونه', candidates[i]);
+      break;
+    } catch (err) {
       await ctx.client.destroy().catch(() => {});
-      ctx.client = createClient(false);
-      registerEvents(ctx.client);
-      await ctx.client.login(config.token);
-      ctx.membersIntent = false;
-      return;
+      if (!isDisallowedIntents(err) || i === candidates.length - 1) throw err;
     }
-    throw err;
+  }
+  if (!ctx.membersIntent) {
+    logger.warn('⚠️ Server Members Intent غير مفعّل — الترحيب بالأعضاء الجدد وعدّ أعضاء الرتب ما يشتغلون. فعّله: Developer Portal → Bot → Server Members Intent');
+  }
+  if (!ctx.messageContentIntent) {
+    logger.warn('⚠️ Message Content Intent غير مفعّل — الحماية من الروابط والرسائل المكررة ما تشتغل (سبام السرعة يشتغل). فعّله: Developer Portal → Bot → Message Content Intent');
   }
 }
 
@@ -156,31 +199,52 @@ function shutdown(signal, webServer) {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info(`استلام ${signal} — إيقاف البوت بهدوء`);
-  const force = setTimeout(() => process.exit(0), 8000);
+  const force = setTimeout(() => process.exit(0), 20000);
   force.unref();
   liveStreams.stopPolling();
   clearInterval(shutdown.selfPingTimer);
   Promise.resolve()
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())
+    .then(() => stateBackup.shutdown()) // آخر نسخة احتياطية قبل ما يطفي
     .then(() => botDb.close())
     .catch((err) => logger.error('خطأ أثناء الإيقاف', { error: err }))
     .finally(() => process.exit(0));
 }
 
+// قاعدة بيانات البوت: PostgreSQL لو DATABASE_URL موجود، وإلا SQLite محلي —
+// وعلى Render يُسترجع من النسخة الاحتياطية الدائمة (Firestore عبر الـAPI) ويُحفظ
+// فيها بعد كل تعديل، فما ينمسح شي مع التحديثات. فشلها ما يوقف البوت كامل.
+async function initDatabase() {
+  const backup = stateBackup.shouldEnable(config);
+  try {
+    if (backup) {
+      stateBackup.configure({ api, getBuffer: () => botDb.serialize() });
+      await stateBackup.restore(config.sqlitePath); // يعيد المحاولة لين ينجح
+    }
+    await botDb.init({ databaseUrl: config.databaseUrl, sqlitePath: config.sqlitePath });
+    if (backup) {
+      botDb.onWrite(() => stateBackup.markDirty());
+      stateBackup.startSafetyFlush();
+      stateBackup.markDirty(); // أول نسخة (تشمل أي جداول جديدة من الـmigrations)
+      logger.info('✅ الحفظ الدائم مفعّل — إعدادات البوت محفوظة سحابياً ولا تنمسح مع التحديثات');
+    } else if (!config.databaseUrl && process.env.RENDER) {
+      logger.warn('⚠️ قاعدة البوت SQLite على Render بدون حفظ دائم (BOT_STATE_BACKUP=off) — تنمسح مع كل نشر');
+    }
+    await require('./database/botStore').moderationLog.prune(180).catch(() => {});
+    return true;
+  } catch (err) {
+    logger.error('❌ تعذّر تجهيز قاعدة بيانات البوت', { error: err });
+    return false;
+  }
+}
+
 async function main() {
   logger.info('تشغيل بوت احسمها', { commands: loaded.commands.size, components: loaded.buttons.size, env: process.env.NODE_ENV || 'development' });
 
-  // قاعدة بيانات البوت: فشلها ما يوقف البوت كامل — أوامر اللاعبين تستمر،
-  // والأوامر الإدارية/التكتات ترد برسالة واضحة لين تنحل المشكلة.
-  try {
-    await botDb.init({ databaseUrl: config.databaseUrl, sqlitePath: config.sqlitePath });
-    if (!config.databaseUrl && process.env.RENDER) {
-      logger.warn('⚠️ قاعدة البوت SQLite على Render بدون قرص دائم تنمسح مع كل نشر — اضبط DATABASE_URL (PostgreSQL) للإنتاج');
-    }
-  } catch (_) {
-    /* مسجّل داخل init */
-  }
+  // قاعدة بيانات البوت تتجهّز بالتوازي مع تسجيل الدخول (الاسترجاع ممكن ياخذ
+  // دقيقة لو الـAPI نايم). لين تجهز، الأوامر الإدارية ترد برسالة ودّية.
+  ctx.dbReady = initDatabase();
 
   liveStreams.configure({ maxHours: config.streamMaxHours });
   const webServer = startWebServer({ client: { isReady: () => !!(ctx.client && ctx.client.isReady()), get ws() { return ctx.client ? ctx.client.ws : { ping: -1 }; } }, config });

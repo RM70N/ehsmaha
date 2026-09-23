@@ -100,6 +100,31 @@ function makeMember(guild, { id = nextId(), username = 'user' + id.slice(-4), ro
   return member;
 }
 
+// رسالة عضو حقيقية (للحماية التلقائية): تنحذف من القناة وتسجّل بالـlog
+function makeUserMessage(channel, member, content = '', { client = null } = {}) {
+  const guild = channel.guild;
+  const msg = {
+    id: nextId(),
+    content,
+    guild,
+    member,
+    author: member.user,
+    channel,
+    channelId: channel.id,
+    system: false,
+    webhookId: null,
+    createdTimestamp: Date.now(),
+    client: client || { user: guild.members.me.user },
+    async delete() {
+      if (guild.failNext === 'deleteMessage') { guild.failNext = null; throw Object.assign(new Error('Missing Permissions'), { code: 50013 }); }
+      channel.messagesStore = channel.messagesStore.filter((m) => m.id !== msg.id);
+      guild.log.push(['deleteMessage', channel.id, msg.id]);
+    }
+  };
+  channel.messagesStore.unshift(msg);
+  return msg;
+}
+
 function makeMessage(channel, { ageMs = 0, system = false } = {}) {
   const id = nextId();
   return { id, createdTimestamp: Date.now() - ageMs, deletable: !system, channelId: channel.id };
@@ -122,7 +147,14 @@ function makeChannel(guild, { id = nextId(), name = 'general', type = ChannelTyp
     },
     async send(payload) {
       if (guild.failNext === 'send') { guild.failNext = null; const e = new Error('Missing Access'); e.code = 50001; throw e; }
-      const msg = { id: nextId(), payload, url: `https://discord.com/channels/${guild.id}/${id}/x` };
+      const msg = {
+        id: nextId(),
+        payload,
+        url: `https://discord.com/channels/${guild.id}/${id}/x`,
+        async delete() {
+          guild.log.push(['deleteSent', id, msg.id]);
+        }
+      };
       guild.log.push(['send', id, payload]);
       return msg;
     },
@@ -148,11 +180,12 @@ function makeChannel(guild, { id = nextId(), name = 'general', type = ChannelTyp
         e.code = 50034;
         throw e;
       }
-      const ids = new Set(arr.map((m) => m.id));
+      const ids = new Set(arr.map((m) => (typeof m === 'string' ? m : m.id)));
+      const removed = channel.messagesStore.filter((m) => ids.has(m.id));
       channel.messagesStore = channel.messagesStore.filter((m) => !ids.has(m.id));
       guild.log.push(['bulkDelete', id, arr.length, filterOld, Date.now()]);
       const out = new Collection();
-      arr.forEach((m) => out.set(m.id, m));
+      (arr.every((m) => typeof m === 'string') ? removed : arr).forEach((m) => out.set(m.id, m));
       return out;
     },
     permissionOverwrites: {
@@ -223,7 +256,7 @@ function makeGuild({ botPerms } = {}) {
     permissions: botPerms || [
       PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.ReadMessageHistory,
       PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ManageChannels, PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ModerateMembers,
-      PermissionFlagsBits.KickMembers
+      PermissionFlagsBits.KickMembers, PermissionFlagsBits.AttachFiles
     ]
   });
   guild.members.me = makeMember(guild, { username: 'احسمها', roles: [botRole], bot: true });
@@ -290,4 +323,4 @@ function lastPayload(i) {
   return { type, p, embeds, components, text: JSON.stringify(embeds) };
 }
 
-module.exports = { makeGuild, makeRole, makeMember, makeChannel, makeMessage, makeInteraction, lastPayload, nextId };
+module.exports = { makeGuild, makeRole, makeMember, makeChannel, makeMessage, makeUserMessage, makeInteraction, lastPayload, nextId };

@@ -39,7 +39,7 @@ test.before(async () => {
 });
 test.after(async () => {
   if (process.env.TEST_DATABASE_URL) {
-    await botDb.run('DROP TABLE IF EXISTS tickets, ticket_panels, warnings, moderation_log, bot_admin_config, guild_config, schema_migrations');
+    await botDb.run('DROP TABLE IF EXISTS tickets, ticket_panels, warnings, moderation_log, bot_admin_config, guild_config, guild_settings, auto_mod_violations, auto_mod_exemptions, schema_migrations');
   }
   await botDb.close();
 });
@@ -134,7 +134,7 @@ test('/كتم: تحويل دقيق للمدة + DM + سجل الإشراف', asy
   assert.match(reason, /سبام/);
   assert.ok(w.guild.log.some(([t, id]) => t === 'dm' && id === w.target.id));
   const out = lastPayload(i);
-  assert.match(out.text, /ساعة/);
+  assert.match(out.text, /ساعتين/);
   assert.doesNotMatch(out.text, /تعذر إرسال إشعار/);
   const logs = await store.moderationLog.recent(w.guild.id);
   assert.equal(logs[0].action, 'mute');
@@ -634,7 +634,7 @@ test('قاعدة البيانات طايحة: رسالة ودّية بدون Cra
   try {
     const i = cmd(w.guild, w.mod, 'كتم', { 'عضو': w.target, 'المدة': 1, 'الوحدة': 'minutes' });
     await dispatch(i);
-    assert.match(lastPayload(i).text, /قاعدة بيانات البوت غير متاحة/);
+    assert.match(lastPayload(i).text, /البوت يجهّز بياناته/);
     // أوامر اللاعبين (ما تعتمد على قاعدة البوت) تشتغل عادي
     const j = cmd(w.guild, w.regular, 'الموقع');
     await dispatch(j);

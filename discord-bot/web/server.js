@@ -33,7 +33,8 @@ function createApp({ client, config }) {
       ping: ready ? client.ws.ping : null,
       uptime: Math.floor(process.uptime()),
       liveSessions: liveStreams.size(),
-      db: require('../database/botDb').dialect()
+      db: require('../database/botDb').dialect(),
+      backup: require('../services/stateBackup').status()
     });
   });
 

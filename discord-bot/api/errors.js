@@ -19,7 +19,9 @@ const errors = {
   forbidden: (msg = 'ممنوع') => new AppError(403, 'FORBIDDEN', msg),
   playerNotFound: () => new AppError(404, 'PLAYER_NOT_FOUND', 'لم يتم العثور على لاعب بهذا الاسم'),
   notFound: (msg = 'غير موجود') => new AppError(404, 'NOT_FOUND', msg),
-  rateLimited: (msg = 'محاولات كثيرة، جرّب بعد قليل') => new AppError(429, 'RATE_LIMITED', msg)
+  rateLimited: (msg = 'محاولات كثيرة، جرّب بعد قليل') => new AppError(429, 'RATE_LIMITED', msg),
+  conflict: (code, msg) => new AppError(409, code, msg),
+  tooLarge: (msg) => new AppError(413, 'TOO_LARGE', msg)
 };
 
 module.exports = { AppError, errors };

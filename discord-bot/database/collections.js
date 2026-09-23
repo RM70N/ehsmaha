@@ -27,5 +27,7 @@ module.exports = Object.freeze({
   STREAMER_EVENTS: 'streamerEvents',
   EVENT100: 'event100',
   DISCORD_API_STATS: 'discordApiStats',
-  DISCORD_WEEKLY_BASELINES: 'discordWeeklyBaselines'
+  DISCORD_WEEKLY_BASELINES: 'discordWeeklyBaselines',
+  // نسخة احتياطية من قاعدة بيانات البوت (SQLite) — خاصة بالـAPI فقط
+  DISCORD_BOT_STATE: 'discordBotState'
 });

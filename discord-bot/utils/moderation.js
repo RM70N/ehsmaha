@@ -26,17 +26,33 @@ function toDurationMs(amount, unit) {
   return { ms };
 }
 
-// "3 ساعات و 20 دقيقة" — للعرض فقط
+// عدد + تمييز بقواعد العربي: 1 دقيقة، 2 دقيقتين، 3-10 دقائق، 11+ دقيقة
+const AR_UNITS = {
+  day: ['يوم', 'يومين', 'أيام'],
+  hour: ['ساعة', 'ساعتين', 'ساعات'],
+  minute: ['دقيقة', 'دقيقتين', 'دقائق'],
+  second: ['ثانية', 'ثانيتين', 'ثوانٍ']
+};
+function arCount(n, unit) {
+  const [one, two, few] = AR_UNITS[unit];
+  if (n === 1) return one;
+  if (n === 2) return two;
+  if (n >= 3 && n <= 10) return `${n} ${few}`;
+  return `${n} ${one}`;
+}
+
+// "3 ساعات و 20 دقيقة" — للعرض فقط. يوم كامل بالضبط يُكتب "24 ساعة".
 function formatDurationAr(ms) {
+  if (ms === 24 * 60 * 60 * 1000) return '24 ساعة';
   const parts = [];
   let rest = Math.floor(ms / 1000);
   const d = Math.floor(rest / 86400); rest %= 86400;
   const h = Math.floor(rest / 3600); rest %= 3600;
   const m = Math.floor(rest / 60); const s = rest % 60;
-  if (d) parts.push(`${d} يوم`);
-  if (h) parts.push(`${h} ساعة`);
-  if (m) parts.push(`${m} دقيقة`);
-  if (s) parts.push(`${s} ثانية`);
+  if (d) parts.push(arCount(d, 'day'));
+  if (h) parts.push(arCount(h, 'hour'));
+  if (m) parts.push(arCount(m, 'minute'));
+  if (s) parts.push(arCount(s, 'second'));
   return parts.join(' و ') || '0 ثانية';
 }
 

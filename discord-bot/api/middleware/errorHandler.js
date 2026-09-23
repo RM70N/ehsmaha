@@ -14,6 +14,13 @@ function createErrorHandler(logger) {
   return (err, req, res, next) => {
     if (res.headersSent) return;
 
+    if (err && err.type === 'entity.too.large') {
+      return res.status(413).json({ ok: false, error: { code: 'TOO_LARGE', message: 'جسم الطلب كبير جداً' } });
+    }
+    if (err && err.type === 'entity.parse.failed') {
+      return res.status(400).json({ ok: false, error: { code: 'INVALID_INPUT', message: 'جسم الطلب ليس JSON صالحاً' } });
+    }
+
     // رابط فيه ترميز % غير صالح (مثلاً يوزر عربي مقصوص بنص الترميز)
     if (err && (err instanceof URIError || (err.status === 400 && !(err instanceof AppError)))) {
       return res.status(400).json({ ok: false, error: { code: 'INVALID_INPUT', message: 'ترميز اليوزرنيم بالرابط غير صالح' } });

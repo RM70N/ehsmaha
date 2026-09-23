@@ -27,7 +27,7 @@ function cooldownPayload(ms) {
 async function replyWithGenericError(interaction, err) {
   const message =
     err && err.code === 'DB_UNAVAILABLE'
-      ? 'قاعدة بيانات البوت غير متاحة حالياً، فهذا الأمر ما يقدر يشتغل الحين. جرّب بعد قليل 🙏'
+      ? 'البوت يجهّز بياناته الحين (يسترجعها بعد التحديث أو إعادة التشغيل) — جرّب مرة ثانية بعد دقيقة 🙏'
       : GENERIC;
   try {
     await respond.send(interaction, { embeds: [eb.error(message)], components: [] }, { ephemeral: true });

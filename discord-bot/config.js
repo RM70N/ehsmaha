@@ -84,6 +84,8 @@ function buildConfig() {
   if (process.env.TICKET_CATEGORY_ID && !isSnowflake(process.env.TICKET_CATEGORY_ID)) problems.push('- TICKET_CATEGORY_ID لازم يكون معرّف تصنيف صالح');
   const membersIntent = String(process.env.MEMBERS_INTENT || 'auto').trim().toLowerCase();
   if (!['auto', 'on', 'off'].includes(membersIntent)) problems.push('- MEMBERS_INTENT لازم يكون auto أو on أو off');
+  const messageContentIntent = String(process.env.MESSAGE_CONTENT_INTENT || 'auto').trim().toLowerCase();
+  if (!['auto', 'on', 'off'].includes(messageContentIntent)) problems.push('- MESSAGE_CONTENT_INTENT لازم يكون auto أو on أو off');
   if (process.env.DATABASE_URL && !/^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL)) {
     problems.push('- DATABASE_URL لازم يبدأ بـ postgres:// (رابط قاعدة PostgreSQL)');
   }
@@ -129,6 +131,8 @@ function buildConfig() {
     warningRoleNames: Object.freeze(warningRoleNames.length ? warningRoleNames : ['تحذير1', 'تحذير2', 'تحذير3']),
     // Intent أعضاء السيرفر (لعدّ أعضاء كل رتبة بـ/عرض_الرتب): auto = يجرّبه ويرجع بدونه لو مو مفعّل
     membersIntent,
+    // Intent محتوى الرسائل (لكشف الروابط والرسائل المكررة بالحماية التلقائية)
+    messageContentIntent,
     // الهوية البصرية — مكان واحد لكل الألوان
     colors: Object.freeze({
       primary: 0x1a0d33,  // بنفسجي غامق (الأساسي)
