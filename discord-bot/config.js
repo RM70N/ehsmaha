@@ -83,6 +83,9 @@ function buildConfig() {
   }
 
   const siteUrl = stripTrailingSlash(process.env.SITE_URL || 'https://ehsmaha.com');
+  // تسجيل الأوامر تلقائياً عند كل تشغيل (افتراضياً مفعّل) — يغني عن تشغيل
+  // deploy-commands يدوياً. اكتب false لتعطيله.
+  const autoRegister = !/^(false|0|no|off)$/i.test(String(process.env.AUTO_REGISTER_COMMANDS || 'true').trim());
 
   return Object.freeze({
     token: process.env.DISCORD_TOKEN.trim(),
@@ -92,6 +95,7 @@ function buildConfig() {
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     siteUrl,
+    autoRegisterCommands: autoRegister,
     profileUrl: siteUrl + '/profile',
     logoUrl: process.env.LOGO_URL || siteUrl + '/discord-logo.png',
     ...numeric,
