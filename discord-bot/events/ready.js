@@ -34,6 +34,23 @@ module.exports = {
     });
     logger.info('رابط دعوة البوت', { url: inviteUrl(ctx.config.clientId) });
 
+    // تسجيل أوامر Slash تلقائياً (بديل تشغيل npm run deploy-commands يدوياً).
+    // التسجيل يستبدل القائمة كاملة: أي أمر محذوف من /commands ينشال من ديسكورد.
+    if (ctx.config.autoRegisterCommands) {
+      try {
+        if (ctx.config.guildId) {
+          const guild = await client.guilds.fetch(ctx.config.guildId);
+          await guild.commands.set(ctx.definitions);
+          logger.info('✅ تم تسجيل الأوامر بسيرفر التطوير تلقائياً', { guildId: ctx.config.guildId, count: ctx.definitions.length });
+        } else {
+          await client.application.commands.set(ctx.definitions);
+          logger.info('✅ تم تسجيل الأوامر عالمياً تلقائياً', { count: ctx.definitions.length });
+        }
+      } catch (err) {
+        logger.error('تعذّر تسجيل الأوامر تلقائياً — جرّب npm run deploy-commands', { code: err.code, reason: err.message });
+      }
+    }
+
     setPresence(client);
     // Discord أحياناً يمسح الحالة بعد إعادة الاتصال — نعيد ضبطها دورياً
     setInterval(() => setPresence(client), PRESENCE_REFRESH_MS).unref();

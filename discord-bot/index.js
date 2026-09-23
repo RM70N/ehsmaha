@@ -55,7 +55,8 @@ const ctx = {
   config,
   logger,
   commands: loaded.commands,
-  buttons: loaded.buttons
+  buttons: loaded.buttons,
+  definitions: loaded.definitions
 };
 
 // ---- تحميل الأحداث ديناميكياً من /events ----
