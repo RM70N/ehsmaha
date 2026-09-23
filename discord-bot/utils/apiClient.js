@@ -129,6 +129,8 @@ module.exports = {
   searchStreamers: (q) =>
     request('get', '/api/discord/winners/streamers', { params: { q }, timeout: 2000, retries: 0 }),
   getEvents: () => request('get', '/api/discord/events'),
+  // المزامنة الدورية لـ/بث — بدون إعادة محاولة (المحاولة الجاية بعد 30 ثانية أصلاً)
+  getActiveStreams: () => request('get', '/api/discord/active-streams', { retries: 0 }),
   getAdminStats: () => request('get', '/api/discord/admin/stats'),
   health: () => request('get', '/health')
 };

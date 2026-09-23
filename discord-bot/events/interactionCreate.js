@@ -1,6 +1,8 @@
 'use strict';
 
-// الموزّع المركزي لكل التفاعلات (أوامر Slash + أزرار + اقتراحات Autocomplete).
+// الموزّع المركزي لكل التفاعلات (أوامر Slash + أزرار + قوائم منسدلة + اقتراحات Autocomplete).
+// الأزرار والقوائم تُوجَّه حسب بادئة customId الثابتة (prefix:args) لمعالج مسجّل
+// بملف الأمر — بدون Collectors مؤقتة، فتشتغل حتى بعد إعادة تشغيل البوت.
 // كل تفاعل محاط بـtry/catch كامل — أي خطأ غير متوقع بأي أمر يتحول لرسالة
 // ودّية للمستخدم ويُسجَّل بالـlogger، وما يوصل أبداً لمستوى يوقف البوت.
 
@@ -22,9 +24,13 @@ function cooldownPayload(ms) {
   return { embeds: [eb.warning(`على هونك 😅 جرّب مرة ثانية بعد **${secs}** ثانية.`, '⏳ لحظة')] };
 }
 
-async function replyWithGenericError(interaction) {
+async function replyWithGenericError(interaction, err) {
+  const message =
+    err && err.code === 'DB_UNAVAILABLE'
+      ? 'قاعدة بيانات البوت غير متاحة حالياً، فهذا الأمر ما يقدر يشتغل الحين. جرّب بعد قليل 🙏'
+      : GENERIC;
   try {
-    await respond.send(interaction, { embeds: [eb.error(GENERIC)], components: [] }, { ephemeral: true });
+    await respond.send(interaction, { embeds: [eb.error(message)], components: [] }, { ephemeral: true });
   } catch (err) {
     logger.debug('تعذّر إرسال رسالة الخطأ للمستخدم', { error: err });
   }
@@ -102,7 +108,7 @@ module.exports = {
     try {
       if (interaction.isChatInputCommand()) return await handleCommand(interaction, ctx);
       if (interaction.isAutocomplete()) return await handleAutocomplete(interaction, ctx);
-      if (interaction.isButton()) return await handleButton(interaction, ctx);
+      if (interaction.isButton() || interaction.isStringSelectMenu()) return await handleButton(interaction, ctx);
       // أنواع أخرى (قوائم/نماذج) غير مستخدمة حالياً — نتجاهلها بأمان
       if (interaction.isRepliable()) {
         return await interaction.reply({ content: 'هذا النوع من التفاعل غير مدعوم.', flags: MessageFlags.Ephemeral });
@@ -119,7 +125,7 @@ module.exports = {
       if (interaction.isAutocomplete()) {
         await interaction.respond([]).catch(() => null);
       } else if (interaction.isRepliable()) {
-        await replyWithGenericError(interaction);
+        await replyWithGenericError(interaction, err);
       }
     }
   }

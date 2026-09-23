@@ -70,11 +70,25 @@ function buildConfig() {
       buttonCooldownMs: readInt('BUTTON_COOLDOWN_MS', 1000, { min: 0, max: 60000 }),
       apiTimeoutMs: readInt('API_TIMEOUT_MS', 5000, { min: 1000, max: 30000 }),
       leaderboardCacheSeconds: readInt('LEADERBOARD_CACHE_SECONDS', 90, { min: 0, max: 600 }),
-      healthPort: readInt('PORT', 0, { min: 0, max: 65535 })
+      healthPort: readInt('PORT', 0, { min: 0, max: 65535 }),
+      streamPollSeconds: readInt('STREAM_POLL_SECONDS', 30, { min: 10, max: 600 }),
+      streamMaxHours: readInt('STREAM_MAX_HOURS', 6, { min: 1, max: 48 }),
+      ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 })
     };
   } catch (err) {
     problems.push('- ' + err.message);
   }
+
+  const ticketCloseMode = String(process.env.TICKET_CLOSE_MODE || 'archive').trim().toLowerCase();
+  if (!['archive', 'delete'].includes(ticketCloseMode)) problems.push('- TICKET_CLOSE_MODE لازم يكون archive أو delete');
+  if (process.env.TICKET_CATEGORY_ID && !isSnowflake(process.env.TICKET_CATEGORY_ID)) problems.push('- TICKET_CATEGORY_ID لازم يكون معرّف تصنيف صالح');
+  const membersIntent = String(process.env.MEMBERS_INTENT || 'auto').trim().toLowerCase();
+  if (!['auto', 'on', 'off'].includes(membersIntent)) problems.push('- MEMBERS_INTENT لازم يكون auto أو on أو off');
+  if (process.env.DATABASE_URL && !/^postgres(ql)?:\/\//i.test(process.env.DATABASE_URL)) {
+    problems.push('- DATABASE_URL لازم يبدأ بـ postgres:// (رابط قاعدة PostgreSQL)');
+  }
+  const warningRoleNames = readList('WARNING_ROLE_NAMES');
+  if (warningRoleNames.length && warningRoleNames.length !== 3) problems.push('- WARNING_ROLE_NAMES لازم تكون 3 أسماء مفصولة بفاصلة (تحذير1,تحذير2,تحذير3)');
 
   if (problems.length) {
     const error = new Error('إعدادات البيئة ناقصة أو غير صالحة:\n' + problems.join('\n'));
@@ -99,6 +113,22 @@ function buildConfig() {
     profileUrl: siteUrl + '/profile',
     logoUrl: process.env.LOGO_URL || siteUrl + '/discord-logo.png',
     ...numeric,
+    // قاعدة بيانات البوت: PostgreSQL لو DATABASE_URL موجود، وإلا SQLite محلي
+    databaseUrl: (process.env.DATABASE_URL || '').trim() || null,
+    sqlitePath: process.env.SQLITE_PATH || './data/bot.sqlite',
+    // Webhook جلسات البث (/بث) — بدونه يعتمد /بث على المزامنة الدورية فقط
+    streamWebhookSecret: (process.env.STREAM_WEBHOOK_SECRET || '').trim() || null,
+    webhookAllowedOrigins: Object.freeze(
+      (readList('WEBHOOK_ALLOWED_ORIGINS').length ? readList('WEBHOOK_ALLOWED_ORIGINS') : [siteUrl, 'https://www.ehsmaha.com']).map(stripTrailingSlash)
+    ),
+    // التكتات
+    ticketCloseMode,
+    ticketArchiveCategoryName: (process.env.TICKET_ARCHIVE_CATEGORY_NAME || 'تكتات مغلقة').trim(),
+    ticketCategoryId: (process.env.TICKET_CATEGORY_ID || '').trim() || null,
+    // رتب التحذير الثلاث (بالترتيب) — تنشأ تلقائياً لو ناقصة
+    warningRoleNames: Object.freeze(warningRoleNames.length ? warningRoleNames : ['تحذير1', 'تحذير2', 'تحذير3']),
+    // Intent أعضاء السيرفر (لعدّ أعضاء كل رتبة بـ/عرض_الرتب): auto = يجرّبه ويرجع بدونه لو مو مفعّل
+    membersIntent,
     // الهوية البصرية — مكان واحد لكل الألوان
     colors: Object.freeze({
       primary: 0x1a0d33,  // بنفسجي غامق (الأساسي)
@@ -106,7 +136,8 @@ function buildConfig() {
       gold: 0xf5b301,     // ذهبي (عناوين/متصدرين/إنجازات)
       pink: 0xf472b6,     // وردي ناعم (ثانوي/تنبيهات لطيفة)
       success: 0x34d399,
-      danger: 0xef4444
+      danger: 0xef4444,
+      muted: 0x4b4658     // رمادي باهت (حالات فاضية مثل: لا يوجد بث)
     })
   });
 }

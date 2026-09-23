@@ -8,6 +8,7 @@
 //   GET /leaderboard?period=global|weekly&limit=10
 //   GET /winners?streamer=...&limit=50           (لوحة الفائزين — كل الستريمرز أو ستريمر محدد)
 //   GET /winners/streamers?q=...                 (اقتراحات أسماء الستريمرز)
+//   GET /active-streams                           (البثوث النشطة الآن — مزامنة /بث بالبوت)
 //   GET /events
 //   GET /admin/stats
 //
@@ -22,6 +23,7 @@ const players = require('../services/players');
 const leaderboard = require('../services/leaderboard');
 const events = require('../services/events');
 const winners = require('../services/winners');
+const activeStreams = require('../services/activeStreams');
 const admin = require('../services/admin');
 
 const ok = (res, data, status = 200) => res.status(status).json({ ok: true, data });
@@ -77,6 +79,10 @@ function createDiscordRouter(config) {
 
   router.get('/winners/streamers', async (req, res) => {
     ok(res, await winners.searchStreamers(String(req.query.q || '').slice(0, 100), 20));
+  });
+
+  router.get('/active-streams', async (req, res) => {
+    ok(res, await activeStreams.getActiveStreams());
   });
 
   router.get('/events', async (req, res) => {
