@@ -123,6 +123,33 @@ async function login() {
   }
 }
 
+// ---- نبضة إبقاء الخدمة صاحية (Render المجاني يوقف أي Web Service بعد 15
+// دقيقة بدون طلبات HTTP خارجية — الاتصال الدائم بديسكورد لا يمنع هذا لأنه
+// مو طلب HTTP للخدمة نفسها). لو البوت Web Service على Render (فيه PORT ورابط
+// خارجي)، يرسل لنفسه طلب GET /health كل 10 دقائق فيبقى صاحياً بدل ما ينام
+// وينقطع فجأة. هذا لا يغني عن خطة مدفوعة لضمان 24/7 كامل بدون أي انقطاع
+// (إعادة نشر/صيانة من Render توقفه لحظياً بأي الحالتين).
+function startSelfPing(webServer) {
+  if (!webServer) return null; // Background Worker (ما فيه PORT ولا رابط عام) — لا فائدة
+  const externalUrl = (process.env.RENDER_EXTERNAL_URL || '').replace(/\/+$/, '');
+  if (!externalUrl) return null; // مو على Render، أو الرابط الخارجي غير متاح
+  const url = `${externalUrl}/health`;
+  const intervalMs = 10 * 60 * 1000; // أقل من حد الخمول (15 دقيقة) بهامش أمان
+  const ping = async () => {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+      logger.info('نبضة إبقاء البوت صاحياً', { status: res.status });
+    } catch (err) {
+      logger.warn('فشلت نبضة إبقاء البوت صاحياً', { error: err.message });
+    }
+  };
+  const timer = setInterval(ping, intervalMs);
+  if (typeof timer.unref === 'function') timer.unref();
+  const first = setTimeout(ping, 60 * 1000); // نبضة أولى مبكرة
+  if (typeof first.unref === 'function') first.unref();
+  return timer;
+}
+
 // ---- إيقاف نظيف (Render يرسل SIGTERM عند إعادة النشر) ----
 let shuttingDown = false;
 function shutdown(signal, webServer) {
@@ -132,6 +159,7 @@ function shutdown(signal, webServer) {
   const force = setTimeout(() => process.exit(0), 8000);
   force.unref();
   liveStreams.stopPolling();
+  clearInterval(shutdown.selfPingTimer);
   Promise.resolve()
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())
@@ -156,6 +184,7 @@ async function main() {
 
   liveStreams.configure({ maxHours: config.streamMaxHours });
   const webServer = startWebServer({ client: { isReady: () => !!(ctx.client && ctx.client.isReady()), get ws() { return ctx.client ? ctx.client.ws : { ping: -1 }; } }, config });
+  shutdown.selfPingTimer = startSelfPing(webServer);
   process.once('SIGTERM', () => shutdown('SIGTERM', webServer));
   process.once('SIGINT', () => shutdown('SIGINT', webServer));
 
