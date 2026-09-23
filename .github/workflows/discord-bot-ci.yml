@@ -61,7 +61,7 @@ jobs:
         run: npm run check
 
       - name: الاختبارات (وحدات + البوت + تكامل مع Firestore Emulator)
-        run: npx -y firebase-tools@14 emulators:exec --only firestore --project demo-ehsmaha "npm test"
+        run: npx -y firebase-tools@14 emulators:exec --only firestore,database --project demo-ehsmaha "npm test"
 
       - name: اختبارات قاعدة بيانات البوت على PostgreSQL
         env:

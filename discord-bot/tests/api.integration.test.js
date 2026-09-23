@@ -14,6 +14,9 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 
 const EMULATED = !!process.env.FIRESTORE_EMULATOR_HOST;
+const RTDB_EMULATED = !!process.env.FIREBASE_DATABASE_EMULATOR_HOST;
+const RTDB_NS = 'demo-ehsmaha-default-rtdb';
+const rtdbRest = async (path) => (await fetch(`http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST}/${path}.json?ns=${RTDB_NS}`)).json();
 const PROJECT = 'demo-ehsmaha';
 const PORT = 3999;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -47,6 +50,7 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
 
   // تنظيف المحاكي
   await fetch(`http://${process.env.FIRESTORE_EMULATOR_HOST}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: 'DELETE' });
+  if (RTDB_EMULATED) await fetch(`http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST}/.json?ns=${RTDB_NS}`, { method: 'DELETE' });
 
   // ---- بيانات بنفس شكل بيانات الموقع ----
   const now = Timestamp.now();
@@ -105,7 +109,16 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
 
   // ---- تشغيل السيرفر ----
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'api', 'server.js')], {
-    env: { ...process.env, PORT: String(PORT), API_KEY, LOG_LEVEL: 'warn', NODE_ENV: 'test', API_LEADERBOARD_CACHE_SECONDS: '0' },
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      API_KEY,
+      LOG_LEVEL: 'warn',
+      NODE_ENV: 'test',
+      API_LEADERBOARD_CACHE_SECONDS: '0',
+      // Realtime Database: محاكي لو شغّال، وإلا معطّلة (ما نتصل بقاعدة الموقع الحقيقية أبداً)
+      FIREBASE_DATABASE_URL: RTDB_EMULATED ? `https://${RTDB_NS}.firebaseio.com` : ''
+    },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   let serverLog = '';
@@ -164,8 +177,37 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
     assert.equal(r.body.data.chunks, 1);
     r = await call('POST', '/api/discord/bot-state/claim', { body: { bootAt: 3000 } });
     assert.equal(Buffer.from(r.body.data.snapshot.data, 'base64').toString(), 'small db');
-    const leftovers = await db.collection('discordBotState').get();
-    assert.equal(leftovers.size, 2, 'meta + chunk_000 فقط');
+    if (RTDB_EMULATED) {
+      // المخزن الأساسي Realtime Database: مشفّر، والأجزاء الزايدة انحذفت
+      const node = await rtdbRest('discordBotState');
+      assert.equal(node.meta.encrypted, true);
+      assert.equal(node.meta.chunks, 1);
+      assert.equal(Object.keys(node.chunks).length, 1);
+      assert.ok(!Buffer.from(node.chunks[0] || node.chunks['0'], 'base64').toString().includes('small db'), 'المحتوى مشفّر');
+      assert.equal((await db.collection('discordBotState').get()).size, 1, 'Firestore: meta (الاستلام) فقط — ما تنكتب نسخة فيه لما RTDB شغالة');
+    } else {
+      const leftovers = await db.collection('discordBotState').get();
+      assert.equal(leftovers.size, 2, 'meta + chunk_000 فقط');
+    }
+  });
+
+  await t.test('bot-state: لو Realtime Database طاحت، الحفظ والاسترجاع ينتقلون لـFirestore تلقائياً', async () => {
+    const botState = require('../api/services/botState');
+    const original = firestore.rtdb;
+    const failing = () => Promise.reject(Object.assign(new Error('down'), { code: 'UNAVAILABLE' }));
+    firestore.rtdb = () => ({ ref: () => ({ transaction: failing, get: failing, update: failing }) });
+    process.env.API_KEY = API_KEY;
+    try {
+      const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+      const buf = Buffer.from('fallback-db-' + Date.now());
+      const saved = await botState.save({ bootAt: 9e12, data: buf.toString('base64'), sha: sha(buf) });
+      assert.equal(saved.store, 'firestore');
+      const { snapshot } = await botState.claim(9e12 + 1);
+      assert.equal(snapshot.store, 'firestore');
+      assert.equal(Buffer.from(snapshot.data, 'base64').toString(), buf.toString());
+    } finally {
+      firestore.rtdb = original;
+    }
   });
 
   await t.test('مفتاح API خاطئ → 401', async () => {
