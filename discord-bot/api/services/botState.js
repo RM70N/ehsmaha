@@ -54,16 +54,20 @@ const isStale = (err) => err && err.code === 'STALE_INSTANCE';
 
 // Realtime Database ما ترمي خطأ لو ما قدرت تتصل — تحط الطلب بطابور وتنتظر
 // للأبد. المهلة تخلي الفشل واضح فننتقل للمخزن الثاني تلقائياً.
+// وFirestore لما تخلص حصته ما يرمي خطأ على طول — يعيد المحاولة بنفسه لفترة
+// طويلة. فكل عملية على أي مخزن لها مهلة، وبعدها ننتقل للثاني.
 const RTDB_TIMEOUT_MS = 10 * 1000;
-function withTimeout(promise, ms = RTDB_TIMEOUT_MS) {
+const FS_TIMEOUT_MS = 8 * 1000;
+function withTimeout(promise, ms = RTDB_TIMEOUT_MS, code = 'RTDB_TIMEOUT') {
   let t;
   return Promise.race([
     promise,
     new Promise((_, reject) => {
-      t = setTimeout(() => reject(Object.assign(new Error('Realtime Database ما ردت'), { code: 'RTDB_TIMEOUT' })), ms);
+      t = setTimeout(() => reject(Object.assign(new Error('المخزن ما رد'), { code })), ms);
     })
   ]).finally(() => clearTimeout(t));
 }
+const fsTimeout = (p, ms = FS_TIMEOUT_MS) => withTimeout(p, ms, 'FIRESTORE_TIMEOUT');
 
 // ---------------- Realtime Database ----------------
 const rtdbStore = {
@@ -105,20 +109,20 @@ const fsStore = {
   col: () => firestore.db().collection(C.DISCORD_BOT_STATE),
   async claim(bootAt) {
     const metaRef = fsStore.col().doc('meta');
-    await firestore.db().runTransaction(async (tx) => {
+    await fsTimeout(firestore.db().runTransaction(async (tx) => {
       const snap = await tx.get(metaRef);
       const cur = snap.exists ? snap.data() : {};
       if (cur.ownerBoot && cur.ownerBoot > bootAt) throw stale();
       tx.set(metaRef, { ownerBoot: bootAt, claimedAt: Date.now() }, { merge: true });
-    });
+    }));
   },
   async readMeta() {
-    const snap = await fsStore.col().doc('meta').get();
+    const snap = await fsTimeout(fsStore.col().doc('meta').get());
     return snap.exists ? snap.data() : null;
   },
   async readBlob(meta) {
     const refs = Array.from({ length: meta.chunks }, (_, i) => fsStore.col().doc(chunkId(i)));
-    const docs = await firestore.db().getAll(...refs);
+    const docs = await fsTimeout(firestore.db().getAll(...refs));
     const parts = docs.map((d) => (d.exists ? d.get('data') : null));
     if (parts.some((p) => !p)) return null;
     return Buffer.concat(parts.map((p) => Buffer.from(p)));
@@ -126,14 +130,14 @@ const fsStore = {
   async write(bootAt, blob, meta) {
     const metaRef = fsStore.col().doc('meta');
     const chunks = Math.ceil(blob.length / FS_CHUNK_BYTES);
-    await firestore.db().runTransaction(async (tx) => {
+    await fsTimeout(firestore.db().runTransaction(async (tx) => {
       const snap = await tx.get(metaRef);
       const cur = snap.exists ? snap.data() : {};
       if (cur.ownerBoot && cur.ownerBoot > bootAt) throw stale();
       for (let i = 0; i < chunks; i++) tx.set(fsStore.col().doc(chunkId(i)), { data: blob.subarray(i * FS_CHUNK_BYTES, (i + 1) * FS_CHUNK_BYTES) });
       for (let i = chunks; i < (cur.chunks || 0); i++) tx.delete(fsStore.col().doc(chunkId(i)));
       tx.set(metaRef, { ...meta, chunks, ownerBoot: Math.max(cur.ownerBoot || 0, bootAt) });
-    });
+    }), 20 * 1000);
     return chunks;
   }
 };
@@ -161,18 +165,35 @@ async function readSnapshot(store) {
  * يكفي نجاح مخزن واحد؛ يرفض (409) لو فيه تشغيل أحدث استلمها قبله.
  */
 async function claim(bootAt) {
+  const [primary, ...rest] = stores();
   let best = null;
   let okCount = 0;
   let lastErr = null;
-  for (const store of stores()) {
+  const consider = (snap) => {
+    if (snap && (!best || (snap.updatedAt || 0) > (best.updatedAt || 0))) best = snap;
+  };
+  // 1) الأساسي (Realtime Database): لو نجح ولقى نسخة — خلاص، ما نلمس Firestore أبداً
+  if (primary) {
     try {
-      await store.claim(bootAt);
+      await primary.claim(bootAt);
       okCount += 1;
-      const snap = await readSnapshot(store);
-      if (snap && (!best || (snap.updatedAt || 0) > (best.updatedAt || 0))) best = snap;
+      consider(await readSnapshot(primary));
+      if (best) return { snapshot: best };
     } catch (err) {
       if (isStale(err)) throw err;
       lastErr = err;
+    }
+  }
+  // 2) الاحتياطي: لو الأساسي فشل، أو ما فيه نسخة فيه (نسخة قديمة محفوظة بـFirestore)
+  for (const store of rest) {
+    try {
+      // الأساسي استلم أصلاً؟ نكتفي بالقراءة (الاستلام بالاحتياطي مو لازم)
+      if (!okCount) await store.claim(bootAt);
+      consider(await readSnapshot(store));
+      okCount += 1;
+    } catch (err) {
+      if (isStale(err)) throw err;
+      lastErr = lastErr || err;
     }
   }
   if (!okCount) throw lastErr || new Error('لا يوجد مخزن متاح');

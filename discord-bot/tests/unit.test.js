@@ -121,3 +121,64 @@ test('الـAPI: تجاوز حصة Firestore يرجع 503 QUOTA_EXCEEDED برس�
   const { ApiError } = require('../utils/apiClient');
   if (friendlyMessage) assert.match(friendlyMessage(new ApiError('QUOTA_EXCEEDED', 'x', { status: 503 })), /حدها اليومي/);
 });
+
+test('bot-state: Realtime Database الأساسي — Firestore المعلّق (حصة خالصة) ما يأخر الاسترجاع', async () => {
+  process.env.API_KEY = process.env.API_KEY || 'k'.repeat(40);
+  const crypto = require('node:crypto');
+  const firestore = require('../database/firestore');
+  const botState = require('../api/services/botState');
+  const { rtdbStore, fsStore, encrypt } = botState._internal;
+  const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+  const plain = Buffer.from('bot-db-content');
+  const blob = encrypt(plain);
+  const meta = { chunks: 1, sha256: sha(plain), encrypted: true, updatedAt: 5 };
+
+  const saved = { ...rtdbStore };
+  const savedDb = firestore.db;
+  const savedRtdb = firestore.rtdb;
+  let firestoreTouched = 0;
+  try {
+    firestore.rtdb = () => ({}); // "متاحة"
+    // Firestore معلّق للأبد (مثل ما يصير لما تخلص الحصة)
+    firestore.db = () => {
+      firestoreTouched += 1;
+      const hang = () => new Promise(() => {});
+      return { collection: () => ({ doc: () => ({ get: hang }) }), runTransaction: hang, getAll: hang };
+    };
+
+    // 1) الأساسي فيه نسخة ← يرجع فوراً وما يلمس Firestore
+    Object.assign(rtdbStore, { claim: async () => {}, readMeta: async () => meta, readBlob: async () => blob });
+    let started = Date.now();
+    let r = await botState.claim(100);
+    assert.equal(Buffer.from(r.snapshot.data, 'base64').toString(), 'bot-db-content');
+    assert.equal(r.snapshot.store, 'rtdb');
+    assert.ok(Date.now() - started < 1000, 'فوري');
+    assert.equal(firestoreTouched, 0, 'ما لمس Firestore');
+
+    // 2) الأساسي فاضي ← يحاول Firestore بس بمهلة (ما يعلق)
+    Object.assign(rtdbStore, { readMeta: async () => null });
+    started = Date.now();
+    r = await botState.claim(101);
+    assert.equal(r.snapshot, null);
+    assert.ok(Date.now() - started < 12_000, `انتهى بالمهلة: ${Date.now() - started}ms`);
+
+    // 3) الأساسي طايح + Firestore معلّق ← خطأ واضح بعد المهلة (مو تعليق للأبد)
+    Object.assign(rtdbStore, { claim: async () => { throw Object.assign(new Error('down'), { code: 'RTDB_TIMEOUT' }); } });
+    started = Date.now();
+    await assert.rejects(() => botState.claim(102));
+    assert.ok(Date.now() - started < 12_000, 'ما علّق');
+
+    // 4) الحفظ: الأساسي يشتغل ← ما يلمس Firestore
+    firestoreTouched = 0;
+    let wrote = null;
+    Object.assign(rtdbStore, { write: async (bootAt, b, m) => { wrote = { b, m }; return 1; } });
+    const out = await botState.save({ bootAt: 103, data: plain.toString('base64'), sha: sha(plain) });
+    assert.equal(out.store, 'rtdb');
+    assert.equal(wrote.m.encrypted, true);
+    assert.equal(firestoreTouched, 0);
+  } finally {
+    Object.assign(rtdbStore, saved);
+    firestore.db = savedDb;
+    firestore.rtdb = savedRtdb;
+  }
+});
