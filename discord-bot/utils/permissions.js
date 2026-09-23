@@ -17,7 +17,60 @@ const REQUIRED_CHANNEL_PERMS = [
   ['UseExternalEmojis', PermissionFlagsBits.UseExternalEmojis]
 ];
 
-// المخوّل بالأوامر الإدارية: من قائمة ADMIN_IDS، أو عنده Administrator بالسيرفر.
+// صلاحيات الأوامر الإدارية (كل أمر يتحقق من اللي يخصه قبل التنفيذ)
+const MODERATION_PERMS = [
+  ['ReadMessageHistory', PermissionFlagsBits.ReadMessageHistory],
+  ['ManageMessages', PermissionFlagsBits.ManageMessages],
+  ['ManageChannels', PermissionFlagsBits.ManageChannels],
+  ['ManageRoles', PermissionFlagsBits.ManageRoles],
+  ['ModerateMembers', PermissionFlagsBits.ModerateMembers],
+  ['KickMembers', PermissionFlagsBits.KickMembers]
+];
+
+// أسماء عربية واضحة لكل صلاحية (مع اسمها الإنجليزي كما يظهر بإعدادات ديسكورد)
+const PERM_NAMES_AR = {
+  ViewChannel: 'عرض القنوات (View Channels)',
+  SendMessages: 'إرسال الرسائل (Send Messages)',
+  EmbedLinks: 'تضمين الروابط (Embed Links)',
+  UseExternalEmojis: 'استخدام إيموجي خارجي (Use External Emojis)',
+  ReadMessageHistory: 'قراءة سجل الرسائل (Read Message History)',
+  ManageMessages: 'إدارة الرسائل (Manage Messages)',
+  ManageChannels: 'إدارة القنوات (Manage Channels)',
+  ManageRoles: 'إدارة الرتب (Manage Roles)',
+  ModerateMembers: 'كتم الأعضاء مؤقتاً (Timeout Members)',
+  KickMembers: 'طرد الأعضاء (Kick Members)'
+};
+
+/**
+ * الصلاحيات الناقصة للبوت نفسه — على مستوى السيرفر، أو قناة محددة (تشمل
+ * استثناءات القناة Overwrites). يرجّع أسماءها (مفاتيح PermissionFlagsBits).
+ */
+function missingBotPermissions(guild, names, channel = null) {
+  const me = guild && guild.members && guild.members.me;
+  if (!me) return [...names];
+  const perms = channel && typeof channel.permissionsFor === 'function' ? channel.permissionsFor(me) : me.permissions;
+  if (!perms) return [...names];
+  return names.filter((n) => !perms.has(PermissionFlagsBits[n]));
+}
+
+// رسالة موحّدة تحدد بالضبط الصلاحيات الناقصة للبوت
+function botPermissionsPayload(missing, where = null) {
+  const eb = require('./embedBuilder');
+  const list = missing.map((n) => `• **${PERM_NAMES_AR[n] || n}**`).join('\n');
+  return {
+    embeds: [
+      eb.error(
+        `البوت ما يملك الصلاحيات اللازمة لتنفيذ هذا الأمر${where ? ` في ${where}` : ''}:\n${list}\n\n` +
+          'أعطِ رتبة البوت هذه الصلاحيات من إعدادات السيرفر (أو القناة) ثم جرّب مرة ثانية.',
+        '🔧 صلاحيات البوت ناقصة'
+      )
+    ],
+    components: []
+  };
+}
+
+// مشرفو البوت العامّون (إحصائيات البوت): ADMIN_IDS بالـ.env، أو Administrator
+// بالسيرفر. (صلاحيات أوامر الإشراف داخل السيرفر: utils/adminPermissions.js)
 function isBotAdmin(interaction) {
   const config = loadConfig();
   if (config.adminIds.includes(interaction.user.id)) return true;
@@ -45,9 +98,17 @@ async function auditGuildPermissions(client) {
       const me = guild.members.me || (await guild.members.fetchMe());
       const perms = me.permissions;
       const missing = REQUIRED_CHANNEL_PERMS.filter(([, bit]) => !perms.has(bit)).map(([name]) => name);
+      const missingModeration = MODERATION_PERMS.filter(([, bit]) => !perms.has(bit)).map(([name]) => name);
       if (missing.length) {
-        logger.warn(`صلاحيات ناقصة للبوت بسيرفر "${guild.name}"`, { guildId: guild.id, missing });
-      } else {
+        logger.warn(`صلاحيات أساسية ناقصة للبوت بسيرفر "${guild.name}"`, { guildId: guild.id, missing });
+      }
+      if (missingModeration.length) {
+        logger.warn(`صلاحيات الأوامر الإدارية ناقصة بسيرفر "${guild.name}" — الأوامر المعنية بترد برسالة توضح الناقص`, {
+          guildId: guild.id,
+          missing: missingModeration
+        });
+      }
+      if (!missing.length && !missingModeration.length) {
         logger.info(`صلاحيات البوت سليمة بسيرفر "${guild.name}"`, { guildId: guild.id });
       }
     } catch (err) {
@@ -76,8 +137,18 @@ async function auditGuildPermissions(client) {
 
 // رابط دعوة البوت بالصلاحيات المطلوبة (يُطبع بالسجل عند الإقلاع للمساعدة)
 function inviteUrl(clientId) {
-  const bits = new PermissionsBitField(REQUIRED_CHANNEL_PERMS.map(([, bit]) => bit)).bitfield;
+  const bits = new PermissionsBitField([...REQUIRED_CHANNEL_PERMS, ...MODERATION_PERMS].map(([, bit]) => bit)).bitfield;
   return `https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot%20applications.commands&permissions=${bits}`;
 }
 
-module.exports = { isBotAdmin, missingChannelPerms, auditGuildPermissions, inviteUrl, REQUIRED_CHANNEL_PERMS };
+module.exports = {
+  isBotAdmin,
+  missingChannelPerms,
+  auditGuildPermissions,
+  inviteUrl,
+  missingBotPermissions,
+  botPermissionsPayload,
+  REQUIRED_CHANNEL_PERMS,
+  MODERATION_PERMS,
+  PERM_NAMES_AR
+};

@@ -94,6 +94,14 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
   await db.collection('leaderboards').doc('streamer3').set({ 'owner.tt': { nickname: 'Owner', wins: 12, games: {} } });
   await db.collection('leaderboards').doc('owner.tt').set({ v1: { nickname: 'V One', wins: 5 }, v2: { nickname: 'V Two', wins: 3 } });
 
+  // بثوث نشطة: واحد حاضر (نبضة حديثة)، واحد متصفحه انهار (نبضة قديمة)، وتكرار لنفس الستريمر
+  const ago = (msAgo) => Timestamp.fromDate(new Date(Date.now() - msAgo));
+  await db.collection('presence').doc('uidLive').set({ lastSeen: ago(30 * 1000) });
+  await db.collection('presence').doc('uidStale').set({ lastSeen: ago(10 * 60 * 1000) });
+  await db.collection('activeStreamers').doc('bomb').set({ username: '@LiveOne', platform: 'twitch', gameTag: 'bomb', gameName: 'القنبلة', uid: 'uidLive', updatedAt: ago(60 * 1000) });
+  await db.collection('activeStreamers').doc('cw').set({ username: 'liveone', platform: 'twitch', gameTag: 'cw', gameName: 'كلمات', uid: 'uidLive', updatedAt: ago(5 * 1000) });
+  await db.collection('activeStreamers').doc('draw').set({ username: 'Crashed', platform: 'tiktok', gameTag: 'draw', gameName: 'رسم', uid: 'uidStale', updatedAt: ago(60 * 1000) });
+
   // ---- تشغيل السيرفر ----
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'api', 'server.js')], {
     env: { ...process.env, PORT: String(PORT), API_KEY, LOG_LEVEL: 'warn', NODE_ENV: 'test', API_LEADERBOARD_CACHE_SECONDS: '0' },
@@ -111,6 +119,17 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
   await t.test('health', async () => {
     const r = await call('GET', '/health', { key: null });
     assert.equal(r.status, 200, serverLog);
+  });
+
+  await t.test('active-streams: الحاضرين فقط، جلسة وحدة لكل ستريمر', async () => {
+    assert.equal((await call('GET', '/api/discord/active-streams', { key: 'wrong-key' })).status, 401);
+    const r = await call('GET', '/api/discord/active-streams');
+    assert.equal(r.status, 200, serverLog);
+    const streams = r.body.data.streams;
+    assert.equal(streams.length, 1, JSON.stringify(streams));
+    assert.equal(streams[0].platform, 'twitch');
+    assert.equal(streams[0].platformUsername.toLowerCase(), 'liveone');
+    assert.equal(streams[0].gameName, 'كلمات', 'الأحدث يغلب');
   });
 
   await t.test('مفتاح API خاطئ → 401', async () => {

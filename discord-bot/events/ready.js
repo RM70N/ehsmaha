@@ -7,6 +7,8 @@ const { Events, ActivityType } = require('discord.js');
 const logger = require('../utils/logger');
 const api = require('../utils/apiClient');
 const { auditGuildPermissions, inviteUrl } = require('../utils/permissions');
+const liveStreams = require('../services/liveStreams');
+const tickets = require('../services/tickets');
 
 const PRESENCE_REFRESH_MS = 30 * 60 * 1000;
 // Render المجاني "ينوّم" خدمة الويب بعد 15 دقيقة بلا طلبات، وأول طلب بعدها
@@ -60,6 +62,12 @@ module.exports = {
     setInterval(() => {
       api.health().catch((err) => logger.warn('نبضة الـAPI فشلت', { code: err.code }));
     }, API_KEEPALIVE_MS).unref();
+
+    // /بث: مزامنة دورية مع بيانات الموقع (تعوّض أي webhook متأخر/فاشل وتنظّف العالق)
+    liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
+
+    // تكتات انقفلت بوضع "حذف" والبوت انطفى قبل ما تنحذف قناتها — نكمل الحذف
+    tickets.sweepPendingDeletions(client).catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
     try {
       await api.health();

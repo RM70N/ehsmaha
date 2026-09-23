@@ -5,3 +5,6 @@ node_modules/
 *.log
 logs/
 service-account*.json
+data/
+*.sqlite
+*.sqlite-*

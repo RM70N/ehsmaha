@@ -2,11 +2,11 @@
 
 // نقطة تشغيل بوت "احسمها".
 // الترتيب: معالجات الأخطاء العامة ← التحقق من البيئة ← تحميل الأوامر والأحداث
-// ديناميكياً ← (اختياري) خادم فحص صحة لـRender ← تسجيل الدخول لـDiscord.
+// ديناميكياً ← قاعدة بيانات البوت (migrations تلقائية) ← خادم HTTP (health +
+// webhook البث) ← تسجيل الدخول لـDiscord.
 
 const fs = require('node:fs');
 const path = require('node:path');
-const http = require('node:http');
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const logger = require('./utils/logger');
 
@@ -33,14 +33,9 @@ try {
 }
 
 const { loadCommands } = require('./utils/commandLoader');
-
-// الأوامر كلها Slash، فيكفينا intent واحد (Guilds) — بدون MessageContent أو
-// أي Privileged Intent يحتاج موافقة خاصة.
-const client = new Client({
-  intents: [GatewayIntentBits.Guilds],
-  partials: [Partials.Channel],
-  allowedMentions: { parse: [], repliedUser: false } // ما نمنشن أحد بالغلط أبداً
-});
+const botDb = require('./database/botDb');
+const liveStreams = require('./services/liveStreams');
+const { startWebServer } = require('./web/server');
 
 let loaded;
 try {
@@ -51,16 +46,32 @@ try {
 }
 
 const ctx = {
-  client,
+  client: null,
   config,
   logger,
   commands: loaded.commands,
   buttons: loaded.buttons,
-  definitions: loaded.definitions
+  definitions: loaded.definitions,
+  membersIntent: false
 };
 
+// ---- العميل ----
+// Guilds يكفي لكل الأوامر. GuildMembers (Privileged — يُفعَّل من Developer Portal
+// → Bot → Server Members Intent) نحتاجه فقط لعدّ أعضاء كل رتبة بـ/عرض_الرتب.
+// MEMBERS_INTENT=auto: نجرّبه، ولو ديسكورد رفضه (غير مفعّل) نرجع بدونه تلقائياً
+// بدل ما يطيح البوت كامل.
+function createClient(withMembers) {
+  const intents = [GatewayIntentBits.Guilds];
+  if (withMembers) intents.push(GatewayIntentBits.GuildMembers);
+  return new Client({
+    intents,
+    partials: [Partials.Channel],
+    allowedMentions: { parse: [], repliedUser: false } // ما نمنشن أحد بالغلط أبداً
+  });
+}
+
 // ---- تحميل الأحداث ديناميكياً من /events ----
-function registerEvents() {
+function registerEvents(client) {
   const dir = path.join(__dirname, 'events');
   const files = fs.readdirSync(dir).filter((f) => f.endsWith('.js'));
   let count = 0;
@@ -88,49 +99,68 @@ function registerEvents() {
   logger.info('تم تحميل الأحداث', { count });
 }
 
-// ---- خادم فحص صحة اختياري ----
-// Render "Web Service" يتطلب منفذ مفتوح؛ لو شغّلت البوت كـ"Background Worker"
-// ما تحتاجه (اترك PORT فاضي). /health يرجّع 200 فقط لو البوت متصل فعلاً.
-function startHealthServer() {
-  if (!config.healthPort) return null;
-  const server = http.createServer((req, res) => {
-    if (req.url === '/health' || req.url === '/') {
-      const ready = client.isReady();
-      res.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ ok: ready, ping: ready ? client.ws.ping : null, uptime: process.uptime() }));
+const isDisallowedIntents = (err) =>
+  !!err && (err.code === 'DisallowedIntents' || err.code === 4014 || /disallowed intent/i.test(String(err.message || '')));
+
+async function login() {
+  const wantMembers = config.membersIntent !== 'off';
+  ctx.client = createClient(wantMembers);
+  registerEvents(ctx.client);
+  try {
+    await ctx.client.login(config.token);
+    ctx.membersIntent = wantMembers;
+  } catch (err) {
+    if (wantMembers && config.membersIntent === 'auto' && isDisallowedIntents(err)) {
+      logger.warn('Server Members Intent غير مفعّل بـDeveloper Portal — التشغيل بدونه (عدد أعضاء الرتب بـ/عرض_الرتب ما يظهر)');
+      await ctx.client.destroy().catch(() => {});
+      ctx.client = createClient(false);
+      registerEvents(ctx.client);
+      await ctx.client.login(config.token);
+      ctx.membersIntent = false;
       return;
     }
-    res.writeHead(404).end();
-  });
-  server.on('error', (err) => logger.error('خطأ بخادم فحص الصحة', { error: err }));
-  server.listen(config.healthPort, () => logger.info('خادم فحص الصحة يعمل', { port: config.healthPort }));
-  return server;
+    throw err;
+  }
 }
 
 // ---- إيقاف نظيف (Render يرسل SIGTERM عند إعادة النشر) ----
 let shuttingDown = false;
-function shutdown(signal, healthServer) {
+function shutdown(signal, webServer) {
   if (shuttingDown) return;
   shuttingDown = true;
   logger.info(`استلام ${signal} — إيقاف البوت بهدوء`);
   const force = setTimeout(() => process.exit(0), 8000);
   force.unref();
+  liveStreams.stopPolling();
   Promise.resolve()
-    .then(() => healthServer && new Promise((r) => healthServer.close(r)))
-    .then(() => client.destroy())
+    .then(() => webServer && new Promise((r) => webServer.close(r)))
+    .then(() => ctx.client && ctx.client.destroy())
+    .then(() => botDb.close())
     .catch((err) => logger.error('خطأ أثناء الإيقاف', { error: err }))
     .finally(() => process.exit(0));
 }
 
 async function main() {
-  logger.info('تشغيل بوت احسمها', { commands: loaded.commands.size, buttons: loaded.buttons.size, env: process.env.NODE_ENV || 'development' });
-  registerEvents();
-  const healthServer = startHealthServer();
-  process.once('SIGTERM', () => shutdown('SIGTERM', healthServer));
-  process.once('SIGINT', () => shutdown('SIGINT', healthServer));
+  logger.info('تشغيل بوت احسمها', { commands: loaded.commands.size, components: loaded.buttons.size, env: process.env.NODE_ENV || 'development' });
+
+  // قاعدة بيانات البوت: فشلها ما يوقف البوت كامل — أوامر اللاعبين تستمر،
+  // والأوامر الإدارية/التكتات ترد برسالة واضحة لين تنحل المشكلة.
+  try {
+    await botDb.init({ databaseUrl: config.databaseUrl, sqlitePath: config.sqlitePath });
+    if (!config.databaseUrl && process.env.RENDER) {
+      logger.warn('⚠️ قاعدة البوت SQLite على Render بدون قرص دائم تنمسح مع كل نشر — اضبط DATABASE_URL (PostgreSQL) للإنتاج');
+    }
+  } catch (_) {
+    /* مسجّل داخل init */
+  }
+
+  liveStreams.configure({ maxHours: config.streamMaxHours });
+  const webServer = startWebServer({ client: { isReady: () => !!(ctx.client && ctx.client.isReady()), get ws() { return ctx.client ? ctx.client.ws : { ping: -1 }; } }, config });
+  process.once('SIGTERM', () => shutdown('SIGTERM', webServer));
+  process.once('SIGINT', () => shutdown('SIGINT', webServer));
 
   try {
-    await client.login(config.token);
+    await login();
   } catch (err) {
     // توكن خاطئ أو Intents مرفوضة — ما يفيد نكمل
     logger.error('❌ فشل تسجيل الدخول لـDiscord — تأكد من DISCORD_TOKEN', { code: err.code, reason: err.message });
