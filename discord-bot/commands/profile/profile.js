@@ -1,7 +1,8 @@
 'use strict';
 
 // /بروفايل يوزر:<اليوزرنيم> — بطاقة اللاعب: الأفتار، الاسم، اللفل مع شريط XP،
-// النقاط، الألعاب الملعوبة، تاريخ الانضمام + زر الإحصائيات وزر الموقع.
+// النقاط، الألعاب الملعوبة، الإطارات المملوكة، الإنجازات، الألعاب المفضلة،
+// الأصدقاء، تاريخ الانضمام + زر الإحصائيات وزر الموقع.
 // البحث مباشر باليوزرنيم بقاعدة بيانات الموقع (بدون أي ربط بديسكورد).
 
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
@@ -13,6 +14,24 @@ const { friendlyMessage } = require('../../utils/errors');
 const { loadConfig } = require('../../config');
 const { addUsernameOption, readUsername, notFoundPayload, autocompleteUsernames } = require('../../utils/player');
 
+function framesValue(frames) {
+  if (!frames || !frames.count) return 'لا يملك إطارات بعد';
+  const lines = [`**${eb.formatNumber(frames.count)}** إطار`];
+  if (frames.active) lines.push(`✅ المفعّل: **${eb.safeName(frames.active.name)}**`);
+  const others = (frames.names || []).filter((n) => !frames.active || n !== frames.active.name);
+  if (others.length) {
+    const shown = others.slice(0, 8).map((n) => eb.safeName(n)).join('، ');
+    lines.push(shown + (others.length > 8 ? ` و${others.length - 8} غيرها` : ''));
+  }
+  return lines.join('\n');
+}
+
+function achievementsValue(ach) {
+  if (!ach || !ach.total) return '—';
+  if (!ach.earned.length) return `**0** من ${ach.total}`;
+  return `**${ach.earned.length}** من ${ach.total}\n` + ach.earned.map((a) => `${a.icon} ${a.name}`).join(' · ');
+}
+
 function buildProfileEmbed(profile) {
   const xpLine = profile.isMaxLevel
     ? `${eb.progressBar(1, 0)}  **اللفل الأقصى** 👑 · ${eb.formatNumber(profile.xp)} XP`
@@ -20,9 +39,10 @@ function buildProfileEmbed(profile) {
 
   const lines = [`✨ **التقدّم للفل ${profile.isMaxLevel ? profile.level : profile.level + 1}**`, xpLine];
   if (profile.tiktokUsername) lines.push('', `📱 مربوط بتيك توك: \`@${eb.clip(profile.tiktokUsername, 40)}\``);
-  if (!profile.registered) lines.push('', '🎮 لاعب بث (بدون حساب مسجّل بالموقع)');
+  if (Array.isArray(profile.roles) && profile.roles.length) lines.push(`🏷️ ${profile.roles.join(' · ')}`);
+  if (!profile.registered) lines.push('🎮 لاعب بث (بدون حساب مسجّل بالموقع)');
 
-  return eb
+  const embed = eb
     .brand({
       tone: 'primary',
       title: `👑 ${eb.safeName(profile.username)}`,
@@ -36,8 +56,19 @@ function buildProfileEmbed(profile) {
       eb.field('💎 النقاط', `**${eb.formatNumber(profile.points)}**`),
       eb.field('🎮 الألعاب الملعوبة', `**${eb.formatNumber(profile.roundsPlayed)}** جولة`),
       eb.field('🧪 مجموع الخبرة', `${eb.formatNumber(profile.xp)} XP`),
-      eb.field('📅 تاريخ الانضمام', profile.joinedAt ? eb.discordDate(profile.joinedAt, 'D') : '—')
+      eb.field('📅 تاريخ الانضمام', profile.joinedAt ? eb.discordDate(profile.joinedAt, 'D') : '—'),
+      eb.field('👥 الأصدقاء', profile.friends == null ? '—' : `**${eb.formatNumber(profile.friends)}**`),
+      eb.field('🕹️ آخر لعبة', profile.lastGame ? eb.safeName(profile.lastGame) : '—'),
+      eb.field('🖼️ الإطارات', framesValue(profile.frames), false),
+      eb.field('🏅 الإنجازات والشارات', achievementsValue(profile.achievements), false)
     );
+
+  if (Array.isArray(profile.favoriteGames) && profile.favoriteGames.length) {
+    embed.addFields(eb.field('❤️ الألعاب المفضلة', profile.favoriteGames.map((g) => eb.safeName(g)).join(' · '), false));
+  }
+  // صورة الإطار المفعّل (للإطارات المرفوعة برابط https فقط)
+  if (profile.frames && profile.frames.active && profile.frames.active.imageUrl) embed.setImage(profile.frames.active.imageUrl);
+  return embed;
 }
 
 function buildButtons(profile, username) {

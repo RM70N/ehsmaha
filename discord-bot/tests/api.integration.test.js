@@ -75,6 +75,25 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
   });
   await db.collection('streamerEvents').doc('old').set({ type: 'bestStreamer', status: 'ended' });
 
+  // حالة حقيقية (مثل حساب المالك): XP عالي بسجل يوزر الموقع بدون جولات، والجولات
+  // والألعاب والإطارات بسجل تيك توك المربوط — والحساب نفسه ستريمر.
+  await db.collection('users').doc('uidOwner').set({
+    username: 'Owner7', usernameLower: 'owner7', createdAt: now, onlinePoints: 620,
+    soloWinCount: 3, onlineWinCount: 23, linkedTiktokUsername: 'owner.tt', pinnedGames: ['bomb', 'cw']
+  });
+  await db.collection('usernames').doc('owner7').set({ uid: 'uidOwner' });
+  await db.collection('levels').doc('owner7').set({ key: 'owner7', xp: 10000, roundsPlayed: 0, ownedFrames: ['saudi'] });
+  await db.collection('levels').doc('owner.tt').set({
+    key: 'owner.tt', xp: 500, roundsPlayed: 30, gamesPlayCount: { bomb: 20, draw: 10 }, isStreamer: true,
+    ownedFrames: ['anime01', 'custom1'], activeFrame: 'custom1', activeFrameAt: 5, lastGamePlayed: 'draw'
+  });
+  await db.collection('framesCatalogExtra').doc('custom1').set({ name: 'إطار خاص', imageUrl: 'https://example.com/f.png', visibility: 'private' });
+  await db.collection('friendships').doc('uidOwner_x').set({ uids: ['uidOwner', 'x'] });
+  await db.collection('friendships').doc('uidOwner_y').set({ uids: ['uidOwner', 'y'] });
+  await db.collection('leaderboards').doc('streamer1').set({ 'owner.tt': { nickname: 'Owner', wins: 40, games: { 'القنبلة المتحركة': 40 } } }, { merge: true });
+  await db.collection('leaderboards').doc('streamer3').set({ 'owner.tt': { nickname: 'Owner', wins: 12, games: {} } });
+  await db.collection('leaderboards').doc('owner.tt').set({ v1: { nickname: 'V One', wins: 5 }, v2: { nickname: 'V Two', wins: 3 } });
+
   // ---- تشغيل السيرفر ----
   const server = spawn(process.execPath, [path.join(__dirname, '..', 'api', 'server.js')], {
     env: { ...process.env, PORT: String(PORT), API_KEY, LOG_LEVEL: 'warn', NODE_ENV: 'test', API_LEADERBOARD_CACHE_SECONDS: '0' },
@@ -124,7 +143,7 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
       assert.equal(p.username, 'Alice_1');
       assert.equal(p.registered, true);
       assert.equal(p.xp, 900); // المستند الأعلى XP (مفتاح تيك توك)
-      assert.equal(p.roundsPlayed, 40);
+      assert.equal(p.roundsPlayed, 44); // مجموع سجلّي الموقع وتيك توك
       assert.equal(p.points, 350);
       assert.equal(p.tiktokUsername, 'alice.tt');
       assert.equal(p.joinedAt, '2025-01-15T10:00:00.000Z');
@@ -156,14 +175,16 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
     assert.equal(r.status, 200, JSON.stringify(r.body));
     const s = r.body.data;
     assert.deepEqual(s.wins, { total: 13, solo: 3, online: 2, stream: 8 });
-    assert.equal(s.losses, 27);
-    assert.equal(s.winRate, 32.5);
+    assert.equal(s.losses, 31);
+    assert.equal(s.winRate, 29.5);
     assert.equal(s.mostPlayedGame.tag, 'bomb');
     assert.equal(s.mostPlayedGame.name, 'القنبلة المتحركة');
     assert.equal(s.mostPlayedGame.count, 12);
     assert.equal(s.bestRoundPoints, 120);
-    assert.equal(s.globalRank, 1); // 900 أعلى من الكل
-    assert.equal(s.totalRanked, 16);
+    assert.equal(s.globalRank, 2); // بعد Owner7 (10000)
+    assert.equal(s.totalRanked, 18);
+    assert.deepEqual(s.topStreamer, { name: 'streamer1', wins: 7 });
+    assert.equal(s.streamersCount, 2);
     assert.equal(s.recentGames.length, 2);
   });
 
@@ -180,12 +201,69 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
     assert.deepEqual(r.body.data.results, []);
   });
 
+  await t.test('دمج سجلّي اللاعب: جولات/ألعاب/إطارات من تيك توك + XP من الموقع', async () => {
+    const r = await call('GET', `/api/discord/profile-by-username/${enc('owner7')}`);
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    const p = r.body.data;
+    assert.equal(p.xp, 10000);
+    assert.equal(p.roundsPlayed, 30);
+    assert.equal(p.frames.count, 3);
+    assert.deepEqual(p.frames.active, { id: 'custom1', name: 'إطار خاص', imageUrl: 'https://example.com/f.png' });
+    assert.ok(p.frames.names.includes('السعودية') && p.frames.names.includes('تنين النار'));
+    assert.deepEqual(p.favoriteGames, ['القنبلة المتحركة', 'الدول']);
+    assert.equal(p.friends, 2);
+    assert.equal(p.lastGame, 'خمن الرسمة');
+    assert.ok(p.roles.includes('ستريمر'));
+    assert.deepEqual(p.achievements.earned.map((a) => a.id), ['lvl5', 'lvl10', 'rounds10', 'online5', 'online20', 'frames1']);
+    assert.equal(p.achievements.total, 14);
+  });
+
+  await t.test('إحصائيات: أكثر لعبة، أكثر ستريمر، كستريمر، وهزائم غير قابلة للحساب', async () => {
+    const r = await call('GET', `/api/discord/stats-by-username/${enc('OWNER7')}`);
+    const s = r.body.data;
+    assert.deepEqual(s.wins, { total: 78, solo: 3, online: 23, stream: 52 });
+    assert.equal(s.losses, null); // فوزات (78) أكثر من الجولات المسجّلة (30)
+    assert.equal(s.winRate, null);
+    assert.equal(s.mostPlayedGame.name, 'القنبلة المتحركة');
+    assert.equal(s.mostPlayedGame.count, 20);
+    assert.deepEqual(s.topStreamer, { name: 'streamer1', wins: 40 });
+    assert.equal(s.streamersCount, 2);
+    assert.deepEqual(s.asStreamer, { name: 'owner.tt', players: 2, wins: 8 });
+    assert.equal(s.framesCount, 3);
+    assert.equal(s.gamesVariety, 2);
+    assert.equal(s.globalRank, 1);
+  });
+
+  await t.test('لوحة الفائزين: كل الستريمرز وستريمر محدد وغير موجود', async () => {
+    let r = await call('GET', '/api/discord/winners?limit=50');
+    let w = r.body.data;
+    assert.equal(w.scope, 'all');
+    assert.deepEqual(w.entries.map((e) => [e.key, e.wins]), [['owner.tt', 52], ['alice.tt', 8], ['v1', 5], ['أحمد_تيك', 4], ['v2', 3], ['viewer1', 2]]);
+    assert.equal(w.entries[0].topGame.name, 'القنبلة المتحركة');
+    assert.equal(w.totalPlayers, 6);
+    assert.equal(w.totalWins, 74);
+    assert.equal(w.streamersCount, 4);
+
+    r = await call('GET', `/api/discord/winners?streamer=${enc('@Streamer1')}`);
+    w = r.body.data;
+    assert.equal(w.scope, 'streamer');
+    assert.equal(w.streamer, 'streamer1');
+    assert.deepEqual(w.entries.map((e) => e.key), ['owner.tt', 'alice.tt', 'أحمد_تيك', 'viewer1']);
+
+    r = await call('GET', `/api/discord/winners?streamer=${enc('nobody')}`);
+    assert.equal(r.body.data.found, false);
+
+    r = await call('GET', `/api/discord/winners/streamers?q=${enc('str')}`);
+    assert.deepEqual(r.body.data.results.map((x) => x.value), ['streamer1', 'streamer3', 'streamer2']);
+  });
+
   await t.test('المتصدرين العام', async () => {
     const r = await call('GET', '/api/discord/leaderboard?period=global&limit=50');
     assert.equal(r.status, 200);
     const e = r.body.data.entries;
-    assert.equal(e.length, 16); // alice_1 + alice.tt + أحمد_تيك + 13 مشاهد
-    assert.equal(e[0].key, 'alice.tt');
+    assert.equal(e.length, 18); // + owner7 و owner.tt
+    assert.equal(e[0].key, 'owner7');
+    assert.equal(e[1].key, 'alice.tt');
     assert.equal(e[0].rank, 1);
     assert.ok(e.every((x, i) => i === 0 || e[i - 1].points >= x.points));
   });
@@ -224,8 +302,8 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
   await t.test('إحصائيات الإدارة', async () => {
     const r = await call('GET', '/api/discord/admin/stats');
     assert.equal(r.status, 200);
-    assert.equal(r.body.data.registeredUsers, 2);
-    assert.equal(r.body.data.rankedPlayers, 16);
+    assert.equal(r.body.data.registeredUsers, 3);
+    assert.equal(r.body.data.rankedPlayers, 18);
     assert.ok(r.body.data.activeToday >= 15);
     assert.ok(r.body.data.apiCallsToday >= 1);
   });

@@ -124,6 +124,10 @@ module.exports = {
     request('get', '/api/discord/search-usernames', { params: { q, limit }, timeout: 2000, retries: 0 }),
   getLeaderboard: (period = 'global', limit = 50) =>
     request('get', '/api/discord/leaderboard', { params: { period, limit } }),
+  getWinners: (streamer, limit = 50) =>
+    request('get', '/api/discord/winners', { params: { ...(streamer ? { streamer } : {}), limit } }),
+  searchStreamers: (q) =>
+    request('get', '/api/discord/winners/streamers', { params: { q }, timeout: 2000, retries: 0 }),
   getEvents: () => request('get', '/api/discord/events'),
   getAdminStats: () => request('get', '/api/discord/admin/stats'),
   health: () => request('get', '/health')

@@ -9,8 +9,10 @@
 //   3) levels/{levelsKey(يوزر)}                          (لاعب بث بدون حساب: متابع تيك توك/كيك/يوتيوب)
 //
 // كل لاعب مسجّل ممكن يكون له سجلّا levels: مفتاح يوزر الموقع ومفتاح تيك توك
-// المربوط — نعرض الأعلى XP مثل ما يعرض الموقع. Realtime Database (levels/{key})
-// تُدمج كاحتياط مثل framesMergeLevelDocs بالموقع: Firestore أولاً وRTDB يكمّل.
+// المربوط. كل جولة تنحسب لمفتاح واحد فقط (تيك توك لو مربوط، وإلا يوزر الموقع)،
+// فالدمج: اللفل/XP = الأعلى (مثل ما يعرض الموقع)، والجولات وعدّاد الألعاب =
+// مجموع الاثنين، والإطارات = اتحادهم. Realtime Database (levels/{key}) تُدمج
+// كاحتياط مثل framesMergeLevelDocs بالموقع: Firestore أولاً وRTDB يكمّل.
 
 const firestore = require('../../database/firestore');
 const C = require('../../database/collections');
@@ -19,8 +21,10 @@ const { progressFromXp, levelsKey, isValidDocId } = require('./levels');
 const { gameName } = require('./games');
 const { toIso } = require('./time');
 const memo = require('./memo');
+const winners = require('./winners');
+const { describeFrames } = require('./frames');
+const { earnedAchievements } = require('./achievements');
 
-const STREAM_WINS_TTL_MS = 10 * 60 * 1000;
 const RANKED_TOTAL_TTL_MS = 5 * 60 * 1000;
 const AVATAR_CHECK_TTL_MS = 30 * 60 * 1000;
 const SEARCH_TTL_MS = 60 * 1000;
@@ -36,7 +40,7 @@ const num = (v) => Math.max(0, Number(v) || 0);
 function normalizeUsername(raw) {
   return String(raw == null ? '' : raw)
     .normalize('NFC')
-    .replace(/[​-‏‪-‮⁦-⁩﻿]/g, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
     .trim()
     .replace(/^@+/, '')
     .replace(/\s+/g, ' ')
@@ -59,13 +63,68 @@ async function readRtdbLevel(key) {
   }
 }
 
+const arr = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x) : []);
+const union = (...lists) => [...new Set(lists.flatMap(arr))];
+
+// التفعيل بين مصدرين: الأحدث ختماً (activeFrameAt) يفوز — نفس منطق الموقع
+function pickActiveFrame(primary, secondary) {
+  const pa = Number(primary && primary.activeFrameAt) || 0;
+  const sa = Number(secondary && secondary.activeFrameAt) || 0;
+  if (pa || sa) return (pa >= sa ? primary && primary.activeFrame : secondary && secondary.activeFrame) || '';
+  return (primary && primary.activeFrame) || (secondary && secondary.activeFrame) || '';
+}
+
 async function readLevelDoc(key) {
   if (!isValidDocId(key)) return null;
   const [fsSnap, rt] = await Promise.all([db().collection(C.LEVELS).doc(key).get(), readRtdbLevel(key)]);
   const fs = fsSnap.exists ? fsSnap.data() : null;
   if (!fs && !rt) return null;
-  return { key, ...(rt || {}), ...(fs || {}) };
+  return {
+    key,
+    ...(rt || {}),
+    ...(fs || {}),
+    // الملكية تراكمية: اتحاد المصدرين (إطار انكتب بـRTDB كفولباك ما يضيع)
+    ownedFrames: union(rt && rt.ownedFrames, fs && fs.ownedFrames),
+    levelFrames: union(rt && rt.levelFrames, fs && fs.levelFrames),
+    activeFrame: pickActiveFrame(fs, rt),
+    activeFrameAt: Math.max(Number(fs && fs.activeFrameAt) || 0, Number(rt && rt.activeFrameAt) || 0)
+  };
 }
+
+function sumMaps(...maps) {
+  const out = {};
+  for (const m of maps) for (const [k, v] of Object.entries(m || {})) out[k] = (out[k] || 0) + num(v);
+  return out;
+}
+
+// يدمج سجل يوزر الموقع مع سجل تيك توك المربوط لسجل واحد يمثّل اللاعب
+function mergeLevelDocs(siteDoc, streamDoc) {
+  const docs = [siteDoc, streamDoc].filter(Boolean);
+  if (!docs.length) return null;
+  if (docs.length === 1) return { ...docs[0], gamesPlayCount: sumMaps(docs[0].gamesPlayCount) };
+  const top = num(siteDoc.xp) >= num(streamDoc.xp) ? siteDoc : streamDoc;
+  const log = [...arr2(siteDoc.activityLog), ...arr2(streamDoc.activityLog)].sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+  const lastAt = (d) => (d.lastGamePlayedAt && d.lastGamePlayedAt.toMillis ? d.lastGamePlayedAt.toMillis() : 0);
+  const latest = lastAt(siteDoc) >= lastAt(streamDoc) ? siteDoc : streamDoc;
+  return {
+    ...siteDoc,
+    ...streamDoc, // نفس أولوية الموقع: حقول سجل البث تغلب
+    key: streamDoc.key,
+    xp: num(top.xp),
+    roundsPlayed: num(siteDoc.roundsPlayed) + num(streamDoc.roundsPlayed),
+    gamesPlayCount: sumMaps(siteDoc.gamesPlayCount, streamDoc.gamesPlayCount),
+    activityLog: log.slice(0, 15),
+    lastGamePlayed: latest.lastGamePlayed || siteDoc.lastGamePlayed || streamDoc.lastGamePlayed || null,
+    ownedFrames: union(siteDoc.ownedFrames, streamDoc.ownedFrames),
+    levelFrames: union(siteDoc.levelFrames, streamDoc.levelFrames),
+    activeFrame: pickActiveFrame(streamDoc, siteDoc),
+    avatar: streamDoc.avatar || siteDoc.avatar || '',
+    isStreamer: !!(siteDoc.isStreamer || streamDoc.isStreamer),
+    isViewer: !!(siteDoc.isViewer || streamDoc.isViewer),
+    createdAt: [siteDoc.createdAt, streamDoc.createdAt].filter((t) => t && t.toMillis).sort((a, b) => a.toMillis() - b.toMillis())[0] || null
+  };
+}
+const arr2 = (v) => (Array.isArray(v) ? v.filter((x) => x && x.game) : []);
 
 async function findRegisteredUser(lower) {
   if (isValidDocId(lower)) {
@@ -93,16 +152,15 @@ async function resolvePlayer(rawUsername) {
     const siteKey = levelsKey(account.user.username || lower);
     const tiktokKey = levelsKey(account.user.linkedTiktokUsername);
     const keys = [...new Set([siteKey, tiktokKey].filter(Boolean))];
-    const docs = (await Promise.all(keys.map(readLevelDoc))).filter(Boolean);
-    docs.sort((a, b) => num(b.xp) - num(a.xp)); // الأعلى XP = المعروض بالموقع
-    return { registered: true, uid: account.uid, user: account.user, level: docs[0] || null, keys };
+    const [siteDoc, streamDoc] = await Promise.all([readLevelDoc(siteKey), tiktokKey && tiktokKey !== siteKey ? readLevelDoc(tiktokKey) : null]);
+    return { registered: true, uid: account.uid, user: account.user, level: mergeLevelDocs(siteDoc, streamDoc), keys };
   }
 
   // لاعب بث بدون حساب بالموقع (له سجل لفلات فقط)
   const key = levelsKey(lower);
   const level = await readLevelDoc(key);
   if (level && (num(level.xp) > 0 || num(level.roundsPlayed) > 0)) {
-    return { registered: false, uid: null, user: null, level, keys: [key] };
+    return { registered: false, uid: null, user: null, level: mergeLevelDocs(level, null), keys: [key] };
   }
   throw errors.playerNotFound();
 }
@@ -127,36 +185,6 @@ async function usableAvatar(url) {
   });
 }
 
-// ---------- فوزات البث (leaderboards) ----------
-
-// فهرس: levelsKey(معرّف المتابع) → مجموع فوزاته بكل قوائم الستريمرز. قراءة
-// كامل التجميعة مكلفة نسبياً فتُخزّن 10 دقائق وتُشارك بين كل الطلبات.
-function streamWinsIndex() {
-  return memo.remember('streamWinsIndex', STREAM_WINS_TTL_MS, async () => {
-    const snap = await db().collection(C.LEADERBOARDS).get();
-    const index = new Map();
-    snap.forEach((doc) => {
-      const board = doc.data() || {};
-      for (const [viewerId, entry] of Object.entries(board)) {
-        if (!entry || typeof entry !== 'object') continue;
-        const key = levelsKey(viewerId);
-        if (!key) continue;
-        index.set(key, (index.get(key) || 0) + num(entry.wins));
-      }
-    });
-    return index;
-  });
-}
-
-async function streamWinsFor(keys) {
-  try {
-    const index = await streamWinsIndex();
-    return keys.reduce((sum, k) => sum + (index.get(k) || 0), 0);
-  } catch (_) {
-    return 0;
-  }
-}
-
 // ---------- الترتيب العام ----------
 
 function totalRanked() {
@@ -176,6 +204,44 @@ async function globalRank(xp) {
 
 function avatarCandidate(ctx) {
   return (ctx.user && ctx.user.linkedTiktokAvatar) || (ctx.level && ctx.level.avatar) || null;
+}
+
+async function friendsCount(uid) {
+  if (!uid) return null;
+  try {
+    const agg = await db().collection('friendships').where('uids', 'array-contains', uid).count().get();
+    return agg.data().count;
+  } catch (_) {
+    return null;
+  }
+}
+
+function roleLabels(ctx) {
+  const roles = [];
+  if (ctx.registered) roles.push('حساب مسجّل');
+  if (ctx.level && ctx.level.isStreamer) roles.push('ستريمر');
+  if (ctx.level && ctx.level.isViewer) roles.push('لاعب بث');
+  return roles;
+}
+
+// الإطارات المملوكة + المفعّل حالياً (بأسمائها)
+async function framesInfo(ctx) {
+  const owned = arr(ctx.level && ctx.level.ownedFrames);
+  const described = await describeFrames(owned);
+  const activeId = ctx.level && ctx.level.activeFrame;
+  const active = activeId && owned.includes(activeId) ? described.find((f) => f.id === activeId) || null : null;
+  return { count: owned.length, names: described.map((f) => f.name), active };
+}
+
+function achievementsFor(ctx, base, framesCount) {
+  return earnedAchievements({
+    level: base.level,
+    roundsPlayed: base.roundsPlayed,
+    soloWinCount: num(ctx.user && ctx.user.soloWinCount),
+    onlineWinCount: num(ctx.user && ctx.user.onlineWinCount),
+    ownedFramesCount: framesCount,
+    gamesVariety: Object.keys((ctx.level && ctx.level.gamesPlayCount) || {}).length
+  });
 }
 
 function baseFields(ctx, profileUrl) {
@@ -199,10 +265,19 @@ function baseFields(ctx, profileUrl) {
 
 async function getProfile(username, { profileUrl }) {
   const ctx = await resolvePlayer(username);
+  const base = baseFields(ctx, profileUrl);
+  const [avatarUrl, frames, friends] = await Promise.all([usableAvatar(avatarCandidate(ctx)), framesInfo(ctx), friendsCount(ctx.uid)]);
+  const pinned = arr(ctx.user && ctx.user.pinnedGames).slice(0, 10).map((tag) => gameName(tag));
   return {
-    ...baseFields(ctx, profileUrl),
-    avatarUrl: await usableAvatar(avatarCandidate(ctx)),
-    joinedAt: toIso((ctx.user && ctx.user.createdAt) || (ctx.level && ctx.level.createdAt))
+    ...base,
+    avatarUrl,
+    joinedAt: toIso((ctx.user && ctx.user.createdAt) || (ctx.level && ctx.level.createdAt)),
+    roles: roleLabels(ctx),
+    frames,
+    achievements: achievementsFor(ctx, base, frames.count),
+    favoriteGames: pinned,
+    friends,
+    lastGame: ctx.level && ctx.level.lastGamePlayed ? gameName(ctx.level.lastGamePlayed) : null
   };
 }
 
@@ -219,19 +294,23 @@ async function getStats(username, { profileUrl }) {
   const ctx = await resolvePlayer(username);
   const base = baseFields(ctx, profileUrl);
 
-  const [avatarUrl, streamWins, rank] = await Promise.all([
+  const [avatarUrl, stream, rank, frames] = await Promise.all([
     usableAvatar(avatarCandidate(ctx)),
-    streamWinsFor(ctx.keys),
-    globalRank(base.xp)
+    winners.streamSummaryFor(ctx.keys).catch(() => ({ wins: 0, topStreamer: null, streamersCount: 0, topGame: null, asStreamer: null })),
+    globalRank(base.xp),
+    framesInfo(ctx)
   ]);
 
   const solo = num(ctx.user && ctx.user.soloWinCount);
   const online = num(ctx.user && ctx.user.onlineWinCount);
-  const totalWins = solo + online + streamWins;
+  const totalWins = solo + online + stream.wins;
   // الموقع ما يسجّل "خسارة" صريحة: كل جولة لعبها اللاعب بدون فوز = هزيمة.
+  // لو الجولات المسجّلة أقل من الفوزات (بيانات قديمة قبل نظام الجولات) ما
+  // نقدر نحسب هزائم/معدل بدقة → null ويعرضها البوت "—" بدل رقم غلط.
   const rounds = base.roundsPlayed;
-  const losses = Math.max(0, rounds - totalWins);
-  const winRate = rounds > 0 ? Math.min(100, Math.round((totalWins / rounds) * 1000) / 10) : 0;
+  const reliable = rounds > 0 && rounds >= totalWins;
+  const losses = reliable ? rounds - totalWins : null;
+  const winRate = reliable ? Math.round((totalWins / rounds) * 1000) / 10 : null;
 
   const recentGames = (Array.isArray(ctx.level && ctx.level.activityLog) ? ctx.level.activityLog : [])
     .slice(0, 5)
@@ -240,10 +319,20 @@ async function getStats(username, { profileUrl }) {
   return {
     ...base,
     avatarUrl,
-    wins: { total: totalWins, solo, online, stream: streamWins },
+    wins: { total: totalWins, solo, online, stream: stream.wins },
     losses,
     winRate,
-    mostPlayedGame: mostPlayed(ctx.level && ctx.level.gamesPlayCount),
+    // أكثر لعبة: من عدّاد جولات الموقع، وإلا (لاعب بث قديم) من فوزاته بالبثوث
+    mostPlayedGame:
+      mostPlayed(ctx.level && ctx.level.gamesPlayCount) ||
+      (stream.topGame ? { tag: null, name: stream.topGame.name, count: stream.topGame.count, source: 'wins' } : null),
+    topStreamer: stream.topStreamer,
+    streamersCount: stream.streamersCount,
+    asStreamer: stream.asStreamer,
+    points: num(ctx.user && ctx.user.onlinePoints),
+    framesCount: frames.count,
+    achievements: achievementsFor(ctx, base, frames.count),
+    gamesVariety: Object.keys((ctx.level && ctx.level.gamesPlayCount) || {}).length,
     bestRoundPoints: num(ctx.user && ctx.user.bestRoundPoints) || null,
     globalRank: rank.rank,
     totalRanked: rank.total,
