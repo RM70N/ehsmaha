@@ -84,7 +84,7 @@ function discordDate(input, style = 'D') {
 function safeName(name) {
   return String(name || '—')
     .replace(/([\\*_~`|>])/g, '\\$1')
-    .replace(/@(everyone|here)/gi, '@​$1')
+    .replace(/@(everyone|here)/gi, '@\u200b$1')
     .slice(0, 64);
 }
 

@@ -28,7 +28,7 @@ function addUsernameOption(builder, description) {
 function readUsername(interaction) {
   return String(interaction.options.getString(OPTION_NAME, true) || '')
     .normalize('NFC')
-    .replace(/[​-‏‪-‮⁦-⁩﻿]/g, '')
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g, '')
     .trim()
     .replace(/^@+/, '');
 }

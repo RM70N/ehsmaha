@@ -402,6 +402,7 @@ test('/مساعدة: الفئات تظهر، والإدارية للمخوّل �
   const t1 = lastMessage(i).text;
   for (const cat of ['اللاعبين', 'الإحصائيات', 'الموقع']) assert.match(t1, new RegExp(cat));
   assert.match(t1, /\/بروفايل يوزر: ahmed_1/); // مثال الاستخدام
+  assert.match(t1, /\/الفائزين/);
   assert.doesNotMatch(t1, /ربط/);
   assert.doesNotMatch(t1, /ادمن_احصائيات/);
 
@@ -460,4 +461,115 @@ test('خطأ سيرفر بباقي الأوامر اللي تستخدم الـAP
     await dispatch(i);
     assert.match(lastMessage(i).text, /حصل خطأ مؤقت، جرّب بعد قليل/, name);
   }
+});
+
+test('/احصائيات: الحقول الجديدة + "—" لما الهزائم ما تنحسب', async () => {
+  route('GET', '/api/discord/stats-by-username/', () =>
+    okJson({
+      ...STATS, wins: { total: 78, solo: 3, online: 23, stream: 52 }, losses: null, winRate: null, roundsPlayed: 30, points: 620,
+      topStreamer: { name: 'streamer1', wins: 40 }, streamersCount: 2, asStreamer: { name: 'owner.tt', players: 2, wins: 8 },
+      achievements: { earned: [{ id: 'lvl5', name: 'الخطوة الأولى', icon: '🥉' }], total: 14 }, framesCount: 3, gamesVariety: 2
+    })
+  );
+  const i = makeInteraction({ commandName: 'احصائيات', user: fakeUser(nextUserId()), options: { 'يوزر': 'owner7' } });
+  await dispatch(i);
+  const e = lastMessage(i).embeds[0];
+  const f = Object.fromEntries(e.fields.map((x) => [x.name, x.value]));
+  assert.equal(f['💔 الهزائم'], '—');
+  assert.equal(f['📈 معدل الفوز'], '—');
+  assert.match(f['📺 أكثر ستريمر يلعب عنده'], /@streamer1[\s\S]*40 فوز[\s\S]*2 ستريمر/);
+  assert.match(f['🏅 الإنجازات'], /1\*\* من 14[\s\S]*🥉/);
+  assert.match(f['🖼️ الإطارات المملوكة'], /3/);
+  assert.match(f['🎙️ كستريمر'], /2\*\* لاعب/);
+  assert.match(e.description, /620/);
+  assert.ok(e.fields.length <= 25);
+});
+
+test('/بروفايل: الإطارات والإنجازات والمفضلة وصورة الإطار المفعّل', async () => {
+  route('GET', '/api/discord/profile-by-username/', () =>
+    okJson({
+      ...PROFILE, roles: ['حساب مسجّل', 'ستريمر'], friends: 2, lastGame: 'خمن الرسمة', favoriteGames: ['القنبلة المتحركة', 'الدول'],
+      frames: { count: 3, names: ['السعودية', 'تنين النار', 'إطار خاص'], active: { id: 'custom1', name: 'إطار خاص', imageUrl: 'https://example.com/f.png' } },
+      achievements: { earned: [{ id: 'lvl5', name: 'الخطوة الأولى', icon: '🥉' }, { id: 'frames1', name: 'مزيّن', icon: '🖼️' }], total: 14 }
+    })
+  );
+  const i = makeInteraction({ commandName: 'بروفايل', user: fakeUser(nextUserId()), options: { 'يوزر': 'owner7' } });
+  await dispatch(i);
+  const e = lastMessage(i).embeds[0];
+  const f = Object.fromEntries(e.fields.map((x) => [x.name, x.value]));
+  assert.match(f['🖼️ الإطارات'], /3\*\* إطار[\s\S]*المفعّل: \*\*إطار خاص\*\*[\s\S]*السعودية، تنين النار/);
+  assert.match(f['🏅 الإنجازات والشارات'], /2\*\* من 14[\s\S]*🥉 الخطوة الأولى · 🖼️ مزيّن/);
+  assert.equal(f['❤️ الألعاب المفضلة'], 'القنبلة المتحركة · الدول');
+  assert.match(f['👥 الأصدقاء'], /2/);
+  assert.equal(f['🕹️ آخر لعبة'], 'خمن الرسمة');
+  assert.match(e.description, /ستريمر/);
+  assert.equal(e.image.url, 'https://example.com/f.png');
+});
+
+const WINNERS = Array.from({ length: 23 }, (_, k) => ({ rank: k + 1, key: 'p' + k, nickname: 'Player ' + k, wins: 100 - k, topGame: k === 0 ? { name: 'القنبلة المتحركة', count: 40 } : null }));
+
+test('/الفائزين: كل الستريمرز + منصة + صفحات + حماية الصفحات', async () => {
+  let calls = 0;
+  route('GET', '/api/discord/winners', ({ query }) => {
+    calls++;
+    assert.doesNotMatch(query, /streamer=/);
+    return okJson({ scope: 'all', found: true, entries: WINNERS, totalPlayers: 23, totalWins: 2047, streamersCount: 5, generatedAt: new Date().toISOString() });
+  });
+  const owner = fakeUser(nextUserId());
+  const i = makeInteraction({ commandName: 'الفائزين', user: owner });
+  await dispatch(i);
+  const m = lastMessage(i);
+  const d = m.embeds[0].description;
+  assert.match(m.embeds[0].title, /لوحة الفائزين/);
+  assert.match(d, /كل الستريمرز \(5 ستريمر\)[\s\S]*23 فائز[\s\S]*2,047 فوز/);
+  assert.match(d, /🥇 \*\*Player 0\*\* — \*\*100\*\* 🏆 · 🎯 القنبلة المتحركة/);
+  assert.match(d, /🥈[\s\S]*🥉/);
+  const [prev, ind, next] = m.components[0].components;
+  assert.equal(prev.disabled, true);
+  assert.equal(ind.label, '1 / 3');
+
+  const click = makeInteraction({ kind: 'button', customId: next.custom_id, user: owner });
+  await dispatch(click);
+  assert.match(lastMessage(click).embeds[0].description, /Player 10/);
+  assert.equal(calls, 1); // الصفحة الثانية من الكاش
+
+  const intruder = makeInteraction({ kind: 'button', customId: next.custom_id, user: fakeUser(nextUserId()) });
+  await dispatch(intruder);
+  assert.match(lastMessage(intruder).text, /لشخص ثاني/);
+});
+
+test('/الفائزين: ستريمر محدد (عربي) + غير موجود + خطأ سيرفر', async () => {
+  route('GET', '/api/discord/winners', ({ query }) => {
+    const q = new URLSearchParams(query);
+    if (q.get('streamer') === 'ستريمر_عربي') return okJson({ scope: 'streamer', streamer: 'ستريمر_عربي', found: true, entries: WINNERS.slice(0, 3), totalPlayers: 3, totalWins: 297 });
+    return okJson({ scope: 'streamer', found: false, entries: [] });
+  });
+  const i = makeInteraction({ commandName: 'الفائزين', user: fakeUser(nextUserId()), options: { 'ستريمر': '@ستريمر_عربي' } });
+  await dispatch(i);
+  const m = lastMessage(i);
+  assert.match(m.embeds[0].description, /بث \*\*@ستريمر\\_عربي\*\*/);
+  assert.equal(m.components.length, 0); // 3 فقط → صفحة وحدة بدون أزرار
+
+  const i2 = makeInteraction({ commandName: 'الفائزين', user: fakeUser(nextUserId()), options: { 'ستريمر': 'nobody' } });
+  await dispatch(i2);
+  assert.match(lastMessage(i2).text, /ما لقينا قائمة فائزين للستريمر/);
+
+  require('../utils/cache').flush();
+  route('GET', '/api/discord/winners', () => errJson(500, 'INTERNAL'));
+  const i3 = makeInteraction({ commandName: 'الفائزين', user: fakeUser(nextUserId()) });
+  await dispatch(i3);
+  assert.match(lastMessage(i3).text, /حصل خطأ مؤقت/);
+});
+
+test('/الفائزين: اقتراحات الستريمرز، وفاضية لو الـAPI طايح', async () => {
+  route('GET', '/api/discord/winners/streamers', () => okJson({ results: [{ value: 'streamer1', label: 'streamer1 · 4 لاعب' }] }));
+  const a = makeInteraction({ kind: 'autocomplete', commandName: 'الفائزين', user: fakeUser(nextUserId()), options: { __focused: 'str' } });
+  await dispatch(a);
+  assert.deepEqual(a.log.find(([t]) => t === 'respond')[1], [{ name: '📺 streamer1 · 4 لاعب', value: 'streamer1' }]);
+
+  require('../utils/cache').flush();
+  route('GET', '/api/discord/winners/streamers', () => 'HANG');
+  const b = makeInteraction({ kind: 'autocomplete', commandName: 'الفائزين', user: fakeUser(nextUserId()), options: { __focused: 'zz' } });
+  await dispatch(b);
+  assert.deepEqual(b.log.find(([t]) => t === 'respond')[1], []);
 });

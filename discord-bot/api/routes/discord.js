@@ -6,6 +6,8 @@
 //   GET /stats-by-username/:username
 //   GET /search-usernames?q=...&limit=20     (اقتراحات Autocomplete)
 //   GET /leaderboard?period=global|weekly&limit=10
+//   GET /winners?streamer=...&limit=50           (لوحة الفائزين — كل الستريمرز أو ستريمر محدد)
+//   GET /winners/streamers?q=...                 (اقتراحات أسماء الستريمرز)
 //   GET /events
 //   GET /admin/stats
 //
@@ -19,6 +21,7 @@ const { errors } = require('../errors');
 const players = require('../services/players');
 const leaderboard = require('../services/leaderboard');
 const events = require('../services/events');
+const winners = require('../services/winners');
 const admin = require('../services/admin');
 
 const ok = (res, data, status = 200) => res.status(status).json({ ok: true, data });
@@ -63,6 +66,17 @@ function createDiscordRouter(config) {
     const rawLimit = Number.parseInt(req.query.limit, 10);
     const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 10;
     ok(res, await leaderboard.getLeaderboard({ period, limit }, config));
+  });
+
+  router.get('/winners', async (req, res) => {
+    const streamer = String(req.query.streamer || '').trim().slice(0, 100);
+    const rawLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 50;
+    ok(res, await winners.getWinners({ streamer: streamer || null, limit }));
+  });
+
+  router.get('/winners/streamers', async (req, res) => {
+    ok(res, await winners.searchStreamers(String(req.query.q || '').slice(0, 100), 20));
   });
 
   router.get('/events', async (req, res) => {
