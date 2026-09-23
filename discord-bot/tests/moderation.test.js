@@ -395,7 +395,7 @@ test('التكتات: لوحة → فتح → سبب → روم بصلاحيات
 
   // فتح → قائمة أسباب
   const member = makeMember(w.guild, { username: 'أحمد علي!!' });
-  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId });
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId, channelId: panelChannel.id });
   await dispatch(i);
   let out = lastPayload(i);
   const select = out.components[0].components[0];
@@ -404,7 +404,7 @@ test('التكتات: لوحة → فتح → سبب → روم بصلاحيات
   assert.ok(isEphemeral(i));
 
   // اختيار السبب → روم
-  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['account'] });
+  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['account'], channelId: panelChannel.id });
   await dispatch(i);
   out = lastPayload(i);
   assert.match(out.text, /تم فتح تكتك/);
@@ -429,10 +429,10 @@ test('التكتات: لوحة → فتح → سبب → روم بصلاحيات
   assert.equal((await store.tickets.get(ticketId)).status, 'open');
 
   // محاولة تكت ثاني بنفس القناة الأصلية → مرفوض برابط التكت الحالي
-  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId });
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId, channelId: panelChannel.id });
   await dispatch(i);
   assert.match(lastPayload(i).text, new RegExp(`لديك تكت مفتوح بالفعل هنا: <#${ticketChannelId}>`));
-  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['game'] });
+  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['game'], channelId: panelChannel.id });
   await dispatch(i);
   assert.match(lastPayload(i).text, /لديك تكت مفتوح بالفعل/);
   assert.equal(w.guild.log.filter(([t]) => t === 'createChannel').length, 1);
@@ -442,22 +442,22 @@ test('التكتات: لوحة → فتح → سبب → روم بصلاحيات
   delete require.cache[require.resolve('../services/tickets')];
 
   // عضو غريب يحاول يغلق → مرفوض
-  i = makeInteraction({ guild: w.guild, member: w.regular, kind: 'button', customId: closeId });
+  i = makeInteraction({ guild: w.guild, member: w.regular, kind: 'button', customId: closeId, channelId: ticketChannelId });
   await dispatch(i);
   assert.match(lastPayload(i).text, /غير مصرّح/);
 
   // الدعم يضغط إغلاق → تأكيد → إلغاء
-  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: closeId });
+  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: closeId, channelId: ticketChannelId });
   await dispatch(i);
   out = lastPayload(i);
   const [yes, no] = out.components[0].components;
-  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: no.custom_id });
+  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: no.custom_id, channelId: ticketChannelId });
   await dispatch(i);
   assert.match(lastPayload(i).text, /تم إلغاء الإغلاق/);
   assert.equal((await store.tickets.get(ticketId)).status, 'open');
 
   // تأكيد → أرشفة
-  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: yes.custom_id });
+  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: yes.custom_id, channelId: ticketChannelId });
   await dispatch(i);
   assert.match(lastPayload(i).text, /تم إغلاق التكت/);
   const t = await store.tickets.get(ticketId);
@@ -470,12 +470,12 @@ test('التكتات: لوحة → فتح → سبب → روم بصلاحيات
   assert.ok(locks.some(([, , target, perms]) => target === member.id && perms.SendMessages === false));
 
   // الضغط مرة ثانية على التأكيد → "مغلق مسبقاً"
-  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: yes.custom_id });
+  i = makeInteraction({ guild: w.guild, member: supporter, kind: 'button', customId: yes.custom_id, channelId: ticketChannelId });
   await dispatch(i);
   assert.match(lastPayload(i).text, /مغلق مسبقاً/);
 
   // بعد الإغلاق يقدر يفتح تكت جديد
-  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['store'] });
+  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: select.custom_id, values: ['store'], channelId: panelChannel.id });
   await dispatch(i);
   assert.match(lastPayload(i).text, /تم فتح تكتك/);
 });
@@ -485,7 +485,7 @@ test('التكتات: قناة محذوفة يدوياً تُغلق تلقائي
   const panelChannel = makeChannel(w.guild);
   const panelId = await store.tickets.createPanel({ guildId: w.guild.id, channelId: panelChannel.id, content: 'x', createdBy: w.owner.id });
   const member = makeMember(w.guild);
-  const pick = (value) => makeInteraction({ guild: w.guild, member, kind: 'select', customId: `tk:reason:${panelId}`, values: [value] });
+  const pick = (value) => makeInteraction({ guild: w.guild, member, kind: 'select', customId: `tk:reason:${panelId}`, values: [value], channelId: panelChannel.id });
 
   let i = pick('account');
   await dispatch(i);
@@ -497,7 +497,7 @@ test('التكتات: قناة محذوفة يدوياً تُغلق تلقائي
 
   const member2 = makeMember(w.guild);
   w.guild.failNext = 'createChannel';
-  i = makeInteraction({ guild: w.guild, member: member2, kind: 'select', customId: `tk:reason:${panelId}`, values: ['account'] });
+  i = makeInteraction({ guild: w.guild, member: member2, kind: 'select', customId: `tk:reason:${panelId}`, values: ['account'], channelId: panelChannel.id });
   await dispatch(i);
   assert.match(lastPayload(i).text, /إدارة القنوات/);
   assert.equal(await store.tickets.findOpen(w.guild.id, member2.id, panelChannel.id), null, 'الحجز انلغى');
@@ -508,6 +508,86 @@ test('التكتات: قناة محذوفة يدوياً تُغلق تلقائي
   await dispatch(i);
   assert.match(lastPayload(i).text, /إدارة القنوات \(Manage Channels\)/);
   assert.match(lastPayload(i).text, /إدارة الرتب \(Manage Roles\)/);
+});
+
+test('التكتات: بعد مسح قاعدة البيانات (تحديث/إعادة تشغيل) اللوحة والإغلاق يشتغلون ومافيه تكرار', async () => {
+  const w = await makeAdminWorld();
+  const panelChannel = makeChannel(w.guild, { name: 'الدعم' });
+  let i = cmd(w.guild, w.mod, 'دعم', { 'قناة': panelChannel, 'رسالة': 'افتح تكت' });
+  await dispatch(i);
+  const sent = w.guild.log.find(([t, id]) => t === 'send' && id === panelChannel.id)[2];
+  const openId = sent.components[0].toJSON().components[0].custom_id;
+  const member = makeMember(w.guild, { username: 'sara' });
+
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId, channelId: panelChannel.id });
+  await dispatch(i);
+  const reasonId = lastPayload(i).components[0].components[0].custom_id;
+  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: reasonId, values: ['game'], channelId: panelChannel.id });
+  await dispatch(i);
+  const ticketChannelId = w.guild.log.find(([t]) => t === 'createChannel')[1];
+  const welcome = w.guild.log.find(([t, id]) => t === 'send' && id === ticketChannelId)[2];
+  const closeId = welcome.components[0].toJSON().components[0].custom_id;
+
+  // 💥 القاعدة انمسحت بالكامل (SQLite مؤقت على Render بعد تحديث)
+  await botDb.run('DELETE FROM tickets');
+  await botDb.run('DELETE FROM ticket_panels');
+  delete require.cache[require.resolve('../services/tickets')];
+
+  // زر اللوحة القديم يشتغل (ما يقول "لم تعد صالحة") ويكتشف التكت المفتوح من الروم نفسه
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: openId, channelId: panelChannel.id });
+  await dispatch(i);
+  assert.doesNotMatch(lastPayload(i).text, /لم تعد صالحة/);
+  assert.match(lastPayload(i).text, new RegExp(`لديك تكت مفتوح بالفعل هنا: <#${ticketChannelId}>`));
+  assert.equal(w.guild.log.filter(([t]) => t === 'createChannel').length, 1, 'ما انفتح تكت مكرر');
+
+  // عضو جديد يفتح تكت من نفس اللوحة القديمة بدون مشاكل
+  const other = makeMember(w.guild, { username: 'omar' });
+  i = makeInteraction({ guild: w.guild, member: other, kind: 'select', customId: reasonId, values: ['account'], channelId: panelChannel.id });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /تم فتح تكتك/);
+
+  // زر الإغلاق القديم يشتغل: صاحب التكت يغلق ← تأكيد ← أرشفة
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: closeId, channelId: ticketChannelId });
+  await dispatch(i);
+  const [yes] = lastPayload(i).components[0].components;
+  i = makeInteraction({ guild: w.guild, member, kind: 'button', customId: yes.custom_id, channelId: ticketChannelId });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /تم إغلاق التكت/);
+  const archive = [...w.guild.channels.cache.values()].find((c) => c.name === 'تكتات مغلقة');
+  assert.equal(w.guild.channels.cache.get(ticketChannelId).parentId, archive.id);
+
+  // عضو غريب ما يقدر يغلق تكت مسترجع
+  const otherTicket = w.guild.log.filter(([t]) => t === 'createChannel')[1][1];
+  const otherWelcome = w.guild.log.find(([t, id]) => t === 'send' && id === otherTicket)[2];
+  i = makeInteraction({ guild: w.guild, member: w.regular, kind: 'button', customId: otherWelcome.components[0].toJSON().components[0].custom_id, channelId: otherTicket });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /غير مصرّح/);
+
+  // بعد الإغلاق يقدر يفتح تكت جديد
+  i = makeInteraction({ guild: w.guild, member, kind: 'select', customId: reasonId, values: ['store'], channelId: panelChannel.id });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /تم فتح تكتك/);
+});
+
+test('تنبيه الحفظ المؤقت: يظهر للإدارة على Render مع SQLite فقط', async () => {
+  const w = await makeAdminWorld();
+  const role = makeRole(w.guild, { name: 'مساعد', position: 5 });
+  const prev = process.env.RENDER;
+  try {
+    process.env.RENDER = 'true';
+    const i = cmd(w.guild, w.owner, 'اضافة_رتبة_ادارية', { 'رتبة': role });
+    await dispatch(i);
+    const text = lastPayload(i).text;
+    if (botDb.dialect() === 'sqlite') assert.match(text, /الحفظ غير دائم/);
+    else assert.doesNotMatch(text, /الحفظ غير دائم/);
+    delete process.env.RENDER;
+    const j = cmd(w.guild, w.owner, 'اضافة_ادمن', { 'عضو': w.regular });
+    await dispatch(j);
+    assert.doesNotMatch(lastPayload(j).text, /الحفظ غير دائم/);
+  } finally {
+    if (prev === undefined) delete process.env.RENDER;
+    else process.env.RENDER = prev;
+  }
 });
 
 test('التكتات: تنظيف القنوات المعلّقة بوضع الحذف عند الإقلاع', async () => {

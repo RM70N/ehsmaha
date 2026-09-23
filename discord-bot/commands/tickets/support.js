@@ -11,7 +11,7 @@ const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
 const tickets = require('../../services/tickets');
-const { guardAdmin } = require('../../utils/adminPermissions');
+const { guardAdmin, withStorageNotice } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
 const { logModeration } = require('../../utils/moderation');
 
@@ -53,7 +53,7 @@ module.exports = {
     await logModeration({ guildId: guild.id, action: 'ticket_panel', moderatorId: interaction.user.id, channelId: channel.id, details: { panelId, messageId: message.id } });
 
     const supportIds = await tickets.getSupportRoleIds(guild);
-    return respond.send(interaction, {
+    return respond.send(interaction, withStorageNotice({
       embeds: [
         eb.success(
           `تم نشر لوحة الدعم في ${channel} ✅ ([فتح الرسالة](${message.url}))\n\n` +
@@ -63,7 +63,7 @@ module.exports = {
           '🎫 لوحة الدعم'
         )
       ]
-    });
+    }));
   },
 
   // كل أزرار/قوائم التكتات (tk:open / tk:reason / tk:close / tk:cfy / tk:cfn)

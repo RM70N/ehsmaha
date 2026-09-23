@@ -9,7 +9,7 @@ const { SlashCommandBuilder, InteractionContextType, PermissionFlagsBits } = req
 const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const store = require('../../database/botStore');
-const { guardManager, invalidate } = require('../../utils/adminPermissions');
+const { guardManager, invalidate, withStorageNotice } = require('../../utils/adminPermissions');
 const { logModeration } = require('../../utils/moderation');
 
 const ADD = 'اضافة_رتبة_ادارية';
@@ -50,9 +50,9 @@ module.exports = {
       invalidate(guild.id);
       if (!added) return respond.send(interaction, { embeds: [eb.info(`${role} مضافة مسبقاً كرتبة إدارية ✅`)] });
       await logModeration({ guildId: guild.id, action: 'admin_role_add', targetId: role.id, moderatorId: interaction.user.id, details: { roleName: role.name } });
-      return respond.send(interaction, {
+      return respond.send(interaction, withStorageNotice({
         embeds: [eb.success(`تمت إضافة ${role} كرتبة إدارية 🛡️\nأي عضو يملكها يقدر الحين يستخدم أوامر الإشراف (كتم، تحذير، طرد، مسح، التكتات...).`, '🛡️ رتبة إدارية جديدة')]
-      });
+      }));
     }
 
     const removed = await store.adminConfig.remove(guild.id, 'role', role.id);

@@ -99,4 +99,17 @@ async function guardManager(interaction) {
   return allowed;
 }
 
-module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, loadGuild, denyPayload };
+// تنبيه للإدارة لو بيانات البوت محفوظة بقاعدة مؤقتة (SQLite على Render بدون قرص دائم):
+// كل ما يُحفظ (رتب الدعم، الأدمن، التحذيرات) بينمسح مع أول تحديث/إعادة تشغيل.
+function withStorageNotice(payload) {
+  const botDb = require('../database/botDb');
+  if (!(process.env.RENDER && botDb.dialect() === 'sqlite')) return payload;
+  const notice = eb.warning(
+    'البوت يحفظ الإعدادات بذاكرة **مؤقتة** — بتنمسح مع أول تحديث أو إعادة تشغيل.\n' +
+      'للحفظ الدائم: Render → New → **PostgreSQL** ثم انسخ **Internal Database URL** وحطه بمتغير `DATABASE_URL` بخدمة البوت.',
+    '⚠️ الحفظ غير دائم'
+  );
+  return { ...payload, embeds: [...(payload.embeds || []), notice] };
+}
+
+module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, loadGuild, denyPayload, withStorageNotice };

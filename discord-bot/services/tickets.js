@@ -10,6 +10,11 @@
 //   رسالة ترحيب بزر "إغلاق التكت"                    customId: tk:close:<ticketId>
 //   الإغلاق يطلب تأكيد                                 customId: tk:cfy|tk:cfn:<ticketId>
 //   التأكيد ← status=closed ← أرشفة (تصنيف "مغلق" بدون كتابة) أو حذف بعد مهلة
+//
+// مقاومة فقد البيانات (قاعدة مؤقتة انمسحت مع تحديث/إعادة تشغيل):
+//   • اللوحة ما تعتمد على سجلها: قناة اللوحة = القناة اللي انضغط فيها الزر.
+//   • أزرار الإغلاق تعتمد على القناة نفسها؛ لو سجل التكت مفقود يُسترجع من
+//     موضوع القناة (topic فيه صاحب التكت وسببه) — فكل الأزرار تشتغل دائماً.
 
 const {
   ActionRowBuilder,
@@ -75,19 +80,66 @@ async function fetchChannel(guild, id) {
   return guild.channels.cache.get(id) || (await guild.channels.fetch(id).catch(() => null));
 }
 
+// ---------------- استرجاع التكتات من قنواتها ----------------
+// موضوع روم التكت: "تكت #12 — user (123456789012345678) — السبب"
+const TOPIC_RE = /^تكت #\d+ — .* \((\d{17,20})\) — (.+)$/;
+
+function parseTopic(channel) {
+  const m = TOPIC_RE.exec(String((channel && channel.topic) || ''));
+  if (!m) return null;
+  const label = m[2].trim();
+  const reason = reasons.find((r) => r.label === label);
+  return { discordId: m[1], reason: reason ? reason.value : 'other' };
+}
+
+// مؤرشف = داخل تصنيف "تكتات مغلقة"
+function isArchived(channel) {
+  const parent = channel.parentId && channel.guild.channels.cache.get(channel.parentId);
+  return !!parent && parent.name === loadConfig().ticketArchiveCategoryName;
+}
+
+// روم تكت مفتوح بدون سجل (انمسحت القاعدة) ← سجل جديد مربوط بالقناة
+async function adoptFromChannel(channel) {
+  const info = parseTopic(channel);
+  if (!info || isArchived(channel)) return null;
+  const id = await store.tickets.adopt({ guildId: channel.guild.id, channelId: channel.id, discordId: info.discordId, reason: info.reason });
+  logger.info('تم استرجاع تكت من قناته بعد فقد سجله', { channelId: channel.id, ticketId: id });
+  return store.tickets.get(id);
+}
+
+// التكت الخاص بالقناة اللي انضغط فيها الزر (من القاعدة، أو مسترجع من القناة)
+async function ticketForChannel(interaction) {
+  const known = await store.tickets.getByChannel(interaction.guildId, interaction.channelId);
+  if (known) return known;
+  const channel = interaction.channel || (await fetchChannel(interaction.guild, interaction.channelId));
+  return channel ? adoptFromChannel(channel) : null;
+}
+
 // تكت مفتوح موجود فعلاً؟ (ويصحّح الحالات العالقة: قناته انحذفت يدوياً، أو حجز انقطع)
 async function resolveExistingOpen(guild, userId, originChannelId) {
   const existing = await store.tickets.findOpen(guild.id, userId, originChannelId);
-  if (!existing) return null;
-  if (existing.channel_id) {
-    const ch = await fetchChannel(guild, existing.channel_id);
-    if (ch) return { ticket: existing, channel: ch };
-    await store.tickets.close(existing.id, 'system', 'missing-channel');
-    logger.info('تكت مفتوح قناته محذوفة — أُغلق تلقائياً', { ticketId: existing.id });
-    return null;
+  if (existing) {
+    if (existing.channel_id) {
+      const ch = await fetchChannel(guild, existing.channel_id);
+      if (ch) return { ticket: existing, channel: ch };
+      await store.tickets.close(existing.id, 'system', 'missing-channel');
+      logger.info('تكت مفتوح قناته محذوفة — أُغلق تلقائياً', { ticketId: existing.id });
+    } else if (Date.now() - existing.created_at < RESERVE_STALE_MS) {
+      return { ticket: existing, channel: null, inProgress: true };
+    } else {
+      await store.tickets.discard(existing.id);
+    }
   }
-  if (Date.now() - existing.created_at < RESERVE_STALE_MS) return { ticket: existing, channel: null, inProgress: true };
-  await store.tickets.discard(existing.id);
+  // احتياط: روم تكت مفتوح لنفس العضو ما له سجل (القاعدة انمسحت) — يمنع التكرار
+  for (const ch of guild.channels.cache.values()) {
+    if (ch.type !== ChannelType.GuildText) continue;
+    const info = parseTopic(ch);
+    if (!info || info.discordId !== userId || isArchived(ch)) continue;
+    const known = await store.tickets.getByChannel(guild.id, ch.id);
+    if (known && known.status !== 'open') continue;
+    const ticket = known || (await adoptFromChannel(ch));
+    if (ticket) return { ticket, channel: ch };
+  }
   return null;
 }
 
@@ -120,11 +172,8 @@ function panelMessage(panelId, content) {
 // ---------------- 1) الضغط على "افتح التكت" ----------------
 async function onOpen(interaction, panelId) {
   if (!(await respond.defer(interaction, { ephemeral: true }))) return;
-  const panel = await store.tickets.getPanel(panelId);
-  if (!panel || panel.guild_id !== interaction.guildId) {
-    return respond.send(interaction, { embeds: [eb.warning('لوحة الدعم هذي لم تعد صالحة — اطلب من الإدارة إنشاء لوحة جديدة.')] });
-  }
-  const found = await resolveExistingOpen(interaction.guild, interaction.user.id, panel.channel_id);
+  // قناة اللوحة = القناة اللي فيها الزر — ما نحتاج سجل اللوحة (يشتغل حتى لو انمسحت القاعدة)
+  const found = await resolveExistingOpen(interaction.guild, interaction.user.id, interaction.channelId);
   if (found) return respond.send(interaction, existingPayload(found));
 
   const menu = new StringSelectMenuBuilder()
@@ -153,27 +202,27 @@ async function onReason(interaction, panelId) {
   const reason = reasonByValue(interaction.values && interaction.values[0]);
   if (!reason) return respond.send(interaction, { embeds: [eb.warning('سبب غير معروف — افتح التكت من جديد.')], components: [] });
 
-  const panel = await store.tickets.getPanel(panelId);
-  if (!panel || panel.guild_id !== guild.id) {
-    return respond.send(interaction, { embeds: [eb.warning('لوحة الدعم هذي لم تعد صالحة.')], components: [] });
-  }
+  const originChannelId = interaction.channelId; // قناة اللوحة (القائمة ظهرت فيها)
+  // سجل اللوحة اختياري: نربطه لو موجود وتابع لنفس القناة (بعد مسح القاعدة ممكن تتكرر الأرقام)
+  const panel = await store.tickets.getPanel(panelId).catch(() => null);
+  const validPanelId = panel && panel.guild_id === guild.id && panel.channel_id === originChannelId ? panelId : null;
 
   const missing = missingBotPermissions(guild, TICKET_BOT_PERMS);
   if (missing.length) return respond.send(interaction, botPermissionsPayload(missing, 'السيرفر'));
 
-  const found = await resolveExistingOpen(guild, interaction.user.id, panel.channel_id);
+  const found = await resolveExistingOpen(guild, interaction.user.id, originChannelId);
   if (found) return respond.send(interaction, existingPayload(found));
 
   const ticketId = await store.tickets.reserve({
     guildId: guild.id,
-    panelId,
-    originChannelId: panel.channel_id,
+    panelId: validPanelId,
+    originChannelId,
     discordId: interaction.user.id,
     reason: reason.value
   });
   if (!ticketId) {
     // سباق نادر: ضغطتان بنفس اللحظة — الفهرس الفريد منع التكرار
-    const again = await resolveExistingOpen(guild, interaction.user.id, panel.channel_id);
+    const again = await resolveExistingOpen(guild, interaction.user.id, originChannelId);
     return respond.send(interaction, again ? existingPayload(again) : { embeds: [eb.warning('جرّب مرة ثانية بعد ثواني.')], components: [] });
   }
 
@@ -201,7 +250,7 @@ async function onReason(interaction, panelId) {
     if (cat && cat.type === ChannelType.GuildCategory) parent = cat.id;
   }
   if (!parent) {
-    const origin = await fetchChannel(guild, panel.channel_id);
+    const origin = await fetchChannel(guild, originChannelId);
     if (origin && origin.parentId) parent = origin.parentId;
   }
 
@@ -259,12 +308,13 @@ async function onReason(interaction, panelId) {
 }
 
 // ---------------- 3) زر "إغلاق التكت" → تأكيد ----------------
-async function onClose(interaction, ticketId) {
+async function onClose(interaction) {
   if (!(await respond.defer(interaction, { ephemeral: true }))) return;
-  const ticket = await store.tickets.get(ticketId);
-  if (!ticket || ticket.guild_id !== interaction.guildId) {
-    return respond.send(interaction, { embeds: [eb.warning('التكت غير موجود.')] });
+  const ticket = await ticketForChannel(interaction);
+  if (!ticket) {
+    return respond.send(interaction, { embeds: [eb.warning('ما قدرت أتعرف على هذا التكت — الإدارة تقدر تحذف الروم يدوياً.')] });
   }
+  const ticketId = ticket.id;
   if (ticket.status !== 'open') return respond.send(interaction, { embeds: [eb.info('هذا التكت مغلق مسبقاً 🔒')] });
   if (!(await canManageTicket(interaction, ticket))) {
     return respond.send(interaction, { embeds: [eb.error('الإغلاق مسموح لصاحب التكت أو فريق الدعم أو الإدارة فقط.', '⛔ غير مصرّح')] });
@@ -334,12 +384,13 @@ function scheduleDeletion(channel, ticketId, delayMs) {
 }
 
 // ---------------- 4) تأكيد/إلغاء الإغلاق ----------------
-async function onCloseConfirm(interaction, ticketId, confirmed) {
+async function onCloseConfirm(interaction, confirmed) {
   if (!(await respond.deferUpdate(interaction))) return;
   if (!confirmed) return respond.send(interaction, { embeds: [eb.info('تم إلغاء الإغلاق — التكت باقي مفتوح ✅')], components: [] });
 
-  const ticket = await store.tickets.get(ticketId);
-  if (!ticket || ticket.guild_id !== interaction.guildId) return respond.send(interaction, { embeds: [eb.warning('التكت غير موجود.')], components: [] });
+  const ticket = await ticketForChannel(interaction);
+  if (!ticket) return respond.send(interaction, { embeds: [eb.warning('ما قدرت أتعرف على هذا التكت.')], components: [] });
+  const ticketId = ticket.id;
   if (!(await canManageTicket(interaction, ticket))) {
     return respond.send(interaction, { embeds: [eb.error('غير مصرّح لك بإغلاق هذا التكت.', '⛔ غير مصرّح')], components: [] });
   }
@@ -400,9 +451,10 @@ async function handleComponent(interaction, args) {
   if (!Number.isSafeInteger(id) || id <= 0) return;
   if (action === 'open') return onOpen(interaction, id);
   if (action === 'reason') return onReason(interaction, id);
-  if (action === 'close') return onClose(interaction, id);
-  if (action === 'cfy') return onCloseConfirm(interaction, id, true);
-  if (action === 'cfn') return onCloseConfirm(interaction, id, false);
+  // أزرار الإغلاق: التكت يتحدد من القناة نفسها (الرقم بالزر للعرض فقط)
+  if (action === 'close') return onClose(interaction);
+  if (action === 'cfy') return onCloseConfirm(interaction, true);
+  if (action === 'cfn') return onCloseConfirm(interaction, false);
   return undefined;
 }
 
@@ -413,5 +465,5 @@ module.exports = {
   handleComponent,
   sweepPendingDeletions,
   getSupportRoleIds,
-  _internal: { channelNameFor, resolveExistingOpen, archiveChannel }
+  _internal: { channelNameFor, resolveExistingOpen, archiveChannel, parseTopic, ticketForChannel }
 };

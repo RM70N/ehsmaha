@@ -215,6 +215,7 @@ module.exports = {
   get,
   close,
   isReady: () => !!driver,
+  dialect: () => (driver ? driver.dialect : null),
   query: (sql, params) => get().query(sql, params),
   run: (sql, params) => get().run(sql, params),
   DbUnavailableError,

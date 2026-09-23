@@ -8,7 +8,7 @@ const { SlashCommandBuilder, InteractionContextType, PermissionFlagsBits } = req
 const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const store = require('../../database/botStore');
-const { guardManager, invalidate } = require('../../utils/adminPermissions');
+const { guardManager, invalidate, withStorageNotice } = require('../../utils/adminPermissions');
 const { logModeration } = require('../../utils/moderation');
 
 const ADD = 'اضافة_ادمن';
@@ -43,7 +43,7 @@ module.exports = {
       invalidate(guild.id);
       if (!added) return respond.send(interaction, { embeds: [eb.info(`${user} مضاف مسبقاً كأدمن ✅`)] });
       await logModeration({ guildId: guild.id, action: 'admin_user_add', targetId: user.id, moderatorId: interaction.user.id });
-      return respond.send(interaction, { embeds: [eb.success(`تمت إضافة ${user} كأدمن بالبوت 🛡️\nيقدر الحين يستخدم أوامر الإشراف.`, '🛡️ أدمن جديد')] });
+      return respond.send(interaction, withStorageNotice({ embeds: [eb.success(`تمت إضافة ${user} كأدمن بالبوت 🛡️\nيقدر الحين يستخدم أوامر الإشراف.`, '🛡️ أدمن جديد')] }));
     }
 
     const removed = await store.adminConfig.remove(guild.id, 'user', user.id);

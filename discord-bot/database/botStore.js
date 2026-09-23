@@ -115,6 +115,20 @@ const tickets = {
     const rows = await db.query('SELECT * FROM tickets WHERE id = ?', [ticketId]);
     return mapTicket(rows[0]);
   },
+  // آخر سجل تكت لقناة معيّنة — أزرار التكت تعتمد على القناة نفسها (مو الرقم
+  // المكتوب بالزر) عشان تبقى صحيحة حتى لو انمسحت القاعدة وتكررت الأرقام.
+  async getByChannel(guildId, channelId) {
+    const rows = await db.query('SELECT * FROM tickets WHERE guild_id = ? AND channel_id = ? ORDER BY id DESC LIMIT 1', [guildId, channelId]);
+    return mapTicket(rows[0]);
+  },
+  // استرجاع تكت مفتوح من قناته (بعد فقد سجله) — origin = القناة نفسها فما يتعارض مع الفهرس الفريد
+  async adopt({ guildId, channelId, discordId, reason }) {
+    const r = await db.run(
+      "INSERT INTO tickets (guild_id, panel_id, origin_channel_id, discord_id, channel_id, reason, status, created_at) VALUES (?, NULL, ?, ?, ?, ?, 'open', ?) RETURNING id",
+      [guildId, channelId, discordId, channelId, reason, now()]
+    );
+    return toNum(r.rows[0].id);
+  },
   // إغلاق ذرّي: ينجح مرة وحدة فقط حتى لو ضغط شخصان "تأكيد" سوا
   async close(ticketId, closedBy, closeMode) {
     const r = await db.run(
