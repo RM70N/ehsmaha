@@ -1,0 +1,50 @@
+# فحص بوت احسمها تلقائياً مع كل تعديل على مجلد discord-bot:
+# فحص الأوامر + كل الاختبارات (بما فيها تكامل الـAPI مع Firebase Emulator).
+name: Discord Bot CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "discord-bot/**"
+      - "index.html"
+      - ".github/workflows/discord-bot-ci.yml"
+  pull_request:
+    paths:
+      - "discord-bot/**"
+      - "index.html"
+      - ".github/workflows/discord-bot-ci.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: discord-bot
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: discord-bot/package-lock.json
+
+      # محاكي Firestore يحتاج Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+
+      - name: فحص تعريفات الأوامر
+        run: npm run check
+
+      - name: الاختبارات (وحدات + البوت + تكامل مع Firestore Emulator)
+        run: npx -y firebase-tools@14 emulators:exec --only firestore --project demo-ehsmaha "npm test"

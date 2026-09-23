@@ -1,0 +1,52 @@
+# Render Blueprint لخدمتي احسمها-ديسكورد.
+# الاستخدام: Render Dashboard → New → Blueprint → اختر المستودع،
+# وبخانة "Blueprint Path" اكتب: discord-bot/render.yaml
+# القيم السرية (sync: false) يطلبها Render منك وقت الإنشاء.
+
+services:
+  # طبقة الـAPI — لازم تكون Web Service (البوت يكلمها بـHTTPS + x-api-key)
+  - type: web
+    name: ehsmaha-discord-api
+    runtime: node
+    rootDir: discord-bot
+    buildCommand: npm ci --omit=dev
+    startCommand: npm run start:api
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_KEY
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT
+        sync: false
+      - key: FIREBASE_DATABASE_URL
+        value: https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app
+      - key: SITE_URL
+        value: https://ehsmaha.com
+
+  # البوت — Background Worker (اتصال دائم بـDiscord، ما يحتاج منفذ).
+  # على الخطة المجانية (ما فيها Workers): غيّر type إلى web وأضف
+  # healthCheckPath: /health — البوت يفتح منفذ PORT تلقائياً لما يكون موجود.
+  - type: worker
+    name: ehsmaha-discord-bot
+    runtime: node
+    rootDir: discord-bot
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: CLIENT_ID
+        value: "1552260327008247879"
+      - key: API_KEY
+        sync: false
+      - key: API_BASE_URL
+        value: https://ehsmaha-discord-api.onrender.com
+      - key: ADMIN_IDS
+        sync: false
+      - key: SITE_URL
+        value: https://ehsmaha.com
