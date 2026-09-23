@@ -48,7 +48,11 @@ function buildApiConfig() {
     apiKey: process.env.API_KEY,
     siteUrl,
     profileUrl: siteUrl + '/profile',
-    firebaseDatabaseUrl: process.env.FIREBASE_DATABASE_URL || '',
+    // Realtime Database (نفس رابط الموقع) — مخزن النسخة الاحتياطية للبوت وقت انتهاء حصة Firestore
+    // (غير معرّف = رابط الموقع؛ قيمة فاضية = تعطيل)
+    firebaseDatabaseUrl: process.env.FIREBASE_DATABASE_URL === undefined
+      ? 'https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app'
+      : String(process.env.FIREBASE_DATABASE_URL).trim(),
     ...numbers
   });
 }
