@@ -61,18 +61,36 @@ app.use((req, res, next) => {
   next();
 });
 
-// فحص الصحة (Render Health Check) — يتأكد إن Firestore يستجيب فعلاً
-app.get('/health', async (req, res) => {
-  try {
-    await Promise.race([
-      firestore.db().collection(C.DISCORD_API_STATS).limit(1).get(),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('firestore timeout')), 4000))
-    ]);
-    res.json({ ok: true, data: { status: 'ok', uptime: Math.floor(process.uptime()) } });
-  } catch (err) {
-    logger.warn('health check: Firestore لا يستجيب', { error: err });
-    res.status(503).json({ ok: false, error: { code: 'UNAVAILABLE', message: 'قاعدة البيانات لا تستجيب' } });
-  }
+// فحص الصحة (Render Health Check) — Render يطلبه كل ثواني، فما يقرأ Firestore
+// مع كل طلب (كان يستهلك آلاف القراءات باليوم من حصة الموقع). فحص Firestore
+// الفعلي مرة كل 10 دقائق بالكثير، ونتيجته تنعرض بالرد فقط: مشكلة بـFirestore
+// (مثل تجاوز الحصة اليومية) ما توقف الخدمة ولا تفشّل نشر التحديثات.
+const FIRESTORE_PROBE_MS = 10 * 60 * 1000;
+const probe = { at: 0, ok: null, code: null, running: null };
+function probeFirestore() {
+  if (probe.running || Date.now() - probe.at < FIRESTORE_PROBE_MS) return;
+  probe.running = Promise.race([
+    firestore.db().collection(C.DISCORD_API_STATS).limit(1).get(),
+    new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('firestore timeout'), { code: 'TIMEOUT' })), 4000))
+  ])
+    .then(() => {
+      probe.ok = true;
+      probe.code = null;
+    })
+    .catch((err) => {
+      probe.ok = false;
+      probe.code = err.code === 8 ? 'QUOTA_EXCEEDED' : String(err.code || err.message).slice(0, 40);
+      logger.warn('health check: Firestore لا يستجيب', { code: probe.code });
+    })
+    .finally(() => {
+      probe.at = Date.now();
+      probe.running = null;
+    });
+}
+
+app.get('/health', (req, res) => {
+  probeFirestore();
+  res.json({ ok: true, data: { status: 'ok', uptime: Math.floor(process.uptime()), firestore: probe.ok === null ? 'checking' : probe.ok ? 'ok' : probe.code } });
 });
 
 app.use('/api/discord', apiStats.middleware, createDiscordRouter(config));
@@ -97,6 +115,7 @@ async function shutdown(signal) {
   logger.info(`استلام ${signal} — إيقاف الـAPI بهدوء`);
   setTimeout(() => process.exit(0), 8000).unref();
   stopJobs();
+  require('./services/activeStreams').stopListener();
   server.close();
   await apiStats.stop().catch(() => {});
   process.exit(0);

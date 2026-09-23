@@ -14,7 +14,8 @@ const C = require('../../database/collections');
 const memo = require('./memo');
 const { levelsKey } = require('./levels');
 
-const TTL_MS = 2 * 60 * 1000;
+// كل قراءة = مستند لكل ستريمر؛ 10 دقائق توفّر حصة Firestore (الفوزات ما تتغير بالثانية)
+const TTL_MS = 10 * 60 * 1000;
 const GLOBAL_BUCKET = '__global__'; // فوزات انسجلت بدون ستريمر محدد (بالموقع نفسه)
 const num = (v) => Math.max(0, Number(v) || 0);
 

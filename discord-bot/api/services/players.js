@@ -27,7 +27,7 @@ const { earnedAchievements } = require('./achievements');
 
 const RANKED_TOTAL_TTL_MS = 5 * 60 * 1000;
 const AVATAR_CHECK_TTL_MS = 30 * 60 * 1000;
-const SEARCH_TTL_MS = 60 * 1000;
+const SEARCH_TTL_MS = 5 * 60 * 1000;
 const MAX_USERNAME_LENGTH = 64;
 
 const db = () => firestore.db();
