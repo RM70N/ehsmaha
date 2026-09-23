@@ -234,7 +234,7 @@ function makeGuild({ botPerms } = {}) {
   return guild;
 }
 
-function makeInteraction({ guild, member, kind = 'command', commandName, customId, options = {}, values }) {
+function makeInteraction({ guild, member, kind = 'command', commandName, customId, options = {}, values, channelId }) {
   const log = [];
   const i = {
     id: nextId(),
@@ -246,7 +246,10 @@ function makeInteraction({ guild, member, kind = 'command', commandName, customI
     member,
     guild,
     guildId: guild.id,
-    channelId: options.__channelId || nextId(),
+    channelId: options.__channelId || channelId || nextId(),
+    get channel() {
+      return guild.channels.cache.get(this.channelId) || null;
+    },
     deferred: false,
     replied: false,
     memberPermissions: member.permissions,

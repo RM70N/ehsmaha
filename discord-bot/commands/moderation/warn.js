@@ -15,7 +15,7 @@ const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
-const { guardAdmin } = require('../../utils/adminPermissions');
+const { guardAdmin, withStorageNotice } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
 const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
 const { ensureWarningRoles } = require('../../utils/warningRoles');
@@ -121,7 +121,7 @@ module.exports = {
     if (ensured.created.length) notes.push(`أُنشئت تلقائياً رتب: ${ensured.created.join('، ')}.`);
     if (!dmOk) notes.push('تعذر إرسال إشعار خاص للعضو.');
     if (notes.length) embed.addFields(eb.field('ℹ️ ملاحظات', notes.join('\n'), false));
-    return respond.send(interaction, { embeds: [embed] });
+    return respond.send(interaction, withStorageNotice({ embeds: [embed] }));
   },
 
   _internal: { switchWarningRole, LEVELS }

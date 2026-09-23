@@ -10,7 +10,7 @@ const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const store = require('../../database/botStore');
 const tickets = require('../../services/tickets');
-const { guardAdmin } = require('../../utils/adminPermissions');
+const { guardAdmin, withStorageNotice } = require('../../utils/adminPermissions');
 const { logModeration } = require('../../utils/moderation');
 
 const OPTION_NAMES = ['رتبة1', 'رتبة2', 'رتبة3', 'رتبة4', 'رتبة5'];
@@ -62,9 +62,9 @@ module.exports = {
     const ids = [...new Set(picked.map((r) => r.id))];
     await store.guildConfig.set(guild.id, tickets.SUPPORT_ROLES_KEY, ids, interaction.user.id);
     await logModeration({ guildId: guild.id, action: 'support_roles_set', moderatorId: interaction.user.id, details: { roles: ids } });
-    return respond.send(interaction, {
+    return respond.send(interaction, withStorageNotice({
       embeds: [eb.success(`رتب الدعم الحين: ${rolesText(ids)}\nبتنطبق تلقائياً على كل تكت جديد (تشوفه وترد فيه).`, '🎫 تم حفظ رتب الدعم')],
       allowedMentions: { parse: [] }
-    });
+    }));
   }
 };
