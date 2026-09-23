@@ -104,3 +104,20 @@ test('customId: بناء وتحليل وحد الطول', () => {
   assert.deepEqual(customId.parse(id), { prefix: 'lb', args: ['page', 'weekly', '2', '123456789012345678'] });
   assert.throws(() => customId.build('x', 'y'.repeat(120)));
 });
+
+test('الـAPI: تجاوز حصة Firestore يرجع 503 QUOTA_EXCEEDED برسالة واضحة، والبوت ما يعيد المحاولة', () => {
+  const { createErrorHandler } = require('../api/middleware/errorHandler');
+  const logs = [];
+  const handler = createErrorHandler({ warn: (...a) => logs.push(['warn', ...a]), error: (...a) => logs.push(['error', ...a]) });
+  const res = { headersSent: false, statusCode: 0, body: null, status(c) { this.statusCode = c; return this; }, json(b) { this.body = b; return this; } };
+  const err = Object.assign(new Error('8 RESOURCE_EXHAUSTED: Quota exceeded.'), { code: 8 });
+  handler(err, { path: '/api/discord/active-streams', method: 'GET' }, res, () => {});
+  assert.equal(res.statusCode, 503);
+  assert.equal(res.body.error.code, 'QUOTA_EXCEEDED');
+  handler(err, { path: '/x', method: 'GET' }, { ...res, status(c) { this.statusCode = c; return this; } }, () => {});
+  assert.equal(logs.filter(([l]) => l === 'warn').length, 1, 'سطر سجل واحد بدل stack كل مرة');
+  assert.equal(logs.filter(([l]) => l === 'error').length, 0);
+  const { friendlyMessage } = require('../utils/errors');
+  const { ApiError } = require('../utils/apiClient');
+  if (friendlyMessage) assert.match(friendlyMessage(new ApiError('QUOTA_EXCEEDED', 'x', { status: 503 })), /حدها اليومي/);
+});

@@ -9,6 +9,8 @@ function notFoundHandler(req, res) {
   res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'المسار غير موجود' } });
 }
 
+const quotaLog = { at: 0 };
+
 function createErrorHandler(logger) {
   // eslint-disable-next-line no-unused-vars
   return (err, req, res, next) => {
@@ -32,6 +34,16 @@ function createErrorHandler(logger) {
         ok: false,
         error: { code: err.code, message: err.message, ...(err.details ? { details: err.details } : {}) }
       });
+    }
+
+    // حصة Firestore اليومية خلصت (gRPC 8): 503 بكود واضح وسطر واحد بالسجل (مو stack كامل كل دقيقة)
+    if (err && (err.code === 8 || /RESOURCE_EXHAUSTED/.test(String(err.message || '')))) {
+      const now = Date.now();
+      if (now - quotaLog.at > 5 * 60 * 1000) {
+        quotaLog.at = now;
+        logger.warn('Firestore: الحصة اليومية خلصت — الطلبات بترجع QUOTA_EXCEEDED لين تتجدد', { path: req.path });
+      }
+      return res.status(503).json({ ok: false, error: { code: 'QUOTA_EXCEEDED', message: 'بيانات الموقع وصلت حدها اليومي' } });
     }
 
     logger.error('خطأ داخلي بالـAPI', { method: req.method, path: req.path, error: err });
