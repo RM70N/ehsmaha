@@ -47,7 +47,10 @@ function client() {
     },
     // نتعامل مع كل الأكواد بأنفسنا بدل ما يرمي axios على أي 4xx/5xx
     validateStatus: () => true,
-    maxRedirects: 0
+    maxRedirects: 0,
+    // النسخة الاحتياطية لقاعدة البوت (base64) ممكن توصل ميقابايتات
+    maxBodyLength: 16 * 1024 * 1024,
+    maxContentLength: 16 * 1024 * 1024
   });
   return http;
 }
@@ -132,5 +135,8 @@ module.exports = {
   // المزامنة الدورية لـ/بث — بدون إعادة محاولة (المحاولة الجاية بعد 30 ثانية أصلاً)
   getActiveStreams: () => request('get', '/api/discord/active-streams', { retries: 0 }),
   getAdminStats: () => request('get', '/api/discord/admin/stats'),
+  // النسخة الاحتياطية لقاعدة بيانات البوت — مهلة طويلة (الـAPI المجاني ممكن يكون نايم ~50 ثانية)
+  claimBotState: (bootAt) => request('post', '/api/discord/bot-state/claim', { data: { bootAt }, timeout: 75_000, retries: 1 }),
+  saveBotState: (payload) => request('put', '/api/discord/bot-state', { data: payload, timeout: 75_000, retries: 1 }),
   health: () => request('get', '/health')
 };

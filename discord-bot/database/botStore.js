@@ -193,10 +193,115 @@ const moderationLog = {
       [guildId, action, targetId, moderatorId, channelId, reason, details == null ? null : JSON.stringify(details), now()]
     );
   },
+  // حذف السجلات الأقدم من (days) يوم — يمنع تضخّم القاعدة (والنسخة الاحتياطية)
+  async prune(days) {
+    const r = await db.run('DELETE FROM moderation_log WHERE created_at < ?', [now() - days * 24 * 60 * 60 * 1000]);
+    return r.changes;
+  },
+  // آخر إجراءات على عضو معيّن (يدوي + تلقائي)
+  async forTarget(guildId, targetId, limit = 10) {
+    const rows = await db.query('SELECT * FROM moderation_log WHERE guild_id = ? AND target_id = ? ORDER BY created_at DESC, id DESC LIMIT ?', [guildId, targetId, limit]);
+    return rows.map((r) => ({ ...r, id: toNum(r.id), created_at: toNum(r.created_at) }));
+  },
   async recent(guildId, limit = 20) {
     const rows = await db.query('SELECT * FROM moderation_log WHERE guild_id = ? ORDER BY created_at DESC, id DESC LIMIT ?', [guildId, limit]);
     return rows.map((r) => ({ ...r, id: toNum(r.id), created_at: toNum(r.created_at) }));
   }
 };
 
-module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog };
+// ---------------- إعدادات السيرفر (الترحيب + تفعيل الحماية) ----------------
+const SETTINGS_DEFAULTS = Object.freeze({
+  welcome_channel_id: null,
+  welcome_message_channel_id: null,
+  welcome_message: null,
+  link_protection: true,
+  spam_protection: true
+});
+const SETTINGS_COLUMNS = Object.keys(SETTINGS_DEFAULTS);
+
+function mapSettings(r) {
+  if (!r) return { ...SETTINGS_DEFAULTS };
+  return {
+    welcome_channel_id: r.welcome_channel_id || null,
+    welcome_message_channel_id: r.welcome_message_channel_id || null,
+    welcome_message: r.welcome_message || null,
+    link_protection: Number(r.link_protection) !== 0,
+    spam_protection: Number(r.spam_protection) !== 0
+  };
+}
+
+const guildSettings = {
+  DEFAULTS: SETTINGS_DEFAULTS,
+  async get(guildId) {
+    const rows = await db.query('SELECT * FROM guild_settings WHERE guild_id = ?', [guildId]);
+    return mapSettings(rows[0]);
+  },
+  // تحديث جزئي (upsert) — الأعمدة غير المذكورة تبقى كما هي
+  async update(guildId, patch, updatedBy = null) {
+    const cols = Object.keys(patch).filter((k) => SETTINGS_COLUMNS.includes(k));
+    if (!cols.length) return guildSettings.get(guildId);
+    const toDb = (k, v) => (k === 'link_protection' || k === 'spam_protection' ? (v ? 1 : 0) : v == null ? null : String(v));
+    const current = await guildSettings.get(guildId);
+    const merged = { ...current, ...Object.fromEntries(cols.map((k) => [k, patch[k]])) };
+    const all = SETTINGS_COLUMNS;
+    await db.run(
+      `INSERT INTO guild_settings (guild_id, ${all.join(', ')}, updated_by, updated_at) VALUES (?, ${all.map(() => '?').join(', ')}, ?, ?)
+       ON CONFLICT (guild_id) DO UPDATE SET ${cols.map((c) => `${c} = excluded.${c}`).join(', ')}, updated_by = excluded.updated_by, updated_at = excluded.updated_at`,
+      [guildId, ...all.map((k) => toDb(k, merged[k])), updatedBy, now()]
+    );
+    return guildSettings.get(guildId);
+  }
+};
+
+// ---------------- الحماية التلقائية: المخالفات والاستثناءات ----------------
+const VIOLATION_TYPES = Object.freeze(['link', 'spam']);
+
+const autoMod = {
+  VIOLATION_TYPES,
+  // يزيد عدّاد نوع واحد فقط (ذرّياً) ويرجّع العدد الجديد
+  async increment(guildId, discordId, type) {
+    if (!VIOLATION_TYPES.includes(type)) throw new Error(`نوع مخالفة غير معروف: ${type}`);
+    const r = await db.run(
+      `INSERT INTO auto_mod_violations (guild_id, discord_id, violation_type, count, last_violation_at) VALUES (?, ?, ?, 1, ?)
+       ON CONFLICT (guild_id, discord_id, violation_type) DO UPDATE SET count = auto_mod_violations.count + 1, last_violation_at = excluded.last_violation_at
+       RETURNING count`,
+      [guildId, discordId, type, now()]
+    );
+    return toNum(r.rows[0].count);
+  },
+  async get(guildId, discordId) {
+    const rows = await db.query('SELECT violation_type, count, last_violation_at FROM auto_mod_violations WHERE guild_id = ? AND discord_id = ?', [guildId, discordId]);
+    const out = { link: { count: 0, last: null }, spam: { count: 0, last: null } };
+    for (const r of rows) out[r.violation_type] = { count: toNum(r.count), last: toNum(r.last_violation_at) };
+    return out;
+  },
+  // type: link | spam | all — يرجّع عدد السجلات المصفّرة
+  async reset(guildId, discordId, type = 'all') {
+    const r = type === 'all'
+      ? await db.run('DELETE FROM auto_mod_violations WHERE guild_id = ? AND discord_id = ?', [guildId, discordId])
+      : await db.run('DELETE FROM auto_mod_violations WHERE guild_id = ? AND discord_id = ? AND violation_type = ?', [guildId, discordId, type]);
+    return r.changes;
+  },
+  async exemptions(guildId) {
+    const rows = await db.query('SELECT type, value FROM auto_mod_exemptions WHERE guild_id = ? ORDER BY added_at', [guildId]);
+    const out = { domains: [], roles: [], channels: [] };
+    for (const r of rows) out[{ domain: 'domains', role: 'roles', channel: 'channels' }[r.type]].push(r.value);
+    return out;
+  },
+  // false لو موجود مسبقاً
+  async addExemption(guildId, type, value, addedBy) {
+    try {
+      await db.run('INSERT INTO auto_mod_exemptions (guild_id, type, value, added_by, added_at) VALUES (?, ?, ?, ?, ?)', [guildId, type, value, addedBy, now()]);
+      return true;
+    } catch (err) {
+      if (err.isUniqueViolation) return false;
+      throw err;
+    }
+  },
+  async removeExemption(guildId, type, value) {
+    const r = await db.run('DELETE FROM auto_mod_exemptions WHERE guild_id = ? AND type = ? AND value = ?', [guildId, type, value]);
+    return r.changes > 0;
+  }
+};
+
+module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod };

@@ -67,7 +67,9 @@ module.exports = {
     liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
 
     // تكتات انقفلت بوضع "حذف" والبوت انطفى قبل ما تنحذف قناتها — نكمل الحذف
-    tickets.sweepPendingDeletions(client).catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
+      .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
     try {
       await api.health();

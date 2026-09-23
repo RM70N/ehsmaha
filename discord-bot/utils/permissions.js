@@ -24,7 +24,8 @@ const MODERATION_PERMS = [
   ['ManageChannels', PermissionFlagsBits.ManageChannels],
   ['ManageRoles', PermissionFlagsBits.ManageRoles],
   ['ModerateMembers', PermissionFlagsBits.ModerateMembers],
-  ['KickMembers', PermissionFlagsBits.KickMembers]
+  ['KickMembers', PermissionFlagsBits.KickMembers],
+  ['AttachFiles', PermissionFlagsBits.AttachFiles] // صورة الترحيب
 ];
 
 // أسماء عربية واضحة لكل صلاحية (مع اسمها الإنجليزي كما يظهر بإعدادات ديسكورد)
@@ -38,7 +39,8 @@ const PERM_NAMES_AR = {
   ManageChannels: 'إدارة القنوات (Manage Channels)',
   ManageRoles: 'إدارة الرتب (Manage Roles)',
   ModerateMembers: 'كتم الأعضاء مؤقتاً (Timeout Members)',
-  KickMembers: 'طرد الأعضاء (Kick Members)'
+  KickMembers: 'طرد الأعضاء (Kick Members)',
+  AttachFiles: 'إرفاق الملفات (Attach Files)'
 };
 
 /**

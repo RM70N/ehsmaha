@@ -30,10 +30,11 @@ function fakeServiceAccount() {
   });
 }
 
-async function call(method, url, { key = API_KEY } = {}) {
+async function call(method, url, { key = API_KEY, body } = {}) {
   const headers = {};
   if (key) headers['x-api-key'] = key;
-  const res = await fetch(BASE + url, { method, headers });
+  if (body !== undefined) headers['content-type'] = 'application/json';
+  const res = await fetch(BASE + url, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 
@@ -130,6 +131,41 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
     assert.equal(streams[0].platform, 'twitch');
     assert.equal(streams[0].platformUsername.toLowerCase(), 'liveone');
     assert.equal(streams[0].gameName, 'كلمات', 'الأحدث يغلب');
+  });
+
+  await t.test('bot-state: حفظ دائم مجزّأ، استرجاع، ورفض النسخة القديمة', async () => {
+    const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
+    assert.equal((await call('POST', '/api/discord/bot-state/claim', { key: 'wrong-key', body: { bootAt: 1 } })).status, 401);
+    let r = await call('POST', '/api/discord/bot-state/claim', { body: { bootAt: 1000 } });
+    assert.equal(r.status, 200, serverLog);
+    assert.equal(r.body.data.snapshot, null, 'ما فيه نسخة بعد');
+
+    const big = crypto.randomBytes(2 * 1024 * 1024 + 123); // يتقسم على 3 أجزاء
+    r = await call('PUT', '/api/discord/bot-state', { body: { bootAt: 1000, data: big.toString('base64'), sha256: sha(big) } });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(r.body.data.chunks, 3);
+    assert.equal((await call('PUT', '/api/discord/bot-state', { body: { bootAt: 1000, data: big.toString('base64'), sha256: 'bad' } })).status, 400);
+
+    // إقلاع جديد (تحديث) يستلم ويسترجع نفس البيانات بالضبط
+    r = await call('POST', '/api/discord/bot-state/claim', { body: { bootAt: 2000 } });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.data.snapshot.sha256, sha(big));
+    assert.ok(Buffer.from(r.body.data.snapshot.data, 'base64').equals(big));
+
+    // النسخة القديمة (bootAt 1000) ما تقدر تكتب فوق الأحدث
+    const small = Buffer.from('small db');
+    r = await call('PUT', '/api/discord/bot-state', { body: { bootAt: 1000, data: small.toString('base64'), sha256: sha(small) } });
+    assert.equal(r.status, 409);
+    assert.equal(r.body.error.code, 'STALE_INSTANCE');
+    assert.equal((await call('POST', '/api/discord/bot-state/claim', { body: { bootAt: 1500 } })).status, 409);
+
+    // الأحدث يكتب نسخة أصغر ← الأجزاء الزايدة تنحذف والاسترجاع سليم
+    r = await call('PUT', '/api/discord/bot-state', { body: { bootAt: 2000, data: small.toString('base64'), sha256: sha(small) } });
+    assert.equal(r.body.data.chunks, 1);
+    r = await call('POST', '/api/discord/bot-state/claim', { body: { bootAt: 3000 } });
+    assert.equal(Buffer.from(r.body.data.snapshot.data, 'base64').toString(), 'small db');
+    const leftovers = await db.collection('discordBotState').get();
+    assert.equal(leftovers.size, 2, 'meta + chunk_000 فقط');
   });
 
   await t.test('مفتاح API خاطئ → 401', async () => {

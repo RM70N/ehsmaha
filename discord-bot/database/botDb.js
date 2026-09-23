@@ -39,7 +39,8 @@ function createSqlite(file) {
   const Database = require('better-sqlite3');
   if (file !== ':memory:') fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
   const db = new Database(file);
-  db.pragma('journal_mode = WAL');
+  // DELETE (مو WAL): الملف نفسه دائماً فيه آخر حالة — لازم للنسخ الاحتياطي (serialize)
+  db.pragma('journal_mode = DELETE');
   db.pragma('foreign_keys = ON');
   db.pragma('busy_timeout = 5000');
 
@@ -72,6 +73,10 @@ function createSqlite(file) {
         query: async (sql, params = []) => db.prepare(sql).all(...params),
         run: async (sql, params = []) => db.prepare(sql).run(...params)
       });
+    },
+    // نسخة كاملة من القاعدة كـBuffer (للنسخ الاحتياطي السحابي — services/stateBackup.js)
+    serialize() {
+      return db.serialize();
     },
     async close() {
       db.close();
@@ -181,6 +186,17 @@ async function migrate(driver) {
 // ---------------- الواجهة العامة ----------------
 let driver = null;
 let initError = null;
+// مستمعين لكل كتابة ناجحة (يستخدمها النسخ الاحتياطي لـSQLite)
+const writeListeners = new Set();
+function notifyWrite() {
+  for (const fn of writeListeners) {
+    try {
+      fn();
+    } catch (_) {
+      /* المستمع ما يوقف الكتابة */
+    }
+  }
+}
 
 async function init({ databaseUrl, sqlitePath } = {}) {
   if (driver) return driver;
@@ -217,7 +233,16 @@ module.exports = {
   isReady: () => !!driver,
   dialect: () => (driver ? driver.dialect : null),
   query: (sql, params) => get().query(sql, params),
-  run: (sql, params) => get().run(sql, params),
+  run: async (sql, params) => {
+    const r = await get().run(sql, params);
+    if (r && r.changes > 0) notifyWrite();
+    return r;
+  },
+  onWrite: (fn) => {
+    writeListeners.add(fn);
+    return () => writeListeners.delete(fn);
+  },
+  serialize: () => (driver && typeof driver.serialize === 'function' ? driver.serialize() : null),
   DbUnavailableError,
   _internal: { toPgParams, dialectSql, pgSslFor, createSqlite, createPostgres, migrate }
 };

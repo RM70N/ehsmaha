@@ -103,7 +103,8 @@ async function guardManager(interaction) {
 // كل ما يُحفظ (رتب الدعم، الأدمن، التحذيرات) بينمسح مع أول تحديث/إعادة تشغيل.
 function withStorageNotice(payload) {
   const botDb = require('../database/botDb');
-  if (!(process.env.RENDER && botDb.dialect() === 'sqlite')) return payload;
+  const backedUp = require('../services/stateBackup').isActive();
+  if (!(process.env.RENDER && botDb.dialect() === 'sqlite' && !backedUp)) return payload;
   const notice = eb.warning(
     'البوت يحفظ الإعدادات بذاكرة **مؤقتة** — بتنمسح مع أول تحديث أو إعادة تشغيل.\n' +
       'للحفظ الدائم: Render → New → **PostgreSQL** ثم انسخ **Internal Database URL** وحطه بمتغير `DATABASE_URL` بخدمة البوت.',
