@@ -68,7 +68,7 @@ test('المزامنة: تحذف اللي مو موجود بالموقع (بعد
   // جلسة جديدة جداً: تبقى لين تظهر ببيانات الموقع
   let r = live.reconcile([]);
   assert.equal(r.removed, 0);
-  t.mock.timers.tick(61_000);
+  t.mock.timers.tick(3 * 60_000 + 1000);
   r = live.reconcile([{ sessionId: 'p1', platform: 'twitch', platformUsername: 'abo', gameName: 'X', startedAt: Date.now() - 5000 }]);
   assert.deepEqual(r, { removed: 1, added: 1, total: 1 });
   assert.equal(live.list()[0].source, 'poll');

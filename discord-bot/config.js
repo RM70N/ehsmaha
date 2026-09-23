@@ -71,7 +71,7 @@ function buildConfig() {
       apiTimeoutMs: readInt('API_TIMEOUT_MS', 5000, { min: 1000, max: 30000 }),
       leaderboardCacheSeconds: readInt('LEADERBOARD_CACHE_SECONDS', 90, { min: 0, max: 600 }),
       healthPort: readInt('PORT', 0, { min: 0, max: 65535 }),
-      streamPollSeconds: readInt('STREAM_POLL_SECONDS', 30, { min: 10, max: 600 }),
+      streamPollSeconds: readInt('STREAM_POLL_SECONDS', 60, { min: 30, max: 600 }),
       streamMaxHours: readInt('STREAM_MAX_HOURS', 6, { min: 1, max: 48 }),
       ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 })
     };

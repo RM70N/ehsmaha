@@ -6,7 +6,7 @@
 //   1) Webhook لحظي من الموقع: POST /api/discord/stream-event (web/server.js)
 //      { platformUsername, platform, gameName, gameId, startedAt, sessionId }
 //      و { sessionId, ended: true } عند الخروج.
-//   2) مزامنة دورية احتياطية (كل STREAM_POLL_SECONDS، افتراضياً 30 ثانية):
+//   2) مزامنة دورية احتياطية (كل STREAM_POLL_SECONDS، افتراضياً 60 ثانية):
 //      GET /api/discord/active-streams من طبقة الـAPI (تقرأ بيانات الموقع الحقيقية).
 //      • جلسة محلية مو موجودة بنتيجة المزامنة → تنحذف (تصحيح تلقائي لأي تعارض)،
 //        بعد مهلة سماح قصيرة للجلسات الجديدة جداً (الويب هوك يسبق بيانات الموقع).
@@ -19,7 +19,7 @@
 const logger = require('../utils/logger');
 
 const PLATFORMS = Object.freeze(['tiktok', 'twitch', 'kick', 'youtube']);
-const NEW_SESSION_GRACE_MS = 60 * 1000;
+const NEW_SESSION_GRACE_MS = 3 * 60 * 1000;
 
 const sessions = new Map(); // sessionId -> session
 let maxAgeMs = 6 * 60 * 60 * 1000;

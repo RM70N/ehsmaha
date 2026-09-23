@@ -1,7 +1,7 @@
 'use strict';
 
 // /بث — الستريمرز اللي يبثون الآن على احسمها (من جلسات البث بذاكرة البوت:
-// webhook لحظي + مزامنة دورية كل 30 ثانية). 10 ستريمرز بالصفحة مع أزرار
+// webhook لحظي + مزامنة دورية كل دقيقة). 10 ستريمرز بالصفحة مع أزرار
 // السابق/التالي. أمر واحد كل 5 ثوانٍ لكل مستخدم.
 
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
