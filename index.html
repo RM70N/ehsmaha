@@ -13249,6 +13249,25 @@ function profileRenameToggle() {
   if (willShow) document.getElementById('profile-new-username').focus();
 }
 
+// رابط ehsmaha.com/profile (من بوت الديسكورد): Netlify يرجّع index.html لأي
+// مسار، فنقرأ المسار عند الإقلاع، ننظّفه من شريط العنوان، ونفتح البروفايل
+// بعد تسجيل الدخول (يصمد لو احتاج المستخدم يسجّل دخوله أولاً).
+function profileHandleIncomingPath() {
+  try {
+    if (!/^\/profile\/?$/i.test(location.pathname)) return;
+    localStorage.setItem('pendingOpenProfile', '1');
+    history.replaceState(null, '', '/' + location.search + location.hash);
+  } catch (e) { /* best-effort */ }
+}
+
+function profileOpenPendingIfAny() {
+  try {
+    if (localStorage.getItem('pendingOpenProfile') !== '1') return;
+    localStorage.removeItem('pendingOpenProfile');
+  } catch (e) { return; }
+  if (currentUser && currentUsername) Promise.resolve(profileOpen()).catch(() => {});
+}
+
 async function profileOpen() {
   if (!currentUser || !currentUsername) return;
   show('profile'); // صارت صفحة مستقلة بدل مودال — نفس نمط التنقّل بباقي الموقع
@@ -18795,6 +18814,8 @@ function authBoot() {
   // أي show()) وينظّفه — best-effort بالكامل، ما يوقف أو يبطئ باقي الإقلاع
   // لو تأخر أو فشل.
   framesHandleIncomingShareLink();
+  // رابط ehsmaha.com/profile (زر "فتح الموقع" ببوت الديسكورد) — نفس المبدأ
+  profileHandleIncomingPath();
   // Surface errors from a signInWithRedirect() round-trip (e.g. unauthorized
   // domain) instead of letting them fail silently on page reload.
   fb.getRedirectResult(fb.auth).catch((err) => {
@@ -18876,6 +18897,7 @@ function authBoot() {
 async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   if (currentUser) authSyncPendingUserIfAny(currentUser.uid); // best-effort، ما ننتظره
   if (currentUser) framesOpenPendingShareIfAny(); // رابط مشاركة إطار (?frame=ID) معلّق (لو فيه) — best-effort
+  if (currentUser) profileOpenPendingIfAny(); // رابط /profile معلّق (لو فيه) — best-effort
   publicBadgesBoot();
   publicGameOrderBoot();
   presenceStart();
@@ -21628,6 +21650,21 @@ async function f100SendOnlinePointsMultiplier(multiplier, durationMinutes, messa
 function onlineGrantWinPoints(uid) {
   const points = 50 * f100OnlinePointsMultiplierValue;
   fb.updateDoc(fb.doc(fb.db, 'users', uid), { onlineWinCount: fb.increment(1), onlinePoints: fb.increment(points) }).catch(() => {});
+  onlineRecordBestRoundPoints(uid, points);
+}
+
+// أعلى نقاط بجولة واحدة (users/{uid}.bestRoundPoints) — يعرضها أمر /احصائيات
+// ببوت الديسكورد. Firestore ما عنده "max" ذري، فمعاملة صغيرة تقرأ القيمة
+// الحالية وما تكتب إلا لو الجولة هذي أعلى. منفصلة تماماً عن منح النقاط فوق:
+// فشلها (قواعد/شبكة/حصة) ما يأثر على النقاط ولا الفوزات أبداً.
+function onlineRecordBestRoundPoints(uid, points) {
+  if (!fb || !uid || !(points > 0)) return;
+  const ref = fb.doc(fb.db, 'users', uid);
+  fb.runTransaction(fb.db, async (tx) => {
+    const snap = await tx.get(ref);
+    const prev = snap.exists() ? (Number(snap.data().bestRoundPoints) || 0) : 0;
+    if (points > prev) tx.update(ref, { bestRoundPoints: points });
+  }).catch(() => {});
 }
 
 // ==================== أدوات "100 فولور": توزيع/إرسال فوزات (قوائم الفائزين المحلية) ====================
