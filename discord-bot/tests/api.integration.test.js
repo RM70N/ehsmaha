@@ -184,7 +184,7 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
       assert.equal(node.meta.chunks, 1);
       assert.equal(Object.keys(node.chunks).length, 1);
       assert.ok(!Buffer.from(node.chunks[0] || node.chunks['0'], 'base64').toString().includes('small db'), 'المحتوى مشفّر');
-      assert.equal((await db.collection('discordBotState').get()).size, 1, 'Firestore: meta (الاستلام) فقط — ما تنكتب نسخة فيه لما RTDB شغالة');
+      assert.equal((await db.collection('discordBotState').get()).size, 0, 'Firestore ما انلمس — RTDB شغالة');
     } else {
       const leftovers = await db.collection('discordBotState').get();
       assert.equal(leftovers.size, 2, 'meta + chunk_000 فقط');
