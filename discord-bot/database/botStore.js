@@ -304,4 +304,42 @@ const autoMod = {
   }
 };
 
-module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod };
+// ---------------- الردود التلقائية ----------------
+const mapReply = (r) => (r ? { ...r, id: toNum(r.id), created_at: toNum(r.created_at) } : null);
+
+const autoReplies = {
+  async list(guildId) {
+    const rows = await db.query('SELECT * FROM auto_replies WHERE guild_id = ? ORDER BY created_at ASC, id ASC', [guildId]);
+    return rows.map(mapReply);
+  },
+  async count(guildId) {
+    const rows = await db.query('SELECT COUNT(*) AS n FROM auto_replies WHERE guild_id = ?', [guildId]);
+    return toNum(rows[0].n);
+  },
+  // null لو الكلمة موجودة أصلاً
+  async add({ guildId, trigger, triggerNorm, response, matchType, createdBy }) {
+    try {
+      const r = await db.run(
+        'INSERT INTO auto_replies (guild_id, trigger_text, trigger_norm, response, match_type, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id',
+        [guildId, trigger, triggerNorm, response, matchType, createdBy, now()]
+      );
+      return toNum(r.rows[0].id);
+    } catch (err) {
+      if (err.isUniqueViolation) return null;
+      throw err;
+    }
+  },
+  // يحذف عدة ردود بالمعرّفات — يرجّع المحذوفة
+  async remove(guildId, ids) {
+    const removed = [];
+    for (const id of ids) {
+      const rows = await db.query('SELECT * FROM auto_replies WHERE guild_id = ? AND id = ?', [guildId, id]);
+      if (!rows[0]) continue;
+      await db.run('DELETE FROM auto_replies WHERE guild_id = ? AND id = ?', [guildId, id]);
+      removed.push(mapReply(rows[0]));
+    }
+    return removed;
+  }
+};
+
+module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies };

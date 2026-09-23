@@ -115,6 +115,10 @@ function makeUserMessage(channel, member, content = '', { client = null } = {}) 
     webhookId: null,
     createdTimestamp: Date.now(),
     client: client || { user: guild.members.me.user },
+    async reply(payload) {
+      guild.log.push(['messageReply', channel.id, msg.id, payload]);
+      return { id: nextId(), payload };
+    },
     async delete() {
       if (guild.failNext === 'deleteMessage') { guild.failNext = null; throw Object.assign(new Error('Missing Permissions'), { code: 50013 }); }
       channel.messagesStore = channel.messagesStore.filter((m) => m.id !== msg.id);
@@ -267,7 +271,7 @@ function makeGuild({ botPerms } = {}) {
   return guild;
 }
 
-function makeInteraction({ guild, member, kind = 'command', commandName, customId, options = {}, values, channelId }) {
+function makeInteraction({ guild, member, kind = 'command', commandName, customId, options = {}, values, channelId, fields = {} }) {
   const log = [];
   const i = {
     id: nextId(),
@@ -292,6 +296,10 @@ function makeInteraction({ guild, member, kind = 'command', commandName, customI
     isChatInputCommand: () => kind === 'command',
     isButton: () => kind === 'button',
     isStringSelectMenu: () => kind === 'select',
+    isModalSubmit: () => kind === 'modal',
+    isFromMessage: () => kind === 'modal',
+    fields: { getTextInputValue: (n) => (fields[n] === undefined ? '' : fields[n]) },
+    async showModal(m) { this.replied = true; log.push(['showModal', m.toJSON ? m.toJSON() : m]); },
     isRepliable: () => true,
     isAutocomplete: () => false,
     options: {

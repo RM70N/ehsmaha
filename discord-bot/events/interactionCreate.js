@@ -111,7 +111,7 @@ module.exports = {
     try {
       if (interaction.isChatInputCommand()) return await handleCommand(interaction, ctx);
       if (interaction.isAutocomplete()) return await handleAutocomplete(interaction, ctx);
-      if (interaction.isButton() || interaction.isStringSelectMenu()) return await handleButton(interaction, ctx);
+      if (interaction.isButton() || interaction.isStringSelectMenu() || interaction.isModalSubmit()) return await handleButton(interaction, ctx);
       // أنواع أخرى (قوائم/نماذج) غير مستخدمة حالياً — نتجاهلها بأمان
       if (interaction.isRepliable()) {
         return await interaction.reply({ content: 'هذا النوع من التفاعل غير مدعوم.', flags: MessageFlags.Ephemeral });
