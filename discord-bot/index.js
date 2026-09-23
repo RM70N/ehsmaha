@@ -218,11 +218,29 @@ function shutdown(signal, webServer) {
 async function initDatabase() {
   const backup = stateBackup.shouldEnable(config);
   try {
+    let degraded = false;
     if (backup) {
       stateBackup.configure({ api, getBuffer: () => botDb.serialize() });
-      await stateBackup.restore(config.sqlitePath); // يعيد المحاولة لين ينجح
+      // حد أقصى ~90 ثانية — بعدها البوت يشتغل عادي والاسترجاع يكمل بالخلفية
+      degraded = !!(await stateBackup.restore(config.sqlitePath)).degraded;
     }
     await botDb.init({ databaseUrl: config.databaseUrl, sqlitePath: config.sqlitePath });
+    if (backup && degraded) {
+      // لما يرد الـAPI: نبدّل القاعدة بالنسخة المحفوظة (هي الأصل)
+      stateBackup.startRecovery({
+        file: config.sqlitePath,
+        swap: async (writeFile) => {
+          await botDb.close();
+          try {
+            writeFile();
+          } finally {
+            await botDb.init({ sqlitePath: config.sqlitePath });
+            require('./utils/adminPermissions').invalidateAll();
+            require('./services/autoMod')._internal.guildCache.clear();
+          }
+        }
+      });
+    }
     if (backup) {
       botDb.onWrite(() => stateBackup.markDirty());
       stateBackup.startSafetyFlush();
