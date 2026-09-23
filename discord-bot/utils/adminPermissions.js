@@ -103,14 +103,26 @@ async function guardManager(interaction) {
 // كل ما يُحفظ (رتب الدعم، الأدمن، التحذيرات) بينمسح مع أول تحديث/إعادة تشغيل.
 function withStorageNotice(payload) {
   const botDb = require('../database/botDb');
-  const backedUp = require('../services/stateBackup').isActive();
-  if (!(process.env.RENDER && botDb.dialect() === 'sqlite' && !backedUp)) return payload;
-  const notice = eb.warning(
-    'البوت يحفظ الإعدادات بذاكرة **مؤقتة** — بتنمسح مع أول تحديث أو إعادة تشغيل.\n' +
-      'للحفظ الدائم: Render → New → **PostgreSQL** ثم انسخ **Internal Database URL** وحطه بمتغير `DATABASE_URL` بخدمة البوت.',
-    '⚠️ الحفظ غير دائم'
-  );
+  const backup = require('../services/stateBackup');
+  if (!(process.env.RENDER && botDb.dialect() === 'sqlite' && !backup.isActive())) return payload;
+  const st = backup.status();
+  const notice = st.enabled
+    ? eb.warning(
+        'الحفظ الدائم ينتظر خدمة الـAPI ترد (البوت يحاول كل دقيقة تلقائياً) — لين يرجع، التعديلات الحين ممكن تضيع مع التحديث الجاي.' +
+          (st.lastError ? `\n🔎 السبب التقني: \`${String(st.lastError).slice(0, 80)}\`` : ''),
+        '⚠️ الحفظ الدائم متأخر'
+      )
+    : eb.warning(
+        'البوت يحفظ الإعدادات بذاكرة **مؤقتة** — بتنمسح مع أول تحديث أو إعادة تشغيل.\n' +
+          'فعّل الحفظ الدائم: احذف متغير `BOT_STATE_BACKUP=off` من خدمة البوت بـRender.',
+        '⚠️ الحفظ غير دائم'
+      );
   return { ...payload, embeds: [...(payload.embeds || []), notice] };
 }
 
-module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, loadGuild, denyPayload, withStorageNotice };
+// بعد تبديل القاعدة كاملة (استرجاع بالخلفية)
+function invalidateAll() {
+  cache.clear();
+}
+
+module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, loadGuild, denyPayload, withStorageNotice };

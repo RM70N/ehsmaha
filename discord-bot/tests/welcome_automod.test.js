@@ -485,3 +485,77 @@ test('الحفظ الدائم: استرجاع عند الإقلاع، رفع ب�
   assert.equal(stateBackup.shouldEnable({ databaseUrl: null }, {}), false);
   assert.equal(stateBackup.shouldEnable({ databaseUrl: null }, { RENDER: 'true', BOT_STATE_BACKUP: 'off' }), false);
 });
+
+test('الحفظ الدائم: الـAPI ما رد وقت الإقلاع ← البوت يشتغل بعد المهلة، والاسترجاع يكمل بالخلفية بدون ما يمسح المحفوظ', async (t) => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const crypto = require('node:crypto');
+  const Database = require('better-sqlite3');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bot-recovery-'));
+  t.after(() => {
+    stateBackup._reset();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  const seed = new Database(':memory:');
+  seed.exec("CREATE TABLE guild_config (guild_id TEXT, key TEXT, value TEXT); INSERT INTO guild_config VALUES ('g','support_roles','[\"999\"]')");
+  const seedBuf = seed.serialize();
+  seed.close();
+
+  let apiUp = false;
+  const saved = [];
+  const fakeApi = {
+    async claimBotState() {
+      if (!apiUp) throw Object.assign(new Error('Not Found'), { code: 'NOT_FOUND', status: 404 });
+      return { snapshot: { data: seedBuf.toString('base64'), sha256: crypto.createHash('sha256').update(seedBuf).digest('hex') } };
+    },
+    async saveBotState(p) {
+      saved.push(p);
+      return { saved: true };
+    }
+  };
+  const file = path.join(dir, 'bot.sqlite');
+  let live = null;
+  stateBackup.configure({ api: fakeApi, getBuffer: () => live.serialize(), bootAt: 5 });
+
+  // ساعة وهمية: كل انتظار يقدّم الوقت
+  let clock = 0;
+  const res = await stateBackup.restore(file, { now: () => clock, sleep: async (ms) => { clock += ms; }, deadlineMs: 90_000 });
+  assert.equal(res.degraded, true, 'ما علّق للأبد');
+  assert.equal(stateBackup.isActive(), false);
+  assert.equal(stateBackup.status().lastError, 'NOT_FOUND', 'السبب واضح للتشخيص');
+
+  // البوت يشتغل بقاعدة محلية ويكتب — الرفع موقوف (ما يمسح المحفوظ)
+  live = new Database(file);
+  live.exec('CREATE TABLE guild_config (guild_id TEXT, key TEXT, value TEXT)');
+  live.prepare("INSERT INTO guild_config VALUES ('g','tmp','1')").run();
+  stateBackup.markDirty();
+  assert.equal(await stateBackup.flush(), false);
+  assert.equal(saved.length, 0, 'ما رفع قاعدة ناقصة فوق المحفوظة');
+
+  // الـAPI رجع ← الاسترجاع بالخلفية يبدّل القاعدة بالمحفوظة
+  let swapped = 0;
+  const tick = stateBackup.startRecovery({
+    file,
+    intervalMs: 3_600_000,
+    swap: async (writeFile) => {
+      live.close();
+      writeFile();
+      live = new Database(file);
+      swapped += 1;
+    }
+  });
+  await tick(); // ما زال طايح
+  assert.equal(swapped, 0);
+  apiUp = true;
+  await tick();
+  assert.equal(swapped, 1);
+  assert.equal(live.prepare("SELECT value FROM guild_config WHERE key = 'support_roles'").get().value, '["999"]', 'الإعدادات المحفوظة رجعت');
+  assert.equal(stateBackup.isActive(), true);
+  // الحين الرفع شغال
+  live.prepare("INSERT INTO guild_config VALUES ('g','after','1')").run();
+  stateBackup.markDirty();
+  assert.equal(await stateBackup.flush(), true);
+  assert.equal(saved.length, 1);
+  live.close();
+});

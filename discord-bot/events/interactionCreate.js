@@ -25,10 +25,13 @@ function cooldownPayload(ms) {
 }
 
 async function replyWithGenericError(interaction, err) {
-  const message =
-    err && err.code === 'DB_UNAVAILABLE'
-      ? 'البوت يجهّز بياناته الحين (يسترجعها بعد التحديث أو إعادة التشغيل) — جرّب مرة ثانية بعد دقيقة 🙏'
-      : GENERIC;
+  let message = GENERIC;
+  if (err && err.code === 'DB_UNAVAILABLE') {
+    message = 'البوت يجهّز بياناته الحين (يسترجعها بعد التحديث أو إعادة التشغيل) — جرّب مرة ثانية بعد دقيقة 🙏';
+    const backup = require('../services/stateBackup').status();
+    const reason = backup.lastError || (err.cause && (err.cause.code || err.cause.message));
+    if (reason) message += `\n\n🔎 السبب التقني: \`${String(reason).slice(0, 80)}\``;
+  }
   try {
     await respond.send(interaction, { embeds: [eb.error(message)], components: [] }, { ephemeral: true });
   } catch (err) {
