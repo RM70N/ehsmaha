@@ -52,6 +52,7 @@ function convFor(ticket) {
       openedAt: ticket.created_at || Date.now(),
       aiPaused: !!ticket.ai_paused,
       escalated: !!ticket.ai_paused,
+      suggestions: [], // اقتراحات صاحب التكت (وصلت لأخبار الأدمن)
       transcript: [], // { role: 'user'|'model'|'staff', text, at, authorId }
       staffMessages: 0,
       queue: Promise.resolve()
@@ -89,6 +90,51 @@ async function sendChunks(target, text, { reply = false } = {}) {
 const typing = (channel) => (channel && typeof channel.sendTyping === 'function' ? channel.sendTyping().catch(() => null) : null);
 
 const cleanInput = (text) => String(text || '').trim().slice(0, MAX_INPUT_CHARS);
+
+// ---------------- الاقتراحات ----------------
+// المساعد يستقبل الاقتراح بنفسه ويضيف بآخر رده سطر <<اقتراح: ...>> — نشيله من
+// الرد (ما يشوفه المستخدم) ونرسل الاقتراح فوراً لقناة أخبار الأدمن.
+const SUGGESTION_RE = /<<\s*اقتراح\s*[:：]\s*([\s\S]*?)>>/g;
+const SUGGESTION_THANKS = 'شكراً على اقتراحك 🤩 انسجل ووصل لفريق احسمها!';
+
+function extractSuggestions(text) {
+  const suggestions = [];
+  const clean = String(text || '')
+    .replace(SUGGESTION_RE, (_, s) => {
+      const t = String(s).replace(/\s+/g, ' ').trim().slice(0, 1000);
+      if (t) suggestions.push(t);
+      return '';
+    })
+    .replace(/<<[^>]*$/, '') // وسم ناقص بآخر الرد
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return { clean, suggestions };
+}
+
+async function forwardSuggestions(guild, { userId, suggestions, source, channelId, ticketId = null }) {
+  if (!suggestions.length) return 0;
+  logger.info('💡 اقتراح جديد من المساعد الذكي', { guildId: guild.id, userId, source, ticketId, count: suggestions.length });
+  try {
+    const settings = await store.guildSettings.get(guild.id);
+    const id = settings.admin_news_channel_id;
+    const ch = id && (guild.channels.cache.get(id) || (await guild.channels.fetch(id).catch(() => null)));
+    if (!ch) return 0;
+    const embed = eb.brand({
+      tone: 'gold',
+      title: suggestions.length > 1 ? `💡 ${suggestions.length} اقتراحات جديدة` : '💡 اقتراح جديد',
+      description: suggestions.map((s) => `> ${s}`).join('\n\n')
+    });
+    embed.addFields(
+      eb.field('👤 من', `<@${userId}>`, true),
+      eb.field('📍 المكان', ticketId ? `تكت #${ticketId} (<#${channelId}>)` : `<#${channelId}> (منشن)`, true)
+    );
+    await ch.send({ embeds: [embed], allowedMentions: { parse: [] } });
+    return suggestions.length;
+  } catch (err) {
+    logger.warn('💡 تعذّر إرسال الاقتراح لقناة أخبار الأدمن', { guildId: guild.id, code: err.code });
+    return 0;
+  }
+}
 
 // ---------------- 1) التذاكر ----------------
 function greetingPayload(ticketId) {
@@ -176,12 +222,16 @@ async function handleTicketMessage(message) {
       await message.channel.send({ content: FRIENDLY_ERROR, allowedMentions: { parse: [] } }).catch(() => null);
       return true;
     }
-    pushTranscript(c, { role: 'model', text: r.text });
+    const { clean, suggestions } = extractSuggestions(r.text);
+    const reply = clean || (suggestions.length ? SUGGESTION_THANKS : FRIENDLY_ERROR);
+    pushTranscript(c, { role: 'model', text: reply });
+    if (suggestions.length) c.suggestions.push(...suggestions);
     try {
-      await sendChunks(message.channel, r.text);
+      await sendChunks(message.channel, reply);
     } catch (err) {
       logger.warn('🤖 تعذّر إرسال رد المساعد بالتكت', { ticketId: c.ticketId, code: err.code });
     }
+    await forwardSuggestions(message.guild, { userId: message.author.id, suggestions, source: 'ticket', channelId: message.channel.id, ticketId: c.ticketId });
     return true;
   });
   c.queue = run.catch(() => null);
@@ -302,7 +352,8 @@ async function reportTicketClosed({ guild, channel, ticket, closedById }) {
     } else {
       const facts =
         `بيانات التكت: السبب: ${ticket.reason}. طلب صاحب التكت التحويل لفريق الدعم: ${c.escalated ? 'نعم' : 'لا'}. ` +
-        `عدد رسائل فريق الدعم البشري بالتكت: ${c.staffMessages}.`;
+        `عدد رسائل فريق الدعم البشري بالتكت: ${c.staffMessages}.` +
+        (c.suggestions && c.suggestions.length ? ` اقتراحات سجّلها المساعد: ${c.suggestions.join(' | ')}.` : '');
       const r = await gemini.generate({
         systemInstruction: SUMMARY_INSTRUCTION,
         messages: [{ role: 'user', text: `${facts}\n\nالمحادثة:\n${transcriptText(c, { includeStaff: false }).slice(-15000)}` }],
@@ -401,7 +452,11 @@ async function handleMention(message, botUser) {
   });
   try {
     if (!r.ok) await message.reply({ content: FRIENDLY_ERROR, allowedMentions: { repliedUser: false } });
-    else await sendChunks(message, r.text, { reply: true });
+    else {
+      const { clean, suggestions } = extractSuggestions(r.text);
+      await sendChunks(message, clean || (suggestions.length ? SUGGESTION_THANKS : FRIENDLY_ERROR), { reply: true });
+      await forwardSuggestions(message.guild, { userId: message.author.id, suggestions, source: 'mention', channelId: message.channel.id });
+    }
   } catch (err) {
     logger.warn('🤖 تعذّر إرسال رد المنشن', { guildId: message.guild.id, code: err.code });
   }
@@ -425,5 +480,6 @@ module.exports = {
   reportTicketClosed,
   forget,
   activeTicketFor,
+  extractSuggestions,
   _internal: { conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
 };
