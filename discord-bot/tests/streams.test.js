@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 
 Object.assign(process.env, {
   DISCORD_TOKEN: 'test-token',
+  GEMINI_API_KEY: 'test-gemini-key',
   CLIENT_ID: '1552260327008247879',
   API_BASE_URL: 'http://127.0.0.1:9',
   API_KEY: 'k'.repeat(40),
