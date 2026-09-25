@@ -120,6 +120,17 @@ test('قاعدة المعرفة: تعليمات النطاق وعدم كشف ا�
   for (const url of ['https://ehsmaha.com', 'https://www.tiktok.com/@ehsmaha7', 'https://www.instagram.com/ehsmaha7', 'https://x.com/ehsmaha7']) assert.ok(p.includes(url), url);
   for (const g of gamesConfig) assert.ok(p.includes(g.command) && p.includes(g.name), g.name);
   assert.match(p, /\/مساعدة/);
+  // خطوات ربط البث الحالية بالموقع: من الرئيسية بزر "ابدأ بثاً سريعاً" ← المنصة ← اليوزر ← "ابدأ الربط"
+  assert.match(p, /من \*\*الصفحة الرئيسية\*\* اضغط زر \*\*"ابدأ بثاً سريعاً"\*\*/);
+  assert.match(p, /\*\*اختر منصتك\*\*: 🎵 تيك توك · 📺 تويتش · 🥊 كيك · ▶️ يوتيوب/);
+  assert.match(p, /يوزر تيك توك \*\*بدون @\*\*/);
+  assert.match(p, /اضغط \*\*"ابدأ الربط"\*\*/);
+  assert.match(p, /اربط بثك أولاً من الصفحة الرئيسية \(زر ابدأ بثاً سريعاً\)/);
+  assert.match(p, /أكثر من منصة/);
+  assert.match(p, /الكلمة المفتاحية للانضمام/);
+  assert.match(p, /ربط حسابي بتيك توك.*مو ربط بث/s);
+  // أقسام الموقع: فردي، جمعات، أونلاين، وردل، الإطارات، الكود السري، الحصانة
+  for (const w of ['ألعاب فردية', 'ألعاب الجمعات', 'ألعاب أونلاين', 'وردل', 'لفل 5', 'كود سري', 'الحصانة', 'جسر المصير', 'مرة كل 7 أيام']) assert.ok(p.includes(w), w);
   // لعبة جديدة بالملف ← تظهر بمعرفة المساعد بدون تعديل كود
   gamesConfig.push({ command: '/اختبار_لعبة', name: 'لعبة اختبار', description: 'وصف', minPlayers: 2 });
   try {
