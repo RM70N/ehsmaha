@@ -83382,5 +83382,328 @@ gamePlatform['glz'] = 'tiktok';
 #pg-setup-tt10{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.30) 0%,transparent 60%),var(--bg);}
 </style>
 
+<!-- ===== DISCORD JOIN (dcj) START — "الانضمام عبر ديسكورد" (إضافة مستقلة، ما تعدّل أي كود قبلها) ===== -->
+<style>
+.dcj-field .dcj-opt{color:var(--muted);font-weight:400;font-size:.85em;}
+.dcj-select{width:100%;padding:12px 14px;border-radius:var(--radius-md);background:var(--surface2);color:var(--text);border:1px solid var(--border-strong);font-family:var(--font);font-size:15px;direction:rtl;}
+.dcj-select:focus{outline:none;border-color:var(--accent2);}
+.dcj-select:disabled{opacity:.6;}
+#dcj-pill{position:fixed;left:12px;bottom:12px;z-index:9000;display:none;align-items:center;gap:8px;max-width:calc(100vw - 24px);padding:8px 12px;border-radius:var(--radius-pill);background:rgba(88,101,242,.92);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;box-shadow:0 6px 20px rgba(0,0,0,.35);direction:rtl;}
+#dcj-pill.dcj-on{display:flex;}
+#dcj-pill .dcj-avs{display:flex;}
+#dcj-pill .dcj-avs img{width:22px;height:22px;border-radius:50%;border:2px solid #5865F2;margin-inline-start:-6px;background:#fff;object-fit:cover;}
+#dcj-pill .dcj-ch{opacity:.85;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+</style>
+<script>
+(function () {
+  'use strict';
+
+  // كل لعبة ستريمر فيها كلمة مفتاحية: صفحة الإعداد، حقول الكلمة، وصفحة اللعب
+  // (pages[0]) — الجلسة نشطة ما دامت صفحة اللعب ظاهرة، وتنتهي أول ما تختفي
+  // (صفحة الفائز = انتهت الجولة، أو رجع الستريمر للقائمة).
+  var DCJ_GAMES = [
+    { setup: 'setup-guessword', gameId: 'guessword', kw: ['gw-inp-kw'], pages: ['guessword'] },
+    { setup: 'setup', gameId: 'main', kw: ['inp-kw'], pages: ['dash'] },
+    { setup: 'setup-sniper', gameId: 'sniper', kw: ['sniper-kw'], pages: ['sniper'] },
+    { setup: 'setup-hz', gameId: 'hz', kw: ['hz-kw'], pages: ['hz'] },
+    { setup: 'setup-roulette', gameId: 'roulette', kw: ['rou-kw'], pages: ['roulette'] },
+    { setup: 'setup-timer', gameId: 'timer', kw: ['tmr-kw'], pages: ['timer'] },
+    { setup: 'setup-bomb', gameId: 'bomb', kw: ['bomb-kw'], pages: ['bomb'] },
+    { setup: 'setup-box', gameId: 'box', kw: ['box-kw'], pages: ['box'] },
+    { setup: 'setup-cr', gameId: 'cr', kw: ['cr-kw'], pages: ['cr'] },
+    { setup: 'setup-maze', gameId: 'maze', kw: ['mz-kw'], pages: ['maze'] },
+    { setup: 'setup-ev', gameId: 'ev', kw: ['ev-kw'], pages: ['ev'] },
+    { setup: 'setup-lastletter', gameId: 'lastletter', kw: ['ll-kw'], pages: ['lastletter'] },
+    { setup: 'setup-whoami', gameId: 'whoami', kw: ['wai-kw'], pages: ['whoami'] },
+    { setup: 'setup-ig', gameId: 'ig', kw: ['ig-kw'], pages: ['ig'] },
+    { setup: 'setup-reverseword', gameId: 'reverseword', kw: ['rw-kw'], pages: ['reverseword'] },
+    { setup: 'setup-priceguess', gameId: 'priceguess', kw: ['pgs-kw'], pages: ['priceguess'] },
+    { setup: 'setup-letterscramble', gameId: 'letterscramble', kw: ['lsc-kw'], pages: ['letterscramble'] },
+    { setup: 'setup-wordrace', gameId: 'wordrace', kw: ['wr-kw'], pages: ['wordrace'] },
+    { setup: 'setup-countrywar', gameId: 'countrywar', kw: ['cw-kw'], pages: ['countrywar'] },
+    { setup: 'setup-crownsteal', gameId: 'crownsteal', kw: ['cs-kw'], pages: ['crownsteal'] },
+    { setup: 'setup-chairs', gameId: 'chairs', kw: ['chairs-kw'], pages: ['chairs'] },
+    { setup: 'setup-findball', gameId: 'findball', kw: ['findball-kw'], pages: ['findball'] },
+    { setup: 'setup-tug', gameId: 'tug', kw: ['tug-team-a-kw', 'tug-team-b-kw'], pages: ['tug'] },
+    { setup: 'setup-rlgl', gameId: 'rlgl', kw: ['rlgl-join-kw'], pages: ['rlgl'] },
+    { setup: 'setup-volcanic-lands', gameId: 'volcanic-lands', kw: ['volcanic-lands-join-kw'], pages: ['volcanic-lands'] },
+    { setup: 'setup-glz', gameId: 'glz', kw: ['glz-join-kw'], pages: ['glz'] }
+  ];
+
+  var FS_TIMEOUT_MS = 6000;
+  var LS_PREFIX = 'dcj-channel-';
+  var channelState = { fs: null, rt: null, list: [], guildId: null };
+  var sessions = {}; // gameId -> { sessionId, channelId, channelName, keywords, stores:{fs,rt}, seen:Set, avatars:[], unsubs:[] }
+
+  function getFb() { return window.__fb || null; }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v) localStorage.setItem(k, v); else localStorage.removeItem(k); } catch (e) {} }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function tsMs(v) {
+    if (!v) return 0;
+    if (typeof v === 'number') return v;
+    if (typeof v.toMillis === 'function') return v.toMillis();
+    return 0;
+  }
+  function withTimeout(p, ms) {
+    return new Promise(function (resolve, reject) {
+      var t = setTimeout(function () { reject(new Error('timeout')); }, ms);
+      Promise.resolve(p).then(function (v) { clearTimeout(t); resolve(v); }, function (e) { clearTimeout(t); reject(e); });
+    });
+  }
+
+  // ---------------- 1) قسم "الانضمام عبر ديسكورد" بشاشات الإعداد ----------------
+  function selectId(g) { return 'dcj-ch-' + g.gameId; }
+
+  function injectFields() {
+    DCJ_GAMES.forEach(function (g) {
+      if (document.getElementById(selectId(g))) return;
+      var lastKw = document.getElementById(g.kw[g.kw.length - 1]);
+      if (!lastKw) return;
+      var anchor = (lastKw.closest && lastKw.closest('.field')) || lastKw.parentNode;
+      if (!anchor || !anchor.parentNode) return;
+      var wrap = document.createElement('div');
+      wrap.className = 'field dcj-field';
+      wrap.innerHTML =
+        '<label for="' + selectId(g) + '">الانضمام عبر ديسكورد <span class="dcj-opt">(اختياري)</span></label>' +
+        '<select id="' + selectId(g) + '" class="dcj-select"></select>' +
+        '<div class="field-hint">اختر روم بسيرفر احسمها الرسمي: أي عضو يكتب الكلمة المفتاحية فيه ينضم للعبة مباشرة.</div>';
+      anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+      var sel = wrap.querySelector('select');
+      sel.addEventListener('change', function () { lsSet(LS_PREFIX + g.gameId, sel.value); });
+    });
+    renderSelects();
+  }
+
+  function renderSelects() {
+    var list = channelState.list;
+    DCJ_GAMES.forEach(function (g) {
+      var sel = document.getElementById(selectId(g));
+      if (!sel) return;
+      var want = sel.value || lsGet(LS_PREFIX + g.gameId) || '';
+      var html = '<option value="">' + (list.length ? 'بدون — المنصات فقط' : 'ما فيه رومات متاحة حالياً') + '</option>';
+      list.forEach(function (c) { html += '<option value="' + esc(c.id) + '"># ' + esc(c.name) + '</option>'; });
+      sel.innerHTML = html;
+      sel.value = list.some(function (c) { return c.id === want; }) ? want : '';
+      sel.disabled = !list.length;
+    });
+  }
+
+  // قائمة الرومات: Firestore لحظياً + نسخة RTDB (لو خلصت حصة Firestore) — الأحدث يغلب
+  function applyChannels() {
+    var pick = channelState.fs;
+    if (channelState.rt && (!pick || tsMs(channelState.rt.updatedAt) > tsMs(pick.updatedAt))) pick = channelState.rt;
+    var raw = pick && Array.isArray(pick.channels) ? pick.channels : (pick && pick.channels ? Object.keys(pick.channels).map(function (k) { return pick.channels[k]; }) : []);
+    channelState.list = raw.filter(function (c) { return c && c.id && c.name; });
+    channelState.guildId = pick ? pick.guildId || null : null;
+    renderSelects();
+  }
+
+  var channelsWatching = false;
+  function watchChannels() {
+    var fb = getFb();
+    if (!fb || channelsWatching) return;
+    channelsWatching = true;
+    try {
+      fb.onSnapshot(fb.doc(fb.db, 'config', 'discordChannels'), function (snap) {
+        channelState.fs = snap.exists() ? snap.data() : null;
+        applyChannels();
+      }, function () { channelState.fs = null; applyChannels(); });
+    } catch (e) { /* Firestore غير متاح — نعتمد على RTDB */ }
+    if (fb.rtdb) {
+      try {
+        fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'config/discordChannels'), function (snap) {
+          channelState.rt = snap.val() || null;
+          applyChannels();
+        }, function () { channelState.rt = null; applyChannels(); });
+      } catch (e) {}
+    }
+  }
+
+  // ---------------- 2) الجلسة: تبدأ مع صفحة اللعب وتنتهي بخروجها ----------------
+  function pageActive(name) {
+    var el = document.getElementById('pg-' + name);
+    return !!(el && el.classList.contains('active'));
+  }
+
+  function startSession(g) {
+    var fb = getFb();
+    var sel = document.getElementById(selectId(g));
+    var channelId = sel && sel.value;
+    var user = fb && fb.auth && fb.auth.currentUser;
+    if (!fb || !channelId || !user) return null;
+    var keywords = g.kw.map(function (id) { var el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; })
+      .filter(Boolean);
+    if (!keywords.length) return null;
+    var ch = channelState.list.filter(function (c) { return c.id === channelId; })[0];
+    var sessionId = user.uid + '_' + g.gameId + '_' + Date.now();
+    var s = {
+      sessionId: sessionId, gameId: g.gameId, channelId: channelId, channelName: ch ? ch.name : '',
+      keywords: keywords, stores: { fs: false, rt: false }, seen: new Set(), avatars: [], unsubs: [], ended: false
+    };
+    sessions[g.gameId] = s;
+    var base = {
+      streamerId: user.uid,
+      streamerUsername: user.displayName || '',
+      guildId: channelState.guildId || '',
+      channelId: channelId,
+      keyword: keywords[0],
+      keywords: keywords,
+      gameId: g.gameId,
+      status: 'active'
+    };
+
+    function viaRtdb() {
+      if (!fb.rtdb || s.ended) return Promise.resolve(false);
+      var ref = fb.rtdbRef(fb.rtdb, 'discordSessions/' + sessionId);
+      return fb.rtdbSet(ref, Object.assign({}, base, { createdAt: fb.rtdbServerTimestamp() })).then(function () {
+        s.stores.rt = true;
+        // الستريمر سكّر التبويب/انقطع — الخادم نفسه يحط الجلسة منتهية
+        try { fb.rtdbOnDisconnect(ref).update({ status: 'ended', endedAt: fb.rtdbServerTimestamp() }); } catch (e) {}
+        if (s.ended) endStore(s, 'rt');
+        return true;
+      }).catch(function () { return false; });
+    }
+
+    var fsWrite = Promise.resolve().then(function () {
+      return fb.setDoc(fb.doc(fb.db, 'discordSessions', sessionId), Object.assign({}, base, { createdAt: fb.serverTimestamp() }));
+    });
+    // لو وصلت كتابة Firestore متأخرة بعد الانتقال لـRTDB نعلّمها ونقفلها لو الجلسة انتهت
+    fsWrite.then(function () { s.stores.fs = true; if (s.ended) endStore(s, 'fs'); }, function () {});
+    withTimeout(fsWrite, FS_TIMEOUT_MS).catch(viaRtdb);
+
+    listenParticipants(s);
+    renderPill();
+    return s;
+  }
+
+  function endStore(s, which) {
+    var fb = getFb();
+    if (!fb) return;
+    try {
+      if (which === 'fs') {
+        fb.updateDoc(fb.doc(fb.db, 'discordSessions', s.sessionId), { status: 'ended', endedAt: fb.serverTimestamp() }).catch(function () {});
+      } else if (which === 'rt' && fb.rtdb) {
+        var ref = fb.rtdbRef(fb.rtdb, 'discordSessions/' + s.sessionId);
+        fb.rtdbUpdate(ref, { status: 'ended', endedAt: fb.rtdbServerTimestamp() }).catch(function () {});
+        try { fb.rtdbOnDisconnect(ref).cancel(); } catch (e) {}
+      }
+    } catch (e) {}
+  }
+
+  function endSession(gameId) {
+    var s = sessions[gameId];
+    if (!s) return;
+    s.ended = true;
+    delete sessions[gameId];
+    s.unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+    s.unsubs = [];
+    if (s.stores.fs) endStore(s, 'fs');
+    if (s.stores.rt) endStore(s, 'rt');
+    renderPill();
+  }
+
+  // ---------------- 3) المنضمون: نفس مسار منضم تيك توك بالضبط ----------------
+  function addParticipant(s, discordUserId, p) {
+    if (s.ended || !discordUserId || !p || s.seen.has(discordUserId)) return false;
+    s.seen.add(discordUserId);
+    var kw = p.keyword && s.keywords.indexOf(p.keyword) !== -1 ? p.keyword : s.keywords[0];
+    var avatar = /^https:\/\//.test(String(p.avatarUrl || '')) ? p.avatarUrl : '';
+    if (avatar) s.avatars.push(avatar);
+    // رسالة شات مركّبة بنفس شكل رسائل المنصات: كل لعبة تعالجها بمنطق الانضمام
+    // الموجود عندها (نفس دالة منضم تيك توك) — الاسم والصورة من ديسكورد.
+    if (typeof window.homeDispatchToGameListeners === 'function') {
+      window.homeDispatchToGameListeners({ messages: [{
+        type: 'WebcastChatMessage',
+        user: {
+          uniqueId: 'discord:' + discordUserId,
+          nickname: String(p.displayName || p.username || 'Discord').slice(0, 64),
+          profilePictureUrl: avatar,
+          isFollower: true
+        },
+        comment: kw
+      }] });
+    }
+    renderPill();
+    return true;
+  }
+
+  function listenParticipants(s) {
+    var fb = getFb();
+    if (!fb) return;
+    try {
+      var unsubFs = fb.onSnapshot(fb.collection(fb.db, 'discordSessions', s.sessionId, 'participants'), function (snap) {
+        snap.docChanges().forEach(function (ch) { if (ch.type === 'added') addParticipant(s, ch.doc.id, ch.doc.data()); });
+      }, function () {});
+      s.unsubs.push(unsubFs);
+    } catch (e) {}
+    if (fb.rtdb) {
+      try {
+        var ref = fb.rtdbRef(fb.rtdb, 'discordSessions/' + s.sessionId + '/participants');
+        var unsubRt = fb.rtdbOnValue(ref, function (snap) {
+          var v = snap.val() || {};
+          Object.keys(v).forEach(function (id) { addParticipant(s, id, v[id]); });
+        }, function () {});
+        s.unsubs.push(typeof unsubRt === 'function' ? unsubRt : function () { fb.rtdbOff(ref); });
+      } catch (e) {}
+    }
+  }
+
+  // ---------------- 4) عدّاد المنضمين ----------------
+  function renderPill() {
+    var pill = document.getElementById('dcj-pill');
+    if (!pill) {
+      if (!document.body) return;
+      pill = document.createElement('div');
+      pill.id = 'dcj-pill';
+      document.body.appendChild(pill);
+    }
+    var ids = Object.keys(sessions);
+    if (!ids.length) { pill.className = ''; pill.innerHTML = ''; return; }
+    var s = sessions[ids[0]];
+    var avs = s.avatars.slice(-5).map(function (a) { return '<img src="' + esc(a) + '" alt="" referrerpolicy="no-referrer">'; }).join('');
+    pill.className = 'dcj-on';
+    pill.innerHTML = '<span>🎮 منضمين عبر ديسكورد: <b id="dcj-count">' + s.seen.size + '</b></span>' +
+      (avs ? '<span class="dcj-avs">' + avs + '</span>' : '') +
+      (s.channelName ? '<span class="dcj-ch">#' + esc(s.channelName) + '</span>' : '');
+  }
+
+  // ---------------- 5) مراقبة الصفحات (بدون أي تعديل على show()) ----------------
+  function evaluate() {
+    DCJ_GAMES.forEach(function (g) {
+      var active = pageActive(g.pages[0]);
+      if (active && !sessions[g.gameId]) startSession(g);
+      else if (!active && sessions[g.gameId]) endSession(g.gameId);
+    });
+  }
+
+  function boot() {
+    injectFields();
+    var fb = getFb();
+    if (fb && fb.onAuthStateChanged && fb.auth) {
+      fb.onAuthStateChanged(fb.auth, function (u) { if (u) watchChannels(); });
+    }
+    var obs = new MutationObserver(evaluate);
+    DCJ_GAMES.forEach(function (g) {
+      g.pages.forEach(function (p) {
+        var el = document.getElementById('pg-' + p);
+        if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+      });
+    });
+    window.addEventListener('pagehide', function () { Object.keys(sessions).forEach(endSession); });
+    evaluate();
+  }
+
+  window.__dcj = {
+    DCJ_GAMES: DCJ_GAMES, sessions: sessions, channelState: channelState,
+    injectFields: injectFields, applyChannels: applyChannels, startSession: startSession,
+    endSession: endSession, addParticipant: addParticipant, evaluate: evaluate, boot: boot
+  };
+
+  if (window.__fb) boot();
+  else window.addEventListener('fb-ready', boot, { once: true });
+})();
+</script>
+<!-- ===== DISCORD JOIN (dcj) END ===== -->
 </body>
 </html>
