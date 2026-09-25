@@ -72,10 +72,10 @@ test.after(() => {
   roulette.resetSettings();
 });
 
-function world(n = 4, { closedDm = [] } = {}) {
+function world(n = 4) {
   const guild = makeGuild();
   const channel = makeChannel(guild, { name: 'دول' });
-  const members = Array.from({ length: n }, (_, i) => makeMember(guild, { username: `لاعب${i + 1}`, dmOpen: !closedDm.includes(i) }));
+  const members = Array.from({ length: n }, (_, i) => makeMember(guild, { username: `لاعب${i + 1}` }));
   return { guild, channel, host: members[0], members };
 }
 const cmd = (w, who, name = 'دول', channel = w.channel) => makeInteraction({ guild: w.guild, member: who, commandName: name, channelId: channel.id });
@@ -95,6 +95,11 @@ const member = (w, id) => w.members.find((m) => m.id === id);
 function publicLog(w, from = 0) {
   return w.guild.log.slice(from).filter(([t]) => t !== 'dm').map(([t, , a, b]) => (t === 'editSent' ? json(b) : t === 'send' || t === 'replyEdit' ? json(a) : ''));
 }
+// اختيار دولة لاعب معيّن من قائمة صاحب الدور (القيمة رمز عشوائي — نجيبه من الذاكرة)
+const tokenOf = (game, playerId) => [...game.countryTokens].find(([, id]) => id === playerId)?.[0] || 'x';
+const pickBtn = (w, who, game, playerId, round = game.round, channel = w.channel) =>
+  btn(w, who, `dl:pick:${game.id}:${round}`, [tokenOf(game, playerId)], channel);
+const sendsOf = (w) => w.guild.log.filter(([t]) => t === 'send');
 const announcements = (w) =>
   w.guild.log.filter(([t, , p]) => t === 'send' && p.embeds && JSON.stringify(p.embeds[0].toJSON()).includes('لعبة الدول — إقصاء'));
 
@@ -109,7 +114,8 @@ test('/العاب: لعبة الدول تظهر تلقائياً من config/gam
   const f = e.fields.find((x) => x.name.includes('لعبة الدول'));
   assert.ok(f, 'لعبة الدول موجودة');
   assert.equal(f.name, '🌍 لعبة الدول — `/دول`');
-  assert.match(f.value, /دولة سرية بالخاص/);
+  assert.match(f.value, /دولة سرية/);
+  assert.doesNotMatch(f.value, /بالخاص/);
   assert.match(f.value, /أقل عدد: \*\*3\*\*/);
   assert.ok(gamesConfig.find((g) => g.command === '/دول' && g.name === 'لعبة الدول' && g.minPlayers === 3));
 });
@@ -119,8 +125,8 @@ test('الدول: ملف config/countries.js سليم — 30+ دولة، أسم�
   assert.ok(COUNTRIES.length >= countries.DEFAULTS.maxPlayers, 'الدول تكفي أقصى عدد لاعبين');
   assert.equal(new Set(COUNTRIES.map((c) => c.name)).size, COUNTRIES.length);
   for (const c of COUNTRIES) {
-    assert.match(c.flagEmoji, /^[\u{1F1E6}-\u{1F1FF}]{2}$/u, c.name);
-    assert.match(c.flagImageUrl, /^https:\/\/flagcdn\.com\/w320\/[a-z]{2}\.png$/, c.name);
+    assert.match(c.flagEmoji, /^([\u{1F1E6}-\u{1F1FF}]{2}|🏴)$/u, c.name);
+    assert.match(c.flagImageUrl, /^https:\/\/flagcdn\.com\/w320\/[a-z]{2}(-[a-z]{3})?\.png$/, c.name);
   }
   assert.equal(countries.normalizeCountries(COUNTRIES).length, COUNTRIES.length);
   // عناصر ناقصة/مكررة تنشال، والصورة غير https تنلغى (يبقى الرمز)
@@ -192,81 +198,90 @@ test('الدول: اللوبي بنفس آلية الروليت — العنوا
 
 // =================== دورة كاملة ===================
 
-test('الدول: دورة كاملة — توزيع بالخاص (والخاص المقفل ما يوقف اللعبة)، اختيار النفس والغير، إعلان الإقصاء، سرية الدول، والفائز', async () => {
-  const w = world(5, { closedDm: [4] });
+test('الدول: دورة كاملة — توزيع سري (بدون خاص)، القائمة دول مو لاعبين، إقصاء دولة غيرك ودولتك، إعلان الإقصاء، والفائز', async () => {
+  const w = world(5);
   const { game, join } = await openLobby(w);
   await join(w.members);
   await waitFor(() => game.chooserId, 3000, 'أول دور');
   const secret = new Map(game.countries); // نحتفظ بنسخة (تنمسح بعد النهاية)
 
-  // 1) التوزيع: كل لاعب دولة مختلفة، ووصلته بالخاص (ما عدا الخاص المقفل)
+  // 1) التوزيع: كل لاعب دولة مختلفة — وما ينرسل ولا خاص لأحد
   assert.equal(secret.size, 5);
   assert.equal(new Set([...secret.values()].map((c) => c.name)).size, 5);
-  const dms = w.guild.log.filter(([t]) => t === 'dm');
-  assert.equal(dms.length, 4, 'الخاص المقفل ما وصله شي');
-  for (const [, uid, p] of dms) {
-    const c = secret.get(uid);
-    const txt = JSON.stringify(p.embeds[0].toJSON());
-    assert.ok(txt.includes(c.name) && txt.includes(c.flagEmoji), 'دولته هو بالضبط');
-    for (const [other, oc] of secret) if (other !== uid) assert.ok(!txt.includes(oc.name), 'ما فيه دولة غيره');
-  }
-  assert.deepEqual(game.dmFailed, [w.members[4].id]);
-  assert.ok(game.alive, 'الخاص المقفل ما وقف اللعبة');
+  assert.equal(w.guild.log.filter(([t]) => t === 'dm').length, 0, 'ولا رسالة خاصة');
+  assert.match(JSON.stringify(sendsOf(w).map((x) => x[2])), /تم توزيع الدول سراً على الجميع/);
 
-  // 2) القائمة: كل المتبقين بمن فيهم صاحب الدور، والعلم مخفي
-  let menus = game.roundMessage.payload.components.map((c) => c.toJSON().components[0]);
-  let options = menus.flatMap((m) => m.options);
+  // 2) القائمة: الدول الباقية بأعلامها (أبجدياً)، بدون أسماء لاعبين، والقيم رموز عشوائية
+  const menus = game.roundMessage.payload.components.map((c) => c.toJSON().components[0]);
+  const options = menus.flatMap((m) => m.options);
   assert.equal(options.length, 5);
-  assert.ok(options.some((o) => o.value === game.chooserId && /\(أنت\)/.test(o.label)), 'صاحب الدور يقدر يختار نفسه');
-  assert.ok(options.every((o) => o.emoji.name === '🏳️'), 'العلم مخفي بالقائمة');
+  const names = [...secret.values()].map((c) => `${c.flagEmoji} ${c.name}`);
+  assert.deepEqual(options.map((o) => o.label).sort(), names.slice().sort(), 'كل خيار = دولة');
+  const sortedNames = [...secret.values()].sort((x, y) => x.name.localeCompare(y.name, 'ar')).map((c) => `${c.flagEmoji} ${c.name}`);
+  assert.deepEqual(options.map((o) => o.label), sortedNames, 'مرتبة أبجدياً (مو بترتيب اللاعبين)');
+  for (const m of w.members) {
+    assert.ok(!options.some((o) => o.label.includes(m.user.username) || o.value === m.id || o.value.includes(m.id)), 'ما فيه أسماء ولا معرّفات لاعبين');
+  }
+  const board = game.roundMessage.payload.embeds[0].toJSON().fields.find((f) => f.name.startsWith('🌍 الدول الباقية'));
+  assert.ok(board, 'رسالة الجولة تعرض الدول الباقية');
+  assert.equal(board.value, sortedNames.join(' · '));
 
   // غير صاحب الدور ما يقدر
   const notChooser = w.members.find((m) => m.id !== game.chooserId);
-  let i = btn(w, notChooser, `dl:pick:${game.id}:${game.round}`, [notChooser.id]);
+  let i = pickBtn(w, notChooser, game, notChooser.id);
   await dispatch(i);
   assert.ok(isEphemeralReply(i));
   assert.match(lastPayload(i).text, /ليس دورك الآن/);
   assert.equal(game.players.size, 5);
+  // رمز مزوّر (مثلاً معرّف لاعب) ← مرفوض
+  i = btn(w, member(w, game.chooserId), `dl:pick:${game.id}:${game.round}`, [notChooser.id]);
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /اختيار غير صالح/);
+  assert.equal(game.players.size, 5);
 
-  // 3) صاحب الدور يختار نفسه ← يُقصى فوراً + إعلان يكشف دولته
+  // 3) صاحب الدور يختار دولته هو (بدون ما يدري) ← يُقصى هو + إعلان يكشف دولته
   const selfPicker = member(w, game.chooserId);
-  i = btn(w, selfPicker, `dl:pick:${game.id}:${game.round}`, [selfPicker.id]);
+  i = pickBtn(w, selfPicker, game, selfPicker.id);
   await dispatch(i);
   assert.equal(lastPayload(i).type, 'update');
-  assert.match(lastPayload(i).text, /أقصى نفسه بنفسه/);
+  assert.match(lastPayload(i).text, /وطلعت دولته هو/);
   assert.equal(game.players.has(selfPicker.id), false, 'انقصى فوراً');
   assert.deepEqual(game.eliminated[0], { id: selfPicker.id, name: selfPicker.user.username, by: null, reason: 'self' });
   await waitFor(() => announcements(w).length === 1, 2000, 'إعلان الإقصاء');
   let ann = announcements(w)[0][2];
   let annText = JSON.stringify(ann.embeds[0].toJSON());
   const c1 = secret.get(selfPicker.id);
-  assert.equal(ann.content, `💥 <@${selfPicker.id}>`, 'منشن فعلي');
+  assert.equal(ann.content, `💥 <@${selfPicker.id}>`, 'منشن صاحب الدولة');
   assert.deepEqual(ann.allowedMentions, { users: [selfPicker.id] });
   assert.ok(annText.includes(`# ${c1.flagEmoji} ${c1.name}`), 'العلم والدولة بعنوان كبير');
-  assert.match(annText, /أقصى نفسه بنفسه/);
+  assert.match(annText, /أقصى دولته هو بنفسه/);
   assert.equal(ann.embeds[0].toJSON().image.url, c1.flagImageUrl, 'صورة العلم');
-
-  // 4) الجولة الجاية: صاحب الدور يقصي غيره ← الإعلان يذكر مين أقصاه
+  // الدولة المُقصاة تنشال من القائمة واللوحة
   await waitFor(() => game.chooserId, 3000, 'الدور الثاني');
+  const opts2 = game.roundMessage.payload.components.flatMap((c) => c.toJSON().components[0].options);
+  assert.equal(opts2.length, 4);
+  assert.ok(!opts2.some((o) => o.label.includes(c1.name)));
+
+  // 4) صاحب الدور يقصي دولة غيره ← الإعلان يكشف صاحبها ومن أقصاها
   const chooser2 = member(w, game.chooserId);
   const target2 = [...game.players.keys()].find((id) => id !== chooser2.id);
-  i = btn(w, chooser2, `dl:pick:${game.id}:${game.round}`, [target2]);
+  i = pickBtn(w, chooser2, game, target2);
   await dispatch(i);
-  assert.match(lastPayload(i).text, /أقصى/);
+  assert.match(lastPayload(i).text, new RegExp(`أقصى دولة ${secret.get(target2).flagEmoji} ${secret.get(target2).name} — وكانت دولة`));
   await waitFor(() => announcements(w).length === 2, 2000, 'إعلان ثاني');
   ann = announcements(w)[1][2];
   annText = JSON.stringify(ann.embeds[0].toJSON());
   assert.ok(annText.includes(secret.get(target2).name));
-  assert.ok(annText.includes(`أقصاه <@${chooser2.id}>`), 'يذكر مين أقصاه');
+  assert.ok(annText.includes(`أقصاها <@${chooser2.id}>`), 'يذكر مين أقصاها');
   assert.equal(ann.content, `💥 <@${target2}>`);
 
-  // باقي الجولات لين يبقى واحد
+  // باقي الجولات لين تبقى دولة وحدة
   while (game.alive && game.players.size > 1) {
     await waitFor(() => game.chooserId || !game.alive, 3000, 'دور');
     if (!game.alive) break;
     const ch = member(w, game.chooserId);
     const t = [...game.players.keys()].find((id) => id !== ch.id);
-    await dispatch(btn(w, ch, `dl:pick:${game.id}:${game.round}`, [t]));
+    await dispatch(pickBtn(w, ch, game, t));
     await waitFor(() => !game.chooserId || !game.alive, 1000);
   }
   await waitFor(() => !game.alive, 3000, 'نهاية');
@@ -283,21 +298,22 @@ test('الدول: دورة كاملة — توزيع بالخاص (والخاص 
   assert.equal(win[2].embeds[0].toJSON().thumbnail.url, wc.flagImageUrl);
   assert.equal(game.eliminated.length, 4);
   for (const e of game.eliminated) assert.ok(wText.includes(secret.get(e.id).name), 'دولة كل مُقصى بالملخص');
-  assert.match(wText, /`1`[^`]*أقصى نفسه/, 'الأول أقصى نفسه');
-  assert.match(wText, new RegExp(`أقصاه ${chooser2.user.username}`));
+  assert.match(wText, /`1`[^`]*أقصى دولته بنفسه/, 'الأول أقصى دولته');
+  assert.match(wText, new RegExp(`أقصاها ${chooser2.user.username}`));
 
-  // 6) السرية: قبل إعلان إقصاء أي لاعب، ما انعرض علناً أي شي من دولته
+  // 6) السرية: قبل إقصاء أي لاعب، ما فيه رسالة عامة تربط اسمه أو منشنه بدولته
   const log = w.guild.log;
   for (const [id, c] of secret) {
+    const m = member(w, id);
     const revealAt = log.findIndex(([t, , p]) => t === 'send' && (p.content === `💥 <@${id}>` || p.content === `🏆 <@${id}>`));
     assert.ok(revealAt > 0, 'انكشفت بالنهاية');
-    const before = publicLog({ guild: { log: log.slice(0, revealAt) } }).join('\n');
-    assert.ok(!before.includes(c.name), `اسم دولة ${id} ما ظهر قبل إقصائه`);
-    assert.ok(!before.includes(c.flagEmoji), `علم ${id} ما ظهر قبل إقصائه`);
-    assert.ok(!before.includes(c.flagImageUrl), `صورة علم ${id} ما ظهرت قبل إقصائه`);
+    for (const line of publicLog({ guild: { log: log.slice(0, revealAt) } })) {
+      for (const needle of [`<@${id}>`, m.user.username]) {
+        const re = new RegExp(`${needle}[^\\n"]{0,40}${c.name}|${c.name}[^\\n"]{0,40}${needle}`);
+        assert.ok(!re.test(line), `دولة ${m.user.username} ما انربطت فيه قبل إقصائه`);
+      }
+    }
   }
-  // ولا بأي رد تفاعل (تحديثات القائمة)
-  // (ردود التفاعلات = نفس roundPayload اللي فحصناها بالتعديلات)
 
   // 7) التنظيف
   assert.equal(countries.get(w.channel.id), null);
@@ -317,17 +333,17 @@ test('الدول: مهلة 15 ثانية — اختيار خلالها يقصي 
   assert.equal(game.round, r1, 'الدور باقي قبل المهلة');
   await waitFor(() => game.round > r1 && game.chooserId, 3000, 'دوران جديد');
   assert.ok(Date.now() - landedAt >= FAST.pickMs - 5);
-  assert.equal(game.players.size, 3, 'ما انقصى أحد');
+  assert.equal(game.players.size, 3, 'ما انقصت أي دولة');
   assert.equal(game.eliminated.length, 0);
   assert.equal(announcements(w).length, 0, 'ما فيه إعلان إقصاء');
-  assert.ok(w.guild.log.some(([t, , , p]) => t === 'editSent' && p && p.embeds && JSON.stringify(p.embeds[0].toJSON()).includes('ما انقصى أحد')));
+  assert.ok(w.guild.log.some(([t, , , p]) => t === 'editSent' && p && p.embeds && JSON.stringify(p.embeds[0].toJSON()).includes('ما انقصت أي دولة')));
 
   // اختيار من جولة قديمة ما يمشي، واختيار بالوقت يقصي فوراً
   const ch = member(w, game.chooserId);
   const other = w.members.find((m) => m.id !== ch.id);
-  await dispatch(btn(w, ch, `dl:pick:${game.id}:${r1}`, [other.id]));
+  await dispatch(pickBtn(w, ch, game, other.id, r1));
   assert.equal(game.players.size, 3);
-  await dispatch(btn(w, ch, `dl:pick:${game.id}:${game.round}`, [other.id]));
+  await dispatch(pickBtn(w, ch, game, other.id));
   assert.equal(game.players.size, 2);
   assert.equal(game.eliminated[0].by.id, ch.id);
   await waitFor(() => !game.alive, 3000, 'فائز');
@@ -347,9 +363,10 @@ test('الدول: مغادرة السيرفر — تُقصى تلقائياً و
   assert.equal(game.players.has(bystander.id), false);
   assert.equal(game.eliminated.at(-1).reason, 'left');
   const menu = game.roundMessage.payload.components[0].toJSON().components[0];
-  assert.ok(!menu.options.some((o) => o.value === bystander.id), 'انشال من قائمة الاختيار');
+  assert.equal(menu.options.length, 3, 'دولته انشالت من قائمة الاختيار');
+  assert.ok(!menu.options.some((o) => o.label.includes(secret.get(bystander.id).name)));
   await waitFor(() => announcements(w).length === 1, 2000);
-  assert.match(JSON.stringify(announcements(w)[0][2].embeds[0].toJSON()), /غادر السيرفر — مُقصى تلقائياً/);
+  assert.match(JSON.stringify(announcements(w)[0][2].embeds[0].toJSON()), /غادر السيرفر — دولته انقصت تلقائياً/);
   assert.ok(JSON.stringify(announcements(w)[0][2].embeds[0].toJSON()).includes(secret.get(bystander.id).name));
 
   // صاحب الدور يطلع ← دوران جديد
@@ -362,7 +379,7 @@ test('الدول: مغادرة السيرفر — تُقصى تلقائياً و
   // الباقي يختار ← فائز، والملخص فيه المغادرين
   const ch = member(w, game.chooserId);
   const t = [...game.players.keys()].find((id) => id !== ch.id);
-  await dispatch(btn(w, ch, `dl:pick:${game.id}:${game.round}`, [t]));
+  await dispatch(pickBtn(w, ch, game, t));
   await waitFor(() => !game.alive, 3000, 'فائز');
   const win = w.guild.log.filter(([ty, , p]) => ty === 'send' && p.embeds && JSON.stringify(p.embeds[0].toJSON()).includes('عندنا فائز')).pop();
   const wText = JSON.stringify(win[2].embeds[0].toJSON());
@@ -406,7 +423,7 @@ test('الدول + الروليت بالتوازي بقنوات مختلفة: ح
       if (!game.alive) break;
       const c = member(w, game.chooserId);
       const t = [...game.players.keys()].find((id) => id !== c.id);
-      await dispatch(btn(w, c, `${prefix}:pick:${game.id}:${game.round}`, [t], ch));
+      await dispatch(prefix === 'dl' ? pickBtn(w, c, game, t, game.round, ch) : btn(w, c, `${prefix}:pick:${game.id}:${game.round}`, [t], ch));
       await waitFor(() => !game.chooserId || !game.alive, 1000);
     }
   }
@@ -457,7 +474,7 @@ test('الدول: صورة العلم تنفحص — لو فشلت يظهر ال
   await waitFor(() => game.chooserId, 3000);
   const ch = member(w, game.chooserId);
   const secret = new Map(game.countries);
-  await dispatch(btn(w, ch, `dl:pick:${game.id}:${game.round}`, [ch.id]));
+  await dispatch(pickBtn(w, ch, game, ch.id));
   await waitFor(() => announcements(w).length === 1, 2000);
   const e = announcements(w)[0][2].embeds[0].toJSON();
   const c = secret.get(ch.id);
@@ -465,12 +482,7 @@ test('الدول: صورة العلم تنفحص — لو فشلت يظهر ال
   if (c.name === 'الكويت') assert.equal(e.image.url, c.flagImageUrl);
   else assert.equal(e.image, undefined, 'صورة فاشلة ← بدون صورة');
   countries.endGame(game, 'test');
-  // الخاص كمان: الصورة الفاشلة ما تنحط
-  for (const [, uid, p] of w.guild.log.filter(([t]) => t === 'dm')) {
-    const d = p.embeds[0].toJSON();
-    if (secret.get(uid).name === 'الكويت') assert.equal(d.thumbnail.url, secret.get(uid).flagImageUrl);
-    else assert.equal(d.thumbnail, undefined);
-  }
+  assert.equal(w.guild.log.filter(([t]) => t === 'dm').length, 0, 'ولا خاص');
 });
 
 // =================== الذاكرة ===================
@@ -522,12 +534,14 @@ test('الدول: التوقيتات الافتراضية = 30 ثانية للع
   assert.deepEqual(countries.DEFAULTS.spinDelays, roulette.DEFAULTS.spinDelays, 'نفس تأثير دوران الروليت');
   assert.equal(roulette.DEFAULTS.maxPlayers, 25, 'الروليت ما تغيّرت');
 
-  // 30 لاعب ← قائمتين اختيار بمعرّفات مختلفة وكل اللاعبين فيها
+  // 30 لاعب ← 30 دولة بقائمتين اختيار بمعرّفات مختلفة
   countries.configure({ countdownMs: 60_000 });
   const w = world(30);
   const { game, join } = await openLobby(w);
   await join(w.members);
   assert.equal(game.players.size, 30);
+  game.countries = countries.assignCountries([...game.players.keys()], COUNTRIES);
+  game.countryTokens = new Map([...game.countries.keys()].map((id, k) => [`t${k}`, id]));
   game.phase = 'running';
   game.round = 1;
   game.pickEndsAt = Date.now() + 1000;
@@ -546,10 +560,14 @@ test('الدول: التوقيتات الافتراضية = 30 ثانية للع
   assert.equal(game.players.has(w.members[29].id), false, 'الطرد من القائمة الثانية يشتغل');
   game.players.set(w.members[29].id, { id: w.members[29].id, name: 'x' });
   game.phase = 'running';
-  // اختيار من القائمة الثانية يشتغل
+  // اختيار دولة من القائمة الثانية يشتغل (عبر الزر، بالرمز)
   game.chooserId = w.members[0].id;
-  const r = countries.pick(game, w.members[0].id, w.members[29].id, '1');
-  assert.equal(r.ok, true);
+  const second = rows[1].options[0];
+  const owner = game.countryTokens.get(second.value);
+  const pi = btn(w, w.members[0], rows[1].custom_id, [second.value]);
+  await dispatch(pi);
+  assert.equal(lastPayload(pi).type, 'update');
+  assert.equal(game.players.has(owner), false, 'صاحب الدولة انقصى');
   countries.endGame(game, 'test');
   assert.equal(game.timers.size, 0);
 });
