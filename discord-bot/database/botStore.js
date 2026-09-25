@@ -62,7 +62,8 @@ function mapTicket(r) {
     id: toNum(r.id),
     panel_id: toNum(r.panel_id),
     created_at: toNum(r.created_at),
-    closed_at: toNum(r.closed_at)
+    closed_at: toNum(r.closed_at),
+    ai_paused: Number(r.ai_paused || 0) !== 0
   };
 }
 
@@ -128,6 +129,11 @@ const tickets = {
       [guildId, channelId, discordId, channelId, reason, now()]
     );
     return toNum(r.rows[0].id);
+  },
+  // إيقاف/تشغيل المساعد الذكي بتكت (زر "أريد التحدث مع فريق الدعم")
+  async setAiPaused(ticketId, paused) {
+    const r = await db.run('UPDATE tickets SET ai_paused = ? WHERE id = ?', [paused ? 1 : 0, ticketId]);
+    return r.changes > 0;
   },
   // إغلاق ذرّي: ينجح مرة وحدة فقط حتى لو ضغط شخصان "تأكيد" سوا
   async close(ticketId, closedBy, closeMode) {
@@ -215,7 +221,8 @@ const SETTINGS_DEFAULTS = Object.freeze({
   welcome_message_channel_id: null,
   welcome_message: null,
   link_protection: true,
-  spam_protection: true
+  spam_protection: true,
+  admin_news_channel_id: null
 });
 const SETTINGS_COLUMNS = Object.keys(SETTINGS_DEFAULTS);
 
@@ -226,7 +233,8 @@ function mapSettings(r) {
     welcome_message_channel_id: r.welcome_message_channel_id || null,
     welcome_message: r.welcome_message || null,
     link_protection: Number(r.link_protection) !== 0,
-    spam_protection: Number(r.spam_protection) !== 0
+    spam_protection: Number(r.spam_protection) !== 0,
+    admin_news_channel_id: r.admin_news_channel_id || null
   };
 }
 

@@ -48,6 +48,11 @@ services:
         value: https://ehsmaha-discord-api.onrender.com
       - key: ADMIN_IDS
         sync: false
+      # مفتاح Gemini للمساعد الذكي (مطلوب) — من aistudio.google.com/apikey
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
       - key: SITE_URL
         value: https://ehsmaha.com
       # سر Webhook البث — Render يولّده تلقائياً (انسخه للي يرسل الأحداث)

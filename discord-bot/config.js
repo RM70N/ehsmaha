@@ -10,7 +10,8 @@ const REQUIRED = {
   DISCORD_TOKEN: 'توكن البوت من Discord Developer Portal → Bot → Token',
   CLIENT_ID: 'Application ID للبوت (1552260327008247879)',
   API_BASE_URL: 'رابط طبقة الـAPI، مثال: https://ehsmaha-discord-api.onrender.com',
-  API_KEY: 'المفتاح السري المشترك بين البوت والـAPI (نفس قيمة API_KEY بخدمة الـAPI)'
+  API_KEY: 'المفتاح السري المشترك بين البوت والـAPI (نفس قيمة API_KEY بخدمة الـAPI)',
+  GEMINI_API_KEY: 'مفتاح Gemini للمساعد الذكي — من aistudio.google.com/apikey (Get API key)'
 };
 
 function readInt(name, fallback, { min = -Infinity, max = Infinity } = {}) {
@@ -73,7 +74,9 @@ function buildConfig() {
       healthPort: readInt('PORT', 0, { min: 0, max: 65535 }),
       streamPollSeconds: readInt('STREAM_POLL_SECONDS', 60, { min: 30, max: 600 }),
       streamMaxHours: readInt('STREAM_MAX_HOURS', 6, { min: 1, max: 48 }),
-      ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 })
+      ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 }),
+      aiMentionCooldownSeconds: readInt('AI_MENTION_COOLDOWN_SECONDS', 10, { min: 1, max: 600 }),
+      geminiTimeoutMs: readInt('GEMINI_TIMEOUT_MS', 20000, { min: 3000, max: 120000 })
     };
   } catch (err) {
     problems.push('- ' + err.message);
@@ -133,6 +136,9 @@ function buildConfig() {
     membersIntent,
     // Intent محتوى الرسائل (لكشف الروابط والرسائل المكررة بالحماية التلقائية)
     messageContentIntent,
+    // المساعد الذكي (Gemini) — التذاكر + المنشن. النموذج يتبدّل بـGEMINI_MODEL بدون تعديل كود
+    geminiApiKey: process.env.GEMINI_API_KEY.trim(),
+    geminiModel: (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim(),
     // الهوية البصرية — مكان واحد لكل الألوان
     colors: Object.freeze({
       primary: 0x1a0d33,  // بنفسجي غامق (الأساسي)

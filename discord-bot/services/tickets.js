@@ -9,7 +9,11 @@
 //   اختيار السبب ← حجز التكت بالقاعدة (فهرس فريد يمنع التكرار) ← روم خاص
 //   رسالة ترحيب بزر "إغلاق التكت"                    customId: tk:close:<ticketId>
 //   الإغلاق يطلب تأكيد                                 customId: tk:cfy|tk:cfn:<ticketId>
-//   التأكيد ← status=closed ← أرشفة (تصنيف "مغلق" بدون كتابة) أو حذف بعد مهلة
+//   التأكيد ← status=closed ← ملخص المساعد الذكي لقناة أخبار الأدمن ← أرشفة
+//   (تصنيف "مغلق" بدون كتابة) أو حذف بعد مهلة
+//
+// المساعد الذكي (services/aiAssistant.js): ترحيب "معك مساعد احسمها" بعد فتح
+// الروم، ويرد على رسائل صاحب التكت فقط، وملخص عند الإغلاق.
 //
 // مقاومة فقد البيانات (قاعدة مؤقتة انمسحت مع تحديث/إعادة تشغيل):
 //   • اللوحة ما تعتمد على سجلها: قناة اللوحة = القناة اللي انضغط فيها الزر.
@@ -34,6 +38,7 @@ const { loadConfig } = require('../config');
 const { checkAdminPermission } = require('../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../utils/permissions');
 const { logModeration } = require('../utils/moderation');
+const aiAssistant = require('./aiAssistant');
 
 const SUPPORT_ROLES_KEY = 'support_roles';
 const TICKET_BOT_PERMS = ['ViewChannel', 'SendMessages', 'EmbedLinks', 'ReadMessageHistory', 'ManageChannels', 'ManageRoles'];
@@ -123,6 +128,7 @@ async function resolveExistingOpen(guild, userId, originChannelId) {
       const ch = await fetchChannel(guild, existing.channel_id);
       if (ch) return { ticket: existing, channel: ch };
       await store.tickets.close(existing.id, 'system', 'missing-channel');
+      aiAssistant.forget(existing.channel_id);
       logger.info('تكت مفتوح قناته محذوفة — أُغلق تلقائياً', { ticketId: existing.id });
     } else if (Date.now() - existing.created_at < RESERVE_STALE_MS) {
       return { ticket: existing, channel: null, inProgress: true };
@@ -299,6 +305,15 @@ async function onReason(interaction, panelId) {
   } catch (err) {
     logger.warn('تعذّر إرسال رسالة ترحيب التكت', { ticketId, code: err.code });
   }
+  // أول رد بالروم: مساعد احسمها الذكي (+ زر التحويل لفريق الدعم)
+  await aiAssistant.startTicket(channel, {
+    id: ticketId,
+    guild_id: guild.id,
+    discord_id: interaction.user.id,
+    channel_id: channel.id,
+    reason: reason.value,
+    created_at: Date.now()
+  });
 
   logger.info('تكت جديد', { ticketId, guildId: guild.id, userId: interaction.user.id, channelId: channel.id, reason: reason.value });
   return respond.send(interaction, {
@@ -410,6 +425,11 @@ async function onCloseConfirm(interaction, confirmed) {
     details: { ticketId, mode: config.ticketCloseMode }
   });
 
+  // ملخص المحادثة لقناة أخبار الأدمن — **قبل** الأرشفة/الحذف. فشله ما يوقف الإغلاق.
+  await aiAssistant
+    .reportTicketClosed({ guild, channel, ticket, closedById: interaction.user.id })
+    .catch((err) => logger.warn('🤖 خطأ بملخص التكت', { ticketId, error: err }));
+
   let notes = [];
   if (channel) {
     if (config.ticketCloseMode === 'delete') {
@@ -465,5 +485,5 @@ module.exports = {
   handleComponent,
   sweepPendingDeletions,
   getSupportRoleIds,
-  _internal: { channelNameFor, resolveExistingOpen, archiveChannel, parseTopic, ticketForChannel }
+  _internal: { channelNameFor, resolveExistingOpen, archiveChannel, parseTopic, ticketForChannel, adoptFromChannel }
 };

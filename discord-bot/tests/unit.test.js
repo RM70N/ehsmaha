@@ -68,17 +68,23 @@ test('السجل يحجب التوكنات والمفاتيح', () => {
 test('التحقق من البيئة: رسالة واضحة بكل النواقص', () => {
   const backup = { ...process.env };
   try {
-    for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_BASE_URL', 'API_KEY', 'GUILD_ID', 'ADMIN_IDS']) delete process.env[k];
+    for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_BASE_URL', 'API_KEY', 'GEMINI_API_KEY', 'GUILD_ID', 'ADMIN_IDS']) delete process.env[k];
     process.env.ADMIN_IDS = '123,abc';
     assert.throws(buildConfig, (err) => {
       assert.equal(err.code, 'CONFIG_INVALID');
-      for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_BASE_URL', 'API_KEY', 'ADMIN_IDS']) assert.match(err.message, new RegExp(k));
+      for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_BASE_URL', 'API_KEY', 'GEMINI_API_KEY', 'ADMIN_IDS']) assert.match(err.message, new RegExp(k));
       return true;
     });
     Object.assign(process.env, {
-      DISCORD_TOKEN: 'x', CLIENT_ID: '1552260327008247879', API_BASE_URL: 'https://api.example.com/', API_KEY: 'k'.repeat(32), ADMIN_IDS: ''
+      DISCORD_TOKEN: 'x', CLIENT_ID: '1552260327008247879', API_BASE_URL: 'https://api.example.com/', API_KEY: 'k'.repeat(32), GEMINI_API_KEY: ' g-key ', ADMIN_IDS: ''
     });
+    delete process.env.GEMINI_MODEL;
     const cfg = buildConfig();
+    assert.equal(cfg.geminiApiKey, 'g-key');
+    assert.equal(cfg.geminiModel, 'gemini-2.5-flash', 'النموذج الافتراضي');
+    assert.equal(cfg.aiMentionCooldownSeconds, 10);
+    process.env.GEMINI_MODEL = 'gemini-2.5-flash-lite';
+    assert.equal(buildConfig().geminiModel, 'gemini-2.5-flash-lite', 'تبديل النموذج من البيئة');
     assert.equal(cfg.apiBaseUrl, 'https://api.example.com');
     assert.equal(cfg.commandCooldownMs, 3000);
     assert.equal(cfg.apiTimeoutMs, 5000);

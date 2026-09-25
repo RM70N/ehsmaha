@@ -1,12 +1,19 @@
 'use strict';
 
-// كل رسالة بالسيرفر ← الحماية التلقائية (روابط/سبام) — services/autoMod.js
-// ثم الردود التلقائية — services/autoReply.js
-// كشف الروابط والتكرار يحتاج Message Content Intent؛ سبام السرعة يشتغل بدونه.
+// كل رسالة بالسيرفر:
+//   1) الحماية التلقائية (روابط/سبام) — services/autoMod.js
+//   2) مساعد احسمها الذكي — services/aiAssistant.js:
+//        • قناة تكت دعم نشط ← رسائل صاحب التكت لـGemini (بسياق المحادثة)
+//        • منشن البوت بقناة عادية ← سؤال مستقل
+//   3) الردود التلقائية — services/autoReply.js (لو المساعد ما رد)
+// كشف الروابط والتكرار ورسائل التكت يحتاج Message Content Intent؛ سبام السرعة
+// ورسائل المنشن (ديسكورد يرسل محتواها للبوت دايماً) تشتغل بدونه.
 
 const { Events } = require('discord.js');
 const autoMod = require('../services/autoMod');
 const autoReply = require('../services/autoReply');
+const aiAssistant = require('../services/aiAssistant');
+const logger = require('../utils/logger');
 
 let started = false;
 
@@ -21,6 +28,18 @@ module.exports = {
     // الحماية أولاً: لو الرسالة انحذفت/صاحبها انكتم، ما نرد عليها
     const punished = await autoMod.handleMessage(message, { contentIntent: !!(ctx && ctx.messageContentIntent) });
     if (punished) return;
+
+    try {
+      // قناة تكت: المساعد (أو تجاهل لرسائل الدعم) — والمنشن داخلها ما ينعالج مرتين
+      const inTicket = await aiAssistant.handleTicketMessage(message);
+      if (inTicket === true) return;
+      if (inTicket === null) {
+        const botUser = message.client && message.client.user;
+        if (await aiAssistant.handleMention(message, botUser)) return;
+      }
+    } catch (err) {
+      logger.error('🤖 خطأ بمعالجة رسالة المساعد', { guildId: message.guild.id, channelId: message.channel && message.channel.id, error: err });
+    }
     await autoReply.handleMessage(message);
   }
 };

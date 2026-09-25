@@ -101,7 +101,7 @@ function makeMember(guild, { id = nextId(), username = 'user' + id.slice(-4), ro
 }
 
 // رسالة عضو حقيقية (للحماية التلقائية): تنحذف من القناة وتسجّل بالـlog
-function makeUserMessage(channel, member, content = '', { client = null } = {}) {
+function makeUserMessage(channel, member, content = '', { client = null, mentions = [] } = {}) {
   const guild = channel.guild;
   const msg = {
     id: nextId(),
@@ -115,6 +115,8 @@ function makeUserMessage(channel, member, content = '', { client = null } = {}) 
     webhookId: null,
     createdTimestamp: Date.now(),
     client: client || { user: guild.members.me.user },
+    // منشن: users اللي انذكروا بالرسالة (نفس سلوك discord.js مع ignoreEveryone/ignoreRoles/ignoreRepliedUser)
+    mentions: { users: new Map(mentions.map((u) => [u.id, u])), has: (u) => mentions.some((m) => m.id === (u && u.id)) },
     async reply(payload) {
       guild.log.push(['messageReply', channel.id, msg.id, payload]);
       return { id: nextId(), payload };
