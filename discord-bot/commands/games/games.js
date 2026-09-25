@@ -33,7 +33,7 @@ function buildGamesList(list = games) {
 }
 
 module.exports = {
-  data: new SlashCommandBuilder().setName('العاب').setDescription('🎮 قائمة الألعاب اللي تقدر تلعبها داخل ديسكورد'),
+  data: new SlashCommandBuilder().setName('العاب').setDescription('🎮 قائمة ألعاب ديسكورد (روليت الإقصاء، لعبة الدول، …) وطريقة لعب كل وحدة'),
   async execute(interaction) {
     return respond.send(interaction, buildGamesList());
   },
