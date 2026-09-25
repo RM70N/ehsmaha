@@ -1,7 +1,7 @@
 'use strict';
 
-// مصنع أوامر ألعاب الإقصاء (/روليت، /دول، …): أمر الفتح + معالج الأزرار
-// والقوائم، مشترك لكل لعبة مبنية على services/eliminationGame.js.
+// مصنع أوامر الألعاب الجماعية (/روليت، /دول، /قناص…): أمر الفتح + أزرار
+// اللوبي، مشترك لكل لعبة مبنية على services/lobbyManager.js.
 // أزرار اللوبي والقوائم بمعرّفات فيها رقم اللعبة (<prefix>:<action>:<gameId>) —
 // زر من لعبة قديمة ما يأثر على لعبة جديدة بنفس القناة.
 
@@ -62,7 +62,8 @@ function createGameCommand(engine, { name, description }) {
     }
   }
 
-  // <prefix>:join|leave|kick|kicksel:<gameId>   ·   <prefix>:pick:<gameId>:<round>[:<part>]
+  // <prefix>:join|leave|kick|kicksel:<gameId> — مشتركة لكل الألعاب (lobbyManager)
+  // غيرها ← engine.handleAction (مثل <prefix>:pick:<gameId>:<round> بالروليت)
   async function onButton(interaction, args) {
     if (!interaction.inGuild()) return;
     const [action, gameId, round] = args;
@@ -137,18 +138,9 @@ function createGameCommand(engine, { name, description }) {
         return refreshLobby(game);
       }
 
-      if (action === 'pick') {
-        const targetId = interaction.values && interaction.values[0];
-        const r = engine.pick(game, interaction.user.id, targetId, round);
-        if (!r.ok) {
-          const msg = {
-            NOT_YOUR_TURN: 'ليس دورك الآن ⏳',
-            EXPIRED: 'انتهى وقت هذا الاختيار.',
-            BAD_TARGET: 'اختيار غير صالح — اختر لاعب ثاني.'
-          }[r.reason];
-          return ephemeral(interaction, msg);
-        }
-        return interaction.update(r.payload);
+      // أزرار/قوائم خاصة باللعبة (اختيار الضحية، المخابئ، الأسلحة…)
+      if (typeof engine.handleAction === 'function') {
+        await engine.handleAction(interaction, action, args, game);
       }
     } catch (err) {
       if (IGNORED_CODES.includes(err && err.code)) return undefined;
