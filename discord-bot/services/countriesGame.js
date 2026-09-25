@@ -148,34 +148,14 @@ function dmPayload(game, country, image) {
 }
 
 // ---------------- الخاص ----------------
-async function resolveUser(game, player) {
-  if (player.user && typeof player.user.send === 'function') return player.user;
-  const guild = game.channel && game.channel.guild;
-  if (!guild) return null;
-  const m = await guild.members.fetch(player.id).catch(() => null);
-  if (!m) return null;
-  if (m.user && typeof m.user.send === 'function') return m.user;
-  const fromCol = typeof m.get === 'function' ? m.get(player.id) : null; // Collection
-  return fromCol && fromCol.user ? fromCol.user : null;
-}
-
-function withTimeout(promise, ms) {
-  let t;
-  return Promise.race([promise, new Promise((_, rej) => (t = setTimeout(() => rej(Object.assign(new Error('DM timeout'), { code: 'TIMEOUT' })), ms)))]).finally(() =>
-    clearTimeout(t)
-  );
-}
-
 // توصيل الدول بالخاص — فشل الخاص (مقفل مثلاً) يُسجَّل بالـlog بس وما يوقف اللعبة
 async function sendCountryDms(game) {
   const s = engine.settings();
   const results = await Promise.allSettled(
     [...game.players.values()].map(async (p) => {
       const country = countryOf(game, p.id);
-      const user = await resolveUser(game, p);
-      if (!user) throw Object.assign(new Error('user not found'), { code: 'NO_USER' });
       const image = await flagImage(country);
-      await withTimeout(user.send(dmPayload(game, country, image)), s.dmTimeoutMs);
+      await engine.sendDm(game, p.id, dmPayload(game, country, image), s.dmTimeoutMs);
       return p.id;
     })
   );
