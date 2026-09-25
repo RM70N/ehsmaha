@@ -157,6 +157,12 @@ function makeChannel(guild, { id = nextId(), name = 'general', type = ChannelTyp
         url: `https://discord.com/channels/${guild.id}/${id}/x`,
         async delete() {
           guild.log.push(['deleteSent', id, msg.id]);
+        },
+        async edit(p) {
+          if (guild.failNext === 'edit') { guild.failNext = null; const e = new Error('Unknown Message'); e.code = 10008; throw e; }
+          msg.payload = p;
+          guild.log.push(['editSent', id, msg.id, p]);
+          return msg;
         }
       };
       guild.log.push(['send', id, payload]);
@@ -313,6 +319,14 @@ function makeInteraction({ guild, member, kind = 'command', commandName, customI
     },
     log,
     async reply(p) { this.replied = true; log.push(['reply', p]); },
+    async fetchReply() {
+      const self = this;
+      const msg = {
+        id: 'reply-' + self.id,
+        async edit(p) { log.push(['replyEdit', p]); guild.log.push(['replyEdit', self.channelId, p]); return msg; }
+      };
+      return msg;
+    },
     async deferReply(p) { this.deferred = true; log.push(['deferReply', p || {}]); },
     async deferUpdate() { this.deferred = true; log.push(['deferUpdate']); },
     async editReply(p) { this.replied = true; log.push(['editReply', p]); },
