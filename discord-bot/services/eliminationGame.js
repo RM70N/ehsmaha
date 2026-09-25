@@ -8,6 +8,9 @@
 //
 // الـspec (فوق حقول lobbyManager):
 //   wheelTitle, allowSelfPick, optionEmoji, pickPlaceholder, choosePrompt(game, chooserId)
+//   pickOptions(game, chooserId) : خيارات قائمة صاحب الدور (الافتراضي: اللاعبين)
+//   resolvePick(game, value)     : قيمة الخيار ← معرّف اللاعب المُقصى (الافتراضي: نفس القيمة)
+//   roundFields(game)            : حقول إضافية برسالة الجولة
 //   startText(game), skipNote(game, chooser), pickNote(game, by, target)
 //   outLabel(game, entry), orderLine(game, entry, index)
 //   winnerTitle, winnerText(game, winner), winnerFields(game, winner), winnerThumbnail(game, winner)
@@ -89,14 +92,18 @@ function createEliminationGame(spec) {
   }
 
   // قوائم الاختيار: 25 خيار بكل قائمة، لين 5 قوائم (بترتيب الانضمام فقط)
-  function pickMenus(game, chooserId, disabled) {
-    const options = names(game)
+  function defaultPickOptions(game, chooserId) {
+    return names(game)
       .filter((p) => S.allowSelfPick || p.id !== chooserId)
       .map((p) => ({
         label: (p.id === chooserId ? `${p.name} (أنت)` : p.name).slice(0, 100),
         value: p.id,
         emoji: S.optionEmoji
       }));
+  }
+
+  function pickMenus(game, chooserId, disabled) {
+    const options = (S.pickOptions || defaultPickOptions)(game, chooserId);
     const rows = [];
     for (let i = 0; i < options.length && rows.length < MAX_MENUS; i += MENU_SIZE) {
       const chunk = options.slice(i, i + MENU_SIZE);
@@ -136,6 +143,8 @@ function createEliminationGame(spec) {
       title: `${S.wheelTitle} — الجولة ${game.round}`,
       description: body
     });
+    const extra = hook('roundFields', game);
+    if (Array.isArray(extra) && extra.length) embed.addFields(...extra);
     const out = eliminatedLine(game);
     if (out) embed.addFields(eb.field(`💀 خرجوا (${game.eliminated.length})`, out, false));
     const components = choosing ? pickMenus(game, pointerId, finalChoice) : [];
@@ -323,13 +332,14 @@ function createEliminationGame(spec) {
   // <prefix>:pick:<gameId>:<round>[:<part>] — قائمة صاحب الدور
   async function handleAction(interaction, action, args, game) {
     if (action !== 'pick') return false;
-    const targetId = interaction.values && interaction.values[0];
+    const value = interaction.values && interaction.values[0];
+    const targetId = S.resolvePick ? S.resolvePick(game, value) : value;
     const r = pick(game, interaction.user.id, targetId, args[2]);
     if (!r.ok) {
       const msg = {
         NOT_YOUR_TURN: 'ليس دورك الآن ⏳',
         EXPIRED: 'انتهى وقت هذا الاختيار.',
-        BAD_TARGET: 'اختيار غير صالح — اختر لاعب ثاني.'
+        BAD_TARGET: 'اختيار غير صالح (يمكن انقصى قبل شوي) — اختر من القائمة الحالية.'
       }[r.reason];
       await interaction.reply({ embeds: [eb.warning(msg)], flags: MessageFlags.Ephemeral }).catch(() => null);
       return true;

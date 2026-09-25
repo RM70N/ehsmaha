@@ -1,18 +1,22 @@
 'use strict';
 
-// "لعبة الدول" (/دول) — نفس مراحل روليت الإقصاء (المحرّك المشترك
-// services/eliminationGame.js) مع إضافات خاصة:
+// "لعبة الدول" (/دول) — نفس فكرة لعبة الدول بموقع احسمها، مبنية على محرّك
+// الإقصاء المشترك (services/eliminationGame.js):
 //   • أول ما تبدأ الجولات: كل لاعب ياخذ دولة مختلفة عشوائياً (سحب بدون إرجاع
-//     من config/countries.js) وتوصله بالخاص.
-//   • الدول سرية: خريطة playerId → country بـgame.countries بالذاكرة فقط، وما
-//     تظهر بأي رسالة عامة إلا بعد إقصاء صاحبها.
-//   • صاحب الدور يقدر يختار نفسه، وكل إقصاء له إعلان بارز منفصل يكشف الدولة.
+//     من config/countries.js) — **سرية تماماً**: ما تنرسل لأحد (ولا حتى
+//     لصاحبها)، وما تظهر بأي رسالة عامة إلا بعد إقصائها.
+//   • الروليت يختار صاحب الدور، وهذا يختار **دولة** يقصيها من قائمة الدول
+//     الباقية (بدون أسماء لاعبين) — ولو طلعت دولته هو، أقصى نفسه!
+//   • قيم القائمة رموز عشوائية (مو معرّفات لاعبين) — فما يقدر أحد يربط دولة
+//     بلاعب حتى من بيانات الرسالة.
+//   • كل إقصاء له إعلان بارز يكشف الدولة وصاحبها ومن أقصاها.
 //   • الفائز ودولته + ترتيب الإقصاء بدول الكل مكشوفة.
 
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 const COUNTRIES = require('../config/countries');
-const { createEliminationGame, displayName } = require('./eliminationGame');
+const crypto = require('node:crypto');
+const { createEliminationGame, displayName, fitLines } = require('./eliminationGame');
 
 // ---------------- قائمة الدول ----------------
 const isHttpsUrl = (u) => {
@@ -109,9 +113,31 @@ const countryOf = (game, id) => (game.countries && game.countries.get(id)) || nu
 const countryText = (c) => (c ? `${c.flagEmoji} ${c.name}` : '🏳️ —');
 
 function howOut(entry) {
-  if (entry.reason === 'self') return '😱 أقصى نفسه بنفسه!';
-  if (entry.reason === 'left') return '🚪 غادر السيرفر — مُقصى تلقائياً';
-  return `🎯 أقصاه <@${entry.by.id}>`;
+  if (entry.reason === 'self') return '😱 أقصى دولته هو بنفسه — ما كان يدري إنها دولته!';
+  if (entry.reason === 'left') return '🚪 غادر السيرفر — دولته انقصت تلقائياً';
+  return `🎯 أقصاها <@${entry.by.id}>`;
+}
+
+// الدول الباقية مرتبة أبجدياً (مستقل تماماً عن ترتيب اللاعبين — ما يكشف مين صاحب أي دولة)
+function activeCountries(game) {
+  const out = [];
+  for (const [token, id] of game.countryTokens || []) {
+    if (!game.players.has(id)) continue;
+    const c = countryOf(game, id);
+    if (c) out.push({ token, country: c });
+  }
+  return out.sort((a, b) => a.country.name.localeCompare(b.country.name, 'ar'));
+}
+
+// رمز عشوائي لكل دولة بالجولة (قيمة القائمة) ← صاحبها بالذاكرة فقط
+function issueTokens(game) {
+  game.countryTokens = new Map();
+  for (const id of game.countries.keys()) {
+    let t;
+    do t = crypto.randomBytes(4).toString('hex');
+    while (game.countryTokens.has(t));
+    game.countryTokens.set(t, id);
+  }
 }
 
 function eliminationPayload(game, entry, image) {
@@ -121,7 +147,7 @@ function eliminationPayload(game, entry, image) {
     title: '🌍 لعبة الدول — إقصاء! 💥',
     description:
       `# ${countryText(c)}\n` +
-      `<@${entry.id}> **خرج من اللعبة**، وانكشفت دولته أخيراً!\n\n` +
+      `انقصت دولة **${c ? c.name : '—'}** — وانكشف صاحبها: <@${entry.id}> **خرج من اللعبة!**\n\n` +
       `**${howOut(entry)}**\n\n` +
       `👥 المتبقين: **${game.players.size}**`,
     image: image || undefined
@@ -129,50 +155,9 @@ function eliminationPayload(game, entry, image) {
   embed.addFields(
     eb.field('💀 المُقصى', `<@${entry.id}>`, true),
     eb.field('🌍 دولته', countryText(c), true),
-    eb.field('⚔️ الطريقة', entry.reason === 'picked' ? `أقصاه <@${entry.by.id}>` : entry.reason === 'self' ? 'أقصى نفسه' : 'غادر السيرفر', true)
+    eb.field('⚔️ الطريقة', entry.reason === 'picked' ? `أقصاها <@${entry.by.id}>` : entry.reason === 'self' ? 'أقصى دولته بنفسه' : 'غادر السيرفر', true)
   );
   return { content: `💥 <@${entry.id}>`, embeds: [embed], allowedMentions: { users: [entry.id] } };
-}
-
-function dmPayload(game, country, image) {
-  const embed = eb.brand({
-    tone: 'gold',
-    title: '🌍 لعبة الدول — دولتك السرية',
-    description:
-      `# ${countryText(country)}\n` +
-      `هذي دولتك بالجولة الحالية بـ<#${game.channelId}> 🤫\n` +
-      '**لا تكشفها لأحد!** دولتك تنكشف للكل بس لما تنقصى.\n\nبالتوفيق 🍀 — ehsmaha.com',
-    thumbnail: image || undefined
-  });
-  return { embeds: [embed] };
-}
-
-// ---------------- الخاص ----------------
-// توصيل الدول بالخاص — فشل الخاص (مقفل مثلاً) يُسجَّل بالـlog بس وما يوقف اللعبة
-async function sendCountryDms(game) {
-  const s = engine.settings();
-  const results = await Promise.allSettled(
-    [...game.players.values()].map(async (p) => {
-      const country = countryOf(game, p.id);
-      const image = await flagImage(country);
-      await engine.sendDm(game, p.id, dmPayload(game, country, image), s.dmTimeoutMs);
-      return p.id;
-    })
-  );
-  const failed = [];
-  results.forEach((r, i) => {
-    if (r.status === 'rejected') {
-      const p = [...game.players.values()][i];
-      failed.push(p.id);
-      logger.warn('الدول: تعذّر إرسال الدولة بالخاص (الخاص مقفل؟) — اللعبة مستمرة', {
-        channelId: game.channelId,
-        userId: p && p.id,
-        code: r.reason && r.reason.code
-      });
-    }
-  });
-  game.dmFailed = failed;
-  return failed;
 }
 
 // ---------------- المحرّك ----------------
@@ -184,50 +169,59 @@ const engine = createEliminationGame({
   title: '🌍 لعبة الدول',
   wheelTitle: '🌍 لعبة الدول',
   lobbyIntro:
-    'اضغط **انضمام** وادخل اللعبة! أول ما تبدأ، كل لاعب توصله **دولة سرية بالخاص** 🤫\n' +
-    'كل جولة الروليت يختار لاعب، وهذا اللاعب يختار مين يُقصى (حتى نفسه!) — ودولة المُقصى تنكشف للكل. **آخر واحد يبقى يفوز 🏆**',
+    'اضغط **انضمام** وادخل اللعبة! أول ما تبدأ، كل لاعب ياخذ **دولة سرية** — محد يعرف دولة أحد (ولا حتى دولته!) 🤫\n' +
+    'كل جولة الروليت يختار لاعب، وهذا اللاعب يختار **دولة** يقصيها — ولو طلعت دولته هو، أقصى نفسه! **آخر دولة تبقى تفوز 🏆**',
   defaults: {
     maxPlayers: 50, // قائمتين اختيار (25 + 25) — وأقل من عدد الدول، فما تتكرر دولة
     afterPickMs: 3500, // وقت كافي لقراءة إعلان الإقصاء قبل الدوران الجاي
-    dmTimeoutMs: 5000,
     imageTimeoutMs: 3000,
     countries: COUNTRIES,
     imageCheck: null
   },
-  allowSelfPick: true,
-  optionEmoji: '🏳️', // العلم مخفي — ما ينكشف إلا بعد الإقصاء
-  pickPlaceholder: 'اختر مين يُقصى (تقدر تختار نفسك)',
-  choosePrompt: () => 'اختر مين يُقصى من القائمة تحت (حتى نفسك!)',
+  allowSelfPick: true, // الدول مجهولة — صاحب الدور ممكن يقصي دولته بدون ما يدري
+  pickPlaceholder: 'اختر دولة تقصيها',
+  choosePrompt: () => 'اختر **دولة** تقصيها من القائمة تحت — وانتبه، ممكن تكون دولتك! 😬',
   startText: (game) =>
-    `بدأت اللعبة بـ **${game.players.size}** لاعبين! 📩 كل لاعب وصلته دولته السرية بالخاص — لا تكشفها لأحد 🤫\nالروليت يدور... 🎲`,
+    `🌍 تم توزيع الدول سراً على الجميع! **${game.players.size}** دولة بالمعركة — محد يعرف دولة مين 🤫\nالروليت يدور... 🎲`,
+  // قائمة صاحب الدور: الدول الباقية بأعلامها (بدون أسماء لاعبين، والقيم رموز عشوائية)
+  pickOptions: (game) =>
+    activeCountries(game).map(({ token, country }) => ({ label: `${country.flagEmoji} ${country.name}`.slice(0, 100), value: token })),
+  resolvePick: (game, value) => (game.countryTokens && game.countryTokens.get(String(value))) || null,
+  roundFields: (game) => {
+    const list = activeCountries(game);
+    if (!list.length) return [];
+    return [eb.field(`🌍 الدول الباقية (${list.length})`, fitLines(list.map(({ country }) => `${country.flagEmoji} ${country.name}`), 1000).replace(/\n/g, ' · '), false)];
+  },
   skipNote: (game, chooser) =>
-    `⌛ ${chooser ? displayName(chooser) : 'اللاعب'} ما اختار خلال ${Math.round(engine.settings().pickMs / 1000)} ثانية — **ما انقصى أحد**، والروليت يدور من جديد 🎲`,
-  pickNote: (game, by, target) =>
-    by.id === target.id ? `💥 **${displayName(by)}** أقصى نفسه بنفسه! 😱` : `💥 **${displayName(by)}** أقصى **${displayName(target)}**!`,
+    `⌛ ${chooser ? displayName(chooser) : 'اللاعب'} ما اختار خلال ${Math.round(engine.settings().pickMs / 1000)} ثانية — **ما انقصت أي دولة**، والروليت يدور من جديد 🎲`,
+  pickNote: (game, by, target) => {
+    const c = countryText(countryOf(game, target.id));
+    return by.id === target.id
+      ? `😱 **${displayName(by)}** أقصى دولة ${c} — وطلعت دولته هو!`
+      : `💥 **${displayName(by)}** أقصى دولة ${c} — وكانت دولة **${displayName(target)}**!`;
+  },
   // المُقصين دولهم انكشفت، فعادي تظهر جنبهم
   outLabel: (game, e) => `~~${displayName(e)}~~ ${countryOf(game, e.id) ? countryOf(game, e.id).flagEmoji : ''}`.trimEnd(),
   orderLine: (game, e, i) => {
-    const how = e.reason === 'self' ? 'أقصى نفسه' : e.reason === 'left' ? 'مُقصى تلقائياً (غادر السيرفر)' : `أقصاه ${displayName(e.by)}`;
+    const how = e.reason === 'self' ? 'أقصى دولته بنفسه' : e.reason === 'left' ? 'مُقصى تلقائياً (غادر السيرفر)' : `أقصاها ${displayName(e.by)}`;
     return `\`${i + 1}\` ${displayName(e)} — ${countryText(countryOf(game, e.id))} — ${how}`;
   },
   winnerTitle: '🏆 لعبة الدول — عندنا فائز!',
   winnerText: (game, w) =>
-    `🎉 مبروك <@${w.id}>! صمدت لآخر اللعبة وفزت 👑\n\n# ${countryText(countryOf(game, w.id))}\nهذي كانت دولتك السرية 🤫\n\nالعب ألعاب أكثر على ehsmaha.com`,
+    `🎉 مبروك <@${w.id}>! صمدت لآخر اللعبة وفزت 👑\n\n# ${countryText(countryOf(game, w.id))}\nآخر دولة صامدة — وكانت دولتك السرية 🤫\n\nالعب ألعاب أكثر على ehsmaha.com`,
   winnerFields: (game, w) => [eb.field('🌍 دولة الفائز', countryText(countryOf(game, w.id)), true)],
   winnerThumbnail: (game, w) => cachedFlagImage(countryOf(game, w.id)),
 
   onCreate(game) {
-    game.countries = new Map(); // playerId -> country (سري)
-    game.dmFailed = [];
+    game.countries = new Map(); // playerId -> country (سري — ما ينرسل لأحد)
+    game.countryTokens = new Map(); // رمز عشوائي -> playerId (قيم قائمة الإقصاء)
   },
   async onStart(game) {
     const s = engine.settings();
     game.countries = assignCountries([...game.players.keys()], s.countries, s.random);
-    try {
-      await sendCountryDms(game);
-    } catch (err) {
-      logger.warn('الدول: خطأ بإرسال الدول بالخاص', { channelId: game.channelId, error: err });
-    }
+    issueTokens(game);
+    // تجهيز صور الأعلام مسبقاً (عشان إعلان الإقصاء يطلع فوري) — بدون انتظار
+    for (const c of game.countries.values()) checkFlagImage(c.flagImageUrl).catch(() => null);
   },
   async onEliminated(game, entry) {
     if (!game.alive) return;
@@ -249,7 +243,7 @@ const engine = createEliminationGame({
   onEnd(game) {
     // الحالة السرية ما تبقى بالذاكرة بعد النهاية (الفائز انعلن قبلها)
     if (game.countries) game.countries.clear();
-    game.dmFailed = [];
+    if (game.countryTokens) game.countryTokens.clear();
   }
 });
 
@@ -258,6 +252,6 @@ module.exports = Object.assign(engine, {
   normalizeCountries,
   checkFlagImage,
   eliminationPayload,
-  dmPayload,
+  activeCountries,
   _images: imageCache
 });
