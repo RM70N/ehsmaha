@@ -300,6 +300,63 @@ test('الرد الطويل (أكثر من 2000 حرف) يتقسم لعدة رس
   assert.deepEqual(splitMessage('x'.repeat(4500)).map((p) => p.length), [1950, 1950, 600]);
 });
 
+// =================== الاقتراحات ===================
+
+test('الاقتراحات: المساعد يستقبلها بنفسه (بدون توجيه للموقع)، الوسم ما يظهر للمستخدم، والاقتراح يوصل قناة أخبار الأدمن', async () => {
+  const p = knowledge.buildSystemPrompt({ fresh: true });
+  assert.match(p, /الاقتراحات: استقبلها أنت بنفسك هنا/);
+  assert.match(p, /لا توجّه المستخدم لنموذج "اقتراح أو مشكلة واجهتني" بالموقع/);
+  assert.match(p, /<<اقتراح: /);
+
+  const w = await world();
+  const { channel, ticket } = await openTicket(w);
+  // "عندي اقتراح" بدون تفاصيل ← يطلب التفاصيل (بدون وسم ولا إرسال)
+  reply = () => 'أكيد! اكتب اقتراحك هنا وأنا أوصله للفريق 🤩';
+  await say(channel, w.member, 'عندي اقتراح');
+  const newsBefore = sendsIn(w, w.newsChannel.id).length;
+  // الاقتراح نفسه ← شكر + تأكيد + وسم مخفي
+  reply = () => 'اقتراحك يجنن! 🤩 انسجل ووصل لفريق احسمها 💜\n<<اقتراح: إضافة ألعاب أكثر للبوت والموقع>>';
+  await say(channel, w.member, 'اقتراحي هو ان تضيف العاب اكثر');
+  const shown = sendsIn(w, channel.id).pop()[2].content;
+  assert.equal(shown, 'اقتراحك يجنن! 🤩 انسجل ووصل لفريق احسمها 💜', 'الوسم انشال من الرد');
+  assert.ok(!shown.includes('<<'));
+  const news = sendsIn(w, w.newsChannel.id);
+  assert.equal(news.length, newsBefore + 1, 'وصل لقناة أخبار الأدمن فوراً');
+  const e = news.pop()[2].embeds[0].toJSON();
+  assert.equal(e.title, '💡 اقتراح جديد');
+  assert.match(e.description, /إضافة ألعاب أكثر للبوت والموقع/);
+  const f = Object.fromEntries(e.fields.map((x) => [x.name, x.value]));
+  assert.equal(f['👤 من'], `<@${w.member.id}>`);
+  assert.match(f['📍 المكان'], new RegExp(`تكت #${ticket.id}`));
+  // السجل (اللي يروح لـGemini بالرسائل الجاية) بدون الوسم
+  const c = ai._internal.conversations.get(channel.id);
+  assert.ok(!c.transcript.some((m) => m.text.includes('<<')));
+  assert.deepEqual(c.suggestions, ['إضافة ألعاب أكثر للبوت والموقع']);
+
+  // الملخص عند الإغلاق يذكر الاقتراح
+  reply = (req) => (/لخّص/.test(req.systemInstruction) ? '**1) المشكلة:** اقتراح' : 'x');
+  await closeTicket(w, channel, ticket);
+  const sumReq = calls.find((x) => /لخّص/.test(x.systemInstruction));
+  assert.match(sumReq.contents[0].parts[0].text, /اقتراحات سجّلها المساعد: إضافة ألعاب أكثر/);
+});
+
+test('الاقتراحات بالمنشن: نفس الشي — رد نظيف ويوصل للإدارة، ولو الرد كان الوسم بس يطلع شكر افتراضي', async () => {
+  const w = await world();
+  const bot = w.guild.members.me.user;
+  reply = () => '<<اقتراح: لعبة جديدة اسمها سباق الخيل>>';
+  const m = await say(w.general, w.member, `<@${bot.id}> اقترح تضيفون لعبة سباق الخيل`, { mentions: [bot] });
+  assert.equal(repliesTo(w, m)[0][3].content, 'شكراً على اقتراحك 🤩 انسجل ووصل لفريق احسمها!');
+  const e = sendsIn(w, w.newsChannel.id).pop()[2].embeds[0].toJSON();
+  assert.match(e.description, /سباق الخيل/);
+  assert.match(e.fields.find((x) => x.name === '📍 المكان').value, /منشن/);
+  // بدون قناة أخبار ← الرد يبقى نظيف وما ينكسر شي
+  const w2 = await world({ news: false });
+  const bot2 = w2.guild.members.me.user;
+  const m2 = await say(w2.general, w2.member, `<@${bot2.id}> اقتراح`, { mentions: [bot2] });
+  assert.equal(repliesTo(w2, m2)[0][3].content, 'شكراً على اقتراحك 🤩 انسجل ووصل لفريق احسمها!');
+  assert.deepEqual(ai.extractSuggestions('أهلاً\n<<اقتراح: أ>>\n<<اقتراح: ب>>'), { clean: 'أهلاً', suggestions: ['أ', 'ب'] });
+});
+
 // =================== ملخص الإغلاق ===================
 
 async function closeTicket(w, channel, ticket, by = w.supporter) {
