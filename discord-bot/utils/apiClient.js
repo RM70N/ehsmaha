@@ -126,6 +126,11 @@ module.exports = {
   // للـAutocomplete: Discord يعطي 3 ثوانٍ فقط للرد — مهلة قصيرة وبدون إعادة محاولة
   searchUsernames: (q, limit = 20) =>
     request('get', '/api/discord/search-usernames', { params: { q, limit }, timeout: 2000, retries: 0 }),
+  // الانضمام عبر ديسكورد (جلسات ألعاب الموقع)
+  getJoinSessions: () => request('get', '/api/discord/join/sessions', { timeout: 4000, retries: 0 }),
+  putJoinChannels: (payload) => request('put', '/api/discord/join/channels', { data: payload }),
+  addJoinParticipant: (sessionId, payload) =>
+    request('post', `/api/discord/join/sessions/${enc(sessionId)}/participants`, { data: payload, retries: 1 }),
   getLeaderboard: (period = 'global', limit = 50) =>
     request('get', '/api/discord/leaderboard', { params: { period, limit } }),
   getWinners: (streamer, limit = 50) =>

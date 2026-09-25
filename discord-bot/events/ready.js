@@ -9,6 +9,7 @@ const api = require('../utils/apiClient');
 const { auditGuildPermissions, inviteUrl } = require('../utils/permissions');
 const liveStreams = require('../services/liveStreams');
 const tickets = require('../services/tickets');
+const discordJoin = require('../services/discordJoin');
 
 const PRESENCE_REFRESH_MS = 30 * 60 * 1000;
 // Render المجاني "ينوّم" خدمة الويب بعد 15 دقيقة بلا طلبات، وأول طلب بعدها
@@ -65,6 +66,12 @@ module.exports = {
 
     // /بث: مزامنة دورية مع بيانات الموقع (تعوّض أي webhook متأخر/فاشل وتنظّف العالق)
     liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
+
+    // الانضمام عبر ديسكورد لألعاب الموقع: قائمة الرومات + متابعة الجلسات النشطة
+    discordJoin.start(client, { officialGuildId: ctx.config.officialGuildId, pollMs: ctx.config.joinPollSeconds * 1000 });
+    if (ctx.messageContentIntent === false) {
+      logger.warn('⚠️ Message Content Intent غير مفعّل — "الانضمام عبر ديسكورد" ما يقدر يقرأ الكلمة المفتاحية. فعّله من Developer Portal → Bot');
+    }
 
     // تكتات انقفلت بوضع "حذف" والبوت انطفى قبل ما تنحذف قناتها — نكمل الحذف
     Promise.resolve(ctx.dbReady)

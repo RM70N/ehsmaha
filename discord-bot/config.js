@@ -50,6 +50,9 @@ function buildConfig() {
   if (process.env.CLIENT_ID && !isSnowflake(process.env.CLIENT_ID)) {
     problems.push('- CLIENT_ID لازم يكون رقم Discord صالح (17-20 خانة)');
   }
+  if (process.env.OFFICIAL_GUILD_ID && !isSnowflake(process.env.OFFICIAL_GUILD_ID)) {
+    problems.push('- OFFICIAL_GUILD_ID (اختياري) لازم يكون رقم سيرفر صالح إذا تم تعبئته');
+  }
   if (process.env.GUILD_ID && !isSnowflake(process.env.GUILD_ID)) {
     problems.push('- GUILD_ID (اختياري) لازم يكون رقم سيرفر صالح إذا تم تعبئته');
   }
@@ -76,7 +79,8 @@ function buildConfig() {
       streamMaxHours: readInt('STREAM_MAX_HOURS', 6, { min: 1, max: 48 }),
       ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 }),
       aiMentionCooldownSeconds: readInt('AI_MENTION_COOLDOWN_SECONDS', 10, { min: 1, max: 600 }),
-      geminiTimeoutMs: readInt('GEMINI_TIMEOUT_MS', 20000, { min: 3000, max: 120000 })
+      geminiTimeoutMs: readInt('GEMINI_TIMEOUT_MS', 20000, { min: 3000, max: 120000 }),
+      joinPollSeconds: readInt('JOIN_POLL_SECONDS', 4, { min: 2, max: 60 })
     };
   } catch (err) {
     problems.push('- ' + err.message);
@@ -110,6 +114,8 @@ function buildConfig() {
     token: process.env.DISCORD_TOKEN.trim(),
     clientId: process.env.CLIENT_ID.trim(),
     guildId: (process.env.GUILD_ID || '').trim() || null,
+    // سيرفر احسمها الرسمي — "الانضمام عبر ديسكورد" لألعاب الموقع (بدونه: لو البوت بسيرفر واحد يعتبره الرسمي)
+    officialGuildId: (process.env.OFFICIAL_GUILD_ID || '').trim() || null,
     apiBaseUrl: stripTrailingSlash(process.env.API_BASE_URL.trim()),
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),

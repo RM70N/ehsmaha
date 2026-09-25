@@ -407,6 +407,82 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
 
 
 
+  await t.test('الانضمام عبر ديسكورد: قائمة الرومات تنكتب بالمخزنين', async () => {
+    const channels = [{ id: '111111111111111111', name: 'العاب' }, { id: 'bad', name: 'x' }, { id: '222222222222222222', name: 'شات-عام' }];
+    const r = await call('PUT', '/api/discord/join/channels', { body: { guildId: '999999999999999999', guildName: 'احسمها', channels } });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.data.count, 2, 'المعرّف الغلط ينشال');
+    const fsDoc = (await db.collection('config').doc('discordChannels').get()).data();
+    assert.deepEqual(fsDoc.channels.map((c) => c.name), ['العاب', 'شات-عام']);
+    if (RTDB_EMULATED) {
+      assert.deepEqual(r.body.data.stored, ['firestore', 'rtdb']);
+      const rt = await rtdbRest('config/discordChannels');
+      assert.equal(rt.channels.length, 2);
+      assert.equal(rt.guildId, '999999999999999999');
+    }
+  });
+
+  await t.test('الانضمام عبر ديسكورد: جلسات Firestore + RTDB مدموجة، والمنضمين بمخزن الجلسة', async () => {
+    const fresh = () => Timestamp.fromDate(new Date());
+    const base = { streamerId: 'uidJoin', guildId: '999999999999999999', status: 'active' };
+    await db.collection('discordSessions').doc('uidJoin_sniper_1').set({ ...base, channelId: '111111111111111111', keyword: 'دخول', gameId: 'sniper', createdAt: fresh() });
+    await db.collection('discordSessions').doc('uidJoin_bomb_1').set({ ...base, channelId: '222222222222222222', keyword: 'x', gameId: 'bomb', status: 'ended', createdAt: fresh() });
+    await db.collection('discordSessions').doc('uidJoin_old_1').set({ ...base, channelId: '333333333333333333', keyword: 'x', gameId: 'box', createdAt: Timestamp.fromDate(new Date(Date.now() - 7 * 3600e3)) });
+    if (RTDB_EMULATED) {
+      await fetch(`http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST}/discordSessions/uidJoin_tug_1.json?ns=${RTDB_NS}`, {
+        method: 'PUT',
+        body: JSON.stringify({ ...base, channelId: '444444444444444444', keyword: 'احمر', keywords: ['احمر', 'ازرق'], gameId: 'tug', createdAt: Date.now() })
+      });
+    }
+    let sessions = [];
+    for (let i = 0; i < 30; i++) {
+      sessions = (await call('GET', '/api/discord/join/sessions')).body.data;
+      if (sessions.length >= (RTDB_EMULATED ? 2 : 1)) break;
+      await new Promise((res) => setTimeout(res, 200));
+    }
+    const byId = Object.fromEntries(sessions.map((s) => [s.sessionId, s]));
+    assert.ok(byId.uidJoin_sniper_1, 'جلسة Firestore النشطة');
+    assert.deepEqual(byId.uidJoin_sniper_1.keywords, ['دخول']);
+    assert.equal(byId.uidJoin_bomb_1, undefined, 'المنتهية ما تطلع');
+    assert.equal(byId.uidJoin_old_1, undefined, 'الأقدم من 6 ساعات ما تطلع');
+
+    const who = { discordUserId: '555555555555555555', username: 'ahmed', displayName: 'أحمد ✨', avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png', keyword: 'دخول' };
+    let r = await call('POST', '/api/discord/join/sessions/uidJoin_sniper_1/participants', { body: who });
+    assert.equal(r.status, 201);
+    assert.deepEqual(r.body.data, { stored: 'firestore', duplicate: false });
+    const p = (await db.collection('discordSessions').doc('uidJoin_sniper_1').collection('participants').doc(who.discordUserId).get()).data();
+    assert.equal(p.displayName, 'أحمد ✨');
+    assert.equal(p.avatarUrl, who.avatarUrl);
+    assert.ok(p.joinedAt);
+    r = await call('POST', '/api/discord/join/sessions/uidJoin_sniper_1/participants', { body: who });
+    assert.equal(r.body.data.duplicate, true, 'نفس العضو مرتين = مكرر');
+
+    r = await call('POST', '/api/discord/join/sessions/uidJoin_bomb_1/participants', { body: who });
+    assert.equal(r.status, 409);
+    assert.equal(r.body.error.code, 'SESSION_NOT_ACTIVE');
+    r = await call('POST', '/api/discord/join/sessions/uidJoin_sniper_1/participants', { body: { ...who, discordUserId: 'abc' } });
+    assert.equal(r.status, 400);
+
+    if (RTDB_EMULATED) {
+      assert.deepEqual(byId.uidJoin_tug_1.keywords, ['احمر', 'ازرق']);
+      assert.equal(byId.uidJoin_tug_1.source, 'rtdb');
+      r = await call('POST', '/api/discord/join/sessions/uidJoin_tug_1/participants', { body: { ...who, keyword: 'ازرق' } });
+      assert.deepEqual(r.body.data, { stored: 'rtdb', duplicate: false });
+      const rp = await rtdbRest(`discordSessions/uidJoin_tug_1/participants/${who.discordUserId}`);
+      assert.equal(rp.keyword, 'ازرق');
+      assert.equal(rp.displayName, 'أحمد ✨');
+    }
+
+    // الستريمر أنهى الجولة ← ترفض فوراً (المستمع اللحظي)
+    await db.collection('discordSessions').doc('uidJoin_sniper_1').update({ status: 'ended' });
+    for (let i = 0; i < 30; i++) {
+      r = await call('POST', '/api/discord/join/sessions/uidJoin_sniper_1/participants', { body: { ...who, discordUserId: '666666666666666666' } });
+      if (r.status === 409) break;
+      await new Promise((res) => setTimeout(res, 200));
+    }
+    assert.equal(r.body.error.code, 'SESSION_NOT_ACTIVE');
+  });
+
   await t.test('مسار غير موجود → 404 JSON', async () => {
     const r = await call('GET', '/api/discord/nothing-here');
     assert.equal(r.status, 404);

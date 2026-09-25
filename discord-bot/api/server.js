@@ -116,6 +116,7 @@ async function shutdown(signal) {
   setTimeout(() => process.exit(0), 8000).unref();
   stopJobs();
   require('./services/activeStreams').stopListener();
+  require('./services/discordJoin').stopListeners();
   server.close();
   await apiStats.stop().catch(() => {});
   process.exit(0);

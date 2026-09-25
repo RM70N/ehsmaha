@@ -431,6 +431,35 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // الانضمام عبر ديسكورد — قائمة رومات السيرفر الرسمي (يكتبها البوت عبر الـAPI بصلاحية الأدمن)
+    match /config/discordChannels {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // جلسة لعبة مربوطة بروم ديسكورد: الستريمر ينشئها وينهيها (status: 'ended') بدون حذف
+    match /discordSessions/{sessionId} {
+      allow read: if request.auth != null && resource.data.streamerId == request.auth.uid;
+      allow create: if request.auth != null
+        && sessionId.matches('^' + request.auth.uid + '_[A-Za-z0-9-]+_[0-9]+$')
+        && request.resource.data.streamerId == request.auth.uid
+        && request.resource.data.status == 'active'
+        && request.resource.data.channelId is string
+        && request.resource.data.keyword is string;
+      allow update: if request.auth != null
+        && resource.data.streamerId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'endedAt'])
+        && request.resource.data.status == 'ended';
+      allow delete: if false;
+
+      // المنضمون من ديسكورد — يكتبهم البوت فقط (عبر الـAPI)، ويقراهم صاحب الجلسة
+      match /participants/{discordUserId} {
+        allow read: if request.auth != null
+          && get(/databases/$(database)/documents/discordSessions/$(sessionId)).data.streamerId == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
