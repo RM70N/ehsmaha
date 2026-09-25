@@ -96,8 +96,8 @@ test('/العاب: يعرض روليت الإقصاء من config/games.js، و�
   gamesConfig.push({ command: '/اكس_او', name: 'إكس أو', description: 'لعبة تجريبية', minPlayers: 2 });
   try {
     const out = gamesCmd._internal.buildGamesList().embeds[0].toJSON();
-    assert.equal(out.fields.length, 2);
-    assert.match(out.fields[1].name, /إكس أو — `\/اكس_او`/);
+    assert.equal(out.fields.length, gamesConfig.length);
+    assert.match(out.fields.at(-1).name, /إكس أو — `\/اكس_او`/);
   } finally {
     gamesConfig.pop();
   }
@@ -384,6 +384,7 @@ test('روليت: لوبي مهجور ينتهي تلقائياً ويفك ال�
   assert.equal(game.timers.size, 0);
   const lastEdit = w.guild.log.filter(([t]) => t === 'replyEdit').pop();
   assert.ok(lastEdit[2].components[0].toJSON().components.every((c) => c.disabled), 'الأزرار انقفلت');
+  assert.equal(lastEdit[2].embeds[0].toJSON().title, '🎯 روليت الإقصاء — انتهت مهلة الانتظار');
 
   // رسالة الجولة انحذفت أثناء الدوران
   roulette.configure({ lobbyTtlMs: 60_000, countdownMs: 20 });
