@@ -146,7 +146,8 @@ async function main() {
   // ---- رفض روم خاص (ما ينربط) ----
   await page.evaluate(() => { homeOpenQuickConnect(); homeQcPickPlatform('discord'); document.getElementById('qc-main-input').value = '1400000000000000002'; homeStartQuickConnect(); });
   await sleep(800);
-  check('روم خاص يترفض وما يصير متصل', !(await page.evaluate(() => homeHasActiveConnection())));
+  const why = await page.evaluate(() => discordRelayLastError && discordRelayLastError.message);
+  check('روم خاص يترفض وما يصير متصل (والسبب الحقيقي يطلع للستريمر)', !(await page.evaluate(() => homeHasActiveConnection())) && /خاص/.test(why || ''), why);
 
   // ---- ربط الروم العام من "ابدأ بثاً سريعاً" (رابط الروم بدل الرقم) ----
   await page.evaluate((ch) => { homeOpenQuickConnect(); homeQcPickPlatform('discord'); document.getElementById('qc-main-input').value = 'https://discord.com/channels/1400000000000000000/' + ch; homeStartQuickConnect(); }, CH);
