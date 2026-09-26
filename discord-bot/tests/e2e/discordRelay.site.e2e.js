@@ -27,14 +27,23 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 function mockClient() {
   const guild = { id: GUILD, name: 'سيرفر احسمها', roles: { everyone: { id: GUILD } }, members: { me: { id: 'bot' } } };
   const allow = () => ({ has: () => true });
+  // سجل رسائل الروم (مثل ديسكورد): البوت يجيب منه اللي فات الموقع وهو منقطع
+  const history = [];
+  const games = {
+    id: CH, name: 'العاب', type: ChannelType.GuildText, guild, permissionsFor: allow,
+    get lastMessageId() { return history.length ? history[history.length - 1].id : null; },
+    messages: { fetch: async ({ after, limit }) => new Map(history.filter((m) => BigInt(m.id) > BigInt(after)).slice(0, limit).map((m) => [m.id, m])) }
+  };
+  channelHistory = history;
   const channels = new Map([
-    [CH, { id: CH, name: 'العاب', type: ChannelType.GuildText, guild, permissionsFor: allow }],
+    [CH, games],
     ['1400000000000000002', { id: '1400000000000000002', name: 'ادارة', type: ChannelType.GuildText, guild, permissionsFor: (r) => ({ has: () => r !== guild.roles.everyone }) }]
   ]);
   return { isReady: () => true, ws: { ping: 1 }, channels: { cache: channels } };
 }
 
 let msgSeq = 0;
+let channelHistory = [];
 const players = [
   { id: '1400000000000000101', username: 'ahmed', globalName: 'أحمد 🔥', nick: null },
   { id: '1400000000000000102', username: 'sara_99', globalName: null, nick: 'سارا' },
@@ -44,14 +53,17 @@ const players = [
 const displayOf = (p) => p.nick || p.globalName || p.username;
 function say(p, content) {
   const avatar = `https://cdn.discordapp.com/avatars/${p.id}/a.png?size=128`;
-  return relay.handleMessage({
-    id: String(++msgSeq),
+  const m = {
+    id: (1400000000000010000n + BigInt(++msgSeq)).toString(),
+    createdTimestamp: Date.now(),
     channelId: CH,
     content,
     cleanContent: content,
     author: { id: p.id, username: p.username, globalName: p.globalName, bot: false, displayAvatarURL: () => avatar },
     member: { displayName: displayOf(p), displayAvatarURL: () => avatar }
-  });
+  };
+  channelHistory.push(m); // ديسكورد يحفظ الرسالة حتى لو ما فيه موقع متصل
+  return relay.handleMessage(m);
 }
 
 // كل ألعاب الستريمر اللي فيها كلمة مفتاحية للانضمام:
@@ -261,6 +273,27 @@ async function main() {
   await sleep(500);
   const back = await page.evaluate((id) => sniperParticipants.has(id), 'discord:' + players[0].id);
   check('انقطاع البوت (إعادة تشغيل) ← الموقع يرجع يتصل والرسائل توصل', !!reconnected && back);
+
+  // ---- الجوال: الستريمر طلع من المتصفح لتطبيق ديسكورد (الاتصال انقطع) ----
+  // اللاعبين كتبوا الكلمة وهو منقطع، ولما رجع للمتصفح لازم يدخلون
+  await page.evaluate(() => show('setup-bomb'));
+  await page.evaluate(() => { document.getElementById('bomb-kw').value = 'قنبلة'; document.getElementById('btn-bomb-launch').click(); });
+  await sleep(400);
+  relay.closeAll(); // انقطاع (التطبيق بالخلفية)
+  await sleep(100);
+  const sentWhileAway = say(players[2], 'قنبلة') + say(players[3], 'قنبلة');
+  const back2 = await waitFor(() => relay.isLinked(CH) && relay._state.subscribers.has(CH), 12000, 200);
+  const joinedAfter = await waitFor(() => page.evaluate((ids) => ids.every((id) => bombParticipants.has(id)), ['discord:' + players[2].id, 'discord:' + players[3].id]), 5000);
+  check('الجوال: كتبوا الكلمة والموقع منقطع ← دخلوا أول ما رجع الاتصال', sentWhileAway === 0 && !!back2 && !!joinedAfter,
+    `وصل وقت الانقطاع=${sentWhileAway}، رجع الاتصال=${!!back2}، دخلوا=${!!joinedAfter}`);
+  // وما يتكررون: نفس الرسائل لو رجعت مرة ثانية تنتجاهل
+  const countBefore = await page.evaluate(() => bombParticipants.size);
+  const dispatched = await page.evaluate(() => { window.__dcCount = 0; homeRegisterGameListener('__count', (e) => { window.__dcCount += (e.messages || []).length; }); return true; });
+  relay.closeAll();
+  await waitFor(() => relay._state.subscribers.has(CH), 12000, 200);
+  await sleep(500);
+  const after = await page.evaluate(() => [bombParticipants.size, window.__dcCount]);
+  check('إعادة الاتصال ما تعيد رسائل وصلت قبل (بدون تكرار)', dispatched && after[0] === countBefore && after[1] === 0, `لاعبين قبل/بعد=${countBefore}/${after[0]}، رسائل مكررة=${after[1]}`);
 
   console.log('\nأخطاء الصفحة:', pageErrors.length ? [...new Set(pageErrors)].slice(0, 10) : 'ولا خطأ');
   const failed = results.filter((r) => !r.ok);

@@ -1,9 +1,9 @@
 'use strict';
 
 // كل رسالة بالسيرفر:
-//   1) الحماية التلقائية (روابط/سبام) — services/autoMod.js
-//   2) ربط ديسكورد بألعاب الموقع — services/discordRelay.js (روم مربوط بموقع مفتوح:
+//   1) ربط ديسكورد بألعاب الموقع — services/discordRelay.js (روم مربوط بموقع مفتوح:
 //      الرسالة تنتقل للعبة لحظياً، وتكمل باقي المعالجة عادي)
+//   2) الحماية التلقائية (روابط/سبام) — services/autoMod.js
 //   3) مساعد احسمها الذكي — services/aiAssistant.js:
 //        • قناة تكت دعم نشط ← رسائل صاحب التكت لـGemini (بسياق المحادثة)
 //        • منشن البوت بقناة عادية ← سؤال مستقل
@@ -28,16 +28,17 @@ module.exports = {
       started = true;
       autoMod.startSweeper(); // تنظيف دوري لذاكرة تتبّع السبام
     }
-    // الحماية أولاً: لو الرسالة انحذفت/صاحبها انكتم، ما نرد عليها
-    const punished = await autoMod.handleMessage(message, { contentIntent: !!(ctx && ctx.messageContentIntent) });
-    if (punished) return;
-
     // روم مربوط بلعبة بالموقع: نوصّل الرسالة فوراً (الانضمام بالكلمة المفتاحية + اللعب)
+    // — قبل أي شي ثاني عشان ما يأخرها أو يوقفها فحص قاعدة بيانات/صلاحيات.
     try {
       discordRelay.handleMessage(message);
     } catch (err) {
       logger.warn('ربط ديسكورد: تعذّر تمرير رسالة', { channelId: message.channelId, error: err });
     }
+
+    // الحماية: لو الرسالة انحذفت/صاحبها انكتم، ما نرد عليها
+    const punished = await autoMod.handleMessage(message, { contentIntent: !!(ctx && ctx.messageContentIntent) });
+    if (punished) return;
 
     try {
       // قناة تكت: المساعد (أو تجاهل لرسائل الدعم) — والمنشن داخلها ما ينعالج مرتين
