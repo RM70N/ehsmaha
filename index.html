@@ -23016,40 +23016,146 @@ function twitchEventShape(displayName, uniqueId, message) {
 // المسؤول الوحيد عن التحدث فعلياً مع تيك توك وبث الأحداث الموحّدة
 // ({messages:[...]}) لكل الألعاب — بدون أي نافذة/تبويب/iframe إضافي ظاهر.
 //
-// TIKTOK_BRIDGE_SERVER_URL: عنوان WebSocket الأساس للسيرفر المستضاف (بدون
-// معاملات الاستعلام — تُضاف تلقائياً). عدّله بعد نشر tiktok-server/ على
-// Render إلى رابط خدمتك الفعلي، مثال:
-//   wss://ehsmaha-tiktok-bridge.onrender.com/ws
-const TIKTOK_BRIDGE_SERVER_URL = 'wss://ehsmaha.onrender.com/ws';
+// TIKTOK_BRIDGE_SERVERS: عناوين WebSocket لسيرفرات الجسر (بدون معاملات
+// الاستعلام — تُضاف تلقائياً). الأول هو الأساسي، والباقي احتياطي بالترتيب:
+// لو ما رد السيرفر الحالي ننتقل للي بعده (دائرياً)، ونرجع للأساسي تلقائياً
+// بعد ما يثبت إنه رجع (راجع tiktokBridgePrimaryRecoveryCheck).
+const TIKTOK_BRIDGE_SERVERS = [
+  'wss://ehsmaha.onrender.com/ws',       // Primary
+  'wss://ehsmaha-wbkn.onrender.com/ws'   // Fallback
+];
+let tiktokActiveBridgeIndex = 0;
+
+// يبقى على الأساسي دائماً: كيك/يوتيوب و/profile تبني روابطها منه ولا تدخل
+// في منطق التبديل إطلاقاً.
+const TIKTOK_BRIDGE_SERVER_URL = TIKTOK_BRIDGE_SERVERS[0];
+
+function tiktokBridgeWsUrlAt(index, username) {
+  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+}
 
 function tiktokBridgeWsUrl(username) {
-  return `${TIKTOK_BRIDGE_SERVER_URL}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+  return tiktokBridgeWsUrlAt(tiktokActiveBridgeIndex, username);
+}
+
+// ---------- Failover بين سيرفرات الجسر (تيك توك فقط) ----------
+const TIKTOK_HEALTH_TIMEOUT_MS = 4000;            // مهلة فحص /healthz الواحد
+const TIKTOK_WS_FAILOVER_MS = 8000;               // مهلة فتح الويب سوكيت قبل التحويل للسيرفر التالي
+const TIKTOK_PRIMARY_RECHECK_MS = 5 * 60 * 1000;  // فحص رجوع الأساسي بالخلفية
+const TIKTOK_PRIMARY_STABLE_CHECKS = 2;           // نجاحات متتالية قبل الرجوع (منع الرفرفة)
+let tiktokPrimaryWatchTimer = null;
+let tiktokPrimaryHealthyStreak = 0;
+
+function tiktokBridgeLog(message) {
+  console.log('[INFO] [TikTok Bridge] ' + message);
+}
+
+function tiktokBridgeLabel(index) {
+  let host = TIKTOK_BRIDGE_SERVERS[index];
+  try { host = new URL(host).host; } catch (e) {}
+  return (index === 0 ? 'الأساسي' : 'الاحتياطي #' + index) + ' (' + host + ')';
+}
+
+function tiktokBridgeHttpOrigin(index) {
+  return TIKTOK_BRIDGE_SERVERS[index].replace(/^ws/, 'http').replace(/\/ws$/, '');
+}
+
+// يرجّع true فقط لو /healthz رد بـ200 خلال المهلة؛ أي خطأ/تايم آوت = false.
+function tiktokBridgeHealthCheck(index, timeoutMs) {
+  return new Promise((resolve) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} resolve(false); }, timeoutMs || TIKTOK_HEALTH_TIMEOUT_MS);
+    try {
+      fetch(tiktokBridgeHttpOrigin(index) + '/healthz', { cache: 'no-store', signal: ctrl.signal })
+        .then((res) => { clearTimeout(timer); resolve(!!res && res.status === 200); })
+        .catch(() => { clearTimeout(timer); resolve(false); });
+    } catch (e) { clearTimeout(timer); resolve(false); }
+  });
+}
+
+// يفحص السيرفرات دائرياً بدءاً من startIndex ويرجّع أول واحد صحي، أو -1.
+async function tiktokBridgePickServer(startIndex) {
+  const n = TIKTOK_BRIDGE_SERVERS.length;
+  for (let k = 0; k < n; k++) {
+    const i = (startIndex + k) % n;
+    if (await tiktokBridgeHealthCheck(i)) return i;
+    tiktokBridgeLog('فحص /healthz فشل على السيرفر ' + tiktokBridgeLabel(i));
+  }
+  return -1;
+}
+
+// يغيّر السيرفر المستخدم للاتصالات الجديدة فقط — أي ويب سوكيت شغّال يكمل كما هو.
+function tiktokBridgeSetActive(index, reason) {
+  if (index === tiktokActiveBridgeIndex) return;
+  const from = tiktokActiveBridgeIndex;
+  tiktokActiveBridgeIndex = index;
+  tiktokBridgeLog('تبديل سيرفر الجسر: ' + tiktokBridgeLabel(from) + ' ← ' + tiktokBridgeLabel(index) + ' — ' + reason);
+  if (index === 0) tiktokBridgePrimaryWatchStop();
+  else tiktokBridgePrimaryWatchStart();
+}
+
+function tiktokBridgePrimaryWatchStart() {
+  if (tiktokPrimaryWatchTimer) return;
+  tiktokPrimaryHealthyStreak = 0;
+  tiktokBridgeLog('بدء فحص السيرفر الأساسي بالخلفية كل ' + Math.round(TIKTOK_PRIMARY_RECHECK_MS / 60000) + ' دقائق');
+  tiktokPrimaryWatchTimer = setInterval(() => { tiktokBridgePrimaryRecoveryCheck(); }, TIKTOK_PRIMARY_RECHECK_MS);
+}
+
+function tiktokBridgePrimaryWatchStop() {
+  if (tiktokPrimaryWatchTimer) { clearInterval(tiktokPrimaryWatchTimer); tiktokPrimaryWatchTimer = null; }
+  tiktokPrimaryHealthyStreak = 0;
+}
+
+async function tiktokBridgePrimaryRecoveryCheck() {
+  if (tiktokActiveBridgeIndex === 0) { tiktokBridgePrimaryWatchStop(); return; }
+  const ok = await tiktokBridgeHealthCheck(0);
+  if (tiktokActiveBridgeIndex === 0) return;
+  if (!ok) {
+    if (tiktokPrimaryHealthyStreak) tiktokBridgeLog('السيرفر الأساسي فشل بالفحص مرة ثانية — تصفير عدّاد الاستقرار');
+    tiktokPrimaryHealthyStreak = 0;
+    return;
+  }
+  tiktokPrimaryHealthyStreak++;
+  tiktokBridgeLog('السيرفر الأساسي رد بنجاح (' + tiktokPrimaryHealthyStreak + '/' + TIKTOK_PRIMARY_STABLE_CHECKS + ')');
+  if (tiktokPrimaryHealthyStreak >= TIKTOK_PRIMARY_STABLE_CHECKS) {
+    tiktokBridgeSetActive(0, 'رجع الأساسي مستقراً — يُستخدم للاتصالات الجديدة فقط');
+  }
 }
 
 // ---------- إيقاظ السيرفر قبل أول اتصال (علاج Cold Start) ----------
 // خطة Render المجانية توقف الخدمة بعد ~15 دقيقة بلا طلبات، وأول اتصال
 // بعدها ياخذ 30-60ث لإقلاع الخدمة — وهذا أكبر سبب مفرد لبطء أول ربط.
 // فتح WebSocket على خدمة نائمة يفشل فوراً (ويحرق محاولات إعادة الاتصال
-// واحدة تلو الأخرى قبل ما تقوم الخدمة)، بينما طلب HTTP عادي يبقى معلقاً
-// حتى تقوم الخدمة ثم يرد — فنستخدمه كـ"إيقاظ" قبل فتح الويب سوكيت.
+// واحدة تلو الأخرى قبل ما تقوم الخدمة)، بينما طلب HTTP عادي يوقظها —
+// فنستخدمه كـ"إيقاظ" + فحص صحة قبل فتح الويب سوكيت: نجرب السيرفر الحالي
+// ثم التالي دائرياً (4ث لكل فحص)، ونكرر الجولات حتى أول سيرفر يرد أو
+// ينتهي TIKTOK_WARMUP_MAX_MS فنحاول الاتصال على أي حال.
 // خاص بتيك توك فقط (ما يُستدعى إطلاقاً من مسارات تويتش/كيك/يوتيوب).
-const TIKTOK_BRIDGE_HTTP_ORIGIN = TIKTOK_BRIDGE_SERVER_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
 const TIKTOK_WARMUP_TTL_MS = 60000;   // ما نكرر الإيقاظ طوال هذه المدة
 const TIKTOK_WARMUP_MAX_MS = 25000;   // سقف انتظار الإقلاع قبل ما نحاول الاتصال على أي حال
+const TIKTOK_WARMUP_ROUND_GAP_MS = 1000; // فاصل بين الجولات لو كل السيرفرات فشلت فوراً
 let tiktokBridgeWarmPromise = null;
 let tiktokBridgeWarmAt = 0;
 
 function tiktokBridgeWarmUp() {
   if (tiktokBridgeWarmPromise && (Date.now() - tiktokBridgeWarmAt) < TIKTOK_WARMUP_TTL_MS) return tiktokBridgeWarmPromise;
   tiktokBridgeWarmAt = Date.now();
-  let done = null;
-  const capped = new Promise((resolve) => { done = resolve; });
-  const timer = setTimeout(() => done(), TIKTOK_WARMUP_MAX_MS);
-  try {
-    fetch(TIKTOK_BRIDGE_HTTP_ORIGIN + '/healthz', { cache: 'no-store' })
-      .then(() => { clearTimeout(timer); done(); })
-      .catch(() => { clearTimeout(timer); done(); });
-  } catch (e) { clearTimeout(timer); done(); }
+  const deadline = tiktokBridgeWarmAt + TIKTOK_WARMUP_MAX_MS;
+  const probe = async () => {
+    while (Date.now() < deadline) {
+      const picked = await tiktokBridgePickServer(tiktokActiveBridgeIndex);
+      if (picked > -1) {
+        tiktokBridgeSetActive(picked, 'السيرفر السابق ما رد على /healthz');
+        return;
+      }
+      await new Promise((r) => setTimeout(r, TIKTOK_WARMUP_ROUND_GAP_MS));
+    }
+    tiktokBridgeLog('ولا سيرفر رد على /healthz خلال ' + (TIKTOK_WARMUP_MAX_MS / 1000) + 'ث — نحاول الاتصال المباشر على أي حال');
+  };
+  const capped = new Promise((resolve) => {
+    const timer = setTimeout(resolve, TIKTOK_WARMUP_MAX_MS);
+    probe().catch(() => {}).then(() => { clearTimeout(timer); resolve(); });
+  });
   tiktokBridgeWarmPromise = capped;
   return capped;
 }
@@ -23060,27 +23166,80 @@ function tiktokBridgeWarmUp() {
 // يبقى تيك توك مكتوب داخل كل دالة connect<Game>TikTok بمفرده. onEvent هنا
 // يستقبل الحدث الخام كامل ({messages:[...]} أو {type:'bridge_status',...})،
 // مو دالة (name,id,msg) متل باقي المنصات.
+//
+// Failover: لو السيرفر ما انفتح خلال TIKTOK_WS_FAILOVER_MS، أو انقفل بخطأ
+// شبكة قبل bridge_status:connected، نجرب السيرفر التالي تلقائياً بنفس
+// اليوزر (كل سيرفر مرة وحدة لكل استدعاء). الكائن المرجَع غلاف ثابت (close/
+// send/readyState) يمرّر للويب سوكيت الحالي — فإغلاقه من المستدعي يقفل
+// الاتصال الفعلي حتى لو تبدّل السيرفر تحته. أكواد 4xxx (رفض من السيرفر
+// نفسه) وإغلاق المستدعي ما تسبب أي تبديل وتوصل onClose كما كانت.
+const TIKTOK_WS_FAILOVER_CLOSE_CODES = [1006, 1011, 1012, 1013, 1014, 1015];
+
 function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose) {
-  let sock;
-  const url = tiktokBridgeWsUrl(username);
-  try { sock = new WebSocket(url); } catch (e) { if (onClose) onClose({ code: 0 }); return null; }
+  const n = TIKTOK_BRIDGE_SERVERS.length;
+  let tried = 0;
+  let sock = null;
   let openFired = false;
-  sock.onopen = () => { /* الفتح الفعلي يُعلَن فقط بعد bridge_status:connected (اتصال حقيقي بالبث) */ };
-  sock.onmessage = (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (err) { return; }
-    if (d && d.type === 'bridge_status') {
-      if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
-      // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
-      // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
-      // ما تظل تعرض "جاري الاتصال" للأبد.
-      onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
-      return;
-    }
-    onEvent(d);
+  let closedByCaller = false;
+
+  function attempt(index) {
+    let s;
+    try { s = new WebSocket(tiktokBridgeWsUrlAt(index, username)); } catch (e) { return false; }
+    tried++;
+    sock = s;
+    const startedAt = Date.now();
+    let transportOpen = false;
+    const guard = setTimeout(() => {
+      if (sock === s && !transportOpen && !closedByCaller && tried < n) failover(s, index, 'ما انفتح الاتصال خلال ' + (TIKTOK_WS_FAILOVER_MS / 1000) + 'ث');
+    }, TIKTOK_WS_FAILOVER_MS);
+    s.onopen = () => {
+      /* الفتح الفعلي يُعلَن فقط بعد bridge_status:connected (اتصال حقيقي بالبث) */
+      transportOpen = true;
+      clearTimeout(guard);
+      if (index !== tiktokActiveBridgeIndex) tiktokBridgeSetActive(index, 'فشل فتح الويب سوكيت على السيرفر السابق');
+    };
+    s.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+      if (d && d.type === 'bridge_status') {
+        if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
+        // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
+        // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
+        // ما تظل تعرض "جاري الاتصال" للأبد.
+        onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
+        return;
+      }
+      onEvent(d);
+    };
+    s.onerror = () => {};
+    s.onclose = (e) => {
+      clearTimeout(guard);
+      if (sock !== s) return;
+      const networkFail = !transportOpen ||
+        ((Date.now() - startedAt) <= TIKTOK_WS_FAILOVER_MS && e && TIKTOK_WS_FAILOVER_CLOSE_CODES.indexOf(e.code) > -1);
+      if (!closedByCaller && !openFired && networkFail && tried < n) {
+        failover(s, index, 'انقفل الاتصال بكود ' + (e ? e.code : '?') + ' قبل الربط');
+        return;
+      }
+      if (onClose) onClose(e);
+    };
+    return true;
+  }
+
+  function failover(s, index, why) {
+    const next = (index + 1) % n;
+    tiktokBridgeLog('فشل الاتصال بالسيرفر ' + tiktokBridgeLabel(index) + ' (' + why + ') — التحويل التلقائي إلى ' + tiktokBridgeLabel(next));
+    sock = null;
+    try { s.onopen = null; s.onmessage = null; s.onclose = null; s.close(); } catch (e) {}
+    onEvent({ type: 'bridge_status', state: 'connecting' });
+    if (!attempt(next) && onClose) onClose({ code: 0 });
+  }
+
+  if (!attempt(tiktokActiveBridgeIndex)) { if (onClose) onClose({ code: 0 }); return null; }
+  return {
+    close(code, reason) { closedByCaller = true; if (sock) sock.close(code, reason); },
+    send(data) { if (sock) sock.send(data); },
+    get readyState() { return sock ? sock.readyState : 3; },
   };
-  sock.onerror = () => {};
-  sock.onclose = (e) => { if (onClose) onClose(e); };
-  return sock;
 }
 
 // ==================== TIKTOK CONNECT — مودال الربط + الحسابات المحفوظة
