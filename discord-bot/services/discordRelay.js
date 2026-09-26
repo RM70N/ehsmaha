@@ -24,9 +24,18 @@ const TEXT_TYPES = new Set([
 const MAX_TOTAL = 300;
 const MAX_CONTENT = 500;
 const HEARTBEAT_MS = 15 * 1000;
+// إعادة إرسال اللي فات: لما الموقع ينقطع (أشهرها: الستريمر طلع من المتصفح للجوال
+// عشان يكتب بديسكورد) ويرجع يتصل، يرسل آخر رسالة وصلته، ونجيب من ديسكورد اللي
+// انكتب بعدها (بحد أقصى) — فما تضيع كلمة مفتاحية ولا إجابة.
+const REPLAY_MAX_MESSAGES = 50;
+const REPLAY_MAX_AGE_MS = 10 * 60 * 1000;
+// الروم يبقى "مربوط" (حماية السبام متوقفة) شوي بعد آخر انقطاع — الانقطاع المؤقت
+// (تطبيق بالخلفية) ما يرجّع كتم اللاعبين بنص الجولة
+const LINK_GRACE_MS = 10 * 60 * 1000;
 
 const state = {
   subscribers: new Map(), // channelId -> Set<{ res, openedAt }>
+  lastLinkedAt: new Map(), // channelId -> آخر وقت كان فيه موقع مربوط
   heartbeat: null
 };
 
@@ -128,7 +137,7 @@ function stopHeartbeatIfIdle() {
 /**
  * يفتح بث أحداث لروم (يُستدعى من خادم البوت بعد التحقق). يرجّع false لو الحد امتلأ.
  */
-function subscribe(channel, req, res, { maxPerChannel = 10 } = {}) {
+function subscribe(channel, req, res, { maxPerChannel = 10, after = null } = {}) {
   const set = state.subscribers.get(channel.id) || new Set();
   if (set.size >= maxPerChannel || totalSubscribers() >= MAX_TOTAL) return false;
 
@@ -150,10 +159,14 @@ function subscribe(channel, req, res, { maxPerChannel = 10 } = {}) {
   set.add(sub);
   state.subscribers.set(channel.id, set);
   ensureHeartbeat();
-  writeEvent(res, 'ready', { channelId: channel.id, channelName: channel.name, guildName: channel.guild.name });
-  logger.info('🎮 موقع احسمها ربط روم ديسكورد', { channelId: channel.id, listeners: set.size });
+  // lastMessageId = نقطة البداية: لو الموقع انقطع قبل ما توصله أي رسالة، يرجع يطلب اللي بعدها
+  writeEvent(res, 'ready', { channelId: channel.id, channelName: channel.name, guildName: channel.guild.name, lastMessageId: channel.lastMessageId || null });
+  logger.info('🎮 موقع احسمها ربط روم ديسكورد', { channelId: channel.id, listeners: set.size, replayAfter: after || undefined });
+  state.lastLinkedAt.set(channel.id, Date.now());
+  if (after) replayMissed(channel, sub, after);
 
   const cleanup = () => {
+    state.lastLinkedAt.set(channel.id, Date.now());
     const cur = state.subscribers.get(channel.id);
     if (cur) {
       cur.delete(sub);
@@ -164,6 +177,29 @@ function subscribe(channel, req, res, { maxPerChannel = 10 } = {}) {
   req.on('close', cleanup);
   res.on('close', cleanup);
   return true;
+}
+
+/** يرسل لهذا الموقع بس الرسائل اللي انكتبت بالروم بعد `after` (وهو منقطع) */
+async function replayMissed(channel, sub, after) {
+  if (!isSnowflake(after) || !channel.messages || typeof channel.messages.fetch !== 'function') return;
+  try {
+    const me = channel.guild && channel.guild.members && channel.guild.members.me;
+    const perms = me && channel.permissionsFor(me);
+    if (perms && !perms.has(PermissionFlagsBits.ReadMessageHistory)) return;
+    const fetched = await channel.messages.fetch({ after, limit: REPLAY_MAX_MESSAGES });
+    const now = Date.now();
+    const list = [...fetched.values()]
+      .filter((m) => m && m.author && !m.author.bot && !m.webhookId && now - (m.createdTimestamp || 0) <= REPLAY_MAX_AGE_MS)
+      .sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1));
+    let sent = 0;
+    for (const m of list) {
+      const payload = toRelayMessage(m);
+      if (payload.content && writeEvent(sub.res, 'chat', payload)) sent++;
+    }
+    if (sent) logger.info('🎮 ربط ديسكورد: رجّعنا رسائل فاتت الموقع وهو منقطع', { channelId: channel.id, sent });
+  } catch (err) {
+    logger.warn('ربط ديسكورد: تعذّر جلب الرسائل اللي فاتت', { channelId: channel.id, code: err && err.code });
+  }
 }
 
 /** شكل الرسالة اللي يستقبلها الموقع */
@@ -211,9 +247,11 @@ function handleMessage(message) {
 }
 
 /** روم مربوط الحين بموقع مفتوح؟ */
-function isLinked(channelId) {
+function isLinked(channelId, now = Date.now()) {
   const set = state.subscribers.get(channelId);
-  return !!(set && set.size);
+  if (set && set.size) return true;
+  const last = state.lastLinkedAt.get(channelId);
+  return !!last && now - last <= LINK_GRACE_MS;
 }
 
 function stats() {
@@ -227,6 +265,7 @@ function closeAll() {
     }
   }
   state.subscribers.clear();
+  state.lastLinkedAt.clear();
   stopHeartbeatIfIdle();
 }
 

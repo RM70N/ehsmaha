@@ -23514,6 +23514,16 @@ function kickBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
 const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot.onrender.com';
 // آخر سبب فشل ربط (يطلع للستريمر بالتنبيه بدل رسالة عامة)
 let discordRelayLastError = null;
+// آخر رسالة وصلت من كل روم + الرسائل اللي وصلت: لما ينقطع الاتصال (أشهرها: طلع
+// الستريمر من المتصفح لتطبيق ثاني) ويرجع، البوت يرسل اللي فات بعد آخر رسالة،
+// والمكرر يتجاهل — فما تضيع كلمة مفتاحية ولا تنحسب مرتين.
+const discordRelayLastIds = {};
+const discordRelaySeenIds = new Set();
+function discordRelayIdAfter(a, b) {
+  if (!a) return false;
+  if (!b) return true;
+  return a.length !== b.length ? a.length > b.length : a > b;
+}
 
 // يقبل ID الروم أو رابطه (discord.com/channels/<سيرفر>/<روم>) ويرجّع ID الروم.
 function discordRelayChannelId(input) {
@@ -23551,9 +23561,23 @@ function discordRelayOpenStream(channelInput, onEvent, onOpen, onClose) {
       try { if (ctrl) ctrl.abort(); } catch (e) {}
     }
   };
+  // البوت يرسل نبضة كل 15 ثانية؛ لو ما وصل شي 40 ثانية (الجوال قطع الشبكة بصمت
+  // وهو بالخلفية) أو رجع الستريمر للمتصفح بعد غياب، نعيد الاتصال فوراً.
+  let lastData = Date.now();
+  const watchdog = setInterval(() => { if (Date.now() - lastData > 40000) finish({ code: 1006 }); }, 10000);
+  const onVisible = () => { if (document.visibilityState === 'visible' && Date.now() - lastData > 20000) finish({ code: 1006 }); };
+  document.addEventListener('visibilitychange', onVisible);
+  function stopWatch() { clearInterval(watchdog); document.removeEventListener('visibilitychange', onVisible); }
+  handle.close = function () {
+    if (finished) return;
+    finished = true;
+    stopWatch();
+    try { if (ctrl) ctrl.abort(); } catch (e) {}
+  };
   function finish(e) {
     if (finished) return;
     finished = true;
+    stopWatch();
     try { if (ctrl) ctrl.abort(); } catch (err) {}
     if (onClose) onClose(e);
   }
@@ -23569,13 +23593,25 @@ function discordRelayOpenStream(channelInput, onEvent, onOpen, onClose) {
     if (!data.length) return;
     let payload = null;
     try { payload = JSON.parse(data.join('\n')); } catch (e) { return; }
-    if (event === 'ready') { handle.channelName = payload.channelName || ''; if (onOpen) onOpen(); }
+    if (event === 'ready') {
+      handle.channelName = payload.channelName || '';
+      if (!discordRelayLastIds[channelId] && payload.lastMessageId) discordRelayLastIds[channelId] = String(payload.lastMessageId);
+      if (onOpen) onOpen();
+    }
     else if (event === 'chat' && payload && payload.id && payload.content) {
+      const mid = payload.messageId ? String(payload.messageId) : '';
+      if (mid) {
+        if (discordRelaySeenIds.has(mid)) return; // وصلت قبل (إعادة إرسال بعد انقطاع)
+        discordRelaySeenIds.add(mid);
+        if (discordRelaySeenIds.size > 2000) discordRelaySeenIds.delete(discordRelaySeenIds.values().next().value);
+        if (discordRelayIdAfter(mid, discordRelayLastIds[channelId])) discordRelayLastIds[channelId] = mid;
+      }
       try { onEvent(discordRelayEventShape(payload)); } catch (e) {}
     }
   }
 
-  const url = DISCORD_RELAY_SERVER_URL.replace(/\/+$/, '') + '/api/discord/relay/' + channelId;
+  const lastId = discordRelayLastIds[channelId];
+  const url = DISCORD_RELAY_SERVER_URL.replace(/\/+$/, '') + '/api/discord/relay/' + channelId + (lastId ? '?after=' + lastId : '');
   fetch(url, { headers: { Accept: 'text/event-stream' }, cache: 'no-store', signal: ctrl ? ctrl.signal : undefined })
     .then(res => {
       if (!res.ok || !res.body) {
@@ -23592,6 +23628,7 @@ function discordRelayOpenStream(channelInput, onEvent, onOpen, onClose) {
       let buf = '';
       const pump = () => reader.read().then(({ value, done }) => {
         if (done || finished) { finish({ code: 1006 }); return; }
+        lastData = Date.now();
         buf += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
         let i;
         while ((i = buf.indexOf('\n\n')) >= 0) {
@@ -23714,6 +23751,13 @@ function platformConnect(platform, creds, onEvent, onStatus) {
 
   function retry() {
     slot.attempts++;
+    // ديسكورد: الانقطاع غالباً لأن الستريمر طلع من المتصفح (جوال) — نكمل نحاول بلا
+    // حد وبمهلة تكبر لين 30 ثانية، والرسائل اللي فاتت ترجع من البوت أول ما يتصل.
+    // (الرفض الدائم — رقم غلط/روم خاص — يوقف فوراً بكود 4404 تحت.)
+    if (platform === 'discord') {
+      slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), Math.min(PLATFORM_RETRY_MS * slot.attempts, 30000));
+      return;
+    }
     if (slot.attempts > PLATFORM_MAX_RETRIES) { if (onStatus) onStatus(platform, 'failed'); return; }
     slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), PLATFORM_RETRY_MS);
   }

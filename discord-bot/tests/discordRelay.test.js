@@ -168,7 +168,7 @@ test('SSE: الربط يرجّع ready، والرسائل توصل لحظياً 
     assert.equal(res.headers.get('access-control-allow-origin'), '*');
     const rd = reader(res);
     await rd.until((e) => e.some((x) => x.event === 'ready'));
-    assert.deepEqual(rd.events[0], { event: 'ready', data: { channelId: CH, channelName: 'روم-01', guildName: 'احسمها' } });
+    assert.deepEqual(rd.events[0], { event: 'ready', data: { channelId: CH, channelName: 'روم-01', guildName: 'احسمها', lastMessageId: null } });
     assert.equal(relay.isLinked(CH), true);
 
     assert.equal(relay.handleMessage(msg('دخول')), 1);
@@ -183,9 +183,44 @@ test('SSE: الربط يرجّع ready، والرسائل توصل لحظياً 
     assert.deepEqual(chats, [['أحمد 🔥', 'دخول'], ['سارا', '5']]);
 
     ctrl.abort();
-    for (let i = 0; i < 50 && relay.isLinked(CH); i++) await new Promise((x) => setTimeout(x, 20));
-    assert.equal(relay.isLinked(CH), false, 'الموقع سكّر ← البوت يوقف يعالج الروم');
+    for (let i = 0; i < 50 && relay._state.subscribers.has(CH); i++) await new Promise((x) => setTimeout(x, 20));
+    assert.equal(relay._state.subscribers.has(CH), false, 'الموقع سكّر ← البوت يوقف يرسل للروم');
+    assert.equal(relay.handleMessage(msg('بعد السكّر')), 0);
+    assert.equal(relay.isLinked(CH), true, 'انقطاع مؤقت: حماية السبام تبقى متوقفة شوي');
+    assert.equal(relay.isLinked(CH, Date.now() + 11 * 60 * 1000), false, 'بعد المهلة ترجع الحماية');
   });
+});
+
+test('SSE: بعد انقطاع الموقع، يرجّع الرسائل اللي فاتته من ديسكورد (بالترتيب وبدون البوتات والقديمة)', async () => {
+  const now = Date.now();
+  const past = (id, content, { ago = 5000, bot = false } = {}) => ({ ...msg(content, { id: '1400000000000000101', bot }), id, createdTimestamp: now - ago });
+  const history = [
+    past('1400000000000001003', 'دخول'),
+    past('1400000000000001001', 'قديمة جداً', { ago: 20 * 60 * 1000 }),
+    past('1400000000000001002', 'رسالة بوت', { bot: true }),
+    past('1400000000000001004', '7')
+  ];
+  let fetchArgs = null;
+  const client = makeClient();
+  const ch = client.channels.cache.get(CH);
+  ch.lastMessageId = '1400000000000001004';
+  ch.messages = { fetch: async (opts) => { fetchArgs = opts; return new Map(history.map((m) => [m.id, m])); } };
+  const app = createApp({ client: webClientProxy({ client }), config: { webhookAllowedOrigins: [], relayMaxPerChannel: 5 } });
+  const server = http.createServer(app);
+  await new Promise((r) => server.listen(0, '127.0.0.1', r));
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/discord/relay/${CH}?after=1400000000000001000`);
+    const rd = reader(res);
+    await rd.until((e) => e.filter((x) => x.event === 'chat').length >= 2);
+    assert.equal(rd.events[0].data.lastMessageId, '1400000000000001004', 'نقطة البداية للموقع');
+    assert.deepEqual(fetchArgs, { after: '1400000000000001000', limit: 50 });
+    assert.deepEqual(rd.events.filter((x) => x.event === 'chat').map((x) => x.data.content), ['دخول', '7']);
+    await rd.cancel();
+  } finally {
+    relay.closeAll();
+    server.closeAllConnections();
+    await new Promise((r) => server.close(r));
+  }
 });
 
 test('SSE: أخطاء واضحة (روم خاص/غلط/سيرفر غير رسمي) وحد المتصلين بالروم', async () => {

@@ -99,7 +99,8 @@ function createApp({ client, config }) {
     try {
       const r = discordRelay.resolveChannel(client, req.params.channelId, { officialGuildId: config.officialGuildId });
       if (!r.ok) return res.status(r.status).json({ ok: false, error: { code: r.code, message: r.message } });
-      if (!discordRelay.subscribe(r.channel, req, res, { maxPerChannel: config.relayMaxPerChannel || 10 })) {
+      const after = /^\d{17,20}$/.test(String(req.query.after || '')) ? String(req.query.after) : null;
+      if (!discordRelay.subscribe(r.channel, req, res, { maxPerChannel: config.relayMaxPerChannel || 10, after })) {
         return res.status(429).json({ ok: false, error: { code: 'RELAY_FULL', message: 'الروم مربوط بمواقع كثيرة حالياً' } });
       }
     } catch (err) {
