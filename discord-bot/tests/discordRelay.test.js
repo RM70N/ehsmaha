@@ -280,7 +280,7 @@ test('الموقع: ديسكورد منصة بـ"ابدأ بثاً سريعاً"
   assert.match(html, /id="qc-multi-check-discord"/);
   assert.match(html, /slot\.ws = discordRelayOpenStream\(user, dispatch, onOpen, onClose\)/);
   assert.match(html, /تعذّر ربط روم الديسكورد — ' \+ \(\(discordRelayLastError && discordRelayLastError\.message\)/, 'التنبيه يعرض السبب الحقيقي');
-  assert.match(html, /const DISCORD_RELAY_SERVER_URL = 'https:\/\/ehsmaha-discord-bot\.onrender\.com';/);
+  assert.match(html, /const DISCORD_RELAY_SERVER_URL = 'https:\/\/ehsmaha-discord-bot[a-z0-9-]*\.onrender\.com';/);
 
   const pick = (name) => {
     const m = html.match(new RegExp(`\\nfunction ${name}\\([^)]*\\) \\{[\\s\\S]*?\\n\\}`));

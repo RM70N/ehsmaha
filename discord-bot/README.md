@@ -108,7 +108,7 @@ npm start                 # البوت
 | `API_KEY` | الاثنين | ✅ | مفتاح سري مشترك (32+ حرف) — **نفس القيمة** بالخدمتين. توليده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DISCORD_TOKEN` | البوت | ✅ | توكن البوت من Developer Portal → Bot |
 | `CLIENT_ID` | البوت | ✅ | `1552260327008247879` |
-| `API_BASE_URL` | البوت | ✅ | رابط خدمة الـAPI، مثال `https://ehsmaha-discord-api.onrender.com` |
+| `API_BASE_URL` | البوت | ✅ | رابط خدمة الـAPI **كما يظهر بصفحتها بـRender** (مثال `https://ehsmaha-discord-api-xxxx.onrender.com` — Render يضيف لاحقة لو الاسم مأخوذ، خصوصاً بعد النقل لحساب جديد) |
 | `GEMINI_API_KEY` | البوت | ✅ | مفتاح Gemini للمساعد الذكي — من [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `GEMINI_MODEL` | البوت | — | نموذج Gemini (افتراضي `gemini-2.5-flash`) — شوف "تبديل النموذج" تحت |
 | `AI_MENTION_COOLDOWN_SECONDS` | البوت | — | أقل فاصل بين أسئلة نفس الشخص بالمنشن (افتراضي 10) |
