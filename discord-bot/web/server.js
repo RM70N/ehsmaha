@@ -3,6 +3,7 @@
 // خادم HTTP صغير مدمج بالبوت (Express):
 //   GET  /health                      — فحص صحة Render (200 فقط لو البوت متصل بديسكورد)
 //   POST /api/discord/stream-event    — Webhook جلسات البث من الموقع (لأمر /بث)
+//   GET  /api/discord/relay/:channelId — بث لحظي (SSE) لرسائل روم ديسكورد لألعاب الموقع
 //
 // الأمان: الهيدر x-webhook-secret لازم يطابق STREAM_WEBHOOK_SECRET (مقارنة ثابتة
 // الزمن). بدون السر بالإعدادات، الـendpoint يرجّع 503 ولا يقبل أي شي.
@@ -14,6 +15,7 @@ const express = require('express');
 const { rateLimit } = require('express-rate-limit');
 const logger = require('../utils/logger');
 const liveStreams = require('../services/liveStreams');
+const discordRelay = require('../services/discordRelay');
 
 function safeEqual(a, b) {
   const ha = crypto.createHash('sha256').update(String(a || '')).digest();
@@ -33,6 +35,7 @@ function createApp({ client, config }) {
       ping: ready ? client.ws.ping : null,
       uptime: Math.floor(process.uptime()),
       liveSessions: liveStreams.size(),
+      relay: discordRelay.stats(),
       db: require('../database/botDb').dialect(),
       backup: require('../services/stateBackup').status()
     });
@@ -80,6 +83,25 @@ function createApp({ client, config }) {
     const r = liveStreams.upsert({ ...v.value, source: 'webhook' });
     if (!r.ok) return res.status(422).json({ ok: false, error: { code: r.reason, message: 'الجلسة أقدم من الحد الأقصى المسموح' } });
     return res.json({ ok: true, data: { sessionId: v.value.sessionId, active: liveStreams.size() } });
+  });
+
+  // ربط روم ديسكورد بألعاب الموقع — CORS مفتوح: الموقع وتطبيقات الجوال/الكمبيوتر
+  // (أصولها مختلفة)، والمحتوى رسائل روم عام أصلاً (الرومات الخاصة مرفوضة).
+  const relayLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 30,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    handler: (req, res) => res.status(429).set('Access-Control-Allow-Origin', '*').json({ ok: false, error: { code: 'RATE_LIMITED', message: 'محاولات ربط كثيرة — انتظر دقيقة' } })
+  });
+  app.get('/api/discord/relay/:channelId', relayLimiter, (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    const r = discordRelay.resolveChannel(client, req.params.channelId, { officialGuildId: config.officialGuildId });
+    if (!r.ok) return res.status(r.status).json({ ok: false, error: { code: r.code, message: r.message } });
+    if (!discordRelay.subscribe(r.channel, req, res, { maxPerChannel: config.relayMaxPerChannel || 10 })) {
+      return res.status(429).json({ ok: false, error: { code: 'RELAY_FULL', message: 'الروم مربوط بمواقع كثيرة حالياً' } });
+    }
+    return undefined;
   });
 
   app.use((req, res) => res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'المسار غير موجود' } }));

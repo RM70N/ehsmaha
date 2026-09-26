@@ -80,7 +80,7 @@ function buildConfig() {
       ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 }),
       aiMentionCooldownSeconds: readInt('AI_MENTION_COOLDOWN_SECONDS', 10, { min: 1, max: 600 }),
       geminiTimeoutMs: readInt('GEMINI_TIMEOUT_MS', 20000, { min: 3000, max: 120000 }),
-      joinPollSeconds: readInt('JOIN_POLL_SECONDS', 4, { min: 2, max: 60 })
+      relayMaxPerChannel: readInt('RELAY_MAX_PER_CHANNEL', 10, { min: 1, max: 100 })
     };
   } catch (err) {
     problems.push('- ' + err.message);
@@ -114,7 +114,7 @@ function buildConfig() {
     token: process.env.DISCORD_TOKEN.trim(),
     clientId: process.env.CLIENT_ID.trim(),
     guildId: (process.env.GUILD_ID || '').trim() || null,
-    // سيرفر احسمها الرسمي — "الانضمام عبر ديسكورد" لألعاب الموقع (بدونه: لو البوت بسيرفر واحد يعتبره الرسمي)
+    // ربط ديسكورد بألعاب الموقع: يحصر الرومات المسموحة بهذا السيرفر (بدونه: أي سيرفر فيه البوت)
     officialGuildId: (process.env.OFFICIAL_GUILD_ID || '').trim() || null,
     apiBaseUrl: stripTrailingSlash(process.env.API_BASE_URL.trim()),
     apiKey: process.env.API_KEY.trim(),

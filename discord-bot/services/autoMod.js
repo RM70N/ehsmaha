@@ -18,6 +18,7 @@ const store = require('../database/botStore');
 const logger = require('../utils/logger');
 const eb = require('../utils/embedBuilder');
 const { checkAdminPermission } = require('../utils/adminPermissions');
+const discordRelay = require('./discordRelay');
 const { formatDurationAr, tryDm, dmEmbed, logModeration } = require('../utils/moderation');
 
 const TYPE_AR = { link: 'نشر روابط', spam: 'السبام (رسائل متكررة/سريعة)' };
@@ -333,8 +334,9 @@ async function handleMessage(message, { contentIntent = true } = {}) {
     }
   }
 
-  // 2) السبام
-  if (settings.spam_protection) {
+  // 2) السبام — ما عدا روم مربوط الحين بلعبة بالموقع: اللاعبين يرسلون أرقام
+  // وإجابات سريعة ومتكررة (هذا اللعب نفسه)، فما نكتمهم عليه. الروابط تبقى محمية.
+  if (settings.spam_protection && !discordRelay.isLinked(message.channelId)) {
     try {
       const s = trackSpam(message);
       if (s.spam) return { type: 'spam', result: await punish(message, 'spam', { extraMessages: s.messages, detail: s.reason }) };

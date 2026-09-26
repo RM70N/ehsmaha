@@ -2,7 +2,8 @@
 
 // كل رسالة بالسيرفر:
 //   1) الحماية التلقائية (روابط/سبام) — services/autoMod.js
-//   2) الانضمام عبر ديسكورد لألعاب الموقع — services/discordJoin.js (روم عليه جلسة نشطة)
+//   2) ربط ديسكورد بألعاب الموقع — services/discordRelay.js (روم مربوط بموقع مفتوح:
+//      الرسالة تنتقل للعبة لحظياً، وتكمل باقي المعالجة عادي)
 //   3) مساعد احسمها الذكي — services/aiAssistant.js:
 //        • قناة تكت دعم نشط ← رسائل صاحب التكت لـGemini (بسياق المحادثة)
 //        • منشن البوت بقناة عادية ← سؤال مستقل
@@ -14,7 +15,7 @@ const { Events } = require('discord.js');
 const autoMod = require('../services/autoMod');
 const autoReply = require('../services/autoReply');
 const aiAssistant = require('../services/aiAssistant');
-const discordJoin = require('../services/discordJoin');
+const discordRelay = require('../services/discordRelay');
 const logger = require('../utils/logger');
 
 let started = false;
@@ -31,9 +32,12 @@ module.exports = {
     const punished = await autoMod.handleMessage(message, { contentIntent: !!(ctx && ctx.messageContentIntent) });
     if (punished) return;
 
-    // الانضمام عبر ديسكورد لألعاب الموقع (بس بروم عليه جلسة لعبة نشطة)
-    const joined = await discordJoin.handleMessage(message).catch(() => null);
-    if (joined) return;
+    // روم مربوط بلعبة بالموقع: نوصّل الرسالة فوراً (الانضمام بالكلمة المفتاحية + اللعب)
+    try {
+      discordRelay.handleMessage(message);
+    } catch (err) {
+      logger.warn('ربط ديسكورد: تعذّر تمرير رسالة', { channelId: message.channelId, error: err });
+    }
 
     try {
       // قناة تكت: المساعد (أو تجاهل لرسائل الدعم) — والمنشن داخلها ما ينعالج مرتين

@@ -10,8 +10,6 @@
 //   GET /winners/streamers?q=...                 (اقتراحات أسماء الستريمرز)
 //   GET /active-streams                           (البثوث النشطة الآن — مزامنة /بث بالبوت)
 //   POST /bot-state/claim · PUT /bot-state        (نسخة احتياطية دائمة لقاعدة بيانات البوت)
-//   GET /join/sessions · PUT /join/channels · POST /join/sessions/:id/participants
-//                                                (الانضمام عبر ديسكورد لألعاب الموقع)
 //   GET /events
 //   GET /admin/stats
 //
@@ -29,7 +27,6 @@ const winners = require('../services/winners');
 const activeStreams = require('../services/activeStreams');
 const admin = require('../services/admin');
 const botState = require('../services/botState');
-const discordJoin = require('../services/discordJoin');
 
 const ok = (res, data, status = 200) => res.status(status).json({ ok: true, data });
 
@@ -112,19 +109,6 @@ function createDiscordRouter(config) {
     const { data, sha256 } = req.body || {};
     if (typeof data !== 'string' || typeof sha256 !== 'string') throw errors.invalidInput('data و sha256 مطلوبة');
     ok(res, await botState.save({ bootAt: bootAtOf(req.body), data, sha: sha256 }));
-  });
-
-  // الانضمام عبر ديسكورد: جلسات الألعاب النشطة (من الموقع) ← البوت، والمنضمين ← الموقع
-  const joinBody = express.json({ limit: '256kb' });
-  router.get('/join/sessions', async (req, res) => {
-    ok(res, await discordJoin.getActiveSessions());
-  });
-  router.put('/join/channels', joinBody, async (req, res) => {
-    ok(res, await discordJoin.setChannels(req.body || {}));
-  });
-  router.post('/join/sessions/:sessionId/participants', joinBody, async (req, res) => {
-    const b = req.body || {};
-    ok(res, await discordJoin.addParticipant(req.params.sessionId, b.discordUserId, b), 201);
   });
 
   return router;
