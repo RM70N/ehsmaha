@@ -96,10 +96,18 @@ function createApp({ client, config }) {
   });
   app.get('/api/discord/relay/:channelId', relayLimiter, (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
-    const r = discordRelay.resolveChannel(client, req.params.channelId, { officialGuildId: config.officialGuildId });
-    if (!r.ok) return res.status(r.status).json({ ok: false, error: { code: r.code, message: r.message } });
-    if (!discordRelay.subscribe(r.channel, req, res, { maxPerChannel: config.relayMaxPerChannel || 10 })) {
-      return res.status(429).json({ ok: false, error: { code: 'RELAY_FULL', message: 'الروم مربوط بمواقع كثيرة حالياً' } });
+    try {
+      const r = discordRelay.resolveChannel(client, req.params.channelId, { officialGuildId: config.officialGuildId });
+      if (!r.ok) return res.status(r.status).json({ ok: false, error: { code: r.code, message: r.message } });
+      if (!discordRelay.subscribe(r.channel, req, res, { maxPerChannel: config.relayMaxPerChannel || 10 })) {
+        return res.status(429).json({ ok: false, error: { code: 'RELAY_FULL', message: 'الروم مربوط بمواقع كثيرة حالياً' } });
+      }
+    } catch (err) {
+      // سبب الخطأ يطلع بالرد (بدون أسرار) عشان يتشخّص من الموقع مباشرة
+      logger.error('ربط ديسكورد: خطأ بفتح الروم', { channelId: req.params.channelId, error: err });
+      if (!res.headersSent) {
+        return res.status(500).json({ ok: false, error: { code: 'RELAY_ERROR', message: 'خطأ بالبوت أثناء ربط الروم: ' + String((err && err.message) || err).slice(0, 200) } });
+      }
     }
     return undefined;
   });
@@ -114,6 +122,10 @@ function createApp({ client, config }) {
       return res.status(413).json({ ok: false, error: { code: 'INVALID_INPUT', message: 'جسم الطلب كبير جداً' } });
     }
     logger.error('خطأ بخادم البوت', { path: req.path, error: err });
+    if (req.path.startsWith('/api/discord/relay/')) {
+      res.set('Access-Control-Allow-Origin', '*');
+      return res.status(500).json({ ok: false, error: { code: 'RELAY_ERROR', message: 'خطأ بالبوت أثناء ربط الروم: ' + String((err && err.message) || err).slice(0, 200) } });
+    }
     return res.status(500).json({ ok: false, error: { code: 'INTERNAL', message: 'خطأ داخلي' } });
   });
   return app;
