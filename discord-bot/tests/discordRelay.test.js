@@ -211,6 +211,25 @@ test('SSE: أخطاء واضحة (روم خاص/غلط/سيرفر غير رسم�
   }, { officialGuildId: GUILD });
 });
 
+test('messageCreate: الرسالة توصل الموقع أولاً حتى لو فحص الحماية علّق', async () => {
+  const autoMod = require('../services/autoMod');
+  const original = autoMod.handleMessage;
+  autoMod.handleMessage = () => new Promise(() => {}); // يعلّق للأبد
+  try {
+    const written = [];
+    const res = { status() {}, set() {}, write: (x) => written.push(x), on() {} };
+    const client = makeClient();
+    assert.equal(relay.subscribe(client.channels.cache.get(CH), { on() {} }, res), true);
+    const m = msg('دخول');
+    m.guild = { id: GUILD };
+    require('../events/messageCreate').execute({ messageContentIntent: true }, m); // ما ننتظره
+    await new Promise((r) => setImmediate(r));
+    assert.ok(written.some((x) => x.startsWith('event: chat') && x.includes('دخول')), 'انرسلت قبل الحماية');
+  } finally {
+    autoMod.handleMessage = original;
+  }
+});
+
 test('الحماية التلقائية: السبام ما ينحسب بروم مربوط بلعبة (الروابط تبقى)', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'services', 'autoMod.js'), 'utf8');
   assert.match(src, /settings\.spam_protection && !discordRelay\.isLinked\(message\.channelId\)/);

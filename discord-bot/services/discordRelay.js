@@ -140,6 +140,10 @@ function subscribe(channel, req, res, { maxPerChannel = 10 } = {}) {
     'X-Accel-Buffering': 'no'
   });
   if (typeof res.flushHeaders === 'function') res.flushHeaders();
+  if (res.socket && typeof res.socket.setNoDelay === 'function') res.socket.setNoDelay(true);
+  // حشوة تعليق 2KB: بعض البروكسيات (Render/Cloudflare) تحبس أول الرد لين يكبر —
+  // الحشوة تفك الحبس فتوصل كل رسالة لحظة ما تنكتب
+  res.write(':' + ' '.repeat(2048) + '\n\n');
   res.write('retry: 4000\n\n');
 
   const sub = { res, openedAt: Date.now() };
@@ -193,9 +197,16 @@ function handleMessage(message) {
   const set = state.subscribers.get(channelId);
   if (!set || !set.size) return 0;
   const payload = toRelayMessage(message);
-  if (!payload.content) return 0; // ملصق/صورة بدون نص
+  if (!payload.content) {
+    // ملصق/صورة بدون نص — أو Message Content Intent مو مفعّل (النص يوصل فاضي)
+    if (!message.attachments || !message.attachments.size) {
+      logger.warn('ربط ديسكورد: رسالة بدون نص بروم مربوط — تأكد إن Message Content Intent مفعّل', { channelId });
+    }
+    return 0;
+  }
   let sent = 0;
   for (const sub of set) if (writeEvent(sub.res, 'chat', payload)) sent++;
+  logger.info('🎮 ربط ديسكورد: رسالة انرسلت للموقع', { channelId, sent, length: payload.content.length });
   return sent;
 }
 
