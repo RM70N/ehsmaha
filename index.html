@@ -23512,6 +23512,8 @@ function kickBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
 // رسائله (أرقام/إجابات) يلعب فيها طبيعي. بدون Firebase بالمسار (صفر حصة).
 // الرومات الخاصة مرفوضة من البوت (لازم روم عام يشوفه @everyone).
 const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot.onrender.com';
+// آخر سبب فشل ربط (يطلع للستريمر بالتنبيه بدل رسالة عامة)
+let discordRelayLastError = null;
 
 // يقبل ID الروم أو رابطه (discord.com/channels/<سيرفر>/<روم>) ويرجّع ID الروم.
 function discordRelayChannelId(input) {
@@ -23579,10 +23581,12 @@ function discordRelayOpenStream(channelInput, onEvent, onOpen, onClose) {
       if (!res.ok || !res.body) {
         const permanent = res.status === 400 || res.status === 403 || res.status === 404;
         return res.json().catch(() => null).then(body => {
-          handle.error = body && body.error ? body.error : null;
+          handle.error = body && body.error ? body.error : { code: 'HTTP_' + res.status, message: 'خادم بوت احسمها رد بخطأ (' + res.status + ')' };
+          discordRelayLastError = handle.error;
           finish({ code: permanent ? 4404 : 1011, reason: handle.error ? handle.error.message : ('HTTP ' + res.status) });
         });
       }
+      discordRelayLastError = null;
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = '';
@@ -23599,7 +23603,10 @@ function discordRelayOpenStream(channelInput, onEvent, onOpen, onClose) {
       });
       return pump();
     })
-    .catch(() => finish({ code: 1006 }));
+    .catch(() => {
+      if (!finished) discordRelayLastError = { code: 'NETWORK', message: 'ما قدرت أوصل لخادم بوت احسمها — تأكد إن البوت شغّال وحاول بعد دقيقة' };
+      finish({ code: 1006 });
+    });
   return handle;
 }
 
@@ -24244,7 +24251,7 @@ function homeStartQuickConnect() {
         } else if (status === 'failed') {
           refreshBadge();
           toast(p === 'discord'
-            ? '⚠️ تعذّر ربط روم الديسكورد — تأكد من ID الروم وإنه روم عام بسيرفر فيه بوت احسمها'
+            ? '⚠️ تعذّر ربط روم الديسكورد — ' + ((discordRelayLastError && discordRelayLastError.message) || 'تأكد من ID الروم وإن بوت احسمها بالسيرفر')
             : '⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية');
           if (!platformConnectedList().length) { clearTimeout(overlayTimer); hideOverlay(); }
         }

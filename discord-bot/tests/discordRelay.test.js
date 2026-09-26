@@ -28,7 +28,13 @@ const OTHER_GUILD = '1500000000000000000';
 const CH = '1400000000000000001';
 
 function makeClient({ ready = true } = {}) {
-  const guild = { id: GUILD, name: 'احسمها', roles: { everyone: { id: GUILD } }, members: { me: { id: 'bot' } } };
+  const { PermissionFlagsBits: P } = require('discord.js');
+  const role = (id, perms = [], managed = false) => ({ id, managed, permissions: { has: (p) => perms.includes(p) } });
+  const everyone = role(GUILD);
+  const member = role('1400000000000000500'); // رتبة "عضو" عادية
+  const staff = role('1400000000000000501', [P.ManageMessages]); // رتبة إشراف
+  const botRole = role('1400000000000000502', [], true);
+  const guild = { id: GUILD, name: 'احسمها', roles: { everyone, cache: new Map([[GUILD, everyone], [member.id, member], [staff.id, staff], [botRole.id, botRole]]) }, members: { me: { id: 'bot' } } };
   const other = { id: OTHER_GUILD, name: 'ثاني', roles: { everyone: { id: OTHER_GUILD } }, members: { me: { id: 'bot' } } };
   const perms = (fn) => (who) => ({ has: () => fn(who) });
   const ch = (id, g, extra = {}) => [id, { id, name: 'روم-' + id.slice(-2), type: ChannelType.GuildText, guild: g, permissionsFor: perms(() => true), ...extra }];
@@ -38,7 +44,8 @@ function makeClient({ ready = true } = {}) {
     channels: {
       cache: new Map([
         ch(CH, guild),
-        ch('1400000000000000002', guild, { permissionsFor: perms((who) => who !== guild.roles.everyone) }), // خاص
+        ch('1400000000000000002', guild, { permissionsFor: perms((who) => who === staff || who === botRole || who === guild.members.me) }), // إدارة فقط
+        ch('1400000000000000006', guild, { permissionsFor: perms((who) => who === member || who === staff || who === guild.members.me) }), // للأعضاء الموثّقين (مقفل عن @everyone)
         ch('1400000000000000003', guild, { permissionsFor: perms((who) => who !== guild.members.me) }), // البوت ما يشوفه
         ch('1400000000000000004', guild, { type: ChannelType.GuildCategory }),
         ch('1500000000000000001', other)
@@ -68,7 +75,8 @@ test('resolveChannel: روم عام يقبل، والغلط/الخاص/سيرف�
   assert.equal(relay.resolveChannel(c, 'abc').code, 'INVALID_INPUT');
   assert.equal(relay.resolveChannel(c, '1400000000000000999').code, 'CHANNEL_NOT_FOUND');
   assert.equal(relay.resolveChannel(c, '1400000000000000004').code, 'CHANNEL_NOT_FOUND', 'تصنيف مو روم كتابي');
-  assert.equal(relay.resolveChannel(c, '1400000000000000002').code, 'CHANNEL_PRIVATE');
+  assert.equal(relay.resolveChannel(c, '1400000000000000002').code, 'CHANNEL_PRIVATE', 'روم إدارة (رتب إشراف/بوت فقط)');
+  assert.equal(relay.resolveChannel(c, '1400000000000000006').ok, true, 'روم مقفل عن @everyone ومفتوح لرتبة الأعضاء');
   assert.equal(relay.resolveChannel(c, '1400000000000000003').code, 'BOT_NO_ACCESS');
   assert.equal(relay.resolveChannel(c, '1500000000000000001').ok, true, 'بدون OFFICIAL_GUILD_ID: أي سيرفر فيه البوت');
   assert.equal(relay.resolveChannel(c, '1500000000000000001', { officialGuildId: GUILD }).code, 'CHANNEL_NOT_ALLOWED');
@@ -207,6 +215,7 @@ test('الموقع: ديسكورد منصة بـ"ابدأ بثاً سريعاً"
   assert.match(html, /data-platform="discord" onclick="homeQcPickPlatform\('discord'\)"/);
   assert.match(html, /id="qc-multi-check-discord"/);
   assert.match(html, /slot\.ws = discordRelayOpenStream\(user, dispatch, onOpen, onClose\)/);
+  assert.match(html, /تعذّر ربط روم الديسكورد — ' \+ \(\(discordRelayLastError && discordRelayLastError\.message\)/, 'التنبيه يعرض السبب الحقيقي');
   assert.match(html, /const DISCORD_RELAY_SERVER_URL = 'https:\/\/ehsmaha-discord-bot\.onrender\.com';/);
 
   const pick = (name) => {

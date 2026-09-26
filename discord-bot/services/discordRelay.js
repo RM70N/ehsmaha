@@ -40,6 +40,36 @@ function totalSubscribers() {
   return n;
 }
 
+// صلاحيات الإدارة: رتبة فيها وحدة منها = رتبة إدارية (مو "أعضاء")
+const STAFF_PERMS = [
+  PermissionFlagsBits.Administrator,
+  PermissionFlagsBits.ManageGuild,
+  PermissionFlagsBits.ManageChannels,
+  PermissionFlagsBits.ManageRoles,
+  PermissionFlagsBits.ManageMessages,
+  PermissionFlagsBits.KickMembers,
+  PermissionFlagsBits.BanMembers,
+  PermissionFlagsBits.ModerateMembers
+];
+
+/**
+ * الروم "للأعضاء"؟ يشوفه @everyone، أو رتبة عادية (مو إدارية ولا رتبة بوت) —
+ * كثير سيرفرات تقفل الرومات عن @everyone وتفتحها لرتبة "عضو/موثّق" بعد التحقق.
+ * رومات الإدارة (ما يشوفها إلا رتب فيها صلاحيات إشراف) مرفوضة.
+ */
+function visibleToCommunity(channel, guild) {
+  const everyone = guild.roles && guild.roles.everyone;
+  if (!everyone) return false;
+  if (channel.permissionsFor(everyone)?.has(PermissionFlagsBits.ViewChannel)) return true;
+  const roles = guild.roles.cache ? [...guild.roles.cache.values()] : [];
+  return roles.some((role) => {
+    if (!role || role.id === everyone.id || role.managed) return false;
+    const perms = role.permissions;
+    if (perms && STAFF_PERMS.some((p) => perms.has(p))) return false;
+    return !!channel.permissionsFor(role)?.has(PermissionFlagsBits.ViewChannel);
+  });
+}
+
 /**
  * يتحقق إن الروم ينفع يتربط.
  * @returns {{ ok: true, channel } | { ok: false, status: number, code: string, message: string }}
@@ -57,9 +87,8 @@ function resolveChannel(client, channelId, { officialGuildId = null } = {}) {
     return { ok: false, status: 403, code: 'CHANNEL_NOT_ALLOWED', message: 'الروم لازم يكون بسيرفر احسمها الرسمي' };
   }
   const guild = channel.guild;
-  const everyone = guild.roles && guild.roles.everyone;
-  if (!everyone || !channel.permissionsFor(everyone)?.has(PermissionFlagsBits.ViewChannel)) {
-    return { ok: false, status: 403, code: 'CHANNEL_PRIVATE', message: 'الروم خاص — اختر روم عام يشوفه الكل' };
+  if (!visibleToCommunity(channel, guild)) {
+    return { ok: false, status: 403, code: 'CHANNEL_PRIVATE', message: 'الروم خاص بالإدارة — اختر روم يشوفه الأعضاء' };
   }
   const me = guild.members && guild.members.me;
   if (!me || !channel.permissionsFor(me)?.has(PermissionFlagsBits.ViewChannel)) {
