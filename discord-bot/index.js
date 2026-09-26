@@ -35,7 +35,7 @@ try {
 const { loadCommands } = require('./utils/commandLoader');
 const botDb = require('./database/botDb');
 const liveStreams = require('./services/liveStreams');
-const { startWebServer } = require('./web/server');
+const { startWebServer, webClientProxy } = require('./web/server');
 const stateBackup = require('./services/stateBackup');
 const api = require('./utils/apiClient');
 
@@ -266,7 +266,7 @@ async function main() {
   ctx.dbReady = initDatabase();
 
   liveStreams.configure({ maxHours: config.streamMaxHours });
-  const webServer = startWebServer({ client: { isReady: () => !!(ctx.client && ctx.client.isReady()), get ws() { return ctx.client ? ctx.client.ws : { ping: -1 }; } }, config });
+  const webServer = startWebServer({ client: webClientProxy(ctx), config });
   shutdown.selfPingTimer = startSelfPing(webServer);
   process.once('SIGTERM', () => shutdown('SIGTERM', webServer));
   process.once('SIGINT', () => shutdown('SIGINT', webServer));

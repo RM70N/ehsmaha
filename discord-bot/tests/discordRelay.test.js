@@ -21,7 +21,7 @@ Object.assign(process.env, {
 
 const { ChannelType } = require('discord.js');
 const relay = require('../services/discordRelay');
-const { createApp } = require('../web/server');
+const { createApp, webClientProxy } = require('../web/server');
 
 const GUILD = '1400000000000000000';
 const OTHER_GUILD = '1500000000000000000';
@@ -106,7 +106,8 @@ test('handleMessage: ما يرسل شي لروم مو مربوط، ويتجاه�
 
 // ---------------- عبر خادم البوت الحقيقي ----------------
 async function withServer(fn, config = {}) {
-  const app = createApp({ client: makeClient(), config: { webhookAllowedOrigins: [], streamWebhookSecret: null, officialGuildId: null, relayMaxPerChannel: 2, ...config } });
+  // نفس اللي يسويه index.js: الخادم ياخذ واجهة تقرأ عميل ديسكورد الحالي
+  const app = createApp({ client: webClientProxy({ client: makeClient() }), config: { webhookAllowedOrigins: [], streamWebhookSecret: null, officialGuildId: null, relayMaxPerChannel: 2, ...config } });
   const server = http.createServer(app);
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -148,6 +149,15 @@ function reader(res) {
   };
   return { events, until, cancel: () => r.cancel().catch(() => {}), pump };
 }
+
+test('webClientProxy: خادم الويب يشوف رومات العميل (وقبل ما يجهز العميل ما يطيح)', () => {
+  const ctx = {};
+  const proxy = webClientProxy(ctx);
+  assert.equal(proxy.isReady(), false);
+  assert.equal(relay.resolveChannel(proxy, CH).code, 'BOT_NOT_READY');
+  ctx.client = makeClient();
+  assert.equal(relay.resolveChannel(proxy, CH).ok, true, 'الرومات توصل عبر الواجهة');
+});
 
 test('SSE: الربط يرجّع ready، والرسائل توصل لحظياً بالترتيب، والفصل ينظّف', async () => {
   await withServer(async (base) => {
