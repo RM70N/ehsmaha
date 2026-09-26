@@ -188,3 +188,29 @@ test('bot-state: Realtime Database الأساسي — Firestore المعلّق (
     firestore.rtdb = savedRtdb;
   }
 });
+
+// ---------------- رابط خدمة الـAPI ----------------
+test('API_BASE_URL: يقبل الرابط بأي شكل ينسخ من Render ويرفض الغلط برسالة فيها القيمة', () => {
+  const { normalizeBaseUrl, buildConfig } = require('../config');
+  assert.equal(normalizeBaseUrl('ehsmaha-discord-api-xyz.onrender.com'), 'https://ehsmaha-discord-api-xyz.onrender.com', 'بدون https://');
+  assert.equal(normalizeBaseUrl(' https://ehsmaha-discord-api-xyz.onrender.com/ \n'), 'https://ehsmaha-discord-api-xyz.onrender.com');
+  assert.equal(normalizeBaseUrl('"https://a-b.onrender.com"'), 'https://a-b.onrender.com');
+  assert.equal(normalizeBaseUrl('API_BASE_URL=https://a-b.onrender.com'), 'https://a-b.onrender.com');
+  assert.equal(normalizeBaseUrl('https://a-b.onrender.com/health'), 'https://a-b.onrender.com');
+  assert.equal(normalizeBaseUrl('http://127.0.0.1:9'), 'http://127.0.0.1:9');
+  assert.equal(normalizeBaseUrl('abc'), null);
+  const keys = ['DISCORD_TOKEN', 'CLIENT_ID', 'GEMINI_API_KEY', 'API_KEY', 'API_BASE_URL'];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  Object.assign(process.env, { DISCORD_TOKEN: 't', CLIENT_ID: '1552260327008247879', GEMINI_API_KEY: 'g', API_KEY: 'k'.repeat(40) });
+  try {
+    process.env.API_BASE_URL = 'ehsmaha-discord-api-xyz.onrender.com';
+    assert.equal(buildConfig().apiBaseUrl, 'https://ehsmaha-discord-api-xyz.onrender.com');
+    process.env.API_BASE_URL = 'abc';
+    assert.throws(() => buildConfig(), /API_BASE_URL مو رابط صالح \(القيمة الحالية: "abc"\)/);
+  } finally {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  }
+});
