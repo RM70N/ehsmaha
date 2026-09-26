@@ -23021,8 +23021,8 @@ function twitchEventShape(displayName, uniqueId, message) {
 // لو ما رد السيرفر الحالي ننتقل للي بعده (دائرياً)، ونرجع للأساسي تلقائياً
 // بعد ما يثبت إنه رجع (راجع tiktokBridgePrimaryRecoveryCheck).
 const TIKTOK_BRIDGE_SERVERS = [
-  'wss://ehsmaha.onrender.com/ws',       // Primary
-  'wss://ehsmaha-wbkn.onrender.com/ws'   // Fallback
+  'wss://ehsmaha-wbkn.onrender.com/ws',  // Primary
+  'wss://ehsmaha.onrender.com/ws'        // Fallback
 ];
 let tiktokActiveBridgeIndex = 0;
 
