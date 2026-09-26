@@ -44,8 +44,11 @@ services:
         value: "1552260327008247879"
       - key: API_KEY
         sync: false
+      # رابط خدمة ehsmaha-discord-api (انسخه من صفحتها بـRender، مثال:
+      # https://ehsmaha-discord-api-xxxx.onrender.com) — Render يضيف لاحقة للاسم
+      # لو الاسم مأخوذ، فما ينكتب هنا ثابت
       - key: API_BASE_URL
-        value: https://ehsmaha-discord-api.onrender.com
+        sync: false
       - key: ADMIN_IDS
         sync: false
       # مفتاح Gemini للمساعد الذكي (مطلوب) — من aistudio.google.com/apikey

@@ -109,9 +109,20 @@ const isDisallowedIntents = (err) =>
   !!err && (err.code === 'DisallowedIntents' || err.code === 4014 || /disallowed intent/i.test(String(err.message || '')));
 
 // أعلام التطبيق: 1<<14/1<<15 = Server Members، 1<<18/1<<19 = Message Content
+// مهلة: لو ديسكورد ما رد (أشهرها على Render: IP الخادم الجديد محظور مؤقتاً من
+// ديسكورد) ما نعلّق هنا للأبد — نكمل ونجرّب تسجيل الدخول مباشرة.
+const PORTAL_TIMEOUT_MS = 10 * 1000;
 async function portalIntents() {
   try {
-    const app = await new REST({ version: '10' }).setToken(config.token).get(Routes.currentApplication());
+    const rest = new REST({ version: '10', timeout: PORTAL_TIMEOUT_MS, retries: 1 }).setToken(config.token);
+    rest.on('rateLimited', (info) => logger.warn('⚠️ ديسكورد حدّد سرعة طلبات البوت', { global: info.global, retryAfterMs: info.retryAfter, route: info.route }));
+    let timer;
+    const app = await Promise.race([
+      rest.get(Routes.currentApplication()),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(Object.assign(new Error('ديسكورد ما رد'), { code: 'PORTAL_TIMEOUT' })), PORTAL_TIMEOUT_MS + 2000);
+      })
+    ]).finally(() => clearTimeout(timer));
     const f = Number(app.flags || 0);
     return { known: true, members: !!(f & (1 << 14) || f & (1 << 15)), content: !!(f & (1 << 18) || f & (1 << 19)) };
   } catch (err) {
@@ -135,7 +146,20 @@ async function login() {
   const tryLogin = async (w) => {
     ctx.client = createClient(w);
     registerEvents(ctx.client);
-    await ctx.client.login(config.token);
+    ctx.client.rest.on('rateLimited', (info) => {
+      if (info.global || info.retryAfter > 10000) logger.warn('⚠️ ديسكورد حدّد سرعة طلبات البوت', { global: info.global, retryAfterMs: info.retryAfter, route: info.route });
+    });
+    logger.info('🔌 جاري الاتصال بديسكورد...', { intents: w });
+    // لو ما اتصل خلال دقيقتين: سجل واضح بالسبب الأرجح والحل (بدل صمت تام)
+    const slow = setTimeout(() => {
+      logger.error('⚠️ البوت ما قدر يتصل بديسكورد خلال دقيقتين — غالباً IP خادم Render محظور مؤقتاً من ديسكورد (مشكلة معروفة بعد نقل/إنشاء خدمة). الحل: Render → الخدمة → Manual Deploy → Clear build cache & deploy (يعطيك خادم جديد)، وتأكد إن DISCORD_TOKEN صحيح');
+    }, 2 * 60 * 1000);
+    if (typeof slow.unref === 'function') slow.unref();
+    try {
+      await ctx.client.login(config.token);
+    } finally {
+      clearTimeout(slow);
+    }
     ctx.membersIntent = w.members;
     ctx.messageContentIntent = w.content;
   };
@@ -270,6 +294,16 @@ async function main() {
   shutdown.selfPingTimer = startSelfPing(webServer);
   process.once('SIGTERM', () => shutdown('SIGTERM', webServer));
   process.once('SIGINT', () => shutdown('SIGINT', webServer));
+
+  // فحص عنوان خدمة الـAPI من أول ثانية (مستقل عن ديسكورد): بعد نقل الخدمات لحساب
+  // Render جديد، العنوان يتغيّر (ينضاف له لاحقة) — ونبيّن هذا بوضوح بالسجلات.
+  api.health()
+    .then(() => logger.info('طبقة الـAPI تستجيب ✅', { baseUrl: config.apiBaseUrl }))
+    .catch((err) => logger.error('⚠️ خدمة الـAPI ما ترد على API_BASE_URL — تأكد إن الرابط هو رابط خدمة ehsmaha-discord-api الحالية بـRender (الرابط يتغيّر لو انتقلت لحساب جديد) وإن API_KEY نفسه بالخدمتين', {
+      baseUrl: config.apiBaseUrl,
+      code: err.code,
+      status: err.status
+    }));
 
   try {
     await login();

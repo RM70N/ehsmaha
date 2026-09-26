@@ -121,8 +121,8 @@ async function main() {
 
   // الموقع: index.html نفسه، بس رابط خادم البوت يشير للخادم المحلي
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const marker = "const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot.onrender.com';";
-  assert.ok(html.includes(marker), 'رابط خادم البوت موجود بالموقع');
+  const marker = /const DISCORD_RELAY_SERVER_URL = 'https:\/\/[a-z0-9-]+\.onrender\.com';/;
+  assert.ok(marker.test(html), 'رابط خادم البوت موجود بالموقع');
   const pageHtml = html.replace(marker, `const DISCORD_RELAY_SERVER_URL = '${botUrl}';`);
   const stub = fs.readFileSync(path.join(__dirname, 'firebaseStub.mjs'), 'utf8');
   const site = http.createServer((req, res) => {

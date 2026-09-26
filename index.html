@@ -23511,7 +23511,9 @@ function kickBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
 // بنفس شكل رسالة شات تيك توك بالضبط — فالكلمة المفتاحية تدخل اللاعب، وباقي
 // رسائله (أرقام/إجابات) يلعب فيها طبيعي. بدون Firebase بالمسار (صفر حصة).
 // الرومات الخاصة مرفوضة من البوت (لازم روم عام يشوفه @everyone).
-const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot.onrender.com';
+// رابط خدمة ehsmaha-discord-bot بـRender (يتغيّر لو انتقلت الخدمة لحساب جديد —
+// انسخه من صفحة الخدمة: "Available at your primary URL")
+const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot-a9ly.onrender.com';
 // آخر سبب فشل ربط (يطلع للستريمر بالتنبيه بدل رسالة عامة)
 let discordRelayLastError = null;
 // آخر رسالة وصلت من كل روم + الرسائل اللي وصلت: لما ينقطع الاتصال (أشهرها: طلع
