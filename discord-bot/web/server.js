@@ -131,6 +131,16 @@ function createApp({ client, config }) {
   return app;
 }
 
+// خادم الويب يقلع قبل عميل ديسكورد، فياخذ واجهة تقرأ العميل الحالي وقت كل
+// طلب: الجاهزية والـping (للـhealth)، والرومات (لربط ديسكورد بألعاب الموقع).
+function webClientProxy(context) {
+  return {
+    isReady: () => !!(context.client && context.client.isReady()),
+    get ws() { return context.client ? context.client.ws : { ping: -1 }; },
+    get channels() { return context.client ? context.client.channels : { cache: new Map() }; }
+  };
+}
+
 function startWebServer({ client, config }) {
   if (!config.healthPort) {
     logger.info('بدون PORT: خادم البوت (health + webhook البث) غير مفعّل — /بث يعتمد على المزامنة الدورية');
@@ -147,4 +157,4 @@ function startWebServer({ client, config }) {
   return server;
 }
 
-module.exports = { createApp, startWebServer, safeEqual };
+module.exports = { createApp, startWebServer, webClientProxy, safeEqual };
