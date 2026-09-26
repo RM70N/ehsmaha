@@ -24,9 +24,11 @@ service cloud.firestore {
     match /usernames/{usernameLower} {
       allow read: if true;
       allow create: if request.auth != null
-                    && request.resource.data.uid == request.auth.uid;
+                    && (request.resource.data.uid == request.auth.uid || isOwner());
       allow update: if false;
-      allow delete: if false;
+      // الحذف مسموح للمالك فقط — يلزم لقسم 12 بلوحة "ادمن احسمها" (تغيير
+      // يوزر قسري لمخالفة القواعد).
+      allow delete: if isOwner();
     }
 
     match /gameBadges/{gameTag} {
@@ -112,6 +114,26 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
 
+    // cwOwnerSessions/{sessionId} — جلسات لعبة "الدول" الحية، مستند لكل ستريمر
+    // (معرّف المستند = uid الستريمر) فيه مشاركيه وتوزيع الدول السري وحالة
+    // الراوند. يقرأه المالك من تاب "🌍 الدول" بلوحته. سبب وجود المجموعة أصلاً:
+    // دعم أكثر من ستريمر يلعب الدول بنفس اللحظة، بدل مستند activeStreamers
+    // الواحد لكل لعبة اللي يمسح فيه كل ستريمر بيانات اللي قبله.
+    match /cwOwnerSessions/{sessionId} {
+      // القراءة للمالك وحده — وهذا هو الضمان الأمني الفعلي هنا: التوزيع سرّي
+      // (اسم الدولة مربوط باسم اللاعب)، فلو كانت القراءة عامة مثل
+      // activeStreamers لقدر أي لاعب يقرأ المستند ويعرف دولة خصمه ويكسر اللعبة.
+      allow read: if isOwner();
+
+      // الكتابة لأي مستخدم مسجّل دخول — نفس activeStreamers/liveRounds بالضبط.
+      // كانت مقيّدة بـrequest.auth.uid == sessionId، لكن معرّف المستند يرجع
+      // ليوزرنيم البث كبديل لو ما اكتملت دورة المصادقة لحظة ما ضغط الستريمر
+      // "ابدأ"، وساعتها الشرط يفشل والكتابة تُرفض بصمت فتختفي الجلسة من لوحة
+      // المالك بلا أي أثر. القيد ما كان يحمي بيانات (القراءة ممنوعة أصلاً على
+      // الجميع عدا المالك)، فأزيل مقابل موثوقية الظهور.
+      allow write: if request.auth != null;
+    }
+
     match /friendships/{pairId} {
       allow read: if request.auth != null && (
         request.auth.uid in pairId.split('_') ||
@@ -138,7 +160,9 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == request.resource.data.hostUid;
       allow update: if request.auth != null;
-      allow delete: if request.auth != null && request.auth.uid == resource.data.hostUid;
+      // الحذف: المضيف نفسه، أو المالك — يلزم لقسم 1 بلوحة "ادمن احسمها" (زر
+      // "إيقاف طارئ") وقسم 7 (إنهاء جلسة عن بُعد).
+      allow delete: if request.auth != null && (request.auth.uid == resource.data.hostUid || isOwner());
 
       match /members/{memberUid} {
         allow read: if request.auth != null;
@@ -147,8 +171,11 @@ service cloud.firestore {
           request.auth.uid == get(/databases/$(database)/documents/rooms/$(roomId)).data.hostUid
         );
         allow update: if request.auth != null && request.auth.uid == memberUid;
+        // الحذف: العضو نفسه، أو عضو خامل من أكثر من 60 ثانية، أو المالك — يلزم
+        // لقسم 7 بلوحة "ادمن احسمها" (استبعاد مشارك من جلسة نشطة).
         allow delete: if request.auth != null && (
           request.auth.uid == memberUid ||
+          isOwner() ||
           (resource.data.lastSeen != null && request.time.toMillis() - resource.data.lastSeen.toMillis() > 60000)
         );
       }
@@ -167,7 +194,27 @@ service cloud.firestore {
 
     match /matchmakingQueue/{uid} {
       allow read: if request.auth != null;
-      allow create, delete: if request.auth != null && request.auth.uid == uid;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      // الحذف: صاحب الصف دائماً، أو أي مستخدم مصادَق لصف "شبح" ما وصلت منه
+      // نبضة حياة من أكثر من 60 ثانية.
+      //
+      // ليش هذا الاستثناء ضروري: أي تبويب ينقفل فجأة (أو ينقطع نهائياً) يترك
+      // صفّه بحالة status:'waiting' للأبد، ومحد غير صاحبه كان يقدر يحذفه. النتيجة
+      // إن الصف الشبح يتصدّر ترتيب الطابور دائماً، فيُحسب ضمن العدد المعروض
+      // ("2 / 10 لاعبين") بينما صاحبه غير موجود أصلاً — فما يبدأ الراوند ولا مرة
+      // بتلك اللعبة. وهذا كان أحد الأسباب الجذرية لتعليق "جارِ البحث عن لاعبين...".
+      //
+      // مهلة 60 ثانية = ثلاث نبضات فائتة (النبضة كل 20 ثانية)، وهامش واسع يتحمّل
+      // تذبذب الشبكة وخنق المتصفح للمؤقتات بالخلفية بدون ما يطرد لاعباً حيّاً.
+      // نفس نمط ومهلة rooms/{roomId}/members أعلاه بالضبط.
+      //
+      // نستخدم get('lastSeen', null) بدل الوصول المباشر حتى لو كان الصف مكتوباً
+      // جزئياً بلا الحقل — فيُرفض الحذف بهدوء بدل ما يفشل تقييم القاعدة.
+      allow delete: if request.auth != null && (
+        request.auth.uid == uid ||
+        (resource.data.get('lastSeen', null) != null
+         && request.time.toMillis() - resource.data.lastSeen.toMillis() > 60000)
+      );
       allow update: if request.auth != null && (
         request.auth.uid == uid ||
         (resource.data.status == 'waiting' && request.resource.data.status == 'matched'
@@ -182,7 +229,9 @@ service cloud.firestore {
                     && (
                       (request.resource.data.fromUid == request.auth.uid
                         && request.resource.data.type in ['friendRequest', 'gameInvite'])
-                      || (request.resource.data.type == 'immunityGrant'
+                      // adminMessage: رسائل مباشرة/جماعية من لوحة "ادمن احسمها"
+                      // (أقسام 2، 3، 7، 9، 10، 12، 13، 14، 19) — من المالك فقط.
+                      || (request.resource.data.type in ['immunityGrant', 'adminMessage']
                         && request.auth.token.email == 'malshaifan1@gmail.com')
                     );
     }
@@ -200,21 +249,147 @@ service cloud.firestore {
     match /levels/{levelKey} {
       allow read: if request.auth != null;
 
-      allow create, update: if request.auth != null
-                    && request.resource.data.keys().hasOnly([
-                         'key', 'username', 'avatar',
-                         'xp', 'level', 'roundsPlayed',
-                         'isRegistered', 'isStreamer', 'isViewer', 'uid',
-                         'createdAt', 'updatedAt'
-                       ])
-                    && request.resource.data.xp is number
-                    && request.resource.data.xp >= 0
-                    && request.resource.data.level is number
-                    && request.resource.data.level >= 1
-                    && request.resource.data.roundsPlayed is number
-                    && request.resource.data.roundsPlayed >= 0;
+      // الحقول المسموحة بمستند levels.
+      // مهم: xp/level/roundsPlayed اختيارية بالفحص (مو مطلوبة بكل كتابة) لأن
+      // مسار الإطارات يكتب حقلاً واحداً بـmerge على مستند ممكن ما يكون موجوداً
+      // أصلاً (اختيار إطار لشخص ما لعب أي راوند، أو لمفتاح تيك توك اللي كل XP
+      // صاحبه محسوب بمفتاح الموقع). إلزامها كان يرفض هذي الكتابات كلها فيروح
+      // الاختيار/التفعيل للقاعدة الاحتياطية (RTDB) بدل فايرستور. levelsCommit
+      // يكتبها دايماً بأي حال، فالفحص يبقى فعّالاً عليه.
+      // levelFrames = الإطارات اللي اختارها اللاعب بنفسه بحصة لفله (أول إطار
+      // بلفل 5، وكل +3 لفلات إطار إضافي). منفصل عن ownedFrames اللي يجمع كل ما
+      // يملك — عشان منح لوحة المالك يضل مجاني وما يُخصم من حصة اللفل.
+      // activeFrameAt = ختم وقت آخر تفعيل بالملّي. لازم يكون مسموحاً هنا، لأن
+      // الموقع يحدّد فيه أي قاعدة (فَيرستور أو RTDB) تحمل أحدث تفعيل — وبدونه
+      // ترجع مشكلة "الإطار ينحفظ ومع ذلك يرجع القديم بشاشة الانتظار".
+      function levelsAllowedKeys() {
+        return [
+          'key', 'username', 'avatar',
+          'xp', 'level', 'roundsPlayed',
+          'isRegistered', 'isStreamer', 'isViewer', 'uid',
+          'createdAt', 'updatedAt',
+          'ownedFrames', 'levelFrames', 'activeFrame', 'activeFrameAt',
+          'lastGamePlayed', 'lastGamePlayedAt', 'gamesPlayCount', 'activityLog'
+        ];
+      }
 
-      allow delete: if isOwner();
+      function levelsTypesValid() {
+        return request.resource.data.get('xp', 0) is number
+               && request.resource.data.get('xp', 0) >= 0
+               && request.resource.data.get('level', 1) is number
+               && request.resource.data.get('level', 1) >= 1
+               && request.resource.data.get('roundsPlayed', 0) is number
+               && request.resource.data.get('roundsPlayed', 0) >= 0
+               && request.resource.data.get('ownedFrames', []) is list
+               && request.resource.data.get('levelFrames', []) is list
+               && request.resource.data.get('activeFrame', '') is string
+               && request.resource.data.get('activeFrameAt', 0) is number
+               && request.resource.data.get('lastGamePlayed', '') is string
+               && request.resource.data.get('lastGamePlayedAt', request.time) is timestamp
+               && request.resource.data.get('gamesPlayCount', {}) is map
+               && request.resource.data.get('activityLog', []) is list;
+      }
+
+      // نسخة التحديث: تفحص نوع الحقل **فقط لو هذا الحقل نفسه يتغيّر بهذي
+      // الكتابة**. بيانات قديمة بنوع غير متوقّع (مثلاً xp محفوظ كنص من نسخة
+      // قديمة) ما تعود تقفل المستند بوجه كل كتابة جديدة عليه.
+      function levelsChangedTypesValid() {
+        let ch = request.resource.data.diff(resource.data).affectedKeys();
+        return (!ch.hasAny(['xp']) || (request.resource.data.get('xp', 0) is number && request.resource.data.get('xp', 0) >= 0))
+               && (!ch.hasAny(['level']) || (request.resource.data.get('level', 1) is number && request.resource.data.get('level', 1) >= 1))
+               && (!ch.hasAny(['roundsPlayed']) || (request.resource.data.get('roundsPlayed', 0) is number && request.resource.data.get('roundsPlayed', 0) >= 0))
+               && (!ch.hasAny(['ownedFrames']) || request.resource.data.get('ownedFrames', []) is list)
+               && (!ch.hasAny(['levelFrames']) || request.resource.data.get('levelFrames', []) is list)
+               && (!ch.hasAny(['activeFrame']) || request.resource.data.get('activeFrame', '') is string)
+               && (!ch.hasAny(['activeFrameAt']) || request.resource.data.get('activeFrameAt', 0) is number)
+               && (!ch.hasAny(['lastGamePlayed']) || request.resource.data.get('lastGamePlayed', '') is string)
+               && (!ch.hasAny(['lastGamePlayedAt']) || request.resource.data.get('lastGamePlayedAt', request.time) is timestamp)
+               && (!ch.hasAny(['gamesPlayCount']) || request.resource.data.get('gamesPlayCount', {}) is map)
+               && (!ch.hasAny(['activityLog']) || request.resource.data.get('activityLog', []) is list);
+      }
+
+      // سقف عدد الإطارات المملوكة — حاجز أمان بحت ضد سكربت يحاول يحشو المستند
+      // بآلاف العناصر. لاعب طبيعي بلفل 100 عنده أقل من 35 إطار.
+      function framesCountSane() {
+        return request.resource.data.get('ownedFrames', []).size() <= 60
+               && request.resource.data.get('levelFrames', []).size() <= 60;
+      }
+
+      // ملكية الإطارات (ownedFrames) للاعب نفسه:
+      // اللاعب صار ياخذ إطاره بنفسه من المعرض لكن باللفل (أول إطار بلفل 5، وكل
+      // +3 لفلات إطار إضافي)، فالقاعدة القديمة "ownedFrames ما تتغيّر إلا من
+      // المالك" كانت ترفض كل اختيار وتخليه يفشل بصمت. البديل هنا يسمح
+      // بالإضافة فقط وبشروط تمنع أي تلاعب فعلي:
+      //   1) ممنوع الحذف نهائياً — كل إطار مملوك أصلاً لازم يبقى بالمصفوفة،
+      //      فما فيه أحد يقدر يمسح إطاراً ممنوحاً من الإدارة (لا لنفسه ولا لغيره).
+      //   2) أي إطار ينضاف لـownedFrames لازم ينضاف معه بـlevelFrames — يعني
+      //      ينسجّل صراحة كـ"اختيار لفل"، فما يقدر أحد يضيف إطاراً ويمرّره كأنه
+      //      منحة إدارة، وسجل الاختيارات يبقى كامل ومُراجَع.
+      //   3) levelFrames نفسها ممنوع الحذف منها — عشان ما يُصفّر عدّاد حصته
+      //      ويرجع يختار من جديد بلا حدود.
+      // عدد الاختيارات المسموح باللفل يتحقّق بالواجهة (framesRemainingPicks)
+      // لأن اللفل الحقيقي ممكن يكون محفوظاً بمستند مفتاح ثاني (مفتاح الموقع)
+      // غير المستند اللي تنكتب فيه هذي الكتابة (مفتاح تيك توك)، فالقاعدة ما
+      // تقدر تشوفه هنا. المالك معفى من كل هذي الشروط (منح/سحب يدوي).
+      function framesNoRemovals() {
+        return request.resource.data.get('ownedFrames', []).hasAll(resource.data.get('ownedFrames', []))
+               && request.resource.data.get('levelFrames', []).hasAll(resource.data.get('levelFrames', []));
+      }
+
+      function framesAdditionsRecordedAsPicks() {
+        return request.resource.data.get('ownedFrames', [])
+                 .removeAll(resource.data.get('ownedFrames', []))
+                 .hasOnly(request.resource.data.get('levelFrames', []));
+      }
+
+      function framesSelfPickAllowed() {
+        return framesNoRemovals() && framesAdditionsRecordedAsPicks() && framesCountSane();
+      }
+
+      // إنشاء مستند جديد: أي ملكية بأول كتابة لازم تكون مسجّلة كاختيار لفل
+      // (نفس الشرط 2 فوق) — هذي حالة فعلية: أول إطار يختاره لاعب ما عنده مستند
+      // بمفتاح تيك توك بعد، فالكتابة تنشئ المستند بحقلين بس.
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasOnly(levelsAllowedKeys())
+                    && levelsTypesValid()
+                    && (isOwner() || (
+                         request.resource.data.get('ownedFrames', [])
+                           .hasOnly(request.resource.data.get('levelFrames', []))
+                         && framesCountSane()
+                       ));
+
+      // بالتحديث نفحص **الحقول المتغيّرة فقط** (affectedKeys)، مو كل المستند
+      // المدموج. هذا فرق جوهري: كتابة merge تخلي request.resource.data =
+      // المستند بعد الدمج، فأي حقل قديم مخزّن من نسخة أقدم للموقع وخارج
+      // القائمة كان يرفض **كل** كتابة لاحقة على ذاك المستند للأبد — فيُحفظ
+      // الإطار بمفتاح وينرفض بمفتاح ثانٍ (بصمت)، ويرجع الإطار القديم بشاشة
+      // الانتظار وبعد أي تحديث للصفحة. الحقول القديمة تبقى كما هي بلا مساس،
+      // والحقول اللي فعلاً تتغيّر تبقى محصورة بالقائمة ومفحوصة النوع.
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(levelsAllowedKeys())
+                    && levelsChangedTypesValid()
+                    && (isOwner() || framesSelfPickAllowed());
+
+      // حتى المالك ما يحذف مستنداً يحمل إطارات (ملكية مُختارة/مُمنوحة أو إطار
+      // مفعَّل) — حماية من تنظيف المستندات "الفاضية" (levelsCleanupEmptyDocs)
+      // اللي كان يبخّر إطاراً لشخص ما لعب أي راوند. لحذف مستند كهذا: صفّر
+      // حقول الإطارات أولاً ثم احذفه.
+      allow delete: if isOwner()
+                    && resource.data.get('ownedFrames', []).size() == 0
+                    && resource.data.get('levelFrames', []).size() == 0
+                    && resource.data.get('activeFrame', '') == '';
+    }
+
+    // framesCatalogExtra/{frameId} — إطارات ديناميكية (لوحة المالك فقط
+    // تنشر/تحذف عبر تبويب "إطارات"). القراءة لأي مستخدم مسجّل دخول لازمة
+    // فعلياً: بطاقة المشارك بشاشة الانتظار تُبنى على **جهاز الستريمر**، فهو
+    // يحتاج يقرأ بيانات إطار خاص يملكه شخص ثانٍ عشان يركّبه حول أفتاره.
+    // الوثائق visibility=='private' ما تظهر بأي قائمة/استعلام عام
+    // (framesPublicExtraBoot يفلتر visibility=='public' فقط)، فقراءتها عملياً
+    // ما تصير إلا لمن عنده الـid أصلاً من ownedFrames/activeFrame.
+    match /framesCatalogExtra/{frameId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if isOwner();
     }
 
     match /shopProducts/{productId} {
@@ -336,9 +511,12 @@ service cloud.firestore {
     }
 
     match /feedback/{docId} {
-      allow read: if request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
+      allow read: if isOwner();
       allow create: if request.auth != null;
-      allow update, delete: if false;
+      // تحديث/حذف مسموح للمالك فقط — يلزم لقسم 9 بلوحة "ادمن احسمها" (تذاكر
+      // الدعم: تصنيف، رد، إغلاق/إعادة فتح، أرشفة). كان ممنوعاً تماماً حتى على
+      // المالك، فما كان فيه أي طريقة لإدارة التذاكر.
+      allow update, delete: if isOwner();
     }
 
     match /userGames/{gameId} {
@@ -373,11 +551,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.auth != null
                     && request.resource.data.ownerUid == request.auth.uid;
-      // زيادة clicksCount مسموحة للجميع حتى بدون تسجيل دخول — أغلب من يفتح
-      // رابط إحالة لأول مرة زائر غير مسجّل أصلاً، وهذا الشرط هو اللي كان
-      // يمنع احتساب زيارته بصمت (request.auth != null كان شرطاً عاماً على
-      // كل تحديث بما فيها هذا). محصور تماماً بزيادة +1 بالضبط على هذا الحقل
-      // وحده — أي تعديل آخر يبقى محصوراً بصاحب الرابط المسجّل دخوله فقط.
       allow update: if (
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clicksCount']) &&
         request.resource.data.clicksCount == resource.data.clicksCount + 1
@@ -431,33 +604,240 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // الانضمام عبر ديسكورد — قائمة رومات السيرفر الرسمي (يكتبها البوت عبر الـAPI بصلاحية الأدمن)
-    match /config/discordChannels {
-      allow read: if request.auth != null;
-      allow write: if false;
+    // زر "سيرفر احسمها بالديسكورد" بالصفحة الرئيسية (رابط الدعوة + إظهار/إخفاء)
+    // — الموقع يقراه للكل (homeDiscordBoot)، والمالك يعدّله من لوحته
+    // (discordSaveUrl / discordToggleVisible). ما كان له قاعدة، فالقاعدة
+    // الافتراضية آخر الملف كانت ترفض القراءة والحفظ.
+    // ملاحظة: ربط روم ديسكورد بالألعاب (منصة "ديسكورد" بـ"ابدأ بثاً سريعاً")
+    // ما يستخدم Firestore أبداً — الرسائل توصل مباشرة من بوت احسمها للموقع.
+    match /config/discordServer {
+      allow read: if true;
+      allow write: if isOwner();
     }
 
-    // جلسة لعبة مربوطة بروم ديسكورد: الستريمر ينشئها وينهيها (status: 'ended') بدون حذف
-    match /discordSessions/{sessionId} {
-      allow read: if request.auth != null && resource.data.streamerId == request.auth.uid;
-      allow create: if request.auth != null
-        && sessionId.matches('^' + request.auth.uid + '_[A-Za-z0-9-]+_[0-9]+$')
-        && request.resource.data.streamerId == request.auth.uid
-        && request.resource.data.status == 'active'
-        && request.resource.data.channelId is string
-        && request.resource.data.keyword is string;
-      allow update: if request.auth != null
-        && resource.data.streamerId == request.auth.uid
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'endedAt'])
-        && request.resource.data.status == 'ended';
-      allow delete: if false;
+    // تصحيح: "جسر المصير" (bridge-fate) لا يستخدم Firestore إطلاقاً — بيانات
+    // الفعالية الحية تُخزَّن بـRealtime Database (المسارات bridgeEvents/{id}،
+    // bridgePlayers/{eventId}/{key}، bridgeBoard/{eventId})، تفادياً لحصة
+    // قراءات/كتابات Firestore. كان هنا سابقاً قسم قواعد Firestore بنفس الاسم
+    // (بقايا افتراض خاطئ) — أُزيل لأنه ميت فعلياً (index.html ما يكتب/يقرأ
+    // Firestore بهذا المسار أبداً). أمان "جسر المصير" الحقيقي يُدار من
+    // Firebase Console → Realtime Database → Rules، خارج هذا الملف تماماً —
+    // لازم يتأكد المالك إن تلك القواعد تسمح بالقراءة للجميع والكتابة
+    // للمستخدمين المسجَّلين دخول فقط (نفس فكرة isOwner لكن بصياغة RTDB:
+    // auth.token.email === 'malshaifan1@gmail.com').
 
-      // المنضمون من ديسكورد — يكتبهم البوت فقط (عبر الـAPI)، ويقراهم صاحب الجلسة
-      match /participants/{discordUserId} {
-        allow read: if request.auth != null
-          && get(/databases/$(database)/documents/discordSessions/$(sessionId)).data.streamerId == request.auth.uid;
-        allow write: if false;
-      }
+    // ==================== لوحة "ادمن احسمها" (لوحة إدارة منفصلة) ====================
+    // كل الكولكشنات التالية تخدم admin/ (موقع Netlify منفصل تماماً عن الموقع
+    // الرئيسي، نفس مشروع Firebase) — isOwner() هو نفس حساب الأدمن الوحيد.
+    // بعضها يحتاج قراءة/كتابة محدودة من مستخدم غير مسجَّل دخول بعد (وقت
+    // التسجيل بالموقع الرئيسي) — موضَّح بالتعليق فوق كل استثناء.
+
+    match /adminAuditLog/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminLoginAttempts/{id} {
+      // يُسجَّل عند أي محاولة دخول للوحة (كلمة مرور خاطئة، أو حساب حقيقي
+      // غير مصرَّح له) — مقيّد بحقول محدودة حتى لو لم يوجد auth بعد.
+      allow create: if request.resource.data.keys().hasOnly(['ts', 'emailAttempted', 'success', 'reason', 'userAgent', 'ip', 'city', 'country'])
+                    && request.resource.data.success is bool;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /adminOwnSessions/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminSettings/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminIpBans/{ip} {
+      // يُقرأ وقت التسجيل بالموقع الرئيسي (قبل ما يملك المستخدم حساباً بعد).
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /adminDeviceBans/{deviceId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /adminSecurityAlerts/{id} {
+      // كشف محتوى مشبوه بحقل حر (مثل الملاحظات) — يُسجَّل من أي مستخدم مسجَّل.
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /clientErrorLog/{id} {
+      // سجل أخطاء عميل خفيف — يُكتب حتى قبل تسجيل الدخول (صفحة الهبوط مثلاً).
+      allow create: if true;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /deviceSessions/{uid} {
+      allow read: if request.auth != null && (request.auth.uid == uid || isOwner());
+      allow write: if request.auth != null && (request.auth.uid == uid || isOwner());
+    }
+
+    match /siteFlags/{flagId} {
+      // تُقرأ من الموقع الرئيسي وقت التسجيل (registration/usernameBlacklist/
+      // rateLimiting) وقبل تسجيل الدخول — القراءة عامة، الكتابة للأدمن فقط.
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /signupRateLimit/{ip} {
+      // عداد حماية بسيط من جهة العميل (best-effort، بدون بيانات حساسة) —
+      // يُكتب قبل وجود حساب للمستخدم، فلازم يبقى عاماً.
+      allow read, write: if true;
+    }
+
+    match /gameContentBanks/{bankId} {
+      // إضافات/استثناءات فوق بنوك محتوى مدمجة بالكود (أسئلة الطريق الزجاجي،
+      // مواضيع توب 10...) — تُقرأ من كل اللاعبين أثناء اللعب، تُكتب من الأدمن فقط.
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /framesCatalog/{frameId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /badgeDefs/{badgeId} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /streamerProfiles/{usernameLower} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /streamerApplications/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /deletedUsersBackup/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminNotes/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /feedbackCannedResponses/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /contentReports/{id} {
+      // بلاغ من أي مستخدم مسجَّل (زر إبلاغ مستقبلي) — القراءة/المراجعة للأدمن فقط.
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /aiGameSubmissions/{id} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if isOwner();
+    }
+
+    match /aiGameTemplates/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /siteContent/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /scheduledContent/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /siteContentArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /uiText/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /uiTextArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /abExperiments/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /adminRoles/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /backupsLog/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /financialTransactions/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /subscriptionPlans/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /overlayArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /specialEvents/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /specialEventsArchive/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /apiHealthLog/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /contests/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /recurringContestTemplates/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /broadcastCampaigns/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /scheduledNotifications/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /notifTemplates/{id} {
+      allow read, write: if isOwner();
+    }
+
+    match /xpSeasonsArchive/{seasonId}/players/{uid} {
+      allow read, write: if isOwner();
+    }
+
+    match /gameConfig/{gameTag} {
+      // إعدادات قابلة للتعديل لكل لعبة (نقاط، توقيت، صعوبة...) تقرأها اللعبة
+      // نفسها وقت التشغيل.
+      allow read: if true;
+      allow write: if isOwner();
     }
 
     match /{document=**} {

@@ -203,6 +203,7 @@ function shutdown(signal, webServer) {
   force.unref();
   liveStreams.stopPolling();
   clearInterval(shutdown.selfPingTimer);
+  require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())

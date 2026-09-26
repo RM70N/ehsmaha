@@ -112,4 +112,4 @@ function stopListener() {
   live.ready = false;
 }
 
-module.exports = { getActiveStreams, stopListener, presenceFor };
+module.exports = { getActiveStreams, stopListener };
