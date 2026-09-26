@@ -35,6 +35,22 @@ function stripTrailingSlash(url) {
   return String(url || '').replace(/\/+$/, '');
 }
 
+// رابط خدمة منسوخ من Render بأي شكل ← origin نظيف: يشيل المسافات وعلامات
+// التنصيص و"API_BASE_URL=" لو انلصقت معه، ويضيف https:// لو ناقص، ويشيل أي مسار
+// (مثل /health). يرجّع null لو ما ينفع رابط.
+function normalizeBaseUrl(raw) {
+  let v = String(raw || '').trim().replace(/^API_BASE_URL\s*=\s*/i, '').replace(/^["'`<\s]+|["'`>\s]+$/g, '');
+  if (!v) return null;
+  if (!/^https?:\/\//i.test(v)) v = 'https://' + v.replace(/^\/+/, '');
+  try {
+    const u = new URL(v);
+    if (!u.hostname || !u.hostname.includes('.') && u.hostname !== 'localhost') return null;
+    return u.origin;
+  } catch (_) {
+    return null;
+  }
+}
+
 function isSnowflake(value) {
   return /^\d{17,20}$/.test(String(value || ''));
 }
@@ -56,8 +72,9 @@ function buildConfig() {
   if (process.env.GUILD_ID && !isSnowflake(process.env.GUILD_ID)) {
     problems.push('- GUILD_ID (اختياري) لازم يكون رقم سيرفر صالح إذا تم تعبئته');
   }
-  if (process.env.API_BASE_URL && !/^https?:\/\//i.test(process.env.API_BASE_URL)) {
-    problems.push('- API_BASE_URL لازم يبدأ بـ http:// أو https://');
+  const apiBaseUrl = normalizeBaseUrl(process.env.API_BASE_URL);
+  if (process.env.API_BASE_URL && String(process.env.API_BASE_URL).trim() && !apiBaseUrl) {
+    problems.push(`- API_BASE_URL مو رابط صالح (القيمة الحالية: "${String(process.env.API_BASE_URL).trim().slice(0, 80)}") — انسخ رابط خدمة ehsmaha-discord-api من Render، مثال: https://ehsmaha-discord-api-xxxx.onrender.com`);
   }
   if (process.env.API_KEY && String(process.env.API_KEY).length < 24) {
     problems.push('- API_KEY قصير جداً — استخدم مفتاح عشوائي 32 حرف على الأقل');
@@ -116,7 +133,7 @@ function buildConfig() {
     guildId: (process.env.GUILD_ID || '').trim() || null,
     // ربط ديسكورد بألعاب الموقع: يحصر الرومات المسموحة بهذا السيرفر (بدونه: أي سيرفر فيه البوت)
     officialGuildId: (process.env.OFFICIAL_GUILD_ID || '').trim() || null,
-    apiBaseUrl: stripTrailingSlash(process.env.API_BASE_URL.trim()),
+    apiBaseUrl,
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     siteUrl,
@@ -166,4 +183,4 @@ function loadConfig() {
   return cached;
 }
 
-module.exports = { loadConfig, buildConfig, isSnowflake };
+module.exports = { normalizeBaseUrl, loadConfig, buildConfig, isSnowflake };
