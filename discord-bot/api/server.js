@@ -1,8 +1,11 @@
 'use strict';
 
 // طبقة API "احسمها ↔ ديسكورد" (Express).
-// تشتغل كخدمة Web مستقلة على Render، وتتصل مباشرة بقاعدة بيانات الموقع
-// (Firebase) عبر Admin SDK. البوت هو العميل الوحيد، ويكلمها بـx-api-key.
+// تتصل مباشرة بقاعدة بيانات الموقع (Firebase) عبر Admin SDK. البوت هو العميل
+// الوحيد، ويكلمها بـx-api-key. تشتغل بطريقتين:
+//   • مدمجة داخل البوت (الافتراضي — خدمة Render وحدة): البوت يشغّلها على منفذ
+//     داخلي (127.0.0.1) عبر startApiServer() لو API_BASE_URL فاضي.
+//   • خدمة مستقلة: `npm run start:api` (نفس السلوك القديم).
 
 const express = require('express');
 const helmet = require('helmet');
@@ -10,61 +13,13 @@ const { createLogger } = require('../utils/logger');
 
 const logger = createLogger('api');
 
-process.on('unhandledRejection', (reason) => {
-  logger.error('unhandledRejection', { error: reason instanceof Error ? reason : { value: String(reason) } });
-});
-process.on('uncaughtException', (error, origin) => {
-  logger.error('uncaughtException', { error, origin });
-});
-
-const { loadApiConfig } = require('./config');
-let config;
-try {
-  config = loadApiConfig();
-} catch (err) {
-  console.error('\n❌ ' + err.message + '\n\nراجع متغيرات البيئة (انسخ .env.example كبداية).\n');
-  process.exit(1);
-}
-
 const firestore = require('../database/firestore');
 const C = require('../database/collections');
-try {
-  firestore.init({ databaseURL: config.firebaseDatabaseUrl });
-} catch (err) {
-  console.error('\n❌ ' + err.message + '\n');
-  process.exit(1);
-}
 
-const apiStats = require('./services/apiStats');
-const leaderboard = require('./services/leaderboard');
-const { createDiscordRouter } = require('./routes/discord');
-const { notFoundHandler, createErrorHandler } = require('./middleware/errorHandler');
-const { startJobs } = require('./jobs');
-
-leaderboard.setLogger(logger);
-
-const app = express();
-app.disable('x-powered-by');
-app.set('trust proxy', 1); // Render أمام السيرفر بـproxy واحد — عشان IP الحقيقي بمحدد المعدل
-
-app.use(helmet());
-
-// سجل مختصر لكل طلب (بدون أي هيدرات — ما نسجل المفاتيح أو التوكنات)
-app.use((req, res, next) => {
-  const started = Date.now();
-  res.on('finish', () => {
-    const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
-    // 404 (لاعب غير موجود) طبيعية جداً — ما نزعج السجل فيها
-    if (level === 'warn' && res.statusCode === 404) return;
-    logger[level]('request', { method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - started });
-  });
-  next();
-});
-
-// فحص الصحة (Render Health Check) — Render يطلبه كل ثواني، فما يقرأ Firestore
-// مع كل طلب (كان يستهلك آلاف القراءات باليوم من حصة الموقع). فحص Firestore
-// الفعلي مرة كل 10 دقائق بالكثير، ونتيجته تنعرض بالرد فقط: مشكلة بـFirestore
-// (مثل تجاوز الحصة اليومية) ما توقف الخدمة ولا تفشّل نشر التحديثات.
+// فحص الصحة (Render Health Check) — ما يقرأ Firestore مع كل طلب (كان يستهلك
+// آلاف القراءات باليوم من حصة الموقع). فحص Firestore الفعلي مرة كل 10 دقائق
+// بالكثير، ونتيجته تنعرض بالرد فقط: مشكلة بـFirestore (مثل تجاوز الحصة
+// اليومية) ما توقف الخدمة ولا تفشّل نشر التحديثات.
 const FIRESTORE_PROBE_MS = 10 * 60 * 1000;
 const probe = { at: 0, ok: null, code: null, running: null };
 function probeFirestore() {
@@ -88,39 +43,105 @@ function probeFirestore() {
     });
 }
 
-app.get('/health', (req, res) => {
-  probeFirestore();
-  res.json({ ok: true, data: { status: 'ok', uptime: Math.floor(process.uptime()), firestore: probe.ok === null ? 'checking' : probe.ok ? 'ok' : probe.code } });
-});
+function createApiApp(config) {
+  const apiStats = require('./services/apiStats');
+  const { createDiscordRouter } = require('./routes/discord');
+  const { notFoundHandler, createErrorHandler } = require('./middleware/errorHandler');
 
-app.use('/api/discord', apiStats.middleware, createDiscordRouter(config));
-app.use(notFoundHandler);
-app.use(createErrorHandler(logger));
+  const app = express();
+  app.disable('x-powered-by');
+  app.set('trust proxy', 1); // Render أمام السيرفر بـproxy واحد — عشان IP الحقيقي بمحدد المعدل
 
-apiStats.start(logger);
-const stopJobs = startJobs(config, logger);
+  app.use(helmet());
 
-const server = app.listen(config.port, () => {
-  logger.info('✅ طبقة API احسمها-ديسكورد تعمل', { port: config.port });
-});
-server.on('error', (err) => {
-  logger.error('فشل تشغيل السيرفر', { error: err });
-  process.exit(1);
-});
+  // سجل مختصر لكل طلب (بدون أي هيدرات — ما نسجل المفاتيح أو التوكنات)
+  app.use((req, res, next) => {
+    const started = Date.now();
+    res.on('finish', () => {
+      const level = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
+      // 404 (لاعب غير موجود) طبيعية جداً — ما نزعج السجل فيها
+      if (level === 'warn' && res.statusCode === 404) return;
+      logger[level]('request', { method: req.method, path: req.path, status: res.statusCode, ms: Date.now() - started });
+    });
+    next();
+  });
 
-let shuttingDown = false;
-async function shutdown(signal) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  logger.info(`استلام ${signal} — إيقاف الـAPI بهدوء`);
-  setTimeout(() => process.exit(0), 8000).unref();
-  stopJobs();
-  require('./services/activeStreams').stopListener();
-  server.close();
-  await apiStats.stop().catch(() => {});
-  process.exit(0);
+  app.get('/health', (req, res) => {
+    probeFirestore();
+    res.json({ ok: true, data: { status: 'ok', uptime: Math.floor(process.uptime()), firestore: probe.ok === null ? 'checking' : probe.ok ? 'ok' : probe.code } });
+  });
+
+  app.use('/api/discord', apiStats.middleware, createDiscordRouter(config));
+  app.use(notFoundHandler);
+  app.use(createErrorHandler(logger));
+  return app;
 }
-process.once('SIGTERM', () => shutdown('SIGTERM'));
-process.once('SIGINT', () => shutdown('SIGINT'));
 
-module.exports = app;
+/**
+ * يشغّل طبقة الـAPI (Firebase + المسارات + المهام الدورية) على منفذ.
+ * يرمي خطأ CONFIG_INVALID لو ناقص FIREBASE_SERVICE_ACCOUNT/API_KEY.
+ * @returns {Promise<{ server, port, stop: () => Promise<void> }>}
+ */
+async function startApiServer({ port, host } = {}) {
+  const { loadApiConfig } = require('./config');
+  const config = loadApiConfig();
+  firestore.init({ databaseURL: config.firebaseDatabaseUrl });
+
+  const apiStats = require('./services/apiStats');
+  const leaderboard = require('./services/leaderboard');
+  const { startJobs } = require('./jobs');
+  leaderboard.setLogger(logger);
+
+  const app = createApiApp(config);
+  apiStats.start(logger);
+  const stopJobs = startJobs(config, logger);
+
+  const listenPort = port === undefined ? config.port : port;
+  const server = await new Promise((resolve, reject) => {
+    const srv = app.listen(listenPort, host, () => resolve(srv));
+    srv.once('error', reject);
+  });
+  logger.info('✅ طبقة API احسمها-ديسكورد تعمل', { port: server.address().port, host: host || 'all' });
+
+  let stopped = false;
+  async function stop() {
+    if (stopped) return;
+    stopped = true;
+    stopJobs();
+    require('./services/activeStreams').stopListener();
+    await new Promise((r) => server.close(() => r()));
+    await apiStats.stop().catch(() => {});
+  }
+  return { server, port: server.address().port, stop };
+}
+
+module.exports = { createApiApp, startApiServer };
+
+// ---- تشغيل كخدمة مستقلة: node api/server.js ----
+if (require.main === module) {
+  process.on('unhandledRejection', (reason) => {
+    logger.error('unhandledRejection', { error: reason instanceof Error ? reason : { value: String(reason) } });
+  });
+  process.on('uncaughtException', (error, origin) => {
+    logger.error('uncaughtException', { error, origin });
+  });
+
+  startApiServer()
+    .then(({ stop }) => {
+      let shuttingDown = false;
+      const shutdown = async (signal) => {
+        if (shuttingDown) return;
+        shuttingDown = true;
+        logger.info(`استلام ${signal} — إيقاف الـAPI بهدوء`);
+        setTimeout(() => process.exit(0), 8000).unref();
+        await stop().catch(() => {});
+        process.exit(0);
+      };
+      process.once('SIGTERM', () => shutdown('SIGTERM'));
+      process.once('SIGINT', () => shutdown('SIGINT'));
+    })
+    .catch((err) => {
+      console.error('\n❌ ' + err.message + '\n\nراجع متغيرات البيئة (انسخ .env.example كبداية).\n');
+      process.exit(1);
+    });
+}
