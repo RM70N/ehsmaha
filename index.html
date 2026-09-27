@@ -2567,6 +2567,8 @@ body{padding-top:64px;}
    backdrop behind a large glassmorphic card, rather than the slim top banner. */
 .msg-banner-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
 .msg-banner-backdrop.visible{display:block;}
+/* "رسالة للجميع" لازم تبان فوق أي شاشة لعبة (شاشات الفوز/الفعاليات تستخدم 99998–99999) */
+#msg-broadcast-banner{z-index:100002;}
 
 .msg-banner.pos-center{
   top:50%;left:50%;transform:translate(-50%,-50%);
@@ -5586,26 +5588,11 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="msg-subpanel" id="msg-subpanel-broadcast">
         <div class="field">
           <label>الرسالة</label>
-          <textarea id="msg-broadcast-text" class="updates-textarea" placeholder="اكتب رسالتك لكل الزوّار..." maxlength="500"></textarea>
+          <textarea id="msg-broadcast-text" class="updates-textarea" placeholder="اكتب رسالتك لكل اللاعبين..." maxlength="500"></textarea>
         </div>
-        <div class="msg-controls-row">
-          <div class="msg-control-group">
-            <label>الموقع</label>
-            <div class="msg-position-toggle">
-              <button type="button" class="msg-pos-btn active" id="msg-broadcast-pos-top" onclick="ownerMsgSetPosition('broadcast','top')">فوق</button>
-              <button type="button" class="msg-pos-btn" id="msg-broadcast-pos-center" onclick="ownerMsgSetPosition('broadcast','center')">منتصف</button>
-            </div>
-          </div>
-          <div class="msg-control-group">
-            <label>المدة</label>
-            <div class="msg-position-toggle">
-              <button type="button" class="msg-pos-btn active" id="msg-broadcast-dur-timed" onclick="ownerMsgSetDuration('broadcast','timed')">7 ثوانٍ</button>
-              <button type="button" class="msg-pos-btn" id="msg-broadcast-dur-permanent" onclick="ownerMsgSetDuration('broadcast','permanent')">دائم</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn-primary" onclick="ownerSendBroadcastMessage()">📨 إرسال للجميع</button>
-        <button type="button" class="btn-reset" onclick="ownerClearBroadcastMessage()">إزالة البانر الدائم الحالي</button>
+        <div class="stats-note">تظهر بنص الشاشة لكل الموجودين بالموقع (حتى داخل الألعاب) لمدة 10 ثوانٍ.</div>
+        <button type="button" class="btn-primary" id="msg-broadcast-send-btn" onclick="ownerSendBroadcastMessage()">📣 أرسل للجميع</button>
+        <button type="button" class="btn-reset" onclick="ownerClearBroadcastMessage()">إخفاء الرسالة الحالية</button>
         <div class="stats-note" id="msg-broadcast-note"></div>
       </div>
     </div>
@@ -21390,6 +21377,7 @@ function ownerRenderEventAccessList() {
 //   a fresh page load only shows it if sentAt is within the last 5 minutes.
 const MSG_PERSONAL_EXPIRY_MS = 60 * 60 * 1000;      // 1 hour
 const MSG_BROADCAST_FRESH_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const MSG_BROADCAST_SHOW_SEC = 10;                   // مدة ظهور "رسالة للجميع" بنص الشاشة
 
 let ownerMsgPosition = { personal: 'top', broadcast: 'top' };
 let ownerMsgDuration = { personal: 'timed', broadcast: 'timed' };
@@ -21444,18 +21432,25 @@ async function ownerSendPersonalMessage() {
 async function ownerSendBroadcastMessage() {
   const text = document.getElementById('msg-broadcast-text').value.trim();
   if (!text) { toast('⚠️ اكتب الرسالة أولاً'); return; }
+  if (!fb || !currentUser) { toast('⚠️ سجّل دخولك بحساب المالك أولاً'); return; }
+  const btn = document.getElementById('msg-broadcast-send-btn');
+  if (btn) btn.disabled = true;
   try {
+    // ضغطة وحدة: دائماً بنص الشاشة ولمدة 10 ثوانٍ (MSG_BROADCAST_SHOW_SEC).
     await fb.setDoc(fb.doc(fb.db, 'broadcastMessages', 'current'), {
       text,
       sentAt: fb.serverTimestamp(),
-      position: ownerMsgPosition.broadcast,
-      durationMode: ownerMsgDuration.broadcast,
+      position: 'center',
+      durationMode: 'timed',
+      durationSec: MSG_BROADCAST_SHOW_SEC,
       sentBy: (currentUser && currentUser.email) || null
     });
     document.getElementById('msg-broadcast-text').value = '';
-    toast('✅ تم إرسال الرسالة للجميع');
+    toast('✅ وصلت الرسالة للجميع — تظهر بنص الشاشة ' + MSG_BROADCAST_SHOW_SEC + ' ثوانٍ');
   } catch (err) {
     toast('⚠️ تعذّر الإرسال: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -21580,9 +21575,23 @@ function broadcastMessageShow(data, sentMs) {
 
   if (broadcastMsgTimeout) { clearTimeout(broadcastMsgTimeout); broadcastMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
-    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, 7000);
+    // الرسائل القديمة (قبل durationSec) تبقى على 7 ثوانٍ كما أُرسلت.
+    const showSec = Number(data.durationSec) > 0 ? Number(data.durationSec) : 7;
+    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, showSec * 1000);
   }
 }
+
+// المستمع كان يبدأ فقط بعد تسجيل الدخول (authRunPostAuthBootChain) — فأي أحد
+// بالموقع بدون دخول ما توصله الرسالة أبداً. القراءة مسموحة للجميع بالقواعد
+// (broadcastMessages: allow read: if true)، فنشغّله لكل زائر لحظة جاهزية Firebase.
+// broadcastMsgListenerStarted يمنع تشغيله مرتين لو سجّل دخوله بعدين.
+async function broadcastMessageBootForEveryone() {
+  if (!fb && window.__fb) fb = window.__fb;
+  try { await broadcastMessageCheckOnLoad(); } catch (e) {}
+  try { broadcastMessageBoot(); } catch (e) {}
+}
+if (fb || window.__fb) broadcastMessageBootForEveryone();
+else window.addEventListener('fb-ready', broadcastMessageBootForEveryone, { once: true });
 
 function broadcastMessageDismiss() {
   document.getElementById('msg-broadcast-banner').classList.remove('visible');
