@@ -9,7 +9,6 @@ require('dotenv').config({ quiet: true });
 const REQUIRED = {
   DISCORD_TOKEN: 'توكن البوت من Discord Developer Portal → Bot → Token',
   CLIENT_ID: 'Application ID للبوت (1552260327008247879)',
-  API_BASE_URL: 'رابط طبقة الـAPI، مثال: https://ehsmaha-discord-api.onrender.com',
   API_KEY: 'المفتاح السري المشترك بين البوت والـAPI (نفس قيمة API_KEY بخدمة الـAPI)',
   GEMINI_API_KEY: 'مفتاح Gemini للمساعد الذكي — من aistudio.google.com/apikey (Get API key)'
 };
@@ -49,6 +48,12 @@ function normalizeBaseUrl(raw) {
   } catch (_) {
     return null;
   }
+}
+
+// المنفذ الداخلي للـAPI المدمجة — ما يتعارض مع منفذ خادم البوت (PORT)
+function internalApiPort(numeric) {
+  const p = numeric.apiInternalPort || 10001;
+  return p === numeric.healthPort ? p + 1 : p;
 }
 
 function isSnowflake(value) {
@@ -92,6 +97,7 @@ function buildConfig() {
       apiTimeoutMs: readInt('API_TIMEOUT_MS', 5000, { min: 1000, max: 30000 }),
       leaderboardCacheSeconds: readInt('LEADERBOARD_CACHE_SECONDS', 90, { min: 0, max: 600 }),
       healthPort: readInt('PORT', 0, { min: 0, max: 65535 }),
+      apiInternalPort: readInt('API_INTERNAL_PORT', 10001, { min: 1, max: 65535 }),
       streamPollSeconds: readInt('STREAM_POLL_SECONDS', 60, { min: 30, max: 600 }),
       streamMaxHours: readInt('STREAM_MAX_HOURS', 6, { min: 1, max: 48 }),
       ticketDeleteDelaySeconds: readInt('TICKET_DELETE_DELAY_SECONDS', 10, { min: 3, max: 300 }),
@@ -133,7 +139,10 @@ function buildConfig() {
     guildId: (process.env.GUILD_ID || '').trim() || null,
     // ربط ديسكورد بألعاب الموقع: يحصر الرومات المسموحة بهذا السيرفر (بدونه: أي سيرفر فيه البوت)
     officialGuildId: (process.env.OFFICIAL_GUILD_ID || '').trim() || null,
-    apiBaseUrl,
+    // API_BASE_URL فاضي = طبقة الـAPI مدمجة داخل البوت (خدمة Render وحدة — تكفيها
+    // ساعات الخطة المجانية) على منفذ داخلي؛ غير فاضي = خدمة API منفصلة بهذا الرابط
+    embeddedApi: !apiBaseUrl,
+    apiBaseUrl: apiBaseUrl || `http://127.0.0.1:${internalApiPort(numeric)}`,
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     siteUrl,

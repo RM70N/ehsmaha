@@ -231,7 +231,8 @@ function shutdown(signal, webServer) {
   Promise.resolve()
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())
-    .then(() => stateBackup.shutdown()) // آخر نسخة احتياطية قبل ما يطفي
+    .then(() => stateBackup.shutdown()) // آخر نسخة احتياطية قبل ما يطفي (عبر الـAPI المدمجة — لسا شغالة)
+    .then(() => embeddedApi && embeddedApi.stop())
     .then(() => botDb.close())
     .catch((err) => logger.error('خطأ أثناء الإيقاف', { error: err }))
     .finally(() => process.exit(0));
@@ -282,8 +283,27 @@ async function initDatabase() {
   }
 }
 
+// طبقة الـAPI المدمجة (لو API_BASE_URL فاضي): تشتغل داخل نفس العملية على منفذ
+// داخلي — خدمة Render وحدة بدل ثنتين، فتكفيها ساعات الخطة المجانية.
+let embeddedApi = null;
+async function startEmbeddedApi() {
+  if (!config.embeddedApi) return;
+  const port = Number(new URL(config.apiBaseUrl).port);
+  try {
+    embeddedApi = await require('./api/server').startApiServer({ port, host: '127.0.0.1' });
+    logger.info('✅ طبقة الـAPI مدمجة داخل البوت (خدمة وحدة)', { internalPort: port });
+  } catch (err) {
+    logger.error('❌ تعذّر تشغيل طبقة الـAPI المدمجة — الأوامر اللي تحتاج بيانات الموقع والحفظ الدائم ما بتشتغل. غالباً FIREBASE_SERVICE_ACCOUNT ناقص بخدمة البوت (أو حط API_BASE_URL لو عندك خدمة API منفصلة)', {
+      reason: err.message
+    });
+  }
+}
+
 async function main() {
-  logger.info('تشغيل بوت احسمها', { commands: loaded.commands.size, components: loaded.buttons.size, env: process.env.NODE_ENV || 'development' });
+  logger.info('تشغيل بوت احسمها', { commands: loaded.commands.size, components: loaded.buttons.size, env: process.env.NODE_ENV || 'development', api: config.embeddedApi ? 'مدمجة' : config.apiBaseUrl });
+
+  // الـAPI المدمجة أول شي: استرجاع إعدادات البوت يكلّمها مباشرة
+  await startEmbeddedApi();
 
   // قاعدة بيانات البوت تتجهّز بالتوازي مع تسجيل الدخول (الاسترجاع ممكن ياخذ
   // دقيقة لو الـAPI نايم). لين تجهز، الأوامر الإدارية ترد برسالة ودّية.
@@ -299,7 +319,9 @@ async function main() {
   // Render جديد، العنوان يتغيّر (ينضاف له لاحقة) — ونبيّن هذا بوضوح بالسجلات.
   api.health()
     .then(() => logger.info('طبقة الـAPI تستجيب ✅', { baseUrl: config.apiBaseUrl }))
-    .catch((err) => logger.error('⚠️ خدمة الـAPI ما ترد على API_BASE_URL — تأكد إن الرابط هو رابط خدمة ehsmaha-discord-api الحالية بـRender (الرابط يتغيّر لو انتقلت لحساب جديد) وإن API_KEY نفسه بالخدمتين', {
+    .catch((err) => logger.error(config.embeddedApi
+      ? '⚠️ طبقة الـAPI المدمجة ما ترد — شوف سطر "تعذّر تشغيل طبقة الـAPI المدمجة" فوق (غالباً FIREBASE_SERVICE_ACCOUNT ناقص)'
+      : '⚠️ خدمة الـAPI ما ترد على API_BASE_URL — تأكد إن الرابط هو رابط خدمة ehsmaha-discord-api الحالية بـRender (الرابط يتغيّر لو انتقلت لحساب جديد) وإن API_KEY نفسه بالخدمتين', {
       baseUrl: config.apiBaseUrl,
       code: err.code,
       status: err.status

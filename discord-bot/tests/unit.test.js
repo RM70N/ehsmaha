@@ -72,7 +72,8 @@ test('التحقق من البيئة: رسالة واضحة بكل النواق�
     process.env.ADMIN_IDS = '123,abc';
     assert.throws(buildConfig, (err) => {
       assert.equal(err.code, 'CONFIG_INVALID');
-      for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_BASE_URL', 'API_KEY', 'GEMINI_API_KEY', 'ADMIN_IDS']) assert.match(err.message, new RegExp(k));
+      for (const k of ['DISCORD_TOKEN', 'CLIENT_ID', 'API_KEY', 'GEMINI_API_KEY', 'ADMIN_IDS']) assert.match(err.message, new RegExp(k));
+      assert.doesNotMatch(err.message, /API_BASE_URL/, 'اختياري: فاضي = الـAPI مدمجة');
       return true;
     });
     Object.assign(process.env, {
@@ -207,6 +208,19 @@ test('API_BASE_URL: يقبل الرابط بأي شكل ينسخ من Render و�
     assert.equal(buildConfig().apiBaseUrl, 'https://ehsmaha-discord-api-xyz.onrender.com');
     process.env.API_BASE_URL = 'abc';
     assert.throws(() => buildConfig(), /API_BASE_URL مو رابط صالح \(القيمة الحالية: "abc"\)/);
+    // فاضي = الـAPI مدمجة داخل البوت (خدمة وحدة) على منفذ داخلي ما يتعارض مع PORT
+    delete process.env.API_BASE_URL;
+    let c = buildConfig();
+    assert.equal(c.embeddedApi, true);
+    assert.equal(c.apiBaseUrl, 'http://127.0.0.1:10001');
+    const savedPort = process.env.PORT;
+    process.env.PORT = '10001';
+    c = buildConfig();
+    assert.equal(c.apiBaseUrl, 'http://127.0.0.1:10002', 'ما يتعارض مع منفذ خادم البوت');
+    if (savedPort === undefined) delete process.env.PORT;
+    else process.env.PORT = savedPort;
+    process.env.API_BASE_URL = 'https://api.example.com';
+    assert.equal(buildConfig().embeddedApi, false, 'خدمة API منفصلة');
   } finally {
     for (const k of keys) {
       if (saved[k] === undefined) delete process.env[k];

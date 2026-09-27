@@ -1,32 +1,12 @@
-# Render Blueprint لخدمتي احسمها-ديسكورد.
+# Render Blueprint لبوت احسمها — خدمة وحدة: البوت + طبقة الـAPI مدمجة داخله
+# (خدمة وحدة شغالة 24/7 ≈ 720 ساعة بالشهر، تكفيها الـ750 ساعة المجانية بـRender).
 # الاستخدام: Render Dashboard → New → Blueprint → اختر المستودع،
 # وبخانة "Blueprint Path" اكتب: discord-bot/render.yaml
 # القيم السرية (sync: false) يطلبها Render منك وقت الإنشاء.
 
 services:
-  # طبقة الـAPI — لازم تكون Web Service (البوت يكلمها بـHTTPS + x-api-key)
-  - type: web
-    name: ehsmaha-discord-api
-    runtime: node
-    rootDir: discord-bot
-    buildCommand: npm ci --omit=dev
-    startCommand: npm run start:api
-    healthCheckPath: /health
-    autoDeploy: true
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: API_KEY
-        sync: false
-      - key: FIREBASE_SERVICE_ACCOUNT
-        sync: false
-      - key: FIREBASE_DATABASE_URL
-        value: https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app
-      - key: SITE_URL
-        value: https://ehsmaha.com
-
   # البوت — Web Service: اتصال دائم بـDiscord + منفذ PORT لـ/health وWebhook
-  # البث (POST /api/discord/stream-event). يشتغل على الخطة المجانية أيضاً.
+  # البث وربط الألعاب، + طبقة الـAPI (Firebase) على منفذ داخلي 127.0.0.1.
   - type: web
     name: ehsmaha-discord-bot
     runtime: node
@@ -44,11 +24,12 @@ services:
         value: "1552260327008247879"
       - key: API_KEY
         sync: false
-      # رابط خدمة ehsmaha-discord-api (انسخه من صفحتها بـRender، مثال:
-      # https://ehsmaha-discord-api-xxxx.onrender.com) — Render يضيف لاحقة للاسم
-      # لو الاسم مأخوذ، فما ينكتب هنا ثابت
-      - key: API_BASE_URL
+      # Service Account لقاعدة بيانات الموقع (Firebase) — لطبقة الـAPI المدمجة.
+      # (API_BASE_URL ما ينحط: فاضي = الـAPI مدمجة. حطه بس لو عندك خدمة API منفصلة)
+      - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
+      - key: FIREBASE_DATABASE_URL
+        value: https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app
       - key: ADMIN_IDS
         sync: false
       # مفتاح Gemini للمساعد الذكي (مطلوب) — من aistudio.google.com/apikey
@@ -71,4 +52,5 @@ services:
       - key: MESSAGE_CONTENT_INTENT
         value: auto
       # قاعدة بيانات البوت: بدون DATABASE_URL تنحفظ تلقائياً بشكل دائم سحابياً
-      # (Firestore عبر خدمة الـAPI) وترجع بعد كل تحديث — ما تحتاج PostgreSQL.
+      # (عبر طبقة الـAPI المدمجة) وترجع بعد كل تحديث — ما تحتاج PostgreSQL.
+      # ⚠️ API_KEY لازم يبقى نفس القيمة القديمة: النسخة المحفوظة مشفّرة فيه.

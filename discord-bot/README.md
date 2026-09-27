@@ -108,7 +108,7 @@ npm start                 # البوت
 | `API_KEY` | الاثنين | ✅ | مفتاح سري مشترك (32+ حرف) — **نفس القيمة** بالخدمتين. توليده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `DISCORD_TOKEN` | البوت | ✅ | توكن البوت من Developer Portal → Bot |
 | `CLIENT_ID` | البوت | ✅ | `1552260327008247879` |
-| `API_BASE_URL` | البوت | ✅ | رابط خدمة الـAPI **كما يظهر بصفحتها بـRender** (مثال `https://ehsmaha-discord-api-xxxx.onrender.com` — Render يضيف لاحقة لو الاسم مأخوذ، خصوصاً بعد النقل لحساب جديد) |
+| `API_BASE_URL` | البوت | — | **فاضي (الافتراضي) = طبقة الـAPI مدمجة داخل البوت** (خدمة Render وحدة). حطه بس لو عندك خدمة API منفصلة: رابطها كما يظهر بصفحتها بـRender |
 | `GEMINI_API_KEY` | البوت | ✅ | مفتاح Gemini للمساعد الذكي — من [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `GEMINI_MODEL` | البوت | — | نموذج Gemini (افتراضي `gemini-2.5-flash`) — شوف "تبديل النموذج" تحت |
 | `AI_MENTION_COOLDOWN_SECONDS` | البوت | — | أقل فاصل بين أسئلة نفس الشخص بالمنشن (افتراضي 10) |
@@ -123,8 +123,8 @@ npm start                 # البوت
 | `COMMAND_COOLDOWN_MS` | البوت | — | أمر واحد لكل مستخدم كل (افتراضي 3000) |
 | `API_TIMEOUT_MS` | البوت | — | مهلة طلبات الـAPI (افتراضي 5000) |
 | `LEADERBOARD_CACHE_SECONDS` | البوت | — | كاش المتصدرين بالبوت (افتراضي 90) |
-| `FIREBASE_SERVICE_ACCOUNT` | الـAPI | ✅ | ملف Service Account (JSON كامل بسطر واحد أو base64) — أو محلياً `GOOGLE_APPLICATION_CREDENTIALS` (مسار الملف) |
-| `FIREBASE_DATABASE_URL` | الـAPI | — | Realtime Database (الافتراضي رابط قاعدة الموقع) — المخزن الأساسي لنسخة البوت الاحتياطية + بيانات اللفلات الاحتياطية. قيمة فاضية = تعطيل |
+| `FIREBASE_SERVICE_ACCOUNT` | البوت (الـAPI المدمجة) | ✅ | ملف Service Account (JSON كامل بسطر واحد أو base64) — أو محلياً `GOOGLE_APPLICATION_CREDENTIALS` (مسار الملف) |
+| `FIREBASE_DATABASE_URL` | البوت (الـAPI المدمجة) | — | Realtime Database (الافتراضي رابط قاعدة الموقع) — المخزن الأساسي لنسخة البوت الاحتياطية + بيانات اللفلات الاحتياطية. قيمة فاضية = تعطيل |
 | `API_LEADERBOARD_CACHE_SECONDS` | الـAPI | — | كاش المتصدرين بالسيرفر (افتراضي 120) |
 | `WEEK_START_DAY` / `TIMEZONE_OFFSET_MINUTES` | الـAPI | — | بداية الأسبوع (0=الأحد) وتوقيته (180 = السعودية) |
 | `LOG_LEVEL` | الاثنين | — | `error` / `warn` / `info` / `debug` |
@@ -191,20 +191,18 @@ https://discord.com/oauth2/authorize?client_id=1552260327008247879&scope=bot%20a
 ### الطريقة السريعة (Blueprint)
 1. Render Dashboard → **New → Blueprint** → اختر المستودع.
 2. **Blueprint Path:** `discord-bot/render.yaml`
-3. عبّي القيم السرية اللي يطلبها (`API_KEY` نفسه بالخدمتين، `DISCORD_TOKEN`، `FIREBASE_SERVICE_ACCOUNT`، `ADMIN_IDS`).
+3. عبّي القيم السرية اللي يطلبها (`DISCORD_TOKEN`، `API_KEY`، `FIREBASE_SERVICE_ACCOUNT`، `GEMINI_API_KEY`، `ADMIN_IDS`).
+
+**خدمة وحدة:** طبقة الـAPI (Firebase) تشتغل **داخل البوت** على منفذ داخلي — خدمة وحدة شغالة 24/7 (≈720 ساعة بالشهر) تكفيها ساعات Render المجانية (750)، بدل خدمتين يخلصونها قبل آخر الشهر.
+> ⚠️ `API_KEY` لازم يبقى **نفس القيمة القديمة** — نسخة إعدادات البوت المحفوظة مشفّرة فيه.
 
 ### يدوياً
-**1) خدمة الـAPI** — New → **Web Service**
-- Root Directory: `discord-bot`
-- Build: `npm ci --omit=dev` — Start: `npm run start:api`
-- Health Check Path: `/health`
-- المتغيرات: `API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `FIREBASE_DATABASE_URL`, `NODE_ENV=production`
-
-**2) خدمة البوت** — New → **Web Service** (يستقبل Webhook البث + `/health`)
+**خدمة البوت** — New → **Web Service** (يستقبل Webhook البث وربط الألعاب + `/health`)
 - Root Directory: `discord-bot`
 - Build: `npm ci --omit=dev` — Start: `npm start`
 - Health Check Path: `/health`
-- المتغيرات: `DISCORD_TOKEN`, `CLIENT_ID`, `API_KEY`, `API_BASE_URL` (رابط خدمة الـAPI)، `ADMIN_IDS`, `DATABASE_URL`, `STREAM_WEBHOOK_SECRET`, `NODE_ENV=production`
+- المتغيرات: `DISCORD_TOKEN`, `CLIENT_ID`, `API_KEY`, `FIREBASE_SERVICE_ACCOUNT`, `GEMINI_API_KEY`, `ADMIN_IDS`, `STREAM_WEBHOOK_SECRET`, `NODE_ENV=production` — **بدون** `API_BASE_URL`
+- (اختياري) خدمة API منفصلة: Start `npm run start:api` بمتغيرات `API_KEY`, `FIREBASE_SERVICE_ACCOUNT` — وحط رابطها بـ`API_BASE_URL` بخدمة البوت.
 - ينفع كـ**Background Worker** بعد، بس بدون Webhook (`/بث` بالمزامنة فقط).
 
 > **الخطة المجانية:** الـWeb Service المجانية "تنام" بعد 15 دقيقة بلا طلبات HTTP خارجية —
