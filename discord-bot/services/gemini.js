@@ -53,17 +53,28 @@ function withTimeout(promise, ms) {
   ]).finally(() => clearTimeout(t));
 }
 
+// رسالة ← محتوى Gemini: نص + صور (inlineData base64) لو موجودة
+function toContent(m) {
+  const parts = [];
+  for (const img of Array.isArray(m.images) ? m.images : []) {
+    if (img && img.mimeType && img.data) parts.push({ inlineData: { mimeType: img.mimeType, data: img.data } });
+  }
+  const text = String(m.text || '');
+  if (text || !parts.length) parts.push({ text });
+  return { role: m.role === 'model' ? 'model' : 'user', parts };
+}
+
 /**
  * @param {object} p
  * @param {string} p.systemInstruction
- * @param {{role:'user'|'model', text:string}[]} p.messages  المحادثة كاملة (آخرها رسالة المستخدم)
+ * @param {{role:'user'|'model', text:string, images?:{mimeType:string,data:string}[]}[]} p.messages  المحادثة كاملة (آخرها رسالة المستخدم)
  * @param {object} [p.meta]  { context, guildId, userId, channelId } — للسجل فقط
  * @returns {Promise<{ok:true,text:string}|{ok:false,code:string}>}
  */
 async function generate({ systemInstruction, messages, maxOutputTokens = 1024, temperature = 0.6, meta = {} }) {
   const cfg = loadConfig();
   const started = Date.now();
-  const contents = messages.map((m) => ({ role: m.role === 'model' ? 'model' : 'user', parts: [{ text: String(m.text || '') }] }));
+  const contents = messages.map(toContent);
   const generationConfig = generationConfigFor(cfg.geminiModel, { maxOutputTokens, temperature });
   let result;
   try {
@@ -95,4 +106,4 @@ async function generate({ systemInstruction, messages, maxOutputTokens = 1024, t
   return result;
 }
 
-module.exports = { generate, setGenerator, classify, _internal: { generationConfigFor } };
+module.exports = { generate, setGenerator, classify, _internal: { generationConfigFor, toContent } };

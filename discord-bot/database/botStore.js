@@ -222,7 +222,9 @@ const SETTINGS_DEFAULTS = Object.freeze({
   welcome_message: null,
   link_protection: true,
   spam_protection: true,
-  admin_news_channel_id: null
+  admin_news_channel_id: null,
+  ai_style_enabled: true,
+  ai_style_owner_id: null
 });
 const SETTINGS_COLUMNS = Object.keys(SETTINGS_DEFAULTS);
 
@@ -234,7 +236,9 @@ function mapSettings(r) {
     welcome_message: r.welcome_message || null,
     link_protection: Number(r.link_protection) !== 0,
     spam_protection: Number(r.spam_protection) !== 0,
-    admin_news_channel_id: r.admin_news_channel_id || null
+    admin_news_channel_id: r.admin_news_channel_id || null,
+    ai_style_enabled: r.ai_style_enabled == null ? true : Number(r.ai_style_enabled) !== 0,
+    ai_style_owner_id: r.ai_style_owner_id || null
   };
 }
 
@@ -248,7 +252,7 @@ const guildSettings = {
   async update(guildId, patch, updatedBy = null) {
     const cols = Object.keys(patch).filter((k) => SETTINGS_COLUMNS.includes(k));
     if (!cols.length) return guildSettings.get(guildId);
-    const toDb = (k, v) => (k === 'link_protection' || k === 'spam_protection' ? (v ? 1 : 0) : v == null ? null : String(v));
+    const toDb = (k, v) => (['link_protection', 'spam_protection', 'ai_style_enabled'].includes(k) ? (v ? 1 : 0) : v == null ? null : String(v));
     const current = await guildSettings.get(guildId);
     const merged = { ...current, ...Object.fromEntries(cols.map((k) => [k, patch[k]])) };
     const all = SETTINGS_COLUMNS;
@@ -350,4 +354,37 @@ const autoReplies = {
   }
 };
 
-module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies };
+// ---------------- أسلوب صاحب احسمها (أمثلة للمساعد الذكي) ----------------
+const STYLE_MAX_PER_GUILD = 300;
+const mapStyle = (r) => ({ ...r, id: toNum(r.id), created_at: toNum(r.created_at) });
+
+const aiStyle = {
+  MAX: STYLE_MAX_PER_GUILD,
+  async add({ guildId, authorId, promptText = null, replyText, source = 'ticket' }) {
+    await db.run(
+      'INSERT INTO ai_style_examples (guild_id, author_id, prompt_text, reply_text, source, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [guildId, authorId, promptText, replyText, source, now()]
+    );
+    // نحتفظ بالأحدث فقط (الأسلوب يتطور، والتعليمات لها حد)
+    await db.run(
+      `DELETE FROM ai_style_examples WHERE guild_id = ? AND id NOT IN (
+         SELECT id FROM ai_style_examples WHERE guild_id = ? ORDER BY created_at DESC, id DESC LIMIT ?)`,
+      [guildId, guildId, STYLE_MAX_PER_GUILD]
+    );
+  },
+  async recent(guildId, limit = 40) {
+    const rows = await db.query('SELECT * FROM ai_style_examples WHERE guild_id = ? ORDER BY created_at DESC, id DESC LIMIT ?', [guildId, limit]);
+    return rows.map(mapStyle);
+  },
+  async count(guildId) {
+    const rows = await db.query('SELECT COUNT(*) AS n FROM ai_style_examples WHERE guild_id = ?', [guildId]);
+    return toNum(rows[0].n);
+  },
+  async clear(guildId) {
+    const n = await aiStyle.count(guildId);
+    await db.run('DELETE FROM ai_style_examples WHERE guild_id = ?', [guildId]);
+    return n;
+  }
+};
+
+module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle };
