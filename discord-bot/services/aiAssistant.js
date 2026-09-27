@@ -5,7 +5,9 @@
 // 1) تذاكر الدعم (/دعم):
 //    • فتح تكت ← رسالة ترحيب "أهلاً 👋 معك مساعد احسمها…" + زر "أريد التحدث مع فريق الدعم"
 //    • رسائل **صاحب التكت فقط** تروح لـGemini مع سجل المحادثة الكامل لنفس التكت
-//      (Map بالذاكرة مفتاحها القناة). رسائل الإدارة/الدعم ما تنرسل للذكاء الاصطناعي.
+//      (Map بالذاكرة مفتاحها القناة). رسائل الإدارة/الدعم ما تنرسل للذكاء الاصطناعي
+//      — بس ردود صاحب الأسلوب (مالك السيرفر) يتعلم منها المساعد طريقة الكلام (aiStyle).
+//    • الصور (سكرين شوت محادثة تيك توك/انستقرام، خطأ بالموقع…) تنرسل لـGemini ويحللها.
 //    • زر التصعيد ← يمنشن رتب الدعم ويوقف المساعد بهذا التكت (aiPaused) بدون إغلاقه
 //    • الإغلاق ← ملخص من Gemini (المشكلة / كيف تعامل المساعد / انحلت أو تصعّدت)
 //      لقناة "أخبار الأدمن" — ولو فشل: "تعذر توليد ملخص تلقائي" + السجل الخام.
@@ -21,6 +23,7 @@ const store = require('../database/botStore');
 const reasons = require('../config/ticketReasons');
 const knowledge = require('../config/ehsmahaKnowledge');
 const gemini = require('./gemini');
+const aiStyle = require('./aiStyle');
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 const { splitMessage } = require('../utils/splitMessage');
@@ -72,7 +75,8 @@ function chatMessages(c) {
   const msgs = c.transcript.filter((m) => m.role === 'user' || m.role === 'model').slice(-MAX_CONTEXT_MESSAGES);
   // Gemini يبي أول رسالة من المستخدم
   while (msgs.length && msgs[0].role !== 'user') msgs.shift();
-  return msgs;
+  // الصور تنرسل مع آخر رسالة فقط (السجل الأقدم يبقى بالعلامة النصية)
+  return msgs.map((m, i) => (m.images && i === msgs.length - 1 ? { role: m.role, text: m.text, images: m.images } : { role: m.role, text: m.text }));
 }
 
 async function sendChunks(target, text, { reply = false } = {}) {
@@ -90,6 +94,56 @@ async function sendChunks(target, text, { reply = false } = {}) {
 const typing = (channel) => (channel && typeof channel.sendTyping === 'function' ? channel.sendTyping().catch(() => null) : null);
 
 const cleanInput = (text) => String(text || '').trim().slice(0, MAX_INPUT_CHARS);
+
+// البرومبت = قاعدة المعرفة (مخزّنة) + أسلوب صاحب السيرفر (لكل سيرفر)
+async function systemPromptFor(guildId) {
+  const base = knowledge.buildSystemPrompt();
+  const style = await aiStyle.styleBlock(guildId);
+  return style ? `${base}\n\n${style}` : base;
+}
+
+// ---------------- الصور ----------------
+// المساعد يشوف الصور (سكرين شوت محادثة تيك توك/انستقرام، رسالة خطأ…) ويحللها.
+// الصور تنرسل لـGemini بالرسالة الحالية فقط، وبالسجل تبقى علامة نصية.
+const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/heic', 'image/heif']);
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGES = 3;
+const IMAGE_MARK = '[📷 أرفق صورة]';
+const IMAGE_HOSTS = /^https:\/\/(cdn\.discordapp\.com|media\.discordapp\.net)\//;
+const TEXT_ONLY_REPLY = 'أقدر أقرأ النصوص والصور بس 📝📷 — اكتب مشكلتك أو أرسل صورة (png/jpg/webp).';
+const IMAGE_FAILED_REPLY = 'ما قدرت أفتح الصورة 😕 جرّب ترسلها مرة ثانية (png/jpg، أقل من 5MB) أو اكتب اللي فيها.';
+
+let fetchImpl = (...args) => fetch(...args);
+/** للاختبارات: بديل لتحميل الصور (null ← fetch الحقيقي) */
+function setImageFetcher(fn) {
+  fetchImpl = fn || ((...args) => fetch(...args));
+}
+
+function imageAttachments(message) {
+  const list = message && message.attachments ? [...message.attachments.values()] : [];
+  return list.filter((a) => {
+    const type = String(a.contentType || '').split(';')[0].trim().toLowerCase();
+    return IMAGE_TYPES.has(type) && (!a.size || a.size <= MAX_IMAGE_BYTES) && IMAGE_HOSTS.test(String(a.url || ''));
+  }).slice(0, MAX_IMAGES);
+}
+
+async function downloadImages(attachments) {
+  const out = [];
+  for (const a of attachments) {
+    try {
+      const res = await fetchImpl(a.url, { signal: AbortSignal.timeout(15000) });
+      if (!res || !res.ok) continue;
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (!buf.length || buf.length > MAX_IMAGE_BYTES) continue;
+      out.push({ mimeType: String(a.contentType).split(';')[0].trim().toLowerCase(), data: buf.toString('base64') });
+    } catch (err) {
+      logger.warn('📷 تعذّر تحميل صورة للمساعد', { error: String(err.message || err).slice(0, 200) });
+    }
+  }
+  return out;
+}
+
+const withImageMark = (text, count) => (count ? [text, count > 1 ? `${IMAGE_MARK} ×${count}` : IMAGE_MARK].filter(Boolean).join('\n') : text);
 
 // ---------------- الاقتراحات ----------------
 // المساعد يستقبل الاقتراح بنفسه ويضيف بآخر رده سطر <<اقتراح: ...>> — نشيله من
@@ -191,32 +245,52 @@ async function handleTicketMessage(message) {
   if (!ticket) return null;
   const c = convFor(ticket);
   const text = cleanInput(message.content);
+  const images = imageAttachments(message);
 
   // الإدارة/الدعم (أي أحد غير صاحب التكت) ← ما تنرسل للذكاء الاصطناعي
   if (message.author.id !== c.ownerId) {
     c.staffMessages += 1;
-    if (text) pushTranscript(c, { role: 'staff', text, authorId: message.author.id });
+    if (text) {
+      // رد صاحب الأسلوب ← مثال يتعلم منه المساعد (مع آخر رسالة من اللاعب كسياق)
+      const lastUser = [...c.transcript].reverse().find((m) => m.role === 'user');
+      await aiStyle.captureTicketReply(message, { text, promptText: lastUser ? lastUser.text : null });
+      pushTranscript(c, { role: 'staff', text, authorId: message.author.id });
+    }
     return false;
   }
   if (c.aiPaused) {
-    if (text) pushTranscript(c, { role: 'user', text, authorId: message.author.id, afterPause: true });
+    const t = withImageMark(text, images.length);
+    if (t) pushTranscript(c, { role: 'user', text: t, authorId: message.author.id, afterPause: true });
     return false;
   }
-  if (!text) {
-    await message.reply({ content: 'أقدر أقرأ النصوص بس 📝 — اكتب مشكلتك بالكلام (والصور يشوفها فريق الدعم).', allowedMentions: { repliedUser: false } }).catch(() => null);
+  if (!text && !images.length) {
+    await message.reply({ content: TEXT_ONLY_REPLY, allowedMentions: { repliedUser: false } }).catch(() => null);
     return true;
   }
 
   // رسالة وحدة بكل مرة لكل تكت (بالترتيب) — السياق يبقى صحيح
   const run = c.queue.then(async () => {
     if (!conversations.has(message.channel.id) || c.aiPaused) return false;
-    pushTranscript(c, { role: 'user', text, authorId: message.author.id });
     typing(message.channel);
-    const r = await gemini.generate({
-      systemInstruction: knowledge.buildSystemPrompt(),
-      messages: chatMessages(c),
-      meta: { context: 'ticket', guildId: c.guildId, channelId: message.channel.id, userId: message.author.id, ticketId: c.ticketId }
-    });
+    const loaded = images.length ? await downloadImages(images) : [];
+    if (!text && !loaded.length) {
+      await message.reply({ content: IMAGE_FAILED_REPLY, allowedMentions: { repliedUser: false } }).catch(() => null);
+      return true;
+    }
+    const entry = { role: 'user', text: withImageMark(text, loaded.length), authorId: message.author.id };
+    if (loaded.length) entry.images = loaded;
+    pushTranscript(c, entry);
+    const last = c.transcript[c.transcript.length - 1];
+    let r;
+    try {
+      r = await gemini.generate({
+        systemInstruction: await systemPromptFor(c.guildId),
+        messages: chatMessages(c),
+        meta: { context: 'ticket', guildId: c.guildId, channelId: message.channel.id, userId: message.author.id, ticketId: c.ticketId, images: loaded.length || undefined }
+      });
+    } finally {
+      delete last.images; // الصور ما تنحفظ بالذاكرة بعد التحليل
+    }
     if (!conversations.has(message.channel.id)) return false; // انقفل التكت أثناء الانتظار
     if (!r.ok) {
       await message.channel.send({ content: FRIENDLY_ERROR, allowedMentions: { parse: [] } }).catch(() => null);
@@ -440,15 +514,21 @@ async function handleMention(message, botUser) {
   sweepCooldowns(now, windowMs);
 
   const question = cleanInput(stripMention(message.content, botUser.id));
-  if (!question) {
+  const images = imageAttachments(message);
+  if (!question && !images.length) {
     await message.reply({ content: 'أهلاً 👋 أنا مساعد احسمها — منشنّي واكتب سؤالك عن احسمها وأبشر!', allowedMentions: { repliedUser: false } }).catch(() => null);
     return true;
   }
   typing(message.channel);
+  const loaded = images.length ? await downloadImages(images) : [];
+  if (!question && !loaded.length) {
+    await message.reply({ content: IMAGE_FAILED_REPLY, allowedMentions: { repliedUser: false } }).catch(() => null);
+    return true;
+  }
   const r = await gemini.generate({
-    systemInstruction: knowledge.buildSystemPrompt(),
-    messages: [{ role: 'user', text: question }],
-    meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id }
+    systemInstruction: await systemPromptFor(message.guild.id),
+    messages: [{ role: 'user', text: question || IMAGE_MARK, images: loaded.length ? loaded : undefined }],
+    meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
   });
   try {
     if (!r.ok) await message.reply({ content: FRIENDLY_ERROR, allowedMentions: { repliedUser: false } });
@@ -481,5 +561,7 @@ module.exports = {
   forget,
   activeTicketFor,
   extractSuggestions,
-  _internal: { conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
+  systemPromptFor,
+  setImageFetcher,
+  _internal: { imageAttachments, IMAGE_MARK, TEXT_ONLY_REPLY, IMAGE_FAILED_REPLY, MAX_IMAGE_BYTES, conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
 };
