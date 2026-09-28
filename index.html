@@ -25639,7 +25639,7 @@ function gwConnectTikTok() {
         gwConnectTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + gwTiktokUser + ' مو شغال بث الآن');
       } else if (e.code === 4400) {
-        toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       } else if (e.code === 1000 || e.code === 4005) {
         toast('📴 البث انتهى');
       } else if (gwGameStatus !== 'finished') {
@@ -26345,7 +26345,7 @@ function connectTikTok() {
         connectTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + tiktokUser + ' مو شغال بث الآن');
       } else if (e.code === 4400) {
-        toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       } else if (e.code === 1000 || e.code === 4005) {
         toast('📴 البث انتهى');
       } else if (gameStatus !== 'finished') {
@@ -31273,7 +31273,7 @@ function connectBatteryTikTok() {
         connectBatteryTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else {
         batteryReconnectAttempts++;
         if (batteryReconnectAttempts <= 6) batteryReconnectTimer = setTimeout(connectBatteryTikTok, 4000);
@@ -31600,13 +31600,13 @@ function connectSniperTikTok() {
         connectSniperTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (sniperGameStatus !== 'finished') {
         sniperReconnectAttempts++;
         if (sniperReconnectAttempts <= 5) {
           sniperReconnectTimer = setTimeout(connectSniperTikTok, 5000);
         } else {
-          toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
         }
       }
     });
@@ -33471,13 +33471,13 @@ function connectRouletteTikTok() {
         connectRouletteTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (rouGameStatus !== 'finished') {
         rouReconnectAttempts++;
         if (rouReconnectAttempts <= 5) {
           rouReconnectTimer = setTimeout(connectRouletteTikTok, 5000);
         } else {
-          toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
         }
       }
     });
@@ -34524,13 +34524,13 @@ function connectTimerTikTok() {
         connectTimerTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (tmrGameStatus !== 'finished') {
         tmrReconnectAttempts++;
         if (tmrReconnectAttempts <= 5) {
           tmrReconnectTimer = setTimeout(connectTimerTikTok, 5000);
         } else {
-          toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
         }
       }
     });
@@ -35251,11 +35251,11 @@ function connectBombTikTok() {
         connectBombTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (bombGameStatus !== 'finished') {
         bombReconnectAttempts++;
         if (bombReconnectAttempts <= 5) bombReconnectTimer = setTimeout(connectBombTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
       }
     });
   if (!bombWsSock) { toast('❌ فشل الاتصال'); setDotById('bomb-dot','off'); return; }
@@ -36184,11 +36184,11 @@ function connectBoxTikTok() {
         connectBoxTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (boxGameStatus !== 'finished') {
         boxReconnectAttempts++;
         if (boxReconnectAttempts <= 5) boxReconnectTimer = setTimeout(connectBoxTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
       }
     });
   if (!boxWsSock) { toast('❌ فشل الاتصال'); setDotById('box-dot','off'); return; }
@@ -37086,11 +37086,11 @@ function connectCrTikTok() {
         connectCrTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (crGameStatus !== 'finished') {
         crReconnectAttempts++;
         if (crReconnectAttempts <= 5) crReconnectTimer = setTimeout(connectCrTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
       }
     });
   if (!crWsSock) { toast('❌ فشل الاتصال'); setDotById('cr-dot','off'); return; }
@@ -37715,11 +37715,11 @@ function connectMzTikTok() {
         connectMzTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (mzGameStatus !== 'finished') {
         mzReconnectAttempts++;
         if (mzReconnectAttempts <= 5) mzReconnectTimer = setTimeout(connectMzTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
       }
     });
   if (!mzWsSock) { toast('❌ فشل الاتصال'); setDotById('mz-dot', 'off'); return; }
@@ -38454,11 +38454,11 @@ function connectEvTikTok() {
         connectEvTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
       else if (evGameStatus !== 'finished') {
         evReconnectAttempts++;
         if (evReconnectAttempts <= 5) evReconnectTimer = setTimeout(connectEvTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
       }
     });
   if (!evWsSock) { toast('❌ فشل الاتصال'); setDotById('ev-dot','off'); return; }
@@ -39284,7 +39284,7 @@ function connectLLTikTok() {
         connectLLTikTok._notLiveTries = 0;
         toast('⚠️ البث مو شغال');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (llGameStatus !== 'finished') {
         llReconnectAttempts++;
         if (llReconnectAttempts <= 5) llReconnectTimer = setTimeout(connectLLTikTok, 5000);
@@ -40183,7 +40183,7 @@ function connectWAITikTok() {
         connectWAITikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + waiUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (waiGameStatus !== 'finished' && waiReconnectAttempts < 10) {
         waiReconnectAttempts++;
@@ -41192,7 +41192,7 @@ function connectIGTikTok() {
         connectIGTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + igUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (igGameStatus !== 'finished' && igReconnectAttempts < 10) {
         igReconnectAttempts++;
@@ -41932,7 +41932,7 @@ function connectRWTikTok() {
         connectRWTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + rwUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (rwGameStatus !== 'finished' && rwReconnectAttempts < 10) {
         rwReconnectAttempts++;
@@ -42635,7 +42635,7 @@ function connectPGSTikTok() {
         connectPGSTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + pgsUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (pgsGameStatus !== 'finished' && pgsReconnectAttempts < 10) {
         pgsReconnectAttempts++;
@@ -43352,7 +43352,7 @@ function connectLSCTikTok() {
         connectLSCTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + lscUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (lscGameStatus !== 'finished' && lscReconnectAttempts < 10) {
         lscReconnectAttempts++;
@@ -43981,7 +43981,7 @@ function connectWRTikTok() {
         connectWRTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + wrUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (wrGameStatus !== 'finished' && wrReconnectAttempts < 10) {
         wrReconnectAttempts++;
@@ -44669,7 +44669,7 @@ function connectDrawTikTok() {
         connectDrawTikTok._notLiveTries = 0;
         drawNotify('⚠️ الحساب @' + drawUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) drawNotify('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) drawNotify('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) drawNotify('📴 البث انتهى');
       else if (drawGameStatus !== 'finished' && drawReconnectAttempts < 10) {
         drawReconnectAttempts++;
@@ -45941,7 +45941,7 @@ function connectCWTikTok() {
         connectCWTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + cwUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (cwGameStatus !== 'finished' && cwReconnectAttempts < 10) {
         cwReconnectAttempts++;
@@ -47223,7 +47223,7 @@ function connectCSTikTok() {
         connectCSTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + csUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (csGameStatus !== 'finished' && csReconnectAttempts < 10) {
         csReconnectAttempts++;
@@ -49714,7 +49714,7 @@ function connectFindballTikTok() {
         connectFindballTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + findballUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (findballGameStatus !== 'finished' && findballReconnectAttempts < 10) {
         findballReconnectAttempts++;
@@ -50913,7 +50913,7 @@ function connectChairsTikTok() {
         connectChairsTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + chairsUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (chairsGameStatus !== 'finished' && chairsReconnectAttempts < 10) {
         chairsReconnectAttempts++;
@@ -51810,7 +51810,7 @@ function connectTugTikTok() {
         connectTugTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + tugUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (tugGameStatus !== 'finished' && tugReconnectAttempts < 10) {
         tugReconnectAttempts++;
@@ -52430,7 +52430,7 @@ function connectRlglTikTok() {
         connectRlglTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + rlglUser + ' مو شغال بث الآن');
       }
-      else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
       else if (rlglGameStatus !== 'finished' && rlglReconnectAttempts < 10) {
         rlglReconnectAttempts++;
@@ -82584,7 +82584,7 @@ function tt10ConnectTikTok() {
         tt10ConnectTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + tt10TiktokUser + ' مو شغال بث الآن');
       } else if (e.code === 4400) {
-        toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       } else if (e.code === 1000 || e.code === 4005) {
         toast('📴 البث انتهى');
       } else if (tt10GameStatus !== 'finished') {
@@ -83764,7 +83764,7 @@ function glzConnectTikTok() {
         glzConnectTikTok._notLiveTries = 0;
         toast('⚠️ الحساب @' + glzTiktokUser + ' مو شغال بث الآن');
       } else if (e.code === 4400) {
-        toast('❌ مفتاح API غلط أو يوزر غير صحيح');
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
       } else if (e.code === 1000 || e.code === 4005) {
         toast('📴 البث انتهى');
       } else if (glzGameStatus !== 'finished') {
