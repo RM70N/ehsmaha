@@ -24384,6 +24384,7 @@ function show(page) {
   }
   if (page === 'contest-top20') top20Boot(); else top20Teardown();
   if (page === 'home') homeEventWinnersCheckAndShow();
+  if (page === 'home' && typeof homeClearGameListeners === 'function') { homeClearGameListeners(null); if (typeof homeConnPillRender === 'function') homeConnPillRender(); }
   // جسر المصير — تهيئة صفحاته الثلاث
   if (page === 'bridge-setup' && typeof brgSetupRender === 'function') brgSetupRender();
   if (page === 'bridge-lobby' && typeof brgRenderLobby === 'function') brgRenderLobby();
@@ -24814,7 +24815,20 @@ function homeSetQuickConnectResume(fn) {
   homeQcResumeFn = (typeof fn === 'function') ? fn : null;
 }
 
+// دورة حياة المعالجات: لعبة وحدة نشطة بكل وقت. قبل: homeGameListeners تحفظ معالجاً
+// لكل لعبة فُتحت بالجلسة ولا تُنظَّف (5 ألعاب فقط تلغي تسجيلها)، فبعد 10 ألعاب كل
+// رسالة شات تمر على 10 معالجات (extractUser + أوامر الأدمن + عنصر شات مخفي + toasts
+// انضمام للعبة متروكة). الآن: تسجيل لعبة يلغي معالجات الألعاب الثانية، والرجوع
+// للرئيسية يلغيها كلها. "جسر المصير" فعالية عامة تدير تسجيلها بنفسها
+// (registerChat/unregisterChat مع علم chatRegistered) فتبقى مستثناة.
+const HOME_SHARED_LISTENER_TAGS = new Set(['bridge-fate']);
+function homeClearGameListeners(exceptTag) {
+  Object.keys(homeGameListeners).forEach(t => {
+    if (t !== exceptTag && !HOME_SHARED_LISTENER_TAGS.has(t)) delete homeGameListeners[t];
+  });
+}
 function homeRegisterGameListener(tag, handlerFn) {
+  if (!HOME_SHARED_LISTENER_TAGS.has(tag)) homeClearGameListeners(tag);
   homeGameListeners[tag] = handlerFn;
   // نقطة الاتصال باللعبة تعكس الحالة الفعلية فوراً (دوال launch<Game> تضبطها
   // 'connecting' وما كان فيه شيء يرجّعها 'on' بالمسار الموحّد).
