@@ -29,6 +29,20 @@ async function follow(browser) {
   for (const [v] of cases) {
     r[v] = await page.evaluate((v) => ({ joined: [...participants.keys()].some((k) => k.endsWith(v)), pending: [...pendingFollowers.keys()].some((k) => k.endsWith(v)) }), v);
   }
+  // إعادة التقييم: غير المتابع يسوي فولو ثم يكتب الكلمة مرة ثانية
+  await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'non_follower', text: 'ادخل', identity: { isFollowerOfAnchor: true } });
+  await sleep(400);
+  r.non_follower_after_follow_retry = await page.evaluate(() => [...participants.keys()].some((k) => k.endsWith('non_follower')));
+  // الشرط مطفي: غير المتابع المؤكد يدخل
+  const hasGate = await page.evaluate(() => typeof followGateSetRequired === 'function');
+  if (hasGate) {
+    await page.evaluate(() => followGateSetRequired(false));
+    await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'gate_off_nonfollower', text: 'ادخل', identity: { isFollowerOfAnchor: false } });
+    await sleep(400);
+    r.gate_off_nonfollower_joined = await page.evaluate(() => [...participants.keys()].some((k) => k.endsWith('gate_off_nonfollower')));
+    await page.evaluate(() => followGateSetRequired(true));
+    r.diagReasons = await page.evaluate(() => joinDiagLog.map((x) => x.uid.replace('tiktok:', '') + '=' + x.reason));
+  }
   r.errors = page._errors;
   await page.context().close();
   return r;

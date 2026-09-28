@@ -4403,6 +4403,14 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="btn-primary mod-add-btn" onclick="tiktokConnectModalStart()">🔗 ربط</button>
       <div class="tk-status-box" id="tiktok-connect-status"></div>
 
+      <div class="tk-saved-row" style="margin-top:18px;">
+        <label class="tk-bridge-switch" style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;">
+          <input type="checkbox" id="follow-gate-toggle" checked onchange="followGateSetRequired(this.checked)" style="opacity:0;width:0;height:0;" />
+          <span class="tk-bridge-slider"></span>
+        </label>
+        <div class="tk-saved-user">شرط الفولو لدخول الراوند<small id="follow-gate-hint">مفعّل — غير المتابع يُطلب منه فولو (ولو ما وصلنا تيك توك حالة المتابعة، يدخل)</small></div>
+      </div>
+
       <div id="tiktok-saved-usernames-wrap" style="margin-top:22px;display:none;">
         <div class="profile-section-label" style="margin-top:0;">🚀 حساباتك المحفوظة</div>
         <div id="tiktok-saved-usernames-list"></div>
@@ -23632,6 +23640,68 @@ function tiktokQuickReconnect(username, opts) {
 // خطير على ملف بهذا الحجم، فتُبقى كدالة فارغة متوافقة بدل حذف عشرات الأسطر.
 function getTikTokApiKey() { return ''; }
 
+// ==================== سجل محاولات الانضمام (تشخيص) ====================
+// حلقة صغيرة بالذاكرة: كل قرار انضمام (قُبل/رُفض ولماذا) يُسجَّل هنا، وتعرضه
+// لوحة التشخيص (?debug=1 أو المالك). لا شيء يُرسل للشبكة.
+const JOIN_DIAG_MAX = 200;
+const joinDiagLog = [];
+const JOIN_DIAG_REASONS = {
+  follower: 'متابع ✔',
+  exempt: 'مستثنى (مطوّر/الستريمر نفسه)',
+  gate_off: 'شرط الفولو مطفي',
+  follow_unknown_allowed: 'حالة المتابعة غير معروفة — دخل',
+  pending_follow: 'بانتظار فولو (غير متابع)',
+  keyword_near_miss: 'الكلمة ما تطابق',
+  joined: 'انضم ✅',
+  already_in: 'موجود أصلاً',
+  not_joined: 'ما انضم',
+};
+function joinDiagRecord(tag, user, reason, detail) {
+  joinDiagLog.push({ at: Date.now(), tag, uid: (user && user.uniqueId) || '?', nick: (user && user.nickname) || '', reason, detail: detail || '' });
+  if (joinDiagLog.length > JOIN_DIAG_MAX) joinDiagLog.splice(0, joinDiagLog.length - JOIN_DIAG_MAX);
+  if (typeof connDiagRender === 'function') connDiagRender();
+}
+
+// ==================== شرط الفولو — إعداد مركزي واحد لكل الألعاب ====================
+// كان الشرط مكتوباً حرفياً بـ24 دالة *JoinParticipant (!user.isFollower && ...)، وأي
+// لاعب isFollower عنده false ينحجز بصمت بـ*PendingFollowers — حتى لو كانت القيمة
+// "ما نعرف" لا "غير متابع". الآن:
+//   • الإعداد افتراضياً مفعّل (قرار المالك)، والستريمر يطفيه من مودال ربط الحساب.
+//   • followKnown === true و isFollower === false فقط = غير متابع فعلاً ← ينتظر فولو.
+//   • غير معروف (السيرفر ما وصله حقل صريح، أو منصة ما فيها مفهوم متابعة) ← يدخل.
+//   • من ينتظر الفولو ويكتب الكلمة مرة ثانية يُعاد تقييمه (البيانات جديدة كل رسالة).
+const FOLLOW_GATE_STORAGE_KEY = 'streamerFollowGateRequired';
+function followGateRequired() {
+  try { return localStorage.getItem(FOLLOW_GATE_STORAGE_KEY) !== '0'; } catch (e) { return true; }
+}
+function followGateSetRequired(on) {
+  try { localStorage.setItem(FOLLOW_GATE_STORAGE_KEY, on ? '1' : '0'); } catch (e) {}
+  followGateSyncUI();
+  toast(on ? '✅ شرط الفولو مفعّل' : '✅ شرط الفولو مطفي — أي أحد يكتب الكلمة يدخل');
+}
+function followGateSyncUI() {
+  const on = followGateRequired();
+  const box = document.getElementById('follow-gate-toggle');
+  if (box) box.checked = on;
+  const hint = document.getElementById('follow-gate-hint');
+  if (hint) hint.textContent = on
+    ? 'مفعّل — غير المتابع يُطلب منه فولو (ولو ما وصلنا تيك توك حالة المتابعة، يدخل)'
+    : 'مطفي — أي أحد يكتب الكلمة يدخل الراوند';
+}
+followGateSyncUI();
+// true = يدخل. false = غير متابع مؤكَّد والشرط مفعّل (المستدعي يضعه بـPendingFollowers كما كان).
+function followGateAllows(tag, user) {
+  if (!user) return false;
+  let reason;
+  if (isDeveloperUser(user.uniqueId) || isCurrentStreamerSelf(user.uniqueId)) reason = 'exempt';
+  else if (user.isFollower) reason = 'follower';
+  else if (!followGateRequired()) reason = 'gate_off';
+  else if (user.followKnown !== true) reason = 'follow_unknown_allowed';
+  else { joinDiagRecord(tag, user, 'pending_follow'); return false; }
+  joinDiagRecord(tag, user, reason);
+  return true;
+}
+
 // يظهر زر "ابدأ بثاً سريعاً — @يوزر" بالصفحة الرئيسية إذا فيه حساب تيك توك
 // محفوظ من قبل ومفعّل — بضغطة وحدة يعيد نفس الستريمر ربط بثه بدون كتابة
 // اليوزرنيم مرة ثانية.
@@ -25274,7 +25344,7 @@ function gwHandleTikTokEvent(data) {
 
 function gwJoinParticipant(user) {
   if (gwParticipants.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('gw', user)) {
     gwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -26008,6 +26078,8 @@ function extractUser(msg) {
   const extracted = {
     uniqueId,
     platform: sourcePlatform || null,
+    // followKnown من السيرفر: true = حالة المتابعة مؤكدة (متابع أو لا). غيابها = غير معروف.
+    followKnown: u.followKnown === true,
     rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
     nickname: override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
@@ -26810,7 +26882,7 @@ function checkGuess(guess, target) {
 
 function joinParticipant(user) {
   if (participants.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('main', user)) {
     pendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -31188,7 +31260,7 @@ function handleSniperTikTokEvent(data) {
 function sniperJoinParticipant(user, cell) {
   if (sniperParticipants.has(user.uniqueId)) return;
   if (sniperKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('sniper', user)) {
     sniperPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -31955,7 +32027,7 @@ function handleHzTikTokEvent(data) {
 function hzJoinParticipant(user) {
   if (hzParticipants.has(user.uniqueId)) return;
   if (hzKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('hz', user)) {
     hzPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -33068,7 +33140,7 @@ function handleRouTikTokEvent(data) {
 function rouJoinParticipant(user) {
   if (rouParticipants.has(user.uniqueId)) return;
   if (rouKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rou', user)) {
     rouPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -34096,7 +34168,7 @@ function handleTimerTikTokEvent(data) {
 function tmrJoinParticipant(user) {
   if (tmrParticipants.has(user.uniqueId)) return;
   if (tmrKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('tmr', user)) {
     tmrPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -34834,7 +34906,7 @@ function handleBombTikTokEvent(data) {
 function bombJoinParticipant(user) {
   if (bombParticipants.has(user.uniqueId)) return;
   if (bombKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('bomb', user)) {
     bombPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -35774,7 +35846,7 @@ function handleBoxTikTokEvent(data) {
 function boxJoinParticipant(user) {
   if (boxParticipants.has(user.uniqueId)) return;
   if (boxKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('box', user)) {
     boxPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -36660,7 +36732,7 @@ function crJoinParticipant(user) {
   if (crKickedDuringRound.has(user.uniqueId)) return;
   if (crGameStatus !== 'waiting') return; // ما يقدر ينضم بعد ما السباق يبدأ
   if (crParticipants.size >= crMaxRacers) { toastFast('⚠️ السباق مكتمل — أقصى عدد متسابقين ' + crMaxRacers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('cr', user)) {
     crPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل السباق!');
     return;
@@ -37280,7 +37352,7 @@ function mzJoinParticipant(user) {
   if (mzKickedDuringRound.has(user.uniqueId)) return;
   if (mzGameStatus === 'active') return; // ينضم فقط قبل بدء الجولة أو بين الجولات
   if (mzParticipants.size >= mzMaxPlayers) { toastFast('⚠️ المتاهة مكتملة — أقصى عدد لاعبين ' + mzMaxPlayers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('mz', user)) {
     mzPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل المتاهة!');
     return;
@@ -38018,7 +38090,7 @@ function evJoinParticipant(user) {
   if (evKickedDuringRound.has(user.uniqueId)) return;
   if (evGameStatus !== 'waiting') return; // ما يقدر ينضم كلاعب بعد ما اللعبة تبدأ
   if (evParticipants.size >= evMaxPlayers) { toastFast('⚠️ اللعبة مكتملة — أقصى عدد لاعبين ' + evMaxPlayers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ev', user)) {
     evPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -38865,7 +38937,7 @@ function handleLLTikTokEvent(data) {
 function llJoinParticipant(user) {
   if (llParticipants.has(user.uniqueId)) return;
   if (llKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ll', user)) {
     llPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -39748,7 +39820,7 @@ function waiHandleEvent(data) {
 function waiJoinParticipant(user) {
   if (waiParticipants.has(user.uniqueId)) return;
   if (waiKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('wai', user)) {
     waiPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -40757,7 +40829,7 @@ function igHandleEvent(data) {
 function igJoinParticipant(user) {
   if (igParticipants.has(user.uniqueId)) return;
   if (igKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ig', user)) {
     igPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -41498,7 +41570,7 @@ function rwHandleEvent(data) {
 function rwJoinParticipant(user) {
   if (rwParticipants.has(user.uniqueId)) return;
   if (rwKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rw', user)) {
     rwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -42200,7 +42272,7 @@ function pgsHandleEvent(data) {
 function pgsJoinParticipant(user) {
   if (pgsParticipants.has(user.uniqueId)) return;
   if (pgsKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('pgs', user)) {
     pgsPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -42917,7 +42989,7 @@ function lscHandleEvent(data) {
 function lscJoinParticipant(user) {
   if (lscParticipants.has(user.uniqueId)) return;
   if (lscKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('lsc', user)) {
     lscPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -43546,7 +43618,7 @@ function wrHandleEvent(data) {
 function wrJoinParticipant(user) {
   if (wrParticipants.has(user.uniqueId)) return;
   if (wrKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('wr', user)) {
     wrPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -45538,7 +45610,7 @@ function cwJoinParticipant(user) {
   if (alreadyActive) return;
   const isRejoinAfterElimination = cwParticipants.has(user.uniqueId);
 
-  if (!isRejoinAfterElimination && !user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!isRejoinAfterElimination && !followGateAllows('cw', user)) {
     cwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -46809,7 +46881,7 @@ function csHandleEvent(data) {
 function csJoinParticipant(user) {
   if (csParticipants.has(user.uniqueId)) return;
   if (csKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('cs', user)) {
     csPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -49298,7 +49370,7 @@ function findballHandleEvent(data) {
 function findballJoinParticipant(user) {
   if (findballParticipants.has(user.uniqueId)) return;
   if (findballKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('findball', user)) {
     findballPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -50553,7 +50625,7 @@ function chairsHandleEvent(data) {
 function chairsJoinParticipant(user) {
   if (chairsParticipants.has(user.uniqueId)) return;
   if (chairsKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('chairs', user)) {
     chairsPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -51215,7 +51287,7 @@ function tugTeamOf(uniqueId) {
 function tugJoinTeam(user, team) {
   if (tugTeamOf(user.uniqueId)) return; // عضو بالفعل بفريق — ممنوع التبديل
   const isRejoin = tugPendingFollowers.has(user.uniqueId) && tugPendingFollowers.get(user.uniqueId).team === team;
-  if (!isRejoin && !user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!isRejoin && !followGateAllows('tug', user)) {
     tugPendingFollowers.set(user.uniqueId, { user, team });
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تنضم!');
     return;
@@ -51819,7 +51891,7 @@ function rlglJoinParticipant(user) {
   if (rlglParticipants.has(user.uniqueId)) return; // منضم بالفعل
   if (rlglParticipants.size >= rlglMaxPlayers) { toast('⚠️ اكتمل عدد اللاعبين (' + rlglMaxPlayers + ')'); return; }
 
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rlgl', user)) {
     rlglPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل!');
     return;
@@ -82268,7 +82340,7 @@ function tt10ProcessAnswer(user, text) {
   const match = tt10FindMatch(cleaned);
   if (!match) return;
 
-  const canScore = user.isFollower || (typeof isDeveloperUser === 'function' && isDeveloperUser(user.uniqueId)) || (typeof isCurrentStreamerSelf === 'function' && isCurrentStreamerSelf(user.uniqueId));
+  const canScore = followGateAllows('tt10', user); // نفس شرط الفولو المركزي (غير المعروف ما يُحرم بصمت)
   if (!canScore) {
     if (!tt10FollowPrompted.has(user.uniqueId)) {
       tt10FollowPrompted.add(user.uniqueId);
