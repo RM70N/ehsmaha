@@ -23667,7 +23667,7 @@ function getTikTokApiKey() { return ''; }
 // ==================== سجل محاولات الانضمام (تشخيص) ====================
 // حلقة صغيرة بالذاكرة: كل قرار انضمام (قُبل/رُفض ولماذا) يُسجَّل هنا، وتعرضه
 // لوحة التشخيص (?debug=1 أو المالك). لا شيء يُرسل للشبكة.
-const JOIN_DIAG_MAX = 200;
+const JOIN_DIAG_MAX = 1000; // يغطي حشد 300+ لاعب بكل أسبابهم
 const joinDiagLog = [];
 const JOIN_DIAG_REASONS = {
   follower: 'متابع ✔',
@@ -23714,6 +23714,8 @@ const CONN_DIAG_JOIN_FNS = {
   chairs: ['chairsJoinParticipant', 'chairsParticipants', 'chairsGameStatus', 'chairsKeyword'], rlgl: ['rlglJoinParticipant', 'rlglParticipants', 'rlglGameStatus', 'rlglJoinKw'],
   glz: ['glzAddParticipant', 'glzParticipants', 'glzGameStatus', 'glzJoinKeyword'],
 };
+// سقف اللاعبين (قاعدة اللعبة) لما يكون اسمه غير <tag>MaxPlayers
+const CONN_DIAG_CAPS = { hz: 'HZ_GRID_SIZE', cr: 'crMaxRacers' };
 function connDiagEval(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }
 function connDiagInstallJoinWrappers() {
   Object.keys(CONN_DIAG_JOIN_FNS).forEach(tag => {
@@ -23732,7 +23734,7 @@ function connDiagInstallJoinWrappers() {
       if (last && last.uid === uid && last.reason === 'pending_follow' && Date.now() - last.at < 100) return r; // السبب مسجّل أصلاً
       const why = [];
       const st = connDiagEval(stName); if (st !== undefined) why.push('الحالة=' + st);
-      const max = connDiagEval(tag + 'MaxPlayers') || connDiagEval(tag + 'MaxRacers');
+      const max = connDiagEval(CONN_DIAG_CAPS[tag] || (tag + 'MaxPlayers')) || connDiagEval(tag + 'MaxRacers');
       if (max && map.size >= max) why.push('اللعبة ممتلئة ' + map.size + '/' + max);
       [tag + 'KickedDuringRound', tag + 'Kicked'].forEach(n => { const k = connDiagEval(n); if (k && k.has && k.has(uid)) why.push('مطرود'); });
       if (st && st !== 'waiting' && st !== 'lobby') why.push('الراوند بدأ/انتهى');
