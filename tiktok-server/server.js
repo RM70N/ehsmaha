@@ -71,6 +71,22 @@ const PORT = process.env.PORT || 8080;
 const RECONNECT_DELAY_MS = 5000;
 const NOT_LIVE_RETRY_DELAY_MS = 20000;
 const ROOM_IDLE_GRACE_MS = 5000; // مهلة قبل إغلاق الغرفة بعد خروج آخر عميل (يتجنب فتح/إغلاق سريع عند إعادة تحميل الصفحة)
+// آخر عميل انقطع انقطاعاً غير طبيعي (شبكة/نوم جهاز/نبض ميت — مو close(1000) مقصود):
+// نبقي الغرفة واتصال تيك توك دقيقة كاملة، فلما يرجع يلقى نفس الغرفة ويستلم ما فاته.
+const ROOM_ABNORMAL_GRACE_MS = 60000;
+
+// ---------------- نبض الاتصال + إعادة إرسال ما فات (كل المنصات) ----------------
+// ping/pong على مستوى البروتوكول يكشف العملاء الميتين (TCP مقطوع بصمت) ويطردهم،
+// و{type:'bridge_ping'} رسالة تطبيق يشوفها المتصفح (المتصفح ما يكشف ping للجافاسكربت)
+// عشان يعرف إن الاتصال حي حتى لو الشات هادي، ويعيد الاتصال لو انقطعت.
+const HEARTBEAT_MS = Number(process.env.BRIDGE_HEARTBEAT_MS || 20000);
+// كل حدث شات/هدية/متابعة ياخذ id = BOOT_ID.seq، والغرفة تحفظ آخر REPLAY_MAX حدث
+// (بحد أقصى REPLAY_WINDOW_MS). العميل يرسل ?since=<آخر id> عند إعادة الاتصال فنرسل
+// له ما فاته. BOOT_ID يتغير مع كل تشغيل للسيرفر، فالـids القديمة بعد إعادة تشغيل
+// ما تطابق (المخزن ضاع أصلاً) — ما نرسل شيء خطأ.
+const BOOT_ID = Date.now().toString(36);
+const REPLAY_MAX = 300;
+const REPLAY_WINDOW_MS = 90000;
 
 // ---------------- سياسة إعادة المحاولة — تيك توك فقط ----------------
 // هذه الثوابت تُستخدم داخل TikTokRoom وحدها — يوتيوب/كيك يكملان على
@@ -175,16 +191,27 @@ function log(level, msg) {
 // في displayId. الصورة في avatarThumb.urlList (مو profilePicture.urls).
 // followStatus يرجع كنص ("0"/"1"/"2")، فالمقارنة الرقمية المباشرة كانت تفشل
 // دائماً حتى للمتابعين الحقيقيين. — هذا القسم لم يتغيّر إطلاقاً.
-function extractTikTokUser(user) {
+// المتابعة الحقيقية (هذا المشاهد متابع للستريمر) تجي بحقل مستقل بالرسالة نفسها:
+// WebcastChatMessage.userIdentity.isFollowerOfAnchor (وكذلك WebcastGiftMessage) —
+// مؤكد من تعريفات tiktok-live-proto v3 بالمكتبة 2.4.x. أما user.followInfo.followStatus
+// فهو حقل من FollowInfo بجانب followingCount/followerCount (بيانات الملف العام)،
+// وما يعبّر عن علاقة المشاهد بالستريمر — الاعتماد عليه وحده كان يحجب المتابعين
+// الحقيقيين بـ"لازم تسوي فولو". نأخذ الاثنين (أيهما إيجابي = متابع)، ونرسل
+// followKnown: true فقط لو وصلنا دليل صريح، حتى تفرّق الواجهة بين "غير متابع"
+// و"غير معروف" (الأخيرة ما تُحجب بصمت).
+function extractTikTokUser(user, identity) {
   if (!user) {
-    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followInfo: { followStatus: 0 } };
+    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followKnown: false, followInfo: { followStatus: 0 } };
   }
   const uniqueId = user.displayId || user.uniqueId || user.userId || user.id || '?';
   const nickname = user.nickname || uniqueId;
   const avatar = (user.avatarThumb && Array.isArray(user.avatarThumb.urlList) && user.avatarThumb.urlList[0]) || '';
 
   const followStatus = Number((user.followInfo && user.followInfo.followStatus) || 0);
-  const following = followStatus === 1 || followStatus === 2;
+  const byStatus = followStatus === 1 || followStatus === 2;
+  const hasIdentity = !!identity && typeof identity === 'object';
+  const byIdentity = hasIdentity && !!(identity.isFollowerOfAnchor || identity.isMutualFollowingWithAnchor || identity.isAnchor);
+  const following = byIdentity || byStatus;
 
   return {
     uniqueId: String(uniqueId),
@@ -192,15 +219,27 @@ function extractTikTokUser(user) {
     profilePictureUrl: avatar,
     followRole: following ? 1 : 0,
     isFollower: following,
+    followKnown: hasIdentity || byStatus,
     followInfo: { followStatus: following ? 1 : 0 },
   };
+}
+
+// عيّنة من الحقول الخام لأول رسائل كل غرفة باللوغات (تشخيص حقول المتابعة على بث
+// حقيقي بدون أي أداة إضافية). العدد قابل للتغيير بمتغيّر البيئة، و0 = بدون تسجيل.
+const FOLLOW_LOG_SAMPLES = Number(process.env.BRIDGE_LOG_FOLLOW_SAMPLES || 5);
+function followFieldsSample(data) {
+  const u = (data && data.user) || {};
+  const id = data && data.userIdentity;
+  return '@' + (u.displayId || u.uniqueId || '?') +
+    ' followStatus=' + JSON.stringify(u.followInfo ? u.followInfo.followStatus : null) +
+    ' userIdentity=' + (id ? JSON.stringify({ follower: !!id.isFollowerOfAnchor, mutual: !!id.isMutualFollowingWithAnchor, anchor: !!id.isAnchor, mod: !!id.isModeratorOfAnchor }) : 'غائب');
 }
 
 // data.content مو data.comment — تحقق فعلي من بث لايف حقيقي (WebcastChatMessage
 // بالمكتبة المثبتة يستخدم content). هذا الحقل هو الأهم بكل الملف لأن كل لعبة
 // تقرأ نص الشات منه لمطابقة الكلمات/الأوامر.
 function buildTikTokComment(data) {
-  const user = extractTikTokUser(data.user);
+  const user = extractTikTokUser(data.user, data.userIdentity);
   const text = data.content || data.comment || '';
   return { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
 }
@@ -208,7 +247,7 @@ function buildTikTokComment(data) {
 // data.gift (مو data.giftDetails — تحقق من tiktok-live-proto v3 WebcastGiftMessage:
 // الحقل الصحيح gift: Gift، وGift.name/diamondCount/type).
 function buildTikTokGift(data) {
-  const user = extractTikTokUser(data.user);
+  const user = extractTikTokUser(data.user, data.userIdentity);
   const gift = data.gift || {};
   return {
     type: 'WebcastGiftMessage',
@@ -222,7 +261,8 @@ function buildTikTokGift(data) {
 }
 
 function buildTikTokFollow(data) {
-  const user = extractTikTokUser(data.user);
+  // حدث المتابعة نفسه دليل صريح إن هذا المشاهد صار متابعاً الآن.
+  const user = Object.assign(extractTikTokUser(data.user), { isFollower: true, followKnown: true, followRole: 1, followInfo: { followStatus: 1 } });
   return { type: 'WebcastSocialMessage', displayType: 'follow', user, timestamp: Date.now() };
 }
 
@@ -352,18 +392,44 @@ class BaseRoom {
     this.reconnectTimer = null;
     this.closeTimer = null;
     this.lastExtra = null;
+    this.seq = 0;
+    this.replay = []; // [{ seq, at, msg }]
   }
 
-  addClient(ws) {
+  addClient(ws, since) {
     if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
     this.clients.add(ws);
     this.sendTo(ws, buildStatus(this.state, this.messageForState(this.state, this.lastExtra), this.lastExtra));
+    this.replaySince(ws, since);
   }
 
-  removeClient(ws) {
-    this.clients.delete(ws);
+  removeClient(ws, abnormal) {
+    if (!this.clients.delete(ws)) return;
     if (this.clients.size === 0 && !this.closeTimer) {
-      this.closeTimer = setTimeout(() => this.teardown(), ROOM_IDLE_GRACE_MS);
+      this.closeTimer = setTimeout(() => this.teardown(), abnormal ? ROOM_ABNORMAL_GRACE_MS : ROOM_IDLE_GRACE_MS);
+    }
+  }
+
+  // يوسم كل حدث بـid ويحفظه بمخزن الإعادة ثم يبثه.
+  broadcastEvents(messages) {
+    const now = Date.now();
+    for (const msg of messages) {
+      msg.id = BOOT_ID + '.' + (++this.seq);
+      this.replay.push({ seq: this.seq, at: now, msg });
+    }
+    while (this.replay.length > REPLAY_MAX || (this.replay.length && now - this.replay[0].at > REPLAY_WINDOW_MS)) this.replay.shift();
+    this.broadcast({ messages });
+  }
+
+  replaySince(ws, since) {
+    const m = /^([a-z0-9]+)\.(\d+)$/.exec(String(since || ''));
+    if (!m || m[1] !== BOOT_ID) return;
+    const after = Number(m[2]);
+    const cutoff = Date.now() - REPLAY_WINDOW_MS;
+    const missed = this.replay.filter((e) => e.seq > after && e.at >= cutoff).map((e) => e.msg);
+    if (missed.length) {
+      log('info', this.key + ' — إعادة إرسال ' + missed.length + ' حدث فات العميل أثناء الانقطاع');
+      this.sendTo(ws, { messages: missed, replay: true });
     }
   }
 
@@ -452,6 +518,7 @@ class TikTokRoom extends BaseRoom {
     this.uniqueId = uniqueId;
     this.notLiveRetries = 0;
     this.firstCommentSeen = false;
+    this.followSamples = 0;
     // عدّادات سياسة إعادة المحاولة — تُصفّر كلها عند أول اتصال ناجح فعلي:
     this.failStreak = 0;      // فشل متتالٍ من أي نوع (عدا "مو لايف" — مو فشل أصلاً)
     this.rateLimitStreak = 0; // 429 متتالية — التراجع يتضاعف معها
@@ -493,9 +560,13 @@ class TikTokRoom extends BaseRoom {
     conn.on(WebcastEvent.CHAT, (data) => {
       if (!this.firstCommentSeen) {
         this.firstCommentSeen = true;
-        log('info', '@' + this.uniqueId + ' — أول CommentEvent فعلي وصل: "' + String(data.comment || '').slice(0, 40) + '"');
+        log('info', '@' + this.uniqueId + ' — أول CommentEvent فعلي وصل: "' + String(data.content || data.comment || '').slice(0, 40) + '"');
       }
-      this.broadcast({ messages: [buildTikTokComment(data)] });
+      if (this.followSamples < FOLLOW_LOG_SAMPLES) {
+        this.followSamples++;
+        log('info', '@' + this.uniqueId + ' — عيّنة حقول المتابعة #' + this.followSamples + ': ' + followFieldsSample(data));
+      }
+      this.broadcastEvents([buildTikTokComment(data)]);
     });
 
     conn.on(WebcastEvent.GIFT, (data) => {
@@ -504,11 +575,11 @@ class TikTokRoom extends BaseRoom {
       // عند انتهائه حتى لا تُحتسب الهدية مضاعفة بالألعاب.
       const giftType = data.gift && data.gift.type;
       if (giftType === 1 && !data.repeatEnd) return;
-      this.broadcast({ messages: [buildTikTokGift(data)] });
+      this.broadcastEvents([buildTikTokGift(data)]);
     });
 
     conn.on(WebcastEvent.FOLLOW, (data) => {
-      this.broadcast({ messages: [buildTikTokFollow(data)] });
+      this.broadcastEvents([buildTikTokFollow(data)]);
     });
 
     conn.on(WebcastEvent.LIKE, (data) => {
@@ -1027,15 +1098,18 @@ wss.on('connection', async (ws, req) => {
 
   log('info', platform + ':' + checkId + ' — عميل جديد اتصل');
   const room = getOrCreateRoom(platform, rawUser);
-  room.addClient(ws);
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+  room.addClient(ws, url.searchParams.get('since'));
 
-  ws.on('close', () => {
-    room.removeClient(ws);
-    log('info', platform + ':' + checkId + ' — عميل انفصل');
+  ws.on('close', (code) => {
+    // 1000/1001 = العميل قفل عمداً (خرج/بدّل الحساب) — غير ذلك انقطاع يستاهل مهلة أطول
+    room.removeClient(ws, code !== 1000 && code !== 1001);
+    log('info', platform + ':' + checkId + ' — عميل انفصل (' + code + ')');
   });
 
   ws.on('error', () => {
-    room.removeClient(ws);
+    room.removeClient(ws, true);
   });
 });
 
@@ -1064,6 +1138,17 @@ function startKeepAlive() {
   timer.unref();
   log('info', 'Keep-Alive مفعّل — ' + url + ' كل 5 دقائق');
 }
+
+const heartbeatTimer = setInterval(() => {
+  const ping = JSON.stringify({ type: 'bridge_ping', t: Date.now() });
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) { try { ws.terminate(); } catch (e) { /* ignore */ } continue; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) { /* ignore */ }
+    if (ws.readyState === WebSocket.OPEN) { try { ws.send(ping); } catch (e) { /* ignore */ } }
+  }
+}, HEARTBEAT_MS);
+heartbeatTimer.unref();
 
 initFirestore();
 server.listen(PORT, () => {

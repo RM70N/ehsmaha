@@ -1,0 +1,135 @@
+{
+ "follow": {
+  "real_follower": {
+   "joined": false,
+   "pending": true
+  },
+  "mutual_follower": {
+   "joined": false,
+   "pending": true
+  },
+  "non_follower": {
+   "joined": false,
+   "pending": true
+  },
+  "identity_missing": {
+   "joined": false,
+   "pending": true
+  },
+  "errors": []
+ },
+ "listeners": {
+  "listenerCountAfterEachGame": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "extractUserCallsForOneMessage": 10,
+  "errors": []
+ },
+ "outage": {
+  "downMs": 60000,
+  "recoveredAfterServerUpMs": null,
+  "timeline": [
+   {
+    "t": 10,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 3,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 20,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 5,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 30,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 7,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 40,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 7,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 50,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 7,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 60,
+    "label": "down",
+    "has": false,
+    "slot": {
+     "attempts": 7,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   },
+   {
+    "t": 152,
+    "label": "end",
+    "has": false,
+    "slot": {
+     "attempts": 7,
+     "ws": false
+    },
+    "dot": "dot connecting"
+   }
+  ],
+  "errors": []
+ },
+ "load": {
+  "tag": "main",
+  "target": 300,
+  "joined": 300,
+  "elapsedMs": 10229,
+  "heapDeltaMB": 0,
+  "longTasks": 0,
+  "maxLongTaskMs": 0,
+  "mirrorWrites": 300,
+  "toasts": 1,
+  "errors": []
+ },
+ "sockets": {
+  "openClientSocketsForAccount": 2,
+  "open": [
+   "ehsmaha-wbkn.onrender.com?u=streamer1",
+   "ehsmaha-wbkn.onrender.com?u=streamer1"
+  ],
+  "upstreamConnectionsOnServer": 1,
+  "connectCalls": 1
+ }
+}

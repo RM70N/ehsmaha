@@ -2567,6 +2567,8 @@ body{padding-top:64px;}
    backdrop behind a large glassmorphic card, rather than the slim top banner. */
 .msg-banner-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
 .msg-banner-backdrop.visible{display:block;}
+/* "رسالة للجميع" لازم تبان فوق أي شاشة لعبة (شاشات الفوز/الفعاليات تستخدم 99998–99999) */
+#msg-broadcast-banner{z-index:100002;}
 
 .msg-banner.pos-center{
   top:50%;left:50%;transform:translate(-50%,-50%);
@@ -4401,6 +4403,14 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <button type="button" class="btn-primary mod-add-btn" onclick="tiktokConnectModalStart()">🔗 ربط</button>
       <div class="tk-status-box" id="tiktok-connect-status"></div>
 
+      <div class="tk-saved-row" style="margin-top:18px;">
+        <label class="tk-bridge-switch" style="position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;">
+          <input type="checkbox" id="follow-gate-toggle" checked onchange="followGateSetRequired(this.checked)" style="opacity:0;width:0;height:0;" />
+          <span class="tk-bridge-slider"></span>
+        </label>
+        <div class="tk-saved-user">شرط الفولو لدخول الراوند<small id="follow-gate-hint">مفعّل — غير المتابع يُطلب منه فولو (ولو ما وصلنا تيك توك حالة المتابعة، يدخل)</small></div>
+      </div>
+
       <div id="tiktok-saved-usernames-wrap" style="margin-top:22px;display:none;">
         <div class="profile-section-label" style="margin-top:0;">🚀 حساباتك المحفوظة</div>
         <div id="tiktok-saved-usernames-list"></div>
@@ -5586,26 +5596,11 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="msg-subpanel" id="msg-subpanel-broadcast">
         <div class="field">
           <label>الرسالة</label>
-          <textarea id="msg-broadcast-text" class="updates-textarea" placeholder="اكتب رسالتك لكل الزوّار..." maxlength="500"></textarea>
+          <textarea id="msg-broadcast-text" class="updates-textarea" placeholder="اكتب رسالتك لكل اللاعبين..." maxlength="500"></textarea>
         </div>
-        <div class="msg-controls-row">
-          <div class="msg-control-group">
-            <label>الموقع</label>
-            <div class="msg-position-toggle">
-              <button type="button" class="msg-pos-btn active" id="msg-broadcast-pos-top" onclick="ownerMsgSetPosition('broadcast','top')">فوق</button>
-              <button type="button" class="msg-pos-btn" id="msg-broadcast-pos-center" onclick="ownerMsgSetPosition('broadcast','center')">منتصف</button>
-            </div>
-          </div>
-          <div class="msg-control-group">
-            <label>المدة</label>
-            <div class="msg-position-toggle">
-              <button type="button" class="msg-pos-btn active" id="msg-broadcast-dur-timed" onclick="ownerMsgSetDuration('broadcast','timed')">7 ثوانٍ</button>
-              <button type="button" class="msg-pos-btn" id="msg-broadcast-dur-permanent" onclick="ownerMsgSetDuration('broadcast','permanent')">دائم</button>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="btn-primary" onclick="ownerSendBroadcastMessage()">📨 إرسال للجميع</button>
-        <button type="button" class="btn-reset" onclick="ownerClearBroadcastMessage()">إزالة البانر الدائم الحالي</button>
+        <div class="stats-note">تظهر بنص الشاشة لكل الموجودين بالموقع (حتى داخل الألعاب) لمدة 10 ثوانٍ.</div>
+        <button type="button" class="btn-primary" id="msg-broadcast-send-btn" onclick="ownerSendBroadcastMessage()">📣 أرسل للجميع</button>
+        <button type="button" class="btn-reset" onclick="ownerClearBroadcastMessage()">إخفاء الرسالة الحالية</button>
         <div class="stats-note" id="msg-broadcast-note"></div>
       </div>
     </div>
@@ -21390,6 +21385,7 @@ function ownerRenderEventAccessList() {
 //   a fresh page load only shows it if sentAt is within the last 5 minutes.
 const MSG_PERSONAL_EXPIRY_MS = 60 * 60 * 1000;      // 1 hour
 const MSG_BROADCAST_FRESH_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
+const MSG_BROADCAST_SHOW_SEC = 10;                   // مدة ظهور "رسالة للجميع" بنص الشاشة
 
 let ownerMsgPosition = { personal: 'top', broadcast: 'top' };
 let ownerMsgDuration = { personal: 'timed', broadcast: 'timed' };
@@ -21444,18 +21440,25 @@ async function ownerSendPersonalMessage() {
 async function ownerSendBroadcastMessage() {
   const text = document.getElementById('msg-broadcast-text').value.trim();
   if (!text) { toast('⚠️ اكتب الرسالة أولاً'); return; }
+  if (!fb || !currentUser) { toast('⚠️ سجّل دخولك بحساب المالك أولاً'); return; }
+  const btn = document.getElementById('msg-broadcast-send-btn');
+  if (btn) btn.disabled = true;
   try {
+    // ضغطة وحدة: دائماً بنص الشاشة ولمدة 10 ثوانٍ (MSG_BROADCAST_SHOW_SEC).
     await fb.setDoc(fb.doc(fb.db, 'broadcastMessages', 'current'), {
       text,
       sentAt: fb.serverTimestamp(),
-      position: ownerMsgPosition.broadcast,
-      durationMode: ownerMsgDuration.broadcast,
+      position: 'center',
+      durationMode: 'timed',
+      durationSec: MSG_BROADCAST_SHOW_SEC,
       sentBy: (currentUser && currentUser.email) || null
     });
     document.getElementById('msg-broadcast-text').value = '';
-    toast('✅ تم إرسال الرسالة للجميع');
+    toast('✅ وصلت الرسالة للجميع — تظهر بنص الشاشة ' + MSG_BROADCAST_SHOW_SEC + ' ثوانٍ');
   } catch (err) {
     toast('⚠️ تعذّر الإرسال: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -21580,9 +21583,23 @@ function broadcastMessageShow(data, sentMs) {
 
   if (broadcastMsgTimeout) { clearTimeout(broadcastMsgTimeout); broadcastMsgTimeout = null; }
   if (data.durationMode !== 'permanent') {
-    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, 7000);
+    // الرسائل القديمة (قبل durationSec) تبقى على 7 ثوانٍ كما أُرسلت.
+    const showSec = Number(data.durationSec) > 0 ? Number(data.durationSec) : 7;
+    broadcastMsgTimeout = setTimeout(broadcastMessageDismiss, showSec * 1000);
   }
 }
+
+// المستمع كان يبدأ فقط بعد تسجيل الدخول (authRunPostAuthBootChain) — فأي أحد
+// بالموقع بدون دخول ما توصله الرسالة أبداً. القراءة مسموحة للجميع بالقواعد
+// (broadcastMessages: allow read: if true)، فنشغّله لكل زائر لحظة جاهزية Firebase.
+// broadcastMsgListenerStarted يمنع تشغيله مرتين لو سجّل دخوله بعدين.
+async function broadcastMessageBootForEveryone() {
+  if (!fb && window.__fb) fb = window.__fb;
+  try { await broadcastMessageCheckOnLoad(); } catch (e) {}
+  try { broadcastMessageBoot(); } catch (e) {}
+}
+if (fb || window.__fb) broadcastMessageBootForEveryone();
+else window.addEventListener('fb-ready', broadcastMessageBootForEveryone, { once: true });
 
 function broadcastMessageDismiss() {
   document.getElementById('msg-broadcast-banner').classList.remove('visible');
@@ -22571,8 +22588,22 @@ function liveCommandsBoot(gameTag, handlers) {
 // `participantsMap` is that game's own Participants Map — values may be a bare
 // user object OR a wrapper like sniper's { user, cell }; both are handled
 // transparently by unwrapping .user when present.
+// كتابة Firestore كانت setDoc للقائمة كاملة مع كل انضمام: 300 منضم = 300 كتابة
+// بمستند يكبر كل مرة (O(n²) بايت وخطر حصة/حجم المستند). الآن: كتابة فورية أول مرة ثم
+// بحد أقصى وحدة كل 2.5ث لكل لعبة، وآخر حالة تنكتب دائماً بالنهاية (leading + trailing).
+// levelsNoteParticipants يبقى فوري (نتيجة الراوند تعتمد عليه).
+const LIVE_ROUNDS_MIRROR_MIN_GAP_MS = 2500;
+const liveRoundsMirrorState = {}; // tag -> { lastAt, timer, map }
 function liveRoundsMirror(gameTag, participantsMap) {
   levelsNoteParticipants(gameTag, participantsMap); // نظام المستويات — يلتقط الداخلين وسط الراوند كمان
+  const st = liveRoundsMirrorState[gameTag] || (liveRoundsMirrorState[gameTag] = { lastAt: 0, timer: null, map: null });
+  st.map = participantsMap;
+  if (st.timer) return;
+  const wait = st.lastAt + LIVE_ROUNDS_MIRROR_MIN_GAP_MS - Date.now();
+  if (wait <= 0) { st.lastAt = Date.now(); liveRoundsMirrorWrite(gameTag, st.map); return; }
+  st.timer = setTimeout(() => { st.timer = null; st.lastAt = Date.now(); liveRoundsMirrorWrite(gameTag, st.map); }, wait);
+}
+function liveRoundsMirrorWrite(gameTag, participantsMap) {
   if (!fb) return;
   try {
     const list = [...participantsMap.values()].map(v => {
@@ -23016,40 +23047,146 @@ function twitchEventShape(displayName, uniqueId, message) {
 // المسؤول الوحيد عن التحدث فعلياً مع تيك توك وبث الأحداث الموحّدة
 // ({messages:[...]}) لكل الألعاب — بدون أي نافذة/تبويب/iframe إضافي ظاهر.
 //
-// TIKTOK_BRIDGE_SERVER_URL: عنوان WebSocket الأساس للسيرفر المستضاف (بدون
-// معاملات الاستعلام — تُضاف تلقائياً). عدّله بعد نشر tiktok-server/ على
-// Render إلى رابط خدمتك الفعلي، مثال:
-//   wss://ehsmaha-tiktok-bridge.onrender.com/ws
-const TIKTOK_BRIDGE_SERVER_URL = 'wss://ehsmaha.onrender.com/ws';
+// TIKTOK_BRIDGE_SERVERS: عناوين WebSocket لسيرفرات الجسر (بدون معاملات
+// الاستعلام — تُضاف تلقائياً). الأول هو الأساسي، والباقي احتياطي بالترتيب:
+// لو ما رد السيرفر الحالي ننتقل للي بعده (دائرياً)، ونرجع للأساسي تلقائياً
+// بعد ما يثبت إنه رجع (راجع tiktokBridgePrimaryRecoveryCheck).
+const TIKTOK_BRIDGE_SERVERS = [
+  'wss://ehsmaha-wbkn.onrender.com/ws',  // Primary
+  'wss://ehsmaha.onrender.com/ws'        // Fallback
+];
+let tiktokActiveBridgeIndex = 0;
+
+// يبقى على الأساسي دائماً: كيك/يوتيوب و/profile تبني روابطها منه ولا تدخل
+// في منطق التبديل إطلاقاً.
+const TIKTOK_BRIDGE_SERVER_URL = TIKTOK_BRIDGE_SERVERS[0];
+
+function tiktokBridgeWsUrlAt(index, username) {
+  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+}
 
 function tiktokBridgeWsUrl(username) {
-  return `${TIKTOK_BRIDGE_SERVER_URL}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+  return tiktokBridgeWsUrlAt(tiktokActiveBridgeIndex, username);
+}
+
+// ---------- Failover بين سيرفرات الجسر (تيك توك فقط) ----------
+const TIKTOK_HEALTH_TIMEOUT_MS = 4000;            // مهلة فحص /healthz الواحد
+const TIKTOK_WS_FAILOVER_MS = 8000;               // مهلة فتح الويب سوكيت قبل التحويل للسيرفر التالي
+const TIKTOK_PRIMARY_RECHECK_MS = 5 * 60 * 1000;  // فحص رجوع الأساسي بالخلفية
+const TIKTOK_PRIMARY_STABLE_CHECKS = 2;           // نجاحات متتالية قبل الرجوع (منع الرفرفة)
+let tiktokPrimaryWatchTimer = null;
+let tiktokPrimaryHealthyStreak = 0;
+
+function tiktokBridgeLog(message) {
+  console.log('[INFO] [TikTok Bridge] ' + message);
+}
+
+function tiktokBridgeLabel(index) {
+  let host = TIKTOK_BRIDGE_SERVERS[index];
+  try { host = new URL(host).host; } catch (e) {}
+  return (index === 0 ? 'الأساسي' : 'الاحتياطي #' + index) + ' (' + host + ')';
+}
+
+function tiktokBridgeHttpOrigin(index) {
+  return TIKTOK_BRIDGE_SERVERS[index].replace(/^ws/, 'http').replace(/\/ws$/, '');
+}
+
+// يرجّع true فقط لو /healthz رد بـ200 خلال المهلة؛ أي خطأ/تايم آوت = false.
+function tiktokBridgeHealthCheck(index, timeoutMs) {
+  return new Promise((resolve) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) {} resolve(false); }, timeoutMs || TIKTOK_HEALTH_TIMEOUT_MS);
+    try {
+      fetch(tiktokBridgeHttpOrigin(index) + '/healthz', { cache: 'no-store', signal: ctrl.signal })
+        .then((res) => { clearTimeout(timer); resolve(!!res && res.status === 200); })
+        .catch(() => { clearTimeout(timer); resolve(false); });
+    } catch (e) { clearTimeout(timer); resolve(false); }
+  });
+}
+
+// يفحص السيرفرات دائرياً بدءاً من startIndex ويرجّع أول واحد صحي، أو -1.
+async function tiktokBridgePickServer(startIndex) {
+  const n = TIKTOK_BRIDGE_SERVERS.length;
+  for (let k = 0; k < n; k++) {
+    const i = (startIndex + k) % n;
+    if (await tiktokBridgeHealthCheck(i)) return i;
+    tiktokBridgeLog('فحص /healthz فشل على السيرفر ' + tiktokBridgeLabel(i));
+  }
+  return -1;
+}
+
+// يغيّر السيرفر المستخدم للاتصالات الجديدة فقط — أي ويب سوكيت شغّال يكمل كما هو.
+function tiktokBridgeSetActive(index, reason) {
+  if (index === tiktokActiveBridgeIndex) return;
+  const from = tiktokActiveBridgeIndex;
+  tiktokActiveBridgeIndex = index;
+  tiktokBridgeLog('تبديل سيرفر الجسر: ' + tiktokBridgeLabel(from) + ' ← ' + tiktokBridgeLabel(index) + ' — ' + reason);
+  if (index === 0) tiktokBridgePrimaryWatchStop();
+  else tiktokBridgePrimaryWatchStart();
+}
+
+function tiktokBridgePrimaryWatchStart() {
+  if (tiktokPrimaryWatchTimer) return;
+  tiktokPrimaryHealthyStreak = 0;
+  tiktokBridgeLog('بدء فحص السيرفر الأساسي بالخلفية كل ' + Math.round(TIKTOK_PRIMARY_RECHECK_MS / 60000) + ' دقائق');
+  tiktokPrimaryWatchTimer = setInterval(() => { tiktokBridgePrimaryRecoveryCheck(); }, TIKTOK_PRIMARY_RECHECK_MS);
+}
+
+function tiktokBridgePrimaryWatchStop() {
+  if (tiktokPrimaryWatchTimer) { clearInterval(tiktokPrimaryWatchTimer); tiktokPrimaryWatchTimer = null; }
+  tiktokPrimaryHealthyStreak = 0;
+}
+
+async function tiktokBridgePrimaryRecoveryCheck() {
+  if (tiktokActiveBridgeIndex === 0) { tiktokBridgePrimaryWatchStop(); return; }
+  const ok = await tiktokBridgeHealthCheck(0);
+  if (tiktokActiveBridgeIndex === 0) return;
+  if (!ok) {
+    if (tiktokPrimaryHealthyStreak) tiktokBridgeLog('السيرفر الأساسي فشل بالفحص مرة ثانية — تصفير عدّاد الاستقرار');
+    tiktokPrimaryHealthyStreak = 0;
+    return;
+  }
+  tiktokPrimaryHealthyStreak++;
+  tiktokBridgeLog('السيرفر الأساسي رد بنجاح (' + tiktokPrimaryHealthyStreak + '/' + TIKTOK_PRIMARY_STABLE_CHECKS + ')');
+  if (tiktokPrimaryHealthyStreak >= TIKTOK_PRIMARY_STABLE_CHECKS) {
+    tiktokBridgeSetActive(0, 'رجع الأساسي مستقراً — يُستخدم للاتصالات الجديدة فقط');
+  }
 }
 
 // ---------- إيقاظ السيرفر قبل أول اتصال (علاج Cold Start) ----------
 // خطة Render المجانية توقف الخدمة بعد ~15 دقيقة بلا طلبات، وأول اتصال
 // بعدها ياخذ 30-60ث لإقلاع الخدمة — وهذا أكبر سبب مفرد لبطء أول ربط.
 // فتح WebSocket على خدمة نائمة يفشل فوراً (ويحرق محاولات إعادة الاتصال
-// واحدة تلو الأخرى قبل ما تقوم الخدمة)، بينما طلب HTTP عادي يبقى معلقاً
-// حتى تقوم الخدمة ثم يرد — فنستخدمه كـ"إيقاظ" قبل فتح الويب سوكيت.
+// واحدة تلو الأخرى قبل ما تقوم الخدمة)، بينما طلب HTTP عادي يوقظها —
+// فنستخدمه كـ"إيقاظ" + فحص صحة قبل فتح الويب سوكيت: نجرب السيرفر الحالي
+// ثم التالي دائرياً (4ث لكل فحص)، ونكرر الجولات حتى أول سيرفر يرد أو
+// ينتهي TIKTOK_WARMUP_MAX_MS فنحاول الاتصال على أي حال.
 // خاص بتيك توك فقط (ما يُستدعى إطلاقاً من مسارات تويتش/كيك/يوتيوب).
-const TIKTOK_BRIDGE_HTTP_ORIGIN = TIKTOK_BRIDGE_SERVER_URL.replace(/^ws/, 'http').replace(/\/ws$/, '');
 const TIKTOK_WARMUP_TTL_MS = 60000;   // ما نكرر الإيقاظ طوال هذه المدة
 const TIKTOK_WARMUP_MAX_MS = 25000;   // سقف انتظار الإقلاع قبل ما نحاول الاتصال على أي حال
+const TIKTOK_WARMUP_ROUND_GAP_MS = 1000; // فاصل بين الجولات لو كل السيرفرات فشلت فوراً
 let tiktokBridgeWarmPromise = null;
 let tiktokBridgeWarmAt = 0;
 
 function tiktokBridgeWarmUp() {
   if (tiktokBridgeWarmPromise && (Date.now() - tiktokBridgeWarmAt) < TIKTOK_WARMUP_TTL_MS) return tiktokBridgeWarmPromise;
   tiktokBridgeWarmAt = Date.now();
-  let done = null;
-  const capped = new Promise((resolve) => { done = resolve; });
-  const timer = setTimeout(() => done(), TIKTOK_WARMUP_MAX_MS);
-  try {
-    fetch(TIKTOK_BRIDGE_HTTP_ORIGIN + '/healthz', { cache: 'no-store' })
-      .then(() => { clearTimeout(timer); done(); })
-      .catch(() => { clearTimeout(timer); done(); });
-  } catch (e) { clearTimeout(timer); done(); }
+  const deadline = tiktokBridgeWarmAt + TIKTOK_WARMUP_MAX_MS;
+  const probe = async () => {
+    while (Date.now() < deadline) {
+      const picked = await tiktokBridgePickServer(tiktokActiveBridgeIndex);
+      if (picked > -1) {
+        tiktokBridgeSetActive(picked, 'السيرفر السابق ما رد على /healthz');
+        return;
+      }
+      await new Promise((r) => setTimeout(r, TIKTOK_WARMUP_ROUND_GAP_MS));
+    }
+    tiktokBridgeLog('ولا سيرفر رد على /healthz خلال ' + (TIKTOK_WARMUP_MAX_MS / 1000) + 'ث — نحاول الاتصال المباشر على أي حال');
+  };
+  const capped = new Promise((resolve) => {
+    const timer = setTimeout(resolve, TIKTOK_WARMUP_MAX_MS);
+    probe().catch(() => {}).then(() => { clearTimeout(timer); resolve(); });
+  });
   tiktokBridgeWarmPromise = capped;
   return capped;
 }
@@ -23060,27 +23197,111 @@ function tiktokBridgeWarmUp() {
 // يبقى تيك توك مكتوب داخل كل دالة connect<Game>TikTok بمفرده. onEvent هنا
 // يستقبل الحدث الخام كامل ({messages:[...]} أو {type:'bridge_status',...})،
 // مو دالة (name,id,msg) متل باقي المنصات.
-function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose) {
-  let sock;
-  const url = tiktokBridgeWsUrl(username);
-  try { sock = new WebSocket(url); } catch (e) { if (onClose) onClose({ code: 0 }); return null; }
+//
+// Failover: لو السيرفر ما انفتح خلال TIKTOK_WS_FAILOVER_MS، أو انقفل بخطأ
+// شبكة قبل bridge_status:connected، نجرب السيرفر التالي تلقائياً بنفس
+// اليوزر (كل سيرفر مرة وحدة لكل استدعاء). الكائن المرجَع غلاف ثابت (close/
+// send/readyState) يمرّر للويب سوكيت الحالي — فإغلاقه من المستدعي يقفل
+// الاتصال الفعلي حتى لو تبدّل السيرفر تحته. أكواد 4xxx (رفض من السيرفر
+// نفسه) وإغلاق المستدعي ما تسبب أي تبديل وتوصل onClose كما كانت.
+const TIKTOK_WS_FAILOVER_CLOSE_CODES = [1006, 1011, 1012, 1013, 1014, 1015];
+
+// opts (اختياري): { query: () => '&since=...' } — يُضاف لرابط كل محاولة (بما فيها
+// التحويل للاحتياطي) حتى يعيد السيرفر إرسال الأحداث اللي فاتت أثناء الانقطاع.
+function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
+  const n = TIKTOK_BRIDGE_SERVERS.length;
+  let tried = 0;
+  let sock = null;
   let openFired = false;
-  sock.onopen = () => { /* الفتح الفعلي يُعلَن فقط بعد bridge_status:connected (اتصال حقيقي بالبث) */ };
-  sock.onmessage = (e) => {
-    let d; try { d = JSON.parse(e.data); } catch (err) { return; }
-    if (d && d.type === 'bridge_status') {
-      if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
-      // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
-      // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
-      // ما تظل تعرض "جاري الاتصال" للأبد.
-      onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
+  let closedByCaller = false;
+
+  function attempt(index) {
+    let s;
+    const extra = (opts && typeof opts.query === 'function') ? (opts.query() || '') : '';
+    try { s = new WebSocket(tiktokBridgeWsUrlAt(index, username) + extra); } catch (e) { return false; }
+    tried++;
+    sock = s;
+    const startedAt = Date.now();
+    let transportOpen = false;
+    const guard = setTimeout(() => {
+      if (sock === s && !transportOpen && !closedByCaller && tried < n) failover(s, index, 'ما انفتح الاتصال خلال ' + (TIKTOK_WS_FAILOVER_MS / 1000) + 'ث');
+    }, TIKTOK_WS_FAILOVER_MS);
+    s.onopen = () => {
+      /* الفتح الفعلي يُعلَن فقط بعد bridge_status:connected (اتصال حقيقي بالبث) */
+      transportOpen = true;
+      clearTimeout(guard);
+      if (index !== tiktokActiveBridgeIndex) tiktokBridgeSetActive(index, 'فشل فتح الويب سوكيت على السيرفر السابق');
+    };
+    s.onmessage = (e) => {
+      let d; try { d = JSON.parse(e.data); } catch (err) { return; }
+      if (d && d.type === 'bridge_status') {
+        if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
+        // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
+        // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
+        // ما تظل تعرض "جاري الاتصال" للأبد.
+        onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
+        return;
+      }
+      onEvent(d);
+    };
+    s.onerror = () => {};
+    s.onclose = (e) => {
+      clearTimeout(guard);
+      if (sock !== s) return;
+      const networkFail = !transportOpen ||
+        ((Date.now() - startedAt) <= TIKTOK_WS_FAILOVER_MS && e && TIKTOK_WS_FAILOVER_CLOSE_CODES.indexOf(e.code) > -1);
+      if (!closedByCaller && !openFired && networkFail && tried < n) {
+        failover(s, index, 'انقفل الاتصال بكود ' + (e ? e.code : '?') + ' قبل الربط');
+        return;
+      }
+      if (onClose) onClose(e);
+    };
+    return true;
+  }
+
+  function failover(s, index, why) {
+    const next = (index + 1) % n;
+    tiktokBridgeLog('فشل الاتصال بالسيرفر ' + tiktokBridgeLabel(index) + ' (' + why + ') — التحويل التلقائي إلى ' + tiktokBridgeLabel(next));
+    sock = null;
+    try { s.onopen = null; s.onmessage = null; s.onclose = null; s.close(); } catch (e) {}
+    onEvent({ type: 'bridge_status', state: 'connecting' });
+    if (!attempt(next) && onClose) onClose({ code: 0 });
+  }
+
+  if (!attempt(tiktokActiveBridgeIndex)) { if (onClose) onClose({ code: 0 }); return null; }
+  return {
+    close(code, reason) { closedByCaller = true; if (sock) sock.close(code, reason); },
+    send(data) { if (sock) sock.send(data); },
+    get readyState() { return sock ? sock.readyState : 3; },
+  };
+}
+
+// يحوّل أحداث bridge_status (اللي يرسلها tiktokOpenWS لـonEvent) لمؤشر
+// الاتصال بكل لعبة: onOpen يُطلق مرة وحدة فقط، فلو انقطع البث ورجع السيرفر
+// يربط تلقائياً، هذي هي الإشارة الوحيدة اللي ترجّع المؤشر "on" أو تنزّله.
+// setDot(state) اختياري (null = بلا مؤشر)، وnotify = toast أو ما يعادلها.
+function tiktokGameBridgeStatusHandler(setDot, username, notify) {
+  let notLiveShown = false;
+  let fatalShown = false;
+  const dot = (state) => { if (typeof setDot === 'function') setDot(state); };
+  const say = (msg) => { if (typeof notify === 'function') notify(msg); };
+  return (evt) => {
+    if (!evt) return;
+    if (evt.state === 'connected') { notLiveShown = false; fatalShown = false; dot('on'); return; }
+    if (evt.state === 'connecting' || evt.state === 'reconnecting') { dot('connecting'); return; }
+    if (evt.state === 'not_live') {
+      dot('connecting');
+      if (!notLiveShown) { notLiveShown = true; say('⚠️ الحساب @' + username + ' مو شغال بث الآن — بنربطك تلقائياً أول ما تفتح البث'); }
       return;
     }
-    onEvent(d);
+    if (evt.state === 'error') {
+      dot('connecting');
+      if ((evt.fatal || evt.code === 'user_not_found') && !fatalShown) {
+        fatalShown = true;
+        say(evt.message ? ('⚠️ ' + evt.message) : tiktokConnectFailMessage(evt.code));
+      }
+    }
   };
-  sock.onerror = () => {};
-  sock.onclose = (e) => { if (onClose) onClose(e); };
-  return sock;
 }
 
 // ==================== TIKTOK CONNECT — مودال الربط + الحسابات المحفوظة
@@ -23313,12 +23534,41 @@ function tiktokConnectModalStart() {
       tiktokRenderSavedUsersList();
       homeUpdateConnectionBadge(true, 'تيك توك');
       homeQuickReconnectButtonRefresh();
+      tiktokAttachAccountToGames(uname); // بدونها أحداث الشات ما توصل لأي لعبة
     },
     (e) => {
       // كود 4403 = السيرفر رفض الاتصال لأن bridgeStreamers/{user}.enabled === false
       // (تحقق حقيقي من السيرفر، مو من التخزين المحلي فقط).
       if (e && e.code === 4403) { watcher.stop(); tiktokConnectSetStatus('error', '⛔ هذا الحساب معطّل من إدارة المنصة'); }
     });
+  });
+}
+
+// السبب الجذري لـ"الشات فاضي والكلمة المفتاحية ما تدخل أحد" بكل الألعاب:
+// الألعاب ما تفتح اتصالاً خاصاً بها إطلاقاً — كلها تتحقق من
+// homeHasActiveConnection() وتسجّل معالجها على ناقل الأحداث
+// (homeDispatchToGameListeners) اللي يتغذّى فقط من homeConnections عبر
+// platformConnect. مودال "ربط الحساب" كان يفتح سوكيت مستقلاً (window._tkModalSock)
+// أحداثه تروح للمراقب فقط، ولا يسجّل أي شيء بـhomeConnections — فيبان الربط
+// ناجحاً بينما الألعاب إما ترفض البدء، أو تبدأ على اتصال قديم متبقٍ (يوزر
+// آخر / متعلّق بـnot_live) فما يوصلها ولا تعليق. هذي الدالة تسلّم نفس الحساب
+// للناقل بنفس آلية "ابدأ بثاً سريعاً" (platformConnect ← tiktokOpenWS).
+function tiktokAttachAccountToGames(username) {
+  const uname = String(username || '').trim().replace(/^@/, '');
+  if (!uname) return;
+  const slot = homeConnections.tiktok;
+  // اتصال واحد لكل حساب: سوكيت المودال (window._tkModalSock) كان يبقى مفتوحاً للأبد
+  // بجانب سوكيت الناقل لنفس اليوزر — ضعف الرسائل على السيرفر بلا فائدة. بعد ما
+  // يتصل الناقل نقفله (أحداثه أصلاً ما كانت تروح إلا لمراقب المودال).
+  const closeModalSock = () => {
+    try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
+    window._tkModalSock = null;
+  };
+  // الناقل موصول أصلاً بنفس الحساب — لا نقطع اتصالاً شغّالاً.
+  if (slot && slot.ws && String(slot.username || '').toLowerCase() === uname.toLowerCase()) { closeModalSock(); return; }
+  platformConnect('tiktok', { username: uname }, homeDispatchToGameListeners, function (p, status) {
+    if (status === 'connected') { homeUpdateConnectionBadge(true, 'تيك توك'); closeModalSock(); }
+    else if (status === 'disabled' || status === 'failed') homeUpdateConnectionBadge(false, '');
   });
 }
 
@@ -23413,6 +23663,189 @@ function tiktokQuickReconnect(username, opts) {
 // + platformConnect من الصفحة الرئيسية) — إزالتها من كل موقع استدعاء أمر
 // خطير على ملف بهذا الحجم، فتُبقى كدالة فارغة متوافقة بدل حذف عشرات الأسطر.
 function getTikTokApiKey() { return ''; }
+
+// ==================== سجل محاولات الانضمام (تشخيص) ====================
+// حلقة صغيرة بالذاكرة: كل قرار انضمام (قُبل/رُفض ولماذا) يُسجَّل هنا، وتعرضه
+// لوحة التشخيص (?debug=1 أو المالك). لا شيء يُرسل للشبكة.
+const JOIN_DIAG_MAX = 1000; // يغطي حشد 300+ لاعب بكل أسبابهم
+const joinDiagLog = [];
+const JOIN_DIAG_REASONS = {
+  follower: 'متابع ✔',
+  exempt: 'مستثنى (مطوّر/الستريمر نفسه)',
+  gate_off: 'شرط الفولو مطفي',
+  follow_unknown_allowed: 'حالة المتابعة غير معروفة — دخل',
+  pending_follow: 'بانتظار فولو (غير متابع)',
+  keyword_near_miss: 'الكلمة ما تطابق',
+  joined: 'انضم ✅',
+  already_in: 'موجود أصلاً',
+  not_joined: 'ما انضم',
+};
+function joinDiagRecord(tag, user, reason, detail) {
+  joinDiagLog.push({ at: Date.now(), tag, uid: (user && user.uniqueId) || '?', nick: (user && user.nickname) || '', reason, detail: detail || '' });
+  if (joinDiagLog.length > JOIN_DIAG_MAX) joinDiagLog.splice(0, joinDiagLog.length - JOIN_DIAG_MAX);
+  if (typeof connDiagRender === 'function') connDiagRender();
+}
+
+// ==================== لوحة التشخيص (?debug=1) ====================
+// تحوّل "ما يدخلون" لسبب محدد: حالة الاتصال، عمر آخر حدث، أحداث/ث، عدد المعالجات
+// المسجلة، وآخر محاولات الانضمام مع السبب. تتفعّل بـ?debug=1 (وتبقى للجلسة)، و?debug=0
+// يطفيها. مغلفات دوال الانضمام تُركَّب فقط بوضع التشخيص — التشغيل العادي بلا أي كلفة.
+const CONN_DIAG_ON = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('debug');
+    if (q === '1') sessionStorage.setItem('connDiag', '1');
+    if (q === '0') sessionStorage.removeItem('connDiag');
+    return sessionStorage.getItem('connDiag') === '1';
+  } catch (e) { return false; }
+})();
+// tag -> [دالة الانضمام، خريطة المشاركين، متغيّر الحالة، متغيّر كلمة الانضمام]
+const CONN_DIAG_JOIN_FNS = {
+  main: ['joinParticipant', 'participants', 'gameStatus', 'keyword'], gw: ['gwJoinParticipant', 'gwParticipants', 'gwGameStatus', 'gwKeyword'],
+  sniper: ['sniperJoinParticipant', 'sniperParticipants', 'sniperGameStatus', 'sniperKeyword'], hz: ['hzJoinParticipant', 'hzParticipants', 'hzGameStatus', 'hzKeyword'],
+  rou: ['rouJoinParticipant', 'rouParticipants', 'rouGameStatus', 'rouKeyword'], tmr: ['tmrJoinParticipant', 'tmrParticipants', 'tmrGameStatus', 'tmrKeyword'],
+  bomb: ['bombJoinParticipant', 'bombParticipants', 'bombGameStatus', 'bombKeyword'], box: ['boxJoinParticipant', 'boxParticipants', 'boxGameStatus', 'boxKeyword'],
+  cr: ['crJoinParticipant', 'crParticipants', 'crGameStatus', 'crKeyword'], mz: ['mzJoinParticipant', 'mzParticipants', 'mzGameStatus', 'mzKeyword'],
+  ev: ['evJoinParticipant', 'evParticipants', 'evGameStatus', 'evKeyword'], ll: ['llJoinParticipant', 'llParticipants', 'llGameStatus', 'llKeyword'],
+  wai: ['waiJoinParticipant', 'waiParticipants', 'waiGameStatus', 'waiKeyword'], ig: ['igJoinParticipant', 'igParticipants', 'igGameStatus', 'igKeyword'],
+  rw: ['rwJoinParticipant', 'rwParticipants', 'rwGameStatus', 'rwKeyword'], pgs: ['pgsJoinParticipant', 'pgsParticipants', 'pgsGameStatus', 'pgsKeyword'],
+  lsc: ['lscJoinParticipant', 'lscParticipants', 'lscGameStatus', 'lscKeyword'], wr: ['wrJoinParticipant', 'wrParticipants', 'wrGameStatus', 'wrKeyword'],
+  draw: ['drawJoinParticipant', 'drawParticipants', 'drawGameStatus'], cw: ['cwJoinParticipant', 'cwParticipants', 'cwGameStatus', 'cwKeyword'],
+  cs: ['csJoinParticipant', 'csParticipants', 'csGameStatus', 'csKeyword'], findball: ['findballJoinParticipant', 'findballParticipants', 'findballGameStatus', 'findballKeyword'],
+  chairs: ['chairsJoinParticipant', 'chairsParticipants', 'chairsGameStatus', 'chairsKeyword'], rlgl: ['rlglJoinParticipant', 'rlglParticipants', 'rlglGameStatus', 'rlglJoinKw'],
+  glz: ['glzAddParticipant', 'glzParticipants', 'glzGameStatus', 'glzJoinKeyword'],
+};
+// سقف اللاعبين (قاعدة اللعبة) لما يكون اسمه غير <tag>MaxPlayers
+const CONN_DIAG_CAPS = { hz: 'HZ_GRID_SIZE', cr: 'crMaxRacers' };
+function connDiagEval(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }
+function connDiagInstallJoinWrappers() {
+  Object.keys(CONN_DIAG_JOIN_FNS).forEach(tag => {
+    const [fnName, mapName, stName] = CONN_DIAG_JOIN_FNS[tag];
+    const orig = window[fnName];
+    if (typeof orig !== 'function' || orig.__diag) return;
+    const wrapped = function (user) {
+      const map = connDiagEval(mapName);
+      const uid = user && user.uniqueId;
+      const had = !!(map && uid && map.has(uid));
+      const r = orig.apply(this, arguments);
+      if (!map || !uid) return r;
+      if (had) { joinDiagRecord(tag, user, 'already_in'); return r; }
+      if (map.has(uid)) { joinDiagRecord(tag, user, 'joined', 'العدد ' + map.size); return r; }
+      const last = joinDiagLog[joinDiagLog.length - 1];
+      if (last && last.uid === uid && last.reason === 'pending_follow' && Date.now() - last.at < 100) return r; // السبب مسجّل أصلاً
+      const why = [];
+      const st = connDiagEval(stName); if (st !== undefined) why.push('الحالة=' + st);
+      const max = connDiagEval(CONN_DIAG_CAPS[tag] || (tag + 'MaxPlayers')) || connDiagEval(tag + 'MaxRacers');
+      if (max && map.size >= max) why.push('اللعبة ممتلئة ' + map.size + '/' + max);
+      [tag + 'KickedDuringRound', tag + 'Kicked'].forEach(n => { const k = connDiagEval(n); if (k && k.has && k.has(uid)) why.push('مطرود'); });
+      if (st && st !== 'waiting' && st !== 'lobby') why.push('الراوند بدأ/انتهى');
+      joinDiagRecord(tag, user, 'not_joined', why.join('، '));
+      return r;
+    };
+    wrapped.__diag = true;
+    window[fnName] = wrapped;
+  });
+}
+// كتب الكلمة الصحيحة وما صار مشاركاً وما انسجل أي سبب (مثلاً الراوند بدأ فمعالج اللعبة
+// ما استدعى دالة الانضمام أصلاً) ← نسجّل "ما انضم" مع حالة اللعبة.
+function connDiagObserveEvent(evt) {
+  const msgs = (evt && evt.messages) || [];
+  Object.keys(homeGameListeners).forEach(tag => {
+    const reg = CONN_DIAG_JOIN_FNS[tag];
+    if (!reg || !reg[3]) return;
+    const kw = connDiagEval(reg[3]);
+    if (!kw) return;
+    msgs.forEach(m => {
+      const type = m && (m.type || m.event);
+      if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') return;
+      const text = m.comment || m.content || (m.data && m.data.comment) || '';
+      if (normalizeJoinText(text) !== normalizeJoinText(kw)) return;
+      const u = m.user || {};
+      const uid = u.uniqueId, t0 = Date.now();
+      setTimeout(() => {
+        const map = connDiagEval(reg[1]);
+        if (!map || !uid || map.has(uid)) return;
+        if (joinDiagLog.some(x => x.uid === uid && x.at >= t0 - 5)) return; // سببه مسجّل
+        const st = connDiagEval(reg[2]);
+        const why = ['الحالة=' + st];
+        if (st && st !== 'waiting' && st !== 'lobby') why.push('الراوند بدأ/انتهى — الانضمام بس بالانتظار');
+        joinDiagRecord(tag, { uniqueId: uid, nickname: u.nickname }, 'not_joined', why.join('، '));
+      }, 0);
+    });
+  });
+}
+let connDiagLastRender = 0, connDiagPendingRender = null;
+function connDiagRender() {
+  if (!CONN_DIAG_ON) return;
+  const now = Date.now();
+  if (now - connDiagLastRender < 500) { if (!connDiagPendingRender) connDiagPendingRender = setTimeout(() => { connDiagPendingRender = null; connDiagRender(); }, 500); return; }
+  connDiagLastRender = now;
+  let el = document.getElementById('conn-diag-panel');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'conn-diag-panel';
+    el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:100003;width:360px;max-width:calc(100% - 24px);max-height:45vh;overflow:auto;background:rgba(8,6,20,.94);border:1px solid var(--accent2);border-radius:12px;padding:10px 12px;color:#e9e6ff;font:12px/1.55 Tajawal,system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5);';
+    document.body.appendChild(el);
+  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const conns = Object.keys(homeConnections).map(p => {
+    const cs = homeConnState[p] || {}, slot = homeConnections[p] || {};
+    const age = cs.lastEventAt ? Math.round((now - cs.lastEventAt) / 1000) + 'ث' : '—';
+    const hist = (cs.history || []).slice(-4).map(h => new Date(h.at).toLocaleTimeString('ar', { hour12: false }) + ' ' + h.to).join(' ← ');
+    return '<div>🔌 <b>' + esc(p) + '</b> @' + esc(slot.username || '') + ' — ' + esc(cs.state || '?') + ' · آخر حدث ' + age + ' · ' + (cs.eps || 0) + ' حدث/ث · نبض ' + (cs.pingSeen ? '✔' : '—') + (slot.attempts ? ' · محاولة ' + slot.attempts : '') + '</div>' + (hist ? '<div style="opacity:.7">↳ ' + esc(hist) + '</div>' : '');
+  }).join('') || '<div>🔌 ما فيه اتصال مربوط</div>';
+  const tags = Object.keys(homeGameListeners);
+  const rows = joinDiagLog.slice(-25).reverse().map(x => {
+    const t = new Date(x.at).toLocaleTimeString('ar', { hour12: false });
+    return '<div style="border-top:1px solid rgba(255,255,255,.06);padding-top:2px;">' + t + ' <b>' + esc(x.tag) + '</b> ' + esc(x.nick || x.uid) + ' — ' + esc(JOIN_DIAG_REASONS[x.reason] || x.reason) + (x.detail ? ' <span style="opacity:.7">(' + esc(x.detail) + ')</span>' : '') + '</div>';
+  }).join('');
+  el.innerHTML = '<div style="font-weight:800;margin-bottom:4px;">🩺 تشخيص الاتصال والانضمام <span style="opacity:.6;font-weight:400">(?debug=0 للإخفاء)</span></div>' + conns +
+    '<div>🎮 معالجات مسجلة: <b>' + tags.length + '</b> ' + esc(tags.join('، ')) + ' · شرط الفولو: ' + (followGateRequired() ? 'مفعّل' : 'مطفي') + '</div>' +
+    '<div style="margin-top:6px;font-weight:700;">آخر محاولات الانضمام</div>' + (rows || '<div style="opacity:.6">لا شيء بعد</div>');
+}
+if (CONN_DIAG_ON) {
+  // بعد تحميل كل السكربتات (دوال الانضمام معرّفة بسكربتات لاحقة)
+  window.addEventListener('load', () => { connDiagInstallJoinWrappers(); connDiagRender(); });
+}
+
+// ==================== شرط الفولو — إعداد مركزي واحد لكل الألعاب ====================
+// كان الشرط مكتوباً حرفياً بـ24 دالة *JoinParticipant (!user.isFollower && ...)، وأي
+// لاعب isFollower عنده false ينحجز بصمت بـ*PendingFollowers — حتى لو كانت القيمة
+// "ما نعرف" لا "غير متابع". الآن:
+//   • الإعداد افتراضياً مفعّل (قرار المالك)، والستريمر يطفيه من مودال ربط الحساب.
+//   • followKnown === true و isFollower === false فقط = غير متابع فعلاً ← ينتظر فولو.
+//   • غير معروف (السيرفر ما وصله حقل صريح، أو منصة ما فيها مفهوم متابعة) ← يدخل.
+//   • من ينتظر الفولو ويكتب الكلمة مرة ثانية يُعاد تقييمه (البيانات جديدة كل رسالة).
+const FOLLOW_GATE_STORAGE_KEY = 'streamerFollowGateRequired';
+function followGateRequired() {
+  try { return localStorage.getItem(FOLLOW_GATE_STORAGE_KEY) !== '0'; } catch (e) { return true; }
+}
+function followGateSetRequired(on) {
+  try { localStorage.setItem(FOLLOW_GATE_STORAGE_KEY, on ? '1' : '0'); } catch (e) {}
+  followGateSyncUI();
+  toast(on ? '✅ شرط الفولو مفعّل' : '✅ شرط الفولو مطفي — أي أحد يكتب الكلمة يدخل');
+}
+function followGateSyncUI() {
+  const on = followGateRequired();
+  const box = document.getElementById('follow-gate-toggle');
+  if (box) box.checked = on;
+  const hint = document.getElementById('follow-gate-hint');
+  if (hint) hint.textContent = on
+    ? 'مفعّل — غير المتابع يُطلب منه فولو (ولو ما وصلنا تيك توك حالة المتابعة، يدخل)'
+    : 'مطفي — أي أحد يكتب الكلمة يدخل الراوند';
+}
+followGateSyncUI();
+// true = يدخل. false = غير متابع مؤكَّد والشرط مفعّل (المستدعي يضعه بـPendingFollowers كما كان).
+function followGateAllows(tag, user) {
+  if (!user) return false;
+  let reason;
+  if (isDeveloperUser(user.uniqueId) || isCurrentStreamerSelf(user.uniqueId)) reason = 'exempt';
+  else if (user.isFollower) reason = 'follower';
+  else if (!followGateRequired()) reason = 'gate_off';
+  else if (user.followKnown !== true) reason = 'follow_unknown_allowed';
+  else { joinDiagRecord(tag, user, 'pending_follow'); return false; }
+  joinDiagRecord(tag, user, reason);
+  return true;
+}
 
 // يظهر زر "ابدأ بثاً سريعاً — @يوزر" بالصفحة الرئيسية إذا فيه حساب تيك توك
 // محفوظ من قبل ومفعّل — بضغطة وحدة يعيد نفس الستريمر ربط بثه بدون كتابة
@@ -23722,6 +24155,146 @@ function platformBadgeFor(platform) {
   return meta ? meta.icon : '';
 }
 
+// ---------- حالة الاتصال المركزية (مصدر الحقيقة لمؤشر كل الألعاب) ----------
+// homeConnState[platform] = { state, since, lastEventAt, pingSeen, lastId, evCount, ... }
+// state: connecting | connected | not_live | reconnecting | failed | disabled
+// قبل: homeHasActiveConnection() كانت تعني "كائن سوكيت موجود" فقط، ومؤشر اللعبة
+// (مثلاً cr-dot) يبقى "connecting" للأبد، والانقطاع أثناء الراوند ما يعرفه أحد.
+let homeConnState = {};
+const CONN_WATCHDOG_MS = 45000;      // لا حدث ولا bridge_ping خلال هذي المدة = الاتصال ميت (السيرفر ينبض كل 20ث)
+const TIKTOK_RETRY_BASE_MS = 2000;   // تيك توك: إعادة محاولة بلا حد — تراجع أسي من 2ث...
+const TIKTOK_RETRY_MAX_MS = 30000;   // ...حتى 30ث (+ jitter)، مع إيقاظ السيرفر قبل كل محاولة
+const CONN_STATE_LABELS = {
+  connected: 'متصل بشات البث',
+  connecting: 'جاري الاتصال بشات البث…',
+  reconnecting: 'انقطع اتصال الشات — نعيد الربط تلقائياً…',
+  not_live: 'البث مو شغال الآن — نربط تلقائياً أول ما يفتح',
+  failed: 'تعذّر الاتصال بالشات — نكمل المحاولة',
+  disabled: 'الحساب معطّل من إدارة المنصة',
+};
+
+function homeConnGet(platform) {
+  if (!homeConnState[platform]) {
+    homeConnState[platform] = { state: 'connecting', since: Date.now(), lastEventAt: 0, pingSeen: false, lastId: '', seen: new Set(), seenQ: [], evCount: 0, evWindowAt: Date.now(), eps: 0, wasDown: false, history: [] };
+  }
+  return homeConnState[platform];
+}
+
+function homeConnSetState(platform, state) {
+  const cs = homeConnGet(platform);
+  if (cs.state === state) return;
+  const prev = cs.state;
+  cs.state = state;
+  cs.since = Date.now();
+  cs.history.push({ at: cs.since, from: prev, to: state });
+  if (cs.history.length > 30) cs.history.shift();
+  // تنبيه الستريمر بالانقطاع والرجوع — فقط وهو داخل لعبة (فيه معالج مسجّل)
+  const inGame = Object.keys(homeGameListeners).length > 0;
+  if (prev === 'connected' && state !== 'connected') {
+    cs.wasDown = true;
+    if (inGame) toast('⚠️ ' + CONN_STATE_LABELS[state]);
+  } else if (state === 'connected' && cs.wasDown) {
+    cs.wasDown = false;
+    if (inGame) toast('✅ رجع اتصال شات البث');
+  }
+  homeConnStatusRender();
+}
+
+// حالة واحدة تمثّل كل المنصات الموصولة (أفضلها): متصل لو أي منصة متصلة.
+function homeConnOverall() {
+  const ps = Object.keys(homeConnections).filter(p => homeConnections[p]);
+  if (!ps.length) return null;
+  const order = ['connected', 'not_live', 'reconnecting', 'connecting', 'failed', 'disabled'];
+  let best = 'disabled';
+  ps.forEach(p => { const st = homeConnGet(p).state; if (order.indexOf(st) < order.indexOf(best)) best = st; });
+  return best;
+}
+
+// مؤشر موحّد: نقطة الاتصال بكل الـ29 لعبة (div.dot[id$=dot]) + شريط حالة يظهر
+// داخل اللعبة فقط لما الاتصال مو "متصل".
+function homeConnStatusRender() {
+  const overall = homeConnOverall();
+  const cls = overall === 'connected' ? '' : ((!overall || overall === 'failed' || overall === 'disabled') ? 'off' : 'connecting');
+  const label = overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط — اربط من الصفحة الرئيسية';
+  document.querySelectorAll('div.dot[id$="dot"]').forEach(el => {
+    el.classList.remove('off', 'connecting');
+    if (cls) el.classList.add(cls);
+    el.title = label;
+  });
+  homeConnPillRender();
+}
+
+function homeConnPillRender() {
+  let pill = document.getElementById('conn-status-pill');
+  const overall = homeConnOverall();
+  const inGame = Object.keys(homeGameListeners).length > 0;
+  const show = inGame && overall !== 'connected';
+  if (!pill) {
+    if (!show) return;
+    pill = document.createElement('div');
+    pill.id = 'conn-status-pill';
+    pill.setAttribute('role', 'status');
+    pill.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100001;padding:8px 16px;border-radius:999px;background:rgba(20,10,40,.92);border:1px solid var(--gold);color:#fff;font-size:13px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,.4);pointer-events:none;max-width:calc(100% - 32px);text-align:center;';
+    document.body.appendChild(pill);
+  }
+  pill.style.display = show ? '' : 'none';
+  if (!show) return;
+  const cs = homeConnState.tiktok || homeConnState[Object.keys(homeConnections)[0]];
+  const age = cs && cs.lastEventAt ? Math.round((Date.now() - cs.lastEventAt) / 1000) : null;
+  pill.style.borderColor = (overall === 'failed' || overall === 'disabled' || !overall) ? 'var(--red)' : 'var(--gold)';
+  pill.textContent = '⚠️ ' + (overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط') + (age != null && age > 5 ? ' · آخر حدث قبل ' + age + 'ث' : '');
+}
+
+// id الحدث من السيرفر = BOOT_ID.seq — نقارن الرقم فقط داخل نفس التشغيل.
+function homeConnIdNewer(a, b) {
+  if (!b) return true;
+  const [ab, as] = String(a).split('.'), [bb, bs] = String(b).split('.');
+  return ab !== bb || Number(as) > Number(bs);
+}
+
+// كل 5ث: اتصال "مفتوح" بس ما وصله ولا نبض ولا حدث من 45ث = ميت بصمت (TCP مقطوع،
+// جهاز نام، proxy قفل) ← نعيد الاتصال فوراً. المراقبة تبدأ فقط بعد أول bridge_ping
+// على هذا الاتصال، حتى ما نقطع اتصالاً سليماً لو كان السيرفر نسخة قديمة بلا نبض.
+function homeConnWatchdogTick() {
+  const now = Date.now();
+  Object.keys(homeConnections).forEach(p => {
+    const slot = homeConnections[p], cs = homeConnState[p];
+    if (cs && now - cs.evWindowAt >= 5000) { cs.eps = +(cs.evCount / ((now - cs.evWindowAt) / 1000)).toFixed(1); cs.evCount = 0; cs.evWindowAt = now; }
+    if (!slot || !cs || !slot.ws || !cs.pingSeen) return;
+    if (now - cs.lastEventAt > CONN_WATCHDOG_MS) {
+      console.log('[INFO] [Conn] ' + p + ': ما وصل شيء من ' + Math.round((now - cs.lastEventAt) / 1000) + 'ث — إعادة اتصال');
+      cs.pingSeen = false;
+      homeConnSetState(p, 'reconnecting');
+      slot.attempts++;
+      homeConnReconnectNow(p);
+    }
+  });
+  homeConnPillRender();
+  if (typeof connDiagRender === 'function') connDiagRender();
+}
+setInterval(homeConnWatchdogTick, 5000);
+
+function homeConnReconnectNow(platform) {
+  const slot = homeConnections[platform];
+  if (!slot || typeof slot.reconnectNow !== 'function') return;
+  if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
+  const go = () => { if (homeConnections[platform] === slot) slot.reconnectNow(); };
+  if (platform === 'tiktok') tiktokBridgeWarmUp().then(go); else go();
+}
+
+// رجوع الشبكة أو رجوع التبويب بعد نوم الجهاز: لا ننتظر مؤقّت التراجع.
+function homeConnKickAll() {
+  const now = Date.now();
+  Object.keys(homeConnections).forEach(p => {
+    const slot = homeConnections[p], cs = homeConnState[p];
+    if (!slot) return;
+    const stale = cs && cs.pingSeen && now - cs.lastEventAt > CONN_WATCHDOG_MS;
+    if (!slot.ws || stale) homeConnReconnectNow(p);
+  });
+}
+window.addEventListener('online', homeConnKickAll);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') homeConnKickAll(); });
+
 // ---------- فتح اتصال واحد لمنصة واحدة ----------
 // onEvent يستقبل الحدث الخام الموحّد ({messages:[...]}) بعد وسم كل رسالة
 // بمنصتها. onStatus(platform, status) حيث status:
@@ -23732,11 +24305,32 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   slot.username = (creds && creds.username) || '';
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
+  const cs = homeConnGet(platform);
+  cs.pingSeen = false;
+  homeConnSetState(platform, slot.attempts > 0 ? 'reconnecting' : 'connecting');
+  // إعادة اتصال فورية بنفس البيانات (المراقب/online/رجوع التبويب)
+  slot.reconnectNow = () => platformConnect(platform, creds, onEvent, onStatus);
 
   // يوسم كل رسالة بمنصتها ويحوّل uniqueId لمعرّف مركّب فريد.
   function dispatch(rawData) {
     if (!rawData) return;
-    const messages = rawData.messages || (rawData.type ? [rawData] : []);
+    if (isStale()) return; // سوكيت قديم استُبدل — أحداثه (لو تأخرت) ما تتكرر مع الجديد
+    cs.lastEventAt = Date.now();
+    // نبض السيرفر: يثبت إن الاتصال حي حتى لو الشات هادي — ما يوصل للألعاب
+    if (rawData.type === 'bridge_ping') { cs.pingSeen = true; return; }
+    if (rawData.type === 'bridge_status') homeConnFromBridgeStatus(platform, rawData, slot);
+    let messages = rawData.messages || (rawData.type ? [rawData] : []);
+    // أحداث الإعادة (replay) بعد رجوع الاتصال قد تتكرر مع ما وصل — نزيلها بالـid
+    messages = messages.filter(m => {
+      if (!m || !m.id) return true;
+      if (cs.seen.has(m.id)) return false;
+      cs.seen.add(m.id); cs.seenQ.push(m.id);
+      if (cs.seenQ.length > 1000) cs.seen.delete(cs.seenQ.shift());
+      if (homeConnIdNewer(m.id, cs.lastId)) cs.lastId = m.id;
+      return true;
+    });
+    if (!messages.length) return;
+    cs.evCount += messages.length;
     messages.forEach(msg => {
       if (!msg) return;
       msg.sourcePlatform = platform;
@@ -23753,6 +24347,22 @@ function platformConnect(platform, creds, onEvent, onStatus) {
 
   function retry() {
     slot.attempts++;
+    // تيك توك: بلا حد أقصى — تراجع أسي حتى 30ث + jitter، وإيقاظ السيرفر (Cold Start
+    // على Render ياخذ 30-60ث) قبل كل محاولة. قبل: 6 محاولات × 4ث = ~24ث ثم "failed"
+    // نهائي بدون أي رجوع حتى لو رجع السيرفر بعد دقيقة.
+    if (platform === 'tiktok') {
+      const delay = Math.min(TIKTOK_RETRY_MAX_MS, TIKTOK_RETRY_BASE_MS * Math.pow(2, Math.min(slot.attempts - 1, 5))) + Math.floor(Math.random() * 1000);
+      slot.timer = setTimeout(() => {
+        slot.timer = null;
+        slot.warming = true;
+        tiktokBridgeWarmUp().then(() => {
+          slot.warming = false;
+          if (homeConnections[platform] !== slot || slot.ws) return; // انفصل أو اتصل بطريق ثاني أثناء الإيقاظ
+          platformConnect(platform, creds, onEvent, onStatus);
+        });
+      }, delay);
+      return;
+    }
     // ديسكورد: الانقطاع غالباً لأن الستريمر طلع من المتصفح (جوال) — نكمل نحاول بلا
     // حد وبمهلة تكبر لين 30 ثانية، والرسائل اللي فاتت ترجع من البوت أول ما يتصل.
     // (الرفض الدائم — رقم غلط/روم خاص — يوقف فوراً بكود 4404 تحت.)
@@ -23760,24 +24370,34 @@ function platformConnect(platform, creds, onEvent, onStatus) {
       slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), Math.min(PLATFORM_RETRY_MS * slot.attempts, 30000));
       return;
     }
-    if (slot.attempts > PLATFORM_MAX_RETRIES) { if (onStatus) onStatus(platform, 'failed'); return; }
+    if (slot.attempts > PLATFORM_MAX_RETRIES) { homeConnSetState(platform, 'failed'); if (onStatus) onStatus(platform, 'failed'); return; }
     slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), PLATFORM_RETRY_MS);
   }
-  function onOpen() { slot.attempts = 0; if (onStatus) onStatus(platform, 'connected'); }
+  // اتصال قديم (استُبدل بـplatformConnect جديد أو أُغلق عمداً بـplatformDisconnect):
+  // tiktokOpenWS وأخواتها تطلق onClose حتى عند الإغلاق المقصود، فبدون هذا الحارس
+  // كان onClose القديم يصفّر slot.ws للاتصال الجديد (فتظن الألعاب إن ما فيه بث
+  // موصول) ويجدول retry() بيوزر الحساب القديم فيرجع الناقل له بعد 4ث.
+  let mySock = null;
+  let assigned = false;
+  const isStale = () => assigned && (homeConnections[platform] !== slot || slot.ws !== mySock);
+  function onOpen() { if (isStale()) return; slot.attempts = 0; homeConnSetState(platform, 'connected'); if (onStatus) onStatus(platform, 'connected'); }
   // 4403 = السيرفر رفض الاتصال لأن الحساب معطّل من الإدارة — رفض دائم،
   // إعادة المحاولة عبثية وتُحمّل السيرفر بلا فائدة.
   function onClose(e) {
+    if (isStale()) return;
     slot.ws = null;
-    if (e && e.code === 4403) { delete homeConnections[platform]; if (onStatus) onStatus(platform, 'disabled'); return; }
+    if (e && e.code === 4403) { homeConnSetState(platform, 'disabled'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'disabled'); return; }
     // 4404 = روم ديسكورد مرفوض (رقم غلط/روم خاص/البوت ما يشوفه) — رفض دائم
-    if (e && e.code === 4404) { delete homeConnections[platform]; if (onStatus) onStatus(platform, 'failed'); return; }
+    if (e && e.code === 4404) { homeConnSetState(platform, 'failed'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'failed'); return; }
+    homeConnSetState(platform, 'reconnecting');
     if (onStatus) onStatus(platform, 'disconnected');
     retry();
   }
 
   const user = (creds && creds.username) || '';
   if (platform === 'tiktok') {
-    slot.ws = tiktokOpenWS(user, '', dispatch, onOpen, onClose);
+    // ?since=<آخر حدث وصل> — السيرفر يعيد إرسال ما فات أثناء الانقطاع
+    slot.ws = tiktokOpenWS(user, '', dispatch, onOpen, onClose, { query: () => (cs.lastId ? '&since=' + encodeURIComponent(cs.lastId) : '') });
   } else if (platform === 'twitch') {
     slot.ws = twitchOpenIRC(user,
       (displayName, uniqueId, message) => dispatch(twitchEventShape(displayName, uniqueId, message)),
@@ -23789,7 +24409,17 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   } else if (platform === 'discord') {
     slot.ws = discordRelayOpenStream(user, dispatch, onOpen, onClose);
   }
+  mySock = slot.ws;
+  assigned = true;
   if (!slot.ws) delete homeConnections[platform];
+}
+
+function homeConnFromBridgeStatus(platform, st, slot) {
+  if (st.state === 'connected') homeConnSetState(platform, 'connected');
+  else if (st.state === 'not_live') homeConnSetState(platform, 'not_live');
+  else if (st.state === 'reconnecting') homeConnSetState(platform, 'reconnecting');
+  else if (st.state === 'connecting') homeConnSetState(platform, (slot && slot.attempts > 0) || homeConnGet(platform).wasDown ? 'reconnecting' : 'connecting');
+  else if (st.state === 'error') homeConnSetState(platform, st.fatal ? 'failed' : 'reconnecting');
 }
 
 function platformDisconnect(platform) {
@@ -23798,6 +24428,8 @@ function platformDisconnect(platform) {
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
   delete homeConnections[platform];
+  delete homeConnState[platform];
+  homeConnStatusRender();
 }
 
 function platformDisconnectAll() {
@@ -23896,6 +24528,7 @@ function show(page) {
   }
   if (page === 'contest-top20') top20Boot(); else top20Teardown();
   if (page === 'home') homeEventWinnersCheckAndShow();
+  if (page === 'home' && typeof homeClearGameListeners === 'function') { homeClearGameListeners(null); if (typeof homeConnPillRender === 'function') homeConnPillRender(); }
   // جسر المصير — تهيئة صفحاته الثلاث
   if (page === 'bridge-setup' && typeof brgSetupRender === 'function') brgSetupRender();
   if (page === 'bridge-lobby' && typeof brgRenderLobby === 'function') brgRenderLobby();
@@ -24326,16 +24959,35 @@ function homeSetQuickConnectResume(fn) {
   homeQcResumeFn = (typeof fn === 'function') ? fn : null;
 }
 
+// دورة حياة المعالجات: لعبة وحدة نشطة بكل وقت. قبل: homeGameListeners تحفظ معالجاً
+// لكل لعبة فُتحت بالجلسة ولا تُنظَّف (5 ألعاب فقط تلغي تسجيلها)، فبعد 10 ألعاب كل
+// رسالة شات تمر على 10 معالجات (extractUser + أوامر الأدمن + عنصر شات مخفي + toasts
+// انضمام للعبة متروكة). الآن: تسجيل لعبة يلغي معالجات الألعاب الثانية، والرجوع
+// للرئيسية يلغيها كلها. "جسر المصير" فعالية عامة تدير تسجيلها بنفسها
+// (registerChat/unregisterChat مع علم chatRegistered) فتبقى مستثناة.
+const HOME_SHARED_LISTENER_TAGS = new Set(['bridge-fate']);
+function homeClearGameListeners(exceptTag) {
+  Object.keys(homeGameListeners).forEach(t => {
+    if (t !== exceptTag && !HOME_SHARED_LISTENER_TAGS.has(t)) delete homeGameListeners[t];
+  });
+}
 function homeRegisterGameListener(tag, handlerFn) {
+  if (!HOME_SHARED_LISTENER_TAGS.has(tag)) homeClearGameListeners(tag);
   homeGameListeners[tag] = handlerFn;
+  // نقطة الاتصال باللعبة تعكس الحالة الفعلية فوراً (دوال launch<Game> تضبطها
+  // 'connecting' وما كان فيه شيء يرجّعها 'on' بالمسار الموحّد).
+  if (typeof homeConnStatusRender === 'function') homeConnStatusRender();
 }
 
 function homeUnregisterGameListener(tag) {
   delete homeGameListeners[tag];
 }
 
+// "الستريمر ربط بثه وما زال مربوطاً": سوكيت مفتوح، أو إعادة اتصال مجدولة/جارية.
+// (قبل: أثناء انتظار إعادة المحاولة slot.ws = null فترفض كل الألعاب البدء بـ
+// "اربط بثك أولاً" مع إن الربط قائم.) الحالة الفعلية (متصل/ينتظر/انقطع) في homeConnState.
 function homeHasActiveConnection() {
-  return platformConnectedList().length > 0;
+  return Object.keys(homeConnections).some(p => { const s = homeConnections[p]; return !!(s && (s.ws || s.timer || s.warming)); });
 }
 
 // تُمرَّر كـonEvent لـplatformConnect(platform, ...) — تستقبل كل
@@ -24344,6 +24996,7 @@ function homeHasActiveConnection() {
 // المعرّف بنفس الشكل الخام اللي تتوقعه كل لعبة اليوم عبر extractUser)،
 // ثم توزّع نفس الحدث لكل لعبة مسجّلة حالياً.
 function homeDispatchToGameListeners(evt) {
+  if (CONN_DIAG_ON) { try { connDiagObserveEvent(evt); } catch (e) {} }
   // ملاحظة مهمة: لا نجرّد بادئة المنصة من uniqueId هنا. النسخة السابقة كانت
   // تجرّدها، فتُلغي بالضبط الحماية التي يبنيها platformConnect ويصير
   // tiktok:ahmed و kick:ahmed نفس اللاعب. كل دوال الهوية التي تقارن باسم
@@ -24813,7 +25466,9 @@ async function gwLaunchGame() {
   gwKeyword   = document.getElementById('gw-inp-kw').value.trim();
   const isAiMode = document.getElementById('gw-mode-ai').checked;
 
-  if (gamePlatform['gw'] === 'tiktok' && !gwApiKey) return gwSetStatus('err','⚠️ اربط مفتاح تيك توك أولاً من البروفايل (اضغط اسم حسابك فوق يمين)');
+  // getTikTokApiKey() صارت ترجع '' دائماً (لا مفتاح API بعد الجسر المستضاف)، فالشرط
+  // القديم !gwApiKey كان يمنع اللعبة على تيك توك للأبد. الشرط الصحيح نفس باقي الألعاب.
+  if (gamePlatform['gw'] === 'tiktok' && !homeHasActiveConnection()) return gwSetStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
   if (gamePlatform['gw'] === 'kick') gwKickUser = (document.getElementById('gw-kickuser')||{value:''}).value.trim();
   if (gamePlatform['gw'] === 'kick' && !gwKickUser) return gwSetStatus('err','⚠️ أدخل يوزر أو رابط قناتك على كيك');
   if (gamePlatform['gw'] === 'youtube') gwYtUser = (document.getElementById('gw-ytuser')||{value:''}).value.trim();
@@ -24965,48 +25620,39 @@ function gwConnectTikTok() {
   if (gwWs) { try { gwWs.close(1000); } catch(e){} gwWs = null; }
   gwSetDot('connecting');
 
-  const url = eulerStreamWsUrl(gwTiktokUser);
-
-  try {
-    gwWs = new WebSocket(url);
-  } catch(e) {
-    toast('❌ فشل الاتصال: ' + e.message);
-    gwSetDot('off');
-    return;
-  }
-
-  gwWs.onopen = () => {
-    gwSetDot('on');
-    gwConnectTikTok._notLiveTries = 0;
-    if (!gwConnectedOnce) { toast('✅ متصل ببث @' + gwTiktokUser); gwConnectedOnce = true; }
-  };
-
-  gwWs.onmessage = (e) => {
-    let data;
-    try { data = JSON.parse(e.data); } catch(err) { return; }
-    gwHandleTikTokEvent(data);
-  };
-
-  gwWs.onerror = (e) => {
-    gwSetDot('off');
-  };
-
-  gwWs.onclose = (e) => {
-    gwSetDot('off');
-    if (e.code === 4404) {
-      gwConnectTikTok._notLiveTries = (gwConnectTikTok._notLiveTries || 0) + 1;
-      if (gwConnectTikTok._notLiveTries <= 3) { gwReconnectTimer = setTimeout(gwConnectTikTok, 4000 * gwConnectTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const gwWsStatus = tiktokGameBridgeStatusHandler(gwSetDot, gwTiktokUser, toast);
+  let gwWsSock = null;
+  gwWsSock = gwWs = tiktokOpenWS(gwTiktokUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { gwWsStatus(data); return; }
+      gwHandleTikTokEvent(data);
+    },
+    () => {
+      gwSetDot('on');
       gwConnectTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + gwTiktokUser + ' مو شغال بث الآن');
-    } else if (e.code === 4400) {
-      toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    } else if (e.code === 1000 || e.code === 4005) {
-      toast('📴 البث انتهى');
-    } else if (gwGameStatus !== 'finished') {
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      gwReconnectTimer = setTimeout(gwConnectTikTok, 5000);
-    }
-  };
+      if (!gwConnectedOnce) { toast('✅ متصل ببث @' + gwTiktokUser); gwConnectedOnce = true; }
+    },
+    (e) => {
+      if (!gwWsSock || gwWs !== gwWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { gwSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      gwSetDot('off');
+      if (e.code === 4404) {
+        gwConnectTikTok._notLiveTries = (gwConnectTikTok._notLiveTries || 0) + 1;
+        if (gwConnectTikTok._notLiveTries <= 3) { gwReconnectTimer = setTimeout(gwConnectTikTok, 4000 * gwConnectTikTok._notLiveTries); return; }
+        gwConnectTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + gwTiktokUser + ' مو شغال بث الآن');
+      } else if (e.code === 4400) {
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      } else if (e.code === 1000 || e.code === 4005) {
+        toast('📴 البث انتهى');
+      } else if (gwGameStatus !== 'finished') {
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        gwReconnectTimer = setTimeout(gwConnectTikTok, 5000);
+      }
+    });
+  if (!gwWsSock) { toast('❌ فشل الاتصال'); gwSetDot('off'); return; }
 }
 
 function gwDisconnectWS() {
@@ -25030,7 +25676,7 @@ function gwHandleTikTokEvent(data) {
       gwAddChatMsg(user, text);
 
       if (gwGameStatus === 'waiting') {
-        if (normalize(text) === normalize(gwKeyword)) {
+        if (joinTextMatches(text, gwKeyword, 'gw', user)) {
           gwJoinParticipant(user);
         }
       } else if (gwGameStatus === 'active') {
@@ -25053,7 +25699,7 @@ function gwHandleTikTokEvent(data) {
 
 function gwJoinParticipant(user) {
   if (gwParticipants.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('gw', user)) {
     gwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -25679,51 +26325,41 @@ function connectTikTok() {
   disconnectWS();
   setDot('connecting');
 
-  // EulerStream WebSocket — connects directly from browser, no backend needed
-  const url = eulerStreamWsUrl(tiktokUser);
-  
-  try {
-    ws = new WebSocket(url);
-  } catch(e) {
-    toast('❌ فشل الاتصال: ' + e.message);
-    setDot('off');
-    return;
-  }
-
-  ws.onopen = () => {
-    setDot('on');
-    connectTikTok._notLiveTries = 0;
-    if (!mainConnectedOnce) { toast('✅ متصل ببث @' + tiktokUser); mainConnectedOnce = true; }
-  };
-
-  ws.onmessage = (e) => {
-    let data;
-    try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleTikTokEvent(data);
-  };
-
-  ws.onerror = (e) => {
-    setDot('off');
-  };
-
-  ws.onclose = (e) => {
-    setDot('off');
-    // Close codes from EulerStream
-    if (e.code === 4404) {
-      connectTikTok._notLiveTries = (connectTikTok._notLiveTries || 0) + 1;
-      if (connectTikTok._notLiveTries <= 3) { reconnectTimer = setTimeout(connectTikTok, 4000 * connectTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const wsStatus = tiktokGameBridgeStatusHandler(setDot, tiktokUser, toast);
+  let wsSock = null;
+  wsSock = ws = tiktokOpenWS(tiktokUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { wsStatus(data); return; }
+      handleTikTokEvent(data);
+    },
+    () => {
+      setDot('on');
       connectTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + tiktokUser + ' مو شغال بث الآن');
-    } else if (e.code === 4400) {
-      toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    } else if (e.code === 1000 || e.code === 4005) {
-      toast('📴 البث انتهى');
-    } else if (gameStatus !== 'finished') {
-      // Auto-reconnect after 5s if game still going
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      reconnectTimer = setTimeout(connectTikTok, 5000);
-    }
-  };
+      if (!mainConnectedOnce) { toast('✅ متصل ببث @' + tiktokUser); mainConnectedOnce = true; }
+    },
+    (e) => {
+      if (!wsSock || ws !== wsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      setDot('off');
+      // Close codes from EulerStream
+      if (e.code === 4404) {
+        connectTikTok._notLiveTries = (connectTikTok._notLiveTries || 0) + 1;
+        if (connectTikTok._notLiveTries <= 3) { reconnectTimer = setTimeout(connectTikTok, 4000 * connectTikTok._notLiveTries); return; }
+        connectTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + tiktokUser + ' مو شغال بث الآن');
+      } else if (e.code === 4400) {
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      } else if (e.code === 1000 || e.code === 4005) {
+        toast('📴 البث انتهى');
+      } else if (gameStatus !== 'finished') {
+        // Auto-reconnect after 5s if game still going
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        reconnectTimer = setTimeout(connectTikTok, 5000);
+      }
+    });
+  if (!wsSock) { toast('❌ فشل الاتصال'); setDot('off'); return; }
 }
 
 function disconnectWS() {
@@ -25750,7 +26386,7 @@ function handleTikTokEvent(data) {
 
       if (gameStatus === 'waiting') {
         // Join by keyword
-        if (normalize(text) === normalize(keyword)) {
+        if (joinTextMatches(text, keyword, 'main', user)) {
           joinParticipant(user);
         }
       } else if (gameStatus === 'active') {
@@ -25797,6 +26433,8 @@ function extractUser(msg) {
   const extracted = {
     uniqueId,
     platform: sourcePlatform || null,
+    // followKnown من السيرفر: true = حالة المتابعة مؤكدة (متابع أو لا). غيابها = غير معروف.
+    followKnown: u.followKnown === true,
     rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
     nickname: override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
@@ -26557,6 +27195,58 @@ function normalize(s) {
   return (s || '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ت').replace(/ى/g, 'ي').trim().toLowerCase();
 }
 
+// ==================== مطابقة كلمة الانضمام (للانضمام فقط) ====================
+// normalize() مستخدمة بعشرات المواضع فما نلمسها. هذي أوسع منها تسامحاً (تطابق كل ما
+// تطابقه normalize وزيادة)، وعلى نفس منطق src/normalize.ts المستخدم بلعبة "الأراضي
+// البركانية": تشيل المحارف المخفية/الاتجاهية (U+200B-200F…) والتشكيل والتطويل،
+// وتوحّد أ/إ/آ/ٱ←ا، ى←ي، ة/ه←ت (نفس tugNormalize)، ؤ←و، ئ←ي، والأرقام العربية-الهندية،
+// ثم تشيل أي شيء مو حرف ولا رقم (إيموجي، علامات، فراغات) — بقرار المالك: "دخول😍" و
+// "دُخُـول!!" تُقبل، بس كلمة إضافية ("ابي دخول") ما تُقبل.
+const JOIN_INVISIBLES_RE = /[\u200B-\u200F\u202A-\u202E\u2066-\u2069\uFEFF\u00AD]/g;
+const JOIN_DIACRITICS_RE = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g;
+function foldChatDigits(s) {
+  return String(s == null ? '' : s)
+    .replace(JOIN_INVISIBLES_RE, '')
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0));
+}
+// رقم يكتبه اللاعب بالشات: "٥" و"5" و"‏5" كلها 5 — نفس تساهل parseInt السابق.
+function parseChatNumber(s) {
+  return parseInt(foldChatDigits(s).trim(), 10);
+}
+function normalizeJoinText(s) {
+  let t = foldChatDigits(s);
+  try { t = t.normalize('NFKC'); } catch (e) {}
+  t = t.replace(JOIN_DIACRITICS_RE, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/[ةه]/g, 'ت').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+    .toLowerCase();
+  try { t = t.replace(/[^\p{L}\p{N}]/gu, ''); } catch (e) { t = t.replace(/[\s\-_.,،!؟?]/g, ''); }
+  return t;
+}
+function joinEditDistance(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+// true = نص الشات هو كلمة الانضمام. لو قريب منها (تشابه ≥ 60%) ولم يطابق، يُسجَّل
+// بسجل التشخيص مع النص حتى يعرف الستريمر ليش ما دخل.
+function joinTextMatches(text, keyword, tag, user) {
+  const a = normalizeJoinText(text), b = normalizeJoinText(keyword);
+  if (!b) return false;
+  if (a === b) return true;
+  if (a && Math.abs(a.length - b.length) <= Math.max(3, b.length)) {
+    const sim = 1 - joinEditDistance(a, b) / Math.max(a.length, b.length);
+    if (sim >= 0.6 && typeof joinDiagRecord === 'function') joinDiagRecord(tag || '?', user, 'keyword_near_miss', '"' + String(text).slice(0, 30) + '" ≈ "' + keyword + '" (' + Math.round(sim * 100) + '%)');
+  }
+  return false;
+}
+
 // مطابقة أكثر تسامحاً خاصة بلعبة "توب 10" (جمعات وأونلاين) — الذكاء الاصطناعي
 // يولّد الأسماء بإملاء واحد بس (مثلاً "فورتنايت" بدون مسافة، أو "كبسة" بالتاء
 // المربوطة الفصيحة)، لكن اللاعبين يكتبون بأي طريقة عامية شائعة (مسافات بين
@@ -26599,7 +27289,7 @@ function checkGuess(guess, target) {
 
 function joinParticipant(user) {
   if (participants.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('main', user)) {
     pendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -27447,7 +28137,17 @@ function onlinePointsBoot() {
 }
 
 let toastT = null;
+// دفعة انضمامات (حشد يكتب الكلمة بنفس الثانية) = إشعار واحد يتحدّث بدل عشرات
+// الإشعارات اللي تمسح بعضها: "👥 انضم 12 لاعبين — آخرهم فلان".
+const TOAST_JOIN_BURST_MS = 2000;
+let toastJoinBurst = { n: 0, at: 0 };
 function toast(msg) {
+  if (typeof msg === 'string' && /^(👤|🙋) .+ انضم/.test(msg)) {
+    const now = Date.now();
+    toastJoinBurst.n = (now - toastJoinBurst.at < TOAST_JOIN_BURST_MS) ? toastJoinBurst.n + 1 : 1;
+    toastJoinBurst.at = now;
+    if (toastJoinBurst.n > 1) msg = '👥 انضم ' + toastJoinBurst.n + ' لاعبين — آخرهم ' + msg.replace(/^(👤|🙋) /, '').replace(/ انضم.*$/, '');
+  }
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
@@ -30455,7 +31155,7 @@ function handleBatteryTikTokEvent(data) {
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
       addBatteryChatMsg(user, text);
-      if (!batteryFinished && normalize(text) === normalize(BATTERY_KEYWORD)) {
+      if (!batteryFinished && joinTextMatches(text, BATTERY_KEYWORD, 'battery', user)) {
         batteryApplyCharge(user);
       }
     }
@@ -30550,36 +31250,41 @@ function connectBatteryTikTok() {
   if (batteryWs) { try { batteryWs.close(1000); } catch(e){} batteryWs = null; }
   setDotById('battery-dot', 'connecting');
 
-  const url = eulerStreamWsUrl(batteryUser);
-  try { batteryWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('battery-dot','off'); return; }
-
-  batteryWs.onopen = () => {
-    setDotById('battery-dot','on');
-    batteryReconnectAttempts = 0;
-    connectBatteryTikTok._notLiveTries = 0;
-    if (!batteryConnectedOnce) { toast('✅ متصل ببث @' + batteryUser); batteryConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let batteryClosedOnce = false;
-  batteryWs.onerror = () => setDotById('battery-dot','off');
-  batteryWs.onclose = (e) => {
-    if (batteryClosedOnce) return;
-    batteryClosedOnce = true;
-    setDotById('battery-dot','off');
-    if (e.code === 4404) {
-      connectBatteryTikTok._notLiveTries = (connectBatteryTikTok._notLiveTries || 0) + 1;
-      if (connectBatteryTikTok._notLiveTries <= 3) { batteryReconnectTimer = setTimeout(connectBatteryTikTok, 4000 * connectBatteryTikTok._notLiveTries); return; }
+  const batteryWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('battery-dot', s), batteryUser, toast);
+  let batteryWsSock = null;
+  batteryWsSock = batteryWs = tiktokOpenWS(batteryUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { batteryWsStatus(data); return; }
+      try { handleBatteryTikTokEvent(data); } catch(e) {}
+    },
+    () => {
+      setDotById('battery-dot','on');
+      batteryReconnectAttempts = 0;
       connectBatteryTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else {
-      batteryReconnectAttempts++;
-      if (batteryReconnectAttempts <= 6) batteryReconnectTimer = setTimeout(connectBatteryTikTok, 4000);
-    }
-  };
-  batteryWs.onmessage = (event) => {
-    try { handleBatteryTikTokEvent(JSON.parse(event.data)); } catch(e) {}
-  };
+      if (!batteryConnectedOnce) { toast('✅ متصل ببث @' + batteryUser); batteryConnectedOnce = true; }
+    },
+    (e) => {
+      if (!batteryWsSock || batteryWs !== batteryWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('battery-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (batteryClosedOnce) return;
+      batteryClosedOnce = true;
+      setDotById('battery-dot','off');
+      if (e.code === 4404) {
+        connectBatteryTikTok._notLiveTries = (connectBatteryTikTok._notLiveTries || 0) + 1;
+        if (connectBatteryTikTok._notLiveTries <= 3) { batteryReconnectTimer = setTimeout(connectBatteryTikTok, 4000 * connectBatteryTikTok._notLiveTries); return; }
+        connectBatteryTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else {
+        batteryReconnectAttempts++;
+        if (batteryReconnectAttempts <= 6) batteryReconnectTimer = setTimeout(connectBatteryTikTok, 4000);
+      }
+    });
+  if (!batteryWsSock) { toast('❌ فشل الاتصال'); setDotById('battery-dot','off'); return; }
 }
 </script>
 
@@ -30872,41 +31577,45 @@ function connectSniperTikTok() {
   if (sniperWs) { try { sniperWs.close(1000); } catch(e){} sniperWs = null; }
   setDotById('sniper-dot', 'connecting');
 
-  const url = eulerStreamWsUrl(sniperUser);
-  try { sniperWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('sniper-dot','off'); return; }
-
-  sniperWs.onopen = () => {
-    setDotById('sniper-dot','on');
-    sniperReconnectAttempts = 0;
-    connectSniperTikTok._notLiveTries = 0;
-    if (!sniperConnectedOnce) { toast('✅ متصل ببث @' + sniperUser); sniperConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let sniperClosedOnce = false;
-  sniperWs.onerror = () => setDotById('sniper-dot','off');
-  sniperWs.onclose = (e) => {
-    if (sniperClosedOnce) return;
-    sniperClosedOnce = true;
-    setDotById('sniper-dot','off');
-    if (e.code === 4404) {
-      connectSniperTikTok._notLiveTries = (connectSniperTikTok._notLiveTries || 0) + 1;
-      if (connectSniperTikTok._notLiveTries <= 3) { sniperReconnectTimer = setTimeout(connectSniperTikTok, 4000 * connectSniperTikTok._notLiveTries); return; }
+  const sniperWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('sniper-dot', s), sniperUser, toast);
+  let sniperWsSock = null;
+  sniperWsSock = sniperWs = tiktokOpenWS(sniperUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { sniperWsStatus(data); return; }
+      handleSniperTikTokEvent(data);
+    },
+    () => {
+      setDotById('sniper-dot','on');
+      sniperReconnectAttempts = 0;
       connectSniperTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (sniperGameStatus !== 'finished') {
-      sniperReconnectAttempts++;
-      if (sniperReconnectAttempts <= 5) {
-        sniperReconnectTimer = setTimeout(connectSniperTikTok, 5000);
-      } else {
-        toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+      if (!sniperConnectedOnce) { toast('✅ متصل ببث @' + sniperUser); sniperConnectedOnce = true; }
+    },
+    (e) => {
+      if (!sniperWsSock || sniperWs !== sniperWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('sniper-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (sniperClosedOnce) return;
+      sniperClosedOnce = true;
+      setDotById('sniper-dot','off');
+      if (e.code === 4404) {
+        connectSniperTikTok._notLiveTries = (connectSniperTikTok._notLiveTries || 0) + 1;
+        if (connectSniperTikTok._notLiveTries <= 3) { sniperReconnectTimer = setTimeout(connectSniperTikTok, 4000 * connectSniperTikTok._notLiveTries); return; }
+        connectSniperTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
       }
-    }
-  };
-  sniperWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleSniperTikTokEvent(data);
-  };
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (sniperGameStatus !== 'finished') {
+        sniperReconnectAttempts++;
+        if (sniperReconnectAttempts <= 5) {
+          sniperReconnectTimer = setTimeout(connectSniperTikTok, 5000);
+        } else {
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+        }
+      }
+    });
+  if (!sniperWsSock) { toast('❌ فشل الاتصال'); setDotById('sniper-dot','off'); return; }
 }
 
 function handleSniperTikTokEvent(data) {
@@ -30935,11 +31644,11 @@ function handleSniperTikTokEvent(data) {
 
       if (sniperGameStatus === 'waiting') {
         // Join: كتب الكلمة المفتاحية
-        if (normalize(text) === normalize(sniperKeyword)) {
+        if (joinTextMatches(text, sniperKeyword, 'sniper', user)) {
           sniperJoinParticipant(user, null);
         }
         // اختار رقم بعد الانضمام
-        const num = parseInt(text);
+        const num = parseChatNumber(text);
         if (!isNaN(num) && num >= 1 && num <= SNIPER_GRID_SIZE && sniperParticipants.has(user.uniqueId)) {
           sniperChooseCell(user, num);
         }
@@ -30968,7 +31677,7 @@ function handleSniperTikTokEvent(data) {
 function sniperJoinParticipant(user, cell) {
   if (sniperParticipants.has(user.uniqueId)) return;
   if (sniperKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('sniper', user)) {
     sniperPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -31705,7 +32414,7 @@ function handleHzTikTokEvent(data) {
 
       addHzChatMsg(user, text);
 
-      if (hzGameStatus === 'waiting' && normalize(text) === normalize(hzKeyword)) {
+      if (hzGameStatus === 'waiting' && joinTextMatches(text, hzKeyword, 'hz', user)) {
         hzJoinParticipant(user);
       }
     }
@@ -31735,7 +32444,7 @@ function handleHzTikTokEvent(data) {
 function hzJoinParticipant(user) {
   if (hzParticipants.has(user.uniqueId)) return;
   if (hzKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('hz', user)) {
     hzPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -32742,38 +33451,42 @@ function connectRouletteTikTok() {
   if (rouWs) { try { rouWs.close(1000); } catch(e){} rouWs = null; }
   setDotById('rou-dot','connecting');
 
-  const url = eulerStreamWsUrl(rouUser);
-  try { rouWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('rou-dot','off'); return; }
-
-  rouWs.onopen = () => {
-    setDotById('rou-dot','on');
-    rouReconnectAttempts = 0;
-    connectRouletteTikTok._notLiveTries = 0;
-    if (!rouConnectedOnce) { toast('✅ متصل ببث @' + rouUser); rouConnectedOnce = true; }
-  };
-  rouWs.onerror = () => setDotById('rou-dot','off');
-  rouWs.onclose = (e) => {
-    setDotById('rou-dot','off');
-    if (e.code === 4404) {
-      connectRouletteTikTok._notLiveTries = (connectRouletteTikTok._notLiveTries || 0) + 1;
-      if (connectRouletteTikTok._notLiveTries <= 3) { rouReconnectTimer = setTimeout(connectRouletteTikTok, 4000 * connectRouletteTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const rouWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('rou-dot', s), rouUser, toast);
+  let rouWsSock = null;
+  rouWsSock = rouWs = tiktokOpenWS(rouUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { rouWsStatus(data); return; }
+      handleRouTikTokEvent(data);
+    },
+    () => {
+      setDotById('rou-dot','on');
+      rouReconnectAttempts = 0;
       connectRouletteTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (rouGameStatus !== 'finished') {
-      rouReconnectAttempts++;
-      if (rouReconnectAttempts <= 5) {
-        rouReconnectTimer = setTimeout(connectRouletteTikTok, 5000);
-      } else {
-        toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+      if (!rouConnectedOnce) { toast('✅ متصل ببث @' + rouUser); rouConnectedOnce = true; }
+    },
+    (e) => {
+      if (!rouWsSock || rouWs !== rouWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('rou-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      setDotById('rou-dot','off');
+      if (e.code === 4404) {
+        connectRouletteTikTok._notLiveTries = (connectRouletteTikTok._notLiveTries || 0) + 1;
+        if (connectRouletteTikTok._notLiveTries <= 3) { rouReconnectTimer = setTimeout(connectRouletteTikTok, 4000 * connectRouletteTikTok._notLiveTries); return; }
+        connectRouletteTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
       }
-    }
-  };
-  rouWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleRouTikTokEvent(data);
-  };
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (rouGameStatus !== 'finished') {
+        rouReconnectAttempts++;
+        if (rouReconnectAttempts <= 5) {
+          rouReconnectTimer = setTimeout(connectRouletteTikTok, 5000);
+        } else {
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+        }
+      }
+    });
+  if (!rouWsSock) { toast('❌ فشل الاتصال'); setDotById('rou-dot','off'); return; }
 }
 
 function handleRouTikTokEvent(data) {
@@ -32802,7 +33515,7 @@ function handleRouTikTokEvent(data) {
       })) return;
       addRouChatMsg(user, text);
       if (rouGameStatus === 'waiting') {
-        if (normalize(text) === normalize(rouKeyword)) {
+        if (joinTextMatches(text, rouKeyword, 'rou', user)) {
           rouJoinParticipant(user);
         }
       }
@@ -32844,7 +33557,7 @@ function handleRouTikTokEvent(data) {
 function rouJoinParticipant(user) {
   if (rouParticipants.has(user.uniqueId)) return;
   if (rouKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rou', user)) {
     rouPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -33181,7 +33894,7 @@ function spinRoulette() {
 // طابقت أي لاعب فعلي حالياً — الفرق مهم عشان نفرّق "ما حاول" عن "حاول وفشل"
 // ونعامل الفشل كفشل إقصاء صريح (يحرّك الدور) بدل ما يختفي بصمت.
 function rouResolveNamesByNumbers(text) {
-  const nums = text.trim().match(/\d{1,4}/g);
+  const nums = foldChatDigits(text).trim().match(/\d{1,4}/g);
   if (!nums) return { names: [], attempted: false };
   const names = [];
   nums.slice(0, 2).forEach(numRaw => {
@@ -33788,41 +34501,45 @@ function connectTimerTikTok() {
   if (tmrWs) { try { tmrWs.close(1000); } catch(e){} tmrWs = null; }
   setDotById('tmr-dot','connecting');
 
-  const url = eulerStreamWsUrl(tmrUser);
-  try { tmrWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('tmr-dot','off'); return; }
-
-  tmrWs.onopen = () => {
-    setDotById('tmr-dot','on');
-    tmrReconnectAttempts = 0;
-    connectTimerTikTok._notLiveTries = 0;
-    if (!tmrConnectedOnce) { toast('✅ متصل ببث @' + tmrUser); tmrConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let tmrClosedOnce = false;
-  tmrWs.onerror = () => setDotById('tmr-dot','off');
-  tmrWs.onclose = (e) => {
-    if (tmrClosedOnce) return;
-    tmrClosedOnce = true;
-    setDotById('tmr-dot','off');
-    if (e.code === 4404) {
-      connectTimerTikTok._notLiveTries = (connectTimerTikTok._notLiveTries || 0) + 1;
-      if (connectTimerTikTok._notLiveTries <= 3) { tmrReconnectTimer = setTimeout(connectTimerTikTok, 4000 * connectTimerTikTok._notLiveTries); return; }
+  const tmrWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('tmr-dot', s), tmrUser, toast);
+  let tmrWsSock = null;
+  tmrWsSock = tmrWs = tiktokOpenWS(tmrUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { tmrWsStatus(data); return; }
+      handleTimerTikTokEvent(data);
+    },
+    () => {
+      setDotById('tmr-dot','on');
+      tmrReconnectAttempts = 0;
       connectTimerTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (tmrGameStatus !== 'finished') {
-      tmrReconnectAttempts++;
-      if (tmrReconnectAttempts <= 5) {
-        tmrReconnectTimer = setTimeout(connectTimerTikTok, 5000);
-      } else {
-        toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
+      if (!tmrConnectedOnce) { toast('✅ متصل ببث @' + tmrUser); tmrConnectedOnce = true; }
+    },
+    (e) => {
+      if (!tmrWsSock || tmrWs !== tmrWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('tmr-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (tmrClosedOnce) return;
+      tmrClosedOnce = true;
+      setDotById('tmr-dot','off');
+      if (e.code === 4404) {
+        connectTimerTikTok._notLiveTries = (connectTimerTikTok._notLiveTries || 0) + 1;
+        if (connectTimerTikTok._notLiveTries <= 3) { tmrReconnectTimer = setTimeout(connectTimerTikTok, 4000 * connectTimerTikTok._notLiveTries); return; }
+        connectTimerTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
       }
-    }
-  };
-  tmrWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleTimerTikTokEvent(data);
-  };
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (tmrGameStatus !== 'finished') {
+        tmrReconnectAttempts++;
+        if (tmrReconnectAttempts <= 5) {
+          tmrReconnectTimer = setTimeout(connectTimerTikTok, 5000);
+        } else {
+          toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+        }
+      }
+    });
+  if (!tmrWsSock) { toast('❌ فشل الاتصال'); setDotById('tmr-dot','off'); return; }
 }
 
 function handleTimerTikTokEvent(data) {
@@ -33839,7 +34556,7 @@ function handleTimerTikTokEvent(data) {
 
       // انضمام بالكلمة المفتاحية
       if (tmrGameStatus === 'waiting' || tmrGameStatus === 'running') {
-        if (normalize(text) === normalize(tmrKeyword)) {
+        if (joinTextMatches(text, tmrKeyword, 'tmr', user)) {
           tmrJoinParticipant(user);
         }
       }
@@ -33868,7 +34585,7 @@ function handleTimerTikTokEvent(data) {
 function tmrJoinParticipant(user) {
   if (tmrParticipants.has(user.uniqueId)) return;
   if (tmrKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('tmr', user)) {
     tmrPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -34511,38 +35228,42 @@ function connectBombTikTok() {
   if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
   setDotById('bomb-dot','connecting');
 
-  const url = eulerStreamWsUrl(bombUser);
-  try { bombWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('bomb-dot','off'); return; }
-
-  bombWs.onopen = () => {
-    setDotById('bomb-dot','on');
-    bombReconnectAttempts = 0;
-    connectBombTikTok._notLiveTries = 0;
-    if (!bombConnectedOnce) { toast('✅ متصل ببث @' + bombUser); bombConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let bombClosedOnce = false;
-  bombWs.onerror = () => setDotById('bomb-dot','off');
-  bombWs.onclose = (e) => {
-    if (bombClosedOnce) return;
-    bombClosedOnce = true;
-    setDotById('bomb-dot','off');
-    if (e.code === 4404) {
-      connectBombTikTok._notLiveTries = (connectBombTikTok._notLiveTries || 0) + 1;
-      if (connectBombTikTok._notLiveTries <= 3) { bombReconnectTimer = setTimeout(connectBombTikTok, 4000 * connectBombTikTok._notLiveTries); return; }
+  const bombWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('bomb-dot', s), bombUser, toast);
+  let bombWsSock = null;
+  bombWsSock = bombWs = tiktokOpenWS(bombUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { bombWsStatus(data); return; }
+      handleBombTikTokEvent(data);
+    },
+    () => {
+      setDotById('bomb-dot','on');
+      bombReconnectAttempts = 0;
       connectBombTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (bombGameStatus !== 'finished') {
-      bombReconnectAttempts++;
-      if (bombReconnectAttempts <= 5) bombReconnectTimer = setTimeout(connectBombTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
-    }
-  };
-  bombWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleBombTikTokEvent(data);
-  };
+      if (!bombConnectedOnce) { toast('✅ متصل ببث @' + bombUser); bombConnectedOnce = true; }
+    },
+    (e) => {
+      if (!bombWsSock || bombWs !== bombWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('bomb-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (bombClosedOnce) return;
+      bombClosedOnce = true;
+      setDotById('bomb-dot','off');
+      if (e.code === 4404) {
+        connectBombTikTok._notLiveTries = (connectBombTikTok._notLiveTries || 0) + 1;
+        if (connectBombTikTok._notLiveTries <= 3) { bombReconnectTimer = setTimeout(connectBombTikTok, 4000 * connectBombTikTok._notLiveTries); return; }
+        connectBombTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (bombGameStatus !== 'finished') {
+        bombReconnectAttempts++;
+        if (bombReconnectAttempts <= 5) bombReconnectTimer = setTimeout(connectBombTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+      }
+    });
+  if (!bombWsSock) { toast('❌ فشل الاتصال'); setDotById('bomb-dot','off'); return; }
 }
 
 function handleBombTikTokEvent(data) {
@@ -34576,7 +35297,7 @@ function handleBombTikTokEvent(data) {
 
       // انضمام
       if (bombGameStatus === 'waiting') {
-        if (normalize(text) === normalize(bombKeyword)) bombJoinParticipant(user);
+        if (joinTextMatches(text, bombKeyword, 'bomb', user)) bombJoinParticipant(user);
       }
 
       addBombChatMsg(user, text);
@@ -34602,7 +35323,7 @@ function handleBombTikTokEvent(data) {
 function bombJoinParticipant(user) {
   if (bombParticipants.has(user.uniqueId)) return;
   if (bombKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('bomb', user)) {
     bombPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -34789,7 +35510,7 @@ function updateBombTimerUI(remaining, total, circleId, numId) {
 // تماماً بدون أي تخمين بالاسم، عكس bombPassTo (تيك توك) اللي تعتمد على @منشن.
 function bombPassToByNumber(text) {
   if (isGamePausedForRevival('bomb')) return; // الجولة مجمّدة أثناء أنيميشن الإنعاش
-  const numRaw = text.trim();
+  const numRaw = foldChatDigits(text).trim();
   if (!/^\d{1,4}$/.test(numRaw)) return; // أي شيء غير رقم صافٍ يُتجاهل
   const num = parseInt(numRaw, 10);
 
@@ -35440,38 +36161,42 @@ function connectBoxTikTok() {
   if (boxWs) { try { boxWs.close(1000); } catch(e){} boxWs = null; }
   setDotById('box-dot','connecting');
 
-  const url = eulerStreamWsUrl(boxUser);
-  try { boxWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('box-dot','off'); return; }
-
-  boxWs.onopen = () => {
-    setDotById('box-dot','on');
-    boxReconnectAttempts = 0;
-    connectBoxTikTok._notLiveTries = 0;
-    if (!boxConnectedOnce) { toast('✅ متصل ببث @' + boxUser); boxConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let boxClosedOnce = false;
-  boxWs.onerror = () => setDotById('box-dot','off');
-  boxWs.onclose = (e) => {
-    if (boxClosedOnce) return;
-    boxClosedOnce = true;
-    setDotById('box-dot','off');
-    if (e.code === 4404) {
-      connectBoxTikTok._notLiveTries = (connectBoxTikTok._notLiveTries || 0) + 1;
-      if (connectBoxTikTok._notLiveTries <= 3) { boxReconnectTimer = setTimeout(connectBoxTikTok, 4000 * connectBoxTikTok._notLiveTries); return; }
+  const boxWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('box-dot', s), boxUser, toast);
+  let boxWsSock = null;
+  boxWsSock = boxWs = tiktokOpenWS(boxUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { boxWsStatus(data); return; }
+      handleBoxTikTokEvent(data);
+    },
+    () => {
+      setDotById('box-dot','on');
+      boxReconnectAttempts = 0;
       connectBoxTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (boxGameStatus !== 'finished') {
-      boxReconnectAttempts++;
-      if (boxReconnectAttempts <= 5) boxReconnectTimer = setTimeout(connectBoxTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
-    }
-  };
-  boxWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleBoxTikTokEvent(data);
-  };
+      if (!boxConnectedOnce) { toast('✅ متصل ببث @' + boxUser); boxConnectedOnce = true; }
+    },
+    (e) => {
+      if (!boxWsSock || boxWs !== boxWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('box-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (boxClosedOnce) return;
+      boxClosedOnce = true;
+      setDotById('box-dot','off');
+      if (e.code === 4404) {
+        connectBoxTikTok._notLiveTries = (connectBoxTikTok._notLiveTries || 0) + 1;
+        if (connectBoxTikTok._notLiveTries <= 3) { boxReconnectTimer = setTimeout(connectBoxTikTok, 4000 * connectBoxTikTok._notLiveTries); return; }
+        connectBoxTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (boxGameStatus !== 'finished') {
+        boxReconnectAttempts++;
+        if (boxReconnectAttempts <= 5) boxReconnectTimer = setTimeout(connectBoxTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+      }
+    });
+  if (!boxWsSock) { toast('❌ فشل الاتصال'); setDotById('box-dot','off'); return; }
 }
 
 function handleBoxTikTokEvent(data) {
@@ -35512,7 +36237,7 @@ function handleBoxTikTokEvent(data) {
 
       // انضمام
       if (boxGameStatus === 'waiting') {
-        if (normalize(text) === normalize(boxKeyword)) boxJoinParticipant(user);
+        if (joinTextMatches(text, boxKeyword, 'box', user)) boxJoinParticipant(user);
       }
 
       addBoxChatMsg(user, text);
@@ -35538,7 +36263,7 @@ function handleBoxTikTokEvent(data) {
 function boxJoinParticipant(user) {
   if (boxParticipants.has(user.uniqueId)) return;
   if (boxKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('box', user)) {
     boxPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -36338,38 +37063,42 @@ function connectCrTikTok() {
   if (crWs) { try { crWs.close(1000); } catch(e){} crWs = null; }
   setDotById('cr-dot','connecting');
 
-  const url = eulerStreamWsUrl(crUser);
-  try { crWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('cr-dot','off'); return; }
-
-  crWs.onopen = () => {
-    setDotById('cr-dot','on');
-    crReconnectAttempts = 0;
-    connectCrTikTok._notLiveTries = 0;
-    if (!crConnectedOnce) { toast('✅ متصل ببث @' + crUser); crConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let crClosedOnce = false;
-  crWs.onerror = () => setDotById('cr-dot','off');
-  crWs.onclose = (e) => {
-    if (crClosedOnce) return;
-    crClosedOnce = true;
-    setDotById('cr-dot','off');
-    if (e.code === 4404) {
-      connectCrTikTok._notLiveTries = (connectCrTikTok._notLiveTries || 0) + 1;
-      if (connectCrTikTok._notLiveTries <= 3) { crReconnectTimer = setTimeout(connectCrTikTok, 4000 * connectCrTikTok._notLiveTries); return; }
+  const crWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('cr-dot', s), crUser, toast);
+  let crWsSock = null;
+  crWsSock = crWs = tiktokOpenWS(crUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { crWsStatus(data); return; }
+      handleCrTikTokEvent(data);
+    },
+    () => {
+      setDotById('cr-dot','on');
+      crReconnectAttempts = 0;
       connectCrTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (crGameStatus !== 'finished') {
-      crReconnectAttempts++;
-      if (crReconnectAttempts <= 5) crReconnectTimer = setTimeout(connectCrTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
-    }
-  };
-  crWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleCrTikTokEvent(data);
-  };
+      if (!crConnectedOnce) { toast('✅ متصل ببث @' + crUser); crConnectedOnce = true; }
+    },
+    (e) => {
+      if (!crWsSock || crWs !== crWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('cr-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (crClosedOnce) return;
+      crClosedOnce = true;
+      setDotById('cr-dot','off');
+      if (e.code === 4404) {
+        connectCrTikTok._notLiveTries = (connectCrTikTok._notLiveTries || 0) + 1;
+        if (connectCrTikTok._notLiveTries <= 3) { crReconnectTimer = setTimeout(connectCrTikTok, 4000 * connectCrTikTok._notLiveTries); return; }
+        connectCrTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (crGameStatus !== 'finished') {
+        crReconnectAttempts++;
+        if (crReconnectAttempts <= 5) crReconnectTimer = setTimeout(connectCrTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+      }
+    });
+  if (!crWsSock) { toast('❌ فشل الاتصال'); setDotById('cr-dot','off'); return; }
 }
 
 function handleCrTikTokEvent(data) {
@@ -36387,7 +37116,7 @@ function handleCrTikTokEvent(data) {
 
       // انضمام
       if (crGameStatus === 'waiting') {
-        if (normalize(text) === normalize(crKeyword)) crJoinParticipant(user);
+        if (joinTextMatches(text, crKeyword, 'cr', user)) crJoinParticipant(user);
       }
       // كل رسالة شات من متسابق مسجل أثناء السباق = خطوة واحدة لسيارته
       else if (crGameStatus === 'active' && crParticipants.has(user.uniqueId)) {
@@ -36420,7 +37149,7 @@ function crJoinParticipant(user) {
   if (crKickedDuringRound.has(user.uniqueId)) return;
   if (crGameStatus !== 'waiting') return; // ما يقدر ينضم بعد ما السباق يبدأ
   if (crParticipants.size >= crMaxRacers) { toastFast('⚠️ السباق مكتمل — أقصى عدد متسابقين ' + crMaxRacers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('cr', user)) {
     crPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل السباق!');
     return;
@@ -36963,38 +37692,42 @@ function connectMzTikTok() {
   if (mzWs) { try { mzWs.close(1000); } catch(e){} mzWs = null; }
   setDotById('mz-dot', 'connecting');
 
-  const url = eulerStreamWsUrl(mzUser);
-  try { mzWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('mz-dot', 'off'); return; }
-
-  mzWs.onopen = () => {
-    setDotById('mz-dot', 'on');
-    mzReconnectAttempts = 0;
-    connectMzTikTok._notLiveTries = 0;
-    if (!mzConnectedOnce) { toast('✅ متصل ببث @' + mzUser); mzConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let mzClosedOnce = false;
-  mzWs.onerror = () => setDotById('mz-dot', 'off');
-  mzWs.onclose = (e) => {
-    if (mzClosedOnce) return;
-    mzClosedOnce = true;
-    setDotById('mz-dot', 'off');
-    if (e.code === 4404) {
-      connectMzTikTok._notLiveTries = (connectMzTikTok._notLiveTries || 0) + 1;
-      if (connectMzTikTok._notLiveTries <= 3) { mzReconnectTimer = setTimeout(connectMzTikTok, 4000 * connectMzTikTok._notLiveTries); return; }
+  const mzWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('mz-dot', s), mzUser, toast);
+  let mzWsSock = null;
+  mzWsSock = mzWs = tiktokOpenWS(mzUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { mzWsStatus(data); return; }
+      handleMzTikTokEvent(data);
+    },
+    () => {
+      setDotById('mz-dot', 'on');
+      mzReconnectAttempts = 0;
       connectMzTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (mzGameStatus !== 'finished') {
-      mzReconnectAttempts++;
-      if (mzReconnectAttempts <= 5) mzReconnectTimer = setTimeout(connectMzTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
-    }
-  };
-  mzWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleMzTikTokEvent(data);
-  };
+      if (!mzConnectedOnce) { toast('✅ متصل ببث @' + mzUser); mzConnectedOnce = true; }
+    },
+    (e) => {
+      if (!mzWsSock || mzWs !== mzWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('mz-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (mzClosedOnce) return;
+      mzClosedOnce = true;
+      setDotById('mz-dot', 'off');
+      if (e.code === 4404) {
+        connectMzTikTok._notLiveTries = (connectMzTikTok._notLiveTries || 0) + 1;
+        if (connectMzTikTok._notLiveTries <= 3) { mzReconnectTimer = setTimeout(connectMzTikTok, 4000 * connectMzTikTok._notLiveTries); return; }
+        connectMzTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (mzGameStatus !== 'finished') {
+        mzReconnectAttempts++;
+        if (mzReconnectAttempts <= 5) mzReconnectTimer = setTimeout(connectMzTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+      }
+    });
+  if (!mzWsSock) { toast('❌ فشل الاتصال'); setDotById('mz-dot', 'off'); return; }
 }
 
 function handleMzTikTokEvent(data) {
@@ -37009,7 +37742,7 @@ function handleMzTikTokEvent(data) {
 
       // انضمام أثناء الانتظار
       if (mzGameStatus === 'waiting') {
-        if (normalize(text) === normalize(mzKeyword)) mzJoinParticipant(user);
+        if (joinTextMatches(text, mzKeyword, 'mz', user)) mzJoinParticipant(user);
       }
       // أثناء الجولة: كلمة اتجاه صحيحة من لاعب مسجل = خطوة بالمتاهة
       else if (mzGameStatus === 'active' && mzParticipants.has(user.uniqueId)) {
@@ -37036,7 +37769,7 @@ function mzJoinParticipant(user) {
   if (mzKickedDuringRound.has(user.uniqueId)) return;
   if (mzGameStatus === 'active') return; // ينضم فقط قبل بدء الجولة أو بين الجولات
   if (mzParticipants.size >= mzMaxPlayers) { toastFast('⚠️ المتاهة مكتملة — أقصى عدد لاعبين ' + mzMaxPlayers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('mz', user)) {
     mzPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل المتاهة!');
     return;
@@ -37698,38 +38431,42 @@ function connectEvTikTok() {
   if (evWs) { try { evWs.close(1000); } catch(e){} evWs = null; }
   setDotById('ev-dot','connecting');
 
-  const url = eulerStreamWsUrl(evUser);
-  try { evWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('ev-dot','off'); return; }
-
-  evWs.onopen = () => {
-    setDotById('ev-dot','on');
-    evReconnectAttempts = 0;
-    connectEvTikTok._notLiveTries = 0;
-    if (!evConnectedOnce) { toast('✅ متصل ببث @' + evUser); evConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let evClosedOnce = false;
-  evWs.onerror = () => setDotById('ev-dot','off');
-  evWs.onclose = (e) => {
-    if (evClosedOnce) return;
-    evClosedOnce = true;
-    setDotById('ev-dot','off');
-    if (e.code === 4404) {
-      connectEvTikTok._notLiveTries = (connectEvTikTok._notLiveTries || 0) + 1;
-      if (connectEvTikTok._notLiveTries <= 3) { evReconnectTimer = setTimeout(connectEvTikTok, 4000 * connectEvTikTok._notLiveTries); return; }
+  const evWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('ev-dot', s), evUser, toast);
+  let evWsSock = null;
+  evWsSock = evWs = tiktokOpenWS(evUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { evWsStatus(data); return; }
+      handleEvTikTokEvent(data);
+    },
+    () => {
+      setDotById('ev-dot','on');
+      evReconnectAttempts = 0;
       connectEvTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) { toast('❌ مفتاح API غلط'); }
-    else if (evGameStatus !== 'finished') {
-      evReconnectAttempts++;
-      if (evReconnectAttempts <= 5) evReconnectTimer = setTimeout(connectEvTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال — تحقق من البث والـ API Key');
-    }
-  };
-  evWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleEvTikTokEvent(data);
-  };
+      if (!evConnectedOnce) { toast('✅ متصل ببث @' + evUser); evConnectedOnce = true; }
+    },
+    (e) => {
+      if (!evWsSock || evWs !== evWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('ev-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (evClosedOnce) return;
+      evClosedOnce = true;
+      setDotById('ev-dot','off');
+      if (e.code === 4404) {
+        connectEvTikTok._notLiveTries = (connectEvTikTok._notLiveTries || 0) + 1;
+        if (connectEvTikTok._notLiveTries <= 3) { evReconnectTimer = setTimeout(connectEvTikTok, 4000 * connectEvTikTok._notLiveTries); return; }
+        connectEvTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
+      else if (evGameStatus !== 'finished') {
+        evReconnectAttempts++;
+        if (evReconnectAttempts <= 5) evReconnectTimer = setTimeout(connectEvTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
+      }
+    });
+  if (!evWsSock) { toast('❌ فشل الاتصال'); setDotById('ev-dot','off'); return; }
 }
 
 function handleEvTikTokEvent(data) {
@@ -37746,7 +38483,7 @@ function handleEvTikTokEvent(data) {
       if (handleAdminChatCommand('ev', text, user, { participantsMap: evParticipants, joinFn: evJoinParticipant })) return;
 
       if (evGameStatus === 'waiting') {
-        if (normalize(text) === normalize(evKeyword)) evJoinParticipant(user);
+        if (joinTextMatches(text, evKeyword, 'ev', user)) evJoinParticipant(user);
       } else if (evGameStatus === 'active') {
         evProcessVote(user, text);
       }
@@ -37770,7 +38507,7 @@ function evJoinParticipant(user) {
   if (evKickedDuringRound.has(user.uniqueId)) return;
   if (evGameStatus !== 'waiting') return; // ما يقدر ينضم كلاعب بعد ما اللعبة تبدأ
   if (evParticipants.size >= evMaxPlayers) { toastFast('⚠️ اللعبة مكتملة — أقصى عدد لاعبين ' + evMaxPlayers); return; }
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ev', user)) {
     evPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -38525,37 +39262,41 @@ function connectLLTikTok() {
   if (llWs) { try { llWs.close(1000); } catch(e){} llWs = null; }
   setDotById('ll-dot','connecting');
 
-  const url = eulerStreamWsUrl(llUser);
-  try { llWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); setDotById('ll-dot','off'); return; }
-
-  llWs.onopen = () => {
-    setDotById('ll-dot','on');
-    llReconnectAttempts = 0;
-    connectLLTikTok._notLiveTries = 0;
-    if (!llConnectedOnce) { toast('✅ متصل ببث @' + llUser); llConnectedOnce = true; }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
   let llClosedOnce = false;
-  llWs.onerror = () => setDotById('ll-dot','off');
-  llWs.onclose = (e) => {
-    if (llClosedOnce) return; llClosedOnce = true;
-    setDotById('ll-dot','off');
-    if (e.code === 4404) {
-      connectLLTikTok._notLiveTries = (connectLLTikTok._notLiveTries || 0) + 1;
-      if (connectLLTikTok._notLiveTries <= 3) { llReconnectTimer = setTimeout(connectLLTikTok, 4000 * connectLLTikTok._notLiveTries); return; }
+  const llWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('ll-dot', s), llUser, toast);
+  let llWsSock = null;
+  llWsSock = llWs = tiktokOpenWS(llUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { llWsStatus(data); return; }
+      handleLLTikTokEvent(data);
+    },
+    () => {
+      setDotById('ll-dot','on');
+      llReconnectAttempts = 0;
       connectLLTikTok._notLiveTries = 0;
-      toast('⚠️ البث مو شغال');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط');
-    else if (llGameStatus !== 'finished') {
-      llReconnectAttempts++;
-      if (llReconnectAttempts <= 5) llReconnectTimer = setTimeout(connectLLTikTok, 5000);
-      else toast('⚠️ تعذّر الاتصال');
-    }
-  };
-  llWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    handleLLTikTokEvent(data);
-  };
+      if (!llConnectedOnce) { toast('✅ متصل ببث @' + llUser); llConnectedOnce = true; }
+    },
+    (e) => {
+      if (!llWsSock || llWs !== llWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { setDotById('ll-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (llClosedOnce) return; llClosedOnce = true;
+      setDotById('ll-dot','off');
+      if (e.code === 4404) {
+        connectLLTikTok._notLiveTries = (connectLLTikTok._notLiveTries || 0) + 1;
+        if (connectLLTikTok._notLiveTries <= 3) { llReconnectTimer = setTimeout(connectLLTikTok, 4000 * connectLLTikTok._notLiveTries); return; }
+        connectLLTikTok._notLiveTries = 0;
+        toast('⚠️ البث مو شغال');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (llGameStatus !== 'finished') {
+        llReconnectAttempts++;
+        if (llReconnectAttempts <= 5) llReconnectTimer = setTimeout(connectLLTikTok, 5000);
+        else toast('⚠️ تعذّر الاتصال');
+      }
+    });
+  if (!llWsSock) { toast('❌ فشل الاتصال'); setDotById('ll-dot','off'); return; }
 }
 
 function handleLLTikTokEvent(data) {
@@ -38586,7 +39327,7 @@ function handleLLTikTokEvent(data) {
       addLLChatMsg(user, text);
 
       if (llGameStatus === 'waiting') {
-        if (normalize(text) === normalize(llKeyword)) llJoinParticipant(user);
+        if (joinTextMatches(text, llKeyword, 'll', user)) llJoinParticipant(user);
       } else if (llGameStatus === 'active') {
         llProcessAnswer(user, text);
       }
@@ -38613,7 +39354,7 @@ function handleLLTikTokEvent(data) {
 function llJoinParticipant(user) {
   if (llParticipants.has(user.uniqueId)) return;
   if (llKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ll', user)) {
     llPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -39422,36 +40163,40 @@ function connectWAITikTok() {
   if (gamePlatform['wai'] === 'youtube') { connectWaiYouTube(); return; }
   waiDisconnectWS();
   waiSetDot('connecting');
-  const url = eulerStreamWsUrl(waiUser);
-  try { waiWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); waiSetDot('off'); return; }
-
-  waiWs.onopen = () => {
-    waiSetDot('on');
-    waiReconnectAttempts = 0;
-    connectWAITikTok._notLiveTries = 0;
-    if (!waiConnectedOnce) { toast('✅ متصل ببث @' + waiUser); waiConnectedOnce = true; }
-  };
-  waiWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    waiHandleEvent(data);
-  };
-  waiWs.onerror = () => waiSetDot('off');
-  waiWs.onclose = (e) => {
-    waiSetDot('off');
-    if (e.code === 4404) {
-      connectWAITikTok._notLiveTries = (connectWAITikTok._notLiveTries || 0) + 1;
-      if (connectWAITikTok._notLiveTries <= 3) { waiReconnectTimer = setTimeout(connectWAITikTok, 4000 * connectWAITikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const waiWsStatus = tiktokGameBridgeStatusHandler(waiSetDot, waiUser, toast);
+  let waiWsSock = null;
+  waiWsSock = waiWs = tiktokOpenWS(waiUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { waiWsStatus(data); return; }
+      waiHandleEvent(data);
+    },
+    () => {
+      waiSetDot('on');
+      waiReconnectAttempts = 0;
       connectWAITikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + waiUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (waiGameStatus !== 'finished' && waiReconnectAttempts < 10) {
-      waiReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      waiReconnectTimer = setTimeout(connectWAITikTok, 5000);
-    }
-  };
+      if (!waiConnectedOnce) { toast('✅ متصل ببث @' + waiUser); waiConnectedOnce = true; }
+    },
+    (e) => {
+      if (!waiWsSock || waiWs !== waiWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { waiSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      waiSetDot('off');
+      if (e.code === 4404) {
+        connectWAITikTok._notLiveTries = (connectWAITikTok._notLiveTries || 0) + 1;
+        if (connectWAITikTok._notLiveTries <= 3) { waiReconnectTimer = setTimeout(connectWAITikTok, 4000 * connectWAITikTok._notLiveTries); return; }
+        connectWAITikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + waiUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (waiGameStatus !== 'finished' && waiReconnectAttempts < 10) {
+        waiReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        waiReconnectTimer = setTimeout(connectWAITikTok, 5000);
+      }
+    });
+  if (!waiWsSock) { toast('❌ فشل الاتصال'); waiSetDot('off'); return; }
 }
 
 function waiDisconnectWS() {
@@ -39472,7 +40217,7 @@ function waiHandleEvent(data) {
       waiAddChatMsg(user, text);
 
       if (waiGameStatus === 'waiting') {
-        if (normalize(text) === normalize(waiKeyword)) waiJoinParticipant(user);
+        if (joinTextMatches(text, waiKeyword, 'wai', user)) waiJoinParticipant(user);
       } else if (waiGameStatus === 'active') {
         if (waiParticipants.has(user.uniqueId)) waiProcessGuess(user, text);
       }
@@ -39492,7 +40237,7 @@ function waiHandleEvent(data) {
 function waiJoinParticipant(user) {
   if (waiParticipants.has(user.uniqueId)) return;
   if (waiKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('wai', user)) {
     waiPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -40427,36 +41172,40 @@ function connectIGTikTok() {
   if (gamePlatform['ig'] === 'youtube') { connectIgYouTube(); return; }
   igDisconnectWS();
   igSetDot('connecting');
-  const url = eulerStreamWsUrl(igUser);
-  try { igWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); igSetDot('off'); return; }
-
-  igWs.onopen = () => {
-    igSetDot('on');
-    igReconnectAttempts = 0;
-    connectIGTikTok._notLiveTries = 0;
-    if (!igConnectedOnce) { toast('✅ متصل ببث @' + igUser); igConnectedOnce = true; }
-  };
-  igWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    igHandleEvent(data);
-  };
-  igWs.onerror = () => igSetDot('off');
-  igWs.onclose = (e) => {
-    igSetDot('off');
-    if (e.code === 4404) {
-      connectIGTikTok._notLiveTries = (connectIGTikTok._notLiveTries || 0) + 1;
-      if (connectIGTikTok._notLiveTries <= 3) { igReconnectTimer = setTimeout(connectIGTikTok, 4000 * connectIGTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const igWsStatus = tiktokGameBridgeStatusHandler(igSetDot, igUser, toast);
+  let igWsSock = null;
+  igWsSock = igWs = tiktokOpenWS(igUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { igWsStatus(data); return; }
+      igHandleEvent(data);
+    },
+    () => {
+      igSetDot('on');
+      igReconnectAttempts = 0;
       connectIGTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + igUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (igGameStatus !== 'finished' && igReconnectAttempts < 10) {
-      igReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      igReconnectTimer = setTimeout(connectIGTikTok, 5000);
-    }
-  };
+      if (!igConnectedOnce) { toast('✅ متصل ببث @' + igUser); igConnectedOnce = true; }
+    },
+    (e) => {
+      if (!igWsSock || igWs !== igWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { igSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      igSetDot('off');
+      if (e.code === 4404) {
+        connectIGTikTok._notLiveTries = (connectIGTikTok._notLiveTries || 0) + 1;
+        if (connectIGTikTok._notLiveTries <= 3) { igReconnectTimer = setTimeout(connectIGTikTok, 4000 * connectIGTikTok._notLiveTries); return; }
+        connectIGTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + igUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (igGameStatus !== 'finished' && igReconnectAttempts < 10) {
+        igReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        igReconnectTimer = setTimeout(connectIGTikTok, 5000);
+      }
+    });
+  if (!igWsSock) { toast('❌ فشل الاتصال'); igSetDot('off'); return; }
 }
 
 function igDisconnectWS() {
@@ -40477,7 +41226,7 @@ function igHandleEvent(data) {
       igAddChatMsg(user, text);
 
       if (igGameStatus === 'waiting') {
-        if (normalize(text) === normalize(igKeyword)) igJoinParticipant(user);
+        if (joinTextMatches(text, igKeyword, 'ig', user)) igJoinParticipant(user);
       } else if (igGameStatus === 'active') {
         if (igParticipants.has(user.uniqueId)) igProcessGuess(user, text);
       }
@@ -40497,7 +41246,7 @@ function igHandleEvent(data) {
 function igJoinParticipant(user) {
   if (igParticipants.has(user.uniqueId)) return;
   if (igKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('ig', user)) {
     igPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -41163,36 +41912,40 @@ function connectRWTikTok() {
   if (gamePlatform['rw'] === 'youtube') { connectRwYouTube(); return; }
   rwDisconnectWS();
   rwSetDot('connecting');
-  const url = eulerStreamWsUrl(rwUser);
-  try { rwWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); rwSetDot('off'); return; }
-
-  rwWs.onopen = () => {
-    rwSetDot('on');
-    rwReconnectAttempts = 0;
-    connectRWTikTok._notLiveTries = 0;
-    if (!rwConnectedOnce) { toast('✅ متصل ببث @' + rwUser); rwConnectedOnce = true; }
-  };
-  rwWs.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch(err) { return; }
-    rwHandleEvent(data);
-  };
-  rwWs.onerror = () => rwSetDot('off');
-  rwWs.onclose = (e) => {
-    rwSetDot('off');
-    if (e.code === 4404) {
-      connectRWTikTok._notLiveTries = (connectRWTikTok._notLiveTries || 0) + 1;
-      if (connectRWTikTok._notLiveTries <= 3) { rwReconnectTimer = setTimeout(connectRWTikTok, 4000 * connectRWTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const rwWsStatus = tiktokGameBridgeStatusHandler(rwSetDot, rwUser, toast);
+  let rwWsSock = null;
+  rwWsSock = rwWs = tiktokOpenWS(rwUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { rwWsStatus(data); return; }
+      rwHandleEvent(data);
+    },
+    () => {
+      rwSetDot('on');
+      rwReconnectAttempts = 0;
       connectRWTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + rwUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (rwGameStatus !== 'finished' && rwReconnectAttempts < 10) {
-      rwReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      rwReconnectTimer = setTimeout(connectRWTikTok, 5000);
-    }
-  };
+      if (!rwConnectedOnce) { toast('✅ متصل ببث @' + rwUser); rwConnectedOnce = true; }
+    },
+    (e) => {
+      if (!rwWsSock || rwWs !== rwWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { rwSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      rwSetDot('off');
+      if (e.code === 4404) {
+        connectRWTikTok._notLiveTries = (connectRWTikTok._notLiveTries || 0) + 1;
+        if (connectRWTikTok._notLiveTries <= 3) { rwReconnectTimer = setTimeout(connectRWTikTok, 4000 * connectRWTikTok._notLiveTries); return; }
+        connectRWTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + rwUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (rwGameStatus !== 'finished' && rwReconnectAttempts < 10) {
+        rwReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        rwReconnectTimer = setTimeout(connectRWTikTok, 5000);
+      }
+    });
+  if (!rwWsSock) { toast('❌ فشل الاتصال'); rwSetDot('off'); return; }
 }
 
 function rwDisconnectWS() {
@@ -41213,7 +41966,7 @@ function rwHandleEvent(data) {
       rwAddChatMsg(user, text);
 
       if (rwGameStatus === 'waiting') {
-        if (normalize(text) === normalize(rwKeyword)) rwJoinParticipant(user);
+        if (joinTextMatches(text, rwKeyword, 'rw', user)) rwJoinParticipant(user);
       } else if (rwGameStatus === 'active') {
         // فقط المشاركين (وليس المطرودين)
         if (rwParticipants.has(user.uniqueId)) rwProcessGuess(user, text);
@@ -41234,7 +41987,7 @@ function rwHandleEvent(data) {
 function rwJoinParticipant(user) {
   if (rwParticipants.has(user.uniqueId)) return;
   if (rwKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rw', user)) {
     rwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -41867,28 +42620,35 @@ function connectPGSTikTok() {
   if (gamePlatform['pgs'] === 'youtube') { connectPgsYouTube(); return; }
   pgsDisconnectWS();
   pgsSetDot('connecting');
-  const url = eulerStreamWsUrl(pgsUser);
-  try { pgsWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); pgsSetDot('off'); return; }
-
-  pgsWs.onopen = () => { pgsSetDot('on'); pgsReconnectAttempts = 0; connectPGSTikTok._notLiveTries = 0; if (!pgsConnectedOnce) { toast('✅ متصل ببث @' + pgsUser); pgsConnectedOnce = true; } };
-  pgsWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} pgsHandleEvent(d); };
-  pgsWs.onerror = () => pgsSetDot('off');
-  pgsWs.onclose = (e) => {
-    pgsSetDot('off');
-    if (e.code === 4404) {
-      connectPGSTikTok._notLiveTries = (connectPGSTikTok._notLiveTries || 0) + 1;
-      if (connectPGSTikTok._notLiveTries <= 3) { pgsReconnectTimer = setTimeout(connectPGSTikTok, 4000 * connectPGSTikTok._notLiveTries); return; }
-      connectPGSTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + pgsUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (pgsGameStatus !== 'finished' && pgsReconnectAttempts < 10) {
-      pgsReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      pgsReconnectTimer = setTimeout(connectPGSTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const pgsWsStatus = tiktokGameBridgeStatusHandler(pgsSetDot, pgsUser, toast);
+  let pgsWsSock = null;
+  pgsWsSock = pgsWs = tiktokOpenWS(pgsUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { pgsWsStatus(d); return; }
+      pgsHandleEvent(d);
+    },
+    () => { pgsSetDot('on'); pgsReconnectAttempts = 0; connectPGSTikTok._notLiveTries = 0; if (!pgsConnectedOnce) { toast('✅ متصل ببث @' + pgsUser); pgsConnectedOnce = true; } },
+    (e) => {
+      if (!pgsWsSock || pgsWs !== pgsWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { pgsSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      pgsSetDot('off');
+      if (e.code === 4404) {
+        connectPGSTikTok._notLiveTries = (connectPGSTikTok._notLiveTries || 0) + 1;
+        if (connectPGSTikTok._notLiveTries <= 3) { pgsReconnectTimer = setTimeout(connectPGSTikTok, 4000 * connectPGSTikTok._notLiveTries); return; }
+        connectPGSTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + pgsUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (pgsGameStatus !== 'finished' && pgsReconnectAttempts < 10) {
+        pgsReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        pgsReconnectTimer = setTimeout(connectPGSTikTok, 5000);
+      }
+    });
+  if (!pgsWsSock) { toast('❌ فشل الاتصال'); pgsSetDot('off'); return; }
 }
 
 function pgsDisconnectWS() {
@@ -41909,7 +42669,7 @@ function pgsHandleEvent(data) {
       pgsAddChatMsg(user, text);
 
       if (pgsGameStatus === 'waiting') {
-        if (normalize(text) === normalize(pgsKeyword)) pgsJoinParticipant(user);
+        if (joinTextMatches(text, pgsKeyword, 'pgs', user)) pgsJoinParticipant(user);
       } else if (pgsGameStatus === 'active') {
         if (pgsParticipants.has(user.uniqueId)) pgsProcessGuess(user, text);
       }
@@ -41929,7 +42689,7 @@ function pgsHandleEvent(data) {
 function pgsJoinParticipant(user) {
   if (pgsParticipants.has(user.uniqueId)) return;
   if (pgsKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('pgs', user)) {
     pgsPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -42023,7 +42783,7 @@ function pgsProcessGuess(user, text) {
   const used = pgsAttempts.get(uid) || 0;
   if (used >= PGS_MAX_ATTEMPTS) return;
 
-  const guessVal = parseInt(text.replace(/\s/g, ''), 10);
+  const guessVal = parseInt(foldChatDigits(text).replace(/\s/g, ''), 10);
   if (isNaN(guessVal)) return;
 
   const newUsed = used + 1;
@@ -42577,28 +43337,35 @@ function connectLSCTikTok() {
   if (gamePlatform['lsc'] === 'youtube') { connectLscYouTube(); return; }
   lscDisconnectWS();
   lscSetDot('connecting');
-  const url = eulerStreamWsUrl(lscUser);
-  try { lscWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); lscSetDot('off'); return; }
-
-  lscWs.onopen = () => { lscSetDot('on'); lscReconnectAttempts = 0; connectLSCTikTok._notLiveTries = 0; if (!lscConnectedOnce) { toast('✅ متصل ببث @' + lscUser); lscConnectedOnce = true; } };
-  lscWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} lscHandleEvent(d); };
-  lscWs.onerror = () => lscSetDot('off');
-  lscWs.onclose = (e) => {
-    lscSetDot('off');
-    if (e.code === 4404) {
-      connectLSCTikTok._notLiveTries = (connectLSCTikTok._notLiveTries || 0) + 1;
-      if (connectLSCTikTok._notLiveTries <= 3) { lscReconnectTimer = setTimeout(connectLSCTikTok, 4000 * connectLSCTikTok._notLiveTries); return; }
-      connectLSCTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + lscUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (lscGameStatus !== 'finished' && lscReconnectAttempts < 10) {
-      lscReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      lscReconnectTimer = setTimeout(connectLSCTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const lscWsStatus = tiktokGameBridgeStatusHandler(lscSetDot, lscUser, toast);
+  let lscWsSock = null;
+  lscWsSock = lscWs = tiktokOpenWS(lscUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { lscWsStatus(d); return; }
+      lscHandleEvent(d);
+    },
+    () => { lscSetDot('on'); lscReconnectAttempts = 0; connectLSCTikTok._notLiveTries = 0; if (!lscConnectedOnce) { toast('✅ متصل ببث @' + lscUser); lscConnectedOnce = true; } },
+    (e) => {
+      if (!lscWsSock || lscWs !== lscWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { lscSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      lscSetDot('off');
+      if (e.code === 4404) {
+        connectLSCTikTok._notLiveTries = (connectLSCTikTok._notLiveTries || 0) + 1;
+        if (connectLSCTikTok._notLiveTries <= 3) { lscReconnectTimer = setTimeout(connectLSCTikTok, 4000 * connectLSCTikTok._notLiveTries); return; }
+        connectLSCTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + lscUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (lscGameStatus !== 'finished' && lscReconnectAttempts < 10) {
+        lscReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        lscReconnectTimer = setTimeout(connectLSCTikTok, 5000);
+      }
+    });
+  if (!lscWsSock) { toast('❌ فشل الاتصال'); lscSetDot('off'); return; }
 }
 
 function lscDisconnectWS() {
@@ -42619,7 +43386,7 @@ function lscHandleEvent(data) {
       lscAddChatMsg(user, text);
 
       if (lscGameStatus === 'waiting') {
-        if (normalize(text) === normalize(lscKeyword)) lscJoinParticipant(user);
+        if (joinTextMatches(text, lscKeyword, 'lsc', user)) lscJoinParticipant(user);
       } else if (lscGameStatus === 'active') {
         if (lscParticipants.has(user.uniqueId)) lscProcessGuess(user, text);
       }
@@ -42639,7 +43406,7 @@ function lscHandleEvent(data) {
 function lscJoinParticipant(user) {
   if (lscParticipants.has(user.uniqueId)) return;
   if (lscKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('lsc', user)) {
     lscPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -43199,28 +43966,35 @@ function connectWRTikTok() {
   if (gamePlatform['wr'] === 'youtube') { connectWrYouTube(); return; }
   wrDisconnectWS();
   wrSetDot('connecting');
-  const url = eulerStreamWsUrl(wrUser);
-  try { wrWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); wrSetDot('off'); return; }
-
-  wrWs.onopen = () => { wrSetDot('on'); wrReconnectAttempts = 0; connectWRTikTok._notLiveTries = 0; if (!wrConnectedOnce) { toast('✅ متصل ببث @' + wrUser); wrConnectedOnce = true; } };
-  wrWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} wrHandleEvent(d); };
-  wrWs.onerror = () => wrSetDot('off');
-  wrWs.onclose = (e) => {
-    wrSetDot('off');
-    if (e.code === 4404) {
-      connectWRTikTok._notLiveTries = (connectWRTikTok._notLiveTries || 0) + 1;
-      if (connectWRTikTok._notLiveTries <= 3) { wrReconnectTimer = setTimeout(connectWRTikTok, 4000 * connectWRTikTok._notLiveTries); return; }
-      connectWRTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + wrUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (wrGameStatus !== 'finished' && wrReconnectAttempts < 10) {
-      wrReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      wrReconnectTimer = setTimeout(connectWRTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const wrWsStatus = tiktokGameBridgeStatusHandler(wrSetDot, wrUser, toast);
+  let wrWsSock = null;
+  wrWsSock = wrWs = tiktokOpenWS(wrUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { wrWsStatus(d); return; }
+      wrHandleEvent(d);
+    },
+    () => { wrSetDot('on'); wrReconnectAttempts = 0; connectWRTikTok._notLiveTries = 0; if (!wrConnectedOnce) { toast('✅ متصل ببث @' + wrUser); wrConnectedOnce = true; } },
+    (e) => {
+      if (!wrWsSock || wrWs !== wrWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { wrSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      wrSetDot('off');
+      if (e.code === 4404) {
+        connectWRTikTok._notLiveTries = (connectWRTikTok._notLiveTries || 0) + 1;
+        if (connectWRTikTok._notLiveTries <= 3) { wrReconnectTimer = setTimeout(connectWRTikTok, 4000 * connectWRTikTok._notLiveTries); return; }
+        connectWRTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + wrUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (wrGameStatus !== 'finished' && wrReconnectAttempts < 10) {
+        wrReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        wrReconnectTimer = setTimeout(connectWRTikTok, 5000);
+      }
+    });
+  if (!wrWsSock) { toast('❌ فشل الاتصال'); wrSetDot('off'); return; }
 }
 
 function wrDisconnectWS() {
@@ -43241,7 +44015,7 @@ function wrHandleEvent(data) {
       wrAddChatMsg(user, text);
 
       if (wrGameStatus === 'waiting') {
-        if (normalize(text) === normalize(wrKeyword)) wrJoinParticipant(user);
+        if (joinTextMatches(text, wrKeyword, 'wr', user)) wrJoinParticipant(user);
       } else if (wrGameStatus === 'active') {
         if (wrParticipants.has(user.uniqueId)) wrProcessGuess(user, text);
       }
@@ -43261,7 +44035,7 @@ function wrHandleEvent(data) {
 function wrJoinParticipant(user) {
   if (wrParticipants.has(user.uniqueId)) return;
   if (wrKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('wr', user)) {
     wrPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -43880,28 +44654,35 @@ function connectDrawTikTok() {
   if (gamePlatform['draw'] === 'youtube') { connectDrawYouTube(); return; }
   drawDisconnectWS();
   drawSetDot('connecting');
-  const url = eulerStreamWsUrl(drawUser);
-  try { drawWs = new WebSocket(url); } catch(e) { drawNotify('❌ فشل الاتصال'); drawSetDot('off'); return; }
-
-  drawWs.onopen = () => { drawSetDot('on'); drawReconnectAttempts = 0; connectDrawTikTok._notLiveTries = 0; if (!drawConnectedOnce) { drawNotify('✅ متصل ببث @' + drawUser); drawConnectedOnce = true; } };
-  drawWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} drawHandleEvent(d); };
-  drawWs.onerror = () => drawSetDot('off');
-  drawWs.onclose = (e) => {
-    drawSetDot('off');
-    if (e.code === 4404) {
-      connectDrawTikTok._notLiveTries = (connectDrawTikTok._notLiveTries || 0) + 1;
-      if (connectDrawTikTok._notLiveTries <= 3) { drawReconnectTimer = setTimeout(connectDrawTikTok, 4000 * connectDrawTikTok._notLiveTries); return; }
-      connectDrawTikTok._notLiveTries = 0;
-      drawNotify('⚠️ الحساب @' + drawUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) drawNotify('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) drawNotify('📴 البث انتهى');
-    else if (drawGameStatus !== 'finished' && drawReconnectAttempts < 10) {
-      drawReconnectAttempts++;
-      drawNotify('🔄 الاتصال انقطع، إعادة المحاولة...');
-      drawReconnectTimer = setTimeout(connectDrawTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const drawWsStatus = tiktokGameBridgeStatusHandler(drawSetDot, drawUser, drawNotify);
+  let drawWsSock = null;
+  drawWsSock = drawWs = tiktokOpenWS(drawUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { drawWsStatus(d); return; }
+      drawHandleEvent(d);
+    },
+    () => { drawSetDot('on'); drawReconnectAttempts = 0; connectDrawTikTok._notLiveTries = 0; if (!drawConnectedOnce) { drawNotify('✅ متصل ببث @' + drawUser); drawConnectedOnce = true; } },
+    (e) => {
+      if (!drawWsSock || drawWs !== drawWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { drawSetDot('off'); drawNotify('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      drawSetDot('off');
+      if (e.code === 4404) {
+        connectDrawTikTok._notLiveTries = (connectDrawTikTok._notLiveTries || 0) + 1;
+        if (connectDrawTikTok._notLiveTries <= 3) { drawReconnectTimer = setTimeout(connectDrawTikTok, 4000 * connectDrawTikTok._notLiveTries); return; }
+        connectDrawTikTok._notLiveTries = 0;
+        drawNotify('⚠️ الحساب @' + drawUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) drawNotify('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) drawNotify('📴 البث انتهى');
+      else if (drawGameStatus !== 'finished' && drawReconnectAttempts < 10) {
+        drawReconnectAttempts++;
+        drawNotify('🔄 الاتصال انقطع، إعادة المحاولة...');
+        drawReconnectTimer = setTimeout(connectDrawTikTok, 5000);
+      }
+    });
+  if (!drawWsSock) { drawNotify('❌ فشل الاتصال'); drawSetDot('off'); return; }
 }
 
 function drawDisconnectWS() {
@@ -45145,28 +45926,35 @@ function connectCWTikTok() {
   if (gamePlatform['cw'] === 'youtube') { connectCwYouTube(); return; }
   cwDisconnectWS();
   cwSetDot('connecting');
-  const url = eulerStreamWsUrl(cwUser);
-  try { cwWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); cwSetDot('off'); return; }
-
-  cwWs.onopen = () => { cwSetDot('on'); cwReconnectAttempts = 0; connectCWTikTok._notLiveTries = 0; if (!cwConnectedOnce) { toast('✅ متصل ببث @' + cwUser); cwConnectedOnce = true; } };
-  cwWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} cwHandleEvent(d); };
-  cwWs.onerror = () => cwSetDot('off');
-  cwWs.onclose = (e) => {
-    cwSetDot('off');
-    if (e.code === 4404) {
-      connectCWTikTok._notLiveTries = (connectCWTikTok._notLiveTries || 0) + 1;
-      if (connectCWTikTok._notLiveTries <= 3) { cwReconnectTimer = setTimeout(connectCWTikTok, 4000 * connectCWTikTok._notLiveTries); return; }
-      connectCWTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + cwUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (cwGameStatus !== 'finished' && cwReconnectAttempts < 10) {
-      cwReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      cwReconnectTimer = setTimeout(connectCWTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const cwWsStatus = tiktokGameBridgeStatusHandler(cwSetDot, cwUser, toast);
+  let cwWsSock = null;
+  cwWsSock = cwWs = tiktokOpenWS(cwUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { cwWsStatus(d); return; }
+      cwHandleEvent(d);
+    },
+    () => { cwSetDot('on'); cwReconnectAttempts = 0; connectCWTikTok._notLiveTries = 0; if (!cwConnectedOnce) { toast('✅ متصل ببث @' + cwUser); cwConnectedOnce = true; } },
+    (e) => {
+      if (!cwWsSock || cwWs !== cwWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { cwSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      cwSetDot('off');
+      if (e.code === 4404) {
+        connectCWTikTok._notLiveTries = (connectCWTikTok._notLiveTries || 0) + 1;
+        if (connectCWTikTok._notLiveTries <= 3) { cwReconnectTimer = setTimeout(connectCWTikTok, 4000 * connectCWTikTok._notLiveTries); return; }
+        connectCWTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + cwUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (cwGameStatus !== 'finished' && cwReconnectAttempts < 10) {
+        cwReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        cwReconnectTimer = setTimeout(connectCWTikTok, 5000);
+      }
+    });
+  if (!cwWsSock) { toast('❌ فشل الاتصال'); cwSetDot('off'); return; }
 }
 
 function cwDisconnectWS() {
@@ -45196,7 +45984,7 @@ function cwHandleEvent(data) {
       cwAddChatMsg(user, text);
 
       if (cwGameStatus === 'waiting') {
-        if (normalize(text) === normalize(cwKeyword)) cwJoinParticipant(user);
+        if (joinTextMatches(text, cwKeyword, 'cw', user)) cwJoinParticipant(user);
       } else if (cwGameStatus === 'active' && cwTurnUid) {
         // فقط الشخص الذي طلع اسمه بالروليت يقدر يقصي عبر الشات — مقارنة
         // غير حساسة لحالة الأحرف (lowercase) عشان لا تفشل لو uniqueId
@@ -45239,7 +46027,7 @@ function cwJoinParticipant(user) {
   if (alreadyActive) return;
   const isRejoinAfterElimination = cwParticipants.has(user.uniqueId);
 
-  if (!isRejoinAfterElimination && !user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!isRejoinAfterElimination && !followGateAllows('cw', user)) {
     cwPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -46420,28 +47208,35 @@ function connectCSTikTok() {
   if (gamePlatform['cs'] === 'youtube') { connectCsYouTube(); return; }
   csDisconnectWS();
   csSetDot('connecting');
-  const url = eulerStreamWsUrl(csUser);
-  try { csWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); csSetDot('off'); return; }
-
-  csWs.onopen = () => { csSetDot('on'); csReconnectAttempts = 0; connectCSTikTok._notLiveTries = 0; if (!csConnectedOnce) { toast('✅ متصل ببث @' + csUser); csConnectedOnce = true; } };
-  csWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} csHandleEvent(d); };
-  csWs.onerror = () => csSetDot('off');
-  csWs.onclose = (e) => {
-    csSetDot('off');
-    if (e.code === 4404) {
-      connectCSTikTok._notLiveTries = (connectCSTikTok._notLiveTries || 0) + 1;
-      if (connectCSTikTok._notLiveTries <= 3) { csReconnectTimer = setTimeout(connectCSTikTok, 4000 * connectCSTikTok._notLiveTries); return; }
-      connectCSTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + csUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (csGameStatus !== 'finished' && csReconnectAttempts < 10) {
-      csReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      csReconnectTimer = setTimeout(connectCSTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const csWsStatus = tiktokGameBridgeStatusHandler(csSetDot, csUser, toast);
+  let csWsSock = null;
+  csWsSock = csWs = tiktokOpenWS(csUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { csWsStatus(d); return; }
+      csHandleEvent(d);
+    },
+    () => { csSetDot('on'); csReconnectAttempts = 0; connectCSTikTok._notLiveTries = 0; if (!csConnectedOnce) { toast('✅ متصل ببث @' + csUser); csConnectedOnce = true; } },
+    (e) => {
+      if (!csWsSock || csWs !== csWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { csSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      csSetDot('off');
+      if (e.code === 4404) {
+        connectCSTikTok._notLiveTries = (connectCSTikTok._notLiveTries || 0) + 1;
+        if (connectCSTikTok._notLiveTries <= 3) { csReconnectTimer = setTimeout(connectCSTikTok, 4000 * connectCSTikTok._notLiveTries); return; }
+        connectCSTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + csUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (csGameStatus !== 'finished' && csReconnectAttempts < 10) {
+        csReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        csReconnectTimer = setTimeout(connectCSTikTok, 5000);
+      }
+    });
+  if (!csWsSock) { toast('❌ فشل الاتصال'); csSetDot('off'); return; }
 }
 
 function csDisconnectWS() {
@@ -46472,7 +47267,7 @@ function csHandleEvent(data) {
       csAddChatMsg(user, text);
 
       if (csGameStatus === 'waiting') {
-        if (normalize(text) === normalize(csKeyword)) csJoinParticipant(user);
+        if (joinTextMatches(text, csKeyword, 'cs', user)) csJoinParticipant(user);
         return;
       }
 
@@ -46503,7 +47298,7 @@ function csHandleEvent(data) {
 function csJoinParticipant(user) {
   if (csParticipants.has(user.uniqueId)) return;
   if (csKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('cs', user)) {
     csPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
     return;
@@ -48904,28 +49699,35 @@ function connectFindballTikTok() {
   if (gamePlatform['findball'] === 'youtube') { connectFindballYouTube(); return; }
   findballDisconnectWS();
   findballSetDot('connecting');
-  const url = eulerStreamWsUrl(findballUser);
-  try { findballWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); findballSetDot('off'); return; }
-
-  findballWs.onopen = () => { findballSetDot('on'); findballReconnectAttempts = 0; connectFindballTikTok._notLiveTries = 0; if (!findballConnectedOnce) { toast('✅ متصل ببث @' + findballUser); findballConnectedOnce = true; } };
-  findballWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} findballHandleEvent(d); };
-  findballWs.onerror = () => findballSetDot('off');
-  findballWs.onclose = (e) => {
-    findballSetDot('off');
-    if (e.code === 4404) {
-      connectFindballTikTok._notLiveTries = (connectFindballTikTok._notLiveTries || 0) + 1;
-      if (connectFindballTikTok._notLiveTries <= 3) { findballReconnectTimer = setTimeout(connectFindballTikTok, 4000 * connectFindballTikTok._notLiveTries); return; }
-      connectFindballTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + findballUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (findballGameStatus !== 'finished' && findballReconnectAttempts < 10) {
-      findballReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      findballReconnectTimer = setTimeout(connectFindballTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const findballWsStatus = tiktokGameBridgeStatusHandler(findballSetDot, findballUser, toast);
+  let findballWsSock = null;
+  findballWsSock = findballWs = tiktokOpenWS(findballUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { findballWsStatus(d); return; }
+      findballHandleEvent(d);
+    },
+    () => { findballSetDot('on'); findballReconnectAttempts = 0; connectFindballTikTok._notLiveTries = 0; if (!findballConnectedOnce) { toast('✅ متصل ببث @' + findballUser); findballConnectedOnce = true; } },
+    (e) => {
+      if (!findballWsSock || findballWs !== findballWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { findballSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      findballSetDot('off');
+      if (e.code === 4404) {
+        connectFindballTikTok._notLiveTries = (connectFindballTikTok._notLiveTries || 0) + 1;
+        if (connectFindballTikTok._notLiveTries <= 3) { findballReconnectTimer = setTimeout(connectFindballTikTok, 4000 * connectFindballTikTok._notLiveTries); return; }
+        connectFindballTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + findballUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (findballGameStatus !== 'finished' && findballReconnectAttempts < 10) {
+        findballReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        findballReconnectTimer = setTimeout(connectFindballTikTok, 5000);
+      }
+    });
+  if (!findballWsSock) { toast('❌ فشل الاتصال'); findballSetDot('off'); return; }
 }
 
 function findballDisconnectWS() {
@@ -48953,7 +49755,7 @@ function findballHandleEvent(data) {
       findballAddChatMsg(user, text);
 
       if (findballGameStatus === 'waiting') {
-        if (normalize(text) === normalize(findballKeyword)) findballJoinParticipant(user);
+        if (joinTextMatches(text, findballKeyword, 'findball', user)) findballJoinParticipant(user);
         return;
       }
 
@@ -48985,7 +49787,7 @@ function findballHandleEvent(data) {
 function findballJoinParticipant(user) {
   if (findballParticipants.has(user.uniqueId)) return;
   if (findballKickedDuringRound.has(user.uniqueId)) return;
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('findball', user)) {
     findballPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -49273,7 +50075,7 @@ function findballProcessGuess(user, text) {
   if (!findballParticipants.has(user.uniqueId)) return;
   if (findballGuessedUids.has(user.uniqueId)) return;
 
-  const numRaw = normalize(text).trim();
+  const numRaw = normalize(foldChatDigits(text)).trim();
   if (!/^[123]$/.test(numRaw)) return;
   const num = parseInt(numRaw, 10);
 
@@ -50096,28 +50898,35 @@ function connectChairsTikTok() {
   if (gamePlatform['chairs'] === 'youtube') { connectChairsYouTube(); return; }
   chairsDisconnectWS();
   chairsSetDot('connecting');
-  const url = eulerStreamWsUrl(chairsUser);
-  try { chairsWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); chairsSetDot('off'); return; }
-
-  chairsWs.onopen = () => { chairsSetDot('on'); chairsReconnectAttempts = 0; connectChairsTikTok._notLiveTries = 0; if (!chairsConnectedOnce) { toast('✅ متصل ببث @' + chairsUser); chairsConnectedOnce = true; } };
-  chairsWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} chairsHandleEvent(d); };
-  chairsWs.onerror = () => chairsSetDot('off');
-  chairsWs.onclose = (e) => {
-    chairsSetDot('off');
-    if (e.code === 4404) {
-      connectChairsTikTok._notLiveTries = (connectChairsTikTok._notLiveTries || 0) + 1;
-      if (connectChairsTikTok._notLiveTries <= 3) { chairsReconnectTimer = setTimeout(connectChairsTikTok, 4000 * connectChairsTikTok._notLiveTries); return; }
-      connectChairsTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + chairsUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (chairsGameStatus !== 'finished' && chairsReconnectAttempts < 10) {
-      chairsReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      chairsReconnectTimer = setTimeout(connectChairsTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const chairsWsStatus = tiktokGameBridgeStatusHandler(chairsSetDot, chairsUser, toast);
+  let chairsWsSock = null;
+  chairsWsSock = chairsWs = tiktokOpenWS(chairsUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { chairsWsStatus(d); return; }
+      chairsHandleEvent(d);
+    },
+    () => { chairsSetDot('on'); chairsReconnectAttempts = 0; connectChairsTikTok._notLiveTries = 0; if (!chairsConnectedOnce) { toast('✅ متصل ببث @' + chairsUser); chairsConnectedOnce = true; } },
+    (e) => {
+      if (!chairsWsSock || chairsWs !== chairsWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { chairsSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      chairsSetDot('off');
+      if (e.code === 4404) {
+        connectChairsTikTok._notLiveTries = (connectChairsTikTok._notLiveTries || 0) + 1;
+        if (connectChairsTikTok._notLiveTries <= 3) { chairsReconnectTimer = setTimeout(connectChairsTikTok, 4000 * connectChairsTikTok._notLiveTries); return; }
+        connectChairsTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + chairsUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (chairsGameStatus !== 'finished' && chairsReconnectAttempts < 10) {
+        chairsReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        chairsReconnectTimer = setTimeout(connectChairsTikTok, 5000);
+      }
+    });
+  if (!chairsWsSock) { toast('❌ فشل الاتصال'); chairsSetDot('off'); return; }
 }
 
 function chairsDisconnectWS() {
@@ -50204,7 +51013,7 @@ function chairsHandleEvent(data) {
       chairsAddChatMsg(user, text);
 
       if (chairsGameStatus === 'waiting') {
-        if (normalize(text) === normalize(chairsKeyword)) chairsJoinParticipant(user);
+        if (joinTextMatches(text, chairsKeyword, 'chairs', user)) chairsJoinParticipant(user);
         return;
       }
 
@@ -50233,7 +51042,7 @@ function chairsHandleEvent(data) {
 function chairsJoinParticipant(user) {
   if (chairsParticipants.has(user.uniqueId)) return;
   if (chairsKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('chairs', user)) {
     chairsPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
     return;
@@ -50483,9 +51292,13 @@ function chairsRevealChairs(chairCount) {
   // chairsParticipants/chairsRemoveParticipant ومو له علاقة بهذا الـSet.
   chairsKickedDuringRound.clear();
 
+  // أرقام الكراسي عشوائية من 1-100 كما هي؛ بس لو الكراسي أكثر من 100 (أكثر من
+  // 101 لاعب) كانت الحلقة ما تنتهي أبداً (مستحيل 101 رقم مختلف من 100) وتجمّد
+  // الصفحة كلها. النطاق يتوسّع فقط بهالحالة (رقم الكرسي بالشات يقبل حتى 3 خانات).
   const numbers = new Set();
+  const chairNumberRange = Math.max(100, chairCount);
   while (numbers.size < chairCount) {
-    numbers.add(1 + Math.floor(Math.random() * 100));
+    numbers.add(1 + Math.floor(Math.random() * chairNumberRange));
   }
   chairsActiveChairNumbers = [...numbers];
 
@@ -50537,7 +51350,7 @@ function chairsProcessClaim(user, text) {
   if (!chairsParticipants.has(user.uniqueId)) return;
   if (chairsClaimedUids.has(user.uniqueId)) return;
 
-  const numRaw = normalize(text).trim();
+  const numRaw = normalize(foldChatDigits(text)).trim();
   if (!/^\d{1,3}$/.test(numRaw)) return;
   const num = parseInt(numRaw, 10);
   if (!chairsActiveChairNumbers.includes(num)) return;
@@ -50895,7 +51708,7 @@ function tugTeamOf(uniqueId) {
 function tugJoinTeam(user, team) {
   if (tugTeamOf(user.uniqueId)) return; // عضو بالفعل بفريق — ممنوع التبديل
   const isRejoin = tugPendingFollowers.has(user.uniqueId) && tugPendingFollowers.get(user.uniqueId).team === team;
-  if (!isRejoin && !user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!isRejoin && !followGateAllows('tug', user)) {
     tugPendingFollowers.set(user.uniqueId, { user, team });
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تنضم!');
     return;
@@ -50942,8 +51755,8 @@ function tugHandleEvent(data) {
       if (tugGameStatus === 'waiting') {
         const team = tugTeamOf(user.uniqueId);
         if (!team) {
-          if (norm === tugNormalize(tugTeamAKw)) tugJoinTeam(user, 'a');
-          else if (norm === tugNormalize(tugTeamBKw)) tugJoinTeam(user, 'b');
+          if ((norm === tugNormalize(tugTeamAKw) || joinTextMatches(text, tugTeamAKw, 'tug', user))) tugJoinTeam(user, 'a');
+          else if ((norm === tugNormalize(tugTeamBKw) || joinTextMatches(text, tugTeamBKw, 'tug', user))) tugJoinTeam(user, 'b');
         }
       } else if (tugGameStatus === 'active') {
         const team = tugTeamOf(user.uniqueId);
@@ -50953,8 +51766,8 @@ function tugHandleEvent(data) {
           // خيار "الانضمام أثناء الجولة": نفس شرط الفولو المعتاد، لكن العضو
           // الجديد ينضم بدون قوة سحب فورية — لازم يكتب كلمة السحب لاحقاً
           // كباقي الأعضاء، هذا يمنع استغلال الانضمام المتأخر كسحبة مجانية.
-          if (norm === tugNormalize(tugTeamAKw)) tugJoinTeam(user, 'a');
-          else if (norm === tugNormalize(tugTeamBKw)) tugJoinTeam(user, 'b');
+          if ((norm === tugNormalize(tugTeamAKw) || joinTextMatches(text, tugTeamAKw, 'tug', user))) tugJoinTeam(user, 'a');
+          else if ((norm === tugNormalize(tugTeamBKw) || joinTextMatches(text, tugTeamBKw, 'tug', user))) tugJoinTeam(user, 'b');
         }
       }
     }
@@ -50986,28 +51799,35 @@ function connectTugTikTok() {
   if (gamePlatform['tug'] === 'youtube') { connectTugYouTube(); return; }
   tugDisconnectWS();
   tugSetDot('connecting');
-  const url = eulerStreamWsUrl(tugUser);
-  try { tugWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); tugSetDot('off'); return; }
-
-  tugWs.onopen = () => { tugSetDot('on'); tugReconnectAttempts = 0; connectTugTikTok._notLiveTries = 0; if (!tugConnectedOnce) { toast('✅ متصل ببث @' + tugUser); tugConnectedOnce = true; } };
-  tugWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} tugHandleEvent(d); };
-  tugWs.onerror = () => tugSetDot('off');
-  tugWs.onclose = (e) => {
-    tugSetDot('off');
-    if (e.code === 4404) {
-      connectTugTikTok._notLiveTries = (connectTugTikTok._notLiveTries || 0) + 1;
-      if (connectTugTikTok._notLiveTries <= 3) { tugReconnectTimer = setTimeout(connectTugTikTok, 4000 * connectTugTikTok._notLiveTries); return; }
-      connectTugTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + tugUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (tugGameStatus !== 'finished' && tugReconnectAttempts < 10) {
-      tugReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      tugReconnectTimer = setTimeout(connectTugTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const tugWsStatus = tiktokGameBridgeStatusHandler(tugSetDot, tugUser, toast);
+  let tugWsSock = null;
+  tugWsSock = tugWs = tiktokOpenWS(tugUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { tugWsStatus(d); return; }
+      tugHandleEvent(d);
+    },
+    () => { tugSetDot('on'); tugReconnectAttempts = 0; connectTugTikTok._notLiveTries = 0; if (!tugConnectedOnce) { toast('✅ متصل ببث @' + tugUser); tugConnectedOnce = true; } },
+    (e) => {
+      if (!tugWsSock || tugWs !== tugWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { tugSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      tugSetDot('off');
+      if (e.code === 4404) {
+        connectTugTikTok._notLiveTries = (connectTugTikTok._notLiveTries || 0) + 1;
+        if (connectTugTikTok._notLiveTries <= 3) { tugReconnectTimer = setTimeout(connectTugTikTok, 4000 * connectTugTikTok._notLiveTries); return; }
+        connectTugTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + tugUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (tugGameStatus !== 'finished' && tugReconnectAttempts < 10) {
+        tugReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        tugReconnectTimer = setTimeout(connectTugTikTok, 5000);
+      }
+    });
+  if (!tugWsSock) { toast('❌ فشل الاتصال'); tugSetDot('off'); return; }
 }
 
 function tugDisconnectWS() {
@@ -51492,7 +52312,7 @@ function rlglJoinParticipant(user) {
   if (rlglParticipants.has(user.uniqueId)) return; // منضم بالفعل
   if (rlglParticipants.size >= rlglMaxPlayers) { toast('⚠️ اكتمل عدد اللاعبين (' + rlglMaxPlayers + ')'); return; }
 
-  if (!user.isFollower && !isDeveloperUser(user.uniqueId) && !isCurrentStreamerSelf(user.uniqueId)) {
+  if (!followGateAllows('rlgl', user)) {
     rlglPendingFollowers.set(user.uniqueId, user);
     toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل!');
     return;
@@ -51572,7 +52392,7 @@ function rlglHandleEvent(data) {
       const norm = rlglNormalize(text);
 
       if (rlglGameStatus === 'waiting') {
-        if (!rlglParticipants.has(user.uniqueId) && norm === rlglNormalize(rlglJoinKw)) {
+        if (!rlglParticipants.has(user.uniqueId) && (norm === rlglNormalize(rlglJoinKw) || joinTextMatches(text, rlglJoinKw, 'rlgl', user))) {
           rlglJoinParticipant(user);
         }
       } else if (rlglGameStatus === 'active') {
@@ -51599,28 +52419,35 @@ function connectRlglTikTok() {
   if (gamePlatform['rlgl'] === 'youtube') { connectRlglYouTube(); return; }
   rlglDisconnectWS();
   rlglSetDot('connecting');
-  const url = eulerStreamWsUrl(rlglUser);
-  try { rlglWs = new WebSocket(url); } catch(e) { toast('❌ فشل الاتصال'); rlglSetDot('off'); return; }
-
-  rlglWs.onopen = () => { rlglSetDot('on'); rlglReconnectAttempts = 0; connectRlglTikTok._notLiveTries = 0; if (!rlglConnectedOnce) { toast('✅ متصل ببث @' + rlglUser); rlglConnectedOnce = true; } };
-  rlglWs.onmessage = (e) => { let d; try { d = JSON.parse(e.data); } catch(err){return;} rlglHandleEvent(d); };
-  rlglWs.onerror = () => rlglSetDot('off');
-  rlglWs.onclose = (e) => {
-    rlglSetDot('off');
-    if (e.code === 4404) {
-      connectRlglTikTok._notLiveTries = (connectRlglTikTok._notLiveTries || 0) + 1;
-      if (connectRlglTikTok._notLiveTries <= 3) { rlglReconnectTimer = setTimeout(connectRlglTikTok, 4000 * connectRlglTikTok._notLiveTries); return; }
-      connectRlglTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + rlglUser + ' مو شغال بث الآن');
-    }
-    else if (e.code === 4400) toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
-    else if (rlglGameStatus !== 'finished' && rlglReconnectAttempts < 10) {
-      rlglReconnectAttempts++;
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      rlglReconnectTimer = setTimeout(connectRlglTikTok, 5000);
-    }
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const rlglWsStatus = tiktokGameBridgeStatusHandler(rlglSetDot, rlglUser, toast);
+  let rlglWsSock = null;
+  rlglWsSock = rlglWs = tiktokOpenWS(rlglUser, '',
+    (d) => {
+      if (d && d.type === 'bridge_status') { rlglWsStatus(d); return; }
+      rlglHandleEvent(d);
+    },
+    () => { rlglSetDot('on'); rlglReconnectAttempts = 0; connectRlglTikTok._notLiveTries = 0; if (!rlglConnectedOnce) { toast('✅ متصل ببث @' + rlglUser); rlglConnectedOnce = true; } },
+    (e) => {
+      if (!rlglWsSock || rlglWs !== rlglWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { rlglSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      rlglSetDot('off');
+      if (e.code === 4404) {
+        connectRlglTikTok._notLiveTries = (connectRlglTikTok._notLiveTries || 0) + 1;
+        if (connectRlglTikTok._notLiveTries <= 3) { rlglReconnectTimer = setTimeout(connectRlglTikTok, 4000 * connectRlglTikTok._notLiveTries); return; }
+        connectRlglTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + rlglUser + ' مو شغال بث الآن');
+      }
+      else if (e.code === 4400) toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      else if (e.code === 1000 || e.code === 4005) toast('📴 البث انتهى');
+      else if (rlglGameStatus !== 'finished' && rlglReconnectAttempts < 10) {
+        rlglReconnectAttempts++;
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        rlglReconnectTimer = setTimeout(connectRlglTikTok, 5000);
+      }
+    });
+  if (!rlglWsSock) { toast('❌ فشل الاتصال'); rlglSetDot('off'); return; }
 }
 
 function rlglDisconnectWS() {
@@ -61328,20 +62155,24 @@ function event100ConnectMyStreamerTikTok() {
   const apiKey = localStorage.getItem('event100_my_apikey') || me.apiKey;
   if (event100Ws) { try { event100Ws.close(1000); } catch (e) {} event100Ws = null; }
 
-  const url = eulerStreamWsUrl(me.uniqueId);
-  try { event100Ws = new WebSocket(url); } catch (e) { toast('❌ فشل الاتصال بشات ' + me.uniqueId); return; }
-
-  event100Ws.onopen = () => { toast('✅ متصل بشات @' + me.uniqueId + ' — جاهز للتلوين!'); };
-  event100Ws.onerror = () => {};
-  event100Ws.onclose = (e) => {
-    if (event100Doc && event100Doc.status === 'active') {
-      setTimeout(() => { if (event100Doc && event100Doc.status === 'active') event100ConnectMyStreamerTikTok(); }, 5000);
-    }
-  };
-  event100Ws.onmessage = (e) => {
-    let data; try { data = JSON.parse(e.data); } catch (err) { return; }
-    event100HandleChatEvent(data, me);
-  };
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const event100WsStatus = tiktokGameBridgeStatusHandler(null, me.uniqueId, toast);
+  let event100WsSock = null;
+  event100WsSock = event100Ws = tiktokOpenWS(me.uniqueId, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { event100WsStatus(data); return; }
+      event100HandleChatEvent(data, me);
+    },
+    () => { toast('✅ متصل بشات @' + me.uniqueId + ' — جاهز للتلوين!'); },
+    (e) => {
+      if (!event100WsSock || event100Ws !== event100WsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      if (event100Doc && event100Doc.status === 'active') {
+        setTimeout(() => { if (event100Doc && event100Doc.status === 'active') event100ConnectMyStreamerTikTok(); }, 5000);
+      }
+    });
+  if (!event100WsSock) { toast('❌ فشل الاتصال بشات ' + me.uniqueId); return; }
 }
 
 function event100DisconnectWs() {
@@ -81738,42 +82569,39 @@ function tt10ConnectTikTok() {
   if (tt10Ws) { try { tt10Ws.close(1000); } catch(e){} tt10Ws = null; }
   tt10SetDot('connecting');
 
-  const url = eulerStreamWsUrl(tt10TiktokUser);
-  try {
-    tt10Ws = new WebSocket(url);
-  } catch(e) {
-    toast('❌ فشل الاتصال: ' + e.message);
-    tt10SetDot('off');
-    return;
-  }
-
-  tt10Ws.onopen = () => {
-    tt10SetDot('on');
-    tt10ConnectTikTok._notLiveTries = 0;
-    if (!tt10ConnectedOnce) { toast('✅ متصل ببث @' + tt10TiktokUser); tt10ConnectedOnce = true; }
-  };
-  tt10Ws.onmessage = (e) => {
-    let data;
-    try { data = JSON.parse(e.data); } catch(err) { return; }
-    tt10HandleTikTokEvent(data);
-  };
-  tt10Ws.onerror = () => { tt10SetDot('off'); };
-  tt10Ws.onclose = (e) => {
-    tt10SetDot('off');
-    if (e.code === 4404) {
-      tt10ConnectTikTok._notLiveTries = (tt10ConnectTikTok._notLiveTries || 0) + 1;
-      if (tt10ConnectTikTok._notLiveTries <= 3) { tt10ReconnectTimer = setTimeout(tt10ConnectTikTok, 4000 * tt10ConnectTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const tt10WsStatus = tiktokGameBridgeStatusHandler(tt10SetDot, tt10TiktokUser, toast);
+  let tt10WsSock = null;
+  tt10WsSock = tt10Ws = tiktokOpenWS(tt10TiktokUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { tt10WsStatus(data); return; }
+      tt10HandleTikTokEvent(data);
+    },
+    () => {
+      tt10SetDot('on');
       tt10ConnectTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + tt10TiktokUser + ' مو شغال بث الآن');
-    } else if (e.code === 4400) {
-      toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    } else if (e.code === 1000 || e.code === 4005) {
-      toast('📴 البث انتهى');
-    } else if (tt10GameStatus !== 'finished') {
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      tt10ReconnectTimer = setTimeout(tt10ConnectTikTok, 5000);
-    }
-  };
+      if (!tt10ConnectedOnce) { toast('✅ متصل ببث @' + tt10TiktokUser); tt10ConnectedOnce = true; }
+    },
+    (e) => {
+      if (!tt10WsSock || tt10Ws !== tt10WsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { tt10SetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      tt10SetDot('off');
+      if (e.code === 4404) {
+        tt10ConnectTikTok._notLiveTries = (tt10ConnectTikTok._notLiveTries || 0) + 1;
+        if (tt10ConnectTikTok._notLiveTries <= 3) { tt10ReconnectTimer = setTimeout(tt10ConnectTikTok, 4000 * tt10ConnectTikTok._notLiveTries); return; }
+        tt10ConnectTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + tt10TiktokUser + ' مو شغال بث الآن');
+      } else if (e.code === 4400) {
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      } else if (e.code === 1000 || e.code === 4005) {
+        toast('📴 البث انتهى');
+      } else if (tt10GameStatus !== 'finished') {
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        tt10ReconnectTimer = setTimeout(tt10ConnectTikTok, 5000);
+      }
+    });
+  if (!tt10WsSock) { toast('❌ فشل الاتصال'); tt10SetDot('off'); return; }
 }
 
 function tt10DisconnectWS() {
@@ -81933,7 +82761,7 @@ function tt10ProcessAnswer(user, text) {
   const match = tt10FindMatch(cleaned);
   if (!match) return;
 
-  const canScore = user.isFollower || (typeof isDeveloperUser === 'function' && isDeveloperUser(user.uniqueId)) || (typeof isCurrentStreamerSelf === 'function' && isCurrentStreamerSelf(user.uniqueId));
+  const canScore = followGateAllows('tt10', user); // نفس شرط الفولو المركزي (غير المعروف ما يُحرم بصمت)
   if (!canScore) {
     if (!tt10FollowPrompted.has(user.uniqueId)) {
       tt10FollowPrompted.add(user.uniqueId);
@@ -82921,42 +83749,39 @@ function glzConnectTikTok() {
   if (glzWs) { try { glzWs.close(1000); } catch(e){} glzWs = null; }
   glzSetDot('connecting');
 
-  const url = eulerStreamWsUrl(glzTiktokUser);
-  try {
-    glzWs = new WebSocket(url);
-  } catch(e) {
-    toast('❌ فشل الاتصال: ' + e.message);
-    glzSetDot('off');
-    return;
-  }
-
-  glzWs.onopen = () => {
-    glzSetDot('on');
-    glzConnectTikTok._notLiveTries = 0;
-    if (!glzConnectedOnce) { toast('✅ متصل ببث @' + glzTiktokUser); glzConnectedOnce = true; }
-  };
-  glzWs.onmessage = (e) => {
-    let data;
-    try { data = JSON.parse(e.data); } catch(err) { return; }
-    glzHandleTikTokEvent(data);
-  };
-  glzWs.onerror = () => { glzSetDot('off'); };
-  glzWs.onclose = (e) => {
-    glzSetDot('off');
-    if (e.code === 4404) {
-      glzConnectTikTok._notLiveTries = (glzConnectTikTok._notLiveTries || 0) + 1;
-      if (glzConnectTikTok._notLiveTries <= 3) { glzReconnectTimer = setTimeout(glzConnectTikTok, 4000 * glzConnectTikTok._notLiveTries); return; }
+  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
+  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
+  const glzWsStatus = tiktokGameBridgeStatusHandler(glzSetDot, glzTiktokUser, toast);
+  let glzWsSock = null;
+  glzWsSock = glzWs = tiktokOpenWS(glzTiktokUser, '',
+    (data) => {
+      if (data && data.type === 'bridge_status') { glzWsStatus(data); return; }
+      glzHandleTikTokEvent(data);
+    },
+    () => {
+      glzSetDot('on');
       glzConnectTikTok._notLiveTries = 0;
-      toast('⚠️ الحساب @' + glzTiktokUser + ' مو شغال بث الآن');
-    } else if (e.code === 4400) {
-      toast('❌ مفتاح API غلط أو يوزر غير صحيح');
-    } else if (e.code === 1000 || e.code === 4005) {
-      toast('📴 البث انتهى');
-    } else if (glzGameStatus !== 'finished') {
-      toast('🔄 الاتصال انقطع، إعادة المحاولة...');
-      glzReconnectTimer = setTimeout(glzConnectTikTok, 5000);
-    }
-  };
+      if (!glzConnectedOnce) { toast('✅ متصل ببث @' + glzTiktokUser); glzConnectedOnce = true; }
+    },
+    (e) => {
+      if (!glzWsSock || glzWs !== glzWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
+      if (e && e.code === 4403) { glzSetDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
+      glzSetDot('off');
+      if (e.code === 4404) {
+        glzConnectTikTok._notLiveTries = (glzConnectTikTok._notLiveTries || 0) + 1;
+        if (glzConnectTikTok._notLiveTries <= 3) { glzReconnectTimer = setTimeout(glzConnectTikTok, 4000 * glzConnectTikTok._notLiveTries); return; }
+        glzConnectTikTok._notLiveTries = 0;
+        toast('⚠️ الحساب @' + glzTiktokUser + ' مو شغال بث الآن');
+      } else if (e.code === 4400) {
+        toast('❌ يوزر البث غير صحيح — تأكد من كتابته');
+      } else if (e.code === 1000 || e.code === 4005) {
+        toast('📴 البث انتهى');
+      } else if (glzGameStatus !== 'finished') {
+        toast('🔄 الاتصال انقطع، إعادة المحاولة...');
+        glzReconnectTimer = setTimeout(glzConnectTikTok, 5000);
+      }
+    });
+  if (!glzWsSock) { toast('❌ فشل الاتصال'); glzSetDot('off'); return; }
 }
 
 function glzDisconnectWS() {
@@ -83050,7 +83875,7 @@ function glzHandleTikTokEvent(data) {
     if (handleAdminChatCommand('glz', text, user, { participantsMap: glzParticipants, joinFn: glzAddParticipant })) return;
 
     if (glzGameStatus === 'lobby') {
-      if (normalize(text) === normalize(glzJoinKeyword)) glzAddParticipant(user);
+      if (joinTextMatches(text, glzJoinKeyword, 'glz', user)) glzAddParticipant(user);
       return;
     }
 

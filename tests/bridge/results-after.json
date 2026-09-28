@@ -1,0 +1,1199 @@
+{
+ "follow": {
+  "real_follower": {
+   "joined": true,
+   "pending": false
+  },
+  "mutual_follower": {
+   "joined": true,
+   "pending": false
+  },
+  "non_follower": {
+   "joined": false,
+   "pending": true
+  },
+  "identity_missing": {
+   "joined": true,
+   "pending": false
+  },
+  "non_follower_after_follow_retry": true,
+  "gate_off_nonfollower_joined": true,
+  "diagReasons": [
+   "real_follower=follower",
+   "mutual_follower=follower",
+   "non_follower=pending_follow",
+   "identity_missing=follow_unknown_allowed",
+   "non_follower=follower",
+   "gate_off_nonfollower=gate_off"
+  ],
+  "errors": []
+ },
+ "listeners": {
+  "listenerCountAfterEachGame": [
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "extractUserCallsForOneMessage": 1,
+  "errors": []
+ },
+ "outage": {
+  "downMs": 60000,
+  "recoveredAfterServerUpMs": 1317,
+  "timeline": [
+   {
+    "t": 10,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 3,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً…",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 20,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 4,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً…",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 30,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 4,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 12ث",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 40,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 5,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً…",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 50,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 5,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 15ث",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 60,
+    "label": "down",
+    "has": true,
+    "slot": {
+     "attempts": 5,
+     "ws": false
+    },
+    "state": "reconnecting",
+    "pillVisible": true,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 25ث",
+    "dot": "dot connecting"
+   },
+   {
+    "t": 63,
+    "label": "end",
+    "has": true,
+    "slot": {
+     "attempts": 0,
+     "ws": true
+    },
+    "state": "connected",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 30ث",
+    "dot": "dot"
+   }
+  ],
+  "errors": []
+ },
+ "offline": {
+  "deadMs": 70000,
+  "connHistory": [
+   {
+    "t": 22.8,
+    "from": "connected",
+    "to": "reconnecting"
+   },
+   {
+    "t": 25.2,
+    "from": "reconnecting",
+    "to": "connected"
+   }
+  ],
+  "detectedDeadAtSec": 22.8,
+  "connectedAgainAtSec": 25.2,
+  "detectedDeadAfterSampleSec": null,
+  "reconnectedAfterSilenceEndsMs": 1003,
+  "missedReplayed": [
+   true,
+   true,
+   true
+  ],
+  "participants": [
+   "before_drop",
+   "missed_0",
+   "missed_1",
+   "missed_2"
+  ],
+  "duplicatesInChat": 0,
+  "samples": [
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": null,
+    "t": 7
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": null,
+    "t": 12
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": null,
+    "t": 17
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": null,
+    "t": 22
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 27
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 32
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 37
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 42
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 47
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 52
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 57
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 62
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 67
+   },
+   {
+    "state": "connected",
+    "has": true,
+    "dot": "dot",
+    "pillVisible": false,
+    "pill": "⚠️ انقطع اتصال الشات — نعيد الربط تلقائياً… · آخر حدث قبل 23ث",
+    "t": 72
+   }
+  ],
+  "dotAfter": "dot",
+  "pillVisibleAfter": false,
+  "errors": []
+ },
+ "variants": {
+  "emoji": true,
+  "rlm": true,
+  "tashkeel": true,
+  "spaced": true,
+  "extra_word": false,
+  "arabicDigitCell": 5,
+  "nearMissLogged": [],
+  "errors": []
+ },
+ "load": {
+  "tag": "main",
+  "target": 300,
+  "joined": 300,
+  "allJoinedWithinMs": 10051,
+  "heapDeltaMB": 0.7,
+  "eventsProcessed": 2000,
+  "dispatchMsP50": 2.3,
+  "dispatchMsP99": 8.8,
+  "dispatchMsMax": 11.3,
+  "longTasks": 0,
+  "maxLongTaskMs": 0,
+  "firestoreWrites": 5,
+  "lastToast": "👥 انضم 300 لاعبين — آخرهم ld299",
+  "errors": []
+ },
+ "sockets": {
+  "openClientSocketsForAccount": 1,
+  "open": [
+   "ehsmaha-wbkn.onrender.com?u=streamer1"
+  ],
+  "upstreamConnectionsOnServer": 1,
+  "connectCalls": 1
+ },
+ "allGames": [
+  {
+   "n": 1,
+   "game": "main (اوجد الكلمة)",
+   "tag": "main",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 3,
+   "maxTaskMs": 114,
+   "heapMB": 4.7,
+   "stuck": []
+  },
+  {
+   "n": 2,
+   "game": "gw (خمّن الموضوع)",
+   "tag": "gw",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 70,
+   "heapMB": 4.8,
+   "stuck": []
+  },
+  {
+   "n": 3,
+   "game": "battery",
+   "tag": "battery",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": null,
+   "dotAfterLaunch": "on",
+   "formsJoined": null,
+   "expected": 303,
+   "joined": null,
+   "rejections": null,
+   "statusAfterStart": null,
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 64,
+   "heapMB": 4.9,
+   "stuck": []
+  },
+  {
+   "n": 4,
+   "game": "sniper",
+   "tag": "sniper",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 63,
+   "heapMB": 5.1,
+   "stuck": []
+  },
+  {
+   "n": 5,
+   "game": "hz",
+   "tag": "hz",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 60,
+   "rejections": {
+    "notJoined": 243,
+    "withReason": 243,
+    "reasons": {
+     "follower": 243,
+     "not_joined:الحالة=waiting، اللعبة ممتلئة N/M": 243
+    }
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 66,
+   "heapMB": 5.2,
+   "stuck": []
+  },
+  {
+   "n": 6,
+   "game": "roulette",
+   "tag": "rou",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 4,
+   "maxTaskMs": 145,
+   "heapMB": 5.3,
+   "stuck": []
+  },
+  {
+   "n": 7,
+   "game": "timer",
+   "tag": "tmr",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 61,
+   "heapMB": 5.4,
+   "stuck": []
+  },
+  {
+   "n": 8,
+   "game": "bomb",
+   "tag": "bomb",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 82,
+   "heapMB": 5.5,
+   "stuck": []
+  },
+  {
+   "n": 9,
+   "game": "box",
+   "tag": "box",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 70,
+   "heapMB": 5.6,
+   "stuck": []
+  },
+  {
+   "n": 10,
+   "game": "crown (cr)",
+   "tag": "cr",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 30,
+   "joined": 30,
+   "rejections": {
+    "notJoined": 273,
+    "withReason": 273,
+    "reasons": {
+     "not_joined:الحالة=waiting، اللعبة ممتلئة N/M": 273
+    }
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 57,
+   "heapMB": 5.7,
+   "stuck": []
+  },
+  {
+   "n": 11,
+   "game": "maze",
+   "tag": "mz",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 30,
+   "joined": 30,
+   "rejections": {
+    "notJoined": 273,
+    "withReason": 273,
+    "reasons": {
+     "not_joined:الحالة=waiting، اللعبة ممتلئة N/M": 273
+    }
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 52,
+   "heapMB": 5.7,
+   "stuck": []
+  },
+  {
+   "n": 12,
+   "game": "event (ev)",
+   "tag": "ev",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 40,
+   "joined": 40,
+   "rejections": {
+    "notJoined": 263,
+    "withReason": 263,
+    "reasons": {
+     "not_joined:الحالة=waiting، اللعبة ممتلئة N/M": 263
+    }
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 66,
+   "heapMB": 5.8,
+   "stuck": []
+  },
+  {
+   "n": 13,
+   "game": "lastletter",
+   "tag": "ll",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 73,
+   "heapMB": 5.9,
+   "stuck": []
+  },
+  {
+   "n": 14,
+   "game": "whoami",
+   "tag": "wai",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 70,
+   "heapMB": 6.1,
+   "stuck": []
+  },
+  {
+   "n": 15,
+   "game": "ig",
+   "tag": "ig",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 61,
+   "heapMB": 6.2,
+   "stuck": []
+  },
+  {
+   "n": 16,
+   "game": "reverseword",
+   "tag": "rw",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 1,
+   "maxTaskMs": 54,
+   "heapMB": 6.3,
+   "stuck": []
+  },
+  {
+   "n": 17,
+   "game": "priceguess",
+   "tag": "pgs",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 88,
+   "heapMB": 6.4,
+   "stuck": []
+  },
+  {
+   "n": 18,
+   "game": "letterscramble",
+   "tag": "lsc",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 75,
+   "heapMB": 6.4,
+   "stuck": []
+  },
+  {
+   "n": 19,
+   "game": "wordrace",
+   "tag": "wr",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 77,
+   "heapMB": 6.5,
+   "stuck": []
+  },
+  {
+   "n": 20,
+   "game": "draw",
+   "tag": "draw",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 88,
+   "heapMB": 6.6,
+   "stuck": []
+  },
+  {
+   "n": 21,
+   "game": "countrywar",
+   "tag": "cw",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 69,
+   "heapMB": 6.7,
+   "stuck": []
+  },
+  {
+   "n": 22,
+   "game": "crownsteal",
+   "tag": "cs",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "active",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 66,
+   "heapMB": 6.8,
+   "stuck": []
+  },
+  {
+   "n": 23,
+   "game": "findball",
+   "tag": "findball",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "hiding",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 68,
+   "heapMB": 6.9,
+   "stuck": []
+  },
+  {
+   "n": 24,
+   "game": "chairs",
+   "tag": "chairs",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "spinning",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 22,
+   "maxTaskMs": 143,
+   "heapMB": 7,
+   "stuck": []
+  },
+  {
+   "n": 25,
+   "game": "tug",
+   "tag": "tug",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 81,
+   "heapMB": 7,
+   "stuck": []
+  },
+  {
+   "n": 26,
+   "game": "rlgl (إشارة المرور)",
+   "tag": "rlgl",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 50,
+   "joined": 50,
+   "rejections": {
+    "notJoined": 253,
+    "withReason": 253,
+    "reasons": {
+     "not_joined:الحالة=waiting، اللعبة ممتلئة N/M": 253
+    }
+   },
+   "roundErr": null,
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 60,
+   "heapMB": 7.2,
+   "stuck": []
+  },
+  {
+   "n": 27,
+   "game": "tt10",
+   "tag": "tt10",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "waiting",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 303,
+   "joined": 303,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "statusAfterStart": "waiting",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 82,
+   "heapMB": 7.2,
+   "stuck": []
+  },
+  {
+   "n": 28,
+   "game": "glz (الزجاج)",
+   "tag": "glz",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": "lobby",
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    true,
+    true,
+    true
+   ],
+   "expected": 40,
+   "joined": 40,
+   "rejections": {
+    "notJoined": 263,
+    "withReason": 263,
+    "reasons": {
+     "not_joined:الحالة=lobby، اللعبة ممتلئة N/M": 263
+    }
+   },
+   "statusAfterStart": "lobby",
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 2,
+   "maxTaskMs": 62,
+   "heapMB": 7.5,
+   "stuck": []
+  },
+  {
+   "n": 29,
+   "game": "volcanic-lands",
+   "tag": "volcanic-lands",
+   "launchErr": null,
+   "listeners": 1,
+   "statusAtJoin": null,
+   "dotAfterLaunch": "on",
+   "formsJoined": [
+    null,
+    null,
+    null
+   ],
+   "expected": 60,
+   "joined": 60,
+   "rejections": {
+    "notJoined": 0,
+    "withReason": 0,
+    "reasons": {}
+   },
+   "roundErr": null,
+   "statusAfterStart": null,
+   "listenersAfterHome": 0,
+   "pageErrors": [],
+   "consoleErrors": [],
+   "longTasksOver50ms": 9,
+   "maxTaskMs": 83,
+   "heapMB": 7.8,
+   "stuck": []
+  }
+ ]
+}
