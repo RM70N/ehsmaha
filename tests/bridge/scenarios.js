@@ -166,7 +166,11 @@ async function offline(browser, deadMs = 70000) {
   }
   await sleep(1000);
   const joined = await page.evaluate(() => [...sniperParticipants.keys()].map((k) => k.replace('tiktok:', '')));
-  const res = { deadMs, detectedDeadAfterSec: detectedAt, reconnectedAfterSilenceEndsMs: back, missedReplayed: [0, 1, 2].map((i) => joined.includes('missed_' + i)), participants: joined, duplicatesInChat: await page.evaluate(() => { const t = [...document.querySelectorAll('#pg-sniper .chat-item')].map((x) => x.textContent); return t.length - new Set(t).size; }), samples, dotAfter: await page.evaluate(() => (document.getElementById('sniper-dot') || {}).className), pillVisibleAfter: await page.evaluate(() => !!(document.getElementById('conn-status-pill') && document.getElementById('conn-status-pill').style.display !== 'none')), errors: page._errors };
+  // سجل تغيّرات الحالة (homeConnState.tiktok.history) — دليل صريح بدل عيّنات كل 5ث
+  const hist = await page.evaluate((t0) => (homeConnState.tiktok.history || []).filter((h) => h.at >= t0).map((h) => ({ t: +((h.at - t0) / 1000).toFixed(1), from: h.from, to: h.to })), t0);
+  const firstDown = hist.find((h) => h.to !== 'connected');
+  const backUp = firstDown && hist.find((h) => h.to === 'connected' && h.t >= firstDown.t);
+  const res = { deadMs, connHistory: hist, detectedDeadAtSec: firstDown ? firstDown.t : null, connectedAgainAtSec: backUp ? backUp.t : null, detectedDeadAfterSampleSec: detectedAt, reconnectedAfterSilenceEndsMs: back, missedReplayed: [0, 1, 2].map((i) => joined.includes('missed_' + i)), participants: joined, duplicatesInChat: await page.evaluate(() => { const t = [...document.querySelectorAll('#pg-sniper .chat-item')].map((x) => x.textContent); return t.length - new Set(t).size; }), samples, dotAfter: await page.evaluate(() => (document.getElementById('sniper-dot') || {}).className), pillVisibleAfter: await page.evaluate(() => !!(document.getElementById('conn-status-pill') && document.getElementById('conn-status-pill').style.display !== 'none')), errors: page._errors };
   await page.context().close();
   return res;
 }

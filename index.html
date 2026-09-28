@@ -23790,7 +23790,8 @@ function connDiagRender() {
   const conns = Object.keys(homeConnections).map(p => {
     const cs = homeConnState[p] || {}, slot = homeConnections[p] || {};
     const age = cs.lastEventAt ? Math.round((now - cs.lastEventAt) / 1000) + 'ث' : '—';
-    return '<div>🔌 <b>' + esc(p) + '</b> @' + esc(slot.username || '') + ' — ' + esc(cs.state || '?') + ' · آخر حدث ' + age + ' · ' + (cs.eps || 0) + ' حدث/ث · نبض ' + (cs.pingSeen ? '✔' : '—') + (slot.attempts ? ' · محاولة ' + slot.attempts : '') + '</div>';
+    const hist = (cs.history || []).slice(-4).map(h => new Date(h.at).toLocaleTimeString('ar', { hour12: false }) + ' ' + h.to).join(' ← ');
+    return '<div>🔌 <b>' + esc(p) + '</b> @' + esc(slot.username || '') + ' — ' + esc(cs.state || '?') + ' · آخر حدث ' + age + ' · ' + (cs.eps || 0) + ' حدث/ث · نبض ' + (cs.pingSeen ? '✔' : '—') + (slot.attempts ? ' · محاولة ' + slot.attempts : '') + '</div>' + (hist ? '<div style="opacity:.7">↳ ' + esc(hist) + '</div>' : '');
   }).join('') || '<div>🔌 ما فيه اتصال مربوط</div>';
   const tags = Object.keys(homeGameListeners);
   const rows = joinDiagLog.slice(-25).reverse().map(x => {
@@ -24174,7 +24175,7 @@ const CONN_STATE_LABELS = {
 
 function homeConnGet(platform) {
   if (!homeConnState[platform]) {
-    homeConnState[platform] = { state: 'connecting', since: Date.now(), lastEventAt: 0, pingSeen: false, lastId: '', seen: new Set(), seenQ: [], evCount: 0, evWindowAt: Date.now(), eps: 0, wasDown: false };
+    homeConnState[platform] = { state: 'connecting', since: Date.now(), lastEventAt: 0, pingSeen: false, lastId: '', seen: new Set(), seenQ: [], evCount: 0, evWindowAt: Date.now(), eps: 0, wasDown: false, history: [] };
   }
   return homeConnState[platform];
 }
@@ -24185,6 +24186,8 @@ function homeConnSetState(platform, state) {
   const prev = cs.state;
   cs.state = state;
   cs.since = Date.now();
+  cs.history.push({ at: cs.since, from: prev, to: state });
+  if (cs.history.length > 30) cs.history.shift();
   // تنبيه الستريمر بالانقطاع والرجوع — فقط وهو داخل لعبة (فيه معالج مسجّل)
   const inGame = Object.keys(homeGameListeners).length > 0;
   if (prev === 'connected' && state !== 'connected') {
