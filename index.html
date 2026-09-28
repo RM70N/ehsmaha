@@ -23543,10 +23543,17 @@ function tiktokAttachAccountToGames(username) {
   const uname = String(username || '').trim().replace(/^@/, '');
   if (!uname) return;
   const slot = homeConnections.tiktok;
+  // اتصال واحد لكل حساب: سوكيت المودال (window._tkModalSock) كان يبقى مفتوحاً للأبد
+  // بجانب سوكيت الناقل لنفس اليوزر — ضعف الرسائل على السيرفر بلا فائدة. بعد ما
+  // يتصل الناقل نقفله (أحداثه أصلاً ما كانت تروح إلا لمراقب المودال).
+  const closeModalSock = () => {
+    try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
+    window._tkModalSock = null;
+  };
   // الناقل موصول أصلاً بنفس الحساب — لا نقطع اتصالاً شغّالاً.
-  if (slot && slot.ws && String(slot.username || '').toLowerCase() === uname.toLowerCase()) return;
+  if (slot && slot.ws && String(slot.username || '').toLowerCase() === uname.toLowerCase()) { closeModalSock(); return; }
   platformConnect('tiktok', { username: uname }, homeDispatchToGameListeners, function (p, status) {
-    if (status === 'connected') homeUpdateConnectionBadge(true, 'تيك توك');
+    if (status === 'connected') { homeUpdateConnectionBadge(true, 'تيك توك'); closeModalSock(); }
     else if (status === 'disabled' || status === 'failed') homeUpdateConnectionBadge(false, '');
   });
 }
