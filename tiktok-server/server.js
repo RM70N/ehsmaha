@@ -71,6 +71,22 @@ const PORT = process.env.PORT || 8080;
 const RECONNECT_DELAY_MS = 5000;
 const NOT_LIVE_RETRY_DELAY_MS = 20000;
 const ROOM_IDLE_GRACE_MS = 5000; // مهلة قبل إغلاق الغرفة بعد خروج آخر عميل (يتجنب فتح/إغلاق سريع عند إعادة تحميل الصفحة)
+// آخر عميل انقطع انقطاعاً غير طبيعي (شبكة/نوم جهاز/نبض ميت — مو close(1000) مقصود):
+// نبقي الغرفة واتصال تيك توك دقيقة كاملة، فلما يرجع يلقى نفس الغرفة ويستلم ما فاته.
+const ROOM_ABNORMAL_GRACE_MS = 60000;
+
+// ---------------- نبض الاتصال + إعادة إرسال ما فات (كل المنصات) ----------------
+// ping/pong على مستوى البروتوكول يكشف العملاء الميتين (TCP مقطوع بصمت) ويطردهم،
+// و{type:'bridge_ping'} رسالة تطبيق يشوفها المتصفح (المتصفح ما يكشف ping للجافاسكربت)
+// عشان يعرف إن الاتصال حي حتى لو الشات هادي، ويعيد الاتصال لو انقطعت.
+const HEARTBEAT_MS = Number(process.env.BRIDGE_HEARTBEAT_MS || 20000);
+// كل حدث شات/هدية/متابعة ياخذ id = BOOT_ID.seq، والغرفة تحفظ آخر REPLAY_MAX حدث
+// (بحد أقصى REPLAY_WINDOW_MS). العميل يرسل ?since=<آخر id> عند إعادة الاتصال فنرسل
+// له ما فاته. BOOT_ID يتغير مع كل تشغيل للسيرفر، فالـids القديمة بعد إعادة تشغيل
+// ما تطابق (المخزن ضاع أصلاً) — ما نرسل شيء خطأ.
+const BOOT_ID = Date.now().toString(36);
+const REPLAY_MAX = 300;
+const REPLAY_WINDOW_MS = 90000;
 
 // ---------------- سياسة إعادة المحاولة — تيك توك فقط ----------------
 // هذه الثوابت تُستخدم داخل TikTokRoom وحدها — يوتيوب/كيك يكملان على
@@ -376,18 +392,44 @@ class BaseRoom {
     this.reconnectTimer = null;
     this.closeTimer = null;
     this.lastExtra = null;
+    this.seq = 0;
+    this.replay = []; // [{ seq, at, msg }]
   }
 
-  addClient(ws) {
+  addClient(ws, since) {
     if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
     this.clients.add(ws);
     this.sendTo(ws, buildStatus(this.state, this.messageForState(this.state, this.lastExtra), this.lastExtra));
+    this.replaySince(ws, since);
   }
 
-  removeClient(ws) {
-    this.clients.delete(ws);
+  removeClient(ws, abnormal) {
+    if (!this.clients.delete(ws)) return;
     if (this.clients.size === 0 && !this.closeTimer) {
-      this.closeTimer = setTimeout(() => this.teardown(), ROOM_IDLE_GRACE_MS);
+      this.closeTimer = setTimeout(() => this.teardown(), abnormal ? ROOM_ABNORMAL_GRACE_MS : ROOM_IDLE_GRACE_MS);
+    }
+  }
+
+  // يوسم كل حدث بـid ويحفظه بمخزن الإعادة ثم يبثه.
+  broadcastEvents(messages) {
+    const now = Date.now();
+    for (const msg of messages) {
+      msg.id = BOOT_ID + '.' + (++this.seq);
+      this.replay.push({ seq: this.seq, at: now, msg });
+    }
+    while (this.replay.length > REPLAY_MAX || (this.replay.length && now - this.replay[0].at > REPLAY_WINDOW_MS)) this.replay.shift();
+    this.broadcast({ messages });
+  }
+
+  replaySince(ws, since) {
+    const m = /^([a-z0-9]+)\.(\d+)$/.exec(String(since || ''));
+    if (!m || m[1] !== BOOT_ID) return;
+    const after = Number(m[2]);
+    const cutoff = Date.now() - REPLAY_WINDOW_MS;
+    const missed = this.replay.filter((e) => e.seq > after && e.at >= cutoff).map((e) => e.msg);
+    if (missed.length) {
+      log('info', this.key + ' — إعادة إرسال ' + missed.length + ' حدث فات العميل أثناء الانقطاع');
+      this.sendTo(ws, { messages: missed, replay: true });
     }
   }
 
@@ -524,7 +566,7 @@ class TikTokRoom extends BaseRoom {
         this.followSamples++;
         log('info', '@' + this.uniqueId + ' — عيّنة حقول المتابعة #' + this.followSamples + ': ' + followFieldsSample(data));
       }
-      this.broadcast({ messages: [buildTikTokComment(data)] });
+      this.broadcastEvents([buildTikTokComment(data)]);
     });
 
     conn.on(WebcastEvent.GIFT, (data) => {
@@ -533,11 +575,11 @@ class TikTokRoom extends BaseRoom {
       // عند انتهائه حتى لا تُحتسب الهدية مضاعفة بالألعاب.
       const giftType = data.gift && data.gift.type;
       if (giftType === 1 && !data.repeatEnd) return;
-      this.broadcast({ messages: [buildTikTokGift(data)] });
+      this.broadcastEvents([buildTikTokGift(data)]);
     });
 
     conn.on(WebcastEvent.FOLLOW, (data) => {
-      this.broadcast({ messages: [buildTikTokFollow(data)] });
+      this.broadcastEvents([buildTikTokFollow(data)]);
     });
 
     conn.on(WebcastEvent.LIKE, (data) => {
@@ -1056,15 +1098,18 @@ wss.on('connection', async (ws, req) => {
 
   log('info', platform + ':' + checkId + ' — عميل جديد اتصل');
   const room = getOrCreateRoom(platform, rawUser);
-  room.addClient(ws);
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+  room.addClient(ws, url.searchParams.get('since'));
 
-  ws.on('close', () => {
-    room.removeClient(ws);
-    log('info', platform + ':' + checkId + ' — عميل انفصل');
+  ws.on('close', (code) => {
+    // 1000/1001 = العميل قفل عمداً (خرج/بدّل الحساب) — غير ذلك انقطاع يستاهل مهلة أطول
+    room.removeClient(ws, code !== 1000 && code !== 1001);
+    log('info', platform + ':' + checkId + ' — عميل انفصل (' + code + ')');
   });
 
   ws.on('error', () => {
-    room.removeClient(ws);
+    room.removeClient(ws, true);
   });
 });
 
@@ -1093,6 +1138,17 @@ function startKeepAlive() {
   timer.unref();
   log('info', 'Keep-Alive مفعّل — ' + url + ' كل 5 دقائق');
 }
+
+const heartbeatTimer = setInterval(() => {
+  const ping = JSON.stringify({ type: 'bridge_ping', t: Date.now() });
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) { try { ws.terminate(); } catch (e) { /* ignore */ } continue; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) { /* ignore */ }
+    if (ws.readyState === WebSocket.OPEN) { try { ws.send(ping); } catch (e) { /* ignore */ } }
+  }
+}, HEARTBEAT_MS);
+heartbeatTimer.unref();
 
 initFirestore();
 server.listen(PORT, () => {
