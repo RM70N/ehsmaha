@@ -51287,9 +51287,13 @@ function chairsRevealChairs(chairCount) {
   // chairsParticipants/chairsRemoveParticipant ومو له علاقة بهذا الـSet.
   chairsKickedDuringRound.clear();
 
+  // أرقام الكراسي عشوائية من 1-100 كما هي؛ بس لو الكراسي أكثر من 100 (أكثر من
+  // 101 لاعب) كانت الحلقة ما تنتهي أبداً (مستحيل 101 رقم مختلف من 100) وتجمّد
+  // الصفحة كلها. النطاق يتوسّع فقط بهالحالة (رقم الكرسي بالشات يقبل حتى 3 خانات).
   const numbers = new Set();
+  const chairNumberRange = Math.max(100, chairCount);
   while (numbers.size < chairCount) {
-    numbers.add(1 + Math.floor(Math.random() * 100));
+    numbers.add(1 + Math.floor(Math.random() * chairNumberRange));
   }
   chairsActiveChairNumbers = [...numbers];
 
