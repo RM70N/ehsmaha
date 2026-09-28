@@ -85,7 +85,9 @@ async function outage(browser, downMs = 60000) {
   const sample = async (label) => timeline.push(Object.assign({ t: Math.round((Date.now() - t0) / 1000), label }, await page.evaluate(() => ({
     has: homeHasActiveConnection(),
     slot: homeConnections.tiktok ? { attempts: homeConnections.tiktok.attempts, ws: !!homeConnections.tiktok.ws } : null,
-    state: typeof homeConnState !== 'undefined' ? homeConnState.tiktok : undefined,
+    state: typeof homeConnState !== 'undefined' && homeConnState.tiktok ? homeConnState.tiktok.state : undefined,
+    pillVisible: !!(document.getElementById('conn-status-pill') && document.getElementById('conn-status-pill').style.display !== 'none'),
+    pill: (document.getElementById('conn-status-pill') || {}).textContent || null,
     dot: (document.querySelector('#pg-sniper .dot') || {}).className,
   }))));
   for (let t = 0; t < downMs; t += 10000) { await sleep(10000); await sample('down'); }
@@ -104,6 +106,43 @@ async function outage(browser, downMs = 60000) {
   }
   await sample('end');
   const res = { downMs, recoveredAfterServerUpMs: recoveredAfterMs, timeline, errors: page._errors };
+  await page.context().close();
+  return res;
+}
+
+// P0-2: اتصال ميت بصمت 70ث أثناء الراوند (السيرفر يرسل بس ولا شيء يوصل، بدون close) مع
+// أحداث تنكتب وقت الانقطاع — هل يكتشفه المراقب ويعيد الاتصال، وهل تنعاد الأحداث اللي
+// فاتت بدون تكرار؟ (setOffline بـPlaywright ما يقطع اتصال localhost القائم، فاستبدلناه.)
+async function offline(browser, deadMs = 70000) {
+  const page = await H.newPage(browser);
+  await H.linkAccount(page, STREAMER);
+  const g = games.find((x) => x.tag === 'sniper');
+  await H.launch(page, g);
+  await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'before_drop', text: g.kw, identity: { isFollowerOfAnchor: true } });
+  await sleep(500);
+  const t0 = Date.now();
+  await H.ctl(H.PRIMARY, { cmd: 'blackhole', ms: deadMs });
+  await sleep(2000);
+  for (let i = 0; i < 3; i++) await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'missed_' + i, text: g.kw, identity: { isFollowerOfAnchor: true } });
+  const samples = [];
+  let detectedAt = null;
+  while (Date.now() - t0 < deadMs) {
+    await sleep(5000);
+    const smp = await page.evaluate(() => ({ state: typeof homeConnState !== 'undefined' && homeConnState.tiktok ? homeConnState.tiktok.state : null, has: homeHasActiveConnection(), dot: (document.getElementById('sniper-dot') || {}).className, pillVisible: !!(document.getElementById('conn-status-pill') && document.getElementById('conn-status-pill').style.display !== 'none'), pill: (document.getElementById('conn-status-pill') || {}).textContent || null }));
+    smp.t = Math.round((Date.now() - t0) / 1000);
+    samples.push(smp);
+    if (detectedAt == null && smp.state && smp.state !== 'connected') detectedAt = smp.t;
+  }
+  const upAt = Date.now();
+  let back = null;
+  for (let i = 0; i < 60; i++) {
+    await sleep(1000);
+    const st = await page.evaluate(() => (typeof homeConnState !== 'undefined' && homeConnState.tiktok ? homeConnState.tiktok.state : null));
+    if (st === 'connected') { back = Date.now() - upAt; break; }
+  }
+  await sleep(1000);
+  const joined = await page.evaluate(() => [...sniperParticipants.keys()].map((k) => k.replace('tiktok:', '')));
+  const res = { deadMs, detectedDeadAfterSec: detectedAt, reconnectedAfterSilenceEndsMs: back, missedReplayed: [0, 1, 2].map((i) => joined.includes('missed_' + i)), participants: joined, duplicatesInChat: await page.evaluate(() => { const t = [...document.querySelectorAll('#pg-sniper .chat-item')].map((x) => x.textContent); return t.length - new Set(t).size; }), samples, dotAfter: await page.evaluate(() => (document.getElementById('sniper-dot') || {}).className), pillVisibleAfter: await page.evaluate(() => !!(document.getElementById('conn-status-pill') && document.getElementById('conn-status-pill').style.display !== 'none')), errors: page._errors };
   await page.context().close();
   return res;
 }
@@ -150,7 +189,7 @@ async function sockets(browser) {
 (async () => {
   await H.serveSite();
   const browser = await H.launchBrowser();
-  const run = { follow, listeners, outage, load, sockets };
+  const run = { follow, listeners, outage, offline, load, sockets };
   for (const k of Object.keys(run)) {
     if (which !== 'all' && which !== k) continue;
     try { out[k] = await run[k](browser); } catch (e) { out[k] = { crashed: e.message }; }

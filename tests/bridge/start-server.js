@@ -9,6 +9,7 @@
 //   {cmd:'defaultMode', mode} / {cmd:'connectDelay', ms}
 //   {cmd:'chat', user, viewer, text, nickname?, identity?, followStatus?}
 //   {cmd:'burst', user, count, prefix, text, identity?, perMs?}   دفعة رسائل من مشاهدين مختلفين
+//   {cmd:'blackhole', ms}   لا شيء يوصل للعملاء (ولا ping) مدة ms — اتصال ميت بصمت
 //   {cmd:'follow', user, viewer} / {cmd:'dropUpstream', user} / {cmd:'streamEnd', user}
 //   GET /stats  -> { upstreamLive, connectCalls, connectCallsByUser, rss }
 const path = require('path');
@@ -23,6 +24,20 @@ m.filename = resolved; m.loaded = true; m.exports = fake;
 require.cache[resolved] = m;
 
 const ctl = fake.__ctl;
+// "ثقب أسود": يحاكي اتصال TCP ميت بصمت — السيرفر يظن إنه يرسل (send/ping) لكن ولا
+// شيء يوصل، والاتصال ما ينقفل من جهة العميل. نرقّع نفس مكتبة ws اللي يستخدمها السيرفر.
+const WSLib = require(require.resolve('ws', { paths: [serverDir] }));
+// يطبّق فقط على الاتصالات الموجودة لحظة بدء الثقب — الاتصالات الجديدة (إعادة اتصال
+// العميل) تشتغل طبيعي، مثل الواقع: الجهاز رجع يفتح اتصال جديد سليم.
+let blackholeUntil = 0, blackholeStart = 0;
+for (const fn of ['send', 'ping']) {
+  const orig = WSLib.WebSocket.prototype[fn];
+  WSLib.WebSocket.prototype[fn] = function () {
+    if (!this.__born) this.__born = Date.now();
+    if (Date.now() < blackholeUntil && this.__born <= blackholeStart) return;
+    return orig.apply(this, arguments);
+  };
+}
 require(path.join(serverDir, 'server.js'));
 
 const CTL_PORT = Number(process.env.CTL_PORT || 19081);
@@ -39,6 +54,7 @@ http.createServer((req, res) => {
     switch (b.cmd) {
       case 'mode': ctl.mode[u] = b.mode; return send(200, { ok: true });
       case 'defaultMode': ctl.defaultMode = b.mode; return send(200, { ok: true });
+      case 'blackhole': blackholeStart = Date.now(); blackholeUntil = blackholeStart + (Number(b.ms) || 0); return send(200, { until: blackholeUntil });
       case 'connectDelay': ctl.connectDelayMs = Number(b.ms) || 0; return send(200, { ok: true });
       case 'chat': return send(200, { delivered: ctl.chat(u, b) });
       case 'follow': return send(200, { delivered: ctl.follow(u, b.viewer) });

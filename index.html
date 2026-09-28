@@ -23192,7 +23192,9 @@ function tiktokBridgeWarmUp() {
 // نفسه) وإغلاق المستدعي ما تسبب أي تبديل وتوصل onClose كما كانت.
 const TIKTOK_WS_FAILOVER_CLOSE_CODES = [1006, 1011, 1012, 1013, 1014, 1015];
 
-function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose) {
+// opts (اختياري): { query: () => '&since=...' } — يُضاف لرابط كل محاولة (بما فيها
+// التحويل للاحتياطي) حتى يعيد السيرفر إرسال الأحداث اللي فاتت أثناء الانقطاع.
+function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
   const n = TIKTOK_BRIDGE_SERVERS.length;
   let tried = 0;
   let sock = null;
@@ -23201,7 +23203,8 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose) {
 
   function attempt(index) {
     let s;
-    try { s = new WebSocket(tiktokBridgeWsUrlAt(index, username)); } catch (e) { return false; }
+    const extra = (opts && typeof opts.query === 'function') ? (opts.query() || '') : '';
+    try { s = new WebSocket(tiktokBridgeWsUrlAt(index, username) + extra); } catch (e) { return false; }
     tried++;
     sock = s;
     const startedAt = Date.now();
@@ -24010,6 +24013,144 @@ function platformBadgeFor(platform) {
   return meta ? meta.icon : '';
 }
 
+// ---------- حالة الاتصال المركزية (مصدر الحقيقة لمؤشر كل الألعاب) ----------
+// homeConnState[platform] = { state, since, lastEventAt, pingSeen, lastId, evCount, ... }
+// state: connecting | connected | not_live | reconnecting | failed | disabled
+// قبل: homeHasActiveConnection() كانت تعني "كائن سوكيت موجود" فقط، ومؤشر اللعبة
+// (مثلاً cr-dot) يبقى "connecting" للأبد، والانقطاع أثناء الراوند ما يعرفه أحد.
+let homeConnState = {};
+const CONN_WATCHDOG_MS = 45000;      // لا حدث ولا bridge_ping خلال هذي المدة = الاتصال ميت (السيرفر ينبض كل 20ث)
+const TIKTOK_RETRY_BASE_MS = 2000;   // تيك توك: إعادة محاولة بلا حد — تراجع أسي من 2ث...
+const TIKTOK_RETRY_MAX_MS = 30000;   // ...حتى 30ث (+ jitter)، مع إيقاظ السيرفر قبل كل محاولة
+const CONN_STATE_LABELS = {
+  connected: 'متصل بشات البث',
+  connecting: 'جاري الاتصال بشات البث…',
+  reconnecting: 'انقطع اتصال الشات — نعيد الربط تلقائياً…',
+  not_live: 'البث مو شغال الآن — نربط تلقائياً أول ما يفتح',
+  failed: 'تعذّر الاتصال بالشات — نكمل المحاولة',
+  disabled: 'الحساب معطّل من إدارة المنصة',
+};
+
+function homeConnGet(platform) {
+  if (!homeConnState[platform]) {
+    homeConnState[platform] = { state: 'connecting', since: Date.now(), lastEventAt: 0, pingSeen: false, lastId: '', seen: new Set(), seenQ: [], evCount: 0, evWindowAt: Date.now(), eps: 0, wasDown: false };
+  }
+  return homeConnState[platform];
+}
+
+function homeConnSetState(platform, state) {
+  const cs = homeConnGet(platform);
+  if (cs.state === state) return;
+  const prev = cs.state;
+  cs.state = state;
+  cs.since = Date.now();
+  // تنبيه الستريمر بالانقطاع والرجوع — فقط وهو داخل لعبة (فيه معالج مسجّل)
+  const inGame = Object.keys(homeGameListeners).length > 0;
+  if (prev === 'connected' && state !== 'connected') {
+    cs.wasDown = true;
+    if (inGame) toast('⚠️ ' + CONN_STATE_LABELS[state]);
+  } else if (state === 'connected' && cs.wasDown) {
+    cs.wasDown = false;
+    if (inGame) toast('✅ رجع اتصال شات البث');
+  }
+  homeConnStatusRender();
+}
+
+// حالة واحدة تمثّل كل المنصات الموصولة (أفضلها): متصل لو أي منصة متصلة.
+function homeConnOverall() {
+  const ps = Object.keys(homeConnections).filter(p => homeConnections[p]);
+  if (!ps.length) return null;
+  const order = ['connected', 'not_live', 'reconnecting', 'connecting', 'failed', 'disabled'];
+  let best = 'disabled';
+  ps.forEach(p => { const st = homeConnGet(p).state; if (order.indexOf(st) < order.indexOf(best)) best = st; });
+  return best;
+}
+
+// مؤشر موحّد: نقطة الاتصال بكل الـ29 لعبة (div.dot[id$=dot]) + شريط حالة يظهر
+// داخل اللعبة فقط لما الاتصال مو "متصل".
+function homeConnStatusRender() {
+  const overall = homeConnOverall();
+  const cls = overall === 'connected' ? '' : ((!overall || overall === 'failed' || overall === 'disabled') ? 'off' : 'connecting');
+  const label = overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط — اربط من الصفحة الرئيسية';
+  document.querySelectorAll('div.dot[id$="dot"]').forEach(el => {
+    el.classList.remove('off', 'connecting');
+    if (cls) el.classList.add(cls);
+    el.title = label;
+  });
+  homeConnPillRender();
+}
+
+function homeConnPillRender() {
+  let pill = document.getElementById('conn-status-pill');
+  const overall = homeConnOverall();
+  const inGame = Object.keys(homeGameListeners).length > 0;
+  const show = inGame && overall !== 'connected';
+  if (!pill) {
+    if (!show) return;
+    pill = document.createElement('div');
+    pill.id = 'conn-status-pill';
+    pill.setAttribute('role', 'status');
+    pill.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100001;padding:8px 16px;border-radius:999px;background:rgba(20,10,40,.92);border:1px solid var(--gold);color:#fff;font-size:13px;font-weight:700;box-shadow:0 6px 24px rgba(0,0,0,.4);pointer-events:none;max-width:calc(100% - 32px);text-align:center;';
+    document.body.appendChild(pill);
+  }
+  pill.style.display = show ? '' : 'none';
+  if (!show) return;
+  const cs = homeConnState.tiktok || homeConnState[Object.keys(homeConnections)[0]];
+  const age = cs && cs.lastEventAt ? Math.round((Date.now() - cs.lastEventAt) / 1000) : null;
+  pill.style.borderColor = (overall === 'failed' || overall === 'disabled' || !overall) ? 'var(--red)' : 'var(--gold)';
+  pill.textContent = '⚠️ ' + (overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط') + (age != null && age > 5 ? ' · آخر حدث قبل ' + age + 'ث' : '');
+}
+
+// id الحدث من السيرفر = BOOT_ID.seq — نقارن الرقم فقط داخل نفس التشغيل.
+function homeConnIdNewer(a, b) {
+  if (!b) return true;
+  const [ab, as] = String(a).split('.'), [bb, bs] = String(b).split('.');
+  return ab !== bb || Number(as) > Number(bs);
+}
+
+// كل 5ث: اتصال "مفتوح" بس ما وصله ولا نبض ولا حدث من 45ث = ميت بصمت (TCP مقطوع،
+// جهاز نام، proxy قفل) ← نعيد الاتصال فوراً. المراقبة تبدأ فقط بعد أول bridge_ping
+// على هذا الاتصال، حتى ما نقطع اتصالاً سليماً لو كان السيرفر نسخة قديمة بلا نبض.
+function homeConnWatchdogTick() {
+  const now = Date.now();
+  Object.keys(homeConnections).forEach(p => {
+    const slot = homeConnections[p], cs = homeConnState[p];
+    if (cs && now - cs.evWindowAt >= 5000) { cs.eps = +(cs.evCount / ((now - cs.evWindowAt) / 1000)).toFixed(1); cs.evCount = 0; cs.evWindowAt = now; }
+    if (!slot || !cs || !slot.ws || !cs.pingSeen) return;
+    if (now - cs.lastEventAt > CONN_WATCHDOG_MS) {
+      console.log('[INFO] [Conn] ' + p + ': ما وصل شيء من ' + Math.round((now - cs.lastEventAt) / 1000) + 'ث — إعادة اتصال');
+      cs.pingSeen = false;
+      homeConnSetState(p, 'reconnecting');
+      slot.attempts++;
+      homeConnReconnectNow(p);
+    }
+  });
+  homeConnPillRender();
+  if (typeof connDiagRender === 'function') connDiagRender();
+}
+setInterval(homeConnWatchdogTick, 5000);
+
+function homeConnReconnectNow(platform) {
+  const slot = homeConnections[platform];
+  if (!slot || typeof slot.reconnectNow !== 'function') return;
+  if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
+  const go = () => { if (homeConnections[platform] === slot) slot.reconnectNow(); };
+  if (platform === 'tiktok') tiktokBridgeWarmUp().then(go); else go();
+}
+
+// رجوع الشبكة أو رجوع التبويب بعد نوم الجهاز: لا ننتظر مؤقّت التراجع.
+function homeConnKickAll() {
+  const now = Date.now();
+  Object.keys(homeConnections).forEach(p => {
+    const slot = homeConnections[p], cs = homeConnState[p];
+    if (!slot) return;
+    const stale = cs && cs.pingSeen && now - cs.lastEventAt > CONN_WATCHDOG_MS;
+    if (!slot.ws || stale) homeConnReconnectNow(p);
+  });
+}
+window.addEventListener('online', homeConnKickAll);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') homeConnKickAll(); });
+
 // ---------- فتح اتصال واحد لمنصة واحدة ----------
 // onEvent يستقبل الحدث الخام الموحّد ({messages:[...]}) بعد وسم كل رسالة
 // بمنصتها. onStatus(platform, status) حيث status:
@@ -24020,11 +24161,32 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   slot.username = (creds && creds.username) || '';
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
+  const cs = homeConnGet(platform);
+  cs.pingSeen = false;
+  homeConnSetState(platform, slot.attempts > 0 ? 'reconnecting' : 'connecting');
+  // إعادة اتصال فورية بنفس البيانات (المراقب/online/رجوع التبويب)
+  slot.reconnectNow = () => platformConnect(platform, creds, onEvent, onStatus);
 
   // يوسم كل رسالة بمنصتها ويحوّل uniqueId لمعرّف مركّب فريد.
   function dispatch(rawData) {
     if (!rawData) return;
-    const messages = rawData.messages || (rawData.type ? [rawData] : []);
+    if (isStale()) return; // سوكيت قديم استُبدل — أحداثه (لو تأخرت) ما تتكرر مع الجديد
+    cs.lastEventAt = Date.now();
+    // نبض السيرفر: يثبت إن الاتصال حي حتى لو الشات هادي — ما يوصل للألعاب
+    if (rawData.type === 'bridge_ping') { cs.pingSeen = true; return; }
+    if (rawData.type === 'bridge_status') homeConnFromBridgeStatus(platform, rawData, slot);
+    let messages = rawData.messages || (rawData.type ? [rawData] : []);
+    // أحداث الإعادة (replay) بعد رجوع الاتصال قد تتكرر مع ما وصل — نزيلها بالـid
+    messages = messages.filter(m => {
+      if (!m || !m.id) return true;
+      if (cs.seen.has(m.id)) return false;
+      cs.seen.add(m.id); cs.seenQ.push(m.id);
+      if (cs.seenQ.length > 1000) cs.seen.delete(cs.seenQ.shift());
+      if (homeConnIdNewer(m.id, cs.lastId)) cs.lastId = m.id;
+      return true;
+    });
+    if (!messages.length) return;
+    cs.evCount += messages.length;
     messages.forEach(msg => {
       if (!msg) return;
       msg.sourcePlatform = platform;
@@ -24041,6 +24203,22 @@ function platformConnect(platform, creds, onEvent, onStatus) {
 
   function retry() {
     slot.attempts++;
+    // تيك توك: بلا حد أقصى — تراجع أسي حتى 30ث + jitter، وإيقاظ السيرفر (Cold Start
+    // على Render ياخذ 30-60ث) قبل كل محاولة. قبل: 6 محاولات × 4ث = ~24ث ثم "failed"
+    // نهائي بدون أي رجوع حتى لو رجع السيرفر بعد دقيقة.
+    if (platform === 'tiktok') {
+      const delay = Math.min(TIKTOK_RETRY_MAX_MS, TIKTOK_RETRY_BASE_MS * Math.pow(2, Math.min(slot.attempts - 1, 5))) + Math.floor(Math.random() * 1000);
+      slot.timer = setTimeout(() => {
+        slot.timer = null;
+        slot.warming = true;
+        tiktokBridgeWarmUp().then(() => {
+          slot.warming = false;
+          if (homeConnections[platform] !== slot || slot.ws) return; // انفصل أو اتصل بطريق ثاني أثناء الإيقاظ
+          platformConnect(platform, creds, onEvent, onStatus);
+        });
+      }, delay);
+      return;
+    }
     // ديسكورد: الانقطاع غالباً لأن الستريمر طلع من المتصفح (جوال) — نكمل نحاول بلا
     // حد وبمهلة تكبر لين 30 ثانية، والرسائل اللي فاتت ترجع من البوت أول ما يتصل.
     // (الرفض الدائم — رقم غلط/روم خاص — يوقف فوراً بكود 4404 تحت.)
@@ -24048,7 +24226,7 @@ function platformConnect(platform, creds, onEvent, onStatus) {
       slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), Math.min(PLATFORM_RETRY_MS * slot.attempts, 30000));
       return;
     }
-    if (slot.attempts > PLATFORM_MAX_RETRIES) { if (onStatus) onStatus(platform, 'failed'); return; }
+    if (slot.attempts > PLATFORM_MAX_RETRIES) { homeConnSetState(platform, 'failed'); if (onStatus) onStatus(platform, 'failed'); return; }
     slot.timer = setTimeout(() => platformConnect(platform, creds, onEvent, onStatus), PLATFORM_RETRY_MS);
   }
   // اتصال قديم (استُبدل بـplatformConnect جديد أو أُغلق عمداً بـplatformDisconnect):
@@ -24058,22 +24236,24 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   let mySock = null;
   let assigned = false;
   const isStale = () => assigned && (homeConnections[platform] !== slot || slot.ws !== mySock);
-  function onOpen() { if (isStale()) return; slot.attempts = 0; if (onStatus) onStatus(platform, 'connected'); }
+  function onOpen() { if (isStale()) return; slot.attempts = 0; homeConnSetState(platform, 'connected'); if (onStatus) onStatus(platform, 'connected'); }
   // 4403 = السيرفر رفض الاتصال لأن الحساب معطّل من الإدارة — رفض دائم،
   // إعادة المحاولة عبثية وتُحمّل السيرفر بلا فائدة.
   function onClose(e) {
     if (isStale()) return;
     slot.ws = null;
-    if (e && e.code === 4403) { delete homeConnections[platform]; if (onStatus) onStatus(platform, 'disabled'); return; }
+    if (e && e.code === 4403) { homeConnSetState(platform, 'disabled'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'disabled'); return; }
     // 4404 = روم ديسكورد مرفوض (رقم غلط/روم خاص/البوت ما يشوفه) — رفض دائم
-    if (e && e.code === 4404) { delete homeConnections[platform]; if (onStatus) onStatus(platform, 'failed'); return; }
+    if (e && e.code === 4404) { homeConnSetState(platform, 'failed'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'failed'); return; }
+    homeConnSetState(platform, 'reconnecting');
     if (onStatus) onStatus(platform, 'disconnected');
     retry();
   }
 
   const user = (creds && creds.username) || '';
   if (platform === 'tiktok') {
-    slot.ws = tiktokOpenWS(user, '', dispatch, onOpen, onClose);
+    // ?since=<آخر حدث وصل> — السيرفر يعيد إرسال ما فات أثناء الانقطاع
+    slot.ws = tiktokOpenWS(user, '', dispatch, onOpen, onClose, { query: () => (cs.lastId ? '&since=' + encodeURIComponent(cs.lastId) : '') });
   } else if (platform === 'twitch') {
     slot.ws = twitchOpenIRC(user,
       (displayName, uniqueId, message) => dispatch(twitchEventShape(displayName, uniqueId, message)),
@@ -24090,12 +24270,22 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   if (!slot.ws) delete homeConnections[platform];
 }
 
+function homeConnFromBridgeStatus(platform, st, slot) {
+  if (st.state === 'connected') homeConnSetState(platform, 'connected');
+  else if (st.state === 'not_live') homeConnSetState(platform, 'not_live');
+  else if (st.state === 'reconnecting') homeConnSetState(platform, 'reconnecting');
+  else if (st.state === 'connecting') homeConnSetState(platform, (slot && slot.attempts > 0) || homeConnGet(platform).wasDown ? 'reconnecting' : 'connecting');
+  else if (st.state === 'error') homeConnSetState(platform, st.fatal ? 'failed' : 'reconnecting');
+}
+
 function platformDisconnect(platform) {
   const slot = homeConnections[platform];
   if (!slot) return;
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
   delete homeConnections[platform];
+  delete homeConnState[platform];
+  homeConnStatusRender();
 }
 
 function platformDisconnectAll() {
@@ -24626,14 +24816,20 @@ function homeSetQuickConnectResume(fn) {
 
 function homeRegisterGameListener(tag, handlerFn) {
   homeGameListeners[tag] = handlerFn;
+  // نقطة الاتصال باللعبة تعكس الحالة الفعلية فوراً (دوال launch<Game> تضبطها
+  // 'connecting' وما كان فيه شيء يرجّعها 'on' بالمسار الموحّد).
+  if (typeof homeConnStatusRender === 'function') homeConnStatusRender();
 }
 
 function homeUnregisterGameListener(tag) {
   delete homeGameListeners[tag];
 }
 
+// "الستريمر ربط بثه وما زال مربوطاً": سوكيت مفتوح، أو إعادة اتصال مجدولة/جارية.
+// (قبل: أثناء انتظار إعادة المحاولة slot.ws = null فترفض كل الألعاب البدء بـ
+// "اربط بثك أولاً" مع إن الربط قائم.) الحالة الفعلية (متصل/ينتظر/انقطع) في homeConnState.
 function homeHasActiveConnection() {
-  return platformConnectedList().length > 0;
+  return Object.keys(homeConnections).some(p => { const s = homeConnections[p]; return !!(s && (s.ws || s.timer || s.warming)); });
 }
 
 // تُمرَّر كـonEvent لـplatformConnect(platform, ...) — تستقبل كل
