@@ -175,16 +175,27 @@ function log(level, msg) {
 // في displayId. الصورة في avatarThumb.urlList (مو profilePicture.urls).
 // followStatus يرجع كنص ("0"/"1"/"2")، فالمقارنة الرقمية المباشرة كانت تفشل
 // دائماً حتى للمتابعين الحقيقيين. — هذا القسم لم يتغيّر إطلاقاً.
-function extractTikTokUser(user) {
+// المتابعة الحقيقية (هذا المشاهد متابع للستريمر) تجي بحقل مستقل بالرسالة نفسها:
+// WebcastChatMessage.userIdentity.isFollowerOfAnchor (وكذلك WebcastGiftMessage) —
+// مؤكد من تعريفات tiktok-live-proto v3 بالمكتبة 2.4.x. أما user.followInfo.followStatus
+// فهو حقل من FollowInfo بجانب followingCount/followerCount (بيانات الملف العام)،
+// وما يعبّر عن علاقة المشاهد بالستريمر — الاعتماد عليه وحده كان يحجب المتابعين
+// الحقيقيين بـ"لازم تسوي فولو". نأخذ الاثنين (أيهما إيجابي = متابع)، ونرسل
+// followKnown: true فقط لو وصلنا دليل صريح، حتى تفرّق الواجهة بين "غير متابع"
+// و"غير معروف" (الأخيرة ما تُحجب بصمت).
+function extractTikTokUser(user, identity) {
   if (!user) {
-    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followInfo: { followStatus: 0 } };
+    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followKnown: false, followInfo: { followStatus: 0 } };
   }
   const uniqueId = user.displayId || user.uniqueId || user.userId || user.id || '?';
   const nickname = user.nickname || uniqueId;
   const avatar = (user.avatarThumb && Array.isArray(user.avatarThumb.urlList) && user.avatarThumb.urlList[0]) || '';
 
   const followStatus = Number((user.followInfo && user.followInfo.followStatus) || 0);
-  const following = followStatus === 1 || followStatus === 2;
+  const byStatus = followStatus === 1 || followStatus === 2;
+  const hasIdentity = !!identity && typeof identity === 'object';
+  const byIdentity = hasIdentity && !!(identity.isFollowerOfAnchor || identity.isMutualFollowingWithAnchor || identity.isAnchor);
+  const following = byIdentity || byStatus;
 
   return {
     uniqueId: String(uniqueId),
@@ -192,15 +203,27 @@ function extractTikTokUser(user) {
     profilePictureUrl: avatar,
     followRole: following ? 1 : 0,
     isFollower: following,
+    followKnown: hasIdentity || byStatus,
     followInfo: { followStatus: following ? 1 : 0 },
   };
+}
+
+// عيّنة من الحقول الخام لأول رسائل كل غرفة باللوغات (تشخيص حقول المتابعة على بث
+// حقيقي بدون أي أداة إضافية). العدد قابل للتغيير بمتغيّر البيئة، و0 = بدون تسجيل.
+const FOLLOW_LOG_SAMPLES = Number(process.env.BRIDGE_LOG_FOLLOW_SAMPLES || 5);
+function followFieldsSample(data) {
+  const u = (data && data.user) || {};
+  const id = data && data.userIdentity;
+  return '@' + (u.displayId || u.uniqueId || '?') +
+    ' followStatus=' + JSON.stringify(u.followInfo ? u.followInfo.followStatus : null) +
+    ' userIdentity=' + (id ? JSON.stringify({ follower: !!id.isFollowerOfAnchor, mutual: !!id.isMutualFollowingWithAnchor, anchor: !!id.isAnchor, mod: !!id.isModeratorOfAnchor }) : 'غائب');
 }
 
 // data.content مو data.comment — تحقق فعلي من بث لايف حقيقي (WebcastChatMessage
 // بالمكتبة المثبتة يستخدم content). هذا الحقل هو الأهم بكل الملف لأن كل لعبة
 // تقرأ نص الشات منه لمطابقة الكلمات/الأوامر.
 function buildTikTokComment(data) {
-  const user = extractTikTokUser(data.user);
+  const user = extractTikTokUser(data.user, data.userIdentity);
   const text = data.content || data.comment || '';
   return { type: 'WebcastChatMessage', comment: text, user, timestamp: Date.now() };
 }
@@ -208,7 +231,7 @@ function buildTikTokComment(data) {
 // data.gift (مو data.giftDetails — تحقق من tiktok-live-proto v3 WebcastGiftMessage:
 // الحقل الصحيح gift: Gift، وGift.name/diamondCount/type).
 function buildTikTokGift(data) {
-  const user = extractTikTokUser(data.user);
+  const user = extractTikTokUser(data.user, data.userIdentity);
   const gift = data.gift || {};
   return {
     type: 'WebcastGiftMessage',
@@ -222,7 +245,8 @@ function buildTikTokGift(data) {
 }
 
 function buildTikTokFollow(data) {
-  const user = extractTikTokUser(data.user);
+  // حدث المتابعة نفسه دليل صريح إن هذا المشاهد صار متابعاً الآن.
+  const user = Object.assign(extractTikTokUser(data.user), { isFollower: true, followKnown: true, followRole: 1, followInfo: { followStatus: 1 } });
   return { type: 'WebcastSocialMessage', displayType: 'follow', user, timestamp: Date.now() };
 }
 
@@ -452,6 +476,7 @@ class TikTokRoom extends BaseRoom {
     this.uniqueId = uniqueId;
     this.notLiveRetries = 0;
     this.firstCommentSeen = false;
+    this.followSamples = 0;
     // عدّادات سياسة إعادة المحاولة — تُصفّر كلها عند أول اتصال ناجح فعلي:
     this.failStreak = 0;      // فشل متتالٍ من أي نوع (عدا "مو لايف" — مو فشل أصلاً)
     this.rateLimitStreak = 0; // 429 متتالية — التراجع يتضاعف معها
@@ -493,7 +518,11 @@ class TikTokRoom extends BaseRoom {
     conn.on(WebcastEvent.CHAT, (data) => {
       if (!this.firstCommentSeen) {
         this.firstCommentSeen = true;
-        log('info', '@' + this.uniqueId + ' — أول CommentEvent فعلي وصل: "' + String(data.comment || '').slice(0, 40) + '"');
+        log('info', '@' + this.uniqueId + ' — أول CommentEvent فعلي وصل: "' + String(data.content || data.comment || '').slice(0, 40) + '"');
+      }
+      if (this.followSamples < FOLLOW_LOG_SAMPLES) {
+        this.followSamples++;
+        log('info', '@' + this.uniqueId + ' — عيّنة حقول المتابعة #' + this.followSamples + ': ' + followFieldsSample(data));
       }
       this.broadcast({ messages: [buildTikTokComment(data)] });
     });
