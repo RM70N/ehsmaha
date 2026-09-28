@@ -171,29 +171,43 @@ async function offline(browser, deadMs = 70000) {
   return res;
 }
 
-// P1-6: 300 مشارك خلال 10ث + 200 رسالة/ث — زمن المعالجة والمهام الطويلة
-async function load(browser, tag = 'main', n = 300, spanMs = 10000) {
+// P1-6: 300 مشارك خلال 10ث مع ضجيج شات بمعدل إجمالي ~200 رسالة/ث — زمن المعالجة،
+// المهام الطويلة، كتابات Firestore (liveRoundsMirror)، والذاكرة.
+async function load(browser, tag = 'main', n = 300, spanMs = 10000, noisePerSec = 170) {
   const page = await H.newPage(browser);
   await H.linkAccount(page, STREAMER);
   const g = games.find((x) => x.tag === tag);
   await H.launch(page, g);
   await page.evaluate(() => {
-    window.__long = []; window.__mirrorWrites = 0;
+    window.__long = []; window.__writes = 0; window.__disp = [];
     try { new PerformanceObserver((l) => l.getEntries().forEach((e) => window.__long.push(e.duration))).observe({ type: 'longtask', buffered: false }); } catch (e) {}
-    const o = window.liveRoundsMirror; if (o) window.liveRoundsMirror = function () { window.__mirrorWrites++; return o.apply(this, arguments); };
+    // الكتابة الفعلية: liveRoundsMirrorWrite لو موجودة (بعد)، وإلا كل استدعاء liveRoundsMirror كان كتابة (قبل)
+    const wn = typeof window.liveRoundsMirrorWrite === 'function' ? 'liveRoundsMirrorWrite' : 'liveRoundsMirror';
+    const o = window[wn]; window[wn] = function () { window.__writes++; return o.apply(this, arguments); };
+    // زمن معالجة كل حدث داخل معالج اللعبة المسجّل (platformConnect ماسك مرجع الناقل نفسه)
+    Object.keys(homeGameListeners).forEach((t) => { const h = homeGameListeners[t]; homeGameListeners[t] = function () { const s = performance.now(); const r = h.apply(this, arguments); window.__disp.push(performance.now() - s); return r; }; });
   });
-  const heap0 = await page.evaluate(() => performance.memory && performance.memory.usedJSHeapSize);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Performance.enable');
+  const heapNow = async () => { await cdp.send('HeapProfiler.collectGarbage').catch(() => {}); const m = (await cdp.send('Performance.getMetrics')).metrics.find((x) => x.name === 'JSHeapUsedSize'); return m ? m.value : null; };
+  const heap0 = await heapNow();
   const t0 = Date.now();
   await H.ctl(H.PRIMARY, { cmd: 'burst', user: STREAMER, count: n, prefix: 'ld', text: g.kw, identity: { isFollowerOfAnchor: true }, followStatus: 1, perMs: Math.floor(spanMs / n) });
-  let joined = 0;
+  if (noisePerSec) await H.ctl(H.PRIMARY, { cmd: 'burst', user: STREAMER, count: Math.floor(noisePerSec * spanMs / 1000), prefix: 'noise', text: 'هههههه والله حلو', perMs: Math.max(1, Math.floor(1000 / noisePerSec)) });
+  let joined = 0, allJoinedMs = null;
   while (Date.now() - t0 < spanMs + 8000) {
-    await sleep(500);
+    await sleep(250);
     joined = await page.evaluate((expr) => (0, eval)(expr).size, g.pmap);
-    if (joined >= n) break;
+    if (joined >= n) { allJoinedMs = Date.now() - t0; break; }
   }
-  const r = await page.evaluate(() => ({ longTasks: window.__long.length, maxLongTaskMs: Math.round(Math.max(0, ...window.__long)), mirrorWrites: window.__mirrorWrites, toasts: document.querySelectorAll('.toast, #toast').length }));
-  const heap1 = await page.evaluate(() => performance.memory && performance.memory.usedJSHeapSize);
-  const res = Object.assign({ tag, target: n, joined, elapsedMs: Date.now() - t0, heapDeltaMB: heap0 && heap1 ? +((heap1 - heap0) / 1048576).toFixed(1) : null }, r, { errors: page._errors });
+  await sleep(3000); // الكتابة الأخيرة المؤجلة
+  const r = await page.evaluate(() => {
+    const d = window.__disp.slice().sort((a, b) => a - b);
+    const pct = (q) => d.length ? +d[Math.min(d.length - 1, Math.floor(q * d.length))].toFixed(2) : null;
+    return { eventsProcessed: d.length, dispatchMsP50: pct(0.5), dispatchMsP99: pct(0.99), dispatchMsMax: d.length ? +d[d.length - 1].toFixed(1) : null, longTasks: window.__long.length, maxLongTaskMs: Math.round(Math.max(0, ...window.__long)), firestoreWrites: window.__writes, lastToast: (document.getElementById('toast') || {}).textContent };
+  });
+  const heap1 = await heapNow();
+  const res = Object.assign({ tag, target: n, joined, allJoinedWithinMs: allJoinedMs, heapDeltaMB: heap0 && heap1 ? +((heap1 - heap0) / 1048576).toFixed(1) : null }, r, { errors: page._errors });
   await page.context().close();
   return res;
 }

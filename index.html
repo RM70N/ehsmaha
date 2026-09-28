@@ -22588,8 +22588,22 @@ function liveCommandsBoot(gameTag, handlers) {
 // `participantsMap` is that game's own Participants Map — values may be a bare
 // user object OR a wrapper like sniper's { user, cell }; both are handled
 // transparently by unwrapping .user when present.
+// كتابة Firestore كانت setDoc للقائمة كاملة مع كل انضمام: 300 منضم = 300 كتابة
+// بمستند يكبر كل مرة (O(n²) بايت وخطر حصة/حجم المستند). الآن: كتابة فورية أول مرة ثم
+// بحد أقصى وحدة كل 2.5ث لكل لعبة، وآخر حالة تنكتب دائماً بالنهاية (leading + trailing).
+// levelsNoteParticipants يبقى فوري (نتيجة الراوند تعتمد عليه).
+const LIVE_ROUNDS_MIRROR_MIN_GAP_MS = 2500;
+const liveRoundsMirrorState = {}; // tag -> { lastAt, timer, map }
 function liveRoundsMirror(gameTag, participantsMap) {
   levelsNoteParticipants(gameTag, participantsMap); // نظام المستويات — يلتقط الداخلين وسط الراوند كمان
+  const st = liveRoundsMirrorState[gameTag] || (liveRoundsMirrorState[gameTag] = { lastAt: 0, timer: null, map: null });
+  st.map = participantsMap;
+  if (st.timer) return;
+  const wait = st.lastAt + LIVE_ROUNDS_MIRROR_MIN_GAP_MS - Date.now();
+  if (wait <= 0) { st.lastAt = Date.now(); liveRoundsMirrorWrite(gameTag, st.map); return; }
+  st.timer = setTimeout(() => { st.timer = null; st.lastAt = Date.now(); liveRoundsMirrorWrite(gameTag, st.map); }, wait);
+}
+function liveRoundsMirrorWrite(gameTag, participantsMap) {
   if (!fb) return;
   try {
     const list = [...participantsMap.values()].map(v => {
@@ -27999,7 +28013,17 @@ function onlinePointsBoot() {
 }
 
 let toastT = null;
+// دفعة انضمامات (حشد يكتب الكلمة بنفس الثانية) = إشعار واحد يتحدّث بدل عشرات
+// الإشعارات اللي تمسح بعضها: "👥 انضم 12 لاعبين — آخرهم فلان".
+const TOAST_JOIN_BURST_MS = 2000;
+let toastJoinBurst = { n: 0, at: 0 };
 function toast(msg) {
+  if (typeof msg === 'string' && /^(👤|🙋) .+ انضم/.test(msg)) {
+    const now = Date.now();
+    toastJoinBurst.n = (now - toastJoinBurst.at < TOAST_JOIN_BURST_MS) ? toastJoinBurst.n + 1 : 1;
+    toastJoinBurst.at = now;
+    if (toastJoinBurst.n > 1) msg = '👥 انضم ' + toastJoinBurst.n + ' لاعبين — آخرهم ' + msg.replace(/^(👤|🙋) /, '').replace(/ انضم.*$/, '');
+  }
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
