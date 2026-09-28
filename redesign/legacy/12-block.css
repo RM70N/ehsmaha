@@ -1,0 +1,97 @@
+
+#pg-contest-top20{
+  --purple-light:#A78BFA;
+  --purple-mid:#8B5CF6;
+  --purple-dark:#7C3AED;
+  --bg-deep:#2E1065;
+  --gold:#F5C451;
+  --gold-bright:#FFD700;
+  --silver:#D8DEE9;
+  --silver-dim:#9AA3B5;
+  --bronze:#E0A458;
+  --bronze-dim:#B87A3D;
+  --top20-white:#FFFFFF;
+  background:
+    radial-gradient(ellipse 900px 700px at 50% 6%, rgba(167,139,250,0.35), transparent 60%),
+    linear-gradient(160deg, var(--bg-deep) 0%, #4C1D95 45%, var(--purple-dark) 100%);
+}
+#pg-contest-top20 .stage{ width:100%; min-height:100%; position:relative; display:flex; flex-direction:column; align-items:center; padding-bottom:100px; font-family:'Tajawal', sans-serif; }
+/* الزر الافتراضي (.back-btn) نص/حدود باهتة مصمّمة لخلفيات فاتحة — على خلفية
+   هذي الصفحة البنفسجية الغامقة كان يظهر شبه مخفي (نفس سبب شكوى "ما فيه زر
+   رجوع" رغم وجوده بالكود). نمط زجاجي بتباين عالي بدل الافتراضي، بنفس هوية
+   شاشات الفوز المشابهة (bs-victory-close). */
+#pg-contest-top20 .back-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.35);color:#F5F0FF;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-weight:700;}
+#pg-contest-top20 .back-btn:hover{background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.55);}
+#pg-contest-top20 .top20-sparkle{ position:absolute; width:6px; height:6px; border-radius:50%; background:var(--gold-bright); box-shadow:0 0 10px 3px rgba(255,215,0,0.8); opacity:0; animation: top20SparkleTwinkle 3.2s ease-in-out infinite; }
+@keyframes top20SparkleTwinkle{ 0%,100%{ opacity:0; transform:scale(0.4); } 50%{ opacity:1; transform:scale(1.1); } }
+#pg-contest-top20 .top20-logo-wrap{ margin-top:60px; display:flex; flex-direction:column; align-items:center; opacity:0; transform:scale(0.5); animation: top20LogoIntro 1.4s cubic-bezier(.34,1.56,.64,1) 0.15s forwards; }
+@keyframes top20LogoIntro{ 0%{ opacity:0; transform:scale(0.4); } 60%{ opacity:1; transform:scale(1.08); } 100%{ opacity:1; transform:scale(1); } }
+#pg-contest-top20 .top20-logo-badge{ width:110px; height:110px; border-radius:30px; background:linear-gradient(135deg, var(--purple-light) 0%, var(--purple-dark) 100%); display:flex; align-items:center; justify-content:center; position:relative; animation: top20LogoGlow 2.6s ease-in-out 1.2s infinite; }
+@keyframes top20LogoGlow{ 0%,100%{ box-shadow:0 0 40px 6px rgba(167,139,250,0.45), 0 0 70px 18px rgba(245,196,81,0.12); } 50%{ box-shadow:0 0 60px 14px rgba(167,139,250,0.65), 0 0 90px 26px rgba(245,196,81,0.22); } }
+#pg-contest-top20 .top20-logo-badge svg{ width:62px; height:62px; }
+#pg-contest-top20 .top20-countdown-wrap{ margin-top:16px; text-align:center; }
+#pg-contest-top20 .top20-countdown-label{ font-weight:700; font-size:16px; color:var(--purple-light); letter-spacing:.05em; }
+#pg-contest-top20 .top20-countdown-num{ margin-top:6px; font-weight:900; font-size:34px; color:var(--top20-white); text-shadow:0 0 22px rgba(124,58,237,0.6); direction:ltr; }
+#pg-contest-top20 .top20-brand-name{ margin-top:14px; font-weight:900; font-size:30px; color:var(--top20-white); letter-spacing:1px; opacity:0; animation: top20FadeUp .8s ease-out 0.9s forwards; }
+#pg-contest-top20 .top20-title-wrap{ margin-top:28px; width:100%; text-align:center; padding:0 30px; }
+#pg-contest-top20 .top20-main-title{ font-weight:900; font-size:42px; color:var(--top20-white); text-shadow:0 0 22px rgba(124,58,237,0.55), 0 0 40px rgba(245,196,81,0.18); opacity:0; transform:translateY(50px); animation: top20SlideUp .9s cubic-bezier(.22,1,.36,1) 2s forwards; }
+#pg-contest-top20 .top20-sub-title{ margin-top:12px; font-weight:500; font-size:20px; color:var(--purple-light); opacity:0; transform:translateY(30px); animation: top20SlideUp .8s cubic-bezier(.22,1,.36,1) 2.6s forwards; }
+@keyframes top20SlideUp{ to{ opacity:1; transform:translateY(0); } }
+@keyframes top20FadeUp{ from{ opacity:0; transform:translateY(14px); } to{ opacity:1; transform:translateY(0); } }
+#pg-contest-top20 .top20-podium{ margin-top:40px; width:100%; max-width:980px; display:flex; align-items:flex-end; justify-content:center; gap:14px; flex-wrap:wrap; padding:0 12px; }
+#pg-contest-top20 .top20-podium-card{ position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; border-radius:24px; padding:22px 16px 18px; opacity:0; transform:translateY(50px) scale(0.9); animation: top20CardIn .7s cubic-bezier(.22,1,.36,1) forwards; }
+@keyframes top20CardIn{ to{ opacity:1; transform:translateY(0) scale(1); } }
+#pg-contest-top20 .top20-podium-crown{ width:38px; height:38px; margin-bottom:6px; }
+#pg-contest-top20 .top20-podium-rank-badge{ font-weight:900; font-size:18px; border-radius:18px; padding:4px 16px; margin-bottom:8px; color:var(--bg-deep); }
+#pg-contest-top20 .top20-podium-name{ font-weight:900; color:var(--top20-white); line-height:1.25; margin-bottom:6px; word-break:break-word; }
+#pg-contest-top20 .top20-podium-duration{ font-weight:500; color:rgba(255,255,255,0.85); margin-bottom:8px; }
+#pg-contest-top20 .top20-podium-wins{ display:flex; align-items:center; gap:8px; font-weight:900; color:var(--top20-white); }
+#pg-contest-top20 .top20-podium-wins svg{ width:28px; height:28px; }
+#pg-contest-top20 .top20-podium-card.rank-1{ order:2; width:240px; padding-top:32px; padding-bottom:28px; background:linear-gradient(160deg, rgba(245,196,81,0.22), rgba(124,58,237,0.20)); border:2.5px solid var(--gold); box-shadow:0 0 55px 10px rgba(245,196,81,0.35); animation-delay:4.0s; z-index:2; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-crown{ width:52px; height:52px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-rank-badge{ background:var(--gold-bright); font-size:20px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-name{ font-size:26px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-duration{ font-size:18px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-wins{ font-size:28px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-wins svg{ width:34px; height:34px; }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-wins svg path{ fill:var(--gold-bright); }
+#pg-contest-top20 .top20-podium-card.rank-1 .top20-podium-crown path{ fill:var(--gold-bright); }
+#pg-contest-top20 .top20-podium-card.rank-2{ order:1; width:190px; margin-bottom:-14px; background:linear-gradient(160deg, rgba(216,222,233,0.18), rgba(124,58,237,0.16)); border:2px solid var(--silver); box-shadow:0 0 30px 6px rgba(216,222,233,0.22); animation-delay:4.35s; }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-rank-badge{ background:var(--silver); }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-name{ font-size:20px; }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-duration{ font-size:15px; }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-wins{ font-size:22px; }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-wins svg{ width:28px; height:28px; }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-wins svg path{ fill:var(--silver); }
+#pg-contest-top20 .top20-podium-card.rank-2 .top20-podium-crown path{ fill:var(--silver); }
+#pg-contest-top20 .top20-podium-card.rank-3{ order:3; width:190px; margin-bottom:-22px; background:linear-gradient(160deg, rgba(224,164,88,0.18), rgba(124,58,237,0.16)); border:2px solid var(--bronze); box-shadow:0 0 30px 6px rgba(224,164,88,0.2); animation-delay:4.7s; }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-rank-badge{ background:var(--bronze); }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-name{ font-size:20px; }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-duration{ font-size:15px; }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-wins{ font-size:22px; }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-wins svg{ width:28px; height:28px; }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-wins svg path{ fill:var(--bronze); }
+#pg-contest-top20 .top20-podium-card.rank-3 .top20-podium-crown path{ fill:var(--bronze); }
+#pg-contest-top20 .top20-list-wrap{ margin-top:40px; width:100%; max-width:940px; display:flex; flex-direction:column; gap:12px; padding:0 16px; }
+#pg-contest-top20 .top20-list-heading{ display:flex; align-items:center; gap:14px; margin-bottom:6px; padding:0 8px; opacity:0; animation: top20FadeUp .6s ease-out 4.9s forwards; }
+#pg-contest-top20 .top20-list-heading .top20-line{ flex:1; height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); }
+#pg-contest-top20 .top20-list-heading span{ font-weight:700; font-size:18px; color:rgba(255,255,255,0.65); white-space:nowrap; }
+#pg-contest-top20 .top20-row{ display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-radius:16px; background:rgba(167,139,250,0.10); border:1px solid rgba(255,255,255,0.12); opacity:0; transform:translateY(24px); animation: top20RowIn .5s cubic-bezier(.22,1,.36,1) forwards; animation-delay: var(--d); gap:8px; flex-wrap:wrap; }
+@keyframes top20RowIn{ to{ opacity:1; transform:translateY(0); } }
+#pg-contest-top20 .top20-row-rank{ font-weight:900; font-size:18px; color:rgba(255,255,255,0.5); width:36px; }
+#pg-contest-top20 .top20-row-name{ flex:1; font-weight:700; font-size:19px; color:var(--top20-white); padding:0 8px; min-width:100px; word-break:break-word; }
+#pg-contest-top20 .top20-row-duration{ font-weight:500; font-size:15px; color:var(--purple-light); text-align:center; white-space:nowrap; }
+#pg-contest-top20 .top20-row-wins{ display:flex; align-items:center; gap:7px; font-weight:900; font-size:22px; color:var(--top20-white); justify-content:flex-end; }
+#pg-contest-top20 .top20-row-wins svg{ width:22px; height:22px; }
+#pg-contest-top20 .top20-row-wins svg path{ fill:var(--gold-bright); }
+#pg-contest-top20 .top20-outro-text{ margin-top:50px; text-align:center; font-weight:500; font-size:20px; color:rgba(255,255,255,0.75); opacity:0; animation: top20FadeUp .8s ease-out forwards; animation-delay: var(--top20-outro-delay, 7.5s); padding:0 20px; }
+#pg-contest-top20 .top20-tiktok-link{ margin-top:16px; display:flex; align-items:center; justify-content:center; gap:10px; opacity:0; animation: top20FadeUp .8s ease-out forwards; animation-delay: var(--top20-outro-delay2, 7.8s); }
+#pg-contest-top20 .top20-tiktok-link svg{ width:22px; height:22px; }
+#pg-contest-top20 .top20-tiktok-link span{ font-weight:700; font-size:20px; color:var(--gold-bright); letter-spacing:0.5px; direction:ltr; }
+#pg-contest-top20 .top20-empty-msg{ margin-top:40px; text-align:center; color:rgba(255,255,255,0.6); font-size:18px; font-weight:700; }
+#pg-contest-top20 .top20-podium-placeholder{ animation:none !important; opacity:.55 !important; transform:none !important; }
+#pg-contest-top20 .top20-podium-placeholder .top20-podium-name{ color:rgba(255,255,255,0.55); }
+#pg-contest-top20 .top20-mode-toggle{ margin-top:24px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:0 16px; opacity:0; animation: top20FadeUp .8s ease-out 2.9s forwards; }
+#pg-contest-top20 .top20-mode-btn{ font-family:'Tajawal', sans-serif; font-weight:800; font-size:16px; padding:10px 22px; border-radius:999px; border:1.5px solid rgba(255,255,255,0.22); background:rgba(167,139,250,0.12); color:rgba(255,255,255,0.75); cursor:pointer; transition:background .25s ease, color .25s ease, box-shadow .25s ease, border-color .25s ease; }
+#pg-contest-top20 .top20-mode-btn:hover{ background:rgba(167,139,250,0.24); color:#fff; }
+#pg-contest-top20 .top20-mode-btn.active{ background:linear-gradient(135deg, var(--gold), var(--gold-bright)); color:var(--bg-deep); border-color:var(--gold-bright); box-shadow:0 0 22px 4px rgba(245,196,81,0.35); }

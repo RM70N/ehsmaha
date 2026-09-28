@@ -1,0 +1,14 @@
+
+/* عناصر وضع "أكثر من منصة" وشريط حالة المنصات بالرئيسية */
+.qc-multi-switch{background:linear-gradient(100deg,var(--accent),var(--accent2));color:#fff;border:none;font-weight:800;}
+.qc-multi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+.qc-multi-title{font-weight:900;font-size:14px;}
+.qc-multi-back{padding:6px 12px;font-size:12px;}
+.qc-multi-checks{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px;}
+.qc-multi-check{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;cursor:pointer;}
+.plat-av-wrap{position:relative;display:inline-block;line-height:0;}
+.plat-av-badge{position:absolute;inset-inline-end:-3px;bottom:-3px;font-size:9px;line-height:1;padding:1px;border-radius:50%;background:var(--surface,#fff);border:1.5px solid;}
+.plat-name-badge{font-size:11px;margin-inline-end:3px;}
+#home-platform-status-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+.home-plat-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:var(--surface2);border:1px solid var(--border);}
+.home-plat-dot{width:7px;height:7px;border-radius:50%;display:inline-block;}

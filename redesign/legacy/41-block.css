@@ -1,0 +1,24 @@
+
+/* يعيد استخدام .top10-grid / .top10-cell / .top10-cell-rank / .top10-cell-value /
+   .top10-cell.revealed الموجودة أصلاً بالملف (لعبتي توب 10 جمعات/أونلاين) —
+   هنا فقط عناصر إضافية خاصة بنسخة البث المباشر. */
+.tt10-round-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(124,58,237,.18);border:1px solid rgba(124,58,237,.4);color:#C9B7E8;font-weight:800;font-size:13px;padding:4px 16px;border-radius:20px;margin-bottom:12px;}
+.tt10-qbanner{width:100%;max-width:560px;background:linear-gradient(135deg,rgba(124,58,237,.22),rgba(245,158,11,.10));border:1px solid var(--border);border-radius:14px;padding:16px 20px;text-align:center;margin-bottom:10px;}
+.tt10-qbanner-label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.tt10-qbanner-text{font-size:17px;font-weight:800;color:var(--text);line-height:1.5;}
+.tt10-timerwrap{width:100%;max-width:560px;height:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin:2px 0 16px;}
+.tt10-timerbar{height:100%;background:linear-gradient(90deg,var(--brand-amber),#f43f5e);width:100%;transition:width 1s linear;}
+.tt10-controls{display:flex;gap:10px;width:100%;max-width:560px;margin-top:14px;flex-wrap:wrap;}
+.tt10-controls .btn-primary,.tt10-controls .btn-secondary{flex:1;min-width:140px;}
+.tt10-lb{width:100%;max-width:560px;margin-top:18px;}
+.tt10-lb-title{font-size:13px;color:var(--muted);margin-bottom:8px;font-weight:700;}
+.tt10-lb-row{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:6px;}
+.tt10-lb-row.top1{border-color:var(--brand-amber);background:rgba(245,158,11,.10);}
+.tt10-lb-rank{font-weight:900;color:var(--brand-amber);width:20px;text-align:center;flex-shrink:0;}
+.tt10-lb-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;}
+.tt10-lb-avatar-fb{width:28px;height:28px;border-radius:50%;background:var(--brand-violet);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex-shrink:0;}
+.tt10-lb-name{flex:1;font-weight:700;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tt10-lb-score{font-weight:900;color:var(--green);font-size:13px;flex-shrink:0;}
+.tt10-empty-note{font-size:12px;color:var(--muted);text-align:center;padding:10px;}
+.tt10-winner-name{font-size:26px;font-weight:900;color:var(--text);margin:10px 0 4px;text-align:center;}
+.tt10-final-list{width:100%;max-width:420px;margin:18px auto 0;}

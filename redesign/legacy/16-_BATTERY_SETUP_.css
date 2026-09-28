@@ -1,0 +1,23 @@
+
+/* ===== BATTERY SETUP ===== */
+#pg-setup-battery{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.16) 0%,transparent 60%),var(--bg);}
+
+/* ===== BATTERY DASHBOARD ===== */
+#pg-battery{padding:0;background:var(--bg);overflow:hidden;}
+.battery-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.battery-center{flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+.battery-stage{display:flex;flex-direction:column;align-items:center;gap:14px;}
+
+/* Glass battery capsule */
+.battery-shell{position:relative;width:180px;height:340px;border-radius:36px;background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border:3px solid rgba(167,139,255,.25);box-shadow:inset 0 0 30px rgba(255,255,255,.05), 0 20px 50px rgba(0,0,0,.5), 0 0 40px rgba(124,58,237,.15);overflow:hidden;backdrop-filter:blur(2px);}
+.battery-nub{position:absolute;top:-18px;left:50%;transform:translateX(-50%);width:56px;height:18px;border-radius:8px 8px 0 0;background:rgba(255,255,255,.2);border:3px solid rgba(167,139,255,.25);border-bottom:none;}
+.battery-fill{position:absolute;bottom:0;left:0;width:100%;height:0%;background:linear-gradient(180deg,#ef4444,#dc2626);transition:height .5s cubic-bezier(.34,1.56,.64,1), background .5s ease;box-shadow:0 0 24px rgba(239,68,68,.5);}
+.battery-fill.mid{background:linear-gradient(180deg,#f59e0b,#d97706);box-shadow:0 0 24px rgba(245,158,11,.5);}
+.battery-fill.high{background:linear-gradient(180deg,#34D399,#16a34a);box-shadow:0 0 24px rgba(52,211,153,.6);}
+.battery-fill.full{animation:batteryPulse .6s ease infinite;}
+@keyframes batteryPulse{0%,100%{filter:brightness(1);}50%{filter:brightness(1.3);}}
+.battery-pct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:38px;font-weight:900;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.6);z-index:2;font-variant-numeric:tabular-nums;}
+
+.battery-last-charger{font-size:22px;font-weight:900;color:var(--accent2);margin-top:6px;}
+.battery-last-line{font-size:14px;color:var(--muted);}

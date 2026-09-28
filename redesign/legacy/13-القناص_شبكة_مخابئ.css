@@ -1,0 +1,60 @@
+
+.og-play-wrap{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px 16px 28px;direction:rtl;}
+.og-play-head{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.og-chip{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-pill,999px);padding:7px 14px;font-size:13px;font-weight:700;color:var(--muted);}
+.og-chip b{color:var(--text);font-size:15px;margin-inline-start:4px;}
+.og-status{font-size:15px;font-weight:700;color:var(--text);text-align:center;min-height:22px;line-height:1.6;}
+.og-turn{font-size:14px;color:var(--muted);font-weight:700;}
+.og-turn b{color:var(--gold,#F59E0B);}
+.og-timer-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:8px 18px;font-size:15px;font-weight:900;color:var(--text);transition:color .2s,border-color .2s;}
+.og-timer-box.danger{color:#ff6b6b;border-color:rgba(255,107,107,.5);}
+.og-log{width:100%;display:flex;flex-direction:column;gap:6px;min-height:20px;}
+.og-log-line{font-size:13px;font-weight:700;color:var(--muted);text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 12px;}
+.og-log-good{color:#3ddc97;border-color:rgba(61,220,151,.35);}
+.og-log-bad{color:#ff6b6b;border-color:rgba(255,107,107,.35);}
+.og-scores{width:100%;display:flex;flex-direction:column;gap:6px;}
+.og-score-row{display:flex;justify-content:space-between;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 14px;font-size:14px;font-weight:700;color:var(--muted);}
+.og-score-row.me{border-color:var(--border-strong);color:var(--text);}
+.og-score-row b{color:var(--gold,#F59E0B);font-size:16px;}
+
+/* القناص: شبكة مخابئ */
+.osniper-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:360px;}
+.osniper-cell{aspect-ratio:1;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--muted);font-size:14px;font-weight:900;cursor:pointer;transition:transform .15s,border-color .15s,background .15s;font-family:inherit;}
+.osniper-cell:hover:not(:disabled){transform:translateY(-2px);border-color:var(--border-strong);color:var(--text);}
+.osniper-cell:disabled{cursor:default;opacity:.55;}
+.osniper-cell.mine{background:linear-gradient(135deg,#F59E0B,#d97706);color:#0d0620;opacity:1;border-color:transparent;}
+
+/* الصندوق العشوائي */
+.obox-stage{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.obox-item{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:18px 22px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:default;transition:transform .15s,border-color .15s;font-family:inherit;}
+.obox-item.pickable{cursor:pointer;}
+.obox-item.pickable:hover{transform:translateY(-3px);border-color:var(--border-strong);}
+.obox-item:disabled{opacity:.6;}
+.obox-num{font-size:14px;font-weight:900;color:var(--muted);}
+.obox-shape{font-size:38px;line-height:1;}
+
+/* الكرسي المتحرك */
+.ochairs-stage{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.ochairs-seat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 18px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:transform .15s,border-color .15s,opacity .15s;font-family:inherit;}
+.ochairs-seat:hover:not(:disabled){transform:translateY(-3px);border-color:var(--border-strong);}
+.ochairs-seat:disabled{cursor:default;opacity:.45;}
+.ochairs-seat-icon{font-size:30px;line-height:1;}
+.ochairs-seat-num{font-size:14px;font-weight:900;color:var(--muted);}
+.ochairs-seat.taken{opacity:.4;}
+.ochairs-seat.mine{opacity:1;border-color:transparent;background:linear-gradient(135deg,#3ddc97,#16a34a);}
+.ochairs-seat.mine .ochairs-seat-num{color:#04120b;}
+
+/* ترتيب الحروف */
+.olsc-letters{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.olsc-letter{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:52px;padding:0 8px;border-radius:12px;background:var(--surface2);border:1px solid var(--border-strong);font-size:24px;font-weight:900;color:var(--text);}
+.olsc-hint{font-size:14px;font-weight:700;color:var(--gold,#F59E0B);text-align:center;}
+.olsc-answer-row{display:flex;gap:8px;width:100%;max-width:420px;}
+.olsc-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;color:var(--text);font-size:16px;font-family:inherit;text-align:center;direction:rtl;}
+.olsc-input:focus{outline:none;border-color:var(--border-strong);}
+.olsc-send{flex:0 0 auto;padding:12px 20px;}
+
+@media (max-width:480px){
+  .osniper-grid{max-width:300px;gap:6px;}
+  .osniper-cell{font-size:12px;border-radius:9px;}
+  .olsc-letter{min-width:36px;height:44px;font-size:20px;}
+}

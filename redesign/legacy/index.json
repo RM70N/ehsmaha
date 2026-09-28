@@ -1,0 +1,226 @@
+{
+ "style_blocks_removed": 43,
+ "links_removed": 1,
+ "inline": {
+  "attrs_seen": 823,
+  "attrs_removed": 503,
+  "attrs_kept_display_none": 320
+ },
+ "archived": [
+  {
+   "file": "redesign/legacy/01-خلفيات.css",
+   "id": null,
+   "chars": 203227
+  },
+  {
+   "file": "redesign/legacy/02-ehsemha-sg-redesign.css",
+   "id": "ehsemha-sg-redesign",
+   "chars": 26818
+  },
+  {
+   "file": "redesign/legacy/03-ehsemha-home-redesign.css",
+   "id": "ehsemha-home-redesign",
+   "chars": 21633
+  },
+  {
+   "file": "redesign/legacy/04-ehsemha-legacy-skin.css",
+   "id": "ehsemha-legacy-skin",
+   "chars": 6595
+  },
+  {
+   "file": "redesign/legacy/05-block.css",
+   "id": null,
+   "chars": 3113
+  },
+  {
+   "file": "redesign/legacy/06-لوحة_ألوان_التصميم_المرفق_لا_لون_خارجها.css",
+   "id": null,
+   "chars": 26410
+  },
+  {
+   "file": "redesign/legacy/07-block.css",
+   "id": null,
+   "chars": 1396
+  },
+  {
+   "file": "redesign/legacy/08-block.css",
+   "id": null,
+   "chars": 2967
+  },
+  {
+   "file": "redesign/legacy/09-block.css",
+   "id": null,
+   "chars": 1389
+  },
+  {
+   "file": "redesign/legacy/10-block.css",
+   "id": null,
+   "chars": 12897
+  },
+  {
+   "file": "redesign/legacy/11-عناصر_وضع_أكثر_من_منصة_وشريط_حالة_المنصا.css",
+   "id": null,
+   "chars": 1235
+  },
+  {
+   "file": "redesign/legacy/12-block.css",
+   "id": null,
+   "chars": 11718
+  },
+  {
+   "file": "redesign/legacy/13-القناص_شبكة_مخابئ.css",
+   "id": null,
+   "chars": 4855
+  },
+  {
+   "file": "redesign/legacy/14-عناصر_مشتركة_أضافتها_الدفعة_الثالثة.css",
+   "id": null,
+   "chars": 7433
+  },
+  {
+   "file": "redesign/legacy/15-_SNIPER_SETUP_.css",
+   "id": null,
+   "chars": 4308
+  },
+  {
+   "file": "redesign/legacy/16-_BATTERY_SETUP_.css",
+   "id": null,
+   "chars": 2265
+  },
+  {
+   "file": "redesign/legacy/17-_HZ_SETUP_.css",
+   "id": null,
+   "chars": 3667
+  },
+  {
+   "file": "redesign/legacy/18-مسرح_الراوند_9_16_منسوخ_كما_هو_من_ملف_شا.css",
+   "id": null,
+   "chars": 21737
+  },
+  {
+   "file": "redesign/legacy/19-_ROULETTE_SETUP_.css",
+   "id": null,
+   "chars": 2094
+  },
+  {
+   "file": "redesign/legacy/20-_TIMER_SETUP_.css",
+   "id": null,
+   "chars": 4155
+  },
+  {
+   "file": "redesign/legacy/21-_BOMB_SETUP_.css",
+   "id": null,
+   "chars": 3672
+  },
+  {
+   "file": "redesign/legacy/22-block.css",
+   "id": null,
+   "chars": 5202
+  },
+  {
+   "file": "redesign/legacy/23-block.css",
+   "id": null,
+   "chars": 3105
+  },
+  {
+   "file": "redesign/legacy/24-لوحة_تحكم_الأدمن_أثناء_الجولة.css",
+   "id": null,
+   "chars": 4337
+  },
+  {
+   "file": "redesign/legacy/25-_LAST_LETTER_SETUP_.css",
+   "id": null,
+   "chars": 4731
+  },
+  {
+   "file": "redesign/legacy/26-_WHO_AM_I_SETUP_.css",
+   "id": null,
+   "chars": 3037
+  },
+  {
+   "file": "redesign/legacy/27-_IMAGE_GUESS_SETUP_.css",
+   "id": null,
+   "chars": 121136
+  },
+  {
+   "file": "redesign/legacy/28-_REVERSE_WORD_.css",
+   "id": null,
+   "chars": 2720
+  },
+  {
+   "file": "redesign/legacy/29-_PRICE_GUESS_.css",
+   "id": null,
+   "chars": 3666
+  },
+  {
+   "file": "redesign/legacy/30-_LETTER_SCRAMBLE_.css",
+   "id": null,
+   "chars": 2473
+  },
+  {
+   "file": "redesign/legacy/31-_WORD_RACE_.css",
+   "id": null,
+   "chars": 2221
+  },
+  {
+   "file": "redesign/legacy/32-_DRAW_.css",
+   "id": null,
+   "chars": 7445
+  },
+  {
+   "file": "redesign/legacy/33-_TUG_OF_WAR_SETUP_DASHBOARD_SHELL_.css",
+   "id": null,
+   "chars": 4251
+  },
+  {
+   "file": "redesign/legacy/34-_توكينز_التصميم_معزولة_تحت_rlgl-root_.css",
+   "id": null,
+   "chars": 9053
+  },
+  {
+   "file": "redesign/legacy/35-_COUNTRY_WAR_.css",
+   "id": null,
+   "chars": 10714
+  },
+  {
+   "file": "redesign/legacy/36-_CROWN_STEAL_.css",
+   "id": null,
+   "chars": 3322
+  },
+  {
+   "file": "redesign/legacy/37-_MUSICAL_CHAIRS_.css",
+   "id": null,
+   "chars": 12227
+  },
+  {
+   "file": "redesign/legacy/38-_FIND_THE_BALL_.css",
+   "id": null,
+   "chars": 8302
+  },
+  {
+   "file": "redesign/legacy/39-----_أنيميشن_التصميم_منقولة_كما_هي_بأسما.css",
+   "id": null,
+   "chars": 27234
+  },
+  {
+   "file": "redesign/legacy/40-block.css",
+   "id": null,
+   "chars": 5228
+  },
+  {
+   "file": "redesign/legacy/41-block.css",
+   "id": null,
+   "chars": 2556
+  },
+  {
+   "file": "redesign/legacy/42-block.css",
+   "id": null,
+   "chars": 5977
+  },
+  {
+   "file": "redesign/legacy/43-round-badges-overlay.css",
+   "id": "round-badges-overlay",
+   "chars": 148350
+  }
+ ]
+}

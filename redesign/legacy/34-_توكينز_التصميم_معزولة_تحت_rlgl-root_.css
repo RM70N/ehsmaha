@@ -1,0 +1,101 @@
+
+/* ===== توكينز التصميم (معزولة تحت .rlgl-root) ===== */
+.rlgl-root{
+  --harf-black:#0D0D14; --harf-gold:#C9A84C; --harf-amber:#8B6914; --harf-charcoal:#1C1C2E;
+  --gold-100:#F4E9C6; --gold-200:#E6D08A; --gold-300:#D8BC66; --gold-400:#C9A84C;
+  --gold-500:#B08F37; --gold-600:#8B6914; --gold-700:#6E520F;
+  --ink-900:#0D0D14; --ink-800:#14141F; --ink-700:#1C1C2E; --ink-600:#25253A;
+  --ink-500:#313148; --ink-400:#3D3D57; --ink-300:#545471;
+  --gray-500:#6B6B7A; --gray-400:#8A8A99; --gray-300:#ABABB8;
+  --rlgl-font-display:'Amiri',serif; --rlgl-font-ui:'Tajawal',system-ui;
+  --rlgl-ease-out:cubic-bezier(.22,1,.36,1);
+  --rlgl-dur-fast:120ms; --rlgl-dur-base:220ms; --rlgl-dur-flip:420ms; --rlgl-dur-slow:600ms;
+}
+
+/* ===== RLGL SETUP SHELL (بلا تغيير — نفس المظهر السابق تماماً) ===== */
+#pg-setup-rlgl{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(236,72,153,.14) 0%,transparent 60%),var(--bg);}
+
+/* ===== الداشبورد (شات مخفي بالكامل — كل شيء بمنتصف الشاشة) ===== */
+#pg-rlgl{padding:0;background:var(--ink-900);overflow:hidden;}
+.rlgl-layout{display:flex;justify-content:center;height:100vh;height:100dvh;overflow:hidden;}
+.rlgl-arena-panel{flex-direction:column;align-items:center;padding:10px 16px;overflow-y:auto;background:radial-gradient(ellipse 900px 700px at 50% 12%, #171727 0%, var(--ink-900) 55%, #05050a 100%);color:var(--gold-100);font-family:var(--rlgl-font-ui);width:100%;max-width:1100px;margin:0 auto;}
+
+#pg-rlgl .game-title-header{margin-bottom:6px;}
+#pg-rlgl .status-strip{margin-bottom:8px;padding:8px 12px;}
+.rlgl-hud-top{width:100%;max-width:900px;display:flex;align-items:center;justify-content:center;gap:14px;padding:2px 0 6px;flex-wrap:wrap;}
+.rlgl-hud-pill{display:flex;align-items:center;gap:8px;background:var(--ink-700);border:1px solid rgba(201,168,76,.18);border-radius:999px;padding:6px 16px;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.rlgl-hud-pill-label{font-family:var(--rlgl-font-ui);font-weight:700;font-size:12px;color:var(--gray-300);}
+.rlgl-hud-pill-value{font-family:var(--rlgl-font-display);font-weight:700;font-size:16px;color:var(--harf-gold);}
+
+/* ===== الساحة/المسار ===== */
+.rlgl-arena{width:100%;max-width:900px;flex:1;min-height:180px;max-height:38vh;display:flex;flex-direction:column;gap:6px;position:relative;}
+.rlgl-arena-track{position:relative;flex:1;min-height:420px;border-radius:var(--r);overflow:hidden;background:linear-gradient(to bottom,#171727 0%,#0d0d14 100%);border:1px solid rgba(201,168,76,.18);}
+.rlgl-lane{position:absolute;top:0;bottom:0;border-left:1px solid rgba(255,255,255,.05);}
+.rlgl-tile{position:absolute;left:4px;right:4px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.08);border-radius:4px;}
+.rlgl-finish-gate{position:absolute;top:8px;left:0;right:0;height:6px;background:repeating-linear-gradient(to right,var(--harf-gold) 0 16px,var(--harf-black) 16px 32px);box-shadow:0 0 16px rgba(201,168,76,.5);}
+.rlgl-finish-label{position:absolute;top:16px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--gold-300),var(--harf-gold));border-radius:10px;padding:4px 14px;font-family:var(--rlgl-font-display);font-weight:700;font-size:14px;color:var(--ink-900);white-space:nowrap;z-index:6;}
+.rlgl-start-line{position:absolute;bottom:8px;left:0;right:0;height:4px;background:repeating-linear-gradient(to right,#fff 0 16px,transparent 16px 32px);opacity:.7;}
+.rlgl-start-label{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink-700);border:1px solid rgba(201,168,76,.18);border-radius:8px;padding:3px 12px;font-family:var(--rlgl-font-ui);font-weight:700;font-size:12px;color:var(--gold-100);white-space:nowrap;z-index:6;}
+
+.rlgl-token{position:absolute;left:0;top:0;display:flex;flex-direction:column;align-items:center;will-change:transform;z-index:5;}
+.rlgl-token-name{background:rgba(13,13,20,.72);border:1px solid rgba(201,168,76,.18);border-radius:999px;padding:1px 9px;margin-bottom:3px;white-space:nowrap;font-family:var(--rlgl-font-ui);font-weight:700;font-size:11px;color:#fff;}
+.rlgl-token-avwrap{position:relative;}
+.rlgl-token-progress{margin-top:2px;font-family:var(--rlgl-font-ui);font-size:10px;font-weight:600;color:var(--gray-300);background:rgba(13,13,20,.6);border-radius:999px;padding:0 7px;white-space:nowrap;}
+.rlgl-token.eliminated{opacity:.4;filter:grayscale(1);z-index:1;}
+.rlgl-token.winner .rlgl-token-avwrap{box-shadow:0 0 0 3px var(--harf-gold),0 0 18px rgba(201,168,76,.7);border-radius:50%;}
+.rlgl-token .p-avatar-circle{box-shadow:0 0 0 2px var(--gold-200);}
+
+.rlgl-countdown{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:var(--rlgl-font-display);font-weight:700;font-size:72px;color:var(--harf-gold);text-shadow:0 0 30px rgba(201,168,76,.7);z-index:10;display:none;}
+.rlgl-countdown.rlgl-countdown-pop{animation:popIn .3s var(--rlgl-ease-out);}
+
+/* ===== الدمية ===== */
+.rlgl-doll-scene{width:100%;max-width:520px;height:157px;display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:2px;padding:2px 0;position:relative;perspective:800px;overflow:visible;}
+.rlgl-doll-wrap{width:76px;height:114px;flex-shrink:0;position:relative;}
+.rlgl-doll{width:120px;height:180px;position:absolute;top:0;left:50%;transform-style:preserve-3d;transform:translateX(-50%) scale(.63) rotateY(0deg);transform-origin:top center;transition:transform var(--rlgl-dur-flip) var(--rlgl-ease-out);filter:drop-shadow(0 10px 16px rgba(0,0,0,.5));}
+.rlgl-doll.rlgl-doll-facing{transform:translateX(-50%) scale(.63) rotateY(180deg);}
+.rlgl-doll.rlgl-doll-warning{animation:timerPulse .6s ease-in-out infinite;}
+.rlgl-doll-body{width:110px;height:130px;border-radius:100px 100px 34px 34px;background:linear-gradient(180deg,var(--gold-500),var(--harf-amber));position:absolute;bottom:0;left:50%;transform:translateX(-50%);box-shadow:0 10px 24px rgba(0,0,0,.4);}
+.rlgl-doll-arm{width:22px;height:64px;background:var(--harf-amber);border-radius:11px;position:absolute;bottom:38px;}
+.rlgl-doll-arm-l{left:6px;transform:rotate(8deg);}
+.rlgl-doll-arm-r{right:6px;transform:rotate(-8deg);}
+.rlgl-doll-head{width:86px;height:86px;border-radius:50%;background:var(--gold-100);position:absolute;top:0;left:50%;transform:translateX(-50%);box-shadow:0 6px 14px rgba(0,0,0,.3);}
+.rlgl-doll-hair{position:absolute;top:-8px;left:-4px;width:94px;height:50px;background:var(--harf-black);border-radius:47px 47px 0 0;}
+.rlgl-doll-braid{position:absolute;top:24px;width:19px;height:64px;background:var(--harf-black);border-radius:10px;}
+.rlgl-doll-braid-l{left:-9px;}
+.rlgl-doll-braid-r{right:-9px;}
+.rlgl-doll-eye{width:12px;height:12px;border-radius:50%;background:#22E06B;box-shadow:0 0 10px 3px rgba(34,224,107,.7);position:absolute;top:40px;transition:background var(--rlgl-dur-base) ease,box-shadow var(--rlgl-dur-base) ease;}
+.rlgl-doll-eye-l{left:20px;}
+.rlgl-doll-eye-r{right:20px;}
+.rlgl-doll.rlgl-doll-facing .rlgl-doll-eye{background:#FF3E56;box-shadow:0 0 14px 4px rgba(255,62,86,.85);}
+.rlgl-doll-mouth{width:20px;height:3px;background:var(--ink-900);border-radius:2px;position:absolute;top:62px;left:50%;transform:translateX(-50%);}
+
+.rlgl-light-indicator{font-family:var(--rlgl-font-ui);font-size:14px;font-weight:800;padding:6px 18px;border-radius:999px;background:rgba(34,224,107,.14);border:1px solid #22E06B;color:#22E06B;box-shadow:0 0 16px rgba(34,224,107,.25);transition:all var(--rlgl-dur-base) ease;}
+.rlgl-light-indicator.rlgl-light-red{background:rgba(255,62,86,.16);border-color:#FF3E56;color:#ff9aa6;box-shadow:0 0 20px rgba(255,62,86,.35);}
+.rlgl-round-timer{font-family:var(--rlgl-font-display);font-size:20px;font-weight:800;color:var(--harf-gold);}
+.rlgl-round-timer.low{animation:timerPulse 1s ease-in-out infinite;color:#FF3E56;}
+
+/* اهتزاز كاميرا خفيف عند التبديل للأحمر — على حاوية الساحة كلها */
+.rlgl-arena-panel.rlgl-cam-shake{animation:fxShake .15s ease;}
+
+.rlgl-track-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;background:rgba(13,13,20,.55);border-radius:var(--r);z-index:8;}
+
+/* شاشات قصيرة (ارتفاع ≤800px): نصغّر الدمية ونخفي العنوان الوصفي لضمان ظهور
+   أزرار التحكم بدون Scroll — يجب أن يأتي هذا البلوك بعد كل القواعد الأساسية
+   بالملف كي يفوز بترتيب الـcascade (نفس التخصيص CSS، آخر تعريف يفوز). */
+@media (max-height: 800px){
+  #pg-rlgl .game-title-header{display:none;}
+  .rlgl-doll-scene{height:96px;}
+  .rlgl-doll-wrap{width:52px;height:78px;}
+  .rlgl-doll{transform:translateX(-50%) scale(.43);}
+  .rlgl-doll.rlgl-doll-facing{transform:translateX(-50%) scale(.43) rotateY(180deg);}
+  .rlgl-light-indicator{font-size:12px;padding:4px 14px;}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .rlgl-doll{transition:none !important;}
+  .rlgl-doll.rlgl-doll-warning{animation:none;}
+  .rlgl-token{transition:none !important;}
+  .rlgl-round-timer.low{animation:none;}
+  .rlgl-arena-panel.rlgl-cam-shake{animation:none;}
+  .rlgl-countdown.rlgl-countdown-pop{animation:none;}
+}

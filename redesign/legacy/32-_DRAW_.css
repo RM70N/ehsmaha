@@ -1,0 +1,76 @@
+
+/* ===== DRAW ===== */
+#pg-setup-draw{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,var(--bg-3) 0%,transparent 60%),var(--bg);}
+#pg-draw{padding:0;background:var(--bg);overflow:hidden;}
+#pg-setup-pdraw{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,var(--bg-3) 0%,transparent 60%),var(--bg);}
+#pg-pdraw-reveal{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,var(--bg-3) 0%,transparent 60%),var(--bg);}
+#pg-pdraw{padding:0;background:var(--bg);overflow:hidden;align-items:center;}
+/* قائمة "مين جاوب" الافتراضية (.pcw-elim-overlay) تغطي الشاشة كلها بخلفية
+   داكنة — بلعبة الرسم هذا يخفي الرسمة بالضبط وقت أهم لحظة (المضيف يقارن
+   الرسمة مع التخمينات عشان يختار الفائز). نعيد وضعها كشريط سفلي شفاف الخلفية
+   بدل تغطية كاملة، فتبقى الرسمة ظاهرة فوقها طول الوقت. */
+#pdraw-pick-overlay{align-items:flex-end;justify-content:center;background:transparent;pointer-events:none;}
+#pdraw-pick-overlay.show{pointer-events:auto;}
+#pdraw-pick-overlay .fastans-pick-box{max-width:720px;margin-bottom:0;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.6);background:rgba(20,20,28,.97);}
+#pg-online-odraw-reveal{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,var(--bg-3) 0%,transparent 60%),var(--bg);}
+#pg-online-odraw-play{padding:0;background:var(--bg);overflow:hidden;align-items:center;}
+.draw-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.draw-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+/* لوحة الرسم: نسبة أبعاد ثابتة (720/480) + منع أي تقلّص فليكس — عشان طول
+   قائمة التخمينات تحتها ما يأثر أبداً على حجم الكانفاس. الكانفاس نفسه يملأ
+   الحاوية 100% بدل height:auto حتى تبقى الأبعاد محسوبة من الحاوية لا العكس. */
+.draw-canvas-wrap{width:100%;max-width:720px;aspect-ratio:720/480;flex:0 0 auto;align-self:center;background:#fff;border-radius:16px;border:2px solid var(--accent2);overflow:hidden;position:relative;touch-action:none;margin-bottom:14px;}
+#draw-canvas{display:block;width:100%;height:100%;cursor:crosshair;background:#fff;}
+#pdraw-canvas{display:block;width:100%;height:100%;cursor:crosshair;background:#fff;}
+#odraw-canvas{display:block;width:100%;height:100%;cursor:crosshair;background:#fff;}
+
+/* ===== أدوات الرسم — تنسيق أساسي عام تشترك فيه النسخ الثلاث =====
+   (ستريمرز #draw-*، جمعات #pdraw-*، أونلاين #odraw-*). هذي الكلاسات كانت
+   مستخدمة بالـ HTML بدون أي تعريف CSS أساسي، فكانت مربعات الألوان بلا حجم
+   وتظهر كأنها لون واحد/مكسورة. */
+.draw-toolbar{width:100%;max-width:720px;flex:0 0 auto;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 10px;padding:10px 12px;margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;}
+.draw-tools-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+.draw-colors{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;}
+.draw-color-swatch{width:30px;height:30px;border-radius:9px;border:2px solid rgba(255,255,255,.16);cursor:pointer;flex-shrink:0;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .12s ease,border-color .12s ease;}
+.draw-color-swatch:hover{transform:translateY(-2px);border-color:var(--accent2);}
+.draw-color-swatch.active{border-color:#fff;transform:translateY(-2px);}
+.draw-color-picker{position:relative;width:30px;height:30px;border-radius:9px;border:2px solid rgba(255,255,255,.16);cursor:pointer;flex-shrink:0;overflow:hidden;background:conic-gradient(#e53935,#fdd835,#43a047,#00acc1,#1e88e5,#8e24aa,#e53935);transition:transform .12s ease,border-color .12s ease;}
+.draw-color-picker:hover{transform:translateY(-2px);border-color:var(--accent2);}
+.draw-color-picker.active{border-color:#fff;transform:translateY(-2px);}
+.draw-color-picker input[type="color"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:none;padding:0;margin:0;cursor:pointer;background:transparent;}
+.draw-size-row{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.draw-size-row input[type="range"]{width:110px;max-width:36vw;accent-color:var(--accent);cursor:pointer;}
+.draw-size-preview{width:14px;height:14px;border-radius:50%;background:#000;flex-shrink:0;box-shadow:0 0 0 1px var(--border);}
+.draw-tool-btn{display:inline-flex;align-items:center;gap:5px;padding:8px 12px;font-family:var(--font);font-size:13px;font-weight:800;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;white-space:nowrap;transition:background .15s ease,border-color .15s ease,color .15s ease;}
+.draw-tool-btn:hover{border-color:var(--accent2);color:#fff;}
+.draw-tool-btn:disabled{opacity:.45;cursor:not-allowed;}
+.draw-tool-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+@media (max-width:480px){
+  .draw-toolbar{gap:6px 8px;padding:8px;}
+  .draw-color-swatch,.draw-color-picker{width:26px;height:26px;border-radius:8px;}
+  .draw-tool-btn{padding:7px 9px;font-size:12px;}
+}
+.odraw-canvas-locked{cursor:not-allowed !important;}
+/* لعبة "خمن الرسمة" (ستريمر) فقط — إطار/توهج مميز حول لوحة الرسم بدون لمس
+   أبعادها الوظيفية أو مشاركة الكلاس مع نسخ party/online (تُستثنى بالنطاق) */
+#pg-draw .draw-canvas-wrap{border-radius:20px;border:2.5px solid var(--accent2);box-shadow:0 0 34px rgba(124,58,237,.28);}
+#pg-draw .draw-toolbar{border-radius:18px;border:1px solid var(--border);box-shadow:0 0 20px rgba(124,58,237,.1);}
+#pg-draw .draw-tool-btn{border-radius:12px;}
+#pg-draw .draw-tool-btn.active{box-shadow:0 0 14px rgba(167,139,255,.45);}
+#pg-draw .draw-color-swatch.active{box-shadow:0 0 0 2px var(--accent2),0 0 10px rgba(167,139,255,.5);}
+
+.draw-guess-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:9px;animation:popIn .25s ease;}
+.draw-guess-row.correct{background:rgba(52,211,153,.12);border:1px solid var(--green);box-shadow:0 0 18px rgba(52,211,153,.18);}
+.draw-guess-row.wrong{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);}
+.draw-guess-user{font-size:12px;color:var(--muted);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.draw-guess-text{font-size:15px;font-weight:800;color:var(--text);flex:1;}
+.draw-guess-badge{font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;flex-shrink:0;}
+.draw-guess-badge.correct{background:var(--green);color:#fff;box-shadow:0 0 12px rgba(52,211,153,.5);}
+.draw-guess-badge.wrong{background:var(--gray-letter);color:var(--text);}
+.draw-guesses-board{width:100%;max-width:720px;}
+/* نسخة الستريمرز فقط: قائمة التخمينات هي الجزء الوحيد اللي ينمو/يتمرر —
+   بحد أقصى للارتفاع + تمرير داخلي، فما تدفع الكانفاس ولا تضغطه مهما كثرت. */
+#pg-draw .draw-guesses-board{flex:0 0 auto;width:100%;max-height:34vh;overflow-y:auto;overscroll-behavior:contain;padding-inline-end:2px;}
+@media (max-width:768px){#pg-draw .draw-guesses-board{max-height:30vh;}}
+#pg-draw-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,var(--bg-3) 0%,var(--bg) 70%);}

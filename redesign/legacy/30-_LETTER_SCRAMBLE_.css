@@ -1,0 +1,25 @@
+
+/* ===== LETTER SCRAMBLE ===== */
+#pg-setup-letterscramble{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,var(--bg-3) 0%,transparent 60%),var(--bg);}
+#pg-letterscramble{padding:0;background:var(--bg);overflow:hidden;}
+.lsc-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.lsc-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+/* Scrambled word display — بطاقة مميزة بلغة "توهج فاخر" مثل بطاقات البوديوم */
+.lsc-word-box{width:100%;max-width:640px;background:linear-gradient(160deg, rgba(167,139,255,.14), rgba(124,58,237,.12)),var(--surface2);border:2px solid var(--accent2);border-radius:20px;padding:26px 28px;margin-bottom:18px;text-align:center;display:none;box-shadow:0 0 34px rgba(124,58,237,.22);animation:popIn .35s ease;}
+.lsc-word-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.lsc-word-display{font-size:36px;font-weight:900;color:var(--accent2);letter-spacing:8px;direction:ltr;text-shadow:0 0 22px rgba(167,139,255,.5);}
+.lsc-word-hint{font-size:13px;color:var(--muted);margin-top:10px;}
+
+/* Guess rows */
+.lsc-guess-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:9px;animation:popIn .25s ease;transition:transform .15s ease;}
+.lsc-guess-row.correct{background:rgba(52,211,153,.12);border:1px solid var(--green);box-shadow:0 0 18px rgba(52,211,153,.18);}
+.lsc-guess-row.wrong{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.15);}
+.lsc-guess-user{font-size:12px;color:var(--muted);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.lsc-guess-text{font-size:16px;font-weight:800;color:var(--text);flex:1;}
+.lsc-guess-badge{font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;flex-shrink:0;}
+.lsc-guess-badge.correct{background:var(--green);color:#fff;box-shadow:0 0 12px rgba(52,211,153,.5);}
+.lsc-guess-badge.wrong{background:var(--gray-letter);color:var(--text);}
+
+.lsc-guesses-board{width:100%;max-width:640px;}
+#pg-letterscramble-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,var(--bg-3) 0%,var(--bg) 70%);}

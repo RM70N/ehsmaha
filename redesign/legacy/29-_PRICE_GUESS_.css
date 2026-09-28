@@ -1,0 +1,40 @@
+
+/* ===== PRICE GUESS ===== */
+#pg-setup-priceguess{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,.18) 0%,transparent 60%),radial-gradient(ellipse at 50% 100%,rgba(124,58,237,.1) 0%,transparent 55%),var(--bg);}
+#pg-priceguess{padding:0;background:var(--bg);overflow:hidden;}
+.pg-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.pg-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:var(--bg);}
+
+/* Product display */
+.pg-product-box{width:100%;max-width:640px;background:linear-gradient(160deg,rgba(245,158,11,.18),rgba(124,58,237,.1));border:2px solid var(--gold);border-radius:18px;padding:24px 28px;margin-bottom:16px;text-align:center;display:none;box-shadow:0 10px 28px -14px rgba(245,158,11,.45);animation:popIn .3s ease;}
+.pg-product-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;}
+.pg-product-name{font-size:29px;font-weight:900;color:var(--gold);text-shadow:0 0 22px rgba(245,158,11,.3);}
+.pg-product-hint{font-size:13px;color:var(--muted);margin-top:8px;}
+
+/* Guess rows */
+.pg-guess-row{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;animation:popIn .25s ease;}
+.pg-guess-row.exact{background:linear-gradient(160deg,rgba(34,197,94,.16),var(--surface));border:1px solid var(--green);box-shadow:0 6px 18px -10px rgba(34,197,94,.4);}
+.pg-guess-row.close{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.4);}
+.pg-guess-row.wrong{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);}
+.pg-guess-user{font-size:12px;color:var(--muted);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.pg-guess-amount{font-size:17px;font-weight:900;color:var(--text);flex:1;direction:ltr;text-align:center;}
+.pg-guess-diff{font-size:12px;font-weight:700;color:var(--muted);flex-shrink:0;}
+.pg-guess-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;flex-shrink:0;}
+.pg-guess-badge.exact{background:var(--green);color:#fff;}
+.pg-guess-badge.close{background:var(--gold);color:#000;}
+.pg-guess-badge.wrong{background:var(--gray-letter);color:var(--text);}
+
+/* Attempts tracker */
+.pg-attempts-wrap{width:100%;max-width:640px;margin-bottom:10px;display:none;}
+.pg-attempts-title{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px;}
+.pg-attempts-bar{display:flex;flex-wrap:wrap;gap:6px;}
+.pg-att-tag{font-size:11px;padding:4px 10px;border-radius:20px;font-weight:700;}
+.pg-att-tag.one{background:rgba(245,158,11,.2);color:var(--gold);border:1px solid rgba(245,158,11,.3);}
+.pg-att-tag.out{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);}
+.pg-att-tag.ok{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25);}
+
+.pg-guesses-board{width:100%;max-width:640px;max-height:340px;overflow-y:auto;}
+.pg-no-winner-box{width:100%;max-width:640px;background:linear-gradient(160deg,rgba(245,158,11,.14),var(--surface));border:1px solid var(--gold);border-radius:16px;padding:22px;text-align:center;margin-top:10px;display:none;box-shadow:0 8px 24px -14px rgba(245,158,11,.35);}
+.pg-no-winner-title{font-size:20px;font-weight:900;color:var(--gold);margin-bottom:6px;}
+.pg-no-winner-sub{font-size:14px;color:var(--muted);}
+#pg-priceguess-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(245,158,11,.18) 0%,var(--bg) 70%);}

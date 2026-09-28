@@ -1,0 +1,113 @@
+
+/* ===== MUSICAL CHAIRS ===== */
+#pg-setup-chairs{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.20) 0%,transparent 60%),var(--bg);}
+#pg-chairs{padding:0;background:var(--bg);overflow:hidden;}
+.chairs-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;height:100vh;height:100dvh;overflow:hidden;}
+.chairs-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+.chairs-round-bar{width:100%;max-width:640px;background:var(--surface2);border:1px dashed var(--border);border-radius:14px;padding:10px 16px;margin-bottom:14px;font-size:13px;color:var(--muted);text-align:center;display:flex;justify-content:center;gap:18px;flex-wrap:wrap;}
+.chairs-round-bar b{color:var(--accent2);}
+
+/* ===== شاشة الراوند — التصميم الجديد (الكرسي المتحرك) ===== */
+#chairs-stage{display:none;}
+#pg-chairs.rd-live #chairs-stage{display:block;}
+#chairs-stage .rd-inner{gap:2cqw;}
+.chairs-circle-wrap{position:relative;width:auto;height:min(90cqw,100%);aspect-ratio:1;max-width:100%;margin:0;display:none;}
+.chairs-circle-wrap.show{display:block;}
+.chairs-circle-wrap::after{content:'';position:absolute;inset:0;border-radius:50%;border:.35cqw dashed rgba(232,160,200,.22);pointer-events:none;}
+.chairs-circle-wrap.spinning::before{display:none;}
+.chairs-circle{position:absolute;inset:0;transform:rotate(0deg);}
+.chairs-avatar-slot{position:absolute;top:0;left:0;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;}
+.chairs-username-tag{display:flex;align-items:center;gap:1.2cqw;background:rgba(26,13,51,.9);border:.35cqw solid rgba(232,160,200,.22);border-radius:6cqw;padding:.9cqw 2cqw .9cqw .9cqw;font-size:3.4cqw;font-weight:700;color:#F6EBD0;white-space:nowrap;box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.5);transform:var(--rd-counter,none);}
+.chairs-username-tag .rd-chip{width:8cqw;height:8cqw;border-radius:50%;display:grid;place-items:center;font-family:'Amiri',serif;font-size:4.6cqw;font-weight:700;color:#150a2c;flex:0 0 auto;overflow:hidden;}
+.chairs-username-tag.claimed{border-color:rgba(227,195,106,.85);}
+.chairs-username-tag.immune{border-color:#E3C36A;box-shadow:0 0 4cqw rgba(227,195,106,.6);}
+.chairs-username-tag.immune::before{content:'🛡️ ';}
+
+/* شبكة الكراسي — ثابتة في منتصف الدائرة تماماً ولا تدور */
+.chairs-reveal-wrap{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:auto;flex-direction:column;align-items:center;z-index:2;}
+.chairs-reveal-wrap.show{display:flex;}
+.chairs-reveal-wrap.show ~ .rd-chairs-hidden{display:none;}
+.chairs-grid{display:grid;gap:1.6cqw;justify-content:center;width:auto;}
+.chair-cell{position:relative;background:#1a0d33;border:.5cqw solid rgba(227,195,106,.22);border-radius:3.2cqw;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4cqw;box-shadow:inset 0 0 4cqw rgba(0,0,0,.6);}
+.chair-cell-num{font-family:'Amiri',serif;font-weight:700;line-height:1;color:#8E77BC;}
+.chair-cell-name{font-weight:700;color:#C9B7E8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chair-cell.claimed{background:linear-gradient(160deg,rgba(227,195,106,.28),rgba(232,160,200,.14));border-color:#E3C36A;box-shadow:0 0 5cqw rgba(227,195,106,.55);}
+.chair-cell.claimed .chair-cell-num{color:#FFF3D4;}
+.chair-cell.claimed .chair-cell-name{color:#150a2c;background:#E3C36A;padding:.2cqw 1.2cqw;border-radius:2cqw;animation:rdClaimPop .32s cubic-bezier(.34,1.56,.64,1) both;}
+.chair-cell.golden{border-color:#FFD98A;box-shadow:0 0 6cqw rgba(255,217,138,.6);}
+.chair-cell.golden .chair-cell-num{color:#FFD98A;}
+.chair-visual{display:none;}
+
+/* Elimination overlay */
+.chairs-elim-overlay{position:fixed;inset:0;background:rgba(9,4,22,.9);display:none;align-items:center;justify-content:center;z-index:500;}
+.chairs-elim-overlay.show{display:flex;}
+.chairs-elim-box{background:linear-gradient(160deg,#2a1450,#150a2c);border:3px solid rgba(232,160,200,.55);border-radius:22px;padding:26px 24px;text-align:center;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 0 60px rgba(232,160,200,.3),0 12px 45px rgba(0,0,0,.75);}
+.chairs-elim-title{font-size:24px;font-weight:900;color:#E8A0C8;letter-spacing:2px;margin-bottom:6px;}
+.chairs-elim-sub{font-size:13px;color:#8E77BC;margin-bottom:16px;}
+.chairs-elim-list{display:flex;flex-direction:column;gap:9px;margin-bottom:18px;}
+.chairs-elim-item{display:flex;align-items:center;gap:12px;padding:9px 16px;border-radius:16px;background:rgba(13,6,32,.72);border:1px solid rgba(227,195,106,.25);animation:popIn .25s ease;}
+.chairs-elim-icon{font-size:18px;}
+.chairs-elim-name{font-family:'Amiri',serif;font-size:20px;font-weight:700;color:#FFF3D4;}
+
+#pg-chairs-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.20) 0%,var(--bg) 70%);}
+
+/* ============ SHARED FX (أنيميشن مشترك لكل ألعاب الستريمر) ============ */
+.fx-confetti-layer{position:fixed;inset:0;pointer-events:none;z-index:99998;overflow:hidden;}
+.fx-confetti{position:absolute;top:-16px;width:9px;height:14px;opacity:.95;will-change:transform;animation:fxfall linear forwards;}
+@keyframes fxfall{0%{transform:translate(0,-16px) rotate(0);opacity:1}100%{transform:translate(var(--x),106vh) rotate(var(--r));opacity:.85}}
+.fx-eliminated{animation:fxElim .55s cubic-bezier(.4,0,.2,1) forwards!important;}
+@keyframes fxElim{0%{transform:scale(1);filter:none}35%{transform:scale(1.18) rotate(-5deg);filter:brightness(1.5) saturate(1.3)}100%{transform:scale(0) rotate(14deg);opacity:0}}
+.fx-shake{animation:fxShake .5s ease;}
+@keyframes fxShake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+
+/* ===== مؤثر الكف عند الإقصاء (وسط الشاشة) ===== */
+.fx-gun-layer{position:fixed;inset:0;pointer-events:none;z-index:99999;display:flex;align-items:center;justify-content:center;}
+.fx-gun{position:relative;animation:fxGunPop .5s cubic-bezier(.34,1.56,.64,1);}
+.fx-gun svg{width:min(38vw,210px);height:auto;filter:drop-shadow(0 8px 18px rgba(0,0,0,.65));animation:fxGunRecoil .42s ease .1s;}
+@keyframes fxGunPop{0%{transform:scale(.35) rotate(-10deg);opacity:0}55%{opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+@keyframes fxGunRecoil{0%{transform:translateX(0) rotate(0)}16%{transform:translate(-30px,-8px) rotate(-11deg)}55%{transform:translateX(0) rotate(0)}100%{transform:translateX(0)}}
+.fx-gun-flash{position:absolute;top:33%;right:2px;width:130px;height:130px;transform:translateY(-50%);background:radial-gradient(circle,#fff 0%,#ffe680 22%,#ffab1a 44%,rgba(255,110,0,0) 70%);opacity:0;animation:fxFlash .3s ease .1s;}
+@keyframes fxFlash{0%{opacity:0;transform:translateY(-50%) scale(.2)}25%{opacity:1;transform:translateY(-50%) scale(1.15)}100%{opacity:0;transform:translateY(-50%) scale(1.6)}}
+.fx-screen-flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:99997;animation:fxScreenFlash .32s ease;}
+@keyframes fxScreenFlash{0%{opacity:0}12%{opacity:.45}100%{opacity:0}}
+
+/* ===== بطاقة اللاعب المطرود (أفتار + يوزر تيك توك) + كف يضربه ===== */
+.fx-slapcard-layer{position:fixed;inset:0;pointer-events:none;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(10,10,15,.55);animation:fxSlapScrim .5s ease;}
+@keyframes fxSlapScrim{0%{opacity:0}100%{opacity:1}}
+.fx-slapcard-stage{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;animation:fxSlapCardShake .7s ease .9s;}
+@keyframes fxSlapCardShake{0%,100%{transform:translate(0,0)}15%{transform:translate(-9px,3px) rotate(-1.2deg)}30%{transform:translate(8px,-4px) rotate(1.2deg)}45%{transform:translate(-6px,4px) rotate(-.8deg)}60%{transform:translate(5px,-3px) rotate(.8deg)}75%{transform:translate(-3px,2px) rotate(-.4deg)}90%{transform:translate(2px,-1px) rotate(.2deg)}}
+.fx-slapcard-avatarwrap{position:relative;width:132px;height:132px;border-radius:50%;animation:fxSlapPop .75s cubic-bezier(.34,1.56,.64,1);}
+@keyframes fxSlapPop{0%{transform:scale(.3) rotate(-8deg);opacity:0}60%{opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.fx-slapcard-avatarwrap::before{content:'';position:absolute;inset:-8px;border-radius:50%;box-shadow:0 0 0 3px rgba(201,168,76,.55),0 0 26px 6px rgba(201,168,76,.35);pointer-events:none;}
+.fx-slapcard-avatarwrap img,.fx-slapcard-avatarwrap .fx-slapcard-fb{width:132px;height:132px;border-radius:50%;object-fit:cover;border:3px solid #C9A84C;background:#1a1a24;display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:800;color:#C9A84C;}
+.fx-slapcard-name{font-family:'Tajawal',sans-serif;font-weight:800;font-size:19px;color:#fff;background:#1a1a24;padding:7px 20px;border-radius:999px;border:1px solid rgba(201,168,76,.4);white-space:nowrap;max-width:80vw;overflow:hidden;text-overflow:ellipsis;animation:fxSlapPop .75s cubic-bezier(.34,1.56,.64,1) .08s both;}
+.fx-slapcard-hand{position:absolute;top:38%;right:100%;transform:translateY(-50%);width:min(30vw,150px);filter:drop-shadow(0 8px 16px rgba(0,0,0,.6)) drop-shadow(0 0 16px rgba(201,168,76,.45));animation:fxSlapHandIn .7s cubic-bezier(.3,1.7,.5,1) forwards;}
+@keyframes fxSlapHandIn{0%{transform:translateY(-50%) translateX(-140px) rotate(24deg) scale(.8);opacity:0}70%{opacity:1}100%{transform:translateY(-50%) translateX(6px) rotate(-14deg) scale(1.15);opacity:1}}
+.fx-slapcard-hand svg{width:100%;height:auto;display:block;}
+
+/* ===== توهّج ذهبي فخم لحظة الفوز ===== */
+.fx-burst{position:fixed;top:50%;left:50%;width:8px;height:8px;transform:translate(-50%,-50%);pointer-events:none;z-index:99996;}
+.fx-burst::before{content:'';position:absolute;top:50%;left:50%;width:240px;height:240px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(245,196,81,.55),rgba(168,85,247,.25) 45%,rgba(245,196,81,0) 72%);animation:fxBurstGlow 1.1s ease-out forwards;}
+@keyframes fxBurstGlow{0%{transform:translate(-50%,-50%) scale(.25);opacity:.85}100%{transform:translate(-50%,-50%) scale(3.4);opacity:0}}
+
+/* ===== الكرسي المتحرك — شكل كرسي فخم جديد (بديل الإيموجي) ===== */
+.chair-visual{position:relative;width:40px;height:40px;margin:1px auto 2px;filter:drop-shadow(0 3px 5px rgba(0,0,0,.35));}
+.chair-back{position:absolute;left:8px;top:0;width:24px;height:23px;border-radius:11px 11px 4px 4px;background:linear-gradient(180deg,var(--accent2),var(--accent));box-shadow:inset 0 -4px 7px rgba(0,0,0,.28),inset 0 3px 5px rgba(255,255,255,.18);}
+.chair-seat{position:absolute;left:5px;top:19px;width:30px;height:12px;border-radius:6px;background:linear-gradient(180deg,var(--accent),#5b21b6);box-shadow:inset 0 3px 5px rgba(255,255,255,.15);}
+.chair-leg{position:absolute;top:30px;width:5px;height:10px;border-radius:0 0 3px 3px;background:var(--accent-dark);}
+.chair-leg.l{left:9px;}.chair-leg.r{left:26px;}
+.chair-cell.golden .chair-back{background:linear-gradient(180deg,#fde68a,#f59e0b);}
+.chair-cell.golden .chair-seat{background:linear-gradient(180deg,#f59e0b,#b45309);}
+.chair-cell.golden .chair-leg{background:#92400e;}
+.chair-cell.golden .chair-visual{filter:drop-shadow(0 0 8px rgba(245,158,11,.55));}
+.chair-cell.claimed .chair-back{background:linear-gradient(180deg,#4ade80,#16a34a);}
+.chair-cell.claimed .chair-seat{background:linear-gradient(180deg,#16a34a,#15803d);}
+.chair-cell.claimed .chair-leg{background:#14532d;}
+.chair-cell.claimed{animation:chairClaim .45s cubic-bezier(.34,1.56,.64,1);}
+@keyframes chairClaim{0%{transform:scale(1)}45%{transform:scale(1.14)}100%{transform:scale(1)}}
+
+/* توهّج حماسي حول دائرة الأسماء أثناء الدوران */
+.chairs-circle-wrap.spinning::before{content:'';position:absolute;inset:-16px;border-radius:50%;background:conic-gradient(from 0deg,rgba(124,58,237,0),rgba(168,85,247,.5),rgba(124,58,237,0));animation:fxSpinGlow 1s linear infinite;pointer-events:none;z-index:-1;}
+@keyframes fxSpinGlow{to{transform:rotate(360deg)}}
+.chairs-circle-wrap.spinning .chairs-username-tag{box-shadow:0 .6cqw 2.4cqw rgba(0,0,0,.5);}

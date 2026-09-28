@@ -1,0 +1,39 @@
+
+/* ===== CROWN STEAL ===== */
+#pg-setup-crownsteal{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(245,158,11,.16) 0%,transparent 60%),var(--bg);}
+#pg-crownsteal{padding:0;background:var(--bg);overflow:hidden;}
+.cs-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.cs-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(245,158,11,.10) 0%, transparent 55%),var(--bg);}
+
+/* Crown holder display */
+.cs-crown-box{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;margin-bottom:20px;display:none;padding:22px 20px;border-radius:22px;background:linear-gradient(160deg, rgba(245,196,81,.14), rgba(124,58,237,.10));border:1px solid rgba(245,158,11,.35);box-shadow:0 0 34px rgba(245,158,11,.18);}
+.cs-crown-box.show{display:flex;}
+.cs-crown-emoji{font-size:84px;line-height:1;margin-bottom:6px;animation:csCrownFloat 2s ease-in-out infinite;filter:drop-shadow(0 0 22px rgba(245,158,11,.55));}
+@keyframes csCrownFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.cs-crown-emoji.danger{animation:csCrownShake .35s ease-in-out infinite;}
+@keyframes csCrownShake{0%,100%{transform:translateX(0) rotate(0);}25%{transform:translateX(-4px) rotate(-4deg);}75%{transform:translateX(4px) rotate(4deg);}}
+.cs-holder-name{font-size:26px;font-weight:900;color:var(--gold);margin-bottom:4px;text-shadow:0 0 18px rgba(245,158,11,.4);}
+.cs-holder-sub{font-size:13px;color:var(--muted);margin-bottom:14px;}
+
+/* Countdown ring */
+.cs-timer-wrap{position:relative;width:140px;height:140px;margin-bottom:6px;filter:drop-shadow(0 0 14px rgba(245,158,11,.3));}
+.cs-timer-svg{transform:rotate(-90deg);width:140px;height:140px;}
+.cs-timer-bg{fill:none;stroke:var(--surface2);stroke-width:8;}
+.cs-timer-fg{fill:none;stroke:var(--gold);stroke-width:8;stroke-linecap:round;stroke-dasharray:351.86;stroke-dashoffset:0;transition:stroke-dashoffset .1s linear,stroke .2s;}
+.cs-timer-fg.danger{stroke:var(--red);}
+.cs-timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:34px;font-weight:900;font-variant-numeric:tabular-nums;color:var(--text);}
+
+/* Waiting for crown box */
+.cs-waiting-box{width:100%;max-width:560px;text-align:center;padding:40px 20px;border-radius:22px;background:rgba(245,158,11,.05);border:1px dashed rgba(245,158,11,.3);}
+.cs-waiting-icon{font-size:60px;margin-bottom:14px;filter:drop-shadow(0 0 18px rgba(245,158,11,.4));}
+.cs-waiting-text{font-size:16px;color:var(--muted);font-weight:700;}
+.cs-waiting-kw{color:var(--gold);font-weight:900;}
+
+/* Steal log */
+.cs-log{width:100%;max-width:560px;margin-top:18px;display:flex;flex-direction:column;gap:8px;}
+.cs-log-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;background:var(--surface);border:1px solid rgba(245,158,11,.35);animation:popIn .3s ease;}
+.cs-log-icon{font-size:18px;}
+.cs-log-text{font-size:14px;font-weight:700;color:var(--text);}
+.cs-log-sub{font-size:11px;color:var(--muted);}
+
+#pg-crownsteal-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(245,158,11,.16) 0%,var(--bg) 70%);}

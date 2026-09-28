@@ -1,0 +1,53 @@
+
+/* ===== SNIPER SETUP ===== */
+#pg-setup-sniper{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.16) 0%,transparent 60%),var(--bg);}
+
+/* ===== SNIPER DASHBOARD ===== */
+#pg-sniper{padding:0;background:var(--bg);overflow:hidden;}
+.sniper-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+
+/* Grid */
+.sniper-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+.sniper-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:7px;width:100%;max-width:680px;margin-bottom:20px;}
+.s-cell{aspect-ratio:1;border-radius:12px;background:var(--surface);border:2px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:var(--text);cursor:default;transition:all .2s;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+.s-cell .s-num{font-size:11px;color:var(--muted);font-weight:700;}
+.s-cell .s-name{font-size:9px;color:var(--accent2);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90%;text-align:center;}
+.s-cell.occupied{border-color:var(--accent2);box-shadow:0 0 12px rgba(167,139,255,.25),0 2px 8px rgba(0,0,0,.25);}
+.s-cell.eliminated{background:rgba(239,68,68,.14);border-color:var(--red);opacity:.55;box-shadow:none;}
+.s-cell.eliminated .s-num{color:var(--red);}
+.s-cell.missed{background:var(--surface2);border-color:var(--border);opacity:.5;box-shadow:none;}
+.s-cell.missed .s-num{color:var(--muted);}
+.s-cell.hit-anim{animation:hitFlash .5s ease;}
+@keyframes hitFlash{0%{background:#ef4444;transform:scale(1.15);}100%{}}
+
+/* Weapons */
+.weapons-bar{width:100%;max-width:680px;display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.weapon-btn{flex:1;min-width:120px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:13px 10px;cursor:pointer;transition:all .2s;font-family:var(--font);}
+.weapon-btn:hover:not(:disabled){border-color:var(--accent2);transform:translateY(-1px);box-shadow:0 6px 18px rgba(124,58,237,.2);}
+.weapon-btn:disabled{opacity:.4;cursor:not-allowed;}
+.weapon-btn.active-weapon{border-color:var(--green);background:rgba(52,211,153,.1);box-shadow:0 0 18px rgba(52,211,153,.25);}
+.weapon-icon{font-size:28px;}
+.weapon-name{font-size:13px;font-weight:800;color:var(--text);}
+.weapon-ammo{font-size:11px;color:var(--muted);font-weight:700;}
+.weapon-desc{font-size:10px;color:var(--muted);text-align:center;}
+
+/* Fire input */
+.fire-row{width:100%;max-width:680px;display:flex;gap:10px;margin-bottom:16px;}
+.fire-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 16px;color:var(--text);font-family:var(--font);font-size:15px;outline:none;transition:border-color .2s;}
+.fire-input:focus{border-color:var(--accent2);}
+.fire-input::placeholder{color:var(--muted);}
+.btn-fire{background:linear-gradient(135deg,var(--red),#dc2626);color:#fff;border:none;border-radius:12px;padding:11px 24px;font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s;white-space:nowrap;box-shadow:0 4px 16px rgba(239,68,68,.35);}
+.btn-fire:hover{transform:translateY(-1px);box-shadow:0 6px 22px rgba(239,68,68,.5);}
+.btn-fire:disabled{background:var(--gray-letter);cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* Kill log */
+.kill-log{width:100%;max-width:680px;display:flex;flex-direction:column;gap:7px;}
+.kill-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--surface);border:1px solid var(--border);animation:popIn .25s ease;}
+.kill-item.empty-hit{border-color:var(--gray-letter);}
+.kill-item.has-player{border-color:var(--red);box-shadow:0 0 14px rgba(239,68,68,.18);}
+.kill-icon{font-size:20px;flex-shrink:0;}
+.kill-text{font-size:13px;font-weight:700;color:var(--text);}
+.kill-sub{font-size:11px;color:var(--muted);}
+
+/* Sniper winner */
+#pg-sniper-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.32) 0%,var(--bg) 70%);}

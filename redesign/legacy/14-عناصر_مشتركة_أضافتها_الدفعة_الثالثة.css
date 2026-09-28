@@ -1,0 +1,96 @@
+
+/* عناصر مشتركة أضافتها الدفعة الثالثة */
+.og-answer-row{display:flex;gap:8px;width:100%;max-width:440px;}
+.og-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;color:var(--text);font-size:16px;font-family:inherit;text-align:center;direction:rtl;}
+.og-input:focus{outline:none;border-color:var(--border-strong);}
+.og-input:disabled{opacity:.5;}
+.og-send{flex:0 0 auto;padding:12px 20px;}
+.og-hint{font-size:14px;font-weight:700;color:var(--gold,#F59E0B);text-align:center;}
+.og-score-row.dead{opacity:.5;}
+.og-targets,.ocw-board{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.og-target{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 20px;color:var(--text);font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;transition:transform .15s,border-color .15s;}
+.og-target:hover:not(:disabled){transform:translateY(-2px);border-color:#ff6b6b;}
+.og-target:disabled{opacity:.45;cursor:default;}
+
+/* الطريق الزجاجي */
+.oglz-qbanner{width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 18px;text-align:center;}
+.oglz-qtag{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.oglz-qtext{font-size:17px;font-weight:900;color:var(--text);line-height:1.6;}
+.oglz-panels{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.oglz-panel{background:linear-gradient(160deg,rgba(167,199,255,.16),rgba(167,199,255,.05));border:1px solid rgba(167,199,255,.4);border-radius:14px;padding:18px 20px;min-width:140px;cursor:pointer;font-family:inherit;transition:transform .15s,border-color .15s;}
+.oglz-panel:hover:not(:disabled){transform:translateY(-3px);border-color:rgba(167,199,255,.8);}
+.oglz-panel:disabled{cursor:default;opacity:.6;}
+.oglz-panel.mine{border-color:var(--gold,#F59E0B);opacity:1;}
+.oglz-panel-num{font-size:12px;font-weight:900;color:var(--muted);margin-bottom:6px;}
+.oglz-panel-text{font-size:15px;font-weight:700;color:var(--text);}
+
+/* الأراضي البركانية */
+.ovl-scene{position:relative;width:100%;max-width:520px;height:64px;border-radius:14px;overflow:hidden;background:var(--surface);border:1px solid var(--border);}
+.ovl-lava{position:absolute;inset-inline:0;bottom:0;height:8%;background:linear-gradient(0deg,#ff4d00,#ffb700);transition:height .5s ease;}
+.ovl-qtext{font-size:17px;font-weight:900;color:var(--text);text-align:center;line-height:1.6;max-width:520px;}
+.ovl-options{display:flex;flex-direction:column;gap:8px;width:100%;max-width:440px;}
+.ovl-opt{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 16px;color:var(--text);font-size:15px;font-weight:700;text-align:start;font-family:inherit;cursor:pointer;transition:border-color .15s,transform .15s;}
+.ovl-opt:hover:not(:disabled){transform:translateY(-2px);border-color:var(--border-strong);}
+.ovl-opt:disabled{opacity:.55;cursor:default;}
+.ovl-opt.mine{border-color:var(--gold,#F59E0B);opacity:1;}
+.ovl-opt b{color:var(--gold,#F59E0B);margin-inline-end:6px;}
+
+/* عكس الكلمة / اوجد الكلمة / خمن الصورة / من أنا؟ / تخمين السعر */
+.orw-word{font-size:34px;font-weight:900;color:var(--text);letter-spacing:4px;background:var(--surface2);border:1px solid var(--border-strong);border-radius:16px;padding:14px 26px;direction:ltr;}
+.omain-blanks{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.omain-blank{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:44px;border-radius:10px;background:var(--surface2);border:1px solid var(--border-strong);font-size:22px;font-weight:900;color:var(--muted);}
+.oig-pic{font-size:66px;line-height:1;}
+.oig-clue{font-size:15px;font-weight:700;color:var(--muted);text-align:center;}
+.owai-hint1{font-size:18px;font-weight:900;color:var(--text);text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 20px;max-width:440px;}
+.opgs-product{font-size:20px;font-weight:900;color:var(--text);text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:16px 22px;max-width:440px;}
+
+/* الدول */
+.ocw-country{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:12px 18px;cursor:pointer;font-family:inherit;transition:transform .15s,border-color .15s;}
+.ocw-country:hover:not(:disabled){transform:translateY(-2px);border-color:#ff6b6b;}
+.ocw-country:disabled{opacity:.45;cursor:default;}
+.ocw-country-name{font-size:16px;font-weight:900;color:var(--text);}
+.ocw-country-owner{font-size:12px;color:var(--muted);margin-top:2px;}
+
+/* آخر حرف */
+.oll-chain{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.oll-word{background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;color:var(--muted);}
+
+/* سرقة التاج */
+.ocs-crown{font-size:64px;line-height:1;animation:ocsFloat 2s ease-in-out infinite;}
+@keyframes ocsFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ocs-steal{padding:14px 30px;font-size:17px;}
+
+/* سباق الشات */
+.ocr-track{width:100%;max-width:520px;display:flex;flex-direction:column;gap:10px;}
+.ocr-lane-name{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:3px;}
+.ocr-lane-track{position:relative;height:30px;border-radius:999px;background:var(--surface);border:1px solid var(--border);overflow:hidden;}
+.ocr-car{position:absolute;top:50%;transform:translate(50%,-50%);font-size:20px;transition:inset-inline-start .2s linear;}
+.ocr-tap{padding:16px 40px;font-size:19px;}
+
+/* شد الحبل */
+.otug-track{position:relative;width:100%;max-width:520px;height:46px;border-radius:999px;background:linear-gradient(90deg,rgba(255,107,107,.22),rgba(77,150,255,.22));border:1px solid var(--border);overflow:hidden;}
+.otug-knot{position:absolute;top:50%;transform:translate(50%,-50%);font-size:26px;transition:inset-inline-start .25s ease;}
+.otug-pull{padding:16px 40px;font-size:19px;}
+
+/* الضوء الأخضر · الأحمر */
+.orlgl-lamp{font-size:24px;font-weight:900;border-radius:16px;padding:18px 34px;border:2px solid var(--border);transition:background .15s,border-color .15s,color .15s;}
+.orlgl-lamp.green{background:rgba(61,220,151,.16);border-color:#3ddc97;color:#3ddc97;}
+.orlgl-lamp.red{background:rgba(255,107,107,.16);border-color:#ff6b6b;color:#ff6b6b;}
+.orlgl-step{padding:16px 40px;font-size:19px;}
+
+/* المتاهة */
+.omz-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;width:100%;max-width:340px;}
+.omz-cell{aspect-ratio:1;border-radius:6px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;}
+.omz-cell.wall{background:#2a1a45;border-color:rgba(167,139,255,.35);}
+.omz-cell.exit{background:rgba(61,220,151,.2);border-color:#3ddc97;}
+.omz-pad{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.omz-pad-row{display:flex;gap:44px;}
+.omz-btn{width:54px;height:54px;border-radius:14px;background:var(--surface);border:1px solid var(--border);font-size:22px;cursor:pointer;font-family:inherit;transition:transform .12s,border-color .12s;}
+.omz-btn:hover{transform:translateY(-2px);border-color:var(--border-strong);}
+
+@media (max-width:480px){
+  .orw-word{font-size:26px;padding:12px 18px;}
+  .oig-pic{font-size:52px;}
+  .omz-grid{max-width:290px;}
+  .omz-btn{width:48px;height:48px;font-size:19px;}
+}

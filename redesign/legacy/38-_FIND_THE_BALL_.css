@@ -1,0 +1,84 @@
+
+/* ===== FIND THE BALL ===== */
+#pg-setup-findball{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.20) 0%,transparent 60%),var(--bg);}
+#pg-findball{padding:0;background:var(--bg);overflow:hidden;}
+
+.findball-stage{position:relative;width:100%;max-width:560px;min-height:260px;margin:10px auto 0;display:flex;align-items:center;justify-content:center;perspective:900px;}
+.findball-cups{position:relative;width:100%;height:220px;}
+
+.findball-cup{position:absolute;top:40px;width:110px;height:130px;transition:left 1s cubic-bezier(.65,.05,.36,1),transform .2s ease;cursor:default;}
+.findball-cup-body{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;transition:transform .35s cubic-bezier(.34,1.56,.64,1);transform-origin:bottom center;}
+.findball-cup-body::before{content:'';position:absolute;inset:0;background:linear-gradient(160deg,var(--accent2),var(--accent));border-radius:16px 16px 44px 44px;box-shadow:0 10px 26px rgba(124,58,237,.5),inset 0 -8px 14px rgba(0,0,0,.25);}
+.findball-cup-num{position:relative;z-index:1;color:#fff;font-weight:900;font-size:26px;padding-bottom:14px;text-shadow:0 2px 6px rgba(0,0,0,.4);transition:opacity .2s ease;}
+.findball-cup.lifted .findball-cup-body{transform:translateY(-92px) rotate(-8deg);}
+.findball-cup.shuffling .findball-cup-body{animation:findballWobble .35s ease infinite;}
+.findball-cup.shuffling .findball-cup-num{opacity:0;}
+.findball-cup.correct .findball-cup-body::before{background:linear-gradient(160deg,var(--brand-green),#0f9d68);box-shadow:0 0 28px rgba(52,211,153,.65),inset 0 -8px 14px rgba(0,0,0,.25);}
+.findball-cup.wrong .findball-cup-body::before{background:linear-gradient(160deg,var(--danger),var(--danger2));box-shadow:0 0 28px rgba(244,63,94,.55),inset 0 -8px 14px rgba(0,0,0,.25);}
+.findball-cup.guessable{cursor:pointer;}
+
+.findball-ball{position:absolute;bottom:6px;left:50%;transform:translateX(-50%) scale(0);width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff7d6,#f59e0b 55%,#b45309);box-shadow:0 4px 12px rgba(0,0,0,.4),0 0 16px rgba(245,158,11,.35);z-index:0;opacity:0;transition:opacity .2s ease,transform .3s cubic-bezier(.34,1.56,.64,1);}
+.findball-ball.show{opacity:1;transform:translateX(-50%) scale(1);}
+
+@keyframes findballWobble{
+  0%{transform:translateY(0) rotate(0deg);}
+  25%{transform:translateY(-6px) rotate(-4deg);}
+  75%{transform:translateY(-6px) rotate(4deg);}
+  100%{transform:translateY(0) rotate(0deg);}
+}
+
+.findball-guess-hint{margin-top:14px;font-size:13px;color:var(--muted2);text-align:center;}
+
+/* Revival toast/badge — reuses immunity-tag visual language with a distinct green glow */
+.findball-revived-flash{position:fixed;inset:0;pointer-events:none;z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;}
+.findball-revived-flash.show{animation:findballRevivedFlash 1.4s ease forwards;}
+.findball-revived-badge{background:var(--surface);border:2px solid var(--brand-green);border-radius:22px;padding:14px 28px;font-size:16px;font-weight:900;color:var(--brand-green);box-shadow:0 0 34px rgba(52,211,153,.6);animation:popIn .3s ease;}
+@keyframes findballRevivedFlash{
+  0%{opacity:0;transform:scale(.9);}
+  15%{opacity:1;transform:scale(1);}
+  85%{opacity:1;transform:scale(1);}
+  100%{opacity:0;transform:scale(.95);}
+}
+
+/* Shared revival flash — same visual language as findball's, reused by every
+   other streamer game's revival mechanic (سنايبر/الروليت/القنبلة/الصندوق/آخر
+   حرف/حرب الدول/الكراسي) so the "🎁 فلان رجع باللعبة!" moment looks identical
+   everywhere instead of duplicating the CSS per game. */
+.revival-flash{position:fixed;inset:0;pointer-events:none;z-index:600;display:flex;align-items:center;justify-content:center;opacity:0;}
+.revival-flash.show{animation:findballRevivedFlash 1.4s ease forwards;}
+.revival-badge{background:var(--surface);border:2px solid var(--brand-green);border-radius:20px;padding:14px 26px;font-size:16px;font-weight:900;color:var(--brand-green);box-shadow:0 0 30px rgba(52,211,153,.55);animation:popIn .3s ease;}
+
+/* ==================== GIFT REVIVAL OVERLAY (إنعاش بهدية — التوقف الكامل) ====================
+   أنيميشن أفخم مستقل عن .revival-flash أعلاه — يُستخدم فقط عند إنعاش لاعب
+   مُقصى بهدية تيك توك، مصحوب بتوقف الجولة الفعلي 3 ثوانٍ (giftRevivalFreeze). */
+@keyframes giftBurstGlow{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3);}
+  35%{opacity:.9;}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(2.4);}
+}
+@keyframes giftRingSpin{to{transform:rotate(360deg);}}
+@keyframes giftRingSpinRev{to{transform:rotate(-360deg);}}
+@keyframes giftFloatA{0%,100%{transform:translate(0,0) rotate(0deg);}50%{transform:translate(6px,-22px) rotate(20deg);}}
+@keyframes giftFloatB{0%,100%{transform:translate(0,0) rotate(0deg);}50%{transform:translate(-10px,16px) rotate(-15deg);}}
+@keyframes giftTwinkle{0%,100%{opacity:.15;transform:scale(.7);}50%{opacity:1;transform:scale(1.15);}}
+#gift-revival-overlay{position:fixed;inset:0;z-index:99999;pointer-events:none;font-family:'Tajawal',sans-serif;}
+.gift-revival-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.6);transform-origin:center;width:min(820px,92vw);border-radius:36px;padding:4px;opacity:0;transition:transform .65s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;}
+.gift-revival-card-inner{position:relative;width:100%;border-radius:34px;background:linear-gradient(160deg,#1a0f3d 0%,#0a0518 55%,#24124f 100%);padding:48px 32px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:inset 0 0 60px rgba(168,85,247,.15);overflow:hidden;}
+.gift-revival-ring{position:absolute;inset:-38%;background:conic-gradient(from 0deg,#f5d67f,#fff2c4,#c9a84c,#8b6914,#c9a84c,#f5d67f);animation:giftRingSpin 6s linear infinite;}
+.gift-revival-corner{position:absolute;width:34px;height:34px;opacity:.85;}
+.gift-revival-crown{position:absolute;top:-56px;left:50%;transform:translateX(-50%);width:104px;height:104px;}
+.gift-revival-title{margin-top:34px;font-size:clamp(24px,4vw,44px);font-weight:800;background:linear-gradient(180deg,#fff2c4,#f5d67f 55%,#c9a84c);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 24px rgba(245,214,127,.35);letter-spacing:.5px;}
+.gift-revival-giftwrap{position:relative;margin-top:34px;width:clamp(100px,20vw,168px);height:clamp(100px,20vw,168px);}
+.gift-revival-name{margin-top:38px;font-size:clamp(28px,7vw,64px);font-weight:900;color:#fffdf6;text-shadow:0 0 18px rgba(245,214,127,.75),0 0 46px rgba(168,85,247,.55);line-height:1.15;max-width:100%;word-break:break-word;}
+.gift-revival-divider{margin-top:30px;width:60%;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#f5d67f,#fff2c4,#f5d67f,transparent);box-shadow:0 0 12px 2px rgba(245,214,127,.7);}
+.gift-revival-sub{margin-top:26px;font-size:clamp(18px,3vw,30px);font-weight:700;color:#f5d67f;text-shadow:0 0 14px rgba(245,214,127,.5);}
+.gift-revival-chip{margin-top:30px;display:inline-flex;align-items:center;gap:12px;padding:14px 32px;border-radius:999px;background:rgba(245,214,127,.08);border:1.5px solid rgba(245,214,127,.45);backdrop-filter:blur(6px);font-size:22px;font-weight:700;color:#fff2c4;}
+.gift-revival-badge{margin-top:24px;display:inline-flex;align-items:center;gap:10px;padding:12px 30px;border-radius:999px;background:linear-gradient(180deg,#fff2c4 0%,#d9b45c 40%,#8b6914 100%);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 16px rgba(201,168,76,.6),inset 0 1px 0 rgba(255,255,255,.5);font-weight:900;font-size:24px;color:#241505;}
+
+/* Results overlay reuses .chairs-elim-* box/list styling; only the "correct" list needs its own accent */
+.findball-correct-sub{font-size:13px;color:var(--brand-green);margin-bottom:10px;font-weight:700;}
+.findball-correct-list .chairs-elim-item{border-color:rgba(52,211,153,.4);box-shadow:0 0 12px rgba(52,211,153,.15);}
+.findball-correct-list .chairs-elim-item .chairs-elim-icon::before{content:'👑';}
+.findball-correct-list .chairs-elim-name{color:var(--brand-green);}
+
+#pg-findball-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.20) 0%,var(--bg) 70%);}

@@ -1,0 +1,42 @@
+
+/* ===== BOMB SETUP ===== */
+#pg-setup-bomb{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(239,68,68,.16) 0%,transparent 60%),radial-gradient(ellipse 120% 60% at 50% -10%,rgba(124,58,237,.14) 0%,transparent 55%),var(--bg);}
+
+/* ===== BOMB DASHBOARD ===== */
+#pg-bomb{padding:0;background:var(--bg);overflow:hidden;}
+.bomb-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.bomb-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%,rgba(239,68,68,.10) 0%,transparent 55%),var(--bg);}
+
+/* Big bomb display */
+.bomb-stage{width:100%;max-width:620px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;margin-bottom:18px;min-height:220px;padding:22px 20px;border-radius:22px;background:linear-gradient(160deg,rgba(239,68,68,.10),rgba(124,58,237,.10));border:1px solid rgba(239,68,68,.25);box-shadow:0 0 40px rgba(239,68,68,.12);}
+
+.bomb-emoji{font-size:90px;line-height:1;animation:bombShake .15s infinite;filter:drop-shadow(0 0 22px rgba(239,68,68,.55));}
+@keyframes bombShake{0%,100%{transform:rotate(-4deg);}50%{transform:rotate(4deg);}}
+.bomb-emoji.danger{animation:bombShakeFast .08s infinite;filter:drop-shadow(0 0 30px rgba(239,68,68,.85));}
+@keyframes bombShakeFast{0%,100%{transform:rotate(-6deg) scale(1.05);}50%{transform:rotate(6deg) scale(1.05);}}
+.bomb-emoji.idle{animation:none;filter:drop-shadow(0 0 14px rgba(124,58,237,.4));}
+
+.bomb-holder-name{font-size:38px;font-weight:900;background:linear-gradient(150deg,var(--accent-light),var(--brand-violet),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.2;}
+.bomb-holder-sub{font-size:15px;color:var(--muted);font-weight:700;}
+
+/* Countdown ring */
+.bomb-timer-wrap{position:relative;width:130px;height:130px;margin:0 auto;filter:drop-shadow(0 0 16px rgba(239,68,68,.3));}
+.bomb-timer-svg{width:130px;height:130px;transform:rotate(-90deg);}
+.bomb-timer-bg{fill:none;stroke:var(--surface2);stroke-width:8;}
+.bomb-timer-fill{fill:none;stroke:var(--red);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .1s linear,stroke .3s;}
+.bomb-timer-num{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:900;color:var(--text);}
+.bomb-timer-num.danger{color:var(--red);animation:timerPulse 1s infinite;}
+
+/* Eliminated list */
+.bomb-elim-log{width:100%;max-width:620px;display:flex;flex-direction:column;gap:8px;margin-top:10px;}
+.bomb-elim-item{display:flex;align-items:center;gap:10px;padding:11px 18px;border-radius:14px;background:linear-gradient(135deg,rgba(239,68,68,.08),var(--surface));border:1px solid rgba(239,68,68,.4);box-shadow:0 4px 16px rgba(239,68,68,.1);animation:popIn .3s ease;}
+.bomb-elim-icon{font-size:20px;filter:drop-shadow(0 0 8px rgba(239,68,68,.5));}
+.bomb-elim-text{font-size:14px;font-weight:700;}
+.bomb-elim-sub{font-size:11px;color:var(--muted);}
+
+/* Round ended banner */
+.bomb-ended-banner{width:100%;max-width:620px;padding:18px;border-radius:16px;background:linear-gradient(160deg,rgba(245,196,81,.18),rgba(124,58,237,.16));border:1.5px solid var(--gold);color:var(--gold);font-size:20px;font-weight:900;text-align:center;display:none;box-shadow:0 0 30px rgba(245,158,11,.25);}
+.bomb-ended-banner.show{display:block;animation:popIn .4s ease;}
+
+/* Winner page */
+#pg-bomb-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(239,68,68,.18) 0%,var(--bg) 70%);}

@@ -1,0 +1,141 @@
+
+/* ===== COUNTRY WAR ===== */
+#pg-setup-countrywar{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(52,211,153,.16) 0%,transparent 60%),var(--bg);}
+#pg-countrywar{padding:0;background:var(--bg);overflow:hidden;}
+.cw-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;height:100vh;height:100dvh;overflow:hidden;}
+.cw-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(52,211,153,.10) 0%, transparent 55%),var(--bg);}
+
+/* سطر التلميح داخل مسرح الراوند الجديد (نفس عنصر النتيجة السابق) */
+.cw-spin-result{display:none;font-size:3.2cqw;font-weight:700;color:#C9B7E8;text-align:center;line-height:1.35;min-height:4cqw;padding:0 2cqw;}
+.cw-spin-result.show{display:block;}
+
+/* Countries grid */
+.cw-countries-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;width:100%;max-width:760px;margin-top:8px;}
+.cw-country-card{background:linear-gradient(160deg, rgba(52,211,153,.07), var(--surface));border:1px solid var(--border);border-radius:16px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+.cw-country-num{position:absolute;top:6px;right:6px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:rgba(52,211,153,.18);border:1px solid var(--green);color:#4ade80;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;line-height:1;}
+.cw-country-card:hover:not(.eliminated){border-color:var(--green);transform:translateY(-2px);box-shadow:0 6px 20px rgba(52,211,153,.25);}
+.cw-country-flag{font-size:32px;line-height:1;}
+/* صورة العلم الحقيقية (flagcdn) — بديل إيموجي الأعلام اللي يظهر حروف على ويندوز */
+/* object-fit:contain لا cover: أعلام الدول نسبها مختلفة (الكويت والإمارات 2:1،
+   قطر 28:11، سويسرا 1:1...)، وcover كان يقصّ الأطراف ليملأ صندوق 3/2 — فينقص
+   من العلم جزؤه المميّز (مثلاً المثلث الأسود بسارية علم الكويت) فيصير شكله علماً
+   ثانياً. contain يعرض العلم كاملاً دائماً داخل نفس الصندوق بلا أي قص. */
+.cw-flag-img{width:52px;height:auto;aspect-ratio:3/2;object-fit:contain;border-radius:6px;box-shadow:0 1px 6px rgba(0,0,0,.4);display:block;}
+.cw-country-name{font-size:12px;font-weight:800;color:var(--text);}
+/* شاشة الفائز: علم أكبر بجانب اسم الدولة */
+#cww-country-display{display:flex;align-items:center;justify-content:center;gap:12px;}
+#cww-country-display .cw-flag-img{width:64px;}
+.cww-country-label{font-weight:900;}
+.cw-country-card.eliminated{opacity:.25;cursor:not-allowed;filter:grayscale(1);}
+.cw-country-card.eliminated::after{content:'💀';position:absolute;top:6px;left:6px;font-size:14px;}
+
+/* ===== شبكة الدول على الكمبيوتر — عرض أكبر بكثير بدل السكرول =====
+   مسرح الراوند (.rd-stage) عمودي 9/16 وعرضه 640px، فشبكة الدول ما كانت تسع
+   إلا 4 أعمدة وتتمرّر عمودياً. هنا نوسّع مسرح حرب الدول وحده (#cw-stage، بدون
+   أي مساس بمسرح الروليت أو الكرسي المتحرك اللي يشاركانه نفس الكلاسات) للضِعف،
+   فتصير الشبكة 8 أعمدة بدل 4.
+
+   كل مقاسات المسرح مبنية على cqw (نسبة من عرض الحاوية)، يعني مضاعفة العرض
+   تضاعف حجم كل شيء داخله. عشان كذا نُنصّف كل قيم cqw هنا: النتيجة أن الرأس
+   والمنشور واللافتة والزر والبطاقات تبقى بنفس حجمها الحالي بالبكسل بالضبط،
+   وكل العرض الزايد يروح لشبكة الدول وحدها.
+
+   ما لمسنا أي منطق لعب: لا ترتيب الدول، ولا القرعة، ولا الإقصاء. على الجوال
+   والشاشات الضيقة (أقل من 1024px) ما تغيّر ولا شيء — نفس السكرول الحالي. */
+@media (min-width:1024px){
+  #cw-stage{width:min(98%,1280px);aspect-ratio:auto;height:min(92vh,1000px);max-height:min(92vh,1000px);}
+  .chat-collapsed #cw-stage{width:min(97%,1520px);height:min(95vh,1060px);max-height:min(95vh,1060px);}
+
+  #cw-stage .rd-l3{background-size:3cqw 3cqw;}
+  #cw-stage .rd-inner{padding:1.75cqw 1.75cqw 2cqw;gap:1.2cqw;}
+  #cw-stage .rd-head{padding:0 .5cqw;}
+  #cw-stage .rd-head-side{gap:.8cqw;}
+  #cw-stage .rd-num-gold{font-size:4.5cqw;text-shadow:0 0 2cqw rgba(227,195,106,.45);}
+  #cw-stage .rd-num-pink{font-size:4.5cqw;}
+  #cw-stage .rd-head-lbl{font-size:1.7cqw;}
+  #cw-stage .rd-body{gap:1.3cqw;}
+
+  /* منشور القرعة: ارتفاع صفّه (30cqw) مربوط بحركة القرعة نفسها في drawCWWheel
+     (translateY بوحدة cqw)، فتغييره يكسر تطابق الصف مع الخط الذهبي. بدل ذلك
+     نصغّره بصرياً بـtransform ونسحب الفراغ الزائد بهامش سالب — نفس حجمه
+     الحالي بالضبط وحركته سليمة تماماً لأن كل إحداثياته تتقلّص معه. */
+  #cw-stage .rd-lens{transform:scale(.5);transform-origin:top center;margin-bottom:-15cqw;}
+
+  #cw-stage .cw-turn-banner{border-radius:1.5cqw;padding:1.2cqw 1.5cqw;border-width:.2cqw;gap:1.5cqw;}
+  #cw-stage .cw-turn-title{font-size:1.6cqw;}
+  #cw-stage .cw-turn-name{font-size:3cqw;}
+  #cw-stage .cw-spin-result{font-size:1.6cqw;min-height:2cqw;padding:0 1cqw;}
+
+  #cw-stage .rd-foot{gap:.8cqw;}
+  #cw-stage .rd-btn{gap:1cqw;padding:0 4cqw;font-size:2.5cqw;height:6.5cqw;border-width:.15cqw;box-shadow:0 0 0 .4cqw rgba(201,168,76,.2);}
+  #cw-stage .rd-btn:hover:not(:disabled){transform:translateY(-.15cqw);}
+
+  /* الشبكة: كل مقاسات البطاقة بمتغيّرات وحدة، عشان كل درجة كثافة تحت تكون
+     سطر واحد يغيّر الأرقام بدل تكرار القواعد. القيم هنا هي "الحجم الكامل" —
+     نفس حجم البطاقة الحالي بالضبط (~10.4cqw من 1280 ≈ 144px) لكن على ضعف
+     العرض، فتنزل 8 أعمدة بدل 4. auto-fill يخلي عدد الأعمدة يتأقلم مع عرض
+     الشاشة الفعلي بدل رقم ثابت، و safe center يوسّط الشبكة عمودياً. */
+  #cw-stage .rd-cgrid{
+    --cwc-min:10.4cqw; --cwc-gap:.9cqw; --cwc-chip:4.7cqw; --cwc-chipfs:2.8cqw;
+    --cwc-flag:3cqw; --cwc-name:1.55cqw; --cwc-pad:.9cqw; --cwc-cgap:.5cqw; --cwc-rad:1.3cqw;
+    grid-template-columns:repeat(auto-fill,minmax(var(--cwc-min),1fr));
+    gap:var(--cwc-gap);align-content:safe center;
+  }
+  #cw-stage .rd-ccard{border-radius:var(--cwc-rad);padding:var(--cwc-pad) calc(var(--cwc-pad) / 3);gap:var(--cwc-cgap);border-width:.2cqw;}
+  /* نفس فكرة الشريحة المستطيلة أعلاه: العرض 1.5× والارتفاع كما هو، فيكبر
+     العلم ويتضح بدون ما يتغيّر ارتفاع البطاقة ولا عدد الأعمدة. */
+  #cw-stage .rd-ccard .rd-chip{width:calc(var(--cwc-chip) * 1.5);height:var(--cwc-chip);border-radius:var(--cwc-rad);font-size:var(--cwc-chipfs);box-shadow:0 .3cqw 1.2cqw rgba(0,0,0,.45);}
+  #cw-stage .rd-ccard .cw-flag-img{border-radius:var(--cwc-rad);}
+  #cw-stage .rd-ccard .cw-country-flag{font-size:var(--cwc-flag);}
+  #cw-stage .rd-cname{font-size:var(--cwc-name);}
+  #cw-stage .rd-ccard-aim{inset:-.2cqw;border-radius:calc(var(--cwc-rad) + .3cqw);border-width:.3cqw;box-shadow:0 0 3cqw rgba(232,160,200,.8);}
+  #cw-stage .rd-cgrid::-webkit-scrollbar{width:.4cqw;}
+
+  /* درجات الكثافة — عشان تظهر كل الدول مهما كان عددها بدون سكرول ولا تداخل.
+     بنك الدول فيه 85 دولة، وما يسع منها بالحجم الكامل ~32 على شاشة عادية،
+     فبعد كل حد تصغّر الشبكة بطاقاتها درجة وحدة بدل ما تتمرّر. :has() تعدّ
+     الأبناء فقط — لا جافاسكربت ولا أي مساس بمنطق اللعبة، ولو كان المتصفح
+     قديماً ولا يدعمها يرجع تلقائياً للسلوك الحالي (سكرول) بدون أي كسر.
+     عتبات البدء تختلف حسب ارتفاع الشاشة (شاشة أقصر = مساحة أقل = تبدأ أبكر)،
+     فتلقاها بالكتلتين تحت. */
+}
+
+/* الشاشات الطويلة (ارتفاع 1000px فأكثر) تسع أكثر بالحجم الكامل، فعتباتها متأخرة */
+@media (min-width:1024px) and (min-height:1000px){
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(33)){--cwc-min:8.3cqw;--cwc-gap:.7cqw;--cwc-chip:3.8cqw;--cwc-chipfs:2.2cqw;--cwc-flag:2.4cqw;--cwc-name:1.3cqw;--cwc-pad:.7cqw;--cwc-cgap:.4cqw;--cwc-rad:1cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(51)){--cwc-min:6.6cqw;--cwc-gap:.55cqw;--cwc-chip:3cqw;--cwc-chipfs:1.8cqw;--cwc-flag:1.9cqw;--cwc-name:1.1cqw;--cwc-pad:.55cqw;--cwc-cgap:.3cqw;--cwc-rad:.8cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(71)){--cwc-min:5.5cqw;--cwc-gap:.45cqw;--cwc-chip:2.5cqw;--cwc-chipfs:1.5cqw;--cwc-flag:1.6cqw;--cwc-name:.95cqw;--cwc-pad:.45cqw;--cwc-cgap:.25cqw;--cwc-rad:.7cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(81)){--cwc-min:4.5cqw;--cwc-gap:.35cqw;--cwc-chip:2cqw;--cwc-chipfs:1.2cqw;--cwc-flag:1.3cqw;--cwc-name:.8cqw;--cwc-pad:.35cqw;--cwc-cgap:.2cqw;--cwc-rad:.6cqw;}
+}
+
+/* الشاشات الأقصر (لابتوبات 768/900) — نفس الدرجات لكن تبدأ أبكر */
+@media (min-width:1024px) and (max-height:999px){
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(25)){--cwc-min:8.3cqw;--cwc-gap:.7cqw;--cwc-chip:3.8cqw;--cwc-chipfs:2.2cqw;--cwc-flag:2.4cqw;--cwc-name:1.3cqw;--cwc-pad:.7cqw;--cwc-cgap:.4cqw;--cwc-rad:1cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(41)){--cwc-min:6.6cqw;--cwc-gap:.55cqw;--cwc-chip:3cqw;--cwc-chipfs:1.8cqw;--cwc-flag:1.9cqw;--cwc-name:1.1cqw;--cwc-pad:.55cqw;--cwc-cgap:.3cqw;--cwc-rad:.8cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(59)){--cwc-min:5.5cqw;--cwc-gap:.45cqw;--cwc-chip:2.5cqw;--cwc-chipfs:1.5cqw;--cwc-flag:1.6cqw;--cwc-name:.95cqw;--cwc-pad:.45cqw;--cwc-cgap:.25cqw;--cwc-rad:.7cqw;}
+  #cw-stage .rd-cgrid:has(.rd-ccard:nth-child(71)){--cwc-min:4.5cqw;--cwc-gap:.35cqw;--cwc-chip:2cqw;--cwc-chipfs:1.2cqw;--cwc-flag:1.3cqw;--cwc-name:.8cqw;--cwc-pad:.35cqw;--cwc-cgap:.2cqw;--cwc-rad:.6cqw;}
+}
+
+/* ===== شبكة دول "حرب الدول — جمعات" على الكمبيوتر =====
+   نفس الفكرة: الشبكة كانت محصورة بـ760px (5 أعمدة) فالصفحة تتمرّر لما يكثر
+   عدد اللاعبين. على الكمبيوتر نوسّعها لكامل الشاشة تقريباً (حتى 10 أعمدة)
+   بنفس حجم البطاقة، وعلى الجوال تبقى كما هي بالضبط. */
+@media (min-width:1024px){
+  #pg-countrywarparty .pcw-wrap{max-width:1520px;}
+  #pcw-countries-grid{max-width:1440px;}
+}
+
+/* لافتة صاحب الدور — تصميم شاشة الراوند الجديد */
+.cw-turn-banner{display:none;flex:0 0 auto;border-radius:3cqw;padding:2.4cqw 3cqw;background:linear-gradient(90deg,rgba(227,195,106,.16),rgba(232,160,200,.14));border:.4cqw solid rgba(227,195,106,.5);align-items:center;justify-content:center;gap:3cqw;transform-origin:top;}
+.cw-turn-banner.show{display:flex;animation:rdBannerIn .5s cubic-bezier(.16,1,.3,1) both;}
+.cw-turn-title{font-size:4cqw;font-weight:700;color:#C9B7E8;flex:0 0 auto;}
+.cw-turn-name{font-family:'Amiri',serif;font-size:10cqw;font-weight:700;color:#FFF3D4;line-height:1;text-shadow:0 0 5cqw rgba(227,195,106,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* Elim log */
+.cw-elim-log{width:100%;max-width:760px;margin-top:18px;display:flex;flex-direction:column;gap:8px;}
+.cw-elim-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--red);animation:popIn .3s ease;}
+.cw-elim-icon{font-size:18px;}
+.cw-elim-text{font-size:14px;font-weight:700;color:var(--text);}
+.cw-elim-sub{font-size:11px;color:var(--muted);}
+
+#pg-countrywar-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(52,211,153,.16) 0%,var(--bg) 70%);}

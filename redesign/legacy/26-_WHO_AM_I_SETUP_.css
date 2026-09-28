@@ -1,0 +1,31 @@
+
+/* ===== WHO AM I SETUP ===== */
+#pg-setup-whoami{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(168,85,247,.18) 0%,transparent 60%),radial-gradient(ellipse at 50% 100%,rgba(124,58,237,.1) 0%,transparent 55%),var(--bg);}
+#pg-whoami{padding:0;background:var(--bg);overflow:hidden;}
+.wai-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.wai-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:var(--bg);}
+
+/* Description box */
+.wai-desc-box{width:100%;max-width:640px;background:linear-gradient(160deg,rgba(168,85,247,.14),var(--surface2));border:2px solid #a855f7;border-radius:18px;padding:24px 28px;margin-bottom:16px;box-shadow:0 10px 28px -14px rgba(168,85,247,.45);animation:popIn .3s ease;}
+.wai-desc-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.wai-desc-text{font-size:17px;font-weight:700;color:var(--text);line-height:1.7;}
+.wai-timer-box{width:100%;max-width:640px;background:rgba(124,58,237,.15);border:1px solid var(--accent);border-radius:14px;padding:11px 18px;margin-bottom:16px;text-align:center;font-size:14px;font-weight:800;color:var(--accent2);}
+.wai-timer-box.danger{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red);animation:timerPulse 1s ease-in-out infinite;}
+/* Guesses board */
+.wai-guesses-board{width:100%;max-width:640px;}
+.wai-guess-row{display:flex;align-items:center;gap:10px;padding:11px 15px;border-radius:14px;background:var(--surface);border:1px solid var(--border);margin-bottom:8px;animation:popIn .25s ease;transition:transform .15s;}
+.wai-guess-row.correct{background:linear-gradient(160deg,rgba(52,211,153,.16),var(--surface));border:1px solid var(--green);box-shadow:0 6px 18px -10px rgba(52,211,153,.4);}
+.wai-guess-row.wrong{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);}
+.wai-guess-user{font-size:12px;color:var(--muted);width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0;}
+.wai-guess-text{font-size:14px;font-weight:700;color:var(--text);flex:1;}
+.wai-guess-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;flex-shrink:0;}
+.wai-guess-badge.correct{background:var(--green);color:#fff;}
+.wai-guess-badge.wrong{background:var(--gray-letter);color:var(--text);}
+
+/* No winner */
+.wai-no-winner-box{width:100%;max-width:640px;background:rgba(239,68,68,.1);border:1px solid var(--red);border-radius:16px;padding:22px;text-align:center;margin-top:10px;display:none;box-shadow:0 8px 24px -14px rgba(239,68,68,.35);}
+.wai-no-winner-title{font-size:22px;font-weight:900;color:var(--red);margin-bottom:6px;}
+.wai-no-winner-sub{font-size:14px;color:var(--muted);}
+
+/* Winner page */
+#pg-whoami-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(168,85,247,.2) 0%,var(--bg) 70%);}

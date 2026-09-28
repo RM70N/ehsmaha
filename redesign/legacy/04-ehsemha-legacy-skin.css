@@ -1,0 +1,81 @@
+
+/* ============================================================
+   EHSEMHA — LEGACY GAME SKIN (ألعاب فردي/جمعات/أونلاين)
+   نفس الشكل السابق بالضبط لشاشات ألعاب فردي/جمعات/أونلاين —
+   ما تغيّر فيها شيء. التصميم الجديد يخص ألعاب الستريمر فقط،
+   فأُبقي هذا الشكل كما هو لصفحات المواضع الثانية (data-skin="legacy").
+   ============================================================ */
+.page[data-skin="legacy"]{
+  --sgp: var(--accent2); --sgp2: var(--accent); --sgc: var(--brand-cyan); --sggold: var(--brand-amber); --sggold2: #d97706;
+  --sgpink: var(--brand-pink); --sggreen: var(--brand-green); --sgtext: var(--text); --sgmute: var(--muted); --sgmute2: var(--muted);
+  --sgglass: var(--surface); --sgglass2: var(--surface2);
+  --sgbord: var(--border-strong); --sgbordc: rgba(34,211,238,.30);
+  background:
+    radial-gradient(1100px 520px at 82% -8%, rgba(124,58,237,.34), transparent 62%),
+    radial-gradient(760px 420px at 8% 4%, rgba(236,72,153,.14), transparent 60%),
+    var(--bg) !important;
+  background-attachment: fixed !important;
+  color: var(--sgtext);
+
+  /* ---------- SETUP / ENTRY CARDS ---------- */
+  & .setup-box{
+    background: linear-gradient(165deg,var(--sgglass),var(--bg-3)); border: 1px solid var(--sgbord); border-radius: var(--radius-lg);
+    padding: clamp(20px,3vw,34px);
+    box-shadow: 0 22px 60px rgba(13,6,32,.55), 0 0 30px rgba(124,58,237,.14) inset;
+    display:flex; flex-direction:column;
+  }
+  & .setup-title{
+    font-family: var(--font-brand); font-weight:900; font-size:clamp(24px,3vw,32px); line-height:1.25;
+    background:linear-gradient(150deg,var(--accent-light),var(--accent2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  & .setup-sub{ color:var(--sgmute); }
+  & .back-btn{ border:1px solid var(--sgbord); color:var(--sgmute); background:var(--surface2); border-radius:var(--radius-pill); }
+  & .back-btn:hover{ color:#fff; border-color:var(--sgp); background:rgba(167,139,255,.18); }
+  & .ptab{ background:var(--surface2); border:1px solid var(--sgbord); color:var(--sgmute); border-radius:var(--radius-pill); }
+  & .ptab:hover{ border-color:var(--sgp); color:#fff; }
+  & .ptab.active{ background:linear-gradient(100deg,var(--accent-light),var(--accent)); border-color:var(--accent); color:var(--text-on-accent); box-shadow:0 0 18px rgba(124,58,237,.45); }
+  & .api-section{ background:var(--bg-3); border:1px solid var(--sgbord); border-radius:14px; }
+  & .api-section-title{ color:var(--sgc); }
+  & .api-step-num{ background:linear-gradient(100deg,var(--accent-light),var(--accent)); box-shadow:0 0 12px rgba(124,58,237,.5); }
+  & .field label{ color:var(--sgmute); }
+  & .field input, & .field select{ background:var(--bg-3); border:1px solid var(--sgbord); color:var(--sgtext); border-radius:12px; }
+  & .field input:focus, & .field select:focus{ border-color:var(--sgc); box-shadow:0 0 0 3px rgba(34,211,238,.16); }
+  & .field-hint{ color:var(--sgmute2); }
+  & .btn-primary{ transform:skewX(-7deg); background:linear-gradient(100deg,var(--accent-light),var(--accent)); color:var(--text-on-accent); border:none; border-radius:12px; box-shadow:var(--shadow-btn); font-weight:900; }
+  & .btn-primary:hover{ transform:skewX(-7deg) translateY(-3px); }
+  & .btn-primary:active{ transform:skewX(-7deg) translateY(3px); box-shadow:var(--shadow-btn-pressed); }
+  & .btn-primary:disabled{ transform:none; background:var(--disabled-bg); color:var(--disabled-text); box-shadow:none; cursor:not-allowed; }
+
+  /* ---------- ROUND (PLAY) ---------- */
+  & [class$="-center"]{ background:transparent !important; }
+  & .panel-right, & .panel-left{ background:var(--sgglass) !important; border-color:var(--sgbordc) !important; }
+  & .panel-head{ border-bottom-color:rgba(237,233,255,.08); }
+  & .panel-label{ color:var(--sgc); }
+  & .btn-home{ background:rgba(167,139,255,.14); border:1px solid var(--sgbord); color:var(--text); border-radius:var(--radius-pill); }
+  & .btn-home:hover{ background:rgba(167,139,255,.28); color:#fff; }
+  & .btn-reset{ background:rgba(34,211,238,.10); border:1px solid var(--sgbordc); color:var(--sgc); border-radius:var(--radius-pill); }
+  & .btn-reset:hover{ background:rgba(34,211,238,.22); color:#fff; }
+  & .btn-kick{ background:rgba(236,72,153,.10); border:1px solid rgba(236,72,153,.38); color:var(--sgpink); border-radius:var(--radius-pill); }
+  & .btn-kick:hover{ background:rgba(236,72,153,.22); color:#fff; }
+  & .btn-start-round{ transform:skewX(-7deg); background:linear-gradient(100deg,var(--accent-light),var(--accent)); color:var(--text-on-accent); border:none; border-radius:12px; box-shadow:var(--shadow-btn); font-weight:900; }
+  & .btn-start-round:hover{ transform:skewX(-7deg) translateY(-3px); }
+  & .chat-toggle-btn{ background:rgba(167,139,255,.14); border:1px solid var(--sgbord); color:var(--text); border-radius:var(--radius-pill); }
+  & .status-strip{ border-radius:var(--radius-pill); }
+  & .status-strip.waiting{ background:rgba(167,139,255,.14); border:1px solid var(--sgbord); color:var(--sgmute); }
+  & .status-strip.active{ background:rgba(52,211,153,.12); border:1px solid rgba(52,211,153,.45); color:var(--sggreen); }
+  & .status-strip.finished{ background:rgba(245,158,11,.12); border:1px solid rgba(245,158,11,.45); color:var(--sggold); }
+  & .kw-bar{ background:var(--bg-3); border:1px dashed var(--sgbord); color:var(--sgmute); border-radius:12px; }
+  & .kw-bar b{ color:var(--sgc); }
+  & .game-title-header .gth-name{ font-family:var(--font-brand); background:linear-gradient(150deg,var(--accent-light),var(--accent2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  & .game-title-header .gth-desc{ color:var(--sgmute); }
+  & .participants-big-count{ color:var(--sggold); }
+  & .participants-label{ color:var(--sgmute); }
+
+  /* ---------- WINNER ---------- */
+  & .w-congrats{ font-family:var(--font-brand); background:linear-gradient(150deg,#FBCFE8,var(--brand-pink)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+  & .w-name{ font-family:var(--font-brand); background:linear-gradient(150deg,#fff,var(--accent-light)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; }
+  & .w-label{ color:var(--sgmute); }
+  & .btn-again{ transform:skewX(-7deg); background:linear-gradient(100deg,var(--accent-light),var(--accent)); color:var(--text-on-accent); border:none; border-radius:12px; box-shadow:var(--shadow-btn); font-weight:900; }
+  & .btn-again:hover{ transform:skewX(-7deg) translateY(-3px); }
+}

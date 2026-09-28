@@ -1,0 +1,50 @@
+
+/* ===== TUG OF WAR SETUP/DASHBOARD SHELL ===== */
+#pg-setup-tug{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.16) 0%,transparent 60%),var(--bg);}
+#pg-tug{padding:0;background:var(--bg);overflow:hidden;}
+.tug-layout{display:grid;grid-template-columns:1fr 280px;height:100vh;height:100dvh;overflow:hidden;}
+.tug-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+/* ===== TEAM BOXES (شاشة الانتظار) ===== */
+.tug-teams-wrap{width:100%;max-width:720px;display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-bottom:14px;animation:fadeUp .4s ease both;}
+.tug-team-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.tug-team-box.tug-team-a{border-color:rgba(239,68,68,.4);box-shadow:0 0 20px rgba(239,68,68,.08);}
+.tug-team-box.tug-team-b{border-color:rgba(59,130,246,.4);box-shadow:0 0 20px rgba(59,130,246,.1);}
+.tug-team-box-head{display:flex;flex-direction:column;gap:2px;}
+.tug-team-box-name{font-weight:800;font-size:15px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tug-team-box-kw{font-size:12px;color:var(--accent2);}
+.tug-team-box-kw b{color:var(--gold);}
+.tug-team-box-count{font-size:13px;font-weight:700;color:var(--green);}
+.tug-team-list{min-height:52px;max-height:140px;overflow-y:auto;}
+.tug-team-vs{align-self:center;font-size:22px;filter:drop-shadow(0 0 8px rgba(124,58,237,.5));}
+
+.tug-balance-bar{width:100%;max-width:720px;height:8px;border-radius:999px;overflow:hidden;display:flex;background:var(--surface2);border:1px solid var(--border);margin-bottom:18px;}
+.tug-balance-fill-a{background:linear-gradient(90deg,#ef4444,#f87171);transition:width .4s ease;}
+.tug-balance-fill-b{background:linear-gradient(90deg,#3b82f6,#60a5fa);transition:width .4s ease;}
+
+/* ===== ARENA (الراوند الفعلي) ===== */
+.tug-arena{width:100%;max-width:720px;display:flex;flex-direction:column;gap:10px;animation:fadeUp .4s ease both;}
+.tug-arena-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tug-arena-team-name{flex:1;font-weight:800;font-size:15px;padding:8px 14px;border-radius:999px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tug-arena-team-a{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);color:#fca5a5;}
+.tug-arena-team-b{background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.4);color:#93c5fd;}
+.tug-timer{font-size:22px;font-weight:800;color:var(--gold);min-width:52px;text-align:center;}
+.tug-timer.low{animation:timerPulse 1s ease-in-out infinite;color:var(--red);}
+
+.tug-rope-track{position:relative;height:90px;border-radius:var(--r);background:var(--surface);border:1px solid var(--border);overflow:hidden;display:flex;}
+.tug-zone{flex:1;}
+.tug-zone-a{background:linear-gradient(90deg,rgba(239,68,68,.16),transparent);}
+.tug-zone-b{background:linear-gradient(-90deg,rgba(59,130,246,.16),transparent);}
+.tug-zone-mid{width:4px;background:var(--border);}
+.tug-rope-wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.tug-rope{position:absolute;top:50%;left:10%;right:10%;height:6px;margin-top:-3px;border-radius:999px;background:linear-gradient(90deg,#7c5a3a,#a9835a,#7c5a3a);box-shadow:0 0 10px rgba(0,0,0,.4);}
+.tug-knot{position:absolute;top:50%;left:50%;font-size:30px;transform:translate(-50%,-50%);will-change:transform;filter:drop-shadow(0 0 10px rgba(245,158,11,.5));}
+.tug-knot.pulled{animation:bounce .25s ease;}
+.tug-pull-hint{text-align:center;font-size:13px;color:var(--accent2);}
+.tug-pull-hint b{color:var(--gold);}
+.tug-golden-banner{text-align:center;font-size:14px;font-weight:800;color:var(--gold);background:rgba(245,158,11,.14);border:1px solid var(--gold);border-radius:999px;padding:8px 16px;box-shadow:0 0 20px rgba(245,158,11,.3);animation:popIn .3s ease both;}
+
+@media (prefers-reduced-motion: reduce){
+  .tug-knot{transition:none !important;}
+  .tug-knot.pulled{animation:none;}
+}

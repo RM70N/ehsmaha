@@ -1,0 +1,29 @@
+
+/* ===== ROULETTE SETUP ===== */
+#pg-setup-roulette{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.16) 0%,transparent 60%),var(--bg);}
+
+/* ===== ROULETTE DASHBOARD ===== */
+#pg-roulette{padding:0;background:var(--bg);overflow:hidden;}
+.roulette-layout{display:grid;grid-template-columns:minmax(0,1fr) 280px;height:100vh;height:100dvh;overflow:hidden;}
+.roulette-center{flex-direction:column;align-items:center;padding:20px;overflow-y:auto;background:radial-gradient(ellipse 120% 60% at 50% -10%, rgba(124,58,237,.14) 0%, transparent 55%),var(--bg);}
+
+/* حاوية عُقد اللاعبين حول حلقة الطاقة — تصميم شاشة الراوند الجديد */
+#rou-nodes{position:absolute;inset:0;}
+.roulette-pointer{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:32px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));pointer-events:none;}
+
+/* Spin button */
+.btn-spin{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#fff;border:none;border-radius:999px;padding:14px 48px;font-family:var(--font);font-size:18px;font-weight:900;cursor:pointer;transition:all .25s;box-shadow:0 4px 20px rgba(124,58,237,.4);}
+.btn-spin:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 28px rgba(124,58,237,.5);}
+.btn-spin:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* Eliminated log */
+.elim-log{width:100%;max-width:520px;margin-top:18px;display:flex;flex-direction:column;gap:8px;}
+.elim-item{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px;background:var(--surface);border:1px solid var(--red);animation:popIn .3s ease;box-shadow:0 2px 10px rgba(0,0,0,.25);}
+.elim-icon{font-size:18px;}
+.elim-text{font-size:14px;font-weight:700;color:var(--text);}
+.elim-sub{font-size:11px;color:var(--muted);}
+
+/* Spin result banner */
+/* سطر التلميح داخل مسرح الراوند الجديد (نفس عنصر النتيجة السابق) */
+.spin-result{display:none;font-size:3.2cqw;font-weight:700;color:#C9B7E8;text-align:center;line-height:1.35;min-height:4cqw;padding:0 2cqw;}
+.spin-result.show{display:block;}
