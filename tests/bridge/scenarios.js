@@ -110,6 +110,30 @@ async function outage(browser, downMs = 60000) {
   return res;
 }
 
+// P1-5: صيغ الكلمة (إيموجي/تشكيل/محارف مخفية) + اختيار رقم بأرقام عربية — عبر السيرفر الحقيقي
+async function variants(browser) {
+  const page = await H.newPage(browser);
+  await H.linkAccount(page, STREAMER);
+  const g = games.find((x) => x.tag === 'sniper');
+  await H.launch(page, g);
+  const forms = { emoji: 'ادخل😍', rlm: '\u200Fادخل\u200E', tashkeel: 'أُدْخُـل!!', spaced: '  ادخل ', extra_word: 'ابي ادخل' };
+  for (const [v, text] of Object.entries(forms)) await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'form_' + v, text, identity: { isFollowerOfAnchor: true } });
+  await sleep(500);
+  await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: 'form_emoji', text: '٥', identity: { isFollowerOfAnchor: true } });
+  await sleep(500);
+  const r = await page.evaluate((forms) => {
+    const o = {};
+    Object.keys(forms).forEach((v) => { o[v] = sniperParticipants.has('tiktok:form_' + v); });
+    const e = sniperParticipants.get('tiktok:form_emoji');
+    o.arabicDigitCell = e ? e.cell : null;
+    o.nearMissLogged = joinDiagLog.filter((x) => x.reason === 'keyword_near_miss').map((x) => x.detail);
+    return o;
+  }, forms);
+  r.errors = page._errors;
+  await page.context().close();
+  return r;
+}
+
 // P0-2: اتصال ميت بصمت 70ث أثناء الراوند (السيرفر يرسل بس ولا شيء يوصل، بدون close) مع
 // أحداث تنكتب وقت الانقطاع — هل يكتشفه المراقب ويعيد الاتصال، وهل تنعاد الأحداث اللي
 // فاتت بدون تكرار؟ (setOffline بـPlaywright ما يقطع اتصال localhost القائم، فاستبدلناه.)
@@ -189,7 +213,7 @@ async function sockets(browser) {
 (async () => {
   await H.serveSite();
   const browser = await H.launchBrowser();
-  const run = { follow, listeners, outage, offline, load, sockets };
+  const run = { follow, listeners, outage, offline, variants, load, sockets };
   for (const k of Object.keys(run)) {
     if (which !== 'all' && which !== k) continue;
     try { out[k] = await run[k](browser); } catch (e) { out[k] = { crashed: e.message }; }
