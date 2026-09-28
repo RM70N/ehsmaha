@@ -23686,6 +23686,124 @@ function joinDiagRecord(tag, user, reason, detail) {
   if (typeof connDiagRender === 'function') connDiagRender();
 }
 
+// ==================== لوحة التشخيص (?debug=1) ====================
+// تحوّل "ما يدخلون" لسبب محدد: حالة الاتصال، عمر آخر حدث، أحداث/ث، عدد المعالجات
+// المسجلة، وآخر محاولات الانضمام مع السبب. تتفعّل بـ?debug=1 (وتبقى للجلسة)، و?debug=0
+// يطفيها. مغلفات دوال الانضمام تُركَّب فقط بوضع التشخيص — التشغيل العادي بلا أي كلفة.
+const CONN_DIAG_ON = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('debug');
+    if (q === '1') sessionStorage.setItem('connDiag', '1');
+    if (q === '0') sessionStorage.removeItem('connDiag');
+    return sessionStorage.getItem('connDiag') === '1';
+  } catch (e) { return false; }
+})();
+// tag -> [دالة الانضمام، خريطة المشاركين، متغيّر الحالة، متغيّر كلمة الانضمام]
+const CONN_DIAG_JOIN_FNS = {
+  main: ['joinParticipant', 'participants', 'gameStatus', 'keyword'], gw: ['gwJoinParticipant', 'gwParticipants', 'gwGameStatus', 'gwKeyword'],
+  sniper: ['sniperJoinParticipant', 'sniperParticipants', 'sniperGameStatus', 'sniperKeyword'], hz: ['hzJoinParticipant', 'hzParticipants', 'hzGameStatus', 'hzKeyword'],
+  rou: ['rouJoinParticipant', 'rouParticipants', 'rouGameStatus', 'rouKeyword'], tmr: ['tmrJoinParticipant', 'tmrParticipants', 'tmrGameStatus', 'tmrKeyword'],
+  bomb: ['bombJoinParticipant', 'bombParticipants', 'bombGameStatus', 'bombKeyword'], box: ['boxJoinParticipant', 'boxParticipants', 'boxGameStatus', 'boxKeyword'],
+  cr: ['crJoinParticipant', 'crParticipants', 'crGameStatus', 'crKeyword'], mz: ['mzJoinParticipant', 'mzParticipants', 'mzGameStatus', 'mzKeyword'],
+  ev: ['evJoinParticipant', 'evParticipants', 'evGameStatus', 'evKeyword'], ll: ['llJoinParticipant', 'llParticipants', 'llGameStatus', 'llKeyword'],
+  wai: ['waiJoinParticipant', 'waiParticipants', 'waiGameStatus', 'waiKeyword'], ig: ['igJoinParticipant', 'igParticipants', 'igGameStatus', 'igKeyword'],
+  rw: ['rwJoinParticipant', 'rwParticipants', 'rwGameStatus', 'rwKeyword'], pgs: ['pgsJoinParticipant', 'pgsParticipants', 'pgsGameStatus', 'pgsKeyword'],
+  lsc: ['lscJoinParticipant', 'lscParticipants', 'lscGameStatus', 'lscKeyword'], wr: ['wrJoinParticipant', 'wrParticipants', 'wrGameStatus', 'wrKeyword'],
+  draw: ['drawJoinParticipant', 'drawParticipants', 'drawGameStatus'], cw: ['cwJoinParticipant', 'cwParticipants', 'cwGameStatus', 'cwKeyword'],
+  cs: ['csJoinParticipant', 'csParticipants', 'csGameStatus', 'csKeyword'], findball: ['findballJoinParticipant', 'findballParticipants', 'findballGameStatus', 'findballKeyword'],
+  chairs: ['chairsJoinParticipant', 'chairsParticipants', 'chairsGameStatus', 'chairsKeyword'], rlgl: ['rlglJoinParticipant', 'rlglParticipants', 'rlglGameStatus', 'rlglJoinKw'],
+  glz: ['glzAddParticipant', 'glzParticipants', 'glzGameStatus', 'glzJoinKeyword'],
+};
+function connDiagEval(name) { try { return (0, eval)(name); } catch (e) { return undefined; } }
+function connDiagInstallJoinWrappers() {
+  Object.keys(CONN_DIAG_JOIN_FNS).forEach(tag => {
+    const [fnName, mapName, stName] = CONN_DIAG_JOIN_FNS[tag];
+    const orig = window[fnName];
+    if (typeof orig !== 'function' || orig.__diag) return;
+    const wrapped = function (user) {
+      const map = connDiagEval(mapName);
+      const uid = user && user.uniqueId;
+      const had = !!(map && uid && map.has(uid));
+      const r = orig.apply(this, arguments);
+      if (!map || !uid) return r;
+      if (had) { joinDiagRecord(tag, user, 'already_in'); return r; }
+      if (map.has(uid)) { joinDiagRecord(tag, user, 'joined', 'العدد ' + map.size); return r; }
+      const last = joinDiagLog[joinDiagLog.length - 1];
+      if (last && last.uid === uid && last.reason === 'pending_follow' && Date.now() - last.at < 100) return r; // السبب مسجّل أصلاً
+      const why = [];
+      const st = connDiagEval(stName); if (st !== undefined) why.push('الحالة=' + st);
+      const max = connDiagEval(tag + 'MaxPlayers') || connDiagEval(tag + 'MaxRacers');
+      if (max && map.size >= max) why.push('اللعبة ممتلئة ' + map.size + '/' + max);
+      [tag + 'KickedDuringRound', tag + 'Kicked'].forEach(n => { const k = connDiagEval(n); if (k && k.has && k.has(uid)) why.push('مطرود'); });
+      if (st && st !== 'waiting' && st !== 'lobby') why.push('الراوند بدأ/انتهى');
+      joinDiagRecord(tag, user, 'not_joined', why.join('، '));
+      return r;
+    };
+    wrapped.__diag = true;
+    window[fnName] = wrapped;
+  });
+}
+// كتب الكلمة الصحيحة وما صار مشاركاً وما انسجل أي سبب (مثلاً الراوند بدأ فمعالج اللعبة
+// ما استدعى دالة الانضمام أصلاً) ← نسجّل "ما انضم" مع حالة اللعبة.
+function connDiagObserveEvent(evt) {
+  const msgs = (evt && evt.messages) || [];
+  Object.keys(homeGameListeners).forEach(tag => {
+    const reg = CONN_DIAG_JOIN_FNS[tag];
+    if (!reg || !reg[3]) return;
+    const kw = connDiagEval(reg[3]);
+    if (!kw) return;
+    msgs.forEach(m => {
+      const type = m && (m.type || m.event);
+      if (type !== 'WebcastChatMessage' && type !== 'chat' && type !== 'comment') return;
+      const text = m.comment || m.content || (m.data && m.data.comment) || '';
+      if (normalizeJoinText(text) !== normalizeJoinText(kw)) return;
+      const u = m.user || {};
+      const uid = u.uniqueId, t0 = Date.now();
+      setTimeout(() => {
+        const map = connDiagEval(reg[1]);
+        if (!map || !uid || map.has(uid)) return;
+        if (joinDiagLog.some(x => x.uid === uid && x.at >= t0 - 5)) return; // سببه مسجّل
+        const st = connDiagEval(reg[2]);
+        const why = ['الحالة=' + st];
+        if (st && st !== 'waiting' && st !== 'lobby') why.push('الراوند بدأ/انتهى — الانضمام بس بالانتظار');
+        joinDiagRecord(tag, { uniqueId: uid, nickname: u.nickname }, 'not_joined', why.join('، '));
+      }, 0);
+    });
+  });
+}
+let connDiagLastRender = 0, connDiagPendingRender = null;
+function connDiagRender() {
+  if (!CONN_DIAG_ON) return;
+  const now = Date.now();
+  if (now - connDiagLastRender < 500) { if (!connDiagPendingRender) connDiagPendingRender = setTimeout(() => { connDiagPendingRender = null; connDiagRender(); }, 500); return; }
+  connDiagLastRender = now;
+  let el = document.getElementById('conn-diag-panel');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'conn-diag-panel';
+    el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:100003;width:360px;max-width:calc(100% - 24px);max-height:45vh;overflow:auto;background:rgba(8,6,20,.94);border:1px solid var(--accent2);border-radius:12px;padding:10px 12px;color:#e9e6ff;font:12px/1.55 Tajawal,system-ui,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.5);';
+    document.body.appendChild(el);
+  }
+  const esc = (t) => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const conns = Object.keys(homeConnections).map(p => {
+    const cs = homeConnState[p] || {}, slot = homeConnections[p] || {};
+    const age = cs.lastEventAt ? Math.round((now - cs.lastEventAt) / 1000) + 'ث' : '—';
+    return '<div>🔌 <b>' + esc(p) + '</b> @' + esc(slot.username || '') + ' — ' + esc(cs.state || '?') + ' · آخر حدث ' + age + ' · ' + (cs.eps || 0) + ' حدث/ث · نبض ' + (cs.pingSeen ? '✔' : '—') + (slot.attempts ? ' · محاولة ' + slot.attempts : '') + '</div>';
+  }).join('') || '<div>🔌 ما فيه اتصال مربوط</div>';
+  const tags = Object.keys(homeGameListeners);
+  const rows = joinDiagLog.slice(-25).reverse().map(x => {
+    const t = new Date(x.at).toLocaleTimeString('ar', { hour12: false });
+    return '<div style="border-top:1px solid rgba(255,255,255,.06);padding-top:2px;">' + t + ' <b>' + esc(x.tag) + '</b> ' + esc(x.nick || x.uid) + ' — ' + esc(JOIN_DIAG_REASONS[x.reason] || x.reason) + (x.detail ? ' <span style="opacity:.7">(' + esc(x.detail) + ')</span>' : '') + '</div>';
+  }).join('');
+  el.innerHTML = '<div style="font-weight:800;margin-bottom:4px;">🩺 تشخيص الاتصال والانضمام <span style="opacity:.6;font-weight:400">(?debug=0 للإخفاء)</span></div>' + conns +
+    '<div>🎮 معالجات مسجلة: <b>' + tags.length + '</b> ' + esc(tags.join('، ')) + ' · شرط الفولو: ' + (followGateRequired() ? 'مفعّل' : 'مطفي') + '</div>' +
+    '<div style="margin-top:6px;font-weight:700;">آخر محاولات الانضمام</div>' + (rows || '<div style="opacity:.6">لا شيء بعد</div>');
+}
+if (CONN_DIAG_ON) {
+  // بعد تحميل كل السكربتات (دوال الانضمام معرّفة بسكربتات لاحقة)
+  window.addEventListener('load', () => { connDiagInstallJoinWrappers(); connDiagRender(); });
+}
+
 // ==================== شرط الفولو — إعداد مركزي واحد لكل الألعاب ====================
 // كان الشرط مكتوباً حرفياً بـ24 دالة *JoinParticipant (!user.isFollower && ...)، وأي
 // لاعب isFollower عنده false ينحجز بصمت بـ*PendingFollowers — حتى لو كانت القيمة
@@ -24873,6 +24991,7 @@ function homeHasActiveConnection() {
 // المعرّف بنفس الشكل الخام اللي تتوقعه كل لعبة اليوم عبر extractUser)،
 // ثم توزّع نفس الحدث لكل لعبة مسجّلة حالياً.
 function homeDispatchToGameListeners(evt) {
+  if (CONN_DIAG_ON) { try { connDiagObserveEvent(evt); } catch (e) {} }
   // ملاحظة مهمة: لا نجرّد بادئة المنصة من uniqueId هنا. النسخة السابقة كانت
   // تجرّدها، فتُلغي بالضبط الحماية التي يبنيها platformConnect ويصير
   // tiktok:ahmed و kick:ahmed نفس اللاعب. كل دوال الهوية التي تقارن باسم
