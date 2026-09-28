@@ -1,0 +1,8803 @@
+{
+ "source": "index.html",
+ "stats": {
+  "lines": 84396,
+  "style_blocks": 44,
+  "style_chars": 770871,
+  "link_stylesheets": 1,
+  "font_face_rules": 0,
+  "inline_style_attrs": 823,
+  "inline_style_display_none_only": 290,
+  "pages_pg": 264,
+  "static_ids": 2629,
+  "scripts": 62,
+  "js_chars": 4156487
+ },
+ "ids": {
+  "static_count": 2629,
+  "duplicates": [],
+  "js_literal": [
+   "ahsemha-a-media",
+   "ahsemha-a-noanswer-btn",
+   "ahsemha-a-team1-btn",
+   "ahsemha-a-team2-btn",
+   "ahsemha-a-text",
+   "ahsemha-answer-overlay",
+   "ahsemha-board-grid",
+   "ahsemha-board-score-color-style",
+   "ahsemha-board-team1-name",
+   "ahsemha-board-team1-points",
+   "ahsemha-board-team2-name",
+   "ahsemha-board-team2-points",
+   "ahsemha-board-welcome",
+   "ahsemha-cat-color",
+   "ahsemha-cat-delete-btn",
+   "ahsemha-cat-image",
+   "ahsemha-cat-name",
+   "ahsemha-cat-questions",
+   "ahsemha-catedit-overlay",
+   "ahsemha-catedit-status",
+   "ahsemha-catedit-title",
+   "ahsemha-dedupe-btn",
+   "ahsemha-editor-add-input",
+   "ahsemha-editor-fab",
+   "ahsemha-editor-overlay",
+   "ahsemha-editors-count",
+   "ahsemha-editors-list",
+   "ahsemha-import-all-btn",
+   "ahsemha-pick-count",
+   "ahsemha-pick-grid",
+   "ahsemha-pick-next-btn",
+   "ahsemha-pick-title",
+   "ahsemha-q-catname",
+   "ahsemha-q-hint-btn",
+   "ahsemha-q-hint-text",
+   "ahsemha-q-media",
+   "ahsemha-q-points",
+   "ahsemha-q-text",
+   "ahsemha-q-timer",
+   "ahsemha-question-overlay",
+   "ahsemha-settings-overlay",
+   "ahsemha-settings-status",
+   "ahsemha-team1-name",
+   "ahsemha-team2-name",
+   "ahsemha-teams-status",
+   "ahsemha-winner-congrats",
+   "ahsemha-winner-label",
+   "ahsemha-winner-name",
+   "ahsemha-winner-replay-same-btn",
+   "ahset-allowReopenUsed",
+   "ahset-boardBgColor",
+   "ahset-mediaMaxHeight",
+   "ahset-noAnswerBtnText",
+   "ahset-openAnim",
+   "ahset-pickCount",
+   "ahset-questionBgColor",
+   "ahset-questionFontSize",
+   "ahset-questionSeconds",
+   "ahset-scoreColor",
+   "ahset-showCategoryInQuestion",
+   "ahset-showCountdown",
+   "ahset-showRemainingCount",
+   "ahset-showReplaySameCats",
+   "ahset-soundOnOpen",
+   "ahset-soundOnScore",
+   "ahset-startCardColor",
+   "ahset-teamNameMaxLength",
+   "ahset-tieMessage",
+   "ahset-welcomeMessage",
+   "ahset-winMessage",
+   "alfawzan-add-input",
+   "ammo-bomb",
+   "ammo-nuke",
+   "ammo-sniper",
+   "auth-form-login",
+   "auth-form-signup",
+   "auth-loader",
+   "auth-login-id",
+   "auth-login-pass",
+   "auth-signup-email",
+   "auth-signup-pass",
+   "auth-signup-username",
+   "auth-status",
+   "auth-tab-login",
+   "auth-tab-signup",
+   "auth-user-chip",
+   "auth-user-name",
+   "battery-chat-list",
+   "battery-fill-bar",
+   "battery-kickuser",
+   "battery-last-charger",
+   "battery-last-line",
+   "battery-live-user",
+   "battery-pct-num",
+   "battery-status",
+   "battery-w-avatar-wrap",
+   "battery-w-name",
+   "battery-ytuser",
+   "blanks-row",
+   "bomb-btn-round",
+   "bomb-chat-list",
+   "bomb-elim-log",
+   "bomb-emoji",
+   "bomb-ended-banner",
+   "bomb-holder-name",
+   "bomb-holder-sub",
+   "bomb-kickuser",
+   "bomb-kw",
+   "bomb-kw-show",
+   "bomb-live-user",
+   "bomb-p-count",
+   "bomb-p-usernames",
+   "bomb-stage",
+   "bomb-status",
+   "bomb-status-strip",
+   "bomb-w-avatar-wrap",
+   "bomb-w-label",
+   "bomb-w-name",
+   "bomb-ytuser",
+   "box-btn-round",
+   "box-chat-list",
+   "box-circle",
+   "box-elim-log",
+   "box-kickuser",
+   "box-kw",
+   "box-kw-show",
+   "box-live-user",
+   "box-p-count",
+   "box-p-usernames",
+   "box-participants-overlay",
+   "box-reveal-banner",
+   "box-stage",
+   "box-status",
+   "box-status-strip",
+   "box-timer-num",
+   "box-timer-wrap",
+   "box-turn-banner",
+   "box-turn-immune",
+   "box-turn-name",
+   "box-w-avatar-wrap",
+   "box-w-label",
+   "box-w-name",
+   "box-ytuser",
+   "brg-active-fx",
+   "brg-birds",
+   "brg-board-rows",
+   "brg-bridge-layer",
+   "brg-cards-panel",
+   "brg-chat",
+   "brg-clouds",
+   "brg-fx-layer",
+   "brg-give-card",
+   "brg-give-player",
+   "brg-invite-toast",
+   "brg-island",
+   "brg-keyword",
+   "brg-linked-av",
+   "brg-linked-name",
+   "brg-live-chip",
+   "brg-live-text",
+   "brg-lobby-count",
+   "brg-lobby-list",
+   "brg-lobby-me",
+   "brg-lobby-status",
+   "brg-lobby-sub",
+   "brg-my-name",
+   "brg-my-rank",
+   "brg-notice-back",
+   "brg-opts",
+   "brg-overlays",
+   "brg-owner-players",
+   "brg-owner-state",
+   "brg-owner-status",
+   "brg-phase",
+   "brg-plank-label",
+   "brg-qtext",
+   "brg-question",
+   "brg-remain-label",
+   "brg-ring",
+   "brg-ring-inner",
+   "brg-set-duration",
+   "brg-set-joinwin",
+   "brg-set-nolate",
+   "brg-set-rounds",
+   "brg-setup-linked",
+   "brg-setup-status",
+   "brg-setup-userbox",
+   "brg-sim-acc",
+   "brg-sim-badge",
+   "brg-sim-viewers",
+   "brg-spec-note",
+   "brg-stage",
+   "brg-stage-wrap",
+   "brg-streak-dots",
+   "brg-title-sub",
+   "brg-user-label",
+   "brg-username",
+   "brg-viewers-pill",
+   "brg-vote-rows",
+   "brg-win-screen",
+   "btn-battery-launch",
+   "btn-bomb-launch",
+   "btn-box-launch",
+   "btn-chairs-launch",
+   "btn-cr-launch",
+   "btn-cs-launch",
+   "btn-cw-launch",
+   "btn-cw-spin",
+   "btn-draw-launch",
+   "btn-ev-launch",
+   "btn-findball-launch",
+   "btn-glz-launch",
+   "btn-hz-launch",
+   "btn-ig-launch",
+   "btn-launch",
+   "btn-ll-launch",
+   "btn-lsc-launch",
+   "btn-mz-launch",
+   "btn-pgs-launch",
+   "btn-rlgl-launch",
+   "btn-rou-launch",
+   "btn-round",
+   "btn-rw-launch",
+   "btn-sniper-launch",
+   "btn-spin",
+   "btn-tmr-go",
+   "btn-tmr-launch",
+   "btn-tt10-launch",
+   "btn-tug-launch",
+   "btn-wai-launch",
+   "btn-wr-launch",
+   "burger-fab-btn",
+   "chairs-btn-round",
+   "chairs-chat-list",
+   "chairs-circle",
+   "chairs-circle-wrap",
+   "chairs-dot",
+   "chairs-elim-list",
+   "chairs-elim-overlay",
+   "chairs-elim-sub",
+   "chairs-grid",
+   "chairs-kickuser",
+   "chairs-kw",
+   "chairs-kw-show",
+   "chairs-live-user",
+   "chairs-p-count",
+   "chairs-p-usernames",
+   "chairs-participants-box",
+   "chairs-remain-num",
+   "chairs-reveal-wrap",
+   "chairs-round-bar",
+   "chairs-round-chairs",
+   "chairs-round-num",
+   "chairs-round-survivors",
+   "chairs-song-player-slot",
+   "chairs-stage-hint",
+   "chairs-stage-round",
+   "chairs-status",
+   "chairs-status-strip",
+   "chairs-ytuser",
+   "chairsw-avatar-wrap",
+   "chairsw-label",
+   "chairsw-name",
+   "chat-list",
+   "conn-diag-panel",
+   "conn-status-pill",
+   "cr-btn-round",
+   "cr-chat-list",
+   "cr-kickuser",
+   "cr-kw",
+   "cr-kw-show",
+   "cr-live-user",
+   "cr-maxracers",
+   "cr-p-count",
+   "cr-p-usernames",
+   "cr-participants-overlay",
+   "cr-status",
+   "cr-status-strip",
+   "cr-track-wrap",
+   "cr-tracklen",
+   "cr-w-avatar-wrap",
+   "cr-w-name",
+   "cr-ytuser",
+   "cs-btn-round",
+   "cs-chat-list",
+   "cs-crown-box",
+   "cs-crown-emoji",
+   "cs-dot",
+   "cs-holder-name",
+   "cs-kickuser",
+   "cs-kw",
+   "cs-kw-show",
+   "cs-live-user",
+   "cs-log",
+   "cs-p-count",
+   "cs-p-usernames",
+   "cs-participants-box",
+   "cs-status",
+   "cs-status-strip",
+   "cs-timer-circle",
+   "cs-timer-num",
+   "cs-waiting-box",
+   "cs-ytuser",
+   "csw-avatar-wrap",
+   "csw-label",
+   "csw-name",
+   "cu-btn",
+   "cu-username",
+   "cw-btn-round",
+   "cw-chat-list",
+   "cw-countries-grid",
+   "cw-dot",
+   "cw-elim-log",
+   "cw-kickuser",
+   "cw-kw",
+   "cw-kw-show",
+   "cw-lens-track",
+   "cw-live-user",
+   "cw-p-count",
+   "cw-p-usernames",
+   "cw-participants-box",
+   "cw-remain-num",
+   "cw-round-num",
+   "cw-spin-result",
+   "cw-status",
+   "cw-status-strip",
+   "cw-turn-banner",
+   "cw-turn-name",
+   "cw-wheel-section",
+   "cw-ytuser",
+   "cww-avatar-wrap",
+   "cww-country-display",
+   "cww-label",
+   "cww-name",
+   "dc-btn-addplayer",
+   "dc-char-name",
+   "dc-pick-char-name",
+   "dc-pick-list",
+   "dc-players-list",
+   "dc-progress-row",
+   "dc-results-list",
+   "dc-reveal-hidden",
+   "dc-reveal-shown",
+   "dc-setup-status",
+   "dc-turn-name",
+   "devspecial-add-input",
+   "discord-admin-status",
+   "discord-toggle-btn",
+   "discord-url-input",
+   "domain-moved-overlay",
+   "draw-btn-redo",
+   "draw-btn-round",
+   "draw-btn-undo",
+   "draw-canvas",
+   "draw-canvas-wrap",
+   "draw-chat-list",
+   "draw-color-input",
+   "draw-color-picker",
+   "draw-colors",
+   "draw-dot",
+   "draw-eraser-btn",
+   "draw-guesses-board",
+   "draw-kickuser",
+   "draw-live-user",
+   "draw-p-count",
+   "draw-p-usernames",
+   "draw-size-preview",
+   "draw-size-range",
+   "draw-status",
+   "draw-status-strip",
+   "draw-thing",
+   "draw-toolbar",
+   "draw-ytuser",
+   "drawer-avatar",
+   "drawer-username",
+   "draww-avatar-wrap",
+   "draww-label",
+   "draww-name",
+   "ev-btn-pause",
+   "ev-btn-round",
+   "ev-chat-list",
+   "ev-circle",
+   "ev-grid",
+   "ev-kickuser",
+   "ev-kw",
+   "ev-kw-show",
+   "ev-live-user",
+   "ev-log-list",
+   "ev-maxplayers",
+   "ev-out-list",
+   "ev-p-count",
+   "ev-p-usernames",
+   "ev-participants-overlay",
+   "ev-round-wrap",
+   "ev-roundtime",
+   "ev-status",
+   "ev-status-strip",
+   "ev-tiebreak",
+   "ev-timer-num",
+   "ev-timer-wrap",
+   "ev-w-avatar-wrap",
+   "ev-w-name",
+   "ev-ytuser",
+   "event100-announce-countdown",
+   "event100-announce-msg",
+   "event100-body-form",
+   "event100-body-idle",
+   "event100-body-running",
+   "event100-duration1",
+   "event100-duration2",
+   "event100-form-status",
+   "event100-grid-canvas",
+   "event100-msg1",
+   "event100-msg2",
+   "event100-overlay",
+   "event100-reg-apikey",
+   "event100-reg-countdown",
+   "event100-reg-kw",
+   "event100-reg-msg",
+   "event100-reg-slots",
+   "event100-reg-status",
+   "event100-reg-user",
+   "event100-round-timer",
+   "event100-roundminutes",
+   "event100-status-badge",
+   "event100-streamers-bar",
+   "event100-streamers-list",
+   "events-active-bar",
+   "events-active-name",
+   "events-body",
+   "events-fab",
+   "events-modal-overlay",
+   "events-onscreen-banner",
+   "events-onscreen-banner-text",
+   "evt-access-add-input",
+   "f100-body-form",
+   "f100-body-list",
+   "f100-claim-overlay",
+   "f100-claim-status",
+   "f100-claim-streamer",
+   "f100-claim-uniqueid",
+   "f100-count",
+   "f100-duration",
+   "f100-form-btn",
+   "f100-form-fields",
+   "f100-form-status",
+   "f100-form-title",
+   "f100-grid",
+   "f100-message",
+   "f100-panel-overlay",
+   "f100-points",
+   "f100-wins",
+   "fastans-btn-addplayer",
+   "fastans-btn-whoanswered",
+   "fastans-emoji",
+   "fastans-holder-name",
+   "fastans-pick-list",
+   "fastans-pick-noone",
+   "fastans-pick-overlay",
+   "fastans-pick-title",
+   "fastans-players-list",
+   "fastans-question-card",
+   "fastans-score-strip",
+   "fastans-setup-status",
+   "fastansrw-label",
+   "fastansrw-name",
+   "fastansw-name",
+   "feedback-modal-overlay",
+   "feedback-status",
+   "feedback-submit-btn",
+   "feedback-textarea",
+   "feedback-type-problem",
+   "feedback-type-suggestion",
+   "findball-btn-round",
+   "findball-chat-list",
+   "findball-correct-list",
+   "findball-cups",
+   "findball-dot",
+   "findball-elim-list",
+   "findball-elim-sub",
+   "findball-kickuser",
+   "findball-kw",
+   "findball-kw-show",
+   "findball-live-user",
+   "findball-p-count",
+   "findball-p-usernames",
+   "findball-participants-box",
+   "findball-results-overlay",
+   "findball-results-title",
+   "findball-round-bar",
+   "findball-round-num",
+   "findball-round-survivors",
+   "findball-status",
+   "findball-status-strip",
+   "findball-timer-box",
+   "findball-timer-num",
+   "findball-ytuser",
+   "findballonline-cups",
+   "findballonline-friend-invite-list",
+   "findballonline-round-num",
+   "findballonline-status-msg",
+   "findballonline-survivors",
+   "findballonline-timer-box",
+   "findballonline-timer-num",
+   "findballonlinew-btn-again",
+   "findballonlinew-name",
+   "findballsolo-cups",
+   "findballsolo-round-num",
+   "findballsolo-status-msg",
+   "findballsolo-timer-box",
+   "findballsolo-timer-num",
+   "findballsolow-emoji",
+   "findballsolow-round",
+   "findballsolow-title",
+   "findballw-avatar-wrap",
+   "findballw-label",
+   "findballw-name",
+   "fire-input",
+   "follow-gate-hint",
+   "follow-gate-toggle",
+   "frm-browse-all-link",
+   "frm-grant-btn",
+   "frm-grant-existing-body",
+   "frm-grant-existing-grid",
+   "frm-grant-status",
+   "frm-grant-subtab-existing",
+   "frm-grant-subtab-upload",
+   "frm-grant-target-input",
+   "frm-grant-upload-body",
+   "frm-grid",
+   "frm-hint",
+   "frm-owned-empty",
+   "frm-owned-hint",
+   "frm-owner-pub-publish-btn",
+   "frm-owner-pub-status",
+   "frm-owner-scode-file",
+   "frm-page-sub",
+   "frm-page-title",
+   "frm-picks",
+   "frn-add-input",
+   "frn-add-status",
+   "frn-friends-list",
+   "frn-incoming-list",
+   "gc-answer-input",
+   "gc-attempts-row",
+   "gc-btn-submit",
+   "gc-currency-word",
+   "gc-timer-num",
+   "gc-timer-ring",
+   "gc-wrong-list",
+   "gcw-emoji",
+   "gcw-message",
+   "gcw-title",
+   "gh-cel-counter",
+   "ghnam-add-input",
+   "gift-revival-card",
+   "gifts-add-amount",
+   "gifts-add-nickname",
+   "gifts-add-streamer",
+   "gifts-backup-output",
+   "gifts-body-form",
+   "gifts-body-list",
+   "gifts-cap-max",
+   "gifts-cap-streamer",
+   "gifts-copy-from",
+   "gifts-copy-to",
+   "gifts-deduct-amount",
+   "gifts-deduct-nickname",
+   "gifts-deduct-streamer",
+   "gifts-dedupe-streamer",
+   "gifts-delstreamer-name",
+   "gifts-double-nickname",
+   "gifts-double-streamer",
+   "gifts-doubleboard-streamer",
+   "gifts-export-output",
+   "gifts-export-streamer",
+   "gifts-form-fields",
+   "gifts-form-title",
+   "gifts-freeze-streamer",
+   "gifts-grid",
+   "gifts-manual-nickname",
+   "gifts-manual-streamer",
+   "gifts-manual-wins",
+   "gifts-merge-from",
+   "gifts-merge-into",
+   "gifts-remove-nickname",
+   "gifts-remove-streamer",
+   "gifts-rename-new",
+   "gifts-rename-old",
+   "gifts-rename-streamer",
+   "gifts-restore-input",
+   "gifts-search-nickname",
+   "gifts-search-output",
+   "gifts-status",
+   "gifts-threshold-streamer",
+   "gifts-threshold-value",
+   "gifts-transfer-amount",
+   "gifts-transfer-from",
+   "gifts-transfer-streamer",
+   "gifts-transfer-to",
+   "gifts-zero-nickname",
+   "gifts-zero-streamer",
+   "glz-alive-num",
+   "glz-answered-note",
+   "glz-btn-endround",
+   "glz-btn-startfirst",
+   "glz-dot",
+   "glz-join-kw",
+   "glz-live-user",
+   "glz-lobby-box",
+   "glz-lobby-count",
+   "glz-lobby-grid",
+   "glz-lobby-kw",
+   "glz-lobby-max",
+   "glz-maxplayers",
+   "glz-opt-0-text",
+   "glz-opt-1-text",
+   "glz-play-box",
+   "glz-qtag",
+   "glz-question-text",
+   "glz-roster-list",
+   "glz-round-num",
+   "glz-round-seconds",
+   "glz-scene",
+   "glz-setup-status",
+   "glz-timerbar",
+   "glz-winner-avatar",
+   "glz-winner-name",
+   "glz-winner-sub",
+   "guesses-board",
+   "gw-ai-word-field",
+   "gw-attempts-count",
+   "gw-board",
+   "gw-btn-launch",
+   "gw-btn-round",
+   "gw-chat-list",
+   "gw-hint-bar",
+   "gw-hint-btn",
+   "gw-hint-show",
+   "gw-hint-wrap",
+   "gw-inp-hint",
+   "gw-inp-kw",
+   "gw-inp-nexthint",
+   "gw-inp-nextword",
+   "gw-inp-user",
+   "gw-inp-word",
+   "gw-kickuser",
+   "gw-kw-show",
+   "gw-live-dot",
+   "gw-live-user",
+   "gw-manual-word-field",
+   "gw-mode-ai",
+   "gw-nextword-overlay",
+   "gw-nextword-status",
+   "gw-p-count",
+   "gw-p-usernames",
+   "gw-self-play-input",
+   "gw-self-play-wrap",
+   "gw-setup-status",
+   "gw-status-strip",
+   "gw-w-attempts",
+   "gw-w-avatar-wrap",
+   "gw-w-label",
+   "gw-w-name",
+   "gw-w-word-display",
+   "gw-ytuser",
+   "gwonline-board",
+   "gwonline-friend-invite-list",
+   "gwonline-hint-bar",
+   "gwonline-hint-btn",
+   "gwonline-hint-show",
+   "gwonline-hint-wrap",
+   "gwonline-input",
+   "gwonline-my-attempts",
+   "gwonlinew-btn-again",
+   "gwonlinew-name",
+   "gwonlinew-word",
+   "gwsolo-attempts-count",
+   "gwsolo-board",
+   "gwsolo-hint-bar",
+   "gwsolo-hint-btn",
+   "gwsolo-hint-show",
+   "gwsolo-hint-wrap",
+   "gwsolo-input",
+   "gwsolo-w-attempts",
+   "gwsolo-w-word",
+   "help-modal-overlay",
+   "hew-duration-avatar",
+   "hew-duration-name",
+   "hew-duration-value",
+   "hew-wins-avatar",
+   "hew-wins-name",
+   "hew-wins-value",
+   "home-conn-badge",
+   "home-conn-badge-text",
+   "home-discord-btn",
+   "home-discord-cta",
+   "home-event-cta-btn",
+   "home-event-winners",
+   "home-lib-head",
+   "home-live-counter",
+   "home-live-counter-num",
+   "home-platform-status-bar",
+   "home-quick-reconnect-btn",
+   "home-quick-reconnect-user",
+   "home-stats-admin-status",
+   "home-stats-offset-input",
+   "home-stats-toggle-btn",
+   "hz-btn-round",
+   "hz-chat-list",
+   "hz-clicks-count",
+   "hz-grid",
+   "hz-kill-log",
+   "hz-kw",
+   "hz-kw-show",
+   "hz-live-user",
+   "hz-p-count",
+   "hz-p-usernames",
+   "hz-status",
+   "hz-status-strip",
+   "hz-strike-section",
+   "hzw-avatar-wrap",
+   "hzw-label",
+   "hzw-list",
+   "hzw-name",
+   "ig-btn-round",
+   "ig-card",
+   "ig-card-cat",
+   "ig-card-emoji",
+   "ig-card-value",
+   "ig-cat-grid",
+   "ig-chat-list",
+   "ig-diff-grid",
+   "ig-dot",
+   "ig-final-list",
+   "ig-kickuser",
+   "ig-kw",
+   "ig-kw-show",
+   "ig-live-user",
+   "ig-no-winner-box",
+   "ig-p-count",
+   "ig-p-usernames",
+   "ig-reveal-answer",
+   "ig-round-now",
+   "ig-status",
+   "ig-status-strip",
+   "ig-timer-box",
+   "ig-timer-num",
+   "ig-ytuser",
+   "igw-answer-display",
+   "igw-avatar-wrap",
+   "igw-label",
+   "igw-name",
+   "igw-next-btn",
+   "inp-kw",
+   "inp-word",
+   "kick-modal-alfawzanvisuals-toggle",
+   "kick-modal-devvisuals-toggle",
+   "kick-modal-ghnamvisuals-toggle",
+   "kick-modal-list",
+   "kick-modal-overlay",
+   "kill-log",
+   "kw-show",
+   "landing-faq-list",
+   "landing-hero-title",
+   "lb-empty",
+   "lb-filter-all",
+   "lb-filter-streamer",
+   "lb-list",
+   "lb-podium",
+   "lb-scope",
+   "live-dot",
+   "live-user",
+   "ll-avatar-wrap",
+   "ll-btn-round",
+   "ll-chain-words",
+   "ll-chain-wrap",
+   "ll-chat-list",
+   "ll-cur-letter",
+   "ll-cur-name",
+   "ll-elim-log",
+   "ll-kickuser",
+   "ll-kw",
+   "ll-kw-show",
+   "ll-live-user",
+   "ll-p-count",
+   "ll-p-usernames",
+   "ll-queue-list",
+   "ll-queue-wrap",
+   "ll-stage",
+   "ll-startword",
+   "ll-status",
+   "ll-status-strip",
+   "ll-timer-circle",
+   "ll-timer-num",
+   "ll-w-avatar-wrap",
+   "ll-w-label",
+   "ll-w-name",
+   "ll-ytuser",
+   "lsc-btn-round",
+   "lsc-chat-list",
+   "lsc-dot",
+   "lsc-guesses-board",
+   "lsc-hint-box",
+   "lsc-hint-display",
+   "lsc-kickuser",
+   "lsc-kw",
+   "lsc-kw-show",
+   "lsc-live-user",
+   "lsc-p-count",
+   "lsc-p-usernames",
+   "lsc-status",
+   "lsc-status-strip",
+   "lsc-timer-box",
+   "lsc-timer-num",
+   "lsc-word",
+   "lsc-word-box",
+   "lsc-word-display",
+   "lsc-word-hint",
+   "lsc-ytuser",
+   "lscw-answer-display",
+   "lscw-avatar-wrap",
+   "lscw-label",
+   "lscw-name",
+   "lvl-empty",
+   "lvl-list",
+   "lvl-scope",
+   "main-hint-box",
+   "main-hint-display",
+   "main-kickuser",
+   "main-timer-box",
+   "main-timer-num",
+   "main-ytuser",
+   "mb-grid",
+   "mb-level-num",
+   "mb-status",
+   "mbw-emoji",
+   "mbw-message",
+   "mbw-title",
+   "mm-waiting-count",
+   "mm-waiting-countdown",
+   "mod-add-input",
+   "msg-banner-backdrop",
+   "msg-broadcast-banner",
+   "msg-broadcast-banner-text",
+   "msg-broadcast-send-btn",
+   "msg-broadcast-text",
+   "msg-personal-banner",
+   "msg-personal-banner-text",
+   "msg-personal-note",
+   "msg-personal-text",
+   "msg-personal-username",
+   "msg-storenew-banner",
+   "msg-streamerbc-banner",
+   "msg-streamerbc-banner-label",
+   "msg-streamerbc-banner-text",
+   "mz-board-wrap",
+   "mz-btn-round",
+   "mz-chat-list",
+   "mz-dirs-row",
+   "mz-grid",
+   "mz-kickuser",
+   "mz-kw",
+   "mz-kw-show",
+   "mz-live-user",
+   "mz-maxplayers",
+   "mz-p-count",
+   "mz-p-usernames",
+   "mz-participants-overlay",
+   "mz-size",
+   "mz-status",
+   "mz-status-strip",
+   "mz-w-avatar-wrap",
+   "mz-w-name",
+   "mz-ytuser",
+   "notif-panel-list",
+   "notif-panel-overlay",
+   "obomb-alive-list",
+   "obomb-friend-invite-list",
+   "obomb-holder-name",
+   "obomb-holder-sub",
+   "obomb-pass-label",
+   "obomb-pass-list",
+   "obombw-btn-again",
+   "obombw-name",
+   "odraw-btn-guess-submit",
+   "odraw-canvas",
+   "odraw-colors",
+   "odraw-eraser-btn",
+   "odraw-friend-invite-list",
+   "odraw-guess-form",
+   "odraw-guess-input",
+   "odraw-guesses-board",
+   "odraw-holder-name",
+   "odraw-idea-name",
+   "odraw-players-list",
+   "odraw-reveal-hidden",
+   "odraw-reveal-shown",
+   "odraw-reveal-waiting",
+   "odraw-size-preview",
+   "odraw-size-range",
+   "odraw-toolbar",
+   "odraw-turn-name",
+   "odraww-btn-again",
+   "odraww-label",
+   "odraww-name",
+   "og-notif-badge",
+   "ol-answer-input",
+   "ol-answers-list",
+   "ol-btn-submit",
+   "ol-checking",
+   "ol-progress-row",
+   "ol-topic-word",
+   "olw-message",
+   "olw-score",
+   "olw-title",
+   "online-admin-status",
+   "online-body-form",
+   "online-body-list",
+   "online-form-fields",
+   "online-form-title",
+   "online-grid",
+   "online-points-num",
+   "online-points-panel",
+   "otimer-btn-stop",
+   "otimer-clock-num",
+   "otimer-friend-invite-list",
+   "otimer-players-list",
+   "otimer-stop-status",
+   "otimer-stopped-count",
+   "otimer-target-num",
+   "otimer-total-count",
+   "otimerw-btn-again",
+   "otimerw-detail",
+   "otimerw-name",
+   "otimerw-results-list",
+   "otop10-btn-submit",
+   "otop10-friend-invite-list",
+   "otop10-grid",
+   "otop10-guess-input",
+   "otop10-guess-status",
+   "otop10-lives-strip",
+   "otop10-players-list",
+   "otop10-round-num",
+   "otop10-topic",
+   "otop10rw-btn-next",
+   "otop10rw-label",
+   "otop10rw-scores",
+   "otop10rw-waiting",
+   "otop10w-label",
+   "otop10w-name",
+   "owner-alfawzan-count",
+   "owner-alfawzan-crown",
+   "owner-alfawzan-list",
+   "owner-cwsession-list",
+   "owner-cwsession-overlay",
+   "owner-cwsession-streamer",
+   "owner-cwsessions-count",
+   "owner-cwsessions-list",
+   "owner-cwsessions-note",
+   "owner-devspecial-count",
+   "owner-devspecial-list",
+   "owner-events-access-count",
+   "owner-events-access-list",
+   "owner-fab",
+   "owner-feedback-count",
+   "owner-feedback-list",
+   "owner-frames-grants-list",
+   "owner-frames-public-count",
+   "owner-frames-public-list",
+   "owner-games-list",
+   "owner-gamestats-body",
+   "owner-gamestats-overlay",
+   "owner-gamestats-players-list",
+   "owner-gamestats-players-overlay",
+   "owner-gamestats-players-title",
+   "owner-ghnam-count",
+   "owner-ghnam-crown",
+   "owner-ghnam-list",
+   "owner-modal-overlay",
+   "owner-moderators-count",
+   "owner-moderators-list",
+   "owner-newaccounts-count",
+   "owner-newaccounts-list",
+   "owner-newaccounts-overlay",
+   "owner-onlinenow-count",
+   "owner-onlinenow-list",
+   "owner-onlinenow-overlay",
+   "owner-panel-devspecial",
+   "owner-panel-protection",
+   "owner-rounds-count",
+   "owner-rounds-list",
+   "owner-scode-count",
+   "owner-scode-list",
+   "owner-streamers-count",
+   "owner-streamers-list",
+   "owner-users-count",
+   "owner-users-list",
+   "owner-users-search",
+   "owordrace-btn-submit",
+   "owordrace-friend-invite-list",
+   "owordrace-input",
+   "owordrace-phrase",
+   "owordrace-players-list",
+   "owordrace-submit-status",
+   "owordrace-total-count",
+   "owordracew-btn-again",
+   "owordracew-detail",
+   "owordracew-name",
+   "p-count",
+   "p-usernames",
+   "pcw-btn-addplayer",
+   "pcw-countries-grid",
+   "pcw-elim-input",
+   "pcw-elim-overlay",
+   "pcw-elim-text",
+   "pcw-players-list",
+   "pcw-setup-status",
+   "pcw-turn-name",
+   "pcww-label",
+   "pcww-name",
+   "pdraw-btn-addplayer",
+   "pdraw-canvas",
+   "pdraw-colors",
+   "pdraw-eraser-btn",
+   "pdraw-holder-name",
+   "pdraw-idea-name",
+   "pdraw-pick-list",
+   "pdraw-pick-noone",
+   "pdraw-pick-overlay",
+   "pdraw-pick-title",
+   "pdraw-players-list",
+   "pdraw-reveal-hidden",
+   "pdraw-reveal-shown",
+   "pdraw-score-strip",
+   "pdraw-setup-status",
+   "pdraw-size-preview",
+   "pdraw-size-range",
+   "pdraw-turn-name",
+   "pdrawrw-label",
+   "pdrawrw-name",
+   "pg-",
+   "pg-ahsemha-board",
+   "pg-bridge-round",
+   "pg-chairs",
+   "pg-countrywar",
+   "pg-countrywar-winner",
+   "pg-leaderboard",
+   "pg-online-mm-waiting",
+   "pg-ptop10",
+   "pg-roulette",
+   "pg-static-landing",
+   "pgs-attempts-bar",
+   "pgs-attempts-wrap",
+   "pgs-btn-round",
+   "pgs-chat-list",
+   "pgs-dot",
+   "pgs-guesses-board",
+   "pgs-kickuser",
+   "pgs-kw",
+   "pgs-kw-show",
+   "pgs-live-user",
+   "pgs-no-winner-box",
+   "pgs-p-count",
+   "pgs-p-usernames",
+   "pgs-price",
+   "pgs-product",
+   "pgs-product-box",
+   "pgs-product-display",
+   "pgs-reveal-price",
+   "pgs-status",
+   "pgs-status-strip",
+   "pgs-ytuser",
+   "pgsw-avatar-wrap",
+   "pgsw-label",
+   "pgsw-name",
+   "pgsw-price-display",
+   "player-tiktok-current",
+   "player-tiktok-modal-overlay",
+   "player-tiktok-save-btn",
+   "player-tiktok-status",
+   "player-tiktok-username",
+   "profile-achievements-list",
+   "profile-achievements-overlay",
+   "profile-achv-sub",
+   "profile-activity-list",
+   "profile-activity-overlay",
+   "profile-avatar-big",
+   "profile-avatar-ring-wrap",
+   "profile-conn-status",
+   "profile-conn-text",
+   "profile-frames-count-badge",
+   "profile-handle",
+   "profile-level-num",
+   "profile-new-username",
+   "profile-pinned-list",
+   "profile-pinned-overlay",
+   "profile-pinned-sub",
+   "profile-playerlink-status",
+   "profile-rename-btn",
+   "profile-rename-panel",
+   "profile-rename-status",
+   "profile-stat-mostplayed-count",
+   "profile-stat-mostplayed-name",
+   "profile-stat-online",
+   "profile-stat-solo",
+   "profile-tiktok-apikey-status",
+   "profile-tiktok-link-icon",
+   "profile-username-big",
+   "prot-active-count",
+   "prot-body-detail",
+   "prot-body-edit",
+   "prot-body-list",
+   "prot-bot-count",
+   "prot-bots-list",
+   "prot-detail-title",
+   "prot-edit-score",
+   "prot-edit-status",
+   "prot-edit-username",
+   "prot-edit-wins",
+   "prot-games-grid",
+   "prot-max-label",
+   "prot-max-label2",
+   "ptop10-btn-addplayer",
+   "ptop10-btn-submit",
+   "ptop10-grid",
+   "ptop10-guess-input",
+   "ptop10-guess-status",
+   "ptop10-lives-strip",
+   "ptop10-pick-list",
+   "ptop10-pick-overlay",
+   "ptop10-players-list",
+   "ptop10-round-num",
+   "ptop10-setup-status",
+   "ptop10-topic",
+   "ptop10rw-label",
+   "ptop10rw-scores",
+   "ptop10w-label",
+   "ptop10w-name",
+   "qc-connecting-overlay",
+   "qc-connecting-sub",
+   "qc-main-hint",
+   "qc-main-input",
+   "qc-main-label",
+   "qc-multi-wrap",
+   "qc-overlay",
+   "qc-platform-toggle",
+   "qc-single-wrap",
+   "qc-status",
+   "qc-ytkey-field",
+   "rlgl-arena-panel",
+   "rlgl-arena-track",
+   "rlgl-btn-round",
+   "rlgl-chat-list",
+   "rlgl-countdown",
+   "rlgl-doll",
+   "rlgl-hud-players",
+   "rlgl-hud-steps",
+   "rlgl-join-kw",
+   "rlgl-kickuser",
+   "rlgl-light-indicator",
+   "rlgl-light-speed",
+   "rlgl-live-dot",
+   "rlgl-live-user",
+   "rlgl-max-players",
+   "rlgl-move-kw",
+   "rlgl-round-seconds",
+   "rlgl-round-timer",
+   "rlgl-status",
+   "rlgl-status-strip",
+   "rlgl-steps",
+   "rlgl-track-empty",
+   "rlgl-ytuser",
+   "rlglw-avatar-wrap",
+   "rlglw-name",
+   "rm-btn-start",
+   "rm-code-box",
+   "rm-code-num",
+   "rm-join-input",
+   "rm-join-status",
+   "rm-member-count",
+   "rm-members-list",
+   "rou-btn-round",
+   "rou-center-num",
+   "rou-chat-list",
+   "rou-chooser",
+   "rou-chooser-name",
+   "rou-circle-box",
+   "rou-elim-log",
+   "rou-kickuser",
+   "rou-kw",
+   "rou-kw-show",
+   "rou-live-user",
+   "rou-nodes",
+   "rou-p-count",
+   "rou-p-usernames",
+   "rou-remain-num",
+   "rou-ring",
+   "rou-roster",
+   "rou-round-num",
+   "rou-status",
+   "rou-status-strip",
+   "rou-w-avatar-wrap",
+   "rou-w-label",
+   "rou-w-name",
+   "rou-wheel-section",
+   "rou-ytuser",
+   "rounds-pickwinner-list",
+   "rounds-pickwinner-overlay",
+   "rounds-pickwinner-streamer",
+   "rw-answer-hint",
+   "rw-btn-round",
+   "rw-chat-list",
+   "rw-dot",
+   "rw-guesses-board",
+   "rw-kickuser",
+   "rw-kw",
+   "rw-kw-show",
+   "rw-live-user",
+   "rw-no-winner-box",
+   "rw-p-count",
+   "rw-p-usernames",
+   "rw-status",
+   "rw-status-strip",
+   "rw-timer-box",
+   "rw-timer-num",
+   "rw-word",
+   "rw-word-box",
+   "rw-word-display",
+   "rw-ytuser",
+   "rww-answer-display",
+   "rww-avatar-wrap",
+   "rww-label",
+   "rww-name",
+   "scode-duration-input",
+   "scode-frame-existing-body",
+   "scode-frame-grid",
+   "scode-frame-subtab-existing",
+   "scode-frame-subtab-upload",
+   "scode-frame-upload-body",
+   "scode-input",
+   "scode-maxuses-input",
+   "scode-modal-overlay",
+   "scode-name-new-input",
+   "scode-new-overlay",
+   "scode-publish-btn",
+   "scode-publish-status",
+   "scode-redeem-btn",
+   "scode-status",
+   "scode-users-modal-code",
+   "scode-users-modal-list",
+   "scode-users-overlay",
+   "setup-status",
+   "sevt-announce-banner",
+   "sevt-announce-banner-text",
+   "sevt-body-form",
+   "sevt-body-idle",
+   "sevt-body-running",
+   "sevt-broadcast-msg",
+   "sevt-countdown-badge",
+   "sevt-edit-msg",
+   "sevt-form-status",
+   "sevt-idle-status",
+   "sevt-running-status",
+   "sevt-standings-list",
+   "side-drawer-overlay",
+   "sniper-btn-round",
+   "sniper-chat-list",
+   "sniper-grid",
+   "sniper-grid-size-show",
+   "sniper-kickuser",
+   "sniper-kw",
+   "sniper-kw-show",
+   "sniper-live-user",
+   "sniper-p-count",
+   "sniper-p-usernames",
+   "sniper-status",
+   "sniper-status-strip",
+   "sniper-ytuser",
+   "sound-control-body",
+   "sound-control-overlay",
+   "spin-result",
+   "stats-note",
+   "stats-online-now",
+   "status-strip",
+   "store-admin-grid",
+   "store-admin-status",
+   "store-body-form",
+   "store-body-list",
+   "store-body-sales",
+   "store-buy-overlay",
+   "store-buy-status",
+   "store-buy-streamer",
+   "store-buy-title",
+   "store-buy-uniqueid",
+   "store-f-duration",
+   "store-f-maxpurchases",
+   "store-f-name",
+   "store-f-price",
+   "store-f-type",
+   "store-form-fields",
+   "store-form-title",
+   "store-gift-streamer",
+   "store-gift-uniqueid",
+   "store-gift-user",
+   "store-panel-grid",
+   "store-panel-overlay",
+   "store-sales-list",
+   "store-sales-search",
+   "sw-avatar-wrap",
+   "sw-label",
+   "sw-name",
+   "tiktok-apikey-modal-overlay",
+   "tiktok-connect-status",
+   "tiktok-connect-username",
+   "tiktok-saved-usernames-list",
+   "tiktok-saved-usernames-wrap",
+   "tmr-board",
+   "tmr-chat-list",
+   "tmr-clock",
+   "tmr-clock-sub",
+   "tmr-kickuser",
+   "tmr-kw",
+   "tmr-kw-show",
+   "tmr-live-user",
+   "tmr-p-count",
+   "tmr-p-usernames",
+   "tmr-secret",
+   "tmr-secret-bar",
+   "tmr-status",
+   "tmr-status-strip",
+   "tmr-stop-kw-show",
+   "tmr-w-avatar-wrap",
+   "tmr-w-label",
+   "tmr-w-name",
+   "tmr-ytuser",
+   "toast",
+   "top-panel-list",
+   "top-panel-overlay",
+   "top-subtab-points",
+   "top-subtab-wins",
+   "top20-countdown-num",
+   "top20-event-title",
+   "top20-list",
+   "top20-mode-activity",
+   "top20-mode-hours",
+   "top20-podium",
+   "topnav",
+   "topnav-tab-ahsemha",
+   "topnav-tab-event",
+   "topnav-tab-online",
+   "topnav-tab-party",
+   "topnav-tab-solo",
+   "topnav-tab-streamer",
+   "ts-btn-start",
+   "ts-btn-stop",
+   "ts-clock-num",
+   "ts-target-num",
+   "tst-btn-sim",
+   "tst-error-count",
+   "tst-inline-btn",
+   "tst-menu-current-game",
+   "tst-menu-overlay",
+   "tst-sim-chat-text",
+   "tst-sim-count",
+   "tst-sim-fake-count",
+   "tst-sim-fake-list",
+   "tst-sim-game-name",
+   "tst-sim-gift-diamonds",
+   "tst-sim-gift-name",
+   "tst-sim-overlay",
+   "tsw-emoji",
+   "tsw-message",
+   "tsw-title",
+   "tt10-btn-end",
+   "tt10-btn-start",
+   "tt10-dot",
+   "tt10-grid",
+   "tt10-live-user",
+   "tt10-play-box",
+   "tt10-question-text",
+   "tt10-round-num",
+   "tt10-round-total",
+   "tt10-setup-status",
+   "tt10-timer-enable",
+   "tt10-timer-seconds",
+   "tt10-timerbar",
+   "tt10-timerwrap",
+   "tt10-waiting-box",
+   "tt10rw-btn-next",
+   "tt10rw-label",
+   "tt10rw-question",
+   "tt10w-avatar",
+   "tt10w-final-list",
+   "tt10w-label",
+   "tt10w-name",
+   "tug-arena",
+   "tug-arena-a-name",
+   "tug-arena-b-name",
+   "tug-arena-pullkw",
+   "tug-balance-bar",
+   "tug-balance-fill-a",
+   "tug-balance-fill-b",
+   "tug-btn-round",
+   "tug-chat-list",
+   "tug-golden-banner",
+   "tug-kickuser",
+   "tug-knot",
+   "tug-live-dot",
+   "tug-live-user",
+   "tug-opt-goldenpull",
+   "tug-opt-latejoin",
+   "tug-opt-rubberband",
+   "tug-opt-streak",
+   "tug-opt-teambalance",
+   "tug-pull-kw",
+   "tug-rope-track",
+   "tug-status",
+   "tug-status-strip",
+   "tug-team-a-count",
+   "tug-team-a-kw",
+   "tug-team-a-list",
+   "tug-team-a-name",
+   "tug-team-b-count",
+   "tug-team-b-kw",
+   "tug-team-b-list",
+   "tug-team-b-name",
+   "tug-teambox-a-kw",
+   "tug-teambox-a-name",
+   "tug-teambox-b-kw",
+   "tug-teambox-b-name",
+   "tug-teams-wrap",
+   "tug-timer",
+   "tug-ytuser",
+   "tugw-team-name",
+   "updates-note",
+   "updates-status-dot",
+   "updates-status-text",
+   "updates-textarea",
+   "w-avatar-wrap",
+   "w-label",
+   "w-name",
+   "w-word-display",
+   "wai-btn-round",
+   "wai-charname",
+   "wai-chat-list",
+   "wai-desc",
+   "wai-desc-box",
+   "wai-desc-display",
+   "wai-dot",
+   "wai-guesses-board",
+   "wai-hint2",
+   "wai-hint2-box",
+   "wai-hint2-display",
+   "wai-kickuser",
+   "wai-kw",
+   "wai-kw-show",
+   "wai-live-user",
+   "wai-no-winner-box",
+   "wai-p-count",
+   "wai-p-usernames",
+   "wai-reveal-name",
+   "wai-status",
+   "wai-status-strip",
+   "wai-timer-box",
+   "wai-timer-num",
+   "wai-ytuser",
+   "waiw-avatar-wrap",
+   "waiw-char-display",
+   "waiw-label",
+   "waiw-name",
+   "wdl-attempts-info",
+   "wdl-board",
+   "wdl-keyboard",
+   "wdl-mode-conn-status",
+   "wdl-setup-status",
+   "wdl-setup-sub",
+   "wdl-timer",
+   "wdl-winner-avatar-wrap",
+   "wdl-winner-label",
+   "wdl-winner-name",
+   "wdl-winner-title",
+   "wdl-winner-word",
+   "weapons-section",
+   "whatsnew-body",
+   "whatsnew-overlay",
+   "wp-bomb",
+   "wp-nuke",
+   "wp-sniper",
+   "wr-btn-round",
+   "wr-chat-list",
+   "wr-dot",
+   "wr-guesses-board",
+   "wr-kickuser",
+   "wr-kw",
+   "wr-kw-show",
+   "wr-live-user",
+   "wr-p-count",
+   "wr-p-usernames",
+   "wr-status",
+   "wr-status-strip",
+   "wr-word",
+   "wr-word-box",
+   "wr-word-display",
+   "wr-ytuser",
+   "wrw-avatar-wrap",
+   "wrw-label",
+   "wrw-name"
+  ],
+  "js_literal_count": 1508,
+  "js_missing_static": [
+   "ahsemha-board-score-color-style",
+   "brg-invite-toast",
+   "brg-notice-back",
+   "brg-win-screen",
+   "chairs-song-player-slot",
+   "conn-diag-panel",
+   "conn-status-pill",
+   "draw-color-input",
+   "draw-color-picker",
+   "f100-count",
+   "f100-duration",
+   "f100-form-btn",
+   "f100-form-status",
+   "f100-message",
+   "f100-points",
+   "f100-wins",
+   "gh-cel-counter",
+   "gift-revival-card",
+   "gifts-add-amount",
+   "gifts-add-nickname",
+   "gifts-add-streamer",
+   "gifts-backup-output",
+   "gifts-cap-max",
+   "gifts-cap-streamer",
+   "gifts-copy-from",
+   "gifts-copy-to",
+   "gifts-deduct-amount",
+   "gifts-deduct-nickname",
+   "gifts-deduct-streamer",
+   "gifts-dedupe-streamer",
+   "gifts-delstreamer-name",
+   "gifts-double-nickname",
+   "gifts-double-streamer",
+   "gifts-doubleboard-streamer",
+   "gifts-export-output",
+   "gifts-export-streamer",
+   "gifts-freeze-streamer",
+   "gifts-manual-nickname",
+   "gifts-manual-streamer",
+   "gifts-manual-wins",
+   "gifts-merge-from",
+   "gifts-merge-into",
+   "gifts-remove-nickname",
+   "gifts-remove-streamer",
+   "gifts-rename-new",
+   "gifts-rename-old",
+   "gifts-rename-streamer",
+   "gifts-restore-input",
+   "gifts-search-nickname",
+   "gifts-search-output",
+   "gifts-status",
+   "gifts-threshold-streamer",
+   "gifts-threshold-value",
+   "gifts-transfer-amount",
+   "gifts-transfer-from",
+   "gifts-transfer-streamer",
+   "gifts-transfer-to",
+   "gifts-zero-nickname",
+   "gifts-zero-streamer",
+   "online-admin-status",
+   "pg-",
+   "profile-tiktok-apikey-status",
+   "ptop10-pick-list",
+   "ptop10-pick-overlay",
+   "rlgl-chat-list",
+   "store-admin-status",
+   "store-f-duration",
+   "store-f-maxpurchases",
+   "store-f-name",
+   "store-f-price",
+   "store-f-type",
+   "store-gift-streamer",
+   "store-gift-uniqueid",
+   "store-gift-user",
+   "tst-inline-btn"
+  ],
+  "js_dynamic_patterns": {
+   "*-*": [
+    "inputId + '-' + i"
+   ],
+   "*-*+-section": [
+    "tag + '-' + p + '-section'"
+   ],
+   "*-kick-field": [
+    "tag + '-kick-field'"
+   ],
+   "*-tab-*": [
+    "tag + '-tab-' + p"
+   ],
+   "*-user-label": [
+    "tag + '-user-label'"
+   ],
+   "*-youtube-field": [
+    "tag + '-youtube-field'"
+   ],
+   "ahsemha-*-*-aimg": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-aimg'"
+   ],
+   "ahsemha-*-*-answer": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-answer'"
+   ],
+   "ahsemha-*-*-hint": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-hint'"
+   ],
+   "ahsemha-*-*-mediatype": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-mediatype'",
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-mediatype'"
+   ],
+   "ahsemha-*-*-mediaurl": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-mediaurl'",
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-mediaurl'"
+   ],
+   "ahsemha-*-*-mediaurl-wrap": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-mediaurl-wrap'"
+   ],
+   "ahsemha-*-*-qimg": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-qimg'"
+   ],
+   "ahsemha-*-*-text": [
+    "'ahsemha-level' + levelIdx + '-q' + qIdx + '-text'"
+   ],
+   "ahsemha-*-lifelines": [
+    "'ahsemha-team' + team + '-lifelines'"
+   ],
+   "ahsemha-*-points": [
+    "'ahsemha-level' + levelIdx + '-points'"
+   ],
+   "ahsemha-*-questions": [
+    "'ahsemha-level' + levelIdx + '-questions'",
+    "'ahsemha-level' + levelIdx + '-questions'"
+   ],
+   "ahsemha-a-*-btn": [
+    "'ahsemha-a-team' + ahsemhaBlockedTeam + '-btn'"
+   ],
+   "ahset-lifeline-*": [
+    "'ahset-lifeline-' + key",
+    "'ahset-lifeline-' + k",
+    "'ahset-lifeline-' + key"
+   ],
+   "bomb-tag-*": [
+    "'bomb-tag-' + uniqueId",
+    "'bomb-tag-' + uid"
+   ],
+   "box-item-*": [
+    "'box-item-' + n"
+   ],
+   "box-tag-*": [
+    "'box-tag-' + n"
+   ],
+   "box-tag-p-*": [
+    "'box-tag-p-' + uniqueId",
+    "'box-tag-p-' + uid"
+   ],
+   "brg-tab-*": [
+    "'brg-tab-' + k"
+   ],
+   "chair-cell-*": [
+    "'chair-cell-' + num",
+    "'chair-cell-' + num"
+   ],
+   "chairs-slot-*": [
+    "'chairs-slot-' + chairsImmuneUid",
+    "'chairs-slot-' + user.uniqueId"
+   ],
+   "chairstag-*": [
+    "'chairstag-' + uniqueId"
+   ],
+   "cr-car-*": [
+    "'cr-car-' + uid",
+    "'cr-car-' + uid"
+   ],
+   "cr-lane-*": [
+    "'cr-lane-' + uniqueId",
+    "'cr-lane-' + user.uniqueId",
+    "'cr-lane-' + uid"
+   ],
+   "cr-tag-*": [
+    "'cr-tag-' + uniqueId"
+   ],
+   "cstag-*": [
+    "'cstag-' + uniqueId"
+   ],
+   "cwtag-*": [
+    "'cwtag-' + uniqueId"
+   ],
+   "drawtag-*": [
+    "'drawtag-' + uniqueId"
+   ],
+   "ev-card-*": [
+    "'ev-card-' + uniqueId",
+    "'ev-card-' + uid"
+   ],
+   "ev-tag-*": [
+    "'ev-tag-' + uniqueId",
+    "'ev-tag-' + uid"
+   ],
+   "ev-votes-*": [
+    "'ev-votes-' + uid"
+   ],
+   "event100-phase-*": [
+    "'event100-phase-' + p"
+   ],
+   "findball-ball-*": [
+    "'findball-ball-' + cupId",
+    "'findball-ball-' + winningCupId"
+   ],
+   "findball-cup-*": [
+    "'findball-cup-' + cupId",
+    "'findball-cup-' + cupId",
+    "'findball-cup-' + cupA"
+   ],
+   "findball-cup-num-*": [
+    "'findball-cup-num-' + cupId"
+   ],
+   "findballonline-ball-*": [
+    "'findballonline-ball-' + ballCupId"
+   ],
+   "findballonline-cup-*": [
+    "'findballonline-cup-' + ballCupId",
+    "'findballonline-cup-' + cupId",
+    "'findballonline-cup-' + cupA"
+   ],
+   "findballonline-cup-num-*": [
+    "'findballonline-cup-num-' + cupId"
+   ],
+   "findballsolo-ball-*": [
+    "'findballsolo-ball-' + cupId",
+    "'findballsolo-ball-' + winningCupId"
+   ],
+   "findballsolo-cup-*": [
+    "'findballsolo-cup-' + cupId",
+    "'findballsolo-cup-' + cupId",
+    "'findballsolo-cup-' + cupId"
+   ],
+   "findballsolo-cup-num-*": [
+    "'findballsolo-cup-num-' + cupId"
+   ],
+   "findballtag-*": [
+    "'findballtag-' + uniqueId"
+   ],
+   "frm-owner-*+-bgwarn": [
+    "'frm-owner-' + kind + '-bgwarn'",
+    "'frm-owner-' + kind + '-bgwarn'"
+   ],
+   "frm-owner-*+-editor": [
+    "'frm-owner-' + kind + '-editor'",
+    "'frm-owner-' + kind + '-editor'"
+   ],
+   "frm-owner-*+-file": [
+    "'frm-owner-' + kind + '-file'",
+    "'frm-owner-' + kind + '-file'"
+   ],
+   "frm-owner-*+-h": [
+    "'frm-owner-' + kind + '-h'",
+    "'frm-owner-' + kind + '-h'"
+   ],
+   "frm-owner-*+-hole-rect": [
+    "'frm-owner-' + kind + '-hole-rect'"
+   ],
+   "frm-owner-*+-l": [
+    "'frm-owner-' + kind + '-l'",
+    "'frm-owner-' + kind + '-l'"
+   ],
+   "frm-owner-*+-name": [
+    "'frm-owner-' + kind + '-name'",
+    "'frm-owner-' + kind + '-name'"
+   ],
+   "frm-owner-*+-preview-img": [
+    "'frm-owner-' + kind + '-preview-img'",
+    "'frm-owner-' + kind + '-preview-img'"
+   ],
+   "frm-owner-*+-ratio": [
+    "'frm-owner-' + kind + '-ratio'",
+    "'frm-owner-' + kind + '-ratio'"
+   ],
+   "frm-owner-*+-t": [
+    "'frm-owner-' + kind + '-t'",
+    "'frm-owner-' + kind + '-t'"
+   ],
+   "frm-owner-*+-w": [
+    "'frm-owner-' + kind + '-w'",
+    "'frm-owner-' + kind + '-w'"
+   ],
+   "glz-av-*": [
+    "'glz-av-' + uid",
+    "'glz-av-' + uid",
+    "'glz-av-' + uid"
+   ],
+   "glz-panel-*": [
+    "'glz-panel-' + idx",
+    "'glz-panel-' + correct",
+    "'glz-panel-' + wrongIdx"
+   ],
+   "gw-ptag-*": [
+    "'gw-ptag-' + uniqueId"
+   ],
+   "hz-cell-*": [
+    "'hz-cell-' + num"
+   ],
+   "hz-tag-*": [
+    "'hz-tag-' + uniqueId",
+    "'hz-tag-' + uid"
+   ],
+   "ig-ptag-*": [
+    "'ig-ptag-' + uniqueId"
+   ],
+   "ll-ptag-*": [
+    "'ll-ptag-' + uniqueId",
+    "'ll-ptag-' + uid"
+   ],
+   "lsctag-*": [
+    "'lsctag-' + uniqueId"
+   ],
+   "lvl-filter-*": [
+    "'lvl-filter-' + f"
+   ],
+   "mod-advanced-*": [
+    "'mod-advanced-' + tag"
+   ],
+   "mod-field-*+-*": [
+    "'mod-field-' + tag + '-' + key",
+    "'mod-field-' + tag + '-' + key"
+   ],
+   "mod-field-*+-*+-*": [
+    "'mod-field-' + tag + '-' + key + '-' + i"
+   ],
+   "msg-*+-dur-permanent": [
+    "'msg-' + kind + '-dur-permanent'"
+   ],
+   "msg-*+-dur-timed": [
+    "'msg-' + kind + '-dur-timed'"
+   ],
+   "msg-*+-pos-center": [
+    "'msg-' + kind + '-pos-center'"
+   ],
+   "msg-*+-pos-top": [
+    "'msg-' + kind + '-pos-top'"
+   ],
+   "msg-subpanel-*": [
+    "'msg-subpanel-' + s"
+   ],
+   "msg-subtab-*": [
+    "'msg-subtab-' + s"
+   ],
+   "mz-tag-*": [
+    "'mz-tag-' + uniqueId"
+   ],
+   "mz-token-*": [
+    "'mz-token-' + uniqueId",
+    "'mz-token-' + uid",
+    "'mz-token-' + winnerUid"
+   ],
+   "owner-panel-*": [
+    "'owner-panel-' + t"
+   ],
+   "owner-tab-*": [
+    "'owner-tab-' + t"
+   ],
+   "pg-*": [
+    "'pg-' + page",
+    "'pg-' + back",
+    "'pg-' + target"
+   ],
+   "pgsatt-*": [
+    "'pgsatt-' + uid"
+   ],
+   "pgstag-*": [
+    "'pgstag-' + uniqueId"
+   ],
+   "ptag-*": [
+    "'ptag-' + uniqueId"
+   ],
+   "qc-multi-check-*": [
+    "'qc-multi-check-' + p"
+   ],
+   "qc-multi-field-*": [
+    "'qc-multi-field-' + platform"
+   ],
+   "qc-multi-user-*": [
+    "'qc-multi-user-' + p"
+   ],
+   "rlgltoken-*": [
+    "'rlgltoken-' + uniqueId",
+    "'rlgltoken-' + uid",
+    "'rlgltoken-' + uid"
+   ],
+   "rou-tag-*": [
+    "'rou-tag-' + uniqueId",
+    "'rou-tag-' + uid"
+   ],
+   "rwtag-*": [
+    "'rwtag-' + uniqueId"
+   ],
+   "s-cell-*": [
+    "'s-cell-' + num"
+   ],
+   "s-name-*": [
+    "'s-name-' + num"
+   ],
+   "sniper-tag-*": [
+    "'sniper-tag-' + uniqueId",
+    "'sniper-tag-' + uniqueId",
+    "'sniper-tag-' + uid"
+   ],
+   "stats-players-*": [
+    "'stats-players-' + key"
+   ],
+   "stats-streamers-*": [
+    "'stats-streamers-' + key"
+   ],
+   "tmr-tag-*": [
+    "'tmr-tag-' + uniqueId"
+   ],
+   "tugtag-a-*": [
+    "'tugtag-a-' + uniqueId"
+   ],
+   "tugtag-b-*": [
+    "'tugtag-b-' + uniqueId"
+   ],
+   "wai-ptag-*": [
+    "'wai-ptag-' + uniqueId"
+   ],
+   "wp-*": [
+    "'wp-' + w"
+   ],
+   "wrtag-*": [
+    "'wrtag-' + uniqueId"
+   ]
+  },
+  "js_missing_created_by_js": [
+   "ahsemha-board-score-color-style",
+   "brg-notice-back",
+   "brg-win-screen",
+   "conn-diag-panel",
+   "conn-status-pill",
+   "draw-color-input",
+   "draw-color-picker",
+   "f100-form-btn",
+   "f100-form-status",
+   "gh-cel-counter",
+   "gift-revival-card",
+   "gifts-backup-output",
+   "gifts-export-output",
+   "gifts-restore-input",
+   "gifts-search-output",
+   "gifts-status",
+   "online-admin-status",
+   "ptop10-pick-list",
+   "ptop10-pick-overlay",
+   "store-admin-status",
+   "store-f-duration",
+   "store-f-maxpurchases",
+   "store-f-name",
+   "store-f-price",
+   "store-f-type",
+   "store-gift-streamer",
+   "store-gift-uniqueid",
+   "store-gift-user",
+   "tst-inline-btn"
+  ],
+  "js_missing_never_created": [
+   "brg-invite-toast",
+   "chairs-song-player-slot",
+   "pg-",
+   "profile-tiktok-apikey-status",
+   "rlgl-chat-list"
+  ],
+  "js_missing_created_via_helper": [
+   "f100-count",
+   "f100-duration",
+   "f100-message",
+   "f100-points",
+   "f100-wins",
+   "gifts-add-amount",
+   "gifts-add-nickname",
+   "gifts-add-streamer",
+   "gifts-cap-max",
+   "gifts-cap-streamer",
+   "gifts-copy-from",
+   "gifts-copy-to",
+   "gifts-deduct-amount",
+   "gifts-deduct-nickname",
+   "gifts-deduct-streamer",
+   "gifts-dedupe-streamer",
+   "gifts-delstreamer-name",
+   "gifts-double-nickname",
+   "gifts-double-streamer",
+   "gifts-doubleboard-streamer",
+   "gifts-export-streamer",
+   "gifts-freeze-streamer",
+   "gifts-manual-nickname",
+   "gifts-manual-streamer",
+   "gifts-manual-wins",
+   "gifts-merge-from",
+   "gifts-merge-into",
+   "gifts-remove-nickname",
+   "gifts-remove-streamer",
+   "gifts-rename-new",
+   "gifts-rename-old",
+   "gifts-rename-streamer",
+   "gifts-search-nickname",
+   "gifts-threshold-streamer",
+   "gifts-threshold-value",
+   "gifts-transfer-amount",
+   "gifts-transfer-from",
+   "gifts-transfer-streamer",
+   "gifts-transfer-to",
+   "gifts-zero-nickname",
+   "gifts-zero-streamer"
+  ]
+ },
+ "classes": {
+  "js_toggled": {
+   "visible": 127,
+   "active": 64,
+   "show": 61,
+   "danger": 24,
+   "off": 17,
+   "connecting": 17,
+   "open": 8,
+   "hidden": 8,
+   "pos-center": 8,
+   "lifted": 8,
+   "rd-live": 7,
+   "shuffling": 6,
+   "guessable": 6,
+   "p-has-full-frame": 5,
+   "online": 4,
+   "pos-top": 4,
+   "eliminated": 4,
+   "opened": 4,
+   "fx-shake": 4,
+   "low": 4,
+   "lit": 4,
+   "mine": 4,
+   "center": 3,
+   "hz-opened": 3,
+   "lowest": 3,
+   "claimed": 3,
+   "rlgl-doll-warning": 3,
+   "red": 3,
+   "in": 2,
+   "login": 2,
+   "signup": 2,
+   "existing": 2,
+   "upload": 2,
+   "has-frame": 2,
+   "disabled": 2,
+   "offline": 2,
+   "gc-anim-on": 2,
+   "frm-card-shared-highlight": 2,
+   "active-weapon": 2,
+   "hit-anim": 2,
+   "missed": 2,
+   "hz-missed-flash": 2,
+   "rou-landed-flash": 2,
+   "elim": 2,
+   "immune": 2,
+   "boosted": 2,
+   "winner": 2,
+   "bump": 2,
+   "correct": 2,
+   "wrong": 2,
+   "spinning": 2,
+   "rlgl-cam-shake": 2,
+   "rlgl-countdown-pop": 2,
+   "rlgl-shake-now": 2,
+   "vl-urgent": 2,
+   "vl-quake": 2,
+   "vl-lowfx": 2,
+   "jolt": 2,
+   "dim": 2,
+   "urgent": 2,
+   "glz-eliminated": 2,
+   "glz-safe-pulse": 2,
+   "problem": 1,
+   "suggestion": 1,
+   "hours": 1,
+   "activity": 1,
+   "top": 1,
+   "timed": 1,
+   "permanent": 1,
+   "maintenance": 1,
+   "pinned": 1,
+   "chat-collapsed": 1,
+   "occupied": 1,
+   "live": 1,
+   "picked": 1,
+   "empty": 1,
+   "mz-winner-token": 1,
+   "latest": 1,
+   "fx-eliminated": 1,
+   "rlgl-doll-facing": 1,
+   "rlgl-light-red": 1,
+   "points": 1,
+   "wins": 1,
+   "pickable": 1,
+   "taken": 1,
+   "green": 1,
+   "odraw-canvas-locked": 1,
+   "vl-block-new": 1,
+   "vl-right": 1,
+   "vl-dim": 1,
+   "moving": 1,
+   "on": 1,
+   "spectating": 1,
+   "ticking": 1,
+   "safe-glow": 1,
+   "shake": 1,
+   "cracking": 1,
+   "broken": 1
+  },
+  "js_selectors": [
+   "abd-victory-overlay",
+   "ahsemha-start-card",
+   "box-shape",
+   "brg-chat-empty",
+   "bs-victory-overlay",
+   "btn-reset",
+   "chair-cell-name",
+   "chairs-username-tag",
+   "chat-reopen-btn",
+   "dc-player-input",
+   "dc-player-row",
+   "dev-vip-banner-toast",
+   "dev-vip-victory-overlay",
+   "dot",
+   "draw-color-swatch",
+   "drawer-close-btn",
+   "empty",
+   "ev-card",
+   "fastans-pick-box",
+   "fz-victory-overlay",
+   "games-grid",
+   "gcard",
+   "gcard-ghost",
+   "gcard-icon",
+   "gcard-name",
+   "gcard-pin-btn",
+   "gh-celebration",
+   "glz-avatar-wrap",
+   "gn-victory-overlay",
+   "home-lib-filter",
+   "landing-reveal",
+   "landing-stat-num",
+   "ll-word-tag",
+   "mb-btn",
+   "mtq-victory-overlay",
+   "obox-item",
+   "oglz-panel",
+   "osniper-cell",
+   "ovl-opt",
+   "owner-badge-btn",
+   "p-avatar-circle",
+   "p-avatar-wrap",
+   "p-empty-placeholder",
+   "p-username-name",
+   "page",
+   "participants-overlay",
+   "profile-level-badge",
+   "ptab",
+   "rd-ov",
+   "rlgl-lane",
+   "rlgl-token",
+   "rlgl-token-avwrap",
+   "rlgl-token-progress",
+   "sevt-addtime-btn",
+   "sevt-addwins-btn",
+   "show",
+   "top20-podium-card",
+   "top20-podium-duration",
+   "top20-podium-name",
+   "top20-podium-wins",
+   "top20-row",
+   "top20-row-duration",
+   "top20-row-name",
+   "top20-row-rank",
+   "top20-row-wins",
+   "top20-rows-wrap",
+   "uac-item",
+   "vl-bubble",
+   "vl-ember",
+   "vl-trow",
+   "weapon-btn"
+  ],
+  "js_templates": {
+   "owner-empty": 78,
+   "rounds-row": 30,
+   "rounds-row-name": 30,
+   "owner-row-name": 27,
+   "rounds-row-top": 27,
+   "p-empty-placeholder": 27,
+   "chat-bubble": 27,
+   "chat-name": 27,
+   "chat-txt": 27,
+   "owner-row": 26,
+   "owner-row-main": 26,
+   "w-avatar-fb": 26,
+   "rounds-btn": 20,
+   "empty": 20,
+   "empty-icon": 18,
+   "empty-txt": 18,
+   "og-log-line": 18,
+   "field": 16,
+   "corner": 16,
+   "rounds-btn-row": 14,
+   "rounds-row-sub": 12,
+   "rounds-btn-winme": 12,
+   "btn-primary": 11,
+   "owner-row-sub": 10,
+   "events-card-desc": 9,
+   "btn-reset": 9,
+   "og-log-good": 9,
+   "mod-remove-btn": 8,
+   "inner": 8,
+   "events-card": 7,
+   "events-card-name": 7,
+   "owner-list": 7,
+   "wrong": 6,
+   "fastans-score-chip": 6,
+   "og-log-bad": 6,
+   "status-msg": 5,
+   "correct": 5,
+   "dc-player-input": 5,
+   "dc-player-remove": 5,
+   "mod-add-btn": 4,
+   "updates-textarea": 4,
+   "owner-order-btn": 4,
+   "owner-badge-btn": 4,
+   "rounds-pick-row": 4,
+   "rounds-pick-name": 4,
+   "glow1": 4,
+   "glow2": 4,
+   "ringA": 4,
+   "ringB": 4,
+   "disc": 4,
+   "c-tr": 4,
+   "c-tl": 4,
+   "c-br": 4,
+   "c-bl": 4,
+   "g": 4,
+   "g2": 4,
+   "r1": 4,
+   "r2": 4,
+   "c": 4,
+   "frm-use-btn": 4,
+   "gift-revival-corner": 4,
+   "btn-secondary": 3,
+   "profile-list-row": 3,
+   "profile-list-row-icon": 3,
+   "profile-list-row-main": 3,
+   "profile-list-row-name": 3,
+   "owner-row-badge": 3,
+   "ahsemha-upload-row": 3,
+   "ahsemha-upload-btn": 3,
+   "mod-setting-row": 3,
+   "mod-setting-label": 3,
+   "mod-setting-hint": 3,
+   "mod-reset-btn": 3,
+   "rounds-btn-pickwinner": 3,
+   "rounds-btn-leave": 3,
+   "gw-row-word": 3,
+   "frame": 3,
+   "vig": 3,
+   "sheen": 3,
+   "lb-row": 3,
+   "lb-row-name": 3,
+   "pg-guess-badge": 3,
+   "wr-guess-badge": 3,
+   "draw-color-swatch": 3,
+   "cw-country-flag": 3,
+   "findball-cup": 3,
+   "findball-ball": 3,
+   "findball-cup-body": 3,
+   "findball-cup-num": 3,
+   "chairs-elim-item": 3,
+   "chairs-elim-icon": 3,
+   "chairs-elim-name": 3,
+   "fastans-pick-row": 3,
+   "top10-cell": 3,
+   "top10-cell-rank": 3,
+   "top10-cell-value": 3,
+   "back-btn": 3,
+   "events-section-label": 3,
+   "brg-win-stat": 3,
+   "brg-win-stat-num": 3,
+   "brg-lobby-name": 3,
+   "brg-lobby-plat": 3,
+   "wdl-box": 3,
+   "wdl-row-user": 3,
+   "wdl-row": 3,
+   "wdl-row-letters": 3,
+   "frm-grant-existing-card": 2,
+   "frm-grant-existing-card-name": 2,
+   "profile-list-row-sub": 2,
+   "mod-setting-controls": 2,
+   "top20-empty-msg": 2,
+   "top20-podium-crown": 2,
+   "top20-podium-rank-badge": 2,
+   "top20-podium-name": 2,
+   "top20-podium-duration": 2,
+   "top20-podium-wins": 2,
+   "og-tool-btn": 2,
+   "gh-badge-ring": 2,
+   "p-avatar-circle": 2,
+   "lvl-avatar-fb": 2,
+   "lvl-avatar": 2,
+   "lvl-row": 2,
+   "lvl-main": 2,
+   "lvl-top": 2,
+   "lvl-rounds": 2,
+   "lvl-meta-next": 2,
+   "frm-use-btn-active": 2,
+   "frm-lock": 2,
+   "frm-card": 2,
+   "frm-share-btn": 2,
+   "frm-thumb": 2,
+   "frm-name": 2,
+   "kill-icon": 2,
+   "kill-text": 2,
+   "hz-mark": 2,
+   "hz-kill-icon": 2,
+   "hz-kill-text": 2,
+   "wai-guess-badge": 2,
+   "ig-cat-chip": 2,
+   "ig-clue-letters": 2,
+   "rw-guess-badge": 2,
+   "lsc-guess-badge": 2,
+   "wr-guess-user": 2,
+   "wr-guess-text": 2,
+   "draw-guess-badge": 2,
+   "rd-chip": 2,
+   "revival-badge": 2,
+   "top10-lives-chip": 2,
+   "top10-heart": 2,
+   "og-score-row": 2,
+   "brg-lobby-av": 2,
+   "tt10-empty-note": 2,
+   "tt10-lb-row": 2,
+   "tt10-lb-rank": 2,
+   "tt10-lb-name": 2,
+   "tt10-lb-score": 2,
+   "owner-count-badge": 1,
+   "profile-list-row-action": 1,
+   "ahsemha-level-box": 1,
+   "ahsemha-qbank-item": 1,
+   "gcard": 1,
+   "ahsemha-pick-badge": 1,
+   "ahsemha-pick-cat-img": 1,
+   "ahsemha-pick-cat-fallback": 1,
+   "gcard-name": 1,
+   "gcard-desc": 1,
+   "ahsemha-board-cell": 1,
+   "used": 1,
+   "ahsemha-board-col": 1,
+   "ahsemha-board-colhead": 1,
+   "ahsemha-board-colhead-name": 1,
+   "ahsemha-board-colhead-remaining": 1,
+   "ahsemha-board-cellgrid": 1,
+   "ahsemha-lifeline-btn": 1,
+   "mod-advanced-details": 1,
+   "mod-body": 1,
+   "mod-save-btn": 1,
+   "mod-toggle-row": 1,
+   "mod-toggle": 1,
+   "mod-toggle-slider": 1,
+   "mod-slots-row": 1,
+   "bs-burst": 1,
+   "bs-victory-glow": 1,
+   "bs-victory-content": 1,
+   "bs-victory-trophy": 1,
+   "bs-victory-title": 1,
+   "bs-victory-name": 1,
+   "bs-victory-line": 1,
+   "bs-victory-sub": 1,
+   "bs-victory-close": 1,
+   "top20-row-rank": 1,
+   "top20-row-name": 1,
+   "top20-row-duration": 1,
+   "top20-row-wins": 1,
+   "sevt-addtime-btn": 1,
+   "sevt-addwins-btn": 1,
+   "uac-item": 1,
+   "active": 1,
+   "owner-plat-badge": 1,
+   "owner-game-row": 1,
+   "owner-order-btns": 1,
+   "owner-game-name": 1,
+   "owner-badge-btns": 1,
+   "b-new": 1,
+   "b-update": 1,
+   "b-none": 1,
+   "b-maintenance": 1,
+   "owner-games-section-title": 1,
+   "stats-section-label": 1,
+   "kick-modal-row-btn": 1,
+   "tst-fake-row": 1,
+   "tst-fake-name": 1,
+   "tk-saved-row": 1,
+   "tk-bridge-switch": 1,
+   "tk-bridge-slider": 1,
+   "tk-saved-user": 1,
+   "home-plat-chip": 1,
+   "home-plat-dot": 1,
+   "gw-row-user": 1,
+   "dev-vip-banner-badge": 1,
+   "dev-vip-banner-divider": 1,
+   "dev-vip-banner-name": 1,
+   "dev-vip-banner-ribbon": 1,
+   "fz-burst-ring": 1,
+   "fz-banner-content": 1,
+   "fz-hero-logo": 1,
+   "fz-hero-card": 1,
+   "fz-hero-name": 1,
+   "fz-hero-title": 1,
+   "gn-burst-ring": 1,
+   "gn-banner-content": 1,
+   "gn-hero-logo": 1,
+   "gn-hero-card": 1,
+   "gn-hero-name": 1,
+   "gn-hero-title": 1,
+   "dev-vip-victory-rays": 1,
+   "dev-vip-victory-glow": 1,
+   "dev-vip-victory-content": 1,
+   "dev-vip-victory-crown-wrap": 1,
+   "dev-vip-victory-crown": 1,
+   "dev-vip-victory-title": 1,
+   "dev-vip-victory-card": 1,
+   "dev-vip-victory-label": 1,
+   "dev-vip-victory-name": 1,
+   "dev-vip-victory-line": 1,
+   "dev-vip-victory-game": 1,
+   "dev-vip-victory-pill": 1,
+   "dev-vip-victory-close": 1,
+   "fz-burst": 1,
+   "fz-victory-rays": 1,
+   "fz-victory-glow": 1,
+   "fz-victory-content": 1,
+   "fz-victory-logo": 1,
+   "fz-victory-title": 1,
+   "fz-victory-card": 1,
+   "fz-victory-vip": 1,
+   "fz-victory-label": 1,
+   "fz-victory-name": 1,
+   "fz-victory-line": 1,
+   "fz-victory-game": 1,
+   "fz-victory-close": 1,
+   "gn-burst": 1,
+   "gn-victory-rays": 1,
+   "gn-victory-glow": 1,
+   "gn-victory-content": 1,
+   "gn-victory-logo": 1,
+   "gn-victory-title": 1,
+   "gn-victory-card": 1,
+   "gn-victory-vip": 1,
+   "gn-victory-label": 1,
+   "gn-victory-name": 1,
+   "gn-victory-line": 1,
+   "gn-victory-game": 1,
+   "gn-victory-close": 1,
+   "mtq-burst-ring": 1,
+   "mtq-banner-content": 1,
+   "mtq-hero-logo": 1,
+   "mtq-hero-card": 1,
+   "mtq-hero-name": 1,
+   "mtq-hero-title": 1,
+   "mtq-burst": 1,
+   "mtq-victory-rays": 1,
+   "mtq-victory-glow": 1,
+   "mtq-victory-content": 1,
+   "mtq-victory-logo": 1,
+   "mtq-victory-title": 1,
+   "mtq-victory-card": 1,
+   "mtq-victory-vip": 1,
+   "mtq-victory-label": 1,
+   "mtq-victory-name": 1,
+   "mtq-victory-line": 1,
+   "mtq-victory-game": 1,
+   "mtq-victory-close": 1,
+   "abd-burst-ring": 1,
+   "abd-banner-content": 1,
+   "abd-hero-logo": 1,
+   "abd-hero-card": 1,
+   "abd-hero-name": 1,
+   "abd-hero-title": 1,
+   "abd-burst": 1,
+   "abd-victory-rays": 1,
+   "abd-victory-glow": 1,
+   "abd-victory-content": 1,
+   "abd-victory-logo": 1,
+   "abd-victory-title": 1,
+   "abd-victory-card": 1,
+   "abd-victory-vip": 1,
+   "abd-victory-label": 1,
+   "abd-victory-name": 1,
+   "abd-victory-line": 1,
+   "abd-victory-game": 1,
+   "abd-victory-close": 1,
+   "gh-badge-circle": 1,
+   "gh-badge-pill": 1,
+   "gh-cel-glow1": 1,
+   "gh-cel-glow2": 1,
+   "gh-cel-particles": 1,
+   "gh-cel-avatarwrap": 1,
+   "gh-cel-glowring": 1,
+   "gh-cel-avborder": 1,
+   "gh-cel-avimg": 1,
+   "gh-cel-counter": 1,
+   "gh-cel-textblock": 1,
+   "gh-cel-line": 1,
+   "gh-cel-name": 1,
+   "gh-cel-sub": 1,
+   "lbox": 1,
+   "guess-user": 1,
+   "guess-letters": 1,
+   "plat-av-wrap": 1,
+   "plat-av-badge": 1,
+   "plat-name-badge": 1,
+   "p-avatar-wrap": 1,
+   "p-username-number": 1,
+   "p-username-prefix": 1,
+   "p-username-name": 1,
+   "lb-pod": 1,
+   "lb-pod-": 1,
+   "lb-pod-medal": 1,
+   "lb-pod-avatar": 1,
+   "lb-pod-name": 1,
+   "lb-pod-wins": 1,
+   "lb-row-rank": 1,
+   "lb-row-wins": 1,
+   "profile-section-label": 1,
+   "owner-modal-close": 1,
+   "lvl-fresh-note": 1,
+   "lvl-meta-xp": 1,
+   "lvl-tag": 1,
+   "lvl-tag-": 1,
+   "lvl-bar": 1,
+   "lvl-bar-fill": 1,
+   "lvl-meta": 1,
+   "lvl-badge": 1,
+   "lvl-badge-lbl": 1,
+   "lvl-badge-num": 1,
+   "frm-pick-btn": 1,
+   "p-has-full-frame": 1,
+   "owner-list-row-frame": 1,
+   "s-num": 1,
+   "s-name": 1,
+   "kill-sub": 1,
+   "hz-reveal-av": 1,
+   "hz-reveal-name": 1,
+   "hz-kill-sub": 1,
+   "rd-spark": 1,
+   "rd-hand": 1,
+   "p": 1,
+   "f1": 1,
+   "f2": 1,
+   "f3": 1,
+   "f4": 1,
+   "th": 1,
+   "rd-ov-card": 1,
+   "rd-ov-stage": 1,
+   "rd-shock": 1,
+   "rd-shock2": 1,
+   "rd-sparks": 1,
+   "rd-clapL": 1,
+   "rd-clapR": 1,
+   "rd-fly": 1,
+   "rd-fly-av": 1,
+   "rd-ov-name": 1,
+   "rd-ov-out": 1,
+   "rd-ov-sub": 1,
+   "rd-rcell": 1,
+   "rd-rcell-chip": 1,
+   "rd-rcell-num": 1,
+   "rd-rcell-name": 1,
+   "rd-pnode": 1,
+   "rd-pnode-av": 1,
+   "rd-pnode-glow": 1,
+   "rd-pnode-name": 1,
+   "elim-icon": 1,
+   "elim-text": 1,
+   "elim-sub": 1,
+   "tguess-rank": 1,
+   "tguess-name": 1,
+   "tguess-time": 1,
+   "tguess-diff": 1,
+   "bomb-elim-icon": 1,
+   "bomb-elim-text": 1,
+   "bomb-elim-sub": 1,
+   "box-num": 1,
+   "box-shape": 1,
+   "box-result-tag": 1,
+   "box-elim-icon": 1,
+   "box-elim-text": 1,
+   "cr-lane-track": 1,
+   "cr-car": 1,
+   "cr-car-name": 1,
+   "cr-car-emoji": 1,
+   "mz-token-fb": 1,
+   "ev-out-rank": 1,
+   "ll-player-avatar-fb": 1,
+   "ll-elim-icon": 1,
+   "ll-elim-text": 1,
+   "ll-elim-sub": 1,
+   "wai-guess-user": 1,
+   "wai-guess-text": 1,
+   "ig-clue-pic-img": 1,
+   "ig-clue-pic-emoji": 1,
+   "ig-final-row": 1,
+   "ig-final-rank": 1,
+   "ig-final-name": 1,
+   "ig-final-badge": 1,
+   "ig-final-stats": 1,
+   "rw-guess-user": 1,
+   "rw-guess-text": 1,
+   "exact": 1,
+   "close": 1,
+   "pg-guess-user": 1,
+   "pg-guess-amount": 1,
+   "pg-guess-diff": 1,
+   "lsc-guess-user": 1,
+   "lsc-guess-text": 1,
+   "draw-color-picker": 1,
+   "draw-guess-user": 1,
+   "draw-guess-text": 1,
+   "cw-flag-img": 1,
+   "rd-ccard-aim": 1,
+   "rd-cname": 1,
+   "rd-lens-row": 1,
+   "rd-lens-chip": 1,
+   "rd-lens-name": 1,
+   "cw-elim-icon": 1,
+   "cw-elim-text": 1,
+   "cw-elim-sub": 1,
+   "cww-country-label": 1,
+   "cs-log-icon": 1,
+   "cs-log-text": 1,
+   "cs-log-sub": 1,
+   "sc-global": 1,
+   "sc-global-label": 1,
+   "sc-switch": 1,
+   "sc-switch-knob": 1,
+   "sc-note": 1,
+   "sc-group": 1,
+   "sc-group-title": 1,
+   "sc-row": 1,
+   "sc-row-top": 1,
+   "sc-name": 1,
+   "sc-actions": 1,
+   "sc-preview": 1,
+   "sc-mute": 1,
+   "sc-slider": 1,
+   "sc-val": 1,
+   "fx-gun": 1,
+   "fx-gun-flash": 1,
+   "fx-slapcard-fb": 1,
+   "fx-slapcard-stage": 1,
+   "fx-slapcard-avatarwrap": 1,
+   "fx-slapcard-hand": 1,
+   "fx-slapcard-name": 1,
+   "gift-revival-card": 1,
+   "gift-revival-ring": 1,
+   "gift-revival-card-inner": 1,
+   "gift-revival-crown": 1,
+   "gift-revival-title": 1,
+   "gift-revival-giftwrap": 1,
+   "gift-revival-name": 1,
+   "gift-revival-divider": 1,
+   "gift-revival-sub": 1,
+   "gift-revival-chip": 1,
+   "gift-revival-badge": 1,
+   "chairs-username-tag": 1,
+   "chair-cell": 1,
+   "chair-cell-num": 1,
+   "chair-cell-name": 1,
+   "rlgl-token-name": 1,
+   "rlgl-token-avwrap": 1,
+   "rlgl-token-progress": 1,
+   "ol-answer-item": 1,
+   "ol-answer-icon": 1,
+   "ol-answer-text": 1,
+   "ol-answer-reason": 1,
+   "dc-pick-btn": 1,
+   "dc-results-row": 1,
+   "dc-results-rank": 1,
+   "dc-results-name": 1,
+   "dc-results-score": 1,
+   "cw-country-num": 1,
+   "cw-country-name": 1,
+   "fastans-pick-box": 1,
+   "fastans-pick-title": 1,
+   "obox-num": 1,
+   "obox-shape": 1,
+   "ochairs-seat-icon": 1,
+   "ochairs-seat-num": 1,
+   "olsc-letter": 1,
+   "oglz-panel-num": 1,
+   "oglz-panel-text": 1,
+   "omain-blank": 1,
+   "ocw-country-name": 1,
+   "ocw-country-owner": 1,
+   "oll-word": 1,
+   "ocr-lane": 1,
+   "ocr-lane-name": 1,
+   "ocr-lane-track": 1,
+   "ocr-car": 1,
+   "omz-cell": 1,
+   "wr-guess-row": 1,
+   "events-grid": 1,
+   "btn-danger": 1,
+   "mod-settings-title": 1,
+   "event100-streamer-chip": 1,
+   "event100-streamer-dot": 1,
+   "brg-avatar-shield": 1,
+   "brg-avatar-carddot": 1,
+   "brg-delta": 1,
+   "brg-avatar-wrap": 1,
+   "brg-avatar-face": 1,
+   "brg-avatar-shadow": 1,
+   "brg-avatar-label": 1,
+   "brg-opt-key": 1,
+   "brg-opt-text": 1,
+   "brg-vote-row": 1,
+   "brg-vote-key": 1,
+   "brg-vote-track": 1,
+   "brg-vote-bar": 1,
+   "brg-vote-pct": 1,
+   "brg-streak-dot": 1,
+   "brg-board-chip": 1,
+   "brg-board-row": 1,
+   "brg-board-rank": 1,
+   "brg-board-move": 1,
+   "brg-board-av": 1,
+   "brg-board-name": 1,
+   "brg-board-track": 1,
+   "brg-board-bar": 1,
+   "brg-board-pos": 1,
+   "brg-move-title": 1,
+   "brg-move-sub": 1,
+   "brg-card-kicker": 1,
+   "brg-card-halo": 1,
+   "brg-card-face": 1,
+   "brg-card-tag": 1,
+   "brg-card-mono": 1,
+   "brg-card-name": 1,
+   "brg-card-desc": 1,
+   "brg-card-foot": 1,
+   "brg-win-inner": 1,
+   "brg-win-kicker": 1,
+   "brg-win-name": 1,
+   "brg-win-stats": 1,
+   "brg-notice": 1,
+   "brg-notice-x": 1,
+   "brg-notice-icon": 1,
+   "brg-notice-title": 1,
+   "brg-notice-text": 1,
+   "brg-notice-btn": 1,
+   "brg-notice-hint": 1,
+   "brg-chat-av": 1,
+   "brg-chat-body": 1,
+   "brg-chat-name": 1,
+   "brg-chat-text": 1,
+   "brg-chat-empty": 1,
+   "brg-lobby-card": 1,
+   "brg-owner-row": 1,
+   "pos": 1,
+   "home-lib-filter": 1,
+   "wdl-row-empty": 1,
+   "wdl-row-solo": 1,
+   "wdl-row-current": 1,
+   "wdl-row-av-fb": 1,
+   "wdl-row-name": 1,
+   "wdl-row-filled": 1,
+   "wdl-key-row": 1,
+   "wdl-key": 1
+  },
+  "js_className": {
+   "status-msg": 189,
+   "err": 73,
+   "chat-item": 27,
+   "status-strip": 26,
+   "ok": 24,
+   "show": 23,
+   "dot": 19,
+   "spin-result": 8,
+   "bomb-emoji": 7,
+   "load": 6,
+   "box-reveal-banner": 6,
+   "cw-spin-result": 6,
+   "dc-player-row": 5,
+   "timer-clock": 4,
+   "btn-timer-go": 4,
+   "danger": 4,
+   "cw-turn-banner": 4,
+   "cs-crown-box": 4,
+   "top20-podium-card": 3,
+   "rank-": 3,
+   "qc-status": 3,
+   "timer-secret-bar": 3,
+   "bomb-ended-banner": 3,
+   "auth-status": 2,
+   "updates-status-dot": 2,
+   "tk-status-box": 2,
+   "frm-picks": 2,
+   "rd-chooser": 2,
+   "running": 2,
+   "stopped": 2,
+   "bomb-timer-num": 2,
+   "revival-flash": 2,
+   "gc-timer-ring": 2,
+   "vl-name": 2,
+   "landing-hero-word": 1,
+   "landing-faq-item": 1,
+   "landing-faq-q": 1,
+   "landing-faq-a-wrap": 1,
+   "landing-faq-a": 1,
+   "ahsemha-pick-cat-fallback": 1,
+   "bs-victory-overlay": 1,
+   "top20-podium-placeholder": 1,
+   "top20-rows-wrap": 1,
+   "top20-row": 1,
+   "uac-wrap": 1,
+   "uac-list": 1,
+   "live": 1,
+   "off": 1,
+   "badge": 1,
+   "btn-reset": 1,
+   "tst-inline-btn": 1,
+   "blank-box": 1,
+   "dev-vip-banner-toast": 1,
+   "fz-banner-overlay": 1,
+   "gn-banner-overlay": 1,
+   "dev-vip-victory-overlay": 1,
+   "fz-victory-overlay": 1,
+   "gn-victory-overlay": 1,
+   "mtq-banner-overlay": 1,
+   "mtq-victory-overlay": 1,
+   "abd-banner-overlay": 1,
+   "abd-victory-overlay": 1,
+   "gh-celebration": 1,
+   "guess-row": 1,
+   "p-username-tag": 1,
+   "gcard-pin-btn": 1,
+   "gcard-ghost": 1,
+   "chat-reopen-btn": 1,
+   "frm-picks-open": 1,
+   "battery-fill": 1,
+   "s-cell": 1,
+   "kill-item": 1,
+   "hz-cell": 1,
+   "hz-kill-item": 1,
+   "rd-ov": 1,
+   "elim-item": 1,
+   "tguess-row": 1,
+   "idle": 1,
+   "bomb-elim-item": 1,
+   "box-item": 1,
+   "saved": 1,
+   "elim": 1,
+   "immune": 1,
+   "empty": 1,
+   "box-elim-item": 1,
+   "cr-boost-flash": 1,
+   "cr-lane": 1,
+   "mz-token": 1,
+   "mz-token-name": 1,
+   "ev-card": 1,
+   "ev-card-numwrap": 1,
+   "ev-card-votes": 1,
+   "ev-log-item": 1,
+   "ev-out-item": 1,
+   "ll-timer-num": 1,
+   "ll-word-tag": 1,
+   "ll-queue-tag": 1,
+   "ll-elim-item": 1,
+   "wai-guess-row": 1,
+   "ig-clue-pic-emoji": 1,
+   "rw-guess-row": 1,
+   "pg-guess-row": 1,
+   "pg-att-tag": 1,
+   "lsc-guess-row": 1,
+   "wr-guess-row": 1,
+   "draw-guess-row": 1,
+   "cw-country-flag": 1,
+   "rd-ccard": 1,
+   "cw-elim-item": 1,
+   "cs-log-item": 1,
+   "fx-confetti-layer": 1,
+   "fx-confetti": 1,
+   "fx-burst": 1,
+   "fx-gun-layer": 1,
+   "fx-screen-flash": 1,
+   "fx-slapcard-layer": 1,
+   "chairs-circle-wrap": 1,
+   "chairs-reveal-wrap": 1,
+   "chairs-avatar-slot": 1,
+   "rlgl-lane": 1,
+   "rlgl-tile": 1,
+   "rlgl-token": 1,
+   "gc-attempt-dot": 1,
+   "gc-wrong-item": 1,
+   "mb-btn": 1,
+   "cw-country-card": 1,
+   "pcw-elim-overlay": 1,
+   "osniper-cell": 1,
+   "obox-item": 1,
+   "ochairs-seat": 1,
+   "oglz-panel": 1,
+   "ovl-opt": 1,
+   "og-target": 1,
+   "ocw-country": 1,
+   "vl-tower": 1,
+   "vl-float-slot": 1,
+   "vl-avatar-wrap": 1,
+   "vl-tower-blocks": 1,
+   "vl-block": 1,
+   "vl-trow": 1,
+   "vl-ruin": 1,
+   "vl-smoke": 1,
+   "vl-bubble": 1,
+   "vl-ember": 1,
+   "vl-lobby-player": 1,
+   "vl-option": 1,
+   "vl-option-num": 1,
+   "vl-option-text": 1,
+   "vl-countdown": 1,
+   "vl-round-banner": 1,
+   "vl-round-sub": 1,
+   "vl-winner-crown": 1,
+   "vl-winner-name": 1,
+   "vl-winner-sub": 1,
+   "vl-winner-tie": 1,
+   "vl-winner-board": 1,
+   "vl-lb-row": 1,
+   "vl-lb-rank": 1,
+   "vl-lb-name": 1,
+   "vl-lb-pts": 1,
+   "vl-points-float": 1,
+   "on": 1,
+   "brg-move-banner": 1,
+   "brg-card-overlay": 1,
+   "brg-win": 1,
+   "brg-notice-back": 1,
+   "brg-chat-row": 1,
+   "glz-panel": 1,
+   "glz-avatar-wrap": 1,
+   "glz-shard": 1
+  },
+  "js_all_count": 849,
+  "js_classes_without_current_css": [
+   "activity",
+   "ahsemha-board-colhead-remaining",
+   "ahsemha-level-box",
+   "ahsemha-qbank-item",
+   "center",
+   "existing",
+   "gh-badge-circle",
+   "hours",
+   "lb-pod-",
+   "login",
+   "lvl-tag-",
+   "moving",
+   "ocr-lane",
+   "permanent",
+   "points",
+   "problem",
+   "rank-",
+   "rlgl-shake-now",
+   "sc-slider",
+   "sevt-addtime-btn",
+   "sevt-addwins-btn",
+   "signup",
+   "suggestion",
+   "timed",
+   "top20-rows-wrap",
+   "upload",
+   "wdl-row-current",
+   "wdl-row-empty",
+   "wins"
+  ]
+ },
+ "handlers": {
+  "inline": {
+   "ahsemhaAddEditor": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ahsemhaAddQuestionField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAdminCloseEdit": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAdminDeleteCategory": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAdminOpenEdit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAdminOpenNew": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAdminSaveCategory": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaAnswerQuestion": {
+    "count": 3,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaCloseEditorPanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaCloseSettings": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaConfirmExitBoard": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaDedupeCategories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaFallbackTile": {
+    "count": 1,
+    "events": [
+     "onerror"
+    ],
+    "defined": true
+   },
+   "ahsemhaGoToTeams": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaOpenAnswer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaOpenEditorPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaOpenPick": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaOpenQuestion": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaOpenSettings": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaPickAndUpload": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaRemoveEditor": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaRemoveOldCategories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaRemoveQuestionField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaReplaySameCategories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaResetAllFields": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaResetField": {
+    "count": 22,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaRevealHint": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSaveSettings": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedAllCategories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch10Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch11Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch12Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch13Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch14Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch2Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch3Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch4Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch5Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch6Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch7Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch8Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedBatch9Categories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedDefaultCategories": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaSeedFlagsCategory": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaStartBoard": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaToggleMediaUrlField": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "ahsemhaTogglePick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ahsemhaUseLifeline": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "attrArg": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "authGoogleSignIn": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "authHandleChooseUsername": {
+    "count": 1,
+    "events": [
+     "onsubmit"
+    ],
+    "defined": true
+   },
+   "authHandleLogin": {
+    "count": 1,
+    "events": [
+     "onsubmit"
+    ],
+    "defined": true
+   },
+   "authHandleSignup": {
+    "count": 1,
+    "events": [
+     "onsubmit"
+    ],
+    "defined": true
+   },
+   "authLogout": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "authSwitchTab": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "avatarOnErrorHandler": {
+    "count": 5,
+    "events": [
+     "onerror"
+    ],
+    "defined": true
+   },
+   "batteryNewRound": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "bombOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "boxOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgDismissNotice": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgEnterFromNotice": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgJoinEvent": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgLeaveEvent": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerCreate": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerEnd": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerGiveCard": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerKick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerSaveSettings": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgOwnerStart": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgSetPlatform": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgSimStart": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "brgUnlinkAccount": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "broadcastMessageDismiss": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "chairsCloseElimOverlay": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "chairsOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "chairsStartRoundClick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "chooseUsernameBack": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "crOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "csOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "cwFlagFallback": {
+    "count": 1,
+    "events": [
+     "onerror"
+    ],
+    "defined": true
+   },
+   "cwOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "cwSessionsCloseModal": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "cwSessionsOpenModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcAddPlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcAwardPoint": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcGoToWinnerPick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcRemovePlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcRevealCharacter": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "dcStartGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "discordSaveUrl": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "discordToggleVisible": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawClearCanvas": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawRedo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawSetBrushSize": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "drawSetColor": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawSetCustomColor": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "drawSetTool": {
+    "count": 5,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawToggleEraser": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "drawUndo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "esc": {
+    "count": 3,
+    "events": [
+     "onclick",
+     "onerror"
+    ],
+    "defined": true
+   },
+   "evOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evSkipRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evTogglePauseTimer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "event100Cancel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "event100Launch": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "event100OpenLaunchForm": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "event100RegisterStreamer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "event100ShowIdle": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtCancelAll": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtHideBanner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtOpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtRenderPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "evtTrigger": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100ClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100ImmunityClaimClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100ImmunityClaimOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100ImmunityClaimSubmit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100Open": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100OpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "f100ShowList": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansAddPlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansNextRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansNoWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansOpenWhoAnswered": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansPickWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansRemovePlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fastansStartGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "feedbackClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "feedbackSetType": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "feedbackSubmit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "filterScoreByCurrentStreamer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballCloseResultsOverlay": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballOnlineGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballOnlineInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballOnlineStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballSoloGuess": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballSoloQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballSoloStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "findballStartRoundClick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "fireWeapon": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "followGateSetRequired": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "framesBack": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "framesOpen": {
+    "count": 3,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "framesPick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "framesSetActive": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "framesShareLink": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "frnAcceptRequest": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "frnDeclineRequest": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "frnSearchAndSend": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "gamesTogglePin": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gcQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gcStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gcSubmit": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ghMilestonePreview": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "giftsOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "giftsShowList": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "glzEndRoundManually": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "glzLaunch": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "glzQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "glzSimulate": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "glzStartFirstRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goHome": {
+    "count": 53,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetup": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupBattery": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupBomb": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupBox": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupChairs": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupCountryWar": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupCr": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupCrownSteal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupDescribeChar": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupDraw": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupEv": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupFastAns": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupFindball": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupFindballSolo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupGlz": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupGuessCountry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupGuessWord": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupGwSolo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupHz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupIG": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupLastLetter": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupLetterScramble": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupMemoryButtons": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupMz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupOneLetter": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupPCW": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupPDraw": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupPTop10": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupPriceGuess": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupReverseWord": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupRlgl": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupRoulette": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupSniper": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupTT10": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupTimer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupTimerSolo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupTug": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupVolcanicLands": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupWhoAmI": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "goSetupWordRace": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwCloseNextWordModal": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwConfirmNextWord": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwLaunchGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwOnlineGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwOnlineInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwOnlineRevealHint": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwOnlineStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwOnlineSubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "gwResetGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwRevealHint": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwSoloQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwSoloRevealHint": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwSoloStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwSoloSubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "gwStartRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "gwSubmitSelfGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "gwUpdateModeUI": {
+    "count": 2,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "helpClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeApplyFilter": {
+    "count": 5,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeOpenQuickConnect": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeQcCancel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeQcPickPlatform": {
+    "count": 5,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeQcToggleCheck": {
+    "count": 5,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "homeQcToggleMulti": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeQuickReconnectClick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeStartQuickConnect": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeStatsRecalcRealCount": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeStatsSaveOffset": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "homeStatsToggleVisible": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "hzOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "igOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "igPicFallback": {
+    "count": 1,
+    "events": [
+     "onerror"
+    ],
+    "defined": true
+   },
+   "igRestartTournament": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "igToggleCatByIndex": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "igToggleDiffByIndex": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "kickModalClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "kickModalConfirm": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "landingCtaClick": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchBattery": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchBomb": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchBox": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchChairs": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchCountryWar": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchCr": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchCrownSteal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchDraw": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchEv": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchFindball": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchHz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchIG": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchLastLetter": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchLetterScramble": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchMz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchPriceGuess": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchReverseWord": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchRlgl": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchRoulette": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchSniper": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchTimer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchTug": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchVolcanicLands": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchWhoAmI": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "launchWordRace": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "leaderboardBack": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "levelsBack": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "levelsSetFilter": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "llOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "lscOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "mbQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "mbStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "mmJoinQueue": {
+    "count": 26,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "mmLeaveQueue": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "modResetField": {
+    "count": 3,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "modSaveSettings": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "msgBannerBackdropClick": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "mzOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "notifAcceptGameInvite": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "notifClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "notifMarkRead": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "notifOpenPanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "obombGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "obombInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "obombPassTo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "obombStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "oboxGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oboxStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ochairsGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ochairsStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocrGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocrStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocrTap": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ocsGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocsStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocsSteal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ocwGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ocwStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "odrawClearCanvas": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawRevealIdea": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawSetBrushSize": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "odrawSetColor": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawStartDrawing": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawSubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "odrawToggleEraser": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "odrawUndo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ogInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "oglzGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oglzStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oigGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oigStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oigSubmitAnswer": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ollGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ollStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ollSubmitWord": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "olscGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "olscStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "olscSubmitAnswer": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "omainGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "omainStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "omainSubmitAnswer": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "omzGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "omzMove": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "omzStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "oneLetterQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "oneLetterStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "oneLetterSubmit": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "onlineAdminOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "onlineAdminShowList": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "opgsGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "opgsStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "opgsSubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "orlglGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orlglStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orlglStep": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "orouletteGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orouletteStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orwGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orwStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "orwSubmitAnswer": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "osniperGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "osniperStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "otimerGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otimerInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otimerStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otimerStop": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otop10GoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otop10InviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otop10StartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otop10SubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "otugGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "otugPull": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "otugStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ovlGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "ovlStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "owaiGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "owaiStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": false
+   },
+   "owaiSubmitAnswer": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerAddAlfawzan": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerAddDevSpecial": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerAddEventAccess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerAddGhnam": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerAddModerator": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "ownerClearBroadcastMessage": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerCloseGameStats": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerCloseGameStatsPlayers": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerCloseNewAccounts": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerCloseOnlineNow": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerDeletePublicFrame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerEscape": {
+    "count": 39,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerForceReloadAll": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerFrameFilePreview": {
+    "count": 3,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "ownerFrameGrantSwitchSubtab": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerFrameHolePreviewUpdate": {
+    "count": 12,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "ownerGrantFrame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerMoveGame": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerMsgSetDuration": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerMsgSetPosition": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerMsgSwitchSubtab": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerOpenGameStats": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerOpenGameStatsPlayers": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerOpenNewAccounts": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerOpenOnlineNow": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerOpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerPublishFrame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerPublishUpdate": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRemoveAlfawzan": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRemoveDevSpecial": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRemoveEventAccess": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRemoveGhnam": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRemoveModerator": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsClosePickWinner": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsJoin": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsLeave": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsOpenPickWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsPickWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerRoundsWinMe": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerSelectGrantExisting": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerSendBroadcastMessage": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerSendPersonalMessage": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerSetBadge": {
+    "count": 4,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerSwitchTab": {
+    "count": 21,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerUnpublishUpdate": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ownerUsersRenderList": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "owordraceGoFriendEntry": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "owordraceInviteFriend": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "owordraceStartRoundFromRoom": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "owordraceSubmit": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "pcwAddPlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pcwEliminateByInput": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "pcwQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pcwRemovePlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pcwStartGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawAddPlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawClearCanvas": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawNextRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawNoWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawOpenWhoAnswered": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawPickWinner": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawQuit": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawRemovePlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawRevealIdea": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawSetBrushSize": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "pdrawSetColor": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawStartDrawing": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawStartGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawToggleEraser": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pdrawUndo": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "personalMessageDismiss": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "pgsOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "playerTiktokModalClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "playerTiktokModalOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "playerTiktokRefreshLink": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "playerTiktokSave": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "playerTiktokUnlink": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "privacyBack": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileAchievementsClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileAchievementsOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileActivityClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileActivityOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileClose": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profilePinnedGamesClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profilePinnedGamesOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileRenameToggle": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "profileRenameUsername": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protApplyCount": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protCloseEdit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protOnCountInput": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "protOpenEdit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protOpenGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protRegenerateIdentity": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protSaveEdit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protShowList": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "protToggleActive": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "ptop10AddPlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10NextRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10PickGuesser": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10Quit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10RemovePlayerField": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10StartGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "ptop10SubmitGuess": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "resetBomb": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetBox": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetChairs": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetCountryWar": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetCr": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetCrownSteal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetDraw": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetEv": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetFindball": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetHz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetIG": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetLastLetter": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetLetterScramble": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetMz": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetPriceGuess": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetReverseWord": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetRlgl": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetRoulette": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetSniper": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetTimer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetTug": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetWhoAmI": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "resetWordRace": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rlglOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rmCreateRoom": {
+    "count": 26,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rmJoinRoomFromInput": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "rmLeaveRoom": {
+    "count": 48,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rmStartRoundForCurrentGame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rouOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "rwOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeCloseNew": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeCloseUsers": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeDeleteCode": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeOpenNew": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeOpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeOpenUsers": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodePublishCode": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeRedeem": {
+    "count": 2,
+    "events": [
+     "onclick",
+     "onkeydown"
+    ],
+    "defined": true
+   },
+   "scodeSelectFrame": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeStopCode": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "scodeSwitchFrameSubtab": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "selectWeapon": {
+    "count": 3,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "setAlfawzanVisualsEnabled": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "setDeveloperVisualsEnabled": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "setGhnamVisualsEnabled": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "setPlatform": {
+    "count": 116,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtAnnounceDismiss": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtEndNow": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtGoToContest": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtHardResetNow": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtLaunchBestStreamer": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtOpenLaunchFormManual": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtSaveMessage": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sevtShowIdle": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "show": {
+    "count": 186,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "showAllScores": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "showPrivacyPage": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerGoFrames": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerGoLeaderboard": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerGoLevels": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerGoProfile": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerLogout": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerRunFeedback": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sideDrawerRunHelp": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "sniperOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "soundControlClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "soundControlOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "soundControlToggleAll": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "soundControlToggleMute": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "soundPreview": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "spinCountryWarWheel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "spinRoulette": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startBombRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startBoxRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startCountryWarRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startCrRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startCrownStealRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startDrawRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startEvRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startHzRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startIGRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startLSCRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startLastLetterRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startMzRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startPGRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startRWRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startRlglRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startRouletteRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startSniperRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startTugRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startWAIRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "startWRRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminDelete": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminGiftConfirm": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminOpenEdit": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminOpenGift": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminOpenNew": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminSave": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeAdminShowList": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeBuyClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeBuyConfirm": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeBuyOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeNewAnnouncementDismiss": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeOpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeSalesOpen": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "storeSalesRenderList": {
+    "count": 1,
+    "events": [
+     "oninput"
+    ],
+    "defined": true
+   },
+   "streamerBcDismiss": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tiktokConnectModalClose": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tiktokConnectModalStart": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tiktokSavedUserToggle": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "tmrOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "toggleGameChatPanel": {
+    "count": 26,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "toggleTimerRun": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "top20SwitchMode": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "topClosePanel": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "topOpenPanel": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "topSwitchSubtab": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "topnavGoSection": {
+    "count": 9,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tsQuit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tsStart": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tsStartClock": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tsStopClock": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstAddFakeParticipants": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstClearAllTestData": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstCloseMenu": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstCloseSimulator": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstOpenSimulator": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstSendFakeChat": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstSendFakeChatBulk": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstSendFakeGift": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstShowErrorLog": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstTestMilestoneCelebration": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tstTestVictoryScreen": {
+    "count": 3,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tt10EndRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tt10Launch": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tt10NextRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tt10Quit": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tt10StartRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "tugOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "var": {
+    "count": 2,
+    "events": [
+     "onblur",
+     "onfocus"
+    ],
+    "defined": false
+   },
+   "vlEndRoundEarly": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlGoHome": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlNewSession": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlRestart": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlSimulateGift": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlSimulatePlayers": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlSkipQuestion": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlStart": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlToggleLateJoin": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "vlTogglePause": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "vlToggleRevive": {
+    "count": 1,
+    "events": [
+     "onchange"
+    ],
+    "defined": true
+   },
+   "waiOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlChooseMode": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlGoHome": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlKeyPress": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlPickChip": {
+    "count": 12,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlPlayAgain": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wdlStartRound": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "whatsNewDismiss": {
+    "count": 2,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   },
+   "wrOpenKickModal": {
+    "count": 1,
+    "events": [
+     "onclick"
+    ],
+    "defined": true
+   }
+  },
+  "dynamic_window_suffixes": [
+   "EnterGame",
+   "GoFriendEntry",
+   "StartRound",
+   "StartRoundFromRoom"
+  ],
+  "inline_undefined": [
+   "var"
+  ],
+  "inline_defined_dynamically": [
+   "oboxGoFriendEntry",
+   "oboxStartRoundFromRoom",
+   "ochairsGoFriendEntry",
+   "ochairsStartRoundFromRoom",
+   "ocrGoFriendEntry",
+   "ocrStartRoundFromRoom",
+   "ocsGoFriendEntry",
+   "ocsStartRoundFromRoom",
+   "ocwGoFriendEntry",
+   "ocwStartRoundFromRoom",
+   "oglzGoFriendEntry",
+   "oglzStartRoundFromRoom",
+   "oigGoFriendEntry",
+   "oigStartRoundFromRoom",
+   "ollGoFriendEntry",
+   "ollStartRoundFromRoom",
+   "olscGoFriendEntry",
+   "olscStartRoundFromRoom",
+   "omainGoFriendEntry",
+   "omainStartRoundFromRoom",
+   "omzGoFriendEntry",
+   "omzStartRoundFromRoom",
+   "opgsGoFriendEntry",
+   "opgsStartRoundFromRoom",
+   "orlglGoFriendEntry",
+   "orlglStartRoundFromRoom",
+   "orouletteGoFriendEntry",
+   "orouletteStartRoundFromRoom",
+   "orwGoFriendEntry",
+   "orwStartRoundFromRoom",
+   "osniperGoFriendEntry",
+   "osniperStartRoundFromRoom",
+   "otugGoFriendEntry",
+   "otugStartRoundFromRoom",
+   "ovlGoFriendEntry",
+   "ovlStartRoundFromRoom",
+   "owaiGoFriendEntry",
+   "owaiStartRoundFromRoom"
+  ],
+  "listeners": {
+   "fb-ready": 7,
+   "click": 5,
+   "pagehide": 4,
+   "DOMContentLoaded": 4,
+   "input": 3,
+   "visibilitychange": 3,
+   "load": 2,
+   "keydown": 2,
+   "focus": 1,
+   "mousedown": 1,
+   "error": 1,
+   "online": 1,
+   "resize": 1
+  }
+ },
+ "navigation": {
+  "show": {
+   "ahsemha-board": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ahsemha-home": {
+    "calls": 4,
+    "page_exists": true
+   },
+   "ahsemha-pick": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "ahsemha-teams": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ahsemha-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "auth": {
+    "calls": 5,
+    "page_exists": true
+   },
+   "battery": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "battery-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "bomb": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "bomb-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "box": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "box-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "bridge-lobby": {
+    "calls": 3,
+    "page_exists": true
+   },
+   "bridge-round": {
+    "calls": 4,
+    "page_exists": true
+   },
+   "bridge-setup": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "chairs": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "chairs-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "choose-username": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "contest-top20": {
+    "calls": 3,
+    "page_exists": true
+   },
+   "countrywar": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "countrywar-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "countrywarparty": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "countrywarparty-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "cr": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "cr-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "crownsteal": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "crownsteal-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "dash": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "describechar": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "describechar-pick": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "describechar-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "draw": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "draw-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ev": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ev-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "faq": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "fastans": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "fastans-roundwinner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "fastans-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "findball": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "findball-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "findballsolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "findballsolo-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "frames": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "glz": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "glz-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "guesscountry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "guesscountry-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "guessword": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "guessword-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "gwsolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "gwsolo-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "home": {
+    "calls": 82,
+    "page_exists": true
+   },
+   "hz": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "hz-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ig": {
+    "calls": 3,
+    "page_exists": true
+   },
+   "ig-final": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ig-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "landing": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "lastletter": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "lastletter-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "leaderboard": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "letterscramble": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "letterscramble-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "levels": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "maze": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "maze-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "memorybuttons": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "memorybuttons-winner": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "oneletter": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "oneletter-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-findballonline-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-findballonline-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-findballonline-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-findballonline-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-friends": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-gwonline-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-gwonline-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-gwonline-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-gwonline-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-home": {
+    "calls": 30,
+    "page_exists": true
+   },
+   "online-join": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-mm-waiting": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-obomb-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-obomb-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-obomb-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-obomb-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-obox-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-ochairs-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-ocr-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-ocs-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-ocw-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-odraw-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-odraw-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-odraw-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-odraw-reveal": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-odraw-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-oglz-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-oig-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-oll-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-olsc-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-omain-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-omz-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-opgs-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-orlgl-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-oroulette-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-orw-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-osniper-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-otimer-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otimer-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-otimer-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otimer-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otop10-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otop10-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-otop10-loading": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otop10-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otop10-roundwinner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otop10-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-otug-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-ovl-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-owai-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-owordrace-friend-entry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-owordrace-instructions": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "online-owordrace-play": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "online-owordrace-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "party-home": {
+    "calls": 16,
+    "page_exists": true
+   },
+   "pdraw": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "pdraw-reveal": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "pdraw-roundwinner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "priceguess": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "priceguess-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "profile": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ptop10": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ptop10-loading": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ptop10-roundwinner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "ptop10-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "reverseword": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "reverseword-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "rlgl": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "rlgl-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "rou-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "roulette": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-battery": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-bomb": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-box": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-chairs": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-countrywar": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-countrywarparty": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "setup-cr": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-crownsteal": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-describechar": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "setup-draw": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-ev": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-fastans": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-findball": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-findballsolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-glz": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-guesscountry": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-guessword": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-gwsolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-hz": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-ig": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-lastletter": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-letterscramble": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-maze": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-memorybuttons": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-oneletter": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-pdraw": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-priceguess": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-ptop10": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-reverseword": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-rlgl": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-roulette": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-sniper": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-timer": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-timersolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-tt10": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-tug": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-whoami": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "setup-wordrace": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "sniper": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "sniper-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "solo-home": {
+    "calls": 19,
+    "page_exists": true
+   },
+   "timer": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "timer-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "timersolo": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "timersolo-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "tt10": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "tt10-roundwinner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "tt10-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "tug": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "tug-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "whoami": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "whoami-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "wordle-game": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "wordle-mode-select": {
+    "calls": 2,
+    "page_exists": true
+   },
+   "wordle-setup": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "wordle-winner": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "wordrace": {
+    "calls": 1,
+    "page_exists": true
+   },
+   "wordrace-winner": {
+    "calls": 1,
+    "page_exists": true
+   }
+  },
+  "show_missing_page": [],
+  "pages": [
+   "ahsemha-board",
+   "ahsemha-home",
+   "ahsemha-pick",
+   "ahsemha-teams",
+   "ahsemha-winner",
+   "auth",
+   "battery",
+   "battery-winner",
+   "bomb",
+   "bomb-winner",
+   "box",
+   "box-winner",
+   "bridge-lobby",
+   "bridge-round",
+   "bridge-setup",
+   "chairs",
+   "chairs-winner",
+   "choose-username",
+   "contest-top20",
+   "countrywar",
+   "countrywar-winner",
+   "countrywarparty",
+   "countrywarparty-winner",
+   "cr",
+   "cr-winner",
+   "crownsteal",
+   "crownsteal-winner",
+   "dash",
+   "describechar",
+   "describechar-pick",
+   "describechar-winner",
+   "draw",
+   "draw-winner",
+   "ev",
+   "ev-winner",
+   "faq",
+   "fastans",
+   "fastans-roundwinner",
+   "fastans-winner",
+   "findball",
+   "findball-winner",
+   "findballsolo",
+   "findballsolo-winner",
+   "frames",
+   "glz",
+   "glz-winner",
+   "guesscountry",
+   "guesscountry-winner",
+   "guessword",
+   "guessword-winner",
+   "gwsolo",
+   "gwsolo-winner",
+   "home",
+   "hz",
+   "hz-winner",
+   "ig",
+   "ig-final",
+   "ig-winner",
+   "landing",
+   "lastletter",
+   "lastletter-winner",
+   "leaderboard",
+   "letterscramble",
+   "letterscramble-winner",
+   "levels",
+   "maze",
+   "maze-winner",
+   "memorybuttons",
+   "memorybuttons-winner",
+   "oneletter",
+   "oneletter-winner",
+   "online-findballonline-friend-entry",
+   "online-findballonline-instructions",
+   "online-findballonline-play",
+   "online-findballonline-winner",
+   "online-friends",
+   "online-gwonline-friend-entry",
+   "online-gwonline-instructions",
+   "online-gwonline-play",
+   "online-gwonline-winner",
+   "online-home",
+   "online-join",
+   "online-mm-starting",
+   "online-mm-waiting",
+   "online-obomb-friend-entry",
+   "online-obomb-instructions",
+   "online-obomb-play",
+   "online-obomb-winner",
+   "online-obox-friend-entry",
+   "online-obox-instructions",
+   "online-obox-play",
+   "online-obox-winner",
+   "online-ochairs-friend-entry",
+   "online-ochairs-instructions",
+   "online-ochairs-play",
+   "online-ochairs-winner",
+   "online-ocr-friend-entry",
+   "online-ocr-instructions",
+   "online-ocr-play",
+   "online-ocr-winner",
+   "online-ocs-friend-entry",
+   "online-ocs-instructions",
+   "online-ocs-play",
+   "online-ocs-winner",
+   "online-ocw-friend-entry",
+   "online-ocw-instructions",
+   "online-ocw-play",
+   "online-ocw-winner",
+   "online-odraw-friend-entry",
+   "online-odraw-instructions",
+   "online-odraw-play",
+   "online-odraw-reveal",
+   "online-odraw-winner",
+   "online-oglz-friend-entry",
+   "online-oglz-instructions",
+   "online-oglz-play",
+   "online-oglz-winner",
+   "online-oig-friend-entry",
+   "online-oig-instructions",
+   "online-oig-play",
+   "online-oig-winner",
+   "online-oll-friend-entry",
+   "online-oll-instructions",
+   "online-oll-play",
+   "online-oll-winner",
+   "online-olsc-friend-entry",
+   "online-olsc-instructions",
+   "online-olsc-play",
+   "online-olsc-winner",
+   "online-omain-friend-entry",
+   "online-omain-instructions",
+   "online-omain-play",
+   "online-omain-winner",
+   "online-omz-friend-entry",
+   "online-omz-instructions",
+   "online-omz-play",
+   "online-omz-winner",
+   "online-opgs-friend-entry",
+   "online-opgs-instructions",
+   "online-opgs-play",
+   "online-opgs-winner",
+   "online-orlgl-friend-entry",
+   "online-orlgl-instructions",
+   "online-orlgl-play",
+   "online-orlgl-winner",
+   "online-oroulette-friend-entry",
+   "online-oroulette-instructions",
+   "online-oroulette-play",
+   "online-oroulette-winner",
+   "online-orw-friend-entry",
+   "online-orw-instructions",
+   "online-orw-play",
+   "online-orw-winner",
+   "online-osniper-friend-entry",
+   "online-osniper-instructions",
+   "online-osniper-play",
+   "online-osniper-winner",
+   "online-otimer-friend-entry",
+   "online-otimer-instructions",
+   "online-otimer-play",
+   "online-otimer-winner",
+   "online-otop10-friend-entry",
+   "online-otop10-instructions",
+   "online-otop10-loading",
+   "online-otop10-play",
+   "online-otop10-roundwinner",
+   "online-otop10-winner",
+   "online-otug-friend-entry",
+   "online-otug-instructions",
+   "online-otug-play",
+   "online-otug-winner",
+   "online-ovl-friend-entry",
+   "online-ovl-instructions",
+   "online-ovl-play",
+   "online-ovl-winner",
+   "online-owai-friend-entry",
+   "online-owai-instructions",
+   "online-owai-play",
+   "online-owai-winner",
+   "online-owordrace-friend-entry",
+   "online-owordrace-instructions",
+   "online-owordrace-play",
+   "online-owordrace-winner",
+   "online-room",
+   "party-home",
+   "pdraw",
+   "pdraw-reveal",
+   "pdraw-roundwinner",
+   "priceguess",
+   "priceguess-winner",
+   "profile",
+   "ptop10",
+   "ptop10-loading",
+   "ptop10-roundwinner",
+   "ptop10-winner",
+   "reverseword",
+   "reverseword-winner",
+   "rlgl",
+   "rlgl-winner",
+   "rou-winner",
+   "roulette",
+   "setup",
+   "setup-battery",
+   "setup-bomb",
+   "setup-box",
+   "setup-chairs",
+   "setup-countrywar",
+   "setup-countrywarparty",
+   "setup-cr",
+   "setup-crownsteal",
+   "setup-describechar",
+   "setup-draw",
+   "setup-ev",
+   "setup-fastans",
+   "setup-findball",
+   "setup-findballsolo",
+   "setup-glz",
+   "setup-guesscountry",
+   "setup-guessword",
+   "setup-gwsolo",
+   "setup-hz",
+   "setup-ig",
+   "setup-lastletter",
+   "setup-letterscramble",
+   "setup-maze",
+   "setup-memorybuttons",
+   "setup-oneletter",
+   "setup-pdraw",
+   "setup-priceguess",
+   "setup-ptop10",
+   "setup-reverseword",
+   "setup-rlgl",
+   "setup-roulette",
+   "setup-sniper",
+   "setup-timer",
+   "setup-timersolo",
+   "setup-tt10",
+   "setup-tug",
+   "setup-volcanic-lands",
+   "setup-whoami",
+   "setup-wordrace",
+   "sniper",
+   "sniper-winner",
+   "solo-home",
+   "static-landing",
+   "timer",
+   "timer-winner",
+   "timersolo",
+   "timersolo-winner",
+   "tt10",
+   "tt10-roundwinner",
+   "tt10-winner",
+   "tug",
+   "tug-winner",
+   "volcanic-lands",
+   "whoami",
+   "whoami-winner",
+   "winner",
+   "wordle-game",
+   "wordle-mode-select",
+   "wordle-setup",
+   "wordle-winner",
+   "wordrace",
+   "wordrace-winner"
+  ]
+ },
+ "style_js": {
+  "style.display": 406,
+  "style.cssText": 4,
+  "style.setProperty": 10,
+  "style.other_props": {
+   "display": 406,
+   "left": 27,
+   "opacity": 27,
+   "width": 25,
+   "height": 20,
+   "top": 14,
+   "transform": 14,
+   "background": 12,
+   "stroke": 12,
+   "fontSize": 6,
+   "cursor": 6,
+   "animationDelay": 5,
+   "right": 5,
+   "strokeDashoffset": 5,
+   "transition": 5,
+   "backgroundImage": 4,
+   "position": 4,
+   "cssText": 4,
+   "border": 4,
+   "overflow": 3,
+   "bottom": 3,
+   "paddingTop": 2,
+   "aspectRatio": 2,
+   "gridTemplateColumns": 2,
+   "animationDuration": 2,
+   "borderRadius": 2,
+   "animation": 1,
+   "flexDirection": 1,
+   "gap": 1,
+   "borderColor": 1,
+   "gridTemplateRows": 1,
+   "insetInlineStart": 1,
+   "pointerEvents": 1,
+   "zIndex": 1,
+   "filter": 1,
+   "color": 1
+  },
+  "createElement_style": 0,
+  "insertRule": 0,
+  "inline_style_attr_in_js_templates": 225,
+  "css_vars_set_by_js": [
+   "--d",
+   "--r",
+   "--rd-counter",
+   "--rd-ns",
+   "--vl-av",
+   "--vl-block-h",
+   "--vl-gap",
+   "--vl-hud-h",
+   "--vl-tower-w",
+   "--x"
+  ],
+  "cssText_sites": [
+   "el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:100003;width:360px;max-width:calc(100% - 24px);max-heig",
+   "pill.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:100001;padding:8px 16px;border",
+   "el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;backgrou",
+   "avatar').style.cssText = 'width:64px;height:64px;margin:10px auto;"
+  ],
+  "injected_style_elements": [
+   "ahsemha-board-score-color-style",
+   "ehsemha-home-redesign",
+   "ehsemha-legacy-skin",
+   "ehsemha-sg-redesign",
+   "round-badges-overlay"
+  ],
+  "inline_style_props": {
+   "display": 351,
+   "text-align": 123,
+   "color": 120,
+   "direction": 115,
+   "font-size": 92,
+   "margin-bottom": 78,
+   "background": 67,
+   "margin-top": 64,
+   "width": 62,
+   "max-width": 40,
+   "padding": 36,
+   "gap": 24,
+   "border": 18,
+   "flex": 17,
+   "margin": 17,
+   "align-items": 15,
+   "font-weight": 14,
+   "border-radius": 11,
+   "border-color": 8,
+   "overflow-y": 7,
+   "flex-direction": 7,
+   "height": 6,
+   "max-height": 5,
+   "font-family": 5,
+   "top": 5,
+   "box-shadow": 5,
+   "flex-wrap": 4,
+   "margin-inline-start": 4,
+   "padding-top": 4,
+   "left": 4,
+   "animation-delay": 4,
+   "letter-spacing": 4,
+   "white-space": 4,
+   "opacity": 3,
+   "justify-content": 3,
+   "padding-bottom": 3,
+   "border-bottom": 3,
+   "min-width": 3,
+   "min-height": 2,
+   "position": 2,
+   "-webkit-background-clip": 2,
+   "background-clip": 2,
+   "border-top": 2,
+   "grid-template-columns": 2,
+   "bottom": 2,
+   "flex-shrink": 1,
+   "cursor": 1,
+   "-webkit-text-fill-color": 1,
+   "right": 1,
+   "z-index": 1,
+   "align-self": 1,
+   "text-transform": 1,
+   "outline": 1,
+   "transition": 1,
+   "resize": 1,
+   "line-height": 1
+  }
+ },
+ "dataset": [
+  "autosaveBound",
+  "badge",
+  "base",
+  "built",
+  "category",
+  "count",
+  "filter",
+  "gameTag",
+  "i",
+  "kwAutosaveBound",
+  "mode",
+  "pendingText",
+  "platform",
+  "section",
+  "skin",
+  "suffix",
+  "tag",
+  "uacAttached",
+  "value"
+ ]
+}

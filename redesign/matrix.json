@@ -1,0 +1,1639 @@
+{
+ "pages": {
+  "home": {
+   "page": "pg-home",
+   "cat": "أ",
+   "source": "Streamer_Section #modes + #library",
+   "note": "بطاقات الأوضاع الأربعة + مكتبة الـ29 لعبة بمعاينات متحركة وفلتر التصنيفات"
+  },
+  "setup-cr": {
+   "page": "pg-setup-cr",
+   "cat": "أ",
+   "source": "Game_Screens (race)",
+   "note": "إعداد + معاينة حيّة + متقدم"
+  },
+  "cr": {
+   "page": "pg-cr",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup + Game_Screens انتظار (race)",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "cr-winner": {
+   "page": "pg-cr-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-battery": {
+   "page": "pg-setup-battery",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "battery": {
+   "page": "pg-battery",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "battery-winner": {
+   "page": "pg-battery-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-lastletter": {
+   "page": "pg-setup-lastletter",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "lastletter": {
+   "page": "pg-lastletter",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "lastletter-winner": {
+   "page": "pg-lastletter-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-reverseword": {
+   "page": "pg-setup-reverseword",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "reverseword": {
+   "page": "pg-reverseword",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "reverseword-winner": {
+   "page": "pg-reverseword-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-crownsteal": {
+   "page": "pg-setup-crownsteal",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "crownsteal": {
+   "page": "pg-crownsteal",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "crownsteal-winner": {
+   "page": "pg-crownsteal-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-letterscramble": {
+   "page": "pg-setup-letterscramble",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "letterscramble": {
+   "page": "pg-letterscramble",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "letterscramble-winner": {
+   "page": "pg-letterscramble-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-wordrace": {
+   "page": "pg-setup-wordrace",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "wordrace": {
+   "page": "pg-wordrace",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "wordrace-winner": {
+   "page": "pg-wordrace-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-maze": {
+   "page": "pg-setup-maze",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "maze": {
+   "page": "pg-maze",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "maze-winner": {
+   "page": "pg-maze-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-tt10": {
+   "page": "pg-setup-tt10",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف chat)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف chat وحقول الإعداد الحالية"
+  },
+  "tt10": {
+   "page": "pg-tt10",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "tt10-winner": {
+   "page": "pg-tt10-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-ev": {
+   "page": "pg-setup-ev",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "ev": {
+   "page": "pg-ev",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "ev-winner": {
+   "page": "pg-ev-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-sniper": {
+   "page": "pg-setup-sniper",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "sniper": {
+   "page": "pg-sniper",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "sniper-winner": {
+   "page": "pg-sniper-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-roulette": {
+   "page": "pg-setup-roulette",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "roulette": {
+   "page": "pg-roulette",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "rou-winner": {
+   "page": "pg-rou-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-bomb": {
+   "page": "pg-setup-bomb",
+   "cat": "أ",
+   "source": "Game_Screens (bomb)",
+   "note": "إعداد + معاينة حيّة + متقدم"
+  },
+  "bomb": {
+   "page": "pg-bomb",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup + Game_Screens انتظار (bomb)",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "bomb-winner": {
+   "page": "pg-bomb-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-box": {
+   "page": "pg-setup-box",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "box": {
+   "page": "pg-box",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "box-winner": {
+   "page": "pg-box-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-chairs": {
+   "page": "pg-setup-chairs",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "chairs": {
+   "page": "pg-chairs",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "chairs-winner": {
+   "page": "pg-chairs-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-rlgl": {
+   "page": "pg-setup-rlgl",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "rlgl": {
+   "page": "pg-rlgl",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "rlgl-winner": {
+   "page": "pg-rlgl-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-glz": {
+   "page": "pg-setup-glz",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "glz": {
+   "page": "pg-glz",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "glz-winner": {
+   "page": "pg-glz-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-volcanic-lands": {
+   "page": "pg-setup-volcanic-lands",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "volcanic-lands": {
+   "page": "pg-volcanic-lands",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "setup-hz": {
+   "page": "pg-setup-hz",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "hz": {
+   "page": "pg-hz",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "hz-winner": {
+   "page": "pg-hz-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-countrywar": {
+   "page": "pg-setup-countrywar",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف luck)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف luck وحقول الإعداد الحالية"
+  },
+  "countrywar": {
+   "page": "pg-countrywar",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "countrywar-winner": {
+   "page": "pg-countrywar-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup": {
+   "page": "pg-setup",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "dash": {
+   "page": "pg-dash",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "setup-guessword": {
+   "page": "pg-setup-guessword",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "guessword": {
+   "page": "pg-guessword",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "guessword-winner": {
+   "page": "pg-guessword-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-timer": {
+   "page": "pg-setup-timer",
+   "cat": "أ",
+   "source": "Game_Screens (timing)",
+   "note": "إعداد + معاينة حيّة + متقدم"
+  },
+  "timer": {
+   "page": "pg-timer",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup + Game_Screens انتظار (timing)",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "timer-winner": {
+   "page": "pg-timer-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-whoami": {
+   "page": "pg-setup-whoami",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "whoami": {
+   "page": "pg-whoami",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "whoami-winner": {
+   "page": "pg-whoami-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-priceguess": {
+   "page": "pg-setup-priceguess",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "priceguess": {
+   "page": "pg-priceguess",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "priceguess-winner": {
+   "page": "pg-priceguess-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-findball": {
+   "page": "pg-setup-findball",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "findball": {
+   "page": "pg-findball",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "findball-winner": {
+   "page": "pg-findball-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-draw": {
+   "page": "pg-setup-draw",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "draw": {
+   "page": "pg-draw",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "draw-winner": {
+   "page": "pg-draw-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-ig": {
+   "page": "pg-setup-ig",
+   "cat": "أ*",
+   "source": "Game_Screens (نظام التصميم، تصنيف guess)",
+   "note": "بلا نموذج مباشر: يُبنى على نظام Game_Screens بلون/شكل تصنيف guess وحقول الإعداد الحالية"
+  },
+  "ig": {
+   "page": "pg-ig",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "ig-winner": {
+   "page": "pg-ig-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "setup-tug": {
+   "page": "pg-setup-tug",
+   "cat": "أ",
+   "source": "Game_Screens (rope)",
+   "note": "إعداد + معاينة حيّة + متقدم"
+  },
+  "tug": {
+   "page": "pg-tug",
+   "cat": "أ+ب",
+   "source": "Streamer_Section #setup + Game_Screens انتظار (rope)",
+   "note": "حالة الانتظار من التصميم (كلمة/عداد/أفاتارات/+N/أزرار)؛ الجولة الحية (مضمار/شبكة/عجلة...) غير مصمَّمة ← بالامتداد"
+  },
+  "tug-winner": {
+   "page": "pg-tug-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "شاشة الفائز + fxCelebrate"
+  },
+  "solo-home": {
+   "page": "pg-solo-home",
+   "cat": "أ",
+   "source": "ألعاب فردية (hub)",
+   "note": "data-act: open/home"
+  },
+  "setup-oneletter": {
+   "page": "pg-setup-oneletter",
+   "cat": "أ",
+   "source": "ألعاب فردية (oneletter)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "oneletter": {
+   "page": "pg-oneletter",
+   "cat": "أ",
+   "source": "ألعاب فردية (oneletter)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "oneletter-winner": {
+   "page": "pg-oneletter-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (oneletter)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "setup-guesscountry": {
+   "page": "pg-setup-guesscountry",
+   "cat": "أ",
+   "source": "ألعاب فردية (guesscountry)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "guesscountry": {
+   "page": "pg-guesscountry",
+   "cat": "أ",
+   "source": "ألعاب فردية (guesscountry)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "guesscountry-winner": {
+   "page": "pg-guesscountry-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (guesscountry)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "setup-timersolo": {
+   "page": "pg-setup-timersolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (timersolo)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "timersolo": {
+   "page": "pg-timersolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (timersolo)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "timersolo-winner": {
+   "page": "pg-timersolo-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (timersolo)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "setup-gwsolo": {
+   "page": "pg-setup-gwsolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (gwsolo)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "gwsolo": {
+   "page": "pg-gwsolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (gwsolo)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "gwsolo-winner": {
+   "page": "pg-gwsolo-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (gwsolo)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "setup-findballsolo": {
+   "page": "pg-setup-findballsolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (findballsolo)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "findballsolo": {
+   "page": "pg-findballsolo",
+   "cat": "أ",
+   "source": "ألعاب فردية (findballsolo)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "findballsolo-winner": {
+   "page": "pg-findballsolo-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (findballsolo)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "setup-memorybuttons": {
+   "page": "pg-setup-memorybuttons",
+   "cat": "أ",
+   "source": "ألعاب فردية (memorybuttons)",
+   "note": "data-act=start ← دالة البدء الحالية"
+  },
+  "memorybuttons": {
+   "page": "pg-memorybuttons",
+   "cat": "أ",
+   "source": "ألعاب فردية (memorybuttons)",
+   "note": "data-state من أحداث اللعبة الحقيقية؛ IDs الحالية تبقى"
+  },
+  "memorybuttons-winner": {
+   "page": "pg-memorybuttons-winner",
+   "cat": "أ",
+   "source": "ألعاب فردية (memorybuttons)",
+   "note": "نتيجة win/lose؛ again/hub"
+  },
+  "ahsemha-board": {
+   "page": "pg-ahsemha-board",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "فئات (احسمها)"
+  },
+  "ahsemha-home": {
+   "page": "pg-ahsemha-home",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "فئات (احسمها)"
+  },
+  "ahsemha-pick": {
+   "page": "pg-ahsemha-pick",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "فئات (احسمها)"
+  },
+  "ahsemha-teams": {
+   "page": "pg-ahsemha-teams",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "فئات (احسمها)"
+  },
+  "ahsemha-winner": {
+   "page": "pg-ahsemha-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "فئات (احسمها)"
+  },
+  "auth": {
+   "page": "pg-auth",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "الدخول/الهبوط"
+  },
+  "bridge-lobby": {
+   "page": "pg-bridge-lobby",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "جسر المصير"
+  },
+  "bridge-round": {
+   "page": "pg-bridge-round",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "جسر المصير"
+  },
+  "bridge-setup": {
+   "page": "pg-bridge-setup",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "جسر المصير"
+  },
+  "choose-username": {
+   "page": "pg-choose-username",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "الدخول/الهبوط"
+  },
+  "contest-top20": {
+   "page": "pg-contest-top20",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "countrywarparty": {
+   "page": "pg-countrywarparty",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "countrywarparty-winner": {
+   "page": "pg-countrywarparty-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "describechar": {
+   "page": "pg-describechar",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "describechar-pick": {
+   "page": "pg-describechar-pick",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "describechar-winner": {
+   "page": "pg-describechar-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "faq": {
+   "page": "pg-faq",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "fastans": {
+   "page": "pg-fastans",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "fastans-roundwinner": {
+   "page": "pg-fastans-roundwinner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "fastans-winner": {
+   "page": "pg-fastans-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "frames": {
+   "page": "pg-frames",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "ig-final": {
+   "page": "pg-ig-final",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "landing": {
+   "page": "pg-landing",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "الدخول/الهبوط"
+  },
+  "leaderboard": {
+   "page": "pg-leaderboard",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "levels": {
+   "page": "pg-levels",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "online-findballonline-friend-entry": {
+   "page": "pg-online-findballonline-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-findballonline-instructions": {
+   "page": "pg-online-findballonline-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-findballonline-play": {
+   "page": "pg-online-findballonline-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-findballonline-winner": {
+   "page": "pg-online-findballonline-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-friends": {
+   "page": "pg-online-friends",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-gwonline-friend-entry": {
+   "page": "pg-online-gwonline-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-gwonline-instructions": {
+   "page": "pg-online-gwonline-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-gwonline-play": {
+   "page": "pg-online-gwonline-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-gwonline-winner": {
+   "page": "pg-online-gwonline-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-home": {
+   "page": "pg-online-home",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-join": {
+   "page": "pg-online-join",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-mm-starting": {
+   "page": "pg-online-mm-starting",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-mm-waiting": {
+   "page": "pg-online-mm-waiting",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obomb-friend-entry": {
+   "page": "pg-online-obomb-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obomb-instructions": {
+   "page": "pg-online-obomb-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obomb-play": {
+   "page": "pg-online-obomb-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obomb-winner": {
+   "page": "pg-online-obomb-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obox-friend-entry": {
+   "page": "pg-online-obox-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obox-instructions": {
+   "page": "pg-online-obox-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obox-play": {
+   "page": "pg-online-obox-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-obox-winner": {
+   "page": "pg-online-obox-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ochairs-friend-entry": {
+   "page": "pg-online-ochairs-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ochairs-instructions": {
+   "page": "pg-online-ochairs-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ochairs-play": {
+   "page": "pg-online-ochairs-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ochairs-winner": {
+   "page": "pg-online-ochairs-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocr-friend-entry": {
+   "page": "pg-online-ocr-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocr-instructions": {
+   "page": "pg-online-ocr-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocr-play": {
+   "page": "pg-online-ocr-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocr-winner": {
+   "page": "pg-online-ocr-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocs-friend-entry": {
+   "page": "pg-online-ocs-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocs-instructions": {
+   "page": "pg-online-ocs-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocs-play": {
+   "page": "pg-online-ocs-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocs-winner": {
+   "page": "pg-online-ocs-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocw-friend-entry": {
+   "page": "pg-online-ocw-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocw-instructions": {
+   "page": "pg-online-ocw-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocw-play": {
+   "page": "pg-online-ocw-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ocw-winner": {
+   "page": "pg-online-ocw-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-odraw-friend-entry": {
+   "page": "pg-online-odraw-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-odraw-instructions": {
+   "page": "pg-online-odraw-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-odraw-play": {
+   "page": "pg-online-odraw-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-odraw-reveal": {
+   "page": "pg-online-odraw-reveal",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-odraw-winner": {
+   "page": "pg-online-odraw-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oglz-friend-entry": {
+   "page": "pg-online-oglz-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oglz-instructions": {
+   "page": "pg-online-oglz-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oglz-play": {
+   "page": "pg-online-oglz-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oglz-winner": {
+   "page": "pg-online-oglz-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oig-friend-entry": {
+   "page": "pg-online-oig-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oig-instructions": {
+   "page": "pg-online-oig-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oig-play": {
+   "page": "pg-online-oig-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oig-winner": {
+   "page": "pg-online-oig-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oll-friend-entry": {
+   "page": "pg-online-oll-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oll-instructions": {
+   "page": "pg-online-oll-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oll-play": {
+   "page": "pg-online-oll-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oll-winner": {
+   "page": "pg-online-oll-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-olsc-friend-entry": {
+   "page": "pg-online-olsc-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-olsc-instructions": {
+   "page": "pg-online-olsc-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-olsc-play": {
+   "page": "pg-online-olsc-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-olsc-winner": {
+   "page": "pg-online-olsc-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omain-friend-entry": {
+   "page": "pg-online-omain-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omain-instructions": {
+   "page": "pg-online-omain-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omain-play": {
+   "page": "pg-online-omain-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omain-winner": {
+   "page": "pg-online-omain-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omz-friend-entry": {
+   "page": "pg-online-omz-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omz-instructions": {
+   "page": "pg-online-omz-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omz-play": {
+   "page": "pg-online-omz-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-omz-winner": {
+   "page": "pg-online-omz-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-opgs-friend-entry": {
+   "page": "pg-online-opgs-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-opgs-instructions": {
+   "page": "pg-online-opgs-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-opgs-play": {
+   "page": "pg-online-opgs-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-opgs-winner": {
+   "page": "pg-online-opgs-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orlgl-friend-entry": {
+   "page": "pg-online-orlgl-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orlgl-instructions": {
+   "page": "pg-online-orlgl-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orlgl-play": {
+   "page": "pg-online-orlgl-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orlgl-winner": {
+   "page": "pg-online-orlgl-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oroulette-friend-entry": {
+   "page": "pg-online-oroulette-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oroulette-instructions": {
+   "page": "pg-online-oroulette-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oroulette-play": {
+   "page": "pg-online-oroulette-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-oroulette-winner": {
+   "page": "pg-online-oroulette-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orw-friend-entry": {
+   "page": "pg-online-orw-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orw-instructions": {
+   "page": "pg-online-orw-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orw-play": {
+   "page": "pg-online-orw-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-orw-winner": {
+   "page": "pg-online-orw-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-osniper-friend-entry": {
+   "page": "pg-online-osniper-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-osniper-instructions": {
+   "page": "pg-online-osniper-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-osniper-play": {
+   "page": "pg-online-osniper-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-osniper-winner": {
+   "page": "pg-online-osniper-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otimer-friend-entry": {
+   "page": "pg-online-otimer-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otimer-instructions": {
+   "page": "pg-online-otimer-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otimer-play": {
+   "page": "pg-online-otimer-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otimer-winner": {
+   "page": "pg-online-otimer-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-friend-entry": {
+   "page": "pg-online-otop10-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-instructions": {
+   "page": "pg-online-otop10-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-loading": {
+   "page": "pg-online-otop10-loading",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-play": {
+   "page": "pg-online-otop10-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-roundwinner": {
+   "page": "pg-online-otop10-roundwinner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otop10-winner": {
+   "page": "pg-online-otop10-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otug-friend-entry": {
+   "page": "pg-online-otug-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otug-instructions": {
+   "page": "pg-online-otug-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otug-play": {
+   "page": "pg-online-otug-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-otug-winner": {
+   "page": "pg-online-otug-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ovl-friend-entry": {
+   "page": "pg-online-ovl-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ovl-instructions": {
+   "page": "pg-online-ovl-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ovl-play": {
+   "page": "pg-online-ovl-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-ovl-winner": {
+   "page": "pg-online-ovl-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owai-friend-entry": {
+   "page": "pg-online-owai-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owai-instructions": {
+   "page": "pg-online-owai-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owai-play": {
+   "page": "pg-online-owai-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owai-winner": {
+   "page": "pg-online-owai-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owordrace-friend-entry": {
+   "page": "pg-online-owordrace-friend-entry",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owordrace-instructions": {
+   "page": "pg-online-owordrace-instructions",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owordrace-play": {
+   "page": "pg-online-owordrace-play",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-owordrace-winner": {
+   "page": "pg-online-owordrace-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "online-room": {
+   "page": "pg-online-room",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي (hub ← إعداد ← جولة ← نتيجة)",
+   "note": "الأونلاين — لا تصميم"
+  },
+  "party-home": {
+   "page": "pg-party-home",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "pdraw": {
+   "page": "pg-pdraw",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "pdraw-reveal": {
+   "page": "pg-pdraw-reveal",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "pdraw-roundwinner": {
+   "page": "pg-pdraw-roundwinner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "profile": {
+   "page": "pg-profile",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "ptop10": {
+   "page": "pg-ptop10",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "ptop10-loading": {
+   "page": "pg-ptop10-loading",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "ptop10-roundwinner": {
+   "page": "pg-ptop10-roundwinner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "ptop10-winner": {
+   "page": "pg-ptop10-winner",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "setup-countrywarparty": {
+   "page": "pg-setup-countrywarparty",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "setup-describechar": {
+   "page": "pg-setup-describechar",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "setup-fastans": {
+   "page": "pg-setup-fastans",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "setup-pdraw": {
+   "page": "pg-setup-pdraw",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "setup-ptop10": {
+   "page": "pg-setup-ptop10",
+   "cat": "ب",
+   "source": "امتداد: لغة الفردي",
+   "note": "الجمعات — لا تصميم"
+  },
+  "static-landing": {
+   "page": "pg-static-landing",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "الدخول/الهبوط"
+  },
+  "tt10-roundwinner": {
+   "page": "pg-tt10-roundwinner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "winner": {
+   "page": "pg-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "حساب/لوحات/فعاليات"
+  },
+  "wordle-game": {
+   "page": "pg-wordle-game",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "وردل"
+  },
+  "wordle-mode-select": {
+   "page": "pg-wordle-mode-select",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "وردل"
+  },
+  "wordle-setup": {
+   "page": "pg-wordle-setup",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "وردل"
+  },
+  "wordle-winner": {
+   "page": "pg-wordle-winner",
+   "cat": "ب",
+   "source": "امتداد",
+   "note": "وردل"
+  }
+ },
+ "added_c": [
+  [
+   "#modes: بطاقات الأوضاع الأربعة",
+   "pg-home",
+   "show('home')/solo-home/party-home/online-home عبر نفس معالجات topnav"
+  ],
+  [
+   "#library: معاينات متحركة للـ29 لعبة + فلتر التصنيفات (دردشة/حظ/تخمين/فرق مع الوصف)",
+   "pg-home",
+   "goSetup<Game>() الحالية لكل بطاقة"
+  ],
+  [
+   "#setup: شاشة الانتظار (كلمة الانضمام، العداد، أفاتارات + \"+N\"، \"بانتظار أول مشارك\")",
+   "pg-<game> حالة waiting",
+   "*Participants / *-kw-show / *-p-count / *-p-usernames / *-status-strip / *-dot"
+  ],
+  [
+   "#setup: countdown قبل البدء",
+   "pg-<game>",
+   "طبقة عرض تنتهي باستدعاء start<Game>Round() الأصلية دون تغيير منطقها"
+  ],
+  [
+   "#setup: live / ended + أزرار ابدأ الجولة / إنهاء / جولة جديدة",
+   "pg-<game>",
+   "*-btn-round + دوال reset/end الحالية"
+  ],
+  [
+   "Game_Screens: معاينة حيّة للإعدادات",
+   "setup-*",
+   "تعكس قيم حقول الإعداد لحظياً (مضمار/مؤقتات القنبلة/مؤشر التوقيت/الحبل)"
+  ],
+  [
+   "Game_Screens: محرّر تسلسل مؤقتات القنبلة + tog + حقول رقمية min/max/step/unit",
+   "setup-* + mod-advanced-*",
+   "MOD_SETTINGS_SCHEMA وقسم الإعدادات المتقدمة"
+  ]
+ ],
+ "removed": [
+  "joinSpeed / autoJoin / startState وأزرار المعاينة الجانبية (Streamer_Section)",
+  "محاكاة الانضمام الوهمية وأسماء الشات/الأفاتارات العيّنة",
+  "أرقام عيّنة (00:42، 72%، عدد المشاهدين)",
+  "محرّك SoloGames (بنوك موضوعات، window.claude.complete، مؤقتاته) — نأخذ الماركاب/CSS/الحركة فقط",
+  "x-dc / sc-* / data-dc-script / __bundler / data-screen-label / React / unpkg",
+  "نص \"نموذج أولي لأربع ألعاب...\" أسفل Game_Screens"
+ ],
+ "counts": {
+  "أ": 24,
+  "أ+ب": 29,
+  "ب": 186,
+  "أ*": 25
+ }
+}
