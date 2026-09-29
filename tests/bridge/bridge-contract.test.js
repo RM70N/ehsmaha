@@ -34,6 +34,7 @@ async function waitFor(fn, ms) {
 }
 const eventsOf = (ws) => ws.msgs.filter((m) => Array.isArray(m.messages)).flatMap((m) => m.messages);
 const lastStatus = (ws) => ws.statuses[ws.statuses.length - 1] || {};
+const codes2 = (w) => w.statuses.map((s) => s.state + (s.code ? ':' + s.code : ''));
 const isHttps = (u) => { try { return new URL(u).protocol === 'https:'; } catch (e) { return false; } };
 const gapsOf = (times) => (times || []).slice(1).map((t, i) => Math.round((t - times[i]) / 100) / 10);
 
@@ -76,7 +77,7 @@ const gapsOf = (times) => (times || []).slice(1).map((t, i) => Math.round((t - t
   check('second client got the same events', eventsOf(b).length === eventsOf(a).length);
 
   const h = await health();
-  check('/health reports rooms/clients/key/lib version', h.ok === true && h.platforms.tiktok.clients === 2 && h.eulerApiKey === 'set' && h.tiktokLiveConnector === '2.5.0' && !JSON.stringify(h).includes('contract1'), { rooms: h.rooms, clients: h.wsClients, key: h.eulerApiKey, lib: h.tiktokLiveConnector });
+  check('/health reports rooms/clients/key/lib version', h.ok === true && h.platforms.tiktok.clients === 2 && h.eulerApiKey === 'set' && h.tiktokLiveConnector === '2.5.0' && Array.isArray(h.providers) && !JSON.stringify(h).includes('contract1') && !JSON.stringify(h).includes('dummy-test-key'), { rooms: h.rooms, clients: h.wsClients, key: h.eulerApiKey, lib: h.tiktokLiveConnector });
   const hz = await fetch('http://127.0.0.1:' + PORT + '/healthz');
   check('/healthz unchanged (200 + {ok,rooms})', hz.status === 200 && (await hz.json()).ok === true);
 
@@ -85,7 +86,8 @@ const gapsOf = (times) => (times || []).slice(1).map((t, i) => Math.round((t - t
   st = await stats();
   check('library connection closed after last client left (grace 5s)', st.upstreamLive === 0, { upstreamLive: st.upstreamLive });
 
-  // ---------------------------------------------------------------- 2) الأعطال (بالتوازي)
+  // ---------------------------------------------------------------- 2) الأعطال (بالتوازي) — دلالات الطابور الجديد
+  // (تفاصيل السيناريوهات الكاملة: queue-resilience.test.js). هنا نتأكد أن العقد مع الواجهة سليم لكل نوع خطأ.
   const scen = {
     nl1: 'not_live', nf1: 'user_not_found', cnf1: 'composite_not_found', cb1: 'composite_blocked',
     cnr1: 'composite_no_room', sf1: 'sign_failed', qd1: 'quick_drop', se1: 'live', dr1: 'live',
@@ -101,37 +103,40 @@ const gapsOf = (times) => (times || []).slice(1).map((t, i) => Math.round((t - t
   st = await stats();
   const calls = (u) => st.connectCallsByUser[u] || 0;
   const codes = (u) => ws[u].statuses.map((s) => s.state + (s.code ? ':' + s.code : ''));
+  const reasons = (u) => ws[u].statuses.map((s) => s.reason).filter(Boolean);
+  const noError = (u) => !ws[u].statuses.some((s) => s.state === 'error');
 
-  check('offline user -> not_live, no retry within 17s', codes('nl1').includes('not_live') && calls('nl1') === 1, { calls: calls('nl1') });
-  check('missing user -> user_not_found, no retry within 17s', codes('nf1').includes('error:user_not_found') && calls('nf1') === 1, { calls: calls('nf1') });
+  const nlGaps = gapsOf(st.connectTimesByUser.nl1);
+  check('offline user -> not_live, re-check only every >=14s (20s +-25%)', codes('nl1').includes('not_live') && calls('nl1') <= 2 && nlGaps.every((g) => g >= 14), { calls: calls('nl1'), gaps: nlGaps });
+  check('missing user -> user_not_found, no retry within 17s (60s base)', codes('nf1').includes('error:user_not_found') && calls('nf1') === 1, { calls: calls('nf1') });
   check('composite (api-live 19881007) -> user_not_found', codes('cnf1').includes('error:user_not_found'));
-  check('composite (captcha/blocked) -> blocked, NOT user_not_found', codes('cb1').includes('error:blocked') && !codes('cb1').includes('error:user_not_found'), codes('cb1').slice(0, 3));
+  check('composite (captcha/blocked) -> retrying(reason=blocked), never user_not_found, no error state', reasons('cb1').includes('blocked') && !codes('cb1').includes('error:user_not_found') && noError('cb1'), codes('cb1').slice(0, 4));
   check('composite (no room id anywhere) -> not_live', codes('cnr1').includes('not_live') && !codes('cnr1').includes('error:user_not_found'));
-  const sfGaps = gapsOf(st.connectTimesByUser.sf1);
-  check('sign failure -> sign_failed code + readable message', codes('sf1').includes('error:sign_failed') && ws.sf1.statuses.some((s) => s.code === 'sign_failed' && /توقيع/.test(s.message)));
-  check('sign failure backoff grows 2s -> 4s -> 8s (+-25%)', sfGaps.length >= 3 && sfGaps[0] >= 1.4 && sfGaps[0] <= 2.6 && sfGaps[1] >= 2.9 && sfGaps[1] <= 5.1 && sfGaps[2] >= 5.9 && sfGaps[2] <= 10.1, sfGaps);
-  check('fatal flag after 4 consecutive failures', ws.sf1.statuses.some((s) => s.fatal === true && s.code === 'sign_failed'));
+  check('sign failure -> keeps trying with visible attempt numbers (no error/fatal shown to the user)', reasons('sf1').includes('sign_failed') && noError('sf1') && ws.sf1.statuses.some((s) => s.attempt >= 3 && /محاولة/.test(s.message || '')) && !ws.sf1.statuses.some((s) => s.fatal), { attempts: Math.max(...ws.sf1.statuses.map((s) => s.attempt || 0)), calls: calls('sf1') });
+  const sfGaps = gapsOf(st.connectTimesByUser.sf1).filter((g) => g > 0.5);
+  check('sign failure: bounded attempts (<=8 in 17s), rounds spaced >=1.5s, then the breaker holds traffic (never a fast loop)', calls('sf1') <= 8 && sfGaps.length >= 1 && sfGaps.every((g) => g >= 1.5), { calls: calls('sf1'), roundGaps: sfGaps });
   const qdGaps = gapsOf(st.connectTimesByUser.qd1);
-  check('connect-then-instant-drop does NOT loop fast (gaps grow)', calls('qd1') <= 4 && qdGaps.every((g, i) => i === 0 || g > qdGaps[i - 1] * 1.3), { calls: calls('qd1'), gaps: qdGaps });
-  check('stream end -> not_live and waits (no 1.5s reconnect)', lastStatus(ws.se1).state === 'not_live' && !codes('se1').slice(codes('se1').lastIndexOf('connected')).includes('reconnecting') && calls('se1') === 1, { calls: calls('se1'), states: codes('se1') });
+  check('connect-then-instant-drop does NOT loop fast (<=4 calls in 17s, gaps grow)', calls('qd1') <= 4 && qdGaps[qdGaps.length - 1] > qdGaps[0], { calls: calls('qd1'), gaps: qdGaps });
+  check('stream end -> not_live and waits (no 1.5s reconnect)', lastStatus(ws.se1).state === 'not_live' && !codes('se1').slice(codes('se1').lastIndexOf('connected')).some((x) => x.startsWith('reconnecting')) && calls('se1') === 1, { calls: calls('se1'), states: codes('se1') });
   const drGaps = gapsOf(st.connectTimesByUser.dr1);
-  check('network drop -> reconnecting -> reconnected after ~2s', codes('dr1').includes('reconnecting') && lastStatus(ws.dr1).state === 'connected' && calls('dr1') === 2, { gaps: drGaps });
+  check('network drop -> reconnecting -> reconnected after ~2s', codes('dr1').some((x) => x.startsWith('reconnecting')) && lastStatus(ws.dr1).state === 'connected' && calls('dr1') === 2, { gaps: drGaps });
   for (const u of Object.keys(ws)) ws[u].close(1000);
 
-  // ---------------------------------------------------------------- 3) 429 + البوابة المشتركة
+  // ---------------------------------------------------------------- 3) 429 (مزودان: مفتاح + الطبقة المجانية كملاذ أخير)
   await ctl({ cmd: 'retryAfter', sec: 45 });
   await ctl({ cmd: 'mode', user: 'rl1', mode: 'rate_limited_typed' });
   const rl1 = await open('rl1');
-  await waitFor(() => rl1.statuses.some((s) => s.code === 'rate_limited'), 3000);
-  const rlStatus = rl1.statuses.find((s) => s.code === 'rate_limited') || {};
-  check('429 -> rate_limited status with retry time from retry-after (45s)', rlStatus.retryInSec === 45 && /45/.test(rlStatus.message), { retryInSec: rlStatus.retryInSec, message: rlStatus.message });
-  const rl2 = await open('rl2'); // يوزر سليم أثناء التراجع
-  await waitFor(() => rl2.statuses.some((s) => s.code === 'rate_limited'), 3000);
+  await waitFor(() => rl1.statuses.some((s) => s.reason === 'rate_limited'), 3000);
+  const rlStatus = rl1.statuses.find((s) => s.reason === 'rate_limited') || {};
+  check('429 -> user sees "connecting" (retrying/queued) with attempt info, never an error', ['connecting', 'reconnecting'].includes(rlStatus.state) && ['retrying', 'queued'].includes(rlStatus.code) && !rl1.statuses.some((s) => s.state === 'error'), { state: rlStatus.state, code: rlStatus.code, message: rlStatus.message });
+  await waitFor(() => rl1.statuses.some((s) => s.retryInSec >= 30 || s.etaSec >= 30), 4000);
+  check('429 -> retry time comes from retry-after (45s) and is shown', rl1.statuses.some((s) => (s.retryInSec >= 30 || s.etaSec >= 30)), rl1.statuses.map((s) => s.retryInSec || s.etaSec).filter(Boolean).slice(0, 4));
+  const rl2 = await open('rl2'); // يوزر سليم أثناء تعطّل كل المزودين بـ429
   await sleep(1500);
   st = await stats();
-  check('shared sign gate: other rooms wait instead of burning quota', (st.connectCallsByUser.rl2 || 0) === 0 && rl2.statuses.some((s) => s.code === 'rate_limited'), { rl2Calls: st.connectCallsByUser.rl2 || 0 });
+  check('all providers cooling down: healthy room waits in queue instead of burning quota', (st.connectCallsByUser.rl2 || 0) === 0 && rl2.statuses.some((s) => s.code === 'queued' && s.queuePosition > 0) && !rl2.statuses.some((s) => s.state === 'error'), { rl2Calls: st.connectCallsByUser.rl2 || 0, states: rl2.states ? undefined : codes2(rl2) });
   const h2 = await health();
-  check('/health shows sign cooldown', h2.tiktok.signCooldownSec > 30, h2.tiktok);
+  check('/health shows breakers open + queue length', h2.providers.every((p) => p.breaker === 'open') && h2.queue.waiting >= 1, { breakers: h2.providers.map((p) => p.name + ':' + p.breaker), queue: h2.queue });
   rl1.close(1000); rl2.close(1000);
 
   const bad = results.filter((r) => !r.ok).length;

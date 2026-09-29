@@ -28,6 +28,20 @@ T_PORT=18095 T_CTL=19095 node tests/bridge/bridge-contract.test.js
 node tests/bridge/frontend-contract.test.js
 ```
 
+## طابور الاتصال والتعافي (شكوى "خدمة تيك توك مزدحمة… انتظر دقيقة")
+
+```bash
+cd tiktok-server && npm test                 # وحدات: backoff، مصنّف الأخطاء، قاطع الدائرة، المحدّد التكيّفي، الطابور، المزودون (42)
+node tests/bridge/queue-resilience.test.js   # تكامل (53): 429/5xx/مهلة/سيرفر توقيع واقع/رفض ثم نجاح، فشل نهائي وتعافٍ، مزودون بديلون،
+                                             #   اتصال واحد لكل يوزر (ضغطتان/ريفرش/إغلاق ثم فتح)، انقطاع وصمت upstream، طابور 40 ستريمر
+node tests/bridge/real-library.test.js       # بالمكتبة الحقيقية 2.5.0 + سيرفر Euler محاكى عبر HTTP حقيقي: 429/402/5xx/ECONNREFUSED/تعليق،
+                                             #   مفتاح ثانٍ، عنوان بديل، بروكسي (HTTP+WS)، قطع الويب سوكيت
+PLAYWRIGHT_PATH=... node tests/bridge/frontend-resilience.test.js   # الواجهة الحقيقية: لا رسالة فشل أثناء 429 طويل، تقدّم ظاهر،
+                                             #   فشل نهائي + زر "إعادة المحاولة" (المسارات الثلاثة لـ"ابدأ بثاً سريعاً")
+node tests/bridge/queue-load.test.js 50,200,500 --baseline --out=tests/bridge/results-queue-load.json   # حمل: قبل/بعد
+```
+`QUEUE-REPORT.md`: التقرير الكامل مع الأرقام.
+
 Playwright غير مثبّت محلياً بالمستودع: مرّر مساره بـ`PLAYWRIGHT_PATH` (مثلاً
 `/opt/node22/lib/node_modules/playwright`).
 

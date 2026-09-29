@@ -1,0 +1,194 @@
+'use strict';
+// مزودو توقيع اتصال تيك توك (Euler Stream أو سيرفر توقيع متوافق) + مسارات الخروج (مباشر/بروكسي).
+//
+// المزود = { مفتاح API (اختياري) + عنوان سيرفر التوقيع + مسار (مباشر أو بروكسي) }.
+// لكل مزود: محدّد معدل تكيّفي مستقل (حصة Euler لكل مفتاح/IP) وقاطع دائرة مستقل.
+// المزودات مرتبة بطبقات (tier): 0 = الأساسي (المفاتيح، أو الطبقة المجانية لو ما فيه مفتاح)،
+// 1 = عناوين توقيع بديلة، 2 = الطبقة المجانية كملاذ أخير عند وجود مفاتيح. الطبقة الأدنى ما تُستخدم
+// إلا لو كل مزودي الطبقة الأعلى معطّلين (قاطع مفتوح) — مو لمجرد ازدحام لحظي.
+//
+// لا أسرار هنا: كل شيء من متغيرات البيئة، والأسماء الظاهرة (name) عامة بلا مفاتيح ولا عناوين بروكسي.
+
+const { CircuitBreaker } = require('./circuit-breaker');
+const { RateLimiter } = require('./rate-limiter');
+
+const MAX_PROVIDERS = 16;
+
+function splitList(raw) {
+  return String(raw || '').split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
+}
+
+// يقرأ إعداد المزودات من env. legacyKeyNames: أسماء قديمة مقبولة للمفتاح الأول.
+function loadProviderDefs(env, defaults) {
+  const d = Object.assign({ signUrl: 'https://api.eulerstream.com' }, defaults || {});
+  const e = env || process.env;
+  const legacy = ['EULER_API_KEY', 'EULER_SIGN_API_KEY', 'SIGN_API_KEY'];
+  const keys = [];
+  const addKey = (k) => { k = String(k || '').trim(); if (k && !keys.includes(k)) keys.push(k); };
+  const firstLegacy = legacy.find((n) => String(e[n] || '').trim());
+  if (firstLegacy) addKey(e[firstLegacy]);
+  splitList(e.EULER_API_KEYS).forEach(addKey);
+  for (let i = 2; i <= 9; i++) addKey(e['EULER_API_KEY_' + i]);
+
+  const primaryUrl = String(e.SIGN_API_URL || d.signUrl).trim();
+  const fallbackUrls = splitList(e.TIKTOK_SIGN_FALLBACK_URLS);
+  const proxies = splitList(e.TIKTOK_PROXIES);
+  const freeFallback = String(e.TIKTOK_FREE_FALLBACK == null ? '1' : e.TIKTOK_FREE_FALLBACK) !== '0';
+
+  const routes = [{ id: 'direct', proxyUrl: '' }].concat(proxies.map((p, i) => ({ id: 'proxy' + (i + 1), proxyUrl: p })));
+  const defs = [];
+  const push = (def) => { if (defs.length < MAX_PROVIDERS) defs.push(def); };
+
+  if (keys.length) {
+    keys.forEach((key, ki) => routes.forEach((r) => push({ name: 'key' + (ki + 1) + '/' + r.id, tier: 0, apiKey: key, signUrl: primaryUrl, route: r.id, proxyUrl: r.proxyUrl, free: false })));
+  } else {
+    // بلا مفاتيح: الطبقة المجانية هي الأساس، وكل بروكسي = IP مستقل بحصته المجانية.
+    routes.forEach((r) => push({ name: 'free/' + r.id, tier: 0, apiKey: '', signUrl: primaryUrl, route: r.id, proxyUrl: r.proxyUrl, free: true }));
+  }
+  fallbackUrls.forEach((url, i) => push({ name: 'fallback' + (i + 1) + '/direct', tier: 1, apiKey: keys[0] || '', signUrl: url, route: 'direct', proxyUrl: '', free: !keys[0] }));
+  if (keys.length && freeFallback) push({ name: 'free/direct', tier: 2, apiKey: '', signUrl: primaryUrl, route: 'direct', proxyUrl: '', free: true });
+  return { defs, keyCount: keys.length, proxyCount: proxies.length, fallbackCount: fallbackUrls.length, keySource: firstLegacy || (keys.length ? 'EULER_API_KEYS' : '') };
+}
+
+class ProviderPool {
+  // defs: [{name, tier, apiKey, signUrl, route, proxyUrl, free}]
+  constructor(defs, opts) {
+    const o = Object.assign({
+      now: Date.now, ratePerMin: 90, freeRatePerMin: 30, minRatePerMin: 6, burst: 6, inFlight: 4,
+      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, decreaseFactor: 0.6,
+    }, opts || {});
+    this.now = o.now;
+    this.deniedCooldownMs = o.deniedCooldownMs;
+    this.providers = defs.map((def, i) => {
+      const rate = (def.free ? o.freeRatePerMin : o.ratePerMin) / 60;
+      return {
+        id: i, name: def.name, tier: def.tier || 0, route: def.route || 'direct', def,
+        breaker: new CircuitBreaker({ failureThreshold: o.breakerThreshold, cooldownMs: o.breakerCooldownMs, maxCooldownMs: o.breakerMaxCooldownMs, now: o.now }),
+        limiter: new RateLimiter({ maxRatePerSec: rate, minRatePerSec: o.minRatePerMin / 60, burst: o.burst, inFlightMax: o.inFlight, decreaseFactor: o.decreaseFactor, now: o.now }),
+        lastUsedAt: 0, attempts: 0, successes: 0, failures: {},
+        client: null, agent: null,
+      };
+    });
+  }
+
+  get size() { return this.providers.length; }
+
+  byRoute(route) { return this.providers.filter((p) => p.route === route); }
+
+  // يختار مزوداً متاحاً الآن. الناتج: {provider} | {waitMs} (أقرب وقت محتمل) | {waitMs:null} (كلهم مستبعدون).
+  pick(exclude) {
+    const ex = exclude || new Set();
+    const tiers = [...new Set(this.providers.map((p) => p.tier))].sort((a, b) => a - b);
+    let minWait = Infinity;
+    let anyCandidate = false;
+    for (const tier of tiers) {
+      const inTier = this.providers.filter((p) => p.tier === tier && !ex.has(p.id));
+      if (!inTier.length) continue;
+      anyCandidate = true;
+      const usable = inTier.filter((p) => p.breaker.waitMs() === 0 || p.breaker.state === 'half_open');
+      const ready = inTier.filter((p) => p.breaker.waitMs() === 0 && p.limiter.waitMs() === 0);
+      if (ready.length) {
+        ready.sort((a, b) => (a.limiter.inFlight - b.limiter.inFlight) || (a.lastUsedAt - b.lastUsedAt));
+        return { provider: ready[0] };
+      }
+      const waits = inTier.map((p) => Math.max(p.breaker.waitMs(), p.limiter.waitMs()));
+      minWait = Math.min(minWait, ...waits);
+      // طبقة فيها مزود قاطعه غير مفتوح = مجرد ازدحام لحظي: ننتظره ولا ننزل لطبقة أدنى.
+      if (usable.length) return { waitMs: Math.max(1, minWait) };
+    }
+    if (!anyCandidate) return { waitMs: null };
+    return { waitMs: Math.max(1, Number.isFinite(minWait) ? minWait : 1000) };
+  }
+
+  begin(provider) {
+    provider.limiter.take();
+    provider.breaker.onDispatch();
+    provider.lastUsedAt = this.now();
+    provider.attempts++;
+  }
+
+  // outcome: {ok:true} | {kind, retryAfterMs}
+  end(provider, outcome) {
+    provider.limiter.release();
+    if (outcome && outcome.ok) {
+      provider.successes++;
+      provider.breaker.onSuccess();
+      provider.limiter.onSuccess();
+      return;
+    }
+    const kind = (outcome && outcome.kind) || 'transient';
+    provider.failures[kind] = (provider.failures[kind] || 0) + 1;
+    if (kind === 'rate_limited') {
+      provider.limiter.onRateLimited();
+      provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : 0);
+    } else if (kind === 'provider_denied') {
+      provider.breaker.trip(this.deniedCooldownMs, true);
+    } else if (kind === 'sign_failed') {
+      provider.breaker.onFailure();
+    }
+    // user_not_found / offline / blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع
+    // (المهلة قد تكون من تيك توك نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة).
+  }
+
+  // مجموع معدل الاتصال (طلب/ثانية) للمزودين المتاحين الآن — لتقدير زمن الانتظار بالطابور.
+  totalRatePerSec() {
+    return this.providers.filter((p) => p.breaker.waitMs() === 0).reduce((sum, p) => sum + p.limiter.rate, 0);
+  }
+
+  // أقرب وقت (ms) يصير فيه أي مزود جاهزاً — للعرض للمستخدم (retryInSec).
+  earliestReadyMs(exclude) {
+    const r = this.pick(exclude);
+    return r.provider ? 0 : (r.waitMs == null ? 0 : r.waitMs);
+  }
+
+  snapshot() {
+    return this.providers.map((p) => ({
+      name: p.name,
+      tier: p.tier,
+      route: p.route,
+      breaker: p.breaker.state,
+      cooldownSec: Math.ceil(Math.max(0, p.breaker.waitMs()) / 1000),
+      ratePerMin: Math.round(p.limiter.rate * 60 * 10) / 10,
+      inFlight: p.limiter.inFlight,
+      attempts: p.attempts,
+      successes: p.successes,
+      failures: p.failures,
+      rateLimitPenalties: p.limiter.penalties,
+    }));
+  }
+}
+
+// خيارات TikTokLiveConnection لمزود معيّن. deps = { lib (tiktok-live-connector), sdk (tiktok-live-api-sdk) }.
+function buildConnectionOptions(provider, deps) {
+  const def = provider.def;
+  if (!provider.client) {
+    const SignConfig = (deps.lib && deps.lib.SignConfig) || {};
+    const baseHeaders = Object.assign({}, (SignConfig.baseOptions && SignConfig.baseOptions.headers) || {});
+    const baseOptions = {
+      headers: baseHeaders,
+      // المكتبة تفحص response.status بنفسها (429/402...) فلازم axios ما يرمي على الحالات غير 200.
+      validateStatus: () => true,
+      // بدون مهلة يعلّق طلب التوقيع للأبد لو السيرفر ما رد (المكتبة ما تضع مهلة).
+      timeout: deps.signTimeoutMs || 15000,
+    };
+    if (def.proxyUrl) {
+      provider.agent = provider.agent || new deps.HttpsProxyAgent(def.proxyUrl);
+      baseOptions.httpAgent = provider.agent;
+      baseOptions.httpsAgent = provider.agent;
+      baseOptions.proxy = false; // ما نترك axios يقرأ HTTP(S)_PROXY من البيئة فوق وكيلنا
+    }
+    const Client = deps.sdk.default || deps.sdk;
+    const cfg = { basePath: def.signUrl, baseOptions };
+    if (def.apiKey) cfg.apiKey = def.apiKey;
+    provider.client = new Client(cfg);
+  }
+  const options = { processInitialData: false, eulerApiInstance: provider.client };
+  if (def.proxyUrl) {
+    provider.agent = provider.agent || new deps.HttpsProxyAgent(def.proxyUrl);
+    options.webClientOptions = { agent: { http: provider.agent, https: provider.agent } };
+    options.wsClientOptions = { agent: provider.agent };
+  }
+  return options;
+}
+
+module.exports = { ProviderPool, loadProviderDefs, buildConnectionOptions, splitList, MAX_PROVIDERS };

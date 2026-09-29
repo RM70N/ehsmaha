@@ -22,7 +22,49 @@ const ctl = {
   connectTimesByUser: {},  // uniqueId -> [ms منذ الإقلاع لكل استدعاء connect()] لقياس التراجع
   live: new Set(),         // الاتصالات upstream المفتوحة فعلياً
   signOptions: [],
+  // سيناريو مبرمج لكل يوزر: يستهلك عنصراً لكل connect() والأخير يتكرر، مثال ['rate_limited_typed','http500','live']
+  script: {},
+  // مزودون: يُعرَّفون بمفتاحهم (X-Api-Key، أو '' للطبقة المجانية). provider[key] = { mode } يفرض وضعاً لكل المتصلين بهذا المفتاح
+  provider: {},
+  // حصة Euler المحاكاة لكل مفتاح: token bucket {perSec, burst} + زمن استجابة؛ التجاوز = 429 حقيقي (SignatureRateLimitError)
+  euler: { perSec: 0, burst: 0, latencyMs: 0, retryAfterSec: 3 },
+  eulerBuckets: {},        // key -> { tokens, at }
+  eulerCalls: {},          // key -> عدد الطلبات
+  euler429: {},            // key -> عدد الـ429 التي رميناها
+  eulerInflight: 0, eulerInflightMax: 0,
+  // تتبع "اتصال واحد لكل يوزر": الاتصالات المتزامنة (تجري connect أو مفتوحة) لنفس اليوزر
+  activeByUser: {}, maxActiveByUser: {},
+  // نبض upstream: يحاكي WEBSOCKET_DATA كل pulseMs ما دام الاتصال حياً وغير صامت
+  pulseMs: 0, silent: false,
+  peakLive: 0,
 };
+
+function providerKey(options) {
+  try {
+    const cfg = options && options.eulerApiInstance && options.eulerApiInstance.configuration;
+    return String((cfg && cfg.baseOptions && cfg.baseOptions.headers && cfg.baseOptions.headers['X-Api-Key']) || '');
+  } catch (e) { return ''; }
+}
+function euler429(key) {
+  ctl.euler429[key] = (ctl.euler429[key] || 0) + 1;
+  return new real.SignatureRateLimitError(null, 'Too many connections started, try again later.', { headers: { 'retry-after': String(ctl.euler.retryAfterSec || 3) } });
+}
+// يطبّق حصة Euler المحاكاة على طلب توقيع (يرمي 429 عند التجاوز)
+async function eulerSign(key) {
+  ctl.eulerCalls[key] = (ctl.eulerCalls[key] || 0) + 1;
+  ctl.eulerInflight++; ctl.eulerInflightMax = Math.max(ctl.eulerInflightMax, ctl.eulerInflight);
+  try {
+    if (ctl.euler.perSec > 0) {
+      const now = Date.now();
+      const b = ctl.eulerBuckets[key] || (ctl.eulerBuckets[key] = { tokens: ctl.euler.burst || ctl.euler.perSec, at: now });
+      b.tokens = Math.min(ctl.euler.burst || ctl.euler.perSec, b.tokens + ((now - b.at) / 1000) * ctl.euler.perSec);
+      b.at = now;
+      if (b.tokens < 1) throw euler429(key);
+      b.tokens -= 1;
+    }
+    if (ctl.euler.latencyMs) await wait(ctl.euler.latencyMs);
+  } finally { ctl.eulerInflight--; }
+}
 
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -32,15 +74,50 @@ class TikTokLiveConnection extends EventEmitter {
     this.uniqueId = String(uniqueId).toLowerCase();
     this.options = options || {};
     this.isConnected = false;
-    ctl.signOptions.push(!!this.options.signApiKey);
+    this.providerKey = providerKey(this.options);
+    ctl.signOptions.push(!!this.options.signApiKey || !!this.providerKey);
+    ctl.lastOptions = this.options;
+  }
+
+  _active(delta) {
+    ctl.activeByUser[this.uniqueId] = (ctl.activeByUser[this.uniqueId] || 0) + delta;
+    ctl.maxActiveByUser[this.uniqueId] = Math.max(ctl.maxActiveByUser[this.uniqueId] || 0, ctl.activeByUser[this.uniqueId]);
+  }
+
+  _markLive() {
+    this.isConnected = true; ctl.live.add(this);
+    ctl.peakLive = Math.max(ctl.peakLive, ctl.live.size);
+    if (ctl.pulseMs) {
+      this._pulse = setInterval(() => { if (this.isConnected && !ctl.silent) this.emit(real.ControlEvent.WEBSOCKET_DATA, Buffer.alloc(1)); }, ctl.pulseMs);
+      if (this._pulse.unref) this._pulse.unref();
+    }
+  }
+
+  _markDead() {
+    if (this._pulse) { clearInterval(this._pulse); this._pulse = null; }
+    if (this._counted) { this._counted = false; this._active(-1); }
   }
 
   async connect() {
     ctl.connectCalls++;
     ctl.connectCallsByUser[this.uniqueId] = (ctl.connectCallsByUser[this.uniqueId] || 0) + 1;
     (ctl.connectTimesByUser[this.uniqueId] = ctl.connectTimesByUser[this.uniqueId] || []).push(Date.now());
+    this._counted = true; this._active(1);
+    try {
+      return await this._connect();
+    } catch (e) {
+      this._markDead();
+      throw e;
+    }
+  }
+
+  async _connect() {
     if (ctl.connectDelayMs) await wait(ctl.connectDelayMs);
-    const mode = ctl.mode[this.uniqueId] || ctl.defaultMode;
+    let mode = ctl.mode[this.uniqueId] || ctl.defaultMode;
+    const sc = ctl.script[this.uniqueId];
+    if (sc && sc.length) mode = sc.length > 1 ? sc.shift() : sc[0];
+    const pm = ctl.provider[this.providerKey];
+    if (pm && pm.mode && pm.mode !== 'live') mode = pm.mode;
     if (mode === 'hang') return new Promise(() => {});
     if (mode === 'not_live') throw new real.UserOfflineError('The requested user isn\'t online :(');
     // نص الاستثناء القديم اللي كانت ترميه 2.4.x عند 429 (باگ retry-after) — السيرفر ما زال يفهمه
@@ -48,20 +125,24 @@ class TikTokLiveConnection extends EventEmitter {
     if (mode === 'user_not_found') throw new Error('Failed to retrieve room id from page source. User not found');
     if (mode === 'fail') throw new Error('Websocket connection failed');
     // نفس ما ترميه fetchSignedWebSocketFromEulerRoute عند 429 (response.headers فيها retry-after بالثواني)
-    if (mode === 'rate_limited_typed') throw new real.SignatureRateLimitError(null, 'Too many connections started, try again later.', { headers: { 'retry-after': String(ctl.retryAfterSec || 45) } });
+    if (mode === 'rate_limited_typed') { ctl.euler429[this.providerKey] = (ctl.euler429[this.providerKey] || 0) + 1; throw new real.SignatureRateLimitError(null, 'Too many connections started, try again later.', { headers: { 'retry-after': String(ctl.retryAfterSec || 45) } }); }
     if (mode === 'sign_failed') throw new real.SignAPIError('Empty Cookies', undefined, undefined, '[fetchSignedWebSocketFromEulerRoute] No cookies received from sign server.');
+    if (mode === 'http500') throw new real.SignAPIError('Sign Error', undefined, undefined, '[fetchSignedWebSocketFromEulerRoute] Unexpected sign server status 500. Payload:\noops');
+    if (mode === 'sign_down') throw new real.SignAPIError('Connect Error', undefined, undefined, 'Failed to connect to sign server.', new Error('connect ECONNREFUSED 127.0.0.1:1'));
+    if (mode === 'denied') throw new real.PremiumFeatureError('You need a paid plan for this feature to be used.', 'Error fetching the signed TikTok WebSocket');
+    if (mode === 'ws_timeout') throw new real.ConnectTimeoutError('Timed out whilst connecting to WebSocket');
     const composite = (errs) => new real.InvalidResponseCompositeError({ routeId: 'fetchRoomIdRoute', requestErrs: errs }, 'Failed to retrieve Room ID from all sources.');
     if (mode === 'composite_blocked') throw composite([new Error('[fetchRoomInfoHtmlRoute] Failed to extract the SIGI_STATE HTML tag, you might be blocked by TikTok.'), new Error('[fetchRoomInfoApiLiveRoute] Invalid response from API: {}'), new Error('[fetchRoomIdRoute] Failed to retrieve Room ID from Euler due to an error: Unauthorized')]);
     if (mode === 'composite_no_room') throw composite([new Error('[fetchRoomIdRoute] Failed to extract Room ID from HTML.'), new Error('[fetchRoomIdRoute] Failed to extract Room ID from API.'), new Error('[fetchRoomIdRoute] Failed to extract Room ID from Euler.')]);
     if (mode === 'composite_not_found') throw composite([new Error('[fetchRoomInfoHtmlRoute] Failed to extract the LiveRoom object from SIGI_STATE.'), new Error('[fetchRoomInfoApiLiveRoute] API Error 19881007 (user_not_found)')]);
+    await eulerSign(this.providerKey); // حصة المزود المحاكاة (429 عند التجاوز)
     if (mode === 'quick_drop') {
-      this.isConnected = true; ctl.live.add(this);
+      this._markLive();
       setImmediate(() => this.emit(real.ControlEvent.CONNECTED, { isConnected: true, roomId: '1' }));
-      setTimeout(() => { if (!this.isConnected) return; this.isConnected = false; ctl.live.delete(this); this.emit(real.ControlEvent.DISCONNECTED, { code: 1006, reason: '' }); }, 100);
+      setTimeout(() => { if (!this.isConnected) return; this.isConnected = false; ctl.live.delete(this); this._markDead(); this.emit(real.ControlEvent.DISCONNECTED, { code: 1006, reason: '' }); }, 100);
       return { isConnected: true };
     }
-    this.isConnected = true;
-    ctl.live.add(this);
+    this._markLive();
     setImmediate(() => this.emit(real.ControlEvent.CONNECTED, { isConnected: true, roomId: '1' }));
     return { isConnected: true };
   }
@@ -70,6 +151,7 @@ class TikTokLiveConnection extends EventEmitter {
     if (!this.isConnected) return;
     this.isConnected = false;
     ctl.live.delete(this);
+    this._markDead();
     this.emit(real.ControlEvent.DISCONNECTED, { code: 1000, reason: 'client' });
   }
 }
@@ -131,7 +213,7 @@ ctl.follow = function (streamer, viewer) {
 // انقطاع upstream (تيك توك قطع) — السيرفر يفترض يعيد الاتصال بنفسه
 ctl.dropUpstream = function (streamer) {
   const conns = connsFor(streamer);
-  conns.forEach((c) => { c.isConnected = false; ctl.live.delete(c); c.emit(real.ControlEvent.DISCONNECTED, { code: 1006 }); });
+  conns.forEach((c) => { c.isConnected = false; ctl.live.delete(c); c._markDead(); c.emit(real.ControlEvent.DISCONNECTED, { code: 1006 }); });
   return conns.length;
 };
 ctl.streamEnd = function (streamer) {

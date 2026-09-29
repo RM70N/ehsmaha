@@ -12,6 +12,8 @@
 //   {cmd:'blackhole', ms}   لا شيء يوصل للعملاء (ولا ping) مدة ms — اتصال ميت بصمت
 //   {cmd:'follow', user, viewer} / {cmd:'dropUpstream', user} / {cmd:'streamEnd', user}
 //   {cmd:'gift', user, viewer, avatars?, giftName?, diamondCount?} / {cmd:'retryAfter', sec}
+//   {cmd:'script', user, modes:[...]} / {cmd:'provider', key, mode} / {cmd:'euler', perSec, burst, latencyMs, retryAfterSec}
+//   {cmd:'pulse', ms} / {cmd:'silent', on} / {cmd:'reset'}
 //   GET /stats  -> { upstreamLive, connectCalls, connectCallsByUser, rss }
 const path = require('path');
 const http = require('http');
@@ -39,13 +41,14 @@ for (const fn of ['send', 'ping']) {
     return orig.apply(this, arguments);
   };
 }
-require(path.join(serverDir, 'server.js'));
+// BRIDGE_SERVER_FILE: ملف سيرفر بديل داخل tiktok-server/ (مثلاً نسخة "قبل" لمقارنة اختبار الحمل)
+require(path.join(serverDir, process.env.BRIDGE_SERVER_FILE || 'server.js'));
 
 const CTL_PORT = Number(process.env.CTL_PORT || 19081);
 http.createServer((req, res) => {
   const send = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
   if (req.method === 'GET' && req.url === '/stats') {
-    return send(200, { upstreamLive: ctl.live.size, connectCalls: ctl.connectCalls, connectCallsByUser: ctl.connectCallsByUser, connectTimesByUser: ctl.connectTimesByUser, rss: process.memoryUsage().rss, signKeyUsed: ctl.signOptions });
+    return send(200, { upstreamLive: ctl.live.size, connectCalls: ctl.connectCalls, connectCallsByUser: ctl.connectCallsByUser, connectTimesByUser: ctl.connectTimesByUser, eulerCalls: ctl.eulerCalls, euler429: ctl.euler429, eulerInflightMax: ctl.eulerInflightMax, maxActiveByUser: ctl.maxActiveByUser, peakLive: ctl.peakLive, rss: process.memoryUsage().rss, signKeyUsed: ctl.signOptions });
   }
   let body = '';
   req.on('data', (c) => { body += c; });
@@ -61,6 +64,12 @@ http.createServer((req, res) => {
       case 'follow': return send(200, { delivered: ctl.follow(u, b.viewer) });
       case 'gift': return send(200, { delivered: ctl.gift(u, b) });
       case 'retryAfter': ctl.retryAfterSec = Number(b.sec) || 0; return send(200, { ok: true });
+      case 'script': ctl.script[u] = Array.isArray(b.modes) ? b.modes.slice() : []; return send(200, { ok: true });
+      case 'provider': ctl.provider[String(b.key || '')] = { mode: b.mode }; return send(200, { ok: true });
+      case 'euler': Object.assign(ctl.euler, { perSec: Number(b.perSec) || 0, burst: Number(b.burst) || 0, latencyMs: Number(b.latencyMs) || 0, retryAfterSec: Number(b.retryAfterSec) || 3 }); return send(200, { ok: true });
+      case 'pulse': ctl.pulseMs = Number(b.ms) || 0; return send(200, { ok: true });
+      case 'silent': ctl.silent = !!b.on; return send(200, { ok: true });
+      case 'reset': Object.assign(ctl, { script: {}, provider: {}, mode: {}, eulerBuckets: {}, eulerCalls: {}, euler429: {}, eulerInflightMax: 0, activeByUser: {}, maxActiveByUser: {}, connectCalls: 0, connectCallsByUser: {}, connectTimesByUser: {}, peakLive: ctl.live.size, silent: false }); ctl.euler = { perSec: 0, burst: 0, latencyMs: 0, retryAfterSec: 3 }; return send(200, { ok: true });
       case 'dropUpstream': return send(200, { dropped: ctl.dropUpstream(u) });
       case 'streamEnd': return send(200, { ended: ctl.streamEnd(u) });
       case 'burst': {
