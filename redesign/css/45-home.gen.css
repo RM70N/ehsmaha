@@ -1,0 +1,16 @@
+/* 45-home.css — مولَّد بـbuild_home.py: حالات hover/active لقسمَي #modes و#library */
+@media (hover:hover){.hm-h493f93:hover{transform:translateY(-4px) !important;border-color:#8B5CF6 !important;box-shadow:0 30px 70px -30px rgba(139,92,246,.75) !important;color:#EDE9FF !important}}
+.hm-ad95e1a:active{transform:translateY(-1px) !important}
+@media (hover:hover){.hm-h6166ec:hover{border-color:rgba(196,176,255,.55) !important;background:#150c29 !important;transform:translateX(-4px) !important;color:#EDE9FF !important}}
+@media (hover:hover){.hm-h307091:hover{border-color:#EC4899 !important;transform:translateX(-4px) !important;box-shadow:0 20px 50px -28px rgba(236,72,153,.8) !important;color:#EDE9FF !important}}
+@media (hover:hover){.hm-ha8d061:hover{border-color:#22D3EE !important;transform:translateX(-4px) !important;color:#EDE9FF !important}}
+@media (hover:hover){.hm-hae9923:hover{border-color:#A78BFF !important;transform:translateY(-2px) !important}}
+.hm-ae60b67:active{transform:scale(.97) !important}
+@media (hover:hover){.hm-hb09e75:hover{border-color:#F59E0B !important;transform:translateY(-2px) !important}}
+@media (hover:hover){.hm-h894ea0:hover{border-color:#22D3EE !important;transform:translateY(-2px) !important}}
+@media (hover:hover){.hm-hc16fa0:hover{border-color:#34D399 !important;transform:translateY(-2px) !important}}
+@media (hover:hover){.hm-h6b5996:hover{transform:translateY(-6px) !important;border-color:#A78BFF !important;background:#1c1234 !important}}
+.hm-ae7d1a8:active{transform:translateY(-2px) !important}
+@media (hover:hover){.hm-h417690:hover{transform:translateY(-6px) !important;border-color:#F59E0B !important;background:#1c1234 !important}}
+@media (hover:hover){.hm-hf1b66f:hover{transform:translateY(-6px) !important;border-color:#22D3EE !important;background:#1c1234 !important}}
+@media (hover:hover){.hm-he9386a:hover{transform:translateY(-6px) !important;border-color:#34D399 !important;background:#1c1234 !important}}

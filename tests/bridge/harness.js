@@ -6,7 +6,7 @@
 const path = require('path');
 const http = require('http');
 const fs = require('fs');
-const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
+const { chromium } = require(process.env.PLAYWRIGHT_PATH || (() => { try { return require.resolve('playwright'); } catch (e) { return '/opt/node22/lib/node_modules/playwright'; } })());
 
 const ROOT = path.join(__dirname, '../..');
 const HOSTS = { 'ehsmaha-wbkn.onrender.com': { ws: 18081, ctl: 19081 }, 'ehsmaha.onrender.com': { ws: 18082, ctl: 19082 } };

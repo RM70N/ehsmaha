@@ -1,0 +1,270 @@
+/* === 00-behavior.css — مولَّد بـredesign/tools/extract_behavior.py من أرشيف الـCSS القديم.
+   سلوك إظهار/إخفاء فقط تعتمد عليه الـJS (لا ألوان/أحجام/خطوط). لا تعدّله يدوياً. === */
+/* 01-خلفيات.css */
+.page{display:none}
+.page.active{display:flex}
+.static-landing.hidden{display:none}
+.badge{display:none}
+.badge.maintenance{display:block}
+.home-live-counter{display:none}
+.home-live-counter.visible{display:flex}
+.legacy-connect-box{display:none !important}
+.qc-status{display:none}
+.qc-status.show{display:block}
+.qc-connecting-overlay{display:none}
+.qc-connecting-overlay.visible{display:flex}
+.ol-checking{display:none}
+.ol-checking.show{display:block}
+.mb-btn.disabled{pointer-events:none}
+.mb-btn.lit{opacity:1}
+.pcw-elim-overlay{display:none}
+.pcw-elim-overlay.show{display:flex}
+.uac-list{display:none}
+.uac-list.visible{display:block}
+.status-msg{display:none}
+.chat-collapsed > .panel-right{display:none !important}
+.chat-reopen-btn{display:none}
+.chat-reopen-btn.visible{display:block}
+.toast{pointer-events:none}
+.empty{display:flex}
+.p-username-number{display:none}
+#bomb-status-strip.active ~ .participants-overlay .p-username-number{display:block}
+.p-has-full-frame .p-avatar-wrap{display:flex}
+.p-has-full-frame .p-username-name{display:flex}
+.dev-vip-banner-toast{opacity:0;pointer-events:none}
+.dev-vip-banner-toast.show{opacity:1}
+.dev-vip-victory-overlay{opacity:0}
+.dev-vip-victory-overlay.show{opacity:1}
+.fz-banner-overlay{opacity:0;pointer-events:none}
+.fz-banner-overlay.show{opacity:1}
+.fz-victory-overlay{opacity:0}
+.fz-victory-overlay.show{opacity:1}
+.fz-burst{pointer-events:none}
+.bs-victory-overlay{opacity:0}
+.bs-victory-overlay.show{opacity:1}
+.bs-burst{pointer-events:none}
+.gn-banner-overlay{opacity:0;pointer-events:none}
+.gn-banner-overlay.show{opacity:1}
+.gn-hero-logo>.sheen{pointer-events:none}
+.gn-victory-overlay{opacity:0}
+.gn-victory-overlay.show{opacity:1}
+.gn-burst{pointer-events:none}
+.mtq-banner-overlay{opacity:0;pointer-events:none}
+.mtq-banner-overlay.show{opacity:1}
+.mtq-hero-logo>.sheen{pointer-events:none}
+.mtq-victory-overlay{opacity:0}
+.mtq-victory-overlay.show{opacity:1}
+.mtq-burst{pointer-events:none}
+.abd-banner-overlay{opacity:0;pointer-events:none}
+.abd-banner-overlay.show{opacity:1}
+.abd-hero-logo>.sheen{pointer-events:none}
+.abd-victory-overlay{opacity:0}
+.abd-victory-overlay.show{opacity:1}
+.abd-burst{pointer-events:none}
+.gh-badge-ring{pointer-events:none}
+.gh-badge-pill{pointer-events:none}
+.gh-celebration{pointer-events:none}
+.gh-celebration.show{pointer-events:auto}
+.gh-cel-glow1{pointer-events:none}
+.gh-cel-glow2{pointer-events:none}
+.gh-cel-particles{pointer-events:none}
+#topnav{display:none !important}
+#topnav.hidden{display:none}
+#online-points-panel{display:none}
+#online-points-panel.visible{display:flex}
+.auth-form{display:none}
+.auth-form.active{display:flex}
+.auth-status{display:none}
+.auth-loader.hidden{display:none}
+.event100-overlay{display:none}
+.event100-overlay.visible{display:flex}
+.auth-user-chip{display:none}
+.auth-user-chip.visible{display:flex}
+#burger-fab-btn{display:none}
+#burger-fab-btn.visible{display:flex}
+#side-drawer-overlay{opacity:0;pointer-events:none}
+#side-drawer-overlay.open{opacity:1;pointer-events:auto}
+.lb-podium:empty{display:none}
+.lb-empty{display:none}
+.lb-empty.visible{display:block}
+.frm-owned-empty{display:none}
+.frm-owner-hole-rect{pointer-events:none}
+.profile-avatar-ring-wrap.has-frame .profile-avatar-glow,
+.profile-avatar-ring-wrap.has-frame .profile-avatar-spin{display:none}
+.owner-fab{display:none}
+.owner-fab.visible{display:flex}
+.events-fab{display:none}
+.events-fab.visible{display:flex}
+.ahsemha-editor-fab{display:none}
+.ahsemha-editor-fab.visible{display:flex}
+.mod-modal-overlay{display:none}
+.mod-modal-overlay.visible{display:flex}
+.events-modal-overlay{display:none}
+.events-modal-overlay.visible{display:flex}
+.events-active-bar{display:none}
+.events-active-bar.visible{display:flex}
+.events-onscreen-banner{display:none}
+.events-onscreen-banner.visible{display:flex}
+.owner-modal-overlay{display:none}
+.owner-modal-overlay.visible{display:flex}
+.owner-panel-body{display:none}
+.owner-panel-body.active{display:flex}
+.msg-subpanel{display:none}
+.msg-subpanel.active{display:flex}
+.msg-banner{display:none}
+.msg-banner.visible{display:flex}
+.msg-banner-backdrop{display:none}
+.msg-banner-backdrop.visible{display:block}
+.msg-banner.pos-center .msg-banner-close{display:flex}
+/* 03-ehsemha-home-redesign.css */
+#pg-home .gcard-ghost{pointer-events:none}
+/* 06-لوحة_ألوان_التصميم_المرفق_لا_لون_خارجها.css */
+.vl-fog{pointer-events:none}
+.vl-towers{pointer-events:none}
+.vl-towers[data-compact="1"] .vl-name{display:none}
+.vl-smoke{pointer-events:none}
+.vl-points-float{pointer-events:none}
+.vl-lava{pointer-events:none}
+.vl-bubble{pointer-events:none}
+.vl-embers{pointer-events:none}
+.vl-hud{pointer-events:none}
+.vl-banner-center{pointer-events:none}
+.vl-lobby{pointer-events:none}
+.vl-layout.chat-collapsed > .panel-right{display:none !important}
+@media (max-width: 900px){
+#pg-volcanic-lands .gth-desc{display:none}
+#pg-volcanic-lands .vl-session-chip{display:none}
+}
+@media (max-width: 720px){
+.vl-hud .vl-title{display:none}
+}
+@media (max-height: 520px){
+.vl-hud .vl-title{display:none}
+}
+#pg-volcanic-lands.vl-lowfx .vl-ember,
+#pg-volcanic-lands.vl-lowfx .vl-bubble,
+#pg-volcanic-lands.vl-lowfx .vl-smoke{display:none}
+/* 07-block.css */
+.tk-status-box{display:none}
+.tk-status-box.show{display:block}
+/* 08-block.css */
+#sound-control-overlay{display:none}
+#sound-control-overlay.open{display:flex}
+/* 10-block.css */
+#pg-landing .landing-reveal{opacity:0}
+#pg-landing .landing-reveal.in{opacity:1}
+#pg-landing .landing-stagger.in .landing-stg{opacity:1}
+#pg-landing .landing-stg{opacity:0}
+/* 13-القناص_شبكة_مخابئ.css */
+.osniper-cell.mine{opacity:1}
+.ochairs-seat.mine{opacity:1}
+/* 14-عناصر_مشتركة_أضافتها_الدفعة_الثالثة.css */
+.oglz-panel.mine{opacity:1}
+.ovl-opt.mine{opacity:1}
+/* 18-مسرح_الراوند_9_16_منسوخ_كما_هو_من_ملف_شا.css */
+.page.rd-live .game-title-header{display:none}
+.page.rd-live .status-strip,
+.page.rd-live .game-special-btn,
+.page.rd-live .participants-overlay,
+.page.rd-live .chairs-round-bar{display:none !important}
+.rd-lens-vig{pointer-events:none}
+.rd-scan{pointer-events:none}
+.rd-ccard-aim{pointer-events:none}
+.rd-chooser{display:none}
+.rd-chooser.show{display:flex}
+.rd-pnode-glow{opacity:0}
+.rd-pnode.live .rd-pnode-glow{opacity:1}
+/* 19-_ROULETTE_SETUP_.css */
+.roulette-pointer{pointer-events:none}
+.spin-result{display:none}
+.spin-result.show{display:block}
+/* 20-_TIMER_SETUP_.css */
+.timer-secret-bar{display:none}
+.timer-secret-bar.show{display:block}
+/* 21-_BOMB_SETUP_.css */
+.bomb-ended-banner{display:none}
+.bomb-ended-banner.show{display:block}
+/* 22-block.css */
+.box-item.empty-slot{pointer-events:none}
+.box-result-tag{opacity:0}
+.box-item.opened .box-result-tag{opacity:1}
+.box-reveal-banner{display:none}
+.box-reveal-banner.show{display:block}
+/* 23-block.css */
+.cr-boost-flash{pointer-events:none}
+/* 24-لوحة_تحكم_الأدمن_أثناء_الجولة.css */
+.ev-card.eliminated{pointer-events:none}
+/* 26-_WHO_AM_I_SETUP_.css */
+.wai-no-winner-box{display:none}
+/* 27-_IMAGE_GUESS_SETUP_.css */
+.ig-cat-chip input{pointer-events:none}
+.ig-card{display:none}
+.ig-no-winner-box{display:none}
+/* 28-_REVERSE_WORD_.css */
+.rw-word-box{display:none}
+.rw-no-winner-box{display:none}
+/* 29-_PRICE_GUESS_.css */
+.pg-product-box{display:none}
+.pg-attempts-wrap{display:none}
+.pg-no-winner-box{display:none}
+/* 30-_LETTER_SCRAMBLE_.css */
+.lsc-word-box{display:none}
+/* 31-_WORD_RACE_.css */
+.wr-word-box{display:none}
+/* 32-_DRAW_.css */
+#pdraw-pick-overlay{pointer-events:none}
+#pdraw-pick-overlay.show{pointer-events:auto}
+/* 33-_TUG_OF_WAR_SETUP_DASHBOARD_SHELL_.css */
+.tug-rope-wrap{pointer-events:none}
+/* 34-_توكينز_التصميم_معزولة_تحت_rlgl-root_.css */
+.rlgl-countdown{display:none}
+@media (max-height: 800px){
+#pg-rlgl .game-title-header{display:none}
+}
+/* 35-_COUNTRY_WAR_.css */
+.cw-spin-result{display:none}
+.cw-spin-result.show{display:block}
+.cw-turn-banner{display:none}
+.cw-turn-banner.show{display:flex}
+/* 36-_CROWN_STEAL_.css */
+.cs-crown-box{display:none}
+.cs-crown-box.show{display:flex}
+/* 37-_MUSICAL_CHAIRS_.css */
+#chairs-stage{display:none}
+#pg-chairs.rd-live #chairs-stage{display:block}
+.chairs-circle-wrap{display:none}
+.chairs-circle-wrap.show{display:block}
+.chairs-reveal-wrap{display:none}
+.chairs-reveal-wrap.show{display:flex}
+.chairs-reveal-wrap.show ~ .rd-chairs-hidden{display:none}
+.chair-visual{display:none}
+.chairs-elim-overlay{display:none}
+.chairs-elim-overlay.show{display:flex}
+.fx-confetti-layer{pointer-events:none}
+.fx-gun-layer{pointer-events:none}
+.fx-screen-flash{pointer-events:none}
+.fx-slapcard-layer{pointer-events:none}
+.fx-burst{pointer-events:none}
+/* 38-_FIND_THE_BALL_.css */
+.findball-cup.shuffling .findball-cup-num{opacity:0}
+.findball-ball{opacity:0}
+.findball-ball.show{opacity:1}
+.findball-revived-flash{pointer-events:none}
+.revival-flash{pointer-events:none}
+#gift-revival-overlay{pointer-events:none}
+/* 39-----_أنيميشن_التصميم_منقولة_كما_هي_بأسما.css */
+.brg-vignette{pointer-events:none}
+.brg-notice-back{display:none}
+.brg-notice-back.show{display:flex}
+#pg-bridge-round.spectating .brg-vote-panel,
+#pg-bridge-round.spectating .brg-streak-panel{display:none !important}
+.brg-move-banner{pointer-events:none}
+.brg-card-mono{pointer-events:none}
+/* 40-block.css */
+.wdl-mode-btn-sub.online{opacity:1}
+/* 42-block.css */
+.glz-panel.broken{opacity:0;pointer-events:none}
+.glz-crack-svg{pointer-events:none}
+.glz-shard{pointer-events:none}
+/* 43-round-badges-overlay.css */
+.rf-badge{pointer-events:none}

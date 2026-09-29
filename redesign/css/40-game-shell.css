@@ -1,0 +1,52 @@
+/* هيكل صفحات الألعاب المباشرة (pg-<game>) — لوحة اللعبة + شات البث.
+   العمود الأول (يمين بـRTL) اللعبة، والثاني (يسار) الشات. .chat-collapsed تُضاف بالـJS (toggleGameChatPanel). */
+.gw-layout,.dash-layout,.battery-layout,.sniper-layout,.hz-layout,.roulette-layout,.timer-layout,.bomb-layout,.box-layout,.cr-layout,.mz-layout,.ev-layout,.ll-layout,
+.wai-layout,.ig-layout,.rw-layout,.pg-layout,.lsc-layout,.wr-layout,.draw-layout,.cw-layout,.cs-layout,.chairs-layout,.tug-layout,.rlgl-layout,.vl-layout{
+  position:relative;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;padding:16px;min-height:100vh;min-height:100dvh;height:100dvh}
+[class$="-layout"].chat-collapsed{grid-template-columns:minmax(0,1fr)}
+[class$="-layout"]>.panel:not(.panel-right){overflow-y:auto;padding-top:clamp(72px,10vh,104px);padding-bottom:clamp(76px,10vh,108px)}
+[class$="-layout"]>.panel-right{min-height:0}
+.chat-reopen-btn{position:absolute;top:24px;left:24px;z-index:7;width:46px;height:46px;font-size:18px;background:var(--panel)}
+.chat-collapsed .rd-stage{width:min(92%,880px);max-height:min(94vh,1220px)}
+
+/* رسائل الشات */
+.chat-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:14px;background:var(--well);animation:ehsChatIn .35s var(--e-ui) both}
+@keyframes ehsChatIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.chat-bubble{min-width:0;display:flex;flex-direction:column;gap:1px}
+.chat-name{font-size:13px;font-weight:800;color:var(--accent-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-txt{font-size:14.5px;line-height:1.5;overflow-wrap:anywhere}
+/* الأفتارات (avatarHTML: <img class=X> أو <div class=X-fb>) */
+.chat-av,.chat-av-fb,.guess-av,.guess-av-fb,.tguess-av,.tguess-av-fb,.w-avatar,.w-avatar-fb,.tt10-lb-avatar,.tt10-lb-avatar-fb,
+.glz-roster-avatar,.glz-roster-avatar-fb,.glz-scene-avatar,.glz-scene-avatar-fb,.glz-winner-avatar-lg,.glz-winner-avatar-lg-fb{
+  flex:none;width:34px;height:34px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:var(--accent2);color:var(--bg);font-family:var(--f-head);font-weight:900;font-size:15px;overflow:hidden}
+.w-avatar,.w-avatar-fb,.glz-winner-avatar-lg,.glz-winner-avatar-lg-fb{width:112px;height:112px;font-size:46px;border:4px solid var(--gc);box-shadow:0 0 60px -10px var(--gc);animation:ehsPop .7s var(--e-spring) both}
+.plat-av-wrap{position:relative;display:inline-flex;flex:none}
+.plat-av-badge{position:absolute;bottom:-3px;left:-3px;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:9px;line-height:1;background:var(--bg);border:2px solid}
+.plat-name-badge{font-size:11px;margin-inline-end:3px}
+
+/* رموز المشاركين (token بشاشة الانتظار: دائرة 34 بحرف + اسم 18/700 على خلفية well) */
+.p-username-tag{display:flex;align-items:center;gap:10px;min-width:0;height:48px;padding:0 10px;border-radius:14px;background:var(--well);animation:ehsTokIn .46s var(--e-spring) both}
+@keyframes ehsTokIn{from{opacity:0;transform:translateY(12px) scale(.85)}to{opacity:1;transform:none}}
+.participants-usernames>.p-username-tag{min-height:48px}
+.p-avatar-wrap{position:relative;flex:none;display:flex}
+.p-avatar-circle{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;object-fit:cover;flex:none;font-family:var(--f-head);font-weight:900;font-size:16px;color:var(--bg)}
+.p-username-number{position:absolute;bottom:-4px;left:-6px;z-index:3;padding:2px 5px;border-radius:999px;background:var(--brand-amber);color:var(--bg);font-size:10px;font-weight:900;line-height:1;border:2px solid var(--bg)}
+.p-username-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:700;color:var(--text)}
+.p-username-prefix{font-size:11px;line-height:1}
+/* إطارات الأفتار (framesInjectRingWithFrame): الارتفاع 84 والنسبة 2.8 يطابقان FRAMES_BANNER_H/RATIO بالـJS،
+   وموضع الفتحة يُكتب inline بالنِّسب — هندسة وظيفية لا تتغيّر */
+.p-username-tag.p-has-full-frame{position:relative;width:auto;height:84px;aspect-ratio:2.8;padding:0;gap:0;background-color:transparent;background-size:100% 100%;background-repeat:no-repeat;background-position:center}
+.p-has-full-frame .p-avatar-wrap{position:absolute;align-items:center;justify-content:center}
+.p-has-full-frame .p-avatar-circle{box-shadow:none;border:none}
+.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px}
+.p-has-full-frame .p-username-prefix{position:absolute;top:3px;right:4%;z-index:1;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75)}
+.participants-usernames:has(.p-has-full-frame){grid-template-columns:repeat(auto-fill,minmax(235px,1fr))}
+
+@media (max-width:900px){
+  .gw-layout,.dash-layout,.battery-layout,.sniper-layout,.hz-layout,.roulette-layout,.timer-layout,.bomb-layout,.box-layout,.cr-layout,.mz-layout,.ev-layout,.ll-layout,
+  .wai-layout,.ig-layout,.rw-layout,.pg-layout,.lsc-layout,.wr-layout,.draw-layout,.cw-layout,.cs-layout,.chairs-layout,.tug-layout,.rlgl-layout,.vl-layout{
+    grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,38vh);height:auto;padding:10px;gap:10px}
+  [class$="-layout"].chat-collapsed{grid-template-rows:auto}
+  [class$="-layout"]>.panel:not(.panel-right){padding-top:64px;padding-bottom:88px;overflow:visible}
+  .chat-reopen-btn{top:12px;left:12px}
+}

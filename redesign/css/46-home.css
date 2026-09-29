@@ -1,0 +1,66 @@
+/* الرئيسية — حلقات data-loop من Streamer_Section (LOOPS) منقولة إلى @keyframes بنفس المدد والمنحنيات + الربط */
+@keyframes dcPing{from{transform:scale(1);opacity:.6}to{transform:scale(2.6);opacity:0}}
+@keyframes dcDash{from{stroke-dashoffset:0}to{stroke-dashoffset:-24}}
+@keyframes dcOrbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes dcDrift{from{transform:translate(0,0) scale(1)}to{transform:translate(-60px,40px) scale(1.08)}}
+@keyframes dcDrift2{from{transform:translate(0,0) scale(1)}to{transform:translate(50px,-30px) scale(1.1)}}
+@keyframes dcCaret{from{opacity:1}to{opacity:0}}
+@keyframes dcEq{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+[data-loop=ping]{animation:dcPing 1.8s ease-out infinite}
+[data-loop=dash]{animation:dcDash 1.3s linear infinite}
+[data-loop=orbit]{animation:dcOrbit 14s linear infinite}
+[data-loop=drift]{animation:dcDrift 9s ease-in-out infinite alternate}
+[data-loop=drift2]{animation:dcDrift2 11s ease-in-out infinite alternate}
+[data-loop=caret]{animation:dcCaret .6s steps(1,end) infinite alternate}
+[data-loop=eq]{animation:dcEq .42s ease-in-out infinite alternate}
+[data-loop=eq]:nth-child(2){animation-delay:-.14s}[data-loop=eq]:nth-child(3){animation-delay:-.29s}
+@media (prefers-reduced-motion:reduce){[data-loop]{animation:none!important}}
+#pg-home.page.active{animation:none}
+.ehs-home #library [data-track]{scrollbar-width:none}
+.ehs-home #library [data-track]::-webkit-scrollbar{display:none}
+.ehs-home .gcard[hidden]{display:none!important}
+/* شارة الاتصال (مكان «مباشر»): غير متصل ← نقطة خافتة بلا نبض */
+#home-conn-badge.offline [data-loop]{display:none}
+#home-conn-badge.offline span[style*="#EC4899"]{background:#8C7BB6!important}
+/* شريط المنصات الحقيقي (مكان «يشاهدون الآن») */
+#home-platform-status-bar{display:flex;flex-wrap:wrap;gap:8px;font-size:14px;color:#C4B0FF}
+.home-plat-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.home-plat-dot{width:8px;height:8px;border-radius:50%}
+/* أزرار الربط (مكان الشات الوهمي): نفس أزرار التصميم («جولة جديدة» الفاتح و«إنهاء الجولة» الشفاف) بمقاس 50px */
+.ehs-home-cta{flex-direction:row!important;flex-wrap:wrap;align-items:flex-end;align-content:flex-end;-webkit-mask-image:none!important;mask-image:none!important}
+.ehs-cta{display:inline-flex;align-items:center;gap:10px;height:50px;padding:0 24px;border-radius:999px;font-weight:800;font-size:16px;cursor:pointer;white-space:nowrap;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s,background .25s,border-color .25s}
+.ehs-cta--light{border:0;background:#EDE9FF;color:#1a1030}
+.ehs-cta--light:hover{transform:translateY(-2px);box-shadow:0 0 0 7px rgba(237,233,255,.15)}
+.ehs-cta--ghost{background:rgba(0,0,0,0);border:2px solid rgba(237,233,255,.35);color:#EDE9FF}
+.ehs-cta--ghost:hover{background:rgba(237,233,255,.06);border-color:#EDE9FF;color:#EDE9FF}
+.ehs-cta:active{transform:scale(.97)}
+.home-discord-cta{display:contents}
+/* شارة الحالة الحقيقية للعبة (صيانة/جديد…) داخل منطقة المعاينة + زر التثبيت */
+.ehs-home .gcard{position:relative}
+.ehs-home .gcard [data-badge-slot]{position:absolute;top:10px;right:10px;z-index:2}
+.ehs-home .gcard [data-badge-slot]:empty{display:none}
+.gcard-pin-btn{position:absolute;top:10px;left:10px;z-index:3;width:32px;height:32px;border-radius:50%;border:1px solid rgba(167,139,255,.22);background:rgba(11,5,24,.6);color:#EDE9FF;display:grid;place-items:center;font-size:14px;cursor:pointer;transition:border-color .2s}
+.gcard-pin-btn:hover{border-color:#A78BFF}
+/* كتل الفعالية الحقيقية (مخفية افتراضياً) بنفس لغة البطاقات */
+.ehs-home .home-live-counter,.ehs-home .home-event-winners{max-width:1240px;margin:0 auto 24px;padding:24px 28px;border-radius:28px;background:#110822;border:1px solid rgba(196,176,255,.14);flex-direction:column;gap:6px}
+.ehs-home .home-live-counter{width:calc(100% - 48px)}
+.home-live-counter-num-row{display:flex;align-items:center;gap:10px}
+.home-live-counter-dot{width:10px;height:10px;border-radius:50%;background:#EC4899;animation:dcPing 1.8s ease-out infinite}
+.home-live-counter-num{font-family:Cairo,sans-serif;font-weight:900;font-size:44px;line-height:1;color:#A78BFF;font-variant-numeric:tabular-nums}
+.home-live-counter-label{font-family:Cairo,sans-serif;font-weight:800;font-size:20px}
+.home-live-counter-sub{font-size:15px;color:#B7A9DE}
+.hew-title{font-family:Cairo,sans-serif;font-weight:900;font-size:24px;margin-bottom:12px}
+.hew-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.hew-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:22px;background:rgba(11,5,24,.55);text-align:center}
+.hew-avatar-wrap img{width:72px;height:72px;border-radius:50%;object-fit:cover}
+.hew-name{font-family:Cairo,sans-serif;font-weight:900;font-size:20px}
+.hew-label{font-size:14px;color:#B7A9DE}
+@media (max-width:640px){
+  .ehs-home #modes{padding:64px 16px 48px!important}
+  .ehs-home #modes a,.ehs-home #modes [role=link]{padding:22px!important}
+  .ehs-home #modes a[href="#"]{grid-template-columns:minmax(0,1fr) 96px!important}
+  .ehs-home #modes a[href="#"]>div[aria-hidden],.ehs-home #modes a[href="#"]>svg{transform:scale(.8);transform-origin:center}
+  .ehs-home #modes [role=link]{min-height:440px!important}
+}
+/* أيقونة «شبح» قديمة يحقنها homeInjectGameGhostIcons — ليست من التصميم */
+.ehs-home .gcard-ghost{display:none}
