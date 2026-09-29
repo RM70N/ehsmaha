@@ -11,6 +11,7 @@
 //   {cmd:'burst', user, count, prefix, text, identity?, perMs?}   دفعة رسائل من مشاهدين مختلفين
 //   {cmd:'blackhole', ms}   لا شيء يوصل للعملاء (ولا ping) مدة ms — اتصال ميت بصمت
 //   {cmd:'follow', user, viewer} / {cmd:'dropUpstream', user} / {cmd:'streamEnd', user}
+//   {cmd:'gift', user, viewer, avatars?, giftName?, diamondCount?} / {cmd:'retryAfter', sec}
 //   GET /stats  -> { upstreamLive, connectCalls, connectCallsByUser, rss }
 const path = require('path');
 const http = require('http');
@@ -44,7 +45,7 @@ const CTL_PORT = Number(process.env.CTL_PORT || 19081);
 http.createServer((req, res) => {
   const send = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json' }); res.end(JSON.stringify(obj)); };
   if (req.method === 'GET' && req.url === '/stats') {
-    return send(200, { upstreamLive: ctl.live.size, connectCalls: ctl.connectCalls, connectCallsByUser: ctl.connectCallsByUser, rss: process.memoryUsage().rss, signKeyUsed: ctl.signOptions });
+    return send(200, { upstreamLive: ctl.live.size, connectCalls: ctl.connectCalls, connectCallsByUser: ctl.connectCallsByUser, connectTimesByUser: ctl.connectTimesByUser, rss: process.memoryUsage().rss, signKeyUsed: ctl.signOptions });
   }
   let body = '';
   req.on('data', (c) => { body += c; });
@@ -58,6 +59,8 @@ http.createServer((req, res) => {
       case 'connectDelay': ctl.connectDelayMs = Number(b.ms) || 0; return send(200, { ok: true });
       case 'chat': return send(200, { delivered: ctl.chat(u, b) });
       case 'follow': return send(200, { delivered: ctl.follow(u, b.viewer) });
+      case 'gift': return send(200, { delivered: ctl.gift(u, b) });
+      case 'retryAfter': ctl.retryAfterSec = Number(b.sec) || 0; return send(200, { ok: true });
       case 'dropUpstream': return send(200, { dropped: ctl.dropUpstream(u) });
       case 'streamEnd': return send(200, { ended: ctl.streamEnd(u) });
       case 'burst': {

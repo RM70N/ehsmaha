@@ -20,7 +20,16 @@ BRIDGE_HEARTBEAT_MS=1000 PORT=18091 CTL_PORT=19091 node tests/bridge/start-serve
 node tests/bridge/server-protocol.test.js
 PORT=18093 CTL_PORT=19093 node tests/bridge/start-server.js &
 node tests/bridge/server-load.test.js 20 15 20 15
+# عقد الجسر + التعافي: غلاف messages، أفتار https، اتصال واحد لعميلين، /health،
+# تصنيف أخطاء 2.5.0 (offline/not_found/blocked/sign_failed/429)، التراجع، بوابة 429 المشتركة:
+EULER_API_KEY=dummy-test-key PORT=18095 CTL_PORT=19095 node tests/bridge/start-server.js &
+T_PORT=18095 T_CTL=19095 node tests/bridge/bridge-contract.test.js
+# الواجهة: حذف حقل مفتاح EulerStream بفعالية 100 + extractUser (بدون سيرفرات):
+node tests/bridge/frontend-contract.test.js
 ```
+
+Playwright غير مثبّت محلياً بالمستودع: مرّر مساره بـ`PLAYWRIGHT_PATH` (مثلاً
+`/opt/node22/lib/node_modules/playwright`).
 
 - `start-server.js` يفتح منفذ تحكم (19081/19082): `POST /ctl` بأوامر `chat/burst/mode/dropUpstream/...`، و`GET /stats`.
 - `results-before.json` / `results-after.json`: القياسات قبل وبعد الإصلاحات.
