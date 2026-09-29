@@ -18,8 +18,8 @@ tests/bridge/servers.sh stop
 # بروتوكول السيرفر وحمله (سيرفر مستقل):
 BRIDGE_HEARTBEAT_MS=1000 PORT=18091 CTL_PORT=19091 node tests/bridge/start-server.js &
 node tests/bridge/server-protocol.test.js
-PORT=18093 CTL_PORT=19093 node tests/bridge/start-server.js &
-node tests/bridge/server-load.test.js 20 15 20 15
+TIKTOK_FREE_RATE_PER_MIN=6000 TIKTOK_CONNECT_BURST=50 TIKTOK_CONNECT_INFLIGHT=50 PORT=18093 CTL_PORT=19093 node tests/bridge/start-server.js &
+node tests/bridge/server-load.test.js 20 15 20 15   # (معدل الطابور مرفوع هنا حتى يتصل الـ20 ستريمر فوراً)
 # عقد الجسر + التعافي: غلاف messages، أفتار https، اتصال واحد لعميلين، /health،
 # تصنيف أخطاء 2.5.0 (offline/not_found/blocked/sign_failed/429)، التراجع، بوابة 429 المشتركة:
 EULER_API_KEY=dummy-test-key PORT=18095 CTL_PORT=19095 node tests/bridge/start-server.js &

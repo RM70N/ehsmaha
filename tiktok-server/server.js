@@ -605,8 +605,8 @@ const metrics = new Metrics();
 const providerConfig = loadProviderDefs(process.env, { signUrl: (tiktokLib.SignConfig && tiktokLib.SignConfig.basePath) || 'https://api.eulerstream.com' });
 LOG_SECRETS = providerConfig.defs.flatMap((d) => [d.apiKey, d.proxyUrl]).filter((x) => x && x.length >= 6);
 const providerPool = new ProviderPool(providerConfig.defs, {
-  ratePerMin: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 90),
-  freeRatePerMin: envNum('TIKTOK_FREE_RATE_PER_MIN', 30),
+  ratePerMin: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120),
+  freeRatePerMin: envNum('TIKTOK_FREE_RATE_PER_MIN', 60),
   minRatePerMin: envNum('TIKTOK_CONNECT_MIN_RATE_PER_MIN', 6),
   burst: envNum('TIKTOK_CONNECT_BURST', 6),
   inFlight: envNum('TIKTOK_CONNECT_INFLIGHT', 4),
@@ -1619,7 +1619,7 @@ server.listen(PORT, () => {
   log('info', 'خادم جسر البث يعمل على المنفذ ' + PORT + ' (WebSocket: /ws?platform=tiktok|youtube|kick&u=username)');
   log('info', 'tiktok-live-connector ' + TIKTOK_LIB_VERSION + ' على Node ' + process.version);
   slog('info', 'providers', { count: providerPool.size, keys: providerConfig.keyCount, keySource: providerConfig.keySource, proxies: providerConfig.proxyCount, fallbackUrls: providerConfig.fallbackCount, names: providerPool.snapshot().map((p) => p.name).join(',') });
-  slog('info', 'connect_policy', { ratePerMinPerProvider: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 90), burst: envNum('TIKTOK_CONNECT_BURST', 6), inFlightPerProvider: envNum('TIKTOK_CONNECT_INFLIGHT', 4), maxAttempts: TIKTOK_MAX_ATTEMPTS, giveUpSec: Math.round(TIKTOK_GIVE_UP_MS / 1000) });
+  slog('info', 'connect_policy', { ratePerMinPerProvider: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120), burst: envNum('TIKTOK_CONNECT_BURST', 6), inFlightPerProvider: envNum('TIKTOK_CONNECT_INFLIGHT', 4), maxAttempts: TIKTOK_MAX_ATTEMPTS, giveUpSec: Math.round(TIKTOK_GIVE_UP_MS / 1000) });
   // تشخيص مباشر لأشيع سبب لـ429: المفتاح غير مضبوط أصلاً على المستضيف.
   if (providerConfig.keyCount > 0) {
     log('info', 'مفتاح EulerStream مضبوط (' + providerConfig.keyCount + ' مفتاح، من ' + providerConfig.keySource + ') — حد طلبات التوقيع المرفوع فعّال');
