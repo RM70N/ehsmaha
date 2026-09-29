@@ -4525,10 +4525,6 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="setup-title" style="font-size:22px;">🏆 سجّل ستريمرك بالفعالية</div>
       <div class="setup-sub" id="event100-reg-slots">0 / 16 مسجّلين</div>
       <div class="field">
-        <label>API Key (يوزر تيك توك)</label>
-        <input type="password" id="event100-reg-apikey" placeholder="مفتاح EulerStream API" autocomplete="off" dir="ltr" style="direction:ltr;text-align:right" />
-      </div>
-      <div class="field">
         <label>يوزر التيك توك (بدون @)</label>
         <input type="text" id="event100-reg-user" placeholder="اسم المستخدم..." autocomplete="off" dir="ltr" style="direction:ltr;text-align:right" />
       </div>
@@ -26343,7 +26339,7 @@ function connectTikTok() {
       if (!wsSock || ws !== wsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
       if (e && e.code === 4403) { setDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       setDot('off');
-      // Close codes from EulerStream
+      // أكواد الإغلاق: 4400/4403 من سيرفر الجسر؛ 4404/4005 بقايا اتصال EulerStream المباشر القديم (الجسر لا يرسلها)
       if (e.code === 4404) {
         connectTikTok._notLiveTries = (connectTikTok._notLiveTries || 0) + 1;
         if (connectTikTok._notLiveTries <= 3) { reconnectTimer = setTimeout(connectTikTok, 4000 * connectTikTok._notLiveTries); return; }
@@ -26369,7 +26365,7 @@ function disconnectWS() {
 
 // ==================== TIKTOK EVENT HANDLER ====================
 function handleTikTokEvent(data) {
-  // EulerStream sends { messages: [...] } batches
+  // سيرفر الجسر (tiktok-server + tiktok-live-connector) يرسل دفعات { messages: [...] }
   const messages = data.messages || (data.type ? [data] : []);
   
   messages.forEach(msg => {
@@ -26418,7 +26414,7 @@ function handleTikTokEvent(data) {
 
 function extractUser(msg) {
   contestNoteActivity(); // أي رسالة شات تدخل معالجة أي لعبة = "فعل" لفعالية أفضل ستريمر
-  // EulerStream structures vary slightly
+  // شكل user يطبّعه سيرفر الجسر (extractTikTokUser)؛ البدائل تحت للأشكال القديمة والمنصات الأخرى
   const u = msg.user || msg.data?.user || {};
   const uniqueId = u.uniqueId || u.username || u.id || msg.userId || '?';
   const override = liveCommandNicknameOverrides[uniqueId];
@@ -49769,7 +49765,7 @@ function findballHandleEvent(data) {
         findballJoinParticipant(user);
       }
     }
-    // Gift events — EulerStream's WebcastGiftMessage shape. Field names
+    // Gift events — WebcastGiftMessage as normalized by the bridge server (buildTikTokGift). Field names
     // (giftId/repeatCount/diamondCount) follow TikTok-Live-Connector's
     // documented payload; verify against a live gift once connected, since
     // no other game in this codebase ingests gift events yet.
@@ -62018,11 +62014,10 @@ function event100RenderRegistration() {
 }
 
 async function event100RegisterStreamer() {
-  const apiKey = document.getElementById('event100-reg-apikey').value.trim();
   const userRaw = document.getElementById('event100-reg-user').value.trim().replace(/^@/, '');
   const keyword = document.getElementById('event100-reg-kw').value.trim();
   const statusEl = document.getElementById('event100-reg-status');
-  if (!apiKey || !userRaw || !keyword) { statusEl.textContent = '⚠️ لازم تعبّي كل الحقول'; return; }
+  if (!userRaw || !keyword) { statusEl.textContent = '⚠️ لازم تعبّي كل الحقول'; return; }
 
   const count = Object.keys(event100StreamersCache).length;
   if (count >= EVENT100_MAX_STREAMERS) { statusEl.textContent = '⚠️ اكتمل عدد الستريمرز (' + EVENT100_MAX_STREAMERS + ')'; return; }
@@ -62038,10 +62033,9 @@ async function event100RegisterStreamer() {
   try {
     await fb.setDoc(fb.doc(fb.db, 'event100', 'current', 'streamers', uniqueIdLower), {
       uniqueId: userRaw, nickname: userRaw, keyword, colorName: available.name, colorHex: available.hex,
-      apiKey, registeredAt: fb.serverTimestamp()
+      registeredAt: fb.serverTimestamp()
     });
     event100MyStreamerLower = uniqueIdLower;
-    localStorage.setItem('event100_my_apikey', apiKey);
     statusEl.className = 'status-msg ok';
     statusEl.textContent = '✅ تسجّلت بنجاح! دولتك اللونية: ' + available.name;
     toast('✅ تم التسجيل بلون ' + available.name);
