@@ -35,6 +35,7 @@ const eulerServer = http.createServer((req, res) => {
   if (act === 'drop') { req.socket.destroy(); return; }
   if (act === '429') { res.writeHead(429, { 'content-type': 'application/json', 'retry-after': '3', 'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3) }); res.end(JSON.stringify({ message: 'Rate limit exceeded on this key, slow down please.', limit_label: 'test' })); return; }
   if (act === '402') { res.writeHead(402, { 'content-type': 'application/json' }); res.end(JSON.stringify({ message: 'This key does not have permission to use this feature.' })); return; }
+  if (act === '401') { res.writeHead(401, { 'content-type': 'application/json' }); res.end(JSON.stringify({ code: 401, message: 'The provided API Key is invalid.' })); return; }
   if (act === '500') { res.writeHead(500, { 'content-type': 'text/plain' }); res.end('internal error'); return; }
   res.writeHead(200, { 'content-type': 'application/protobuf', 'x-set-tt-cookie': 'ttwid=abc; Path=/', 'x-room-id': '7770001', 'x-request-id': 'req-1' });
   res.end(fetchResultBytes());
@@ -183,6 +184,18 @@ const mk = async (env) => { const b = await startBridge(env); bridges.push(b); r
     pushConns.slice(before).forEach((p) => p.ws.terminate()); // تيك توك قطع الاتصال
     const back = await until(() => c.statuses.filter((s) => s.state === 'connected').length >= 2, 20000);
     check('[8] قطع تيك توك للويب سوكيت (حقيقي) ← يرجع تلقائياً، والمستخدم يرى reconnecting لا error', back && c.statuses.some((s) => s.state === 'reconnecting') && !c.statuses.some((s) => s.state === 'error'), c.statuses.map((s) => s.state + (s.code ? ':' + s.code : '')));
+    c.ws.close(1000);
+  }
+
+  // ================================================================ 9) 401 حقيقي "The provided API Key is invalid" (كما بلوغات Render) ← provider_denied + المفتاح الثاني
+  {
+    euler.requests.length = 0; euler.script = []; euler.defaultAction = (key) => (key === 'REAL-KEY-ONE' ? '401' : 'ok');
+    const b = await mk({ SIGN_API_URL: EU, EULER_API_KEY: 'REAL-KEY-ONE', EULER_API_KEYS: 'REAL-KEY-TWO' });
+    const c = client(b, 'realinvalid1'); await c.opened;
+    const ok = await until(() => c.connectedAt() != null, 15000);
+    const h = await b.health();
+    check('[9] 401 حقيقي (مفتاح غير صالح) يُصنَّف provider_denied، ويُسكَّت المفتاح، ويتصل بالثاني، مع سطر invalid_api_key', ok && /kind=provider_denied/.test(evLines(b, 'connect_fail')[0] || '') && evLines(b, 'invalid_api_key').length === 1 && h.providers[0].breaker === 'open' && h.providers[0].cooldownSec > 500 && euler.requests.map((r) => r.key).join(',') === 'REAL-KEY-ONE,REAL-KEY-TWO', { keys: euler.requests.map((r) => r.key), cooldownSec: h.providers[0].cooldownSec });
+    check('[9] المفتاح الخاطئ لا يظهر باللوغ', !b.log().includes('REAL-KEY-ONE') && !b.log().includes('REAL-KEY-TWO'));
     c.ws.close(1000);
   }
 

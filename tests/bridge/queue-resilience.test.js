@@ -282,6 +282,25 @@ const mk = async (env) => { const b = await startBridge(env); bridges.push(b); r
   check('[I] مفتاحان: الأول خلص حده اليومي ← الثاني يخدم فوراً، والأول مسكَّت ساعات، بلا error للمستخدم', d2ok && noUserFacingFailure(d2c) && h2i.providers[0].role === 'cooling' && h2i.providers[0].cooldownSec >= 1700 && h2i.providers[1].role === 'active', h2i.providers.map((p) => p.name + ':' + p.role + ':' + p.cooldownSec));
   d2c.close(1000);
 
+  // ============================================================ J) مفتاح مرفوض 401 (كما ظهر بلوغات Render)
+  const J1 = await mk({ EULER_API_KEY: 'BAD1', EULER_API_KEYS: 'GOOD2', TIKTOK_FREE_FALLBACK: '0' });
+  await J1.ctl({ cmd: 'provider', key: 'BAD1', mode: 'invalid_key' });
+  const j1 = client(J1, 'inv1'); await j1.opened;
+  const j1ok = await until(() => j1.connectedAt() != null, 10000);
+  const jh = await J1.health();
+  check('[J] المفتاح الأول مرفوض 401 ← الثاني يخدم فوراً، والأول مسكَّت 10 دقائق، بلا error للمستخدم', j1ok && noUserFacingFailure(j1) && jh.providers[0].role === 'cooling' && jh.providers[0].cooldownSec > 500 && jh.providers[1].role === 'active', jh.providers.map((p) => p.name + ':' + p.role + ':' + p.cooldownSec));
+  check('[J] باللوغ سطر invalid_api_key واضح مع التوجيه', /event=invalid_api_key provider=key1\/direct/.test(J1.log()), (J1.log().split('\n').find((l) => /invalid_api_key/.test(l)) || '').slice(28, 220));
+  j1.close(1000);
+  // مفتاح مرفوض + الطبقة المجانية وصلت حدها اليومي (حالة Render بالضبط): إعلان فوري بالسبب الجذري "المفتاح غير صالح"
+  const J2 = await mk({ EULER_API_KEY: 'BAD1', TIKTOK_PROGRESS_TICK_MS: '400' });
+  await J2.ctl({ cmd: 'provider', key: 'BAD1', mode: 'invalid_key' });
+  await J2.ctl({ cmd: 'provider', key: '', mode: 'daily_limit' });
+  const j2 = client(J2, 'inv2'); await j2.opened;
+  const j2gave = await until(() => j2.statuses.some((s) => s.fatal), 15000);
+  const j2f = j2.statuses.find((s) => s.fatal) || {};
+  check('[J] مفتاح مرفوض + مجاني منتهٍ يومياً ← إعلان فوري بالسبب الجذري (المفتاح غير صالح) لا "حد يومي"', j2gave && j2f.reason === 'invalid_key' && /غير صالح/.test(j2f.message || '') && /Render/.test(j2f.message || '') && (j2f.at || 99999) < 6000, { afterMs: j2f.at, reason: j2f.reason, message: j2f.message });
+  j2.close(1000);
+
   bridges.forEach((b) => b.stop());
   const bad = results.filter((r) => !r.ok).length;
   console.log(bad ? bad + ' FAILED / ' + results.length : 'ALL PASSED (' + results.length + ')');

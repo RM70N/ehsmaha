@@ -60,6 +60,13 @@ test('works when the library lacks a class (test doubles)', () => {
   assert.equal(classifyTikTokError(new Error('boom'), undefined).kind, 'transient');
 });
 
+test('401 "The provided API Key is invalid" (exact Euler payload seen in production logs) -> provider_denied + invalidKey', () => {
+  const e = new lib.SignAPIError('Sign Error', undefined, undefined, '[fetchSignedWebSocketFromEulerRoute] Unexpected sign server status 401. Payload:\n{"code":401,"message":"The provided API Key is invalid."}');
+  assert.deepEqual(classifyTikTokError(e, lib), { kind: 'provider_denied', invalidKey: true });
+  const other = new lib.SignAPIError('Sign Error', undefined, undefined, '[x] Unexpected sign server status 500. Payload:\noops');
+  assert.equal(classifyTikTokError(other, lib).kind, 'sign_failed');
+});
+
 test('daily account limit (limit_label=rate_limit_account_day) is flagged as daily — real message shape from Euler', () => {
   const e = new lib.SignatureRateLimitError('You have reached the rate limit. Sign up for a free API key at https://www.eulerstream.com/pricing.', '(rate_limit_account_day) Too many connections started, try again later.', { headers: { 'retry-after': '7200' } });
   const r = classifyTikTokError(e, lib);
