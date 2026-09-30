@@ -4525,10 +4525,6 @@ if (location.hostname === 'streamgame1.netlify.app') {
       <div class="setup-title" style="font-size:22px;">🏆 سجّل ستريمرك بالفعالية</div>
       <div class="setup-sub" id="event100-reg-slots">0 / 16 مسجّلين</div>
       <div class="field">
-        <label>API Key (يوزر تيك توك)</label>
-        <input type="password" id="event100-reg-apikey" placeholder="مفتاح EulerStream API" autocomplete="off" dir="ltr" style="direction:ltr;text-align:right" />
-      </div>
-      <div class="field">
         <label>يوزر التيك توك (بدون @)</label>
         <input type="text" id="event100-reg-user" placeholder="اسم المستخدم..." autocomplete="off" dir="ltr" style="direction:ltr;text-align:right" />
       </div>
@@ -7287,6 +7283,11 @@ function landingCtaClick(){
   <div class="qc-connecting-spinner"></div>
   <div class="qc-connecting-text">🔄 جاري الربط...</div>
   <div class="qc-connecting-sub" id="qc-connecting-sub">نتحقق من اتصال حقيقي ببثك المباشر — لحظات...</div>
+  <div id="qc-connecting-actions" style="display:none;gap:10px;flex-wrap:wrap;justify-content:center;">
+    <button type="button" class="btn-primary" id="qc-retry-btn" style="width:auto;padding:12px 26px;margin-top:0;">🔁 إعادة المحاولة</button>
+    <button type="button" class="btn-secondary" id="qc-close-btn" style="width:auto;padding:12px 22px;margin-bottom:0;">إغلاق</button>
+  </div>
+  <button type="button" class="btn-secondary" id="qc-bg-btn" style="width:auto;padding:10px 20px;margin-bottom:0;">متابعة بالخلفية</button>
 </div>
 
 <!-- ====== CONTEST TOP-20 (فعالية أفضل ستريمر — تصميم معتمد بالكامل، فقط
@@ -23239,7 +23240,12 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
         // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
         // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
         // ما تظل تعرض "جاري الاتصال" للأبد.
-        onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
+        // كل حقول حالة السيرفر تُمرَّر (طابور/محاولة/عدّ تنازلي/سبب) — لو انحذفت منها يعجز المستخدم عن رؤية تقدّم الربط.
+        onEvent({
+          type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal,
+          reason: d.reason, attempt: d.attempt, queuePosition: d.queuePosition, queueSize: d.queueSize,
+          etaSec: d.etaSec, retryInSec: d.retryInSec, srv: d.srv,
+        });
         return;
       }
       onEvent(d);
@@ -23420,52 +23426,85 @@ function tiktokSavedUserToggle(username, enabled) {
 // فما توصل الواجهة أي إشارة نهائية (onClose ما يُطلق، وonOpen ما يُطلق لأنه
 // مربوط بـconnected حقيقي)، فيظل الاسبنر يدور للأبد. هذا المراقب يقرأ
 // أحداث bridge_status ويحوّلها لنتيجة نهائية واحدة واضحة.
-const TIKTOK_CONNECT_MAX_FAILS = 3;       // فشل متتالٍ قبل إعلان الفشل النهائي
-const TIKTOK_CONNECT_DEADLINE_MS = 30000; // سقف زمني لأي محاولة ربط واحدة (بعد إيقاظ السيرفر)
+const TIKTOK_CONNECT_MAX_FAILS = 3;       // (سيرفر قديم فقط) أخطاء غير نهائية متتالية قبل إعلان الفشل
+// مهلة "صمت السيرفر": سيرفر الجسر يبثّ حالة (طابور/محاولة/عدّ تنازلي) كل ≤10ث أثناء المحاولات التلقائية،
+// وكل رسالة تمدّد المهلة. لا رسالة فشل إطلاقاً ما دام السيرفر يعمل ويحاول — الفشل النهائي وحده
+// (fatal من السيرفر بعد استنفاد كل المحاولات والمزودين) أو صمته الكامل هذي المدة.
+const TIKTOK_CONNECT_DEADLINE_MS = 30000;
 
 function tiktokConnectFailMessage(code) {
   if (code === 'user_not_found') return '⚠️ يوزرنيم غير موجود — تأكد من كتابته صح';
-  if (code === 'rate_limited') return '⛔ خدمة تيك توك مزدحمة الآن ورفضت طلب الربط — انتظر دقيقة وحاول مرة ثانية';
-  if (code === 'timeout') return '⚠️ سيرفر الربط ما رد خلال الوقت المتوقع — تأكد من إنترنتك وحاول مرة ثانية';
-  return '⚠️ تعذّر الاتصال بتيك توك بعد عدة محاولات — تأكد إن البث مفتوح فعلاً وحاول مرة ثانية';
+  if (code === 'timeout') return '⚠️ سيرفر الربط ما رد — تأكد من إنترنتك واضغط "إعادة المحاولة"';
+  // gave_up وأخواتها: بعد استنفاد كل المحاولات التلقائية (والمزودين البدلاء)
+  return '⚠️ تعذّر الربط بتيك توك بعد عدة محاولات تلقائية — تأكد إن البث مفتوح فعلاً واضغط "إعادة المحاولة"';
+}
+
+// نص تقدّم الربط (طابور/محاولة) من حالة السيرفر — يُعرض بدل أي رسالة فشل أثناء المحاولات التلقائية.
+function tiktokProgressText(evt) {
+  if (!evt) return '';
+  if (evt.code === 'queued' && evt.queuePosition) {
+    return 'موقعك في الطابور ' + evt.queuePosition + ' من ' + (evt.queueSize || evt.queuePosition) + (evt.etaSec ? ' — حوالي ' + evt.etaSec + ' ثانية' : '');
+  }
+  if (evt.code === 'retrying') {
+    return 'محاولة رقم ' + (evt.attempt || 1) + ' — نعيد الاتصال تلقائياً' + (evt.retryInSec ? ' بعد ' + evt.retryInSec + ' ثانية' : '');
+  }
+  if (evt.attempt > 1) return 'محاولة رقم ' + evt.attempt + '…';
+  return '';
 }
 
 // onFail(message, code): تُستدعى مرة وحدة فقط عند الفشل النهائي.
 // onNotLive(): تُستدعى مرة وحدة عند أول "مو لايف" — وهي ليست فشلاً: نوقف
 //   المراقبة ونبقي الاتصال مفتوحاً لأن السيرفر بيربط تلقائياً أول ما يفتح البث.
-function tiktokConnectWatcher(onFail, onNotLive) {
-  const w = { fails: 0, lastCode: 'connect_failed', done: false, timer: null };
-  w.start = function () {
-    if (w.done || w.timer) return w;
+// onProgress(evt): تُستدعى مع كل حالة "جاري الاتصال" (طابور/محاولة) لعرض التقدم — ليست فشلاً أبداً.
+function tiktokConnectWatcher(onFail, onNotLive, onProgress) {
+  const w = { fails: 0, lastCode: 'connect_failed', done: false, timer: null, sawNewServer: false };
+  const arm = () => {
+    if (w.timer) clearTimeout(w.timer);
     w.timer = setTimeout(() => {
-      // لو وصلتنا أخطاء فعلاً، السيرفر رد وما صمت — المشكلة هي سبب
-      // آخر خطأ (مثلاً rate_limited وتراجعه أطول من مهلتنا)، فنعرض سببه
-      // الحقيقي. 'timeout' تُعرض فقط لو ما وصل أي خطأ إطلاقاً (صمت تام).
+      // صمت تام من السيرفر هذي المدة = مشكلة اتصال بالسيرفر نفسه (لا تفاوض مع تيك توك).
       w.fail(w.fails > 0 ? w.lastCode : 'timeout');
     }, TIKTOK_CONNECT_DEADLINE_MS);
+  };
+  w.start = function () {
+    if (w.done || w.timer) return w;
+    arm();
     return w;
   };
   w.stop = function () {
     if (w.timer) { clearTimeout(w.timer); w.timer = null; }
     w.done = true;
   };
-  w.fail = function (code) {
+  w.fail = function (code, message, reason) {
     if (w.done) return;
     w.stop();
-    if (typeof onFail === 'function') onFail(tiktokConnectFailMessage(code), code);
+    let text = message || tiktokConnectFailMessage(code);
+    if (code !== 'user_not_found') {
+      text += ' [' + (reason || code) + ']'; // رمز السبب للدعم/التشخيص
+      // سيرفر الجسر الجديد يختم كل حالة بـsrv؛ غيابها = سيرفر Render ما زال على النسخة القديمة (هو مصدر أشيع فشل)
+      if (!w.sawNewServer) text += ' — تنبيه: سيرفر الجسر على Render يبدو نسخة قديمة، حدّثه (راجع /health)';
+    }
+    if (typeof onFail === 'function') onFail(text, code);
   };
+  w.autoArm = false; // true = تبدأ مهلة الصمت عند أول رسالة من السيرفر (بلا إيقاظ مسبق للسيرفر)
   w.note = function (evt) {
     if (w.done || !evt || evt.type !== 'bridge_status') return;
+    if (evt.srv) w.sawNewServer = true;
+    if (w.timer || w.autoArm) arm(); // السيرفر حي ويتقدم: نمدّد مهلة الصمت
     if (evt.state === 'connected') { w.stop(); return; }
     if (evt.state === 'not_live') {
       w.stop();
       if (typeof onNotLive === 'function') onNotLive();
       return;
     }
-    if (evt.state !== 'error') return; // connecting/reconnecting — ما زال يحاول
+    if (evt.state === 'connecting' || evt.state === 'reconnecting') {
+      if (typeof onProgress === 'function') onProgress(evt);
+      return;
+    }
+    if (evt.state !== 'error') return;
     w.lastCode = evt.code || 'connect_failed';
-    // يوزرنيم غير موجود، أو fatal من السيرفر = لا داعي لانتظار محاولات إضافية.
-    if (w.lastCode === 'user_not_found' || evt.fatal) { w.fail(w.lastCode); return; }
+    // يوزرنيم غير موجود، أو fatal من السيرفر (استنفد كل المحاولات) = نهائي.
+    if (w.lastCode === 'user_not_found' || evt.fatal) { w.fail(w.lastCode, evt.fatal ? evt.message : undefined, evt.reason); return; }
+    // سيرفر جسر قديم (قبل الطابور) يرسل error غير نهائي مع كل محاولة: نعدّها فقط.
     w.fails++;
     if (w.fails >= TIKTOK_CONNECT_MAX_FAILS) w.fail(w.lastCode);
   };
@@ -23478,6 +23517,49 @@ const TIKTOK_QC_SUB_DEFAULT = 'نتحقق من اتصال حقيقي ببثك ا
 function tiktokQcSubSet(text) {
   const el = document.getElementById('qc-connecting-sub');
   if (el) el.textContent = text || TIKTOK_QC_SUB_DEFAULT;
+}
+
+// شاشة الربط تعود لحالة "جاري الربط" العادية (اسبنر بدون أزرار فشل).
+function tiktokQcResetOverlay() {
+  const overlay = document.getElementById('qc-connecting-overlay');
+  if (!overlay) return;
+  const spinner = overlay.querySelector('.qc-connecting-spinner');
+  const title = overlay.querySelector('.qc-connecting-text');
+  const actions = document.getElementById('qc-connecting-actions');
+  const bg = document.getElementById('qc-bg-btn');
+  if (spinner) spinner.style.display = '';
+  if (title) title.textContent = '🔄 جاري الربط...';
+  if (actions) actions.style.display = 'none';
+  if (bg) { bg.style.display = ''; bg.onclick = () => overlay.classList.remove('visible'); } // الربط يكمل بالخلفية والشارة تعرض التقدم
+}
+
+// الفشل النهائي الوحيد المسموح (بعد استنفاد كل المحاولات التلقائية والمزودين): سبب واضح + زر "إعادة المحاولة".
+function tiktokQcShowFailure(message, retryFn) {
+  const overlay = document.getElementById('qc-connecting-overlay');
+  if (!overlay) { toast(message); return; }
+  overlay.classList.add('visible');
+  const spinner = overlay.querySelector('.qc-connecting-spinner');
+  const title = overlay.querySelector('.qc-connecting-text');
+  const actions = document.getElementById('qc-connecting-actions');
+  if (spinner) spinner.style.display = 'none';
+  if (title) title.textContent = '⚠️ تعذّر الربط';
+  tiktokQcSubSet(message);
+  if (actions) actions.style.display = 'flex';
+  const bgBtn = document.getElementById('qc-bg-btn');
+  if (bgBtn) bgBtn.style.display = 'none';
+  const retryBtn = document.getElementById('qc-retry-btn');
+  const closeBtn = document.getElementById('qc-close-btn');
+  if (retryBtn) retryBtn.onclick = () => { tiktokQcResetOverlay(); tiktokQcSubSet('نعيد المحاولة…'); if (typeof retryFn === 'function') retryFn(); };
+  if (closeBtn) closeBtn.onclick = () => { overlay.classList.remove('visible'); tiktokQcResetOverlay(); tiktokQcSubSet(''); };
+}
+
+// شارة الاتصال بالصفحة الرئيسية أثناء المحاولات: "جاري الاتصال…" بدل "غير متصل" الموحية بالفشل.
+function tiktokBadgeConnecting(evt) {
+  const text = document.getElementById('home-conn-badge-text');
+  const badge = document.getElementById('home-conn-badge');
+  if (!text || (badge && badge.classList.contains('online'))) return;
+  const extra = evt && (evt.queuePosition ? ' (الطابور ' + evt.queuePosition + ')' : (evt.attempt > 1 ? ' (محاولة ' + evt.attempt + ')' : ''));
+  text.textContent = 'جاري الاتصال…' + (extra || '');
 }
 
 // يفتح اتصال حقيقي بالسيرفر المستضاف ويستنى فعلياً bridge_status:connected
@@ -23498,10 +23580,15 @@ function tiktokConnectModalStart() {
   // الفاشلة المتتالية ويعرض سبباً نهائياً واضحاً، بدل ما تظل رسالة "إعادة
   // المحاولة تلقائياً" معروضة للأبد بلا أي نتيجة.
   const watcher = tiktokConnectWatcher((message) => {
-    tiktokConnectSetStatus('error', message);
+    // الفشل النهائي فقط (بعد استنفاد كل المحاولات التلقائية): زر "ربط" بالنافذة هو إعادة المحاولة
+    tiktokConnectSetStatus('error', message.replace('اضغط "إعادة المحاولة"', 'اضغط "ربط" للمحاولة من جديد'));
     try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
     window._tkModalSock = null;
-  }, null);
+  }, null, (evt) => {
+    // المحاولات التلقائية جارية: نعرض التقدم (طابور/رقم المحاولة) — وليس فشلاً
+    const t = tiktokProgressText(evt);
+    tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…' + (t ? ' ' + t : ''));
+  });
   window._tkModalWatcher = watcher;
 
   // نوقظ السيرفر أولاً (Cold Start) ثم نفتح الويب سوكيت — لو كان مستيقظاً
@@ -23513,11 +23600,11 @@ function tiktokConnectModalStart() {
     (evt) => {
       watcher.note(evt);
       if (evt && evt.type === 'bridge_status') {
-        if (evt.state === 'connecting') tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
+        if (evt.state === 'connecting') { if (!evt.code) tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…'); }
         else if (evt.state === 'not_live') tiktokConnectSetStatus('error', '⚠️ @' + uname + ' مو مفتوح بث الآن — تأكد إنك لايف وحاول ثانية');
-        else if (evt.state === 'reconnecting') tiktokConnectSetStatus('connecting', '🔄 انقطع الاتصال — إعادة المحاولة تلقائياً…');
+        else if (evt.state === 'reconnecting') { if (!evt.code) tiktokConnectSetStatus('connecting', '🔄 انقطع الاتصال — إعادة المحاولة تلقائياً…'); }
         else if (evt.state === 'error' && evt.code === 'user_not_found') tiktokConnectSetStatus('error', '⚠️ يوزرنيم غير موجود — تأكد من كتابته صح');
-        else if (evt.state === 'error' && !evt.fatal) tiktokConnectSetStatus('error', '⚠️ خطأ مؤقت — إعادة المحاولة تلقائياً');
+        else if (evt.state === 'error' && !evt.fatal) tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '… (نعيد المحاولة تلقائياً)');
       }
     },
     () => {
@@ -23586,12 +23673,19 @@ function tiktokQuickReconnect(username, opts) {
   const overlay = document.getElementById('qc-connecting-overlay');
   const hideOverlay = () => {
     if (silent || !overlay) return;
+    if (overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
     overlay.classList.remove('visible');
+    tiktokQcResetOverlay();
     tiktokQcSubSet('');
   };
+  let overlayTimer = null;
   if (!silent && overlay) {
+    tiktokQcResetOverlay();
     tiktokQcSubSet('نجهّز سيرفر الربط… أول اتصال بعد فترة خمول ياخذ وقتاً أطول شوي');
     overlay.classList.add('visible');
+    // الربط قد يطول (طابور/محاولات تلقائية): بعد 25ث نحرّر الواجهة ويكمل بالخلفية (الشارة تعرض التقدم،
+    // والفشل النهائي — إن حصل — يُظهر شاشته بزر "إعادة المحاولة").
+    overlayTimer = setTimeout(() => { overlay.classList.remove('visible'); }, 25000);
   }
 
   // محاولة جديدة تلغي مراقب المحاولة السابقة (ضغطتين متتاليتين، أو ضغطة
@@ -23601,20 +23695,24 @@ function tiktokQuickReconnect(username, opts) {
   // نفس مراقب المودال: نهاية واضحة لكل محاولة بدل اسبنر يدور بلا نهاية.
   const watcher = tiktokConnectWatcher(
     (message) => {
-      hideOverlay();
       homeUpdateConnectionBadge(false, '');
-      toast(message);
-      // ملاحظة مقصودة: ما نستدعي platformDisconnect هنا. إغلاق السوكيت
-      // يُطلق onClose داخل platformConnect اللي يجدول إعادة محاولة بعد 4ث —
-      // فالإغلاق كان بيرجّع المحاولات بدل ما يوقفها. نكتفي برسالة نهائية
-      // ونترك السوكيت مفتوحاً: السيرفر صار عنده تراجع تصاعدي (حتى دقيقتين)
-      // فما فيه أي دق متواصل، ولو رجعت الخدمة يتصل تلقائياً بلا أي ضغطة.
+      // الفشل النهائي الوحيد المسموح (بعد استنفاد كل المحاولات التلقائية): سبب واضح + زر "إعادة المحاولة".
+      // الربط التلقائي عند فتح الصفحة (silent) ما يحجب الواجهة: إشعار فقط.
+      if (silent) toast(message);
+      else tiktokQcShowFailure(message, () => tiktokQuickReconnect(username));
+      // ملاحظة مقصودة: ما نستدعي platformDisconnect هنا — السيرفر يكمل المحاولة كل 5 دقائق بالخلفية،
+      // فلو رجعت الخدمة يتصل تلقائياً بلا أي ضغطة. وزر "إعادة المحاولة" يعيد فتح الاتصال فيوقظ الغرفة فوراً.
     },
     () => {
       // "مو لايف" مو فشل: نخفي شاشة الانتظار ونبقي الاتصال مفتوحاً —
       // السيرفر يعيد المحاولة دورياً ويربط تلقائياً أول ما يفتح البث.
       hideOverlay();
       toast('⚠️ @' + username + ' مو مفتوح بث الآن — بنربطك تلقائياً أول ما تفتح البث');
+    },
+    (evt) => {
+      // المحاولات التلقائية جارية: تقدّم (طابور/رقم المحاولة) بدل أي رسالة فشل
+      if (!silent) tiktokQcSubSet(tiktokProgressText(evt) || TIKTOK_QC_SUB_DEFAULT);
+      tiktokBadgeConnecting(evt);
     }
   );
   window._tkQuickWatcher = watcher;
@@ -24242,7 +24340,7 @@ function homeConnPillRender() {
   const cs = homeConnState.tiktok || homeConnState[Object.keys(homeConnections)[0]];
   const age = cs && cs.lastEventAt ? Math.round((Date.now() - cs.lastEventAt) / 1000) : null;
   pill.style.borderColor = (overall === 'failed' || overall === 'disabled' || !overall) ? 'var(--red)' : 'var(--gold)';
-  pill.textContent = '⚠️ ' + (overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط') + (age != null && age > 5 ? ' · آخر حدث قبل ' + age + 'ث' : '');
+  pill.textContent = '⚠️ ' + (overall ? CONN_STATE_LABELS[overall] : 'ما فيه بث مربوط') + (cs && cs.progressText && (overall === 'connecting' || overall === 'reconnecting') ? ' · ' + cs.progressText : '') + (age != null && age > 5 ? ' · آخر حدث قبل ' + age + 'ث' : '');
 }
 
 // id الحدث من السيرفر = BOOT_ID.seq — نقارن الرقم فقط داخل نفس التشغيل.
@@ -24415,6 +24513,8 @@ function platformConnect(platform, creds, onEvent, onStatus) {
 }
 
 function homeConnFromBridgeStatus(platform, st, slot) {
+  // نص التقدّم (طابور/محاولة) للمؤشر العائم داخل الألعاب
+  homeConnGet(platform).progressText = (st.state === 'connecting' || st.state === 'reconnecting') ? tiktokProgressText(st) : '';
   if (st.state === 'connected') homeConnSetState(platform, 'connected');
   else if (st.state === 'not_live') homeConnSetState(platform, 'not_live');
   else if (st.state === 'reconnecting') homeConnSetState(platform, 'reconnecting');
@@ -24874,6 +24974,7 @@ function homeStartQuickConnect() {
   } catch (e) {}
 
   homeCloseQuickConnect();
+  tiktokQcResetOverlay();
   document.getElementById('qc-connecting-overlay').classList.add('visible');
 
   // أي ربط جديد يغلق كل الاتصالات السابقة أولاً — فما تتراكم اتصالات
@@ -24889,6 +24990,7 @@ function homeStartQuickConnect() {
     if (overlayHidden) return;
     overlayHidden = true;
     document.getElementById('qc-connecting-overlay').classList.remove('visible');
+    tiktokQcResetOverlay();
   };
   // حزام أمان: لو ما رجعت أي منصة بحالة نهائية، ما نخلي الشاشة معلّقة للأبد.
   const overlayTimer = setTimeout(hideOverlay, 20000);
@@ -24903,12 +25005,40 @@ function homeStartQuickConnect() {
   }
 
   targets.forEach(t => {
-    platformConnect(t.platform, { username: t.username }, homeDispatchToGameListeners,
+    // تيك توك: مراقب يعرض تقدّم الربط (طابور/محاولة) ويعلن الفشل فقط بعد استنفاد المحاولات التلقائية.
+    let tkWatcher = null;
+    if (t.platform === 'tiktok') {
+      tkWatcher = tiktokConnectWatcher(
+        (message) => {
+          clearTimeout(overlayTimer);
+          homeUpdateConnectionBadge(false, '');
+          if (platformConnectedList().length) { toast(message); return; } // منصة ثانية متصلة: ما نحجب الواجهة
+          tiktokQcShowFailure(message, () => tiktokQuickReconnect(t.username));
+        },
+        () => {
+          clearTimeout(overlayTimer); hideOverlay();
+          toast('⚠️ @' + t.username + ' مو مفتوح بث الآن — بنربطك تلقائياً أول ما تفتح البث');
+        },
+        (evt) => {
+          if (!overlayHidden) tiktokQcSubSet(tiktokProgressText(evt) || TIKTOK_QC_SUB_DEFAULT);
+          tiktokBadgeConnecting(evt);
+        }
+      );
+      tkWatcher.autoArm = true;
+    }
+    const onEvent = tkWatcher
+      ? (evt) => {
+          if (evt && evt.messages && evt.messages[0] && evt.messages[0].type === 'bridge_status') tkWatcher.note(evt.messages[0]);
+          homeDispatchToGameListeners(evt);
+        }
+      : homeDispatchToGameListeners;
+    platformConnect(t.platform, { username: t.username }, onEvent,
       function homeQcOnStatus(p, status) {
         statusByPlatform[p] = status;
         platformStatusBarRender(statusByPlatform);
 
         if (status === 'connected') {
+          if (tkWatcher) tkWatcher.stop();
           clearTimeout(overlayTimer);
           hideOverlay();
           refreshBadge();
@@ -26343,7 +26473,7 @@ function connectTikTok() {
       if (!wsSock || ws !== wsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
       if (e && e.code === 4403) { setDot('off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
       setDot('off');
-      // Close codes from EulerStream
+      // أكواد الإغلاق: 4400/4403 من سيرفر الجسر؛ 4404/4005 بقايا اتصال EulerStream المباشر القديم (الجسر لا يرسلها)
       if (e.code === 4404) {
         connectTikTok._notLiveTries = (connectTikTok._notLiveTries || 0) + 1;
         if (connectTikTok._notLiveTries <= 3) { reconnectTimer = setTimeout(connectTikTok, 4000 * connectTikTok._notLiveTries); return; }
@@ -26369,7 +26499,7 @@ function disconnectWS() {
 
 // ==================== TIKTOK EVENT HANDLER ====================
 function handleTikTokEvent(data) {
-  // EulerStream sends { messages: [...] } batches
+  // سيرفر الجسر (tiktok-server + tiktok-live-connector) يرسل دفعات { messages: [...] }
   const messages = data.messages || (data.type ? [data] : []);
   
   messages.forEach(msg => {
@@ -26418,7 +26548,7 @@ function handleTikTokEvent(data) {
 
 function extractUser(msg) {
   contestNoteActivity(); // أي رسالة شات تدخل معالجة أي لعبة = "فعل" لفعالية أفضل ستريمر
-  // EulerStream structures vary slightly
+  // شكل user يطبّعه سيرفر الجسر (extractTikTokUser)؛ البدائل تحت للأشكال القديمة والمنصات الأخرى
   const u = msg.user || msg.data?.user || {};
   const uniqueId = u.uniqueId || u.username || u.id || msg.userId || '?';
   const override = liveCommandNicknameOverrides[uniqueId];
@@ -49769,7 +49899,7 @@ function findballHandleEvent(data) {
         findballJoinParticipant(user);
       }
     }
-    // Gift events — EulerStream's WebcastGiftMessage shape. Field names
+    // Gift events — WebcastGiftMessage as normalized by the bridge server (buildTikTokGift). Field names
     // (giftId/repeatCount/diamondCount) follow TikTok-Live-Connector's
     // documented payload; verify against a live gift once connected, since
     // no other game in this codebase ingests gift events yet.
@@ -62018,11 +62148,10 @@ function event100RenderRegistration() {
 }
 
 async function event100RegisterStreamer() {
-  const apiKey = document.getElementById('event100-reg-apikey').value.trim();
   const userRaw = document.getElementById('event100-reg-user').value.trim().replace(/^@/, '');
   const keyword = document.getElementById('event100-reg-kw').value.trim();
   const statusEl = document.getElementById('event100-reg-status');
-  if (!apiKey || !userRaw || !keyword) { statusEl.textContent = '⚠️ لازم تعبّي كل الحقول'; return; }
+  if (!userRaw || !keyword) { statusEl.textContent = '⚠️ لازم تعبّي كل الحقول'; return; }
 
   const count = Object.keys(event100StreamersCache).length;
   if (count >= EVENT100_MAX_STREAMERS) { statusEl.textContent = '⚠️ اكتمل عدد الستريمرز (' + EVENT100_MAX_STREAMERS + ')'; return; }
@@ -62038,10 +62167,9 @@ async function event100RegisterStreamer() {
   try {
     await fb.setDoc(fb.doc(fb.db, 'event100', 'current', 'streamers', uniqueIdLower), {
       uniqueId: userRaw, nickname: userRaw, keyword, colorName: available.name, colorHex: available.hex,
-      apiKey, registeredAt: fb.serverTimestamp()
+      registeredAt: fb.serverTimestamp()
     });
     event100MyStreamerLower = uniqueIdLower;
-    localStorage.setItem('event100_my_apikey', apiKey);
     statusEl.className = 'status-msg ok';
     statusEl.textContent = '✅ تسجّلت بنجاح! دولتك اللونية: ' + available.name;
     toast('✅ تم التسجيل بلون ' + available.name);

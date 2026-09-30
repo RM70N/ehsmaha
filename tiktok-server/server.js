@@ -9,7 +9,9 @@
 //
 // المنصات المدعومة (query param platform=، افتراضي 'tiktok' للتوافق
 // الخلفي مع أي عميل قديم لا يرسل platform= إطلاقاً):
-//   - tiktok  : tiktok-live-connector (كما كان بالضبط — لم يُغيَّر سلوكه).
+//   - tiktok  : tiktok-live-connector 2.5.x (الطريقة الوحيدة للربط بتيك توك). التوقيع
+//               عبر EulerStream بمفتاح من متغيّر البيئة EULER_API_KEY (اختياري —
+//               بدونه تعمل الطبقة المجانية مع تحذير باللوغ). راجع .env.example.
 //   - youtube : مكتبة youtube-chat — تقبل يوزر/هاندل القناة، رابط القناة،
 //               رابط البث المباشر، أو معرف الفيديو. بدون مفتاح YouTube API.
 //   - kick    : مكتبة kick-live-connector (lox-x) — بدون تسجيل دخول أو أي
@@ -51,29 +53,41 @@
 
 const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
+const tiktokLib = require('tiktok-live-connector');
 const {
-  TikTokLiveConnection, WebcastEvent, ControlEvent, UserOfflineError,
-} = require('tiktok-live-connector');
+  TikTokLiveConnection, WebcastEvent, ControlEvent,
+} = tiktokLib;
+const tiktokSdk = require('tiktok-live-api-sdk');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const { LiveChat: YoutubeLiveChat } = require('youtube-chat');
 const { KickConnection, Events: KickEvents } = require('kick-live-connector');
 
-// مفتاح Euler Stream اختياري بالكامل (متغير بيئة على السيرفر فقط — لا علاقة
-// له بالستريمر ولا يُطلب منه أبداً). بدونه تعمل المكتبة على الطبقة المجانية
-// من Euler Stream (محدودة المعدل)؛ وجوده يرفع الحد الأقصى للاتصالات المتزامنة
-// فقط. راجع options.signApiKey في tiktok-live-connector. خاص بتيك توك فقط.
-// نقبل الاسمين: EULER_SIGN_API_KEY (المستخدم بهذا المشروع) وSIGN_API_KEY
-// (الاسم الرسمي الذي تقرأه المكتبة نفسها من متغيرات البيئة). كثير يضبط
-// الثاني على Render نقلاً عن توثيق EulerStream ثم يظن أن المفتاح غير فعّال —
-// قبول الاثنين يلغي هذا اللبس نهائياً.
-const EULER_SIGN_API_KEY = process.env.EULER_SIGN_API_KEY || process.env.SIGN_API_KEY || '';
+const { classifyTikTokError, errText, isProviderFault } = require('./lib/error-classifier');
+const { backoffDelay } = require('./lib/backoff');
+const { ProviderPool, loadProviderDefs, buildConnectionOptions } = require('./lib/providers');
+const { ConnectQueue } = require('./lib/connect-queue');
+const { Metrics } = require('./lib/metrics');
+
+const TIKTOK_LIB_VERSION = tiktokLib.VERSION || 'unknown';
+const BOOT_AT = Date.now();
+
+// قراءة رقم موجب من متغير بيئة (بدونه أو بقيمة غير صالحة ← الافتراضي).
+function envNum(name, def) {
+  const v = Number(process.env[name]);
+  return Number.isFinite(v) && v > 0 ? v : def;
+}
 
 const PORT = process.env.PORT || 8080;
 const RECONNECT_DELAY_MS = 5000;
 const NOT_LIVE_RETRY_DELAY_MS = 20000;
-const ROOM_IDLE_GRACE_MS = 5000; // مهلة قبل إغلاق الغرفة بعد خروج آخر عميل (يتجنب فتح/إغلاق سريع عند إعادة تحميل الصفحة)
-// آخر عميل انقطع انقطاعاً غير طبيعي (شبكة/نوم جهاز/نبض ميت — مو close(1000) مقصود):
-// نبقي الغرفة واتصال تيك توك دقيقة كاملة، فلما يرجع يلقى نفس الغرفة ويستلم ما فاته.
-const ROOM_ABNORMAL_GRACE_MS = 60000;
+// مهلة بقاء الغرفة (واتصال تيك توك) بعد خروج آخر عميل — كل إعادة فتح للغرفة = طلب توقيع جديد من
+// حصة المزود، فالمهلة تُختار حسب سبب الانقطاع:
+//   1000 (إغلاق مقصود: بدّل الحساب/فصل) ← قصيرة.
+//   1001 (المتصفح يُغلق الصفحة: إعادة تحميل/تبويب) ← متوسطة: غالباً يرجع خلال ثوانٍ.
+//   غير ذلك (شبكة/نوم جهاز/نبض ميت) ← أطول: يرجع فيلقى نفس الغرفة ويستلم ما فاته.
+const ROOM_IDLE_GRACE_MS = envNum('BRIDGE_ROOM_IDLE_GRACE_MS', 5000);
+const ROOM_RELOAD_GRACE_MS = envNum('BRIDGE_ROOM_RELOAD_GRACE_MS', 30000);
+const ROOM_ABNORMAL_GRACE_MS = envNum('BRIDGE_ROOM_ABNORMAL_GRACE_MS', 60000);
 
 // ---------------- نبض الاتصال + إعادة إرسال ما فات (كل المنصات) ----------------
 // ping/pong على مستوى البروتوكول يكشف العملاء الميتين (TCP مقطوع بصمت) ويطردهم،
@@ -88,44 +102,42 @@ const BOOT_ID = Date.now().toString(36);
 const REPLAY_MAX = 300;
 const REPLAY_WINDOW_MS = 90000;
 
-// ---------------- سياسة إعادة المحاولة — تيك توك فقط ----------------
-// هذه الثوابت تُستخدم داخل TikTokRoom وحدها — يوتيوب/كيك يكملان على
-// RECONNECT_DELAY_MS/NOT_LIVE_RETRY_DELAY_MS + withJitter بلا أي تغيير إطلاقاً.
+// ---------------- سياسة الاتصال بتيك توك — تيك توك فقط ----------------
+// يوتيوب/كيك يكملان على RECONNECT_DELAY_MS/NOT_LIVE_RETRY_DELAY_MS + withJitter بلا أي تغيير.
 //
-// المشكلتان اللتان تعالجهما هذه السياسة:
-//   1) بطء أول ربط: كان أي فشل عابر (وأشيعه Cold Start على Render) يكلف
-//      5ث + jitter حتى 4ث = تسع ثوانٍ قبل أول إعادة محاولة. صارت الآن 1.5ث
-//      ثم تتضاعف حتى سقف — سرعة عند الفشل العابر، بدون دق متواصل عند
-//      الفشل الحقيقي المتكرر.
-//   2) تجاوز حد خدمة التوقيع (429 من EulerStream): التراجع كان 60ث ثابتة لكل
-//      محاولة وللأبد — بطيء جداً لو كان 429 عابراً، وغير كافٍ لو كان الحظر
-//      مستمراً. صار يبدأ من 15ث ويتضاعف حتى دقيقتين مع كل 429 متتالية.
-//      الحل الجذري يبقى ضبط EULER_SIGN_API_KEY كمتغيّر بيئة (يرفع الحد أصلاً).
-const TIKTOK_FIRST_RETRY_MS = 1500;
-const TIKTOK_MAX_RETRY_MS = 15000;
-const TIKTOK_RATE_LIMIT_MIN_MS = 15000;
-const TIKTOK_RATE_LIMIT_MAX_MS = 120000;
-// بعد هذا العدد من المحاولات الفاشلة المتتالية نرسل للعميل fatal:true —
-// الواجهة تعرض عندها رسالة خطأ نهائية وتوقف "جاري الاتصال" بدل ما تظل
-// تدور بلا نهاية. السيرفر يكمل المحاولة بالخلفية بأطول تراجع، فلو رجعت
-// الخدمة يتصل من نفسه ما دام العميل فاتحاً الصفحة.
-const TIKTOK_MAX_CONSECUTIVE_FAILS = 4;
-// مهلة connect() نفسه: بدونها لو علّق وعد المكتبة (طلب HTTP لا يُحسم)
-// تبقى الغرفة بحالة 'connecting' للأبد وما تصل الواجهة أي إشارة — وهذا
-// أحد أسباب "جاري الاتصال" اللانهائي. (نفس علاج KICK_CONNECT_TIMEOUT_MS لكيك.)
-const TIKTOK_CONNECT_TIMEOUT_MS = 25000;
+// كل محاولة اتصال بتيك توك (أول اتصال أو إعادة) تمر من طابور مركزي (lib/connect-queue.js) يضبط المعدل
+// والتزامن لكل مزود توقيع ويبدّل المزود عند أعطاله (lib/providers.js) — فلا حلقات سريعة ولا ازدحام
+// يُعرض للمستخدم كفشل: الطلبات الزائدة تنتظر بالطابور، والواجهة تعرض "جاري الاتصال… محاولة N/موقعك".
+//   - فشل عابر: 2ث ← 4ث ← 8ث… حتى دقيقة (±25% jitter).
+//   - عطل مزود (429/توقيع/رفض): تبديل فوري لمزود بديل إن وُجد؛ وإلا ينتظر القاطع (retry-after إن وصل).
+//   - اتصال نجح ثم انقطع قبل TIKTOK_STABLE_MS يُحتسب فشلاً (لا يُصفّر العداد) — لا حلقة "اتصل ← انقطع".
+//   - "مو لايف": 20ث ← 30ث ← 45ث ← 60ث. يوزر غير موجود: 60ث ← 120ث… حتى 5 دقائق.
+//   - الاستسلام (fatal:true, code:'gave_up') فقط بعد TIKTOK_MAX_ATTEMPTS محاولة فاشلة أو TIKTOK_GIVE_UP_MS
+//     منذ أول فشل، وبعد استنفاد كل المزودين؛ الغرفة تبقى تحاول كل 5 دقائق بالخلفية، وأي عميل جديد
+//     (زر "إعادة المحاولة") يوقظها فوراً.
+const TIKTOK_RETRY_BASE_MS = envNum('TIKTOK_RETRY_BASE_MS', 2000);
+const TIKTOK_RETRY_MAX_MS = envNum('TIKTOK_RETRY_MAX_MS', 60000);
+const TIKTOK_NOT_LIVE_BASE_MS = 20000;
+const TIKTOK_NOT_LIVE_MAX_MS = 60000;
+const TIKTOK_NOT_FOUND_BASE_MS = 60000;
+const TIKTOK_NOT_FOUND_MAX_MS = 5 * 60 * 1000;
+const TIKTOK_STABLE_MS = envNum('TIKTOK_STABLE_MS', 60000);
+const TIKTOK_MAX_ATTEMPTS = envNum('TIKTOK_MAX_ATTEMPTS', 12);
+const TIKTOK_GIVE_UP_MS = envNum('TIKTOK_GIVE_UP_MS', 8 * 60 * 1000);
+const TIKTOK_PARKED_RETRY_MS = envNum('TIKTOK_PARKED_RETRY_MS', 5 * 60 * 1000);
+const TIKTOK_REVIVE_MIN_GAP_MS = 10000;
+// مهلة connect() نفسه: بدونها لو علّق وعد المكتبة (طلب HTTP لا يُحسم) تبقى الغرفة
+// بحالة 'connecting' للأبد. تشمل جلب رقم الغرفة (حتى 3 مصادر) + التوقيع + فتح الويب سوكيت.
+const TIKTOK_CONNECT_TIMEOUT_MS = envNum('TIKTOK_CONNECT_TIMEOUT_MS', 30000);
+const TIKTOK_SIGN_TIMEOUT_MS = envNum('TIKTOK_SIGN_TIMEOUT_MS', 15000);
+// لا بيانات من تيك توك إطلاقاً (ولا نبض) هذي المدة = اتصال ميت بصمت ← نعيده.
+const TIKTOK_UPSTREAM_SILENCE_MS = envNum('TIKTOK_UPSTREAM_SILENCE_MS', 120000);
+// كم مرة نعيد بث حالة "جاري الاتصال" (موقع الطابور/العدّ التنازلي) للعملاء.
+const TIKTOK_PROGRESS_TICK_MS = envNum('TIKTOK_PROGRESS_TICK_MS', 3000);
 
 // jitter عشوائي يُضاف لكل تأخير إعادة محاولة حتى لا تُعيد كل الغرف الاتصال في
 // نفس اللحظة (thundering herd) فتضرب خدمة التوقيع دفعة واحدة وتستهلك الحد.
 function withJitter(base) { return base + Math.floor(Math.random() * 4000); }
-
-// jitter متناسب مع التأخير نفسه (25% كحد أقصى، بسقف 4ث) — خاص بتيك توك.
-// السبب: أول إعادة محاولة صارت 1.5ث، وإضافة 0-4ث عشوائية ثابتة عليها كانت
-// تضرب التأخير ثلاثة أضعاف بلا فائدة. withJitter الأصلية بقيت كما هي
-// بالضبط ليوتيوب/كيك لأن تأخيراتهما طويلة أصلاً.
-function withTikTokJitter(base) {
-  return base + Math.floor(Math.random() * Math.min(4000, Math.max(300, base * 0.25)));
-}
 
 // يسابق أي وعد بمهلة زمنية. ضروري لأي وعد قادم من مكتبة خارجية قد لا يُحسم
 // أبداً (راجع ملاحظة connect() بصنف KickRoom تحت) — بدونه تعلّق الغرفة للأبد
@@ -179,6 +191,27 @@ function log(level, msg) {
   console.log('[' + stamp + '] [' + level.toUpperCase() + '] ' + msg);
 }
 
+// سطر لوغ منظّم (logfmt): event=... key=value — سهل الـgrep والتجميع بلوغات Render.
+// القيم النصية تُقتطع وتُقتبس؛ لا يُمرَّر هنا أي مفتاح/عنوان بروكسي أبداً.
+// أسرار الإعداد (مفاتيح/عناوين بروكسي بأسمائها الكاملة) تُحجب من أي سطر منظّم حتى لو ظهرت داخل نص خطأ.
+let LOG_SECRETS = [];
+function redactSecrets(text) {
+  let out = String(text).replace(/\/\/[^\s/@:]+:[^\s/@]+@/g, '//***@'); // user:pass@ داخل أي رابط
+  for (const secret of LOG_SECRETS) out = out.split(secret).join('***');
+  return out;
+}
+
+function slog(level, event, fields) {
+  const parts = ['event=' + event];
+  for (const k of Object.keys(fields || {})) {
+    const v = fields[k];
+    if (v === undefined || v === null || v === '') continue;
+    const str = redactSecrets(String(v).replace(/\s+/g, ' ').slice(0, 300));
+    parts.push(k + '=' + (/[\s"=]/.test(str) ? JSON.stringify(str) : str));
+  }
+  log(level, parts.join(' '));
+}
+
 // ==================================================================
 // بناء الأحداث الموحّدة — نفس الشكل بالضبط لكل المنصات الثلاث، حتى لا
 // تحتاج أي لعبة أي تعديل على منطقها الداخلي (type === 'WebcastChatMessage').
@@ -187,25 +220,58 @@ function log(level, msg) {
 // ------------------------------------------------------------------ تيك توك
 // أسماء الحقول هنا تم التحقق منها فعلياً من بيانات خام حقيقية (bridge status
 // وحدث CHAT حقيقي من بث لايف فعلي)، وليس من توثيق/تخمين. النسخة المثبتة من
-// tiktok-live-connector (2.4.x) لا تحتوي uniqueId إطلاقاً؛ اليوزرنيم الحقيقي
-// في displayId. الصورة في avatarThumb.urlList (مو profilePicture.urls).
+// tiktok-live-connector (2.4.x/2.5.0) لا تحتوي uniqueId إطلاقاً؛ اليوزرنيم الحقيقي
+// في displayId. الصورة في avatarThumb/avatarMedium/... .urlList (مو profilePicture.urls).
 // followStatus يرجع كنص ("0"/"1"/"2")، فالمقارنة الرقمية المباشرة كانت تفشل
-// دائماً حتى للمتابعين الحقيقيين. — هذا القسم لم يتغيّر إطلاقاً.
+// دائماً حتى للمتابعين الحقيقيين.
 // المتابعة الحقيقية (هذا المشاهد متابع للستريمر) تجي بحقل مستقل بالرسالة نفسها:
 // WebcastChatMessage.userIdentity.isFollowerOfAnchor (وكذلك WebcastGiftMessage) —
-// مؤكد من تعريفات tiktok-live-proto v3 بالمكتبة 2.4.x. أما user.followInfo.followStatus
+// مؤكد من تعريفات tiktok-live-proto v3 بالمكتبة 2.4.x/2.5.0. أما user.followInfo.followStatus
 // فهو حقل من FollowInfo بجانب followingCount/followerCount (بيانات الملف العام)،
 // وما يعبّر عن علاقة المشاهد بالستريمر — الاعتماد عليه وحده كان يحجب المتابعين
 // الحقيقيين بـ"لازم تسوي فولو". نأخذ الاثنين (أيهما إيجابي = متابع)، ونرسل
 // followKnown: true فقط لو وصلنا دليل صريح، حتى تفرّق الواجهة بين "غير متابع"
 // و"غير معروف" (الأخيرة ما تُحجب بصمت).
+// الأفتار: كائن User بـtiktok-live-proto v3 (المكتبة 2.5.0) فيه أربعة مقاسات،
+// كل واحد ImageModel { urlList: string[] }: avatarThumb (~100px) ثم avatarMedium
+// (~720px) ثم avatarLarge (~1080px) ثم avatarJpg. نبدأ بـavatarThumb لأنه
+// يطابق أحجام العرض بالموقع (26–120px) وهو الأخف لما يكون فيه مئات اللاعبين،
+// ونرجع للأكبر فقط لو كان الأصغر فاضياً. من كل قائمة نختار أول رابط https؛
+// لو ما فيه إلا http أو رابط بلا بروتوكول نحوّله لـhttps (الموقع https، ورابط
+// http كان يُحجب كمحتوى مختلط).
+const TIKTOK_AVATAR_FIELDS = ['avatarThumb', 'avatarMedium', 'avatarLarge', 'avatarJpg'];
+
+function toHttpsUrl(raw) {
+  if (typeof raw !== 'string') return '';
+  const url = raw.trim();
+  if (/^https:\/\//i.test(url)) return url;
+  if (/^http:\/\//i.test(url)) return 'https://' + url.slice(7);
+  if (url.indexOf('//') === 0) return 'https:' + url;
+  return '';
+}
+
+function pickTikTokAvatar(user) {
+  if (!user) return '';
+  for (const field of TIKTOK_AVATAR_FIELDS) {
+    const list = user[field] && Array.isArray(user[field].urlList) ? user[field].urlList : [];
+    const direct = list.find((u) => typeof u === 'string' && /^https:\/\//i.test(u.trim()));
+    if (direct) return direct.trim();
+    for (const u of list) {
+      const fixed = toHttpsUrl(u);
+      if (fixed) return fixed;
+    }
+  }
+  // احتياط لأشكال قديمة/مسطّحة (profilePictureUrl نصي مباشرة)
+  return toHttpsUrl(user.profilePictureUrl) || toHttpsUrl(user.avatarUrl) || '';
+}
+
 function extractTikTokUser(user, identity) {
   if (!user) {
-    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', followRole: 0, isFollower: false, followKnown: false, followInfo: { followStatus: 0 } };
+    return { uniqueId: '?', nickname: '?', profilePictureUrl: '', avatar: '', avatarUrl: '', followRole: 0, isFollower: false, followKnown: false, followInfo: { followStatus: 0 } };
   }
   const uniqueId = user.displayId || user.uniqueId || user.userId || user.id || '?';
   const nickname = user.nickname || uniqueId;
-  const avatar = (user.avatarThumb && Array.isArray(user.avatarThumb.urlList) && user.avatarThumb.urlList[0]) || '';
+  const avatar = pickTikTokAvatar(user);
 
   const followStatus = Number((user.followInfo && user.followInfo.followStatus) || 0);
   const byStatus = followStatus === 1 || followStatus === 2;
@@ -216,7 +282,11 @@ function extractTikTokUser(user, identity) {
   return {
     uniqueId: String(uniqueId),
     nickname: String(nickname),
+    // profilePictureUrl هو ما تقرأه extractUser() أولاً؛ avatar/avatarUrl نسختان
+    // مطابقتان للتوافق مع أي مستهلك قديم.
     profilePictureUrl: avatar,
+    avatar,
+    avatarUrl: avatar,
     followRole: following ? 1 : 0,
     isFollower: following,
     followKnown: hasIdentity || byStatus,
@@ -309,8 +379,11 @@ function buildKickComment(messageData) {
   };
 }
 
+// srv: نسخة بروتوكول الجسر. 2 = طابور الاتصال (حالات queued/retrying وحقول التقدّم). الواجهة تستخدمها لكشف
+// سيرفر Render القديم (لا يرسلها) وتنبّه المستخدم بدل فشل غامض.
+const BRIDGE_PROTOCOL_VERSION = 2;
 function buildStatus(state, message, extra) {
-  return Object.assign({ type: 'bridge_status', state, message, timestamp: Date.now() }, extra || {});
+  return Object.assign({ type: 'bridge_status', state, message, timestamp: Date.now(), srv: BRIDGE_PROTOCOL_VERSION }, extra || {});
 }
 
 // ------------------------------------------------------------------ تحليل مُدخلات يوتيوب/كيك (يوزر أو رابط، بدون أي مفتاح)
@@ -399,14 +472,22 @@ class BaseRoom {
   addClient(ws, since) {
     if (this.closeTimer) { clearTimeout(this.closeTimer); this.closeTimer = null; }
     this.clients.add(ws);
-    this.sendTo(ws, buildStatus(this.state, this.messageForState(this.state, this.lastExtra), this.lastExtra));
+    const extra = this.statusExtra();
+    this.sendTo(ws, buildStatus(this.state, this.messageForState(this.state, extra), extra));
     this.replaySince(ws, since);
+    this.onClientAdded(ws);
   }
 
-  removeClient(ws, abnormal) {
+  // الحالة الإضافية التي تُرسل لعميل جديد (تيك توك يجدّد موقع الطابور/العدّ التنازلي).
+  statusExtra() { return this.lastExtra; }
+  onClientAdded() { /* تيك توك: إيقاظ غرفة مستسلمة */ }
+
+  // code = كود إغلاق سوكيت العميل: يحدد مهلة إبقاء الغرفة (راجع ROOM_*_GRACE_MS).
+  removeClient(ws, code) {
     if (!this.clients.delete(ws)) return;
     if (this.clients.size === 0 && !this.closeTimer) {
-      this.closeTimer = setTimeout(() => this.teardown(), abnormal ? ROOM_ABNORMAL_GRACE_MS : ROOM_IDLE_GRACE_MS);
+      const grace = code === 1000 ? ROOM_IDLE_GRACE_MS : (code === 1001 ? ROOM_RELOAD_GRACE_MS : ROOM_ABNORMAL_GRACE_MS);
+      this.closeTimer = setTimeout(() => this.teardown(), grace);
     }
   }
 
@@ -438,17 +519,27 @@ class BaseRoom {
     if (state === 'error' && extra && extra.code === 'user_not_found') {
       return id + ' — يوزرنيم/قناة غير موجودة، تأكد من كتابته صح';
     }
-    // fatal:true يرسله TikTokRoom وحده بعد عدة محاولات فاشلة متتالية —
-    // رسالة نهائية واضحة بدل "جاري الاتصال" اللانهائي. يوتيوب/كيك ما
-    // يرسلان fatal إطلاقاً فلا تتغير أي رسالة عندهما.
+    const code = extra && extra.code;
+    // fatal:true يرسله TikTokRoom وحده بعد استنفاد كل المحاولات والمزودين — الحالة النهائية الوحيدة.
+    // (يوتيوب/كيك ما يرسلان fatal إطلاقاً فلا تتغير أي رسالة عندهما.)
     if (state === 'error' && extra && extra.fatal) {
-      if (extra.code === 'rate_limited') {
-        return 'خدمة تيك توك مزدحمة الآن ورفضت طلبات الربط — انتظر دقيقة وحاول مرة ثانية';
+      if (extra.reason === 'daily_limit') {
+        return 'خدمة الربط وصلت حدها اليومي — سيُعاد الاتصال تلقائياً بمجرد تجدد الحد أو إضافة مفتاح جديد، أو اضغط "إعادة المحاولة" لاحقاً';
       }
-      return 'تعذّر الاتصال بـ ' + id + ' بعد عدة محاولات — تأكد إن البث مفتوح فعلاً وحاول لاحقاً';
+      const why = FATAL_REASON_TEXT[extra.reason] || FATAL_REASON_TEXT.transient;
+      return 'تعذّر الاتصال بـ ' + id + ' بعد ' + (extra.attempt || 'عدة') + ' محاولات تلقائية (' + why + ') — اضغط "إعادة المحاولة"';
     }
-    if (state === 'error' && extra && extra.code === 'rate_limited') {
-      return 'المنصة مزدحمة مؤقتاً على خدمة تيك توك — سنعيد المحاولة تلقائياً بعد قليل، ابقَ في الصفحة';
+    // حالات "جاري الاتصال" التي يرسلها TikTokRoom: طابور / إعادة محاولة / محاولة جارية.
+    if ((state === 'connecting' || state === 'reconnecting') && (code === 'queued' || code === 'retrying' || code === 'connecting')) {
+      let t = (state === 'reconnecting' ? 'انقطع الاتصال — نعيد الربط بـ ' : 'جاري الاتصال بـ ') + id + '…';
+      if (code === 'queued' && extra.queuePosition) {
+        t += ' موقعك في الطابور ' + extra.queuePosition + ' من ' + extra.queueSize + (extra.etaSec ? ' (~' + extra.etaSec + 'ث)' : '');
+      } else if (code === 'retrying') {
+        t += ' محاولة ' + (extra.attempt || 1) + (extra.retryInSec ? ' — التالية بعد ' + extra.retryInSec + 'ث' : '');
+      } else if (extra.attempt > 1) {
+        t += ' محاولة ' + extra.attempt;
+      }
+      return t;
     }
     const map = {
       connecting: 'جاري الاتصال بـ ' + id + '…',
@@ -511,53 +602,328 @@ class BaseRoom {
   }
 }
 
-// ------------------------------------------------------------------ تيك توك (سلوك مطابق تماماً لما كان قبل هذا التعديل)
+// ------------------------------------------------------------------ تيك توك (tiktok-live-connector 2.5.x) — طابور + مزودون + تعافٍ
+
+// ---- البنية المشتركة لكل غرف تيك توك ----
+const metrics = new Metrics();
+
+// المزودون: مفاتيح Euler / عناوين توقيع بديلة / بروكسي — كلها من متغيرات البيئة (راجع .env.example).
+const providerConfig = loadProviderDefs(process.env, { signUrl: (tiktokLib.SignConfig && tiktokLib.SignConfig.basePath) || 'https://api.eulerstream.com' });
+LOG_SECRETS = providerConfig.defs.flatMap((d) => [d.apiKey, d.proxyUrl]).filter((x) => x && x.length >= 6);
+const providerPool = new ProviderPool(providerConfig.defs, {
+  ratePerMin: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120),
+  freeRatePerMin: envNum('TIKTOK_FREE_RATE_PER_MIN', 60),
+  minRatePerMin: envNum('TIKTOK_CONNECT_MIN_RATE_PER_MIN', 6),
+  burst: envNum('TIKTOK_CONNECT_BURST', 6),
+  inFlight: envNum('TIKTOK_CONNECT_INFLIGHT', 4),
+  breakerThreshold: envNum('TIKTOK_BREAKER_THRESHOLD', 3),
+  breakerCooldownMs: envNum('TIKTOK_BREAKER_COOLDOWN_MS', 30000),
+  breakerMaxCooldownMs: envNum('TIKTOK_BREAKER_MAX_COOLDOWN_MS', 300000),
+  deniedCooldownMs: envNum('TIKTOK_DENIED_COOLDOWN_MS', 600000),
+  dailyCooldownMs: envNum('TIKTOK_DAILY_LIMIT_COOLDOWN_MS', 1800000),
+});
+// فحص "هل البث مفتوح" (room/info) قبل التوقيع يذهب لتيك توك مباشرة من IP السيرفر، وقد يُحجب من IP خدمات
+// الاستضافة فيفشل الاتصال كله رغم سلامة التوقيع. TIKTOK_FETCH_ROOM_INFO=0 يتجاوزه (للتشخيص فقط).
+const FETCH_ROOM_INFO = String(process.env.TIKTOK_FETCH_ROOM_INFO || '1') !== '0';
+const providerDeps = { lib: tiktokLib, fetchRoomInfoOnConnect: FETCH_ROOM_INFO, sdk: tiktokSdk, HttpsProxyAgent, signTimeoutMs: TIKTOK_SIGN_TIMEOUT_MS };
+const connectQueue = new ConnectQueue(providerPool, {
+  onDispatch: (entry, waitedMs, provider) => {
+    metrics.observe('queue_wait', waitedMs);
+    metrics.inc('connect_attempts_total', { provider: provider.name });
+  },
+  onSettle: (entry, outcome, provider, tookMs, info) => {
+    if (outcome && outcome.skipped) return; // غرفة أُغلقت قبل بدء المحاولة: لا تُحسب
+    // "المفتاح خلص" / "رجع": سطر واضح باللوغ + عدّاد، وبعده ينتقل الاتصال تلقائياً للمفتاح التالي
+    if (info && info.opened) {
+      metrics.inc('provider_down_total', { provider: provider.name });
+      slog('warn', 'provider_down', { provider: provider.name, kind: outcome && outcome.kind, cooldownSec: Math.round(info.cooldownMs / 1000), next: (providerPool.pick().provider || {}).name || 'none-ready' });
+    }
+    if (info && info.recovered) slog('info', 'provider_recovered', { provider: provider.name });
+    if (outcome && !outcome.ok) recordFailure(outcome, provider);
+    metrics.observe('attempt_duration', tookMs);
+    metrics.inc(outcome && outcome.ok ? 'connect_success_total' : 'connect_failure_total', outcome && outcome.ok ? { provider: provider.name } : { kind: (outcome && outcome.kind) || 'transient', provider: provider.name });
+  },
+});
+// مصادر رقم الغرفة الاحتياطية عبر Euler تستهلك حصة إضافية؛ التعطيل: TIKTOK_ROOMID_EULER_FALLBACK=0
+if (String(process.env.TIKTOK_ROOMID_EULER_FALLBACK || '1') === '0' && tiktokLib.RoomIdRouteConfig) {
+  tiktokLib.RoomIdRouteConfig.skipFetchRoomIdFromEulerRoute = true;
+}
+
+// إغلاق upstream قديم لنفس اليوزر يجب أن ينتهي قبل فتح جديد — لا اتصالان لنفس الستريمر بنفس اللحظة
+// حتى لو أُغلقت الغرفة وأُعيد فتحها خلال ثوانٍ (إعادة تحميل الصفحة).
+const upstreamClosing = new Map(); // room key -> Promise
+const capPromise = (p, ms) => Promise.race([p, new Promise((r) => { const t = setTimeout(r, ms); if (t.unref) t.unref(); })]);
+
+// فك اتصال مكتبة تيك توك بأمان: disconnect() غير متزامنة (حتى ~2ث)، ورفضها بدون catch
+// كان يصير unhandledRejection. يرجع وعداً ينتهي عند اكتمال الإغلاق.
+function safeTikTokDisconnect(conn) {
+  if (!conn) return Promise.resolve();
+  try { conn.removeAllListeners(); } catch (e) { /* ignore */ }
+  try {
+    const p = conn.disconnect();
+    return capPromise(Promise.resolve(p).catch(() => {}), 4000);
+  } catch (e) { return Promise.resolve(); }
+}
+
+// آخر أعطال الاتصال (للتشخيص فقط، بدون أسرار): تُعرض بـ/diag المحمي بكلمة سر لأنها قد تحوي يوزرنيمات.
+const RECENT_FAILURES_MAX = 30;
+const recentFailures = [];
+function recordFailure(outcome, provider) {
+  recentFailures.push({
+    at: new Date().toISOString(),
+    kind: outcome.kind,
+    provider: provider && provider.name,
+    detail: redactSecrets(describeError(outcome.error)).slice(0, 500),
+  });
+  if (recentFailures.length > RECENT_FAILURES_MAX) recentFailures.shift();
+}
+
+const FATAL_REASON_TEXT = {
+  daily_limit: 'خدمة الربط وصلت حدها اليومي',
+  rate_limited: 'خدمة الربط رفضت الطلبات مؤقتاً',
+  sign_failed: 'تعذّر الوصول لخدمة توقيع الاتصال',
+  provider_denied: 'مفتاح خدمة الربط غير صالح أو ينقصه صلاحية',
+  blocked: 'تيك توك يحجب سيرفر الربط',
+  timeout: 'انتهت مهلة الاتصال',
+  dropped: 'الاتصال ينقطع فور نجاحه',
+  transient: 'خطأ اتصال متكرر',
+};
+
+// وصف الخطأ للوغ، مع الأسباب الداخلية لأخطاء "كل المصادر" (HTML/api-live/Euler) — بدونها ما
+// تنعرف من لوغ Render إن كان حجب IP أو 429 أو يوزر غلط.
+function describeError(err) {
+  const inner = err && err.config && Array.isArray(err.config.requestErrs) ? err.config.requestErrs : [];
+  return errText(err) + (inner.length ? ' ← ' + inner.map((e) => errText(e).replace(/\s+/g, ' ').slice(0, 160)).join(' | ') : '');
+}
+
 class TikTokRoom extends BaseRoom {
   constructor(uniqueId) {
     super('tiktok:' + uniqueId, '@' + uniqueId);
     this.uniqueId = uniqueId;
-    this.notLiveRetries = 0;
     this.firstCommentSeen = false;
     this.followSamples = 0;
-    // عدّادات سياسة إعادة المحاولة — تُصفّر كلها عند أول اتصال ناجح فعلي:
-    this.failStreak = 0;      // فشل متتالٍ من أي نوع (عدا "مو لايف" — مو فشل أصلاً)
-    this.rateLimitStreak = 0; // 429 متتالية — التراجع يتضاعف معها
-    this.connectToken = 0;    // يُبطل نتيجة أي محاولة اتصال قديمة تأخّرت بعد انتهاء المهلة
+    // عدّادات سياسة التعافي (تُصفّر عند ثبات الاتصال أو "إعادة المحاولة"):
+    this.attemptNo = 0;       // رقم المحاولة الفعلية الحالية (يُعرض للمستخدم)
+    this.failStreak = 0;      // محاولات فاشلة + انقطاعات سريعة متتالية (أساس الاستسلام)
+    this.firstFailAt = 0;
+    this.notLiveRetries = 0;
+    this.notFoundStreak = 0;
+    this.excluded = new Set(); // مزودون فشلوا بهذه الجولة (لا نعيدهم قبل تجربة البقية)
+    this.connectToken = 0;
+    this.attemptPromise = null;
+    this.connectedAt = 0;
+    this.stableTimer = null;
+    this.wasConnected = false;
+    this.parked = false;      // استسلمنا (fatal) ونعيد المحاولة كل 5 دقائق
+    this.lastReviveAt = 0;
+    this.retryAt = 0;         // موعد المحاولة التالية (للعدّ التنازلي)
+    this.requestedAt = 0;     // بدء طلب الاتصال الحالي (لقياس زمن الوصول للاتصال)
+    this.progressCode = 'queued';
+    this.progressReason = '';
+    this.progressTimer = null;
+    this.lastProgressSig = '';
+    this.lastProgressSentAt = 0;
+    this.lastFailKind = 'transient';
+    this.lastUpstreamAt = 0;
+    this.lastLibErrorLogAt = 0;
   }
 
-  async start() {
-    if (this.connection) return;
-    this.stopped = false;
-    this.setState('connecting');
+  // ---------------------------------------------------------------- الحالة المعروضة للعملاء
+  progressExtra(code, reason) {
+    const pos = connectQueue.position(this.key);
+    const ex = { code, attempt: this.attemptNo };
+    if (pos > 0) {
+      const waiting = connectQueue.stats().waiting;
+      const rate = providerPool.totalRatePerSec();
+      ex.code = 'queued';
+      ex.queuePosition = pos;
+      ex.queueSize = waiting;
+      const readyMs = providerPool.earliestReadyMs(this.excluded);
+      const etaMs = Math.max(readyMs, rate > 0 ? (pos / rate) * 1000 : 0);
+      if (etaMs >= 1500) ex.etaSec = Math.ceil(etaMs / 1000);
+    }
+    if (this.retryAt) {
+      const left = Math.ceil((this.retryAt - Date.now()) / 1000);
+      if (left > 0) ex.retryInSec = left;
+    }
+    if (reason) ex.reason = reason;
+    return ex;
+  }
 
-    // token يميّز هذه المحاولة بالذات: لو انتهت مهلتها وبدأنا محاولة جديدة،
-    // ثم رجعت القديمة متأخرة، نتجاهلها بدل ما تفتح اتصالين بالتوازي لنفس الغرفة.
+  setProgress(code, reason) {
+    this.progressCode = code;
+    this.progressReason = reason || '';
+    const state = this.wasConnected ? 'reconnecting' : 'connecting';
+    const extra = this.progressExtra(code, reason);
+    const sig = JSON.stringify([state, extra.code, extra.attempt, extra.queuePosition, extra.retryInSec, extra.reason]);
+    // نتجاوز المكرر، لكن نعيد الإرسال كل 10ث على الأقل: الواجهة تعتبر صمت السيرفر 30ث عطلاً، وأثناء محاولة
+    // جارية (حتى 30ث) لا يتغير شيء بالحالة.
+    const now = Date.now();
+    if (sig === this.lastProgressSig && this.state === state && now - this.lastProgressSentAt < 10000) return;
+    this.lastProgressSig = sig;
+    this.lastProgressSentAt = now;
+    this.setState(state, extra);
+  }
+
+  // للعميل الذي ينضم أثناء الانتظار: موقعه/العدّ التنازلي الحاليان لا القديمان.
+  statusExtra() {
+    if (this.state === 'connecting' || this.state === 'reconnecting') return this.progressExtra(this.progressCode, this.progressReason);
+    return this.lastExtra;
+  }
+
+  startProgressTicker() {
+    if (this.progressTimer) return;
+    this.progressTimer = setInterval(() => {
+      if (this.stopped || this.clients.size === 0) return;
+      if (this.state !== 'connecting' && this.state !== 'reconnecting') return;
+      // ميزانية الوقت: لو كل المزودين معطّلين (قواطع مفتوحة) ما تصير محاولات جديدة فما يُقيَّم الاستسلام
+      // بنتيجة فشل — نقيّمه هنا حتى لا ينتظر المستخدم أكثر من TIKTOK_GIVE_UP_MS بلا نتيجة نهائية.
+      if (this.failStreak > 0 && this.shouldGiveUp() && !this.parked) {
+        connectQueue.cancel(this.key);
+        if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+        return this.giveUp(this.lastFailKind);
+      }
+      this.setProgress(this.progressCode, this.progressReason);
+    }, TIKTOK_PROGRESS_TICK_MS);
+    if (this.progressTimer.unref) this.progressTimer.unref();
+  }
+
+  stopProgressTicker() {
+    if (this.progressTimer) { clearInterval(this.progressTimer); this.progressTimer = null; }
+    this.lastProgressSig = '';
+    this.lastProgressSentAt = 0;
+  }
+
+  // ---------------------------------------------------------------- الاتصال عبر الطابور
+  async start() {
+    if (this.connection || connectQueue.has(this.key)) return;
+    this.stopped = false;
+    // upstream قديم لنفس اليوزر ما زال يُغلق (إغلاق/فتح سريع): ننتظره أولاً — اتصال واحد لكل يوزر.
+    const closing = upstreamClosing.get(this.key);
+    if (closing) { await closing; if (this.stopped) return; }
+    this.enqueue();
+  }
+
+  enqueue(opts) {
+    if (this.stopped || this.connection || connectQueue.has(this.key)) return;
+    if (!this.requestedAt) this.requestedAt = Date.now();
+    this.setProgress('queued', this.progressReason);
+    this.startProgressTicker();
+    connectQueue.request(this.key, {
+      priority: this.wasConnected ? 0 : 1, // ستريمر كان على الهواء يسبق اتصالاً جديداً
+      front: !!(opts && opts.front),
+      exclude: this.excluded,
+      dispatch: (provider) => this.attempt(provider),
+    }).then((res) => this.onAttemptResult(res)).catch((e) => log('warn', this.key + ' — خطأ بمعالجة نتيجة المحاولة: ' + errText(e)));
+  }
+
+  attempt(provider) {
+    const p = this._attempt(provider);
+    this.attemptPromise = p;
+    p.then(() => { if (this.attemptPromise === p) this.attemptPromise = null; });
+    return p;
+  }
+
+  // يرجع دائماً كائن نتيجة ولا يرمي: {ok:true} | {kind, retryAfterMs, error}
+  async _attempt(provider) {
+    if (this.stopped) return { ok: true, skipped: true };
+    this.attemptNo++;
+    this.retryAt = 0;
+    this.setProgress('connecting', this.progressReason);
+    slog('info', 'connect_attempt', { room: this.uniqueId, attempt: this.attemptNo, provider: provider.name, queueWaitMs: this.requestedAt ? Date.now() - this.requestedAt : 0 });
+
     const token = ++this.connectToken;
     const fresh = () => !this.stopped && this.connectToken === token;
-
-    const connOptions = { processInitialData: false };
-    if (EULER_SIGN_API_KEY) connOptions.signApiKey = EULER_SIGN_API_KEY;
-    const conn = new TikTokLiveConnection(this.uniqueId, connOptions);
+    let conn;
+    try {
+      conn = new TikTokLiveConnection(this.uniqueId, buildConnectionOptions(provider, providerDeps));
+    } catch (err) {
+      // المُنشئ يرمي InvalidUniqueIdError لو صيغة اليوزر غير صالحة
+      return Object.assign(classifyTikTokError(err, tiktokLib), { error: err });
+    }
     this.connection = conn;
+    this.bindConnection(conn);
+
+    let abandoned = false;
+    const connectPromise = conn.connect();
+    // لو تخلّينا عن هذه المحاولة (مهلة/إغلاق الغرفة) ثم نجحت لاحقاً: نفكّها بدل اتصال يتيم.
+    connectPromise.then(() => { if (abandoned) safeTikTokDisconnect(conn); }, () => {});
+    try {
+      await withTimeout(connectPromise, TIKTOK_CONNECT_TIMEOUT_MS, 'انتهت مهلة الاتصال بتيك توك (@' + this.uniqueId + ')');
+      if (!fresh()) { abandoned = true; safeTikTokDisconnect(conn); }
+      return { ok: true };
+    } catch (err) {
+      abandoned = true;
+      safeTikTokDisconnect(conn);
+      if (this.connection === conn) this.connection = null;
+      return Object.assign(classifyTikTokError(err, tiktokLib), { error: err });
+    }
+  }
+
+  bindConnection(conn) {
+    const mine = () => this.connection === conn && !this.stopped;
 
     conn.on(ControlEvent.CONNECTED, () => {
+      if (!mine()) return;
+      const now = Date.now();
+      this.connectedAt = now;
+      this.lastUpstreamAt = now;
+      this.wasConnected = true;
+      this.parked = false;
       this.notLiveRetries = 0;
-      this.failStreak = 0;
-      this.rateLimitStreak = 0;
-      log('info', '@' + this.uniqueId + ' — متصل ببث فعلي (ConnectEvent)');
+      this.notFoundStreak = 0;
+      this.firstFailAt = 0;
+      this.attemptNo = 0;
+      this.retryAt = 0;
+      this.excluded.clear();
+      if (this.requestedAt) { metrics.observe('time_to_connected', now - this.requestedAt); this.requestedAt = 0; }
+      // failStreak لا يُصفَّر هنا — فقط بعد ثبات الاتصال TIKTOK_STABLE_MS. لو كان تيك توك يقبل
+      // ثم يقطع فوراً، التراجع يكمل تصاعده بدل حلقة "اتصل ← انقطع" التي تحرق الحصة.
+      this.clearStableTimer();
+      this.stableTimer = setTimeout(() => {
+        this.stableTimer = null;
+        if (mine()) this.failStreak = 0;
+      }, TIKTOK_STABLE_MS);
+      if (this.stableTimer.unref) this.stableTimer.unref();
+      this.stopProgressTicker();
+      slog('info', 'connected', { room: this.uniqueId });
       this.setState('connected');
     });
 
-    conn.on(ControlEvent.DISCONNECTED, () => {
-      log('info', '@' + this.uniqueId + ' — انفصل');
-      if (this.stopped) return;
-      this.setState('reconnecting');
-      // كنّا متصلين قبل قليل، فالعودة غالباً سريعة — nextRetryDelay() يبدأ من 1.5ث
-      // (لأن failStreak صُفّر عند الاتصال) بدل 5-9ث السابقة.
-      this.scheduleReconnect(withTikTokJitter(this.nextRetryDelay()));
+    conn.on(ControlEvent.DISCONNECTED, (info) => {
+      if (!mine()) return; // اتصال قديم، أو STREAM_END عالجه قبلنا، أو الغرفة أُغلقت
+      const lived = this.connectedAt ? Date.now() - this.connectedAt : 0;
+      this.clearStableTimer();
+      this.connection = null;
+      this.wasConnected = true;
+      this.requestedAt = Date.now();
+      if (lived < TIKTOK_STABLE_MS) { this.failStreak++; if (!this.firstFailAt) this.firstFailAt = Date.now(); } else { this.failStreak = 0; this.firstFailAt = 0; }
+      slog('info', 'upstream_disconnected', { room: this.uniqueId, code: info && info.code, livedSec: Math.round(lived / 1000), quickDrops: this.failStreak });
+      metrics.inc('upstream_disconnects_total');
+      if (this.shouldGiveUp()) return this.giveUp('dropped');
+      const delay = backoffDelay(Math.max(1, this.failStreak), { baseMs: TIKTOK_RETRY_BASE_MS, maxMs: TIKTOK_RETRY_MAX_MS });
+      this.retryAt = Date.now() + delay;
+      this.setProgress('retrying', 'dropped');
+      this.startProgressTicker();
+      this.scheduleReconnect(delay);
     });
 
+    // أخطاء ما بعد الاتصال (فك رسالة/ويب سوكيت) — للتشخيص فقط، بحد سطر كل 30ث. أخطاء connect() نفسها
+    // تُعالج بنتيجة المحاولة. (المكتبة ما تطلق 'error' أصلاً لو ما فيه مستمع، فهذا لا يغيّر سلوكها.)
+    conn.on(ControlEvent.ERROR, (e) => {
+      if (!mine() || this.state !== 'connected') return;
+      const now = Date.now();
+      if (now - this.lastLibErrorLogAt < 30000) return;
+      this.lastLibErrorLogAt = now;
+      log('warn', '@' + this.uniqueId + ' — خطأ من المكتبة أثناء البث (' + ((e && e.info) || '') + '): ' + errText(e && e.exception));
+    });
+
+    // أي بيانات من تيك توك (حتى النبض) تثبت أن الاتصال حي — أساس كشف الاتصال الميت بصمت.
+    conn.on(ControlEvent.WEBSOCKET_DATA, () => { this.lastUpstreamAt = Date.now(); });
+
     conn.on(WebcastEvent.CHAT, (data) => {
+      if (!mine()) return;
+      this.lastUpstreamAt = Date.now();
       if (!this.firstCommentSeen) {
         this.firstCommentSeen = true;
         log('info', '@' + this.uniqueId + ' — أول CommentEvent فعلي وصل: "' + String(data.content || data.comment || '').slice(0, 40) + '"');
@@ -570,6 +936,8 @@ class TikTokRoom extends BaseRoom {
     });
 
     conn.on(WebcastEvent.GIFT, (data) => {
+      if (!mine()) return;
+      this.lastUpstreamAt = Date.now();
       // الهدايا القابلة للتتابع (streak, gift.type===1) ترسل عدة أحداث أثناء
       // التتابع؛ repeatEnd (0/1) يشير لآخر حدث بالتتابع — نبث مرة وحدة فقط
       // عند انتهائه حتى لا تُحتسب الهدية مضاعفة بالألعاب.
@@ -579,119 +947,175 @@ class TikTokRoom extends BaseRoom {
     });
 
     conn.on(WebcastEvent.FOLLOW, (data) => {
+      if (!mine()) return;
+      this.lastUpstreamAt = Date.now();
       this.broadcastEvents([buildTikTokFollow(data)]);
     });
 
     conn.on(WebcastEvent.LIKE, (data) => {
+      if (!mine()) return;
+      this.lastUpstreamAt = Date.now();
       this.broadcast({ messages: [buildTikTokLike(data)] });
     });
 
     conn.on(WebcastEvent.ROOM_USER, (data) => {
+      if (!mine()) return;
+      this.lastUpstreamAt = Date.now();
       this.broadcast({ messages: [buildTikTokViewer(data.totalUser)] });
     });
 
     conn.on(WebcastEvent.STREAM_END, () => {
-      log('info', '@' + this.uniqueId + ' — انتهى البث');
-      if (this.stopped) return;
-      this.setState('not_live');
-      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
-    });
-
-    try {
-      await withTimeout(
-        conn.connect(),
-        TIKTOK_CONNECT_TIMEOUT_MS,
-        'انتهت مهلة الاتصال بتيك توك (@' + this.uniqueId + ')'
-      );
-    } catch (err) {
-      // لو انتهت المهلة فقد يكمل الاتصال القديم بالخلفية — نفكّكه صراحةً حتى
-      // لا يبث أحداثاً مزدوجة بعد ما تفتح الغرفة اتصالاً جديداً.
-      try { conn.removeAllListeners(); } catch (e) { /* ignore */ }
-      try { conn.disconnect(); } catch (e) { /* ignore */ }
-      if (this.connection === conn) this.connection = null;
-      if (!fresh()) return;
-      this.handleConnectError(err);
-    }
-  }
-
-  // تأخير تصاعدي للفشل العادي: أول محاولة بعد 1.5ث (بدل 5ث+jitter السابقة)
-  // ثم يتضاعف حتى TIKTOK_MAX_RETRY_MS — سرعة بأول ربط بلا إغراق لخدمة
-  // التوقيع لو كان الفشل مستمراً.
-  nextRetryDelay() {
-    const step = Math.pow(2, Math.max(0, this.failStreak - 1));
-    return Math.min(TIKTOK_FIRST_RETRY_MS * step, TIKTOK_MAX_RETRY_MS);
-  }
-
-  // يضيف fatal:true بعد TIKTOK_MAX_CONSECUTIVE_FAILS محاولات فاشلة متتالية،
-  // فتعرض الواجهة رسالة نهائية واضحة بدل "جاري الاتصال" بلا نهاية.
-  failExtra(code) {
-    return this.failStreak >= TIKTOK_MAX_CONSECUTIVE_FAILS ? { code, fatal: true } : { code };
-  }
-
-  handleConnectError(err) {
-    if (err instanceof UserOfflineError) {
-      // "مو لايف" ليست فشل اتصال — ما تُحتسب بسلسلة الفشل ولا تُعلن
-      // نهائية، لأن المطلوب فعلاً هو انتظار فتح البث ثم الاتصال تلقائياً.
-      log('info', '@' + this.uniqueId + ' — غير مباشر حالياً');
+      if (!mine()) return;
+      // المكتبة تستدعي disconnect() بنفسها بعد هذا الحدث، فيوصل DISCONNECTED — نفصل الاتصال عن
+      // الغرفة أولاً حتى يتجاهله (كان يلغي انتظار "مو لايف" ويعيد المحاولة بعد 1.5ث).
+      this.clearStableTimer();
+      this.connection = null;
+      this.failStreak = 0;
+      this.firstFailAt = 0;
       this.notLiveRetries++;
+      const delay = backoffDelay(this.notLiveRetries, { baseMs: TIKTOK_NOT_LIVE_BASE_MS, maxMs: TIKTOK_NOT_LIVE_MAX_MS, factor: 1.5 });
+      slog('info', 'stream_ended', { room: this.uniqueId, recheckSec: Math.round(delay / 1000) });
+      this.stopProgressTicker();
       this.setState('not_live');
-      this.scheduleReconnect(withTikTokJitter(NOT_LIVE_RETRY_DELAY_MS));
+      this.scheduleReconnect(delay);
+    });
+  }
+
+  // ---------------------------------------------------------------- نتائج المحاولات
+  onAttemptResult(res) {
+    if (!res || res.cancelled || this.stopped) return;
+    const { outcome, provider } = res;
+    if (outcome.ok) { this.excluded.clear(); return; }
+    this.handleAttemptFailure(outcome, provider);
+  }
+
+  shouldGiveUp() {
+    return this.failStreak >= TIKTOK_MAX_ATTEMPTS || (this.firstFailAt > 0 && Date.now() - this.firstFailAt >= TIKTOK_GIVE_UP_MS);
+  }
+
+  handleAttemptFailure(outcome, provider) {
+    const kind = outcome.kind;
+    const level = (kind === 'offline' || kind === 'user_not_found') ? 'info' : 'warn';
+    slog(level, 'connect_fail', { room: this.uniqueId, kind, provider: provider && provider.name, attempt: this.attemptNo, detail: describeError(outcome.error) });
+
+    if (kind === 'offline') {
+      // "مو لايف" ليست فشل اتصال — ما تُحتسب بسلسلة الفشل ولا تُعلن نهائية، لأن المطلوب فعلاً هو
+      // انتظار فتح البث ثم الاتصال تلقائياً.
+      this.failStreak = 0; this.firstFailAt = 0; this.excluded.clear(); this.notFoundStreak = 0;
+      this.notLiveRetries++;
+      const delay = backoffDelay(this.notLiveRetries, { baseMs: TIKTOK_NOT_LIVE_BASE_MS, maxMs: TIKTOK_NOT_LIVE_MAX_MS, factor: 1.5 });
+      this.stopProgressTicker();
+      this.setState('not_live');
+      this.scheduleReconnect(delay);
       return;
     }
-    const msg = (err && err.message) || String(err);
-    const low = msg.toLowerCase();
-    this.failStreak++;
-    // تجاوز حد خدمة التوقيع (EulerStream 429). ملاحظة مهمة: النسخة 2.4.x من
-    // tiktok-live-connector فيها باگ — عند رد 429 تمرّر response.data بدل
-    // response لباني SignatureRateLimitError، فيُرمى بدلاً منه استثناء نصّه
-    // "Cannot read properties of undefined (reading 'retry-after')". لذلك نميّز
-    // الـ rate limit من هذا النص تحديداً بالإضافة للأنماط المعتادة.
-    const looksLikeRateLimit = (
-      low.includes('retry-after') ||
-      low.includes('rate limit') || low.includes('ratelimit') ||
-      low.includes('too many') || low.includes(' 429') || low.includes('429 ') ||
-      (low.includes('sign server') && low.includes('limit'))
-    );
-    if (looksLikeRateLimit) {
-      this.rateLimitStreak++;
-      // لو وصل retryAfter حقيقي بالاستثناء (نسخ المكتبة التي لا فيها الباگ
-      // المذكور فوق) نحترمه حرفياً — أدق من أي تخمين منا. غير ذلك تراجع
-      // تصاعدي يبدأ قصيراً (15ث) ويتضاعف مع كل 429 متتالية حتى دقيقتين:
-      // سريع لو كان الازدحام عابراً، ويهدأ تماماً لو كان الحظر مستمراً بدل
-      // حلقة دق عمياء تطيل الحظر نفسه.
-      const fromHeader = Number(err && err.retryAfter) || 0;
-      const backoff = fromHeader > 0
-        ? Math.min(Math.max(fromHeader, TIKTOK_RATE_LIMIT_MIN_MS), TIKTOK_RATE_LIMIT_MAX_MS)
-        : Math.min(TIKTOK_RATE_LIMIT_MIN_MS * Math.pow(2, this.rateLimitStreak - 1), TIKTOK_RATE_LIMIT_MAX_MS);
-      log('warn', '@' + this.uniqueId + ' — تجاوز حد خدمة التوقيع (429/rate limit) #' + this.rateLimitStreak + ' — تراجع ' + Math.round(backoff / 1000) + 'ث.' + (EULER_SIGN_API_KEY ? '' : ' الحل الجذري: اضبط EULER_SIGN_API_KEY.') + ' التفاصيل: ' + msg);
-      this.setState('error', this.failExtra('rate_limited'));
-      this.scheduleReconnect(withTikTokJitter(backoff));
-      return;
-    }
-    this.rateLimitStreak = 0; // الفشل الحالي مو 429 — تنقطع سلسلة تضاعف تراجع الـ rate limit
-    const looksLikeMissingUser = (
-      low.includes('failed to retrieve room id') ||
-      low.includes('failed to fetch room id') ||
-      (low.includes('room id') && (low.includes('not found') || low.includes('invalid'))) ||
-      low.includes('user not found') ||
-      low.includes("doesn't exist") || low.includes('does not exist') ||
-      low.includes('404')
-    );
-    if (looksLikeMissingUser) {
-      log('info', '@' + this.uniqueId + ' — يوزرنيم غير موجود (على الأغلب): ' + msg);
+
+    if (kind === 'user_not_found') {
+      this.notFoundStreak++;
+      this.excluded.clear();
+      const delay = backoffDelay(this.notFoundStreak, { baseMs: TIKTOK_NOT_FOUND_BASE_MS, maxMs: TIKTOK_NOT_FOUND_MAX_MS });
+      this.stopProgressTicker();
       this.setState('error', { code: 'user_not_found' });
-      this.scheduleReconnect(withTikTokJitter(NOT_LIVE_RETRY_DELAY_MS));
+      this.scheduleReconnect(delay);
       return;
     }
-    log('warn', '@' + this.uniqueId + ' — خطأ اتصال (#' + this.failStreak + '): ' + msg);
-    this.setState('error', this.failExtra('connect_failed'));
-    this.scheduleReconnect(withTikTokJitter(this.nextRetryDelay()));
+
+    this.failStreak++;
+    this.lastFailKind = outcome.daily ? 'daily_limit' : kind;
+    if (!this.firstFailAt) this.firstFailAt = Date.now();
+    if (this.shouldGiveUp()) return this.giveUp(this.lastFailKind);
+    // الحد اليومي: لو ما فيه أي مزود يجهز خلال 5 دقائق (كلهم انتهى حدهم) ننتظر ساعات — نعلن السبب فوراً بدل
+    // "جاري الاتصال" لدقائق بلا فائدة. (الغرفة تبقى تحاول بالخلفية، وأي مفتاح جديد/تجدد الحد يوصلها تلقائياً.)
+    if (outcome.daily && providerPool.earliestReadyMs() > 5 * 60 * 1000) return this.giveUp('daily_limit');
+
+    // هل يوجد مزود/مسار بديل لم نجربه بهذه الجولة؟ (عطل المزود: هو وحده، حجب تيك توك: كل مساره)
+    if (provider && isProviderFault(kind)) this.excluded.add(provider.id);
+    else if (provider && kind === 'blocked') providerPool.byRoute(provider.route).forEach((p) => this.excluded.add(p.id));
+    const failover = provider && (isProviderFault(kind) || kind === 'blocked') && this.excluded.size < providerPool.size;
+    if (failover) {
+      metrics.inc('provider_switch_total', { kind });
+      slog('info', 'provider_switch', { room: this.uniqueId, from: provider.name, kind });
+      this.setProgress('retrying', kind);
+      this.startProgressTicker();
+      this.enqueue({ front: true }); // فوراً بمزود بديل — بلا انتظار تراجع
+      return;
+    }
+    this.excluded.clear();
+    metrics.inc('retries_total', { kind });
+    // 429: القاطع يحمل retry-after الحقيقي — الطابور نفسه ينتظره. غير ذلك: تراجع أسّي.
+    const delay = kind === 'rate_limited' ? 0 : backoffDelay(this.failStreak, { baseMs: TIKTOK_RETRY_BASE_MS, maxMs: TIKTOK_RETRY_MAX_MS });
+    this.retryAt = Date.now() + Math.max(delay, kind === 'rate_limited' ? providerPool.earliestReadyMs() : 0);
+    this.setProgress('retrying', kind);
+    this.startProgressTicker();
+    if (delay <= 0) this.enqueue(); else this.scheduleReconnect(delay);
+  }
+
+  // الاستسلام النهائي (بعد استنفاد المحاولات والبدائل): رسالة واضحة + زر "إعادة المحاولة" بالواجهة،
+  // والغرفة تكمل كل TIKTOK_PARKED_RETRY_MS بالخلفية لو بقي عميل.
+  giveUp(reason) {
+    this.parked = true;
+    this.stopProgressTicker();
+    this.excluded.clear();
+    metrics.inc('give_up_total', { reason });
+    slog('warn', 'gave_up', { room: this.uniqueId, reason, attempts: this.attemptNo, failStreak: this.failStreak });
+    this.retryAt = 0;
+    this.failStreak = Math.max(0, TIKTOK_MAX_ATTEMPTS - 1); // فشل واحد بعد الاستيقاظ يعيدنا للاستسلام
+    this.setState('error', { code: 'gave_up', reason, fatal: true, attempt: this.attemptNo });
+    this.scheduleReconnect(withJitter(TIKTOK_PARKED_RETRY_MS));
+  }
+
+  // عميل جديد دخل على غرفة مستسلمة (زر "إعادة المحاولة" يعيد فتح الاتصال) ← نحاول من جديد فوراً.
+  onClientAdded() {
+    if (!this.parked || this.stopped) return;
+    const now = Date.now();
+    if (now - this.lastReviveAt < TIKTOK_REVIVE_MIN_GAP_MS) return;
+    this.lastReviveAt = now;
+    slog('info', 'revive', { room: this.uniqueId });
+    this.parked = false;
+    this.failStreak = 0; this.firstFailAt = 0; this.attemptNo = 0; this.excluded.clear();
+    this.requestedAt = 0;
+    if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    this.enqueue();
+  }
+
+  // ---------------------------------------------------------------- اتصال ميت بصمت
+  checkSilence() {
+    if (this.stopped || this.state !== 'connected' || !this.connection || !this.lastUpstreamAt) return;
+    if (Date.now() - this.lastUpstreamAt < TIKTOK_UPSTREAM_SILENCE_MS) return;
+    slog('warn', 'upstream_silent', { room: this.uniqueId, silentSec: Math.round((Date.now() - this.lastUpstreamAt) / 1000) });
+    metrics.inc('upstream_silent_total');
+    const conn = this.connection;
+    this.connection = null;
+    this.clearStableTimer();
+    this.wasConnected = true;
+    this.requestedAt = Date.now();
+    this.failStreak = 0; this.firstFailAt = 0;
+    const closing = safeTikTokDisconnect(conn);
+    upstreamClosing.set(this.key, closing);
+    closing.then(() => { if (upstreamClosing.get(this.key) === closing) upstreamClosing.delete(this.key); });
+    const delay = backoffDelay(1, { baseMs: TIKTOK_RETRY_BASE_MS, maxMs: TIKTOK_RETRY_MAX_MS });
+    this.retryAt = Date.now() + delay;
+    this.setProgress('retrying', 'silent');
+    this.startProgressTicker();
+    this.scheduleReconnect(delay);
+  }
+
+  clearStableTimer() {
+    if (this.stableTimer) { clearTimeout(this.stableTimer); this.stableTimer = null; }
   }
 
   disconnect() {
-    if (this.connection) {
-      try { this.connection.disconnect(); } catch (e) { /* ignore */ }
-    }
+    this.clearStableTimer();
+    this.stopProgressTicker();
+    this.connectToken++; // أي connect() جارٍ يصير "متروكاً" ويُفك لو نجح لاحقاً
+    connectQueue.cancel(this.key); // غرفة بالانتظار أُغلقت: لا تستهلك طلب توقيع
+    const conn = this.connection;
+    this.connection = null;
+    const pending = this.attemptPromise;
+    if (!conn && !pending) return;
+    const closing = capPromise(Promise.all([pending ? pending.catch(() => {}) : null, safeTikTokDisconnect(conn)]), TIKTOK_CONNECT_TIMEOUT_MS + 5000);
+    upstreamClosing.set(this.key, closing);
+    closing.then(() => { if (upstreamClosing.get(this.key) === closing) upstreamClosing.delete(this.key); });
   }
 }
 
@@ -932,6 +1356,10 @@ class KickRoom extends BaseRoom {
 
 // rooms: 'platform:معرّف'(lowercase) -> BaseRoom
 const rooms = new Map();
+metrics.gauge('queue_waiting', () => connectQueue.stats().waiting);
+metrics.gauge('queue_running', () => connectQueue.stats().running);
+metrics.gauge('rooms', () => rooms.size);
+metrics.gauge('providers_breaker_open', () => providerPool.snapshot().filter((p) => p.breaker !== 'closed').length);
 
 function getOrCreateRoom(platform, rawIdentifier) {
   // كيك: نوحّد المعرّف قبل أي شيء (يوزر مجرّد أو رابط kick.com/يوزر ينتهيان
@@ -1025,6 +1453,47 @@ async function fetchPublicProfile(uniqueId) {
 }
 
 // ------------------------------------------------------------------ خادم HTTP + WebSocket
+function healthSnapshot() {
+  const byPlatform = {};
+  for (const room of rooms.values()) {
+    const platform = room.key.split(':')[0];
+    const p = byPlatform[platform] || (byPlatform[platform] = { rooms: 0, clients: 0, states: {} });
+    p.rooms++;
+    p.clients += room.clients.size;
+    p.states[room.state] = (p.states[room.state] || 0) + 1;
+  }
+  const q = connectQueue.stats();
+  const snap = metrics.snapshot();
+  const counterSum = (prefix) => Object.keys(snap.counters).filter((k) => k === prefix || k.indexOf(prefix + '{') === 0).reduce((n, k) => n + snap.counters[k], 0);
+  return {
+    ok: true,
+    uptimeSec: Math.round((Date.now() - BOOT_AT) / 1000),
+    bootId: BOOT_ID,
+    node: process.version,
+    tiktokLiveConnector: TIKTOK_LIB_VERSION,
+    eulerApiKey: providerConfig.keyCount > 0 ? 'set' : 'missing',
+    wsClients: wss.clients.size,
+    rooms: rooms.size,
+    platforms: byPlatform,
+    // طابور اتصال تيك توك: طول الانتظار، الجاري الآن، أقدم طلب منتظر
+    queue: { waiting: q.waiting, running: q.running, oldestWaitSec: Math.round(q.oldestWaitMs / 1000) },
+    // حالة كل مزود توقيع (بلا مفاتيح/عناوين): قاطع الدائرة، المعدل التكيّفي، العدّادات
+    providers: providerPool.snapshot(),
+    tiktok: {
+      connectAttempts: counterSum('connect_attempts_total'),
+      connectsOk: counterSum('connect_success_total'),
+      failures: counterSum('connect_failure_total'),
+      retries: counterSum('retries_total'),
+      providerSwitches: counterSum('provider_switch_total'),
+      gaveUp: counterSum('give_up_total'),
+      queueWaitMs: snap.timings.queue_wait || null,
+      attemptDurationMs: snap.timings.attempt_duration || null,
+      timeToConnectedMs: snap.timings.time_to_connected || null,
+    },
+    memoryMb: Math.round(process.memoryUsage().rss / 1048576),
+  };
+}
+
 const server = http.createServer(async (req, res) => {
   const path = (req.url || '').split('?')[0];
 
@@ -1039,6 +1508,32 @@ const server = http.createServer(async (req, res) => {
     // ليوقظ الخدمة مبكراً (Cold Start على Render) قبل أول اتصال WebSocket فعلي.
     res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }));
     res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
+    return;
+  }
+
+  if (path === '/health') {
+    // حالة تفصيلية للمراقبة (UptimeRobot/لوحة Render) — أعداد فقط، بدون أي يوزرنيمات.
+    // /healthz أعلاه يبقى كما هو بالضبط لأن الواجهة تعتمد عليه للإيقاظ واختيار السيرفر.
+    res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }));
+    res.end(JSON.stringify(healthSnapshot()));
+    return;
+  }
+
+  if (path === '/diag') {
+    // تشخيص مفصّل (آخر أعطال الاتصال بأسبابها الحقيقية). مغلق تماماً ما لم تضبط BRIDGE_DIAG_TOKEN، ويتطلب ?token=.
+    // (لا نعرضه بـ/health لأن تلك عامة وقد تحوي الأعطال يوزرنيمات ستريمرز.)
+    const token = process.env.BRIDGE_DIAG_TOKEN || '';
+    const given = new URL(req.url, 'http://localhost').searchParams.get('token') || '';
+    if (!token || given !== token) { res.writeHead(404); res.end('not found'); return; }
+    res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }));
+    res.end(JSON.stringify({ health: healthSnapshot(), recentFailures: recentFailures.slice().reverse() }, null, 2));
+    return;
+  }
+
+  if (path === '/metrics') {
+    // صيغة Prometheus النصية (عدّادات المحاولات/الفشل بالنوع/المزود، أزمنة الطابور والاتصال).
+    res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8', 'Cache-Control': 'no-store' }));
+    res.end(metrics.prometheus());
     return;
   }
 
@@ -1095,6 +1590,8 @@ wss.on('connection', async (ws, req) => {
     ws.close(4403, 'هذا الحساب معطّل من إدارة المنصة');
     return;
   }
+  // العميل أغلق (ريفرش/ضغطتين) أثناء فحص التفعيل: لا نفتح غرفة/طلب توقيع لسوكيت ميت.
+  if (ws.readyState !== WebSocket.OPEN) return;
 
   log('info', platform + ':' + checkId + ' — عميل جديد اتصل');
   const room = getOrCreateRoom(platform, rawUser);
@@ -1103,13 +1600,14 @@ wss.on('connection', async (ws, req) => {
   room.addClient(ws, url.searchParams.get('since'));
 
   ws.on('close', (code) => {
-    // 1000/1001 = العميل قفل عمداً (خرج/بدّل الحساب) — غير ذلك انقطاع يستاهل مهلة أطول
-    room.removeClient(ws, code !== 1000 && code !== 1001);
+    // 1000 = قفل مقصود (بدّل الحساب/فصل) ← مهلة قصيرة؛ 1001 = صفحة تُغلق/تُعاد ← متوسطة؛ غير ذلك
+    // انقطاع (شبكة/نوم/نبض ميت) ← الأطول (راجع ROOM_*_GRACE_MS).
+    room.removeClient(ws, code);
     log('info', platform + ':' + checkId + ' — عميل انفصل (' + code + ')');
   });
 
   ws.on('error', () => {
-    room.removeClient(ws, true);
+    room.removeClient(ws, 1006);
   });
 });
 
@@ -1139,6 +1637,17 @@ function startKeepAlive() {
   log('info', 'Keep-Alive مفعّل — ' + url + ' كل 5 دقائق');
 }
 
+// كل 15ث: فحص اتصالات تيك توك الميتة بصمت، وكل 30ث سطر لوغ منظّم عن الطابور لو فيه نشاط.
+let statsTick = 0;
+const maintenanceTimer = setInterval(() => {
+  for (const room of rooms.values()) { if (room instanceof TikTokRoom) { try { room.checkSilence(); } catch (e) { /* ignore */ } } }
+  if (++statsTick % 2 === 0) {
+    const q = connectQueue.stats();
+    if (q.waiting || q.running) slog('info', 'queue', { waiting: q.waiting, running: q.running, oldestWaitSec: Math.round(q.oldestWaitMs / 1000), rooms: rooms.size, providers: providerPool.snapshot().map((p) => p.name + ':' + p.breaker + ':' + p.ratePerMin + '/m').join(',') });
+  }
+}, envNum('TIKTOK_MAINTENANCE_MS', 15000));
+maintenanceTimer.unref();
+
 const heartbeatTimer = setInterval(() => {
   const ping = JSON.stringify({ type: 'bridge_ping', t: Date.now() });
   for (const ws of wss.clients) {
@@ -1153,11 +1662,15 @@ heartbeatTimer.unref();
 initFirestore();
 server.listen(PORT, () => {
   log('info', 'خادم جسر البث يعمل على المنفذ ' + PORT + ' (WebSocket: /ws?platform=tiktok|youtube|kick&u=username)');
+  log('info', 'tiktok-live-connector ' + TIKTOK_LIB_VERSION + ' على Node ' + process.version);
+  slog('info', 'providers', { count: providerPool.size, strategy: providerConfig.sequential ? 'sequential' : 'balanced', keys: providerConfig.keyCount, keySource: providerConfig.keySource, proxies: providerConfig.proxyCount, fallbackUrls: providerConfig.fallbackCount, names: providerPool.snapshot().map((p) => p.name).join(',') });
+  slog('info', 'connect_policy', { ratePerMinPerProvider: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120), burst: envNum('TIKTOK_CONNECT_BURST', 6), inFlightPerProvider: envNum('TIKTOK_CONNECT_INFLIGHT', 4), maxAttempts: TIKTOK_MAX_ATTEMPTS, giveUpSec: Math.round(TIKTOK_GIVE_UP_MS / 1000) });
   // تشخيص مباشر لأشيع سبب لـ429: المفتاح غير مضبوط أصلاً على المستضيف.
-  // بدون هذا السطر ما كان فيه أي طريقة لمعرفة ذلك من اللوغات إطلاقاً.
-  log('info', EULER_SIGN_API_KEY
-    ? 'مفتاح EulerStream مضبوط — حد اتصالات تيك توك المرفوع فعّال'
-    : 'مفتاح EulerStream غير مضبوط (EULER_SIGN_API_KEY أو SIGN_API_KEY) — تيك توك على الطبقة المجانية ومعرّض لـ429 عند الازدحام');
+  if (providerConfig.keyCount > 0) {
+    log('info', 'مفتاح EulerStream مضبوط (' + providerConfig.keyCount + ' مفتاح، من ' + providerConfig.keySource + ') — حد طلبات التوقيع المرفوع فعّال');
+  } else {
+    log('warn', '⚠️ EULER_API_KEY غير مضبوط — تيك توك يعمل على الطبقة المجانية من EulerStream (حد طلبات لكل IP، وIP خدمات Render مشترك) ومعرّض لـ429. أضف EULER_API_KEY في Environment Variables على Render.');
+  }
   startKeepAlive();
 });
 
@@ -1176,6 +1689,7 @@ process.on('uncaughtException', (err) => {
 
 function shutdown(signal) {
   log('info', 'إيقاف السيرفر (' + signal + ')…');
+  connectQueue.stop();
   for (const room of rooms.values()) room.teardown();
 
   // لازم نغلق سوكيتات العملاء صراحةً: server.close() ينتظر انتهاء كل اتصال

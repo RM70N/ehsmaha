@@ -18,9 +18,32 @@ tests/bridge/servers.sh stop
 # بروتوكول السيرفر وحمله (سيرفر مستقل):
 BRIDGE_HEARTBEAT_MS=1000 PORT=18091 CTL_PORT=19091 node tests/bridge/start-server.js &
 node tests/bridge/server-protocol.test.js
-PORT=18093 CTL_PORT=19093 node tests/bridge/start-server.js &
-node tests/bridge/server-load.test.js 20 15 20 15
+TIKTOK_FREE_RATE_PER_MIN=6000 TIKTOK_CONNECT_BURST=50 TIKTOK_CONNECT_INFLIGHT=50 PORT=18093 CTL_PORT=19093 node tests/bridge/start-server.js &
+node tests/bridge/server-load.test.js 20 15 20 15   # (معدل الطابور مرفوع هنا حتى يتصل الـ20 ستريمر فوراً)
+# عقد الجسر + التعافي: غلاف messages، أفتار https، اتصال واحد لعميلين، /health،
+# تصنيف أخطاء 2.5.0 (offline/not_found/blocked/sign_failed/429)، التراجع، بوابة 429 المشتركة:
+EULER_API_KEY=dummy-test-key PORT=18095 CTL_PORT=19095 node tests/bridge/start-server.js &
+T_PORT=18095 T_CTL=19095 node tests/bridge/bridge-contract.test.js
+# الواجهة: حذف حقل مفتاح EulerStream بفعالية 100 + extractUser (بدون سيرفرات):
+node tests/bridge/frontend-contract.test.js
 ```
+
+## طابور الاتصال والتعافي (شكوى "خدمة تيك توك مزدحمة… انتظر دقيقة")
+
+```bash
+cd tiktok-server && npm test                 # وحدات: backoff، مصنّف الأخطاء، قاطع الدائرة، المحدّد التكيّفي، الطابور، المزودون (42)
+node tests/bridge/queue-resilience.test.js   # تكامل (53): 429/5xx/مهلة/سيرفر توقيع واقع/رفض ثم نجاح، فشل نهائي وتعافٍ، مزودون بديلون،
+                                             #   اتصال واحد لكل يوزر (ضغطتان/ريفرش/إغلاق ثم فتح)، انقطاع وصمت upstream، طابور 40 ستريمر
+node tests/bridge/real-library.test.js       # بالمكتبة الحقيقية 2.5.0 + سيرفر Euler محاكى عبر HTTP حقيقي: 429/402/5xx/ECONNREFUSED/تعليق،
+                                             #   مفتاح ثانٍ، عنوان بديل، بروكسي (HTTP+WS)، قطع الويب سوكيت
+PLAYWRIGHT_PATH=... node tests/bridge/frontend-resilience.test.js   # الواجهة الحقيقية: لا رسالة فشل أثناء 429 طويل، تقدّم ظاهر،
+                                             #   فشل نهائي + زر "إعادة المحاولة" (المسارات الثلاثة لـ"ابدأ بثاً سريعاً")
+node tests/bridge/queue-load.test.js 50,200,500 --baseline --out=tests/bridge/results-queue-load.json   # حمل: قبل/بعد
+```
+`QUEUE-REPORT.md`: التقرير الكامل مع الأرقام.
+
+Playwright غير مثبّت محلياً بالمستودع: مرّر مساره بـ`PLAYWRIGHT_PATH` (مثلاً
+`/opt/node22/lib/node_modules/playwright`).
 
 - `start-server.js` يفتح منفذ تحكم (19081/19082): `POST /ctl` بأوامر `chat/burst/mode/dropUpstream/...`، و`GET /stats`.
 - `results-before.json` / `results-after.json`: القياسات قبل وبعد الإصلاحات.
