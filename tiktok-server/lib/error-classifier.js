@@ -23,6 +23,8 @@ const BLOCKED_RE = /captcha|might be blocked|\bblocked\b|access denied|\b403\b/i
 const SIGN_RE = /sign server|signature|eulerstream|euler stream/i;
 // حد يومي على حساب Euler (limit_label = rate_limit_account_day …): لا يتجدد قبل ساعات، فلا معنى لإعادة المحاولة كل ثوانٍ.
 const DAILY_LIMIT_RE = /account_day|_day\b|per day|daily/i;
+// مفتاح مرفوض: Euler يرد 401 "The provided API Key is invalid" (أو 403) — مفتاح خاطئ/منتهٍ/منسوخ بخطأ. إعادة المحاولة عبث.
+const INVALID_KEY_RE = /status (401|403)\b|api key is invalid|invalid api key|unauthorized/i;
 const TIMEOUT_RE = /timed? ?out|ETIMEDOUT|ESOCKETTIMEDOUT|انتهت مهلة/i;
 
 function errText(err) {
@@ -50,6 +52,9 @@ function classifyTikTokError(err, lib) {
   if (isErr(err, 'InvalidUniqueIdError')) return { kind: 'user_not_found' };
   if (isErr(err, 'PremiumFeatureError') || (err && err.reason === 'Premium Feature')) return { kind: 'provider_denied' };
   if (isErr(err, 'ConnectTimeoutError')) return { kind: 'timeout' };
+  if (((isErr(err, 'SignAPIError') && err.reason === 'Sign Error') || (err && err.reason === 'Sign Error')) && INVALID_KEY_RE.test(errText(err))) {
+    return { kind: 'provider_denied', invalidKey: true };
+  }
   if (isErr(err, 'SignAPIError') || (err && typeof err.reason === 'string' && /^(Sign Error|Empty Cookies|Connect Error|Empty Payload|Authenticated WS)$/.test(err.reason))) {
     return { kind: 'sign_failed' };
   }

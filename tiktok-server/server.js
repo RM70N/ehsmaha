@@ -523,6 +523,9 @@ class BaseRoom {
     // fatal:true يرسله TikTokRoom وحده بعد استنفاد كل المحاولات والمزودين — الحالة النهائية الوحيدة.
     // (يوتيوب/كيك ما يرسلان fatal إطلاقاً فلا تتغير أي رسالة عندهما.)
     if (state === 'error' && extra && extra.fatal) {
+      if (extra.reason === 'invalid_key') {
+        return 'مفتاح API الخاص بخدمة الربط غير صالح (Euler رفضه بخطأ 401) — على مالك الموقع تصحيحه في إعدادات Render، وبعدها يعمل الاتصال تلقائياً';
+      }
       if (extra.reason === 'daily_limit') {
         return 'خدمة الربط وصلت حدها اليومي — سيُعاد الاتصال تلقائياً بمجرد تجدد الحد أو إضافة مفتاح جديد، أو اضغط "إعادة المحاولة" لاحقاً';
       }
@@ -636,6 +639,7 @@ const connectQueue = new ConnectQueue(providerPool, {
     // "المفتاح خلص" / "رجع": سطر واضح باللوغ + عدّاد، وبعده ينتقل الاتصال تلقائياً للمفتاح التالي
     if (info && info.opened) {
       metrics.inc('provider_down_total', { provider: provider.name });
+      if (outcome && outcome.invalidKey) slog('error', 'invalid_api_key', { provider: provider.name, hint: 'Euler رفض المفتاح (401): تأكد من نسخه كاملاً بلا مسافات/علامات اقتباس، ومن أنه مفعّل في لوحة Euler' });
       slog('warn', 'provider_down', { provider: provider.name, kind: outcome && outcome.kind, cooldownSec: Math.round(info.cooldownMs / 1000), next: (providerPool.pick().provider || {}).name || 'none-ready' });
     }
     if (info && info.recovered) slog('info', 'provider_recovered', { provider: provider.name });
@@ -680,9 +684,10 @@ function recordFailure(outcome, provider) {
 
 const FATAL_REASON_TEXT = {
   daily_limit: 'خدمة الربط وصلت حدها اليومي',
+  invalid_key: 'مفتاح خدمة الربط غير صالح',
   rate_limited: 'خدمة الربط رفضت الطلبات مؤقتاً',
   sign_failed: 'تعذّر الوصول لخدمة توقيع الاتصال',
-  provider_denied: 'مفتاح خدمة الربط غير صالح أو ينقصه صلاحية',
+  provider_denied: 'مفتاح خدمة الربط مرفوض أو غير صالح',
   blocked: 'تيك توك يحجب سيرفر الربط',
   timeout: 'انتهت مهلة الاتصال',
   dropped: 'الاتصال ينقطع فور نجاحه',
@@ -724,6 +729,7 @@ class TikTokRoom extends BaseRoom {
     this.lastProgressSig = '';
     this.lastProgressSentAt = 0;
     this.lastFailKind = 'transient';
+    this.sawInvalidKey = false; // مزود رفض المفتاح (401) بهذه الجولة
     this.lastUpstreamAt = 0;
     this.lastLibErrorLogAt = 0;
   }
@@ -876,6 +882,7 @@ class TikTokRoom extends BaseRoom {
       this.attemptNo = 0;
       this.retryAt = 0;
       this.excluded.clear();
+      this.sawInvalidKey = false;
       if (this.requestedAt) { metrics.observe('time_to_connected', now - this.requestedAt); this.requestedAt = 0; }
       // failStreak لا يُصفَّر هنا — فقط بعد ثبات الاتصال TIKTOK_STABLE_MS. لو كان تيك توك يقبل
       // ثم يقطع فوراً، التراجع يكمل تصاعده بدل حلقة "اتصل ← انقطع" التي تحرق الحصة.
@@ -1021,12 +1028,15 @@ class TikTokRoom extends BaseRoom {
     }
 
     this.failStreak++;
+    if (outcome.invalidKey) this.sawInvalidKey = true;
     this.lastFailKind = outcome.daily ? 'daily_limit' : kind;
     if (!this.firstFailAt) this.firstFailAt = Date.now();
     if (this.shouldGiveUp()) return this.giveUp(this.lastFailKind);
     // الحد اليومي: لو ما فيه أي مزود يجهز خلال 5 دقائق (كلهم انتهى حدهم) ننتظر ساعات — نعلن السبب فوراً بدل
     // "جاري الاتصال" لدقائق بلا فائدة. (الغرفة تبقى تحاول بالخلفية، وأي مفتاح جديد/تجدد الحد يوصلها تلقائياً.)
     if (outcome.daily && providerPool.earliestReadyMs() > 5 * 60 * 1000) return this.giveUp('daily_limit');
+    // مفتاح مرفوض (401/403) ولا يوجد أي مزود بديل جاهز: إعلان فوري بدل دقائق "جاري الاتصال" بلا فائدة.
+    if (kind === 'provider_denied' && providerPool.earliestReadyMs() > 5 * 60 * 1000) return this.giveUp('provider_denied');
 
     // هل يوجد مزود/مسار بديل لم نجربه بهذه الجولة؟ (عطل المزود: هو وحده، حجب تيك توك: كل مساره)
     if (provider && isProviderFault(kind)) this.excluded.add(provider.id);
@@ -1053,6 +1063,8 @@ class TikTokRoom extends BaseRoom {
   // الاستسلام النهائي (بعد استنفاد المحاولات والبدائل): رسالة واضحة + زر "إعادة المحاولة" بالواجهة،
   // والغرفة تكمل كل TIKTOK_PARKED_RETRY_MS بالخلفية لو بقي عميل.
   giveUp(reason) {
+    // لو سبب الفشل الجذري مفتاح مرفوض (401) فهو الأولى بالإعلان (الأكثر قابلية للإصلاح) حتى لو انضم له حد يومي مجاني
+    if (this.sawInvalidKey && (reason === 'daily_limit' || reason === 'provider_denied')) reason = 'invalid_key';
     this.parked = true;
     this.stopProgressTicker();
     this.excluded.clear();
