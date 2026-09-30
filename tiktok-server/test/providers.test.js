@@ -167,3 +167,14 @@ test('end() reports when a key just ran out / recovered (for logging)', () => {
   p.begin(a); const up = p.end(a, { ok: true });
   assert.equal(up.recovered, true);
 });
+
+test('daily limit silences the key for a long time (not the usual 5-minute probe), other keys keep serving', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B', TIKTOK_FREE_FALLBACK: '0' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100, dailyCooldownMs: 1800000 });
+  p.begin(p.providers[0]); p.end(p.providers[0], { kind: 'rate_limited', retryAfterMs: 0, daily: true });
+  assert.equal(p.providers[0].breaker.waitMs(), 1800000);
+  assert.equal(p.pick().provider.name, 'key2/direct');
+  p.begin(p.providers[1]); p.end(p.providers[1], { kind: 'rate_limited', retryAfterMs: 7200000, daily: true });
+  assert.equal(p.providers[1].breaker.waitMs(), 3600000, 'retry-after honoured but bounded to 1h');
+  assert.ok(p.earliestReadyMs() > 5 * 60 * 1000, 'nothing ready within 5 minutes');
+});

@@ -60,10 +60,11 @@ class ProviderPool {
   constructor(defs, opts) {
     const o = Object.assign({
       now: Date.now, ratePerMin: 90, freeRatePerMin: 30, minRatePerMin: 6, burst: 6, inFlight: 4,
-      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, decreaseFactor: 0.6,
+      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, dailyCooldownMs: 1800000, decreaseFactor: 0.6,
     }, opts || {});
     this.now = o.now;
     this.deniedCooldownMs = o.deniedCooldownMs;
+    this.dailyCooldownMs = o.dailyCooldownMs;
     this.providers = defs.map((def, i) => {
       const rate = (def.free ? o.freeRatePerMin : o.ratePerMin) / 60;
       return {
@@ -127,7 +128,11 @@ class ProviderPool {
     }
     const kind = (outcome && outcome.kind) || 'transient';
     provider.failures[kind] = (provider.failures[kind] || 0) + 1;
-    if (kind === 'rate_limited') {
+    if (kind === 'rate_limited' && outcome.daily) {
+      // الحد اليومي انتهى: نُسكت المزود فترة طويلة (retry-after إن وصل وإلا dailyCooldownMs) بدل طرق الباب كل 5 دقائق
+      provider.limiter.onRateLimited();
+      provider.breaker.trip(outcome.retryAfterMs > 0 ? Math.min(outcome.retryAfterMs, 3600000) : this.dailyCooldownMs, true);
+    } else if (kind === 'rate_limited') {
       provider.limiter.onRateLimited();
       provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : 0);
     } else if (kind === 'provider_denied') {

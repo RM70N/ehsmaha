@@ -21,6 +21,8 @@ const NOT_FOUND_RE = /user[ _-]?not[ _-]?(found|exist)|doesn'?t exist|does not e
 const BLOCKED_RE = /captcha|might be blocked|\bblocked\b|access denied|\b403\b/i;
 // نص احتياطي فقط: أخطاء التوقيع الحقيقية تأتي كـSignAPIError؛ أخطاء الشبكة العامة (ECONNREFUSED...) عابرة لا عطل مزود.
 const SIGN_RE = /sign server|signature|eulerstream|euler stream/i;
+// حد يومي على حساب Euler (limit_label = rate_limit_account_day …): لا يتجدد قبل ساعات، فلا معنى لإعادة المحاولة كل ثوانٍ.
+const DAILY_LIMIT_RE = /account_day|_day\b|per day|daily/i;
 const TIMEOUT_RE = /timed? ?out|ETIMEDOUT|ESOCKETTIMEDOUT|انتهت مهلة/i;
 
 function errText(err) {
@@ -43,7 +45,7 @@ function classifyTikTokError(err, lib) {
 
   if (isErr(err, 'UserOfflineError')) return { kind: 'offline' };
   if (isErr(err, 'SignatureRateLimitError') || (err && err.reason === 'Rate Limited')) {
-    return { kind: 'rate_limited', retryAfterMs: retryAfterOf(err) };
+    return { kind: 'rate_limited', retryAfterMs: retryAfterOf(err), daily: DAILY_LIMIT_RE.test(errText(err)) };
   }
   if (isErr(err, 'InvalidUniqueIdError')) return { kind: 'user_not_found' };
   if (isErr(err, 'PremiumFeatureError') || (err && err.reason === 'Premium Feature')) return { kind: 'provider_denied' };
@@ -56,7 +58,7 @@ function classifyTikTokError(err, lib) {
   if (inner && inner.length) {
     const texts = inner.map(errText);
     const rl = inner.find((e) => isErr(e, 'SignatureRateLimitError'));
-    if (rl) return { kind: 'rate_limited', retryAfterMs: retryAfterOf(rl) };
+    if (rl) return { kind: 'rate_limited', retryAfterMs: retryAfterOf(rl), daily: DAILY_LIMIT_RE.test(errText(rl)) };
     if (texts.some((t) => RATE_LIMIT_RE.test(t))) return { kind: 'rate_limited', retryAfterMs: 0 };
     if (texts.some((t) => NOT_FOUND_RE.test(t))) return { kind: 'user_not_found' };
     if (texts.some((t) => BLOCKED_RE.test(t))) return { kind: 'blocked' };
@@ -67,7 +69,7 @@ function classifyTikTokError(err, lib) {
   }
 
   const text = errText(err);
-  if (RATE_LIMIT_RE.test(text)) return { kind: 'rate_limited', retryAfterMs: retryAfterOf(err) };
+  if (RATE_LIMIT_RE.test(text)) return { kind: 'rate_limited', retryAfterMs: retryAfterOf(err), daily: DAILY_LIMIT_RE.test(text) };
   if (NOT_FOUND_RE.test(text)) return { kind: 'user_not_found' };
   if (TIMEOUT_RE.test(text)) return { kind: 'timeout' };
   if (SIGN_RE.test(text)) return { kind: 'sign_failed' };

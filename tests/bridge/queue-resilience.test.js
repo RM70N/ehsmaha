@@ -261,6 +261,27 @@ const mk = async (env) => { const b = await startBridge(env); bridges.push(b); r
   const noDiag = await mk({});
   check('[H] بدون BRIDGE_DIAG_TOKEN نقطة /diag مغلقة تماماً', (await fetch('http://127.0.0.1:' + noDiag.port + '/diag?token=')).status === 404);
 
+  // ============================================================ I) الحد اليومي (rate_limit_account_day) كما ظهر بلوغات Render
+  const I1 = await mk({ TIKTOK_PROGRESS_TICK_MS: '400' }); // مزود واحد (الطبقة المجانية) بلا مفاتيح
+  await I1.ctl({ cmd: 'mode', user: 'daily1', mode: 'daily_limit' });
+  const d1c = client(I1, 'daily1'); await d1c.opened;
+  const dGave = await until(() => d1c.statuses.some((s) => s.fatal), 15000);
+  const dFatal = d1c.statuses.find((s) => s.fatal) || {};
+  const dCalls = (await I1.stats()).connectCallsByUser.daily1;
+  check('[I] الحد اليومي بلا بديل: يعلن السبب فوراً (بلا انتظار دقائق) بعد محاولة واحدة', dGave && dFatal.code === 'gave_up' && dFatal.reason === 'daily_limit' && dCalls === 1 && (dFatal.at || 99999) < 5000, { afterMs: dFatal.at, calls: dCalls });
+  check('[I] رسالة واضحة للمستخدم (الحد اليومي، تجدد/مفتاح جديد، إعادة المحاولة) بلا "مزدحمة"', /حدها اليومي/.test(dFatal.message || '') && /إعادة المحاولة/.test(dFatal.message || '') && !BAD_TEXT.test(dFatal.message || ''), dFatal.message);
+  await sleep(1500);
+  check('[I] بعد الإعلان لا طلبات جديدة تحرق الحصة (المزود مسكَّت لفترة طويلة)', (await I1.stats()).connectCallsByUser.daily1 === 1 && (await I1.health()).providers[0].cooldownSec > 1000, (await I1.health()).providers[0]);
+  d1c.close(1000);
+  // مع مفتاحين: الأول خلص يومياً ← الثاني يخدم والمستخدم لا يرى شيئاً
+  const I2 = await mk({ EULER_API_KEY: 'D1', EULER_API_KEYS: 'D2', TIKTOK_FREE_FALLBACK: '0' });
+  await I2.ctl({ cmd: 'provider', key: 'D1', mode: 'daily_limit' });
+  const d2c = client(I2, 'daily2'); await d2c.opened;
+  const d2ok = await until(() => d2c.connectedAt() != null, 10000);
+  const h2i = await I2.health();
+  check('[I] مفتاحان: الأول خلص حده اليومي ← الثاني يخدم فوراً، والأول مسكَّت ساعات، بلا error للمستخدم', d2ok && noUserFacingFailure(d2c) && h2i.providers[0].role === 'cooling' && h2i.providers[0].cooldownSec >= 1700 && h2i.providers[1].role === 'active', h2i.providers.map((p) => p.name + ':' + p.role + ':' + p.cooldownSec));
+  d2c.close(1000);
+
   bridges.forEach((b) => b.stop());
   const bad = results.filter((r) => !r.ok).length;
   console.log(bad ? bad + ' FAILED / ' + results.length : 'ALL PASSED (' + results.length + ')');

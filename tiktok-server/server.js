@@ -523,6 +523,9 @@ class BaseRoom {
     // fatal:true يرسله TikTokRoom وحده بعد استنفاد كل المحاولات والمزودين — الحالة النهائية الوحيدة.
     // (يوتيوب/كيك ما يرسلان fatal إطلاقاً فلا تتغير أي رسالة عندهما.)
     if (state === 'error' && extra && extra.fatal) {
+      if (extra.reason === 'daily_limit') {
+        return 'خدمة الربط وصلت حدها اليومي — سيُعاد الاتصال تلقائياً بمجرد تجدد الحد أو إضافة مفتاح جديد، أو اضغط "إعادة المحاولة" لاحقاً';
+      }
       const why = FATAL_REASON_TEXT[extra.reason] || FATAL_REASON_TEXT.transient;
       return 'تعذّر الاتصال بـ ' + id + ' بعد ' + (extra.attempt || 'عدة') + ' محاولات تلقائية (' + why + ') — اضغط "إعادة المحاولة"';
     }
@@ -617,6 +620,7 @@ const providerPool = new ProviderPool(providerConfig.defs, {
   breakerCooldownMs: envNum('TIKTOK_BREAKER_COOLDOWN_MS', 30000),
   breakerMaxCooldownMs: envNum('TIKTOK_BREAKER_MAX_COOLDOWN_MS', 300000),
   deniedCooldownMs: envNum('TIKTOK_DENIED_COOLDOWN_MS', 600000),
+  dailyCooldownMs: envNum('TIKTOK_DAILY_LIMIT_COOLDOWN_MS', 1800000),
 });
 // فحص "هل البث مفتوح" (room/info) قبل التوقيع يذهب لتيك توك مباشرة من IP السيرفر، وقد يُحجب من IP خدمات
 // الاستضافة فيفشل الاتصال كله رغم سلامة التوقيع. TIKTOK_FETCH_ROOM_INFO=0 يتجاوزه (للتشخيص فقط).
@@ -675,6 +679,7 @@ function recordFailure(outcome, provider) {
 }
 
 const FATAL_REASON_TEXT = {
+  daily_limit: 'خدمة الربط وصلت حدها اليومي',
   rate_limited: 'خدمة الربط رفضت الطلبات مؤقتاً',
   sign_failed: 'تعذّر الوصول لخدمة توقيع الاتصال',
   provider_denied: 'مفتاح خدمة الربط غير صالح أو ينقصه صلاحية',
@@ -1016,9 +1021,12 @@ class TikTokRoom extends BaseRoom {
     }
 
     this.failStreak++;
-    this.lastFailKind = kind;
+    this.lastFailKind = outcome.daily ? 'daily_limit' : kind;
     if (!this.firstFailAt) this.firstFailAt = Date.now();
-    if (this.shouldGiveUp()) return this.giveUp(kind);
+    if (this.shouldGiveUp()) return this.giveUp(this.lastFailKind);
+    // الحد اليومي: لو ما فيه أي مزود يجهز خلال 5 دقائق (كلهم انتهى حدهم) ننتظر ساعات — نعلن السبب فوراً بدل
+    // "جاري الاتصال" لدقائق بلا فائدة. (الغرفة تبقى تحاول بالخلفية، وأي مفتاح جديد/تجدد الحد يوصلها تلقائياً.)
+    if (outcome.daily && providerPool.earliestReadyMs() > 5 * 60 * 1000) return this.giveUp('daily_limit');
 
     // هل يوجد مزود/مسار بديل لم نجربه بهذه الجولة؟ (عطل المزود: هو وحده، حجب تيك توك: كل مساره)
     if (provider && isProviderFault(kind)) this.excluded.add(provider.id);

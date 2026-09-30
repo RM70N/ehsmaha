@@ -9,7 +9,7 @@ const kind = (e) => classifyTikTokError(e, lib).kind;
 
 test('real SignatureRateLimitError -> rate_limited with retryAfter in ms', () => {
   const e = new lib.SignatureRateLimitError(null, 'Too many connections started, try again later.', { headers: { 'retry-after': '45' } });
-  assert.deepEqual(classifyTikTokError(e, lib), { kind: 'rate_limited', retryAfterMs: 45000 });
+  assert.deepEqual(classifyTikTokError(e, lib), { kind: 'rate_limited', retryAfterMs: 45000, daily: false });
   assert.ok(isProviderFault('rate_limited'));
 });
 
@@ -58,4 +58,13 @@ test('plain text fallbacks (older library shapes)', () => {
 test('works when the library lacks a class (test doubles)', () => {
   assert.equal(classifyTikTokError(new Error('HTTP 429'), {}).kind, 'rate_limited');
   assert.equal(classifyTikTokError(new Error('boom'), undefined).kind, 'transient');
+});
+
+test('daily account limit (limit_label=rate_limit_account_day) is flagged as daily — real message shape from Euler', () => {
+  const e = new lib.SignatureRateLimitError('You have reached the rate limit. Sign up for a free API key at https://www.eulerstream.com/pricing.', '(rate_limit_account_day) Too many connections started, try again later.', { headers: { 'retry-after': '7200' } });
+  const r = classifyTikTokError(e, lib);
+  assert.equal(r.kind, 'rate_limited'); assert.equal(r.daily, true); assert.equal(r.retryAfterMs, 7200000);
+  const plain = new lib.SignatureRateLimitError(null, '(rate_limit_ip_minute) Too many connections started, try again later.', { headers: { 'retry-after': '20' } });
+  assert.equal(classifyTikTokError(plain, lib).daily, false);
+  assert.equal(classifyTikTokError(composite([e]), lib).daily, true);
 });
