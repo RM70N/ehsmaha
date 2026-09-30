@@ -23240,7 +23240,12 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
         // fatal يرسله السيرفر بعد عدة محاولات فاشلة متتالية = "ما يقدر يتصل
         // إطلاقاً الآن"، ولازم يوصل للواجهة عشان تعرض رسالة نهائية بدل
         // ما تظل تعرض "جاري الاتصال" للأبد.
-        onEvent({ type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal });
+        // كل حقول حالة السيرفر تُمرَّر (طابور/محاولة/عدّ تنازلي/سبب) — لو انحذفت منها يعجز المستخدم عن رؤية تقدّم الربط.
+        onEvent({
+          type: 'bridge_status', state: d.state, message: d.message, code: d.code, fatal: d.fatal,
+          reason: d.reason, attempt: d.attempt, queuePosition: d.queuePosition, queueSize: d.queueSize,
+          etaSec: d.etaSec, retryInSec: d.retryInSec, srv: d.srv,
+        });
         return;
       }
       onEvent(d);
@@ -23452,7 +23457,7 @@ function tiktokProgressText(evt) {
 //   المراقبة ونبقي الاتصال مفتوحاً لأن السيرفر بيربط تلقائياً أول ما يفتح البث.
 // onProgress(evt): تُستدعى مع كل حالة "جاري الاتصال" (طابور/محاولة) لعرض التقدم — ليست فشلاً أبداً.
 function tiktokConnectWatcher(onFail, onNotLive, onProgress) {
-  const w = { fails: 0, lastCode: 'connect_failed', done: false, timer: null };
+  const w = { fails: 0, lastCode: 'connect_failed', done: false, timer: null, sawNewServer: false };
   const arm = () => {
     if (w.timer) clearTimeout(w.timer);
     w.timer = setTimeout(() => {
@@ -23469,14 +23474,21 @@ function tiktokConnectWatcher(onFail, onNotLive, onProgress) {
     if (w.timer) { clearTimeout(w.timer); w.timer = null; }
     w.done = true;
   };
-  w.fail = function (code, message) {
+  w.fail = function (code, message, reason) {
     if (w.done) return;
     w.stop();
-    if (typeof onFail === 'function') onFail(message || tiktokConnectFailMessage(code), code);
+    let text = message || tiktokConnectFailMessage(code);
+    if (code !== 'user_not_found') {
+      text += ' [' + (reason || code) + ']'; // رمز السبب للدعم/التشخيص
+      // سيرفر الجسر الجديد يختم كل حالة بـsrv؛ غيابها = سيرفر Render ما زال على النسخة القديمة (هو مصدر أشيع فشل)
+      if (!w.sawNewServer) text += ' — تنبيه: سيرفر الجسر على Render يبدو نسخة قديمة، حدّثه (راجع /health)';
+    }
+    if (typeof onFail === 'function') onFail(text, code);
   };
   w.autoArm = false; // true = تبدأ مهلة الصمت عند أول رسالة من السيرفر (بلا إيقاظ مسبق للسيرفر)
   w.note = function (evt) {
     if (w.done || !evt || evt.type !== 'bridge_status') return;
+    if (evt.srv) w.sawNewServer = true;
     if (w.timer || w.autoArm) arm(); // السيرفر حي ويتقدم: نمدّد مهلة الصمت
     if (evt.state === 'connected') { w.stop(); return; }
     if (evt.state === 'not_live') {
@@ -23491,7 +23503,7 @@ function tiktokConnectWatcher(onFail, onNotLive, onProgress) {
     if (evt.state !== 'error') return;
     w.lastCode = evt.code || 'connect_failed';
     // يوزرنيم غير موجود، أو fatal من السيرفر (استنفد كل المحاولات) = نهائي.
-    if (w.lastCode === 'user_not_found' || evt.fatal) { w.fail(w.lastCode, evt.fatal ? evt.message : undefined); return; }
+    if (w.lastCode === 'user_not_found' || evt.fatal) { w.fail(w.lastCode, evt.fatal ? evt.message : undefined, evt.reason); return; }
     // سيرفر جسر قديم (قبل الطابور) يرسل error غير نهائي مع كل محاولة: نعدّها فقط.
     w.fails++;
     if (w.fails >= TIKTOK_CONNECT_MAX_FAILS) w.fail(w.lastCode);

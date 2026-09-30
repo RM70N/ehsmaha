@@ -107,6 +107,7 @@ const ui = (page) => page.evaluate(() => ({
     const s1 = await seen(page);
     check('[2] بعد استنفاد المحاولات: شاشة فشل واضحة بسبب + زر "إعادة المحاولة"', failed && /تعذّر الربط/.test(f.title) && /توقيع/.test(f.sub) && /إعادة المحاولة/.test(f.sub), { title: f.title, sub: f.sub });
     check('[2] لا "مزدحمة/انتظر دقيقة" حتى بالفشل النهائي', !s1.some((x) => BAD.test(x.text)));
+    check('[2] رسالة الفشل تحمل رمز السبب [sign_failed] وبلا تنبيه "نسخة قديمة" (السيرفر جديد)', /\[sign_failed\]/.test(f.sub) && !/نسخة قديمة/.test(f.sub), f.sub);
     check('[2] قبل الفشل النهائي ما ظهر أي toast فشل', !s1.some((x) => x.kind === 'toast' && /⚠️|⛔/.test(x.text) && !/تعذّر الربط/.test(x.text)), s1.filter((x) => x.kind === 'toast').map((x) => x.text));
     await H.ctl(H.PRIMARY, { cmd: 'mode', user, mode: 'live' }); // المشكلة زالت
     await page.evaluate(() => document.getElementById('qc-retry-btn').click()); // (Firebase محجوب بالاختبار فيبقى auth-loader فوق الصفحة، فنضغط الزر برمجياً)
@@ -133,8 +134,34 @@ const ui = (page) => page.evaluate(() => ({
     check('[3] "ابدأ بثاً سريعاً" (النافذة) مع 3×429: يتصل تلقائياً', up, { badge: fin.badge });
     check('[3] لا رسالة فشل/"مزدحمة" ظهرت للمستخدم', !seen3.some((x) => BAD.test(x.text)) && !seen3.some((x) => x.kind === 'toast' && /⚠️|⛔/.test(x.text)), seen3.filter((x) => x.kind === 'toast').map((x) => x.text));
     check('[3] الشارة عرضت "جاري الاتصال…" (لا "غير متصل" الموحية بالفشل) أثناء المحاولات', seen3.some((x) => x.kind === 'badge' && /جاري الاتصال/.test(x.text)), seen3.filter((x) => x.kind === 'badge').map((x) => x.text).slice(0, 4));
-    check('[3] عُرض رقم المحاولة/الطابور', seen3.some((x) => (x.kind === 'overlay-sub' || x.kind === 'badge') && /محاولة|الطابور/.test(x.text)), seen3.filter((x) => /محاولة|الطابور/.test(x.text)).slice(0, 2));
+    // (كان هذا الفحص يقبل "محاولة رقم 1" العامة لأن tiktokOpenWS كانت تُسقط حقول التقدّم — الآن نطلب أرقاماً حقيقية من السيرفر)
+    const progress3 = seen3.filter((x) => (x.kind === 'overlay-sub' || x.kind === 'badge') && /محاولة رقم [2-9]|محاولة [2-9]\)|موقعك في الطابور \d+ من \d+|الطابور \d+\)/.test(x.text));
+    check('[3] عُرضت أرقام حقيقية من السيرفر: رقم المحاولة (2..4) أو موقع الطابور', progress3.length > 0, progress3.slice(0, 3).map((x) => x.text));
+    check('[3] وعُرض العدّ التنازلي "بعد N ثانية" أو الزمن المتوقع', seen3.some((x) => /بعد \d+ ثانية|حوالي \d+ ثانية/.test(x.text)), seen3.filter((x) => /ثانية/.test(x.text)).slice(0, 2).map((x) => x.text));
     await page.context().close();
+  }
+
+  // ================================================================ 5) سيرفر Render قديم (لا يرسل srv ويرسل error غير نهائي) ← فشل مفهوم مع تنبيه "نسخة قديمة"
+  {
+    const http = require('http');
+    const { WebSocketServer } = require(path.join(__dirname, '../../tiktok-server/node_modules/ws'));
+    const old = byPort.get(18081); if (old) { try { old.kill('SIGKILL'); } catch (e) { /* ignore */ } await sleep(400); }
+    const srv = http.createServer((req, res) => { if (req.url.indexOf('/healthz') === 0) { res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"ok":true}'); } else { res.writeHead(404); res.end(); } });
+    const wss = new WebSocketServer({ server: srv, path: '/ws' });
+    wss.on('connection', (ws) => {
+      ws.send(JSON.stringify({ type: 'bridge_status', state: 'connecting', message: 'x' }));
+      [300, 700, 1100].forEach((t) => setTimeout(() => { try { ws.send(JSON.stringify({ type: 'bridge_status', state: 'error', code: 'connect_failed', message: 'خطأ مؤقت' })); } catch (e) { /* closed */ } }, t));
+    });
+    await new Promise((r) => srv.listen(18081, '127.0.0.1', r));
+    const page = await H.newPage(browser);
+    await instrument(page);
+    await page.evaluate(() => { tiktokSavedUsersUpsert('oldsrv'); homeQuickReconnectClick(); });
+    let failed = false;
+    for (let i = 0; i < 30 && !failed; i++) { await sleep(500); failed = (await ui(page)).actionsVisible; }
+    const f = await ui(page);
+    check('[5] سيرفر قديم: يظهر فشل مفهوم مع رمز السبب وتنبيه "سيرفر الجسر على Render نسخة قديمة"', failed && /\[connect_failed\]/.test(f.sub) && /نسخة قديمة/.test(f.sub) && !BAD.test(f.sub), f.sub);
+    await page.context().close();
+    wss.close(); srv.close();
   }
 
   // ================================================================ 4) عدم وجود أخطاء JS

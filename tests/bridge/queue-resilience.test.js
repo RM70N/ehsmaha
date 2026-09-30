@@ -216,6 +216,51 @@ const mk = async (env) => { const b = await startBridge(env); bridges.push(b); r
   check('[G] 20 من 40 غادروا وهم بالطابور: الباقون اتصلوا، والغائبون ما استهلكوا طلبات توقيع', gc.slice(0, 20).every((c) => c.connectedAt() != null) && gcalls <= 30, { providerCalls: gcalls, stayed: 20, left: 20 });
   gc.slice(0, 20).forEach((c) => c.close(1000));
 
+  // ============================================================ H) سبعة مفاتيح (الأول + 6 إضافية): تحويل تلقائي متسلسل عند "خلص المفتاح"
+  const KEYS = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7'];
+  const Hb = await mk({ EULER_API_KEY: 'K1', EULER_API_KEYS: 'K2,K3,K4,K5,K6,K7', TIKTOK_FREE_FALLBACK: '0', BRIDGE_DIAG_TOKEN: 'diag-secret', TIKTOK_PROGRESS_TICK_MS: '400' });
+  await Hb.ctl({ cmd: 'retryAfter', sec: 3 });
+  const hs = await Hb.health();
+  check('[H] سبعة مزودين بالترتيب، الأول active والباقي standby', hs.providers.map((p) => p.name).join(',') === KEYS.map((_, i) => 'key' + (i + 1) + '/direct').join(',') && hs.providers[0].role === 'active' && hs.providers.slice(1).every((p) => p.role === 'standby'), hs.providers.map((p) => p.name + ':' + p.role));
+  const hopen = [];
+  const connectRoom = async (name) => { const c = client(Hb, name); hopen.push(c); await c.opened; await until(() => c.connectedAt() != null, 15000); return c; };
+  for (let i = 0; i < 5; i++) await connectRoom('h1_' + i);
+  let hst = await Hb.stats();
+  check('[H] المفتاح الأول وحده يخدم ما دام سليماً (الباقي 0 طلب)', hst.eulerCalls.K1 === 5 && KEYS.slice(1).every((k) => !hst.eulerCalls[k]), hst.eulerCalls);
+  // "خلص" الأول والثاني: 429
+  await Hb.ctl({ cmd: 'provider', key: 'K1', mode: 'rate_limited_typed' });
+  await Hb.ctl({ cmd: 'provider', key: 'K2', mode: 'rate_limited_typed' });
+  const r3 = await connectRoom('h2_0');
+  await connectRoom('h2_1');
+  hst = await Hb.stats();
+  const hh = await Hb.health();
+  check('[H] الأول والثاني خلصا ← الاتصال يمر تلقائياً للثالث، والرابع…السابع ما لُمست', r3.connectedAt() != null && hst.eulerCalls.K3 >= 2 && KEYS.slice(3).every((k) => !hst.eulerCalls[k]) && hh.providers[0].role === 'cooling' && hh.providers[1].role === 'cooling' && hh.providers[2].role === 'active', hh.providers.map((p) => p.name + ':' + p.role));
+  check('[H] المستخدم ما شاف error/"مزدحمة" أثناء التحويل', hopen.every(noUserFacingFailure));
+  check('[H] باللوغ: سطر provider_down للمفتاح الأول مع المفتاح التالي', /event=provider_down provider=key1\/direct kind=rate_limited/.test(Hb.log()) && /next=key2\/direct/.test(Hb.log()), (Hb.log().split('\n').find((l) => /provider_down/.test(l)) || '').slice(28, 200));
+  // "خلص" الثالث..السادس: يبقى السابع
+  for (const k of ['K3', 'K4', 'K5', 'K6']) await Hb.ctl({ cmd: 'provider', key: k, mode: 'denied' });
+  await connectRoom('h3_0');
+  hst = await Hb.stats();
+  const h7 = await Hb.health();
+  check('[H] حتى لو خلصت ستة مفاتيح: السابع يخدم والمستخدم يتصل', hst.eulerCalls.K7 >= 1 && h7.providers[6].role === 'active' && h7.providers.slice(0, 6).every((p) => p.role === 'cooling'), h7.providers.map((p) => p.name + ':' + p.role));
+  // رجوع الأول تلقائياً بعد انتهاء retry-after
+  await Hb.ctl({ cmd: 'provider', key: 'K1', mode: 'live' });
+  await sleep(3500);
+  const before = (await Hb.stats()).eulerCalls.K1;
+  await connectRoom('h4_0');
+  const after = (await Hb.stats()).eulerCalls.K1;
+  const h8 = await Hb.health();
+  check('[H] المفتاح الأول تعافى ← الاتصالات ترجع له تلقائياً (recovered باللوغ)', after > before && h8.providers[0].role === 'active' && /event=provider_recovered provider=key1\/direct/.test(Hb.log()), { callsBefore: before, callsAfter: after, role: h8.providers[0].role });
+  // /diag: مغلق بلا كلمة سر، ومفتوح بها، وبلا مفاتيح
+  const noTok = await fetch('http://127.0.0.1:' + Hb.port + '/diag');
+  const badTok = await fetch('http://127.0.0.1:' + Hb.port + '/diag?token=wrong');
+  const okTok = await fetch('http://127.0.0.1:' + Hb.port + '/diag?token=diag-secret');
+  const dj = await okTok.json();
+  check('[H] /diag: 404 بلا/بخطأ كلمة السر؛ ومع الصحيحة يعرض آخر الأعطال بأسبابها بلا مفاتيح', noTok.status === 404 && badTok.status === 404 && okTok.status === 200 && dj.recentFailures.length >= 2 && dj.recentFailures.some((f) => f.kind === 'rate_limited') && !JSON.stringify(dj).match(/"K[1-7]"|apiKey/), { failures: dj.recentFailures.length, kinds: [...new Set(dj.recentFailures.map((f) => f.kind))] });
+  hopen.forEach((c) => c.close(1000));
+  const noDiag = await mk({});
+  check('[H] بدون BRIDGE_DIAG_TOKEN نقطة /diag مغلقة تماماً', (await fetch('http://127.0.0.1:' + noDiag.port + '/diag?token=')).status === 404);
+
   bridges.forEach((b) => b.stop());
   const bad = results.filter((r) => !r.ok).length;
   console.log(bad ? bad + ' FAILED / ' + results.length : 'ALL PASSED (' + results.length + ')');

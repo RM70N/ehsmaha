@@ -13,7 +13,7 @@ class ConnectQueue {
     this.setTimer = o.setTimer;
     this.clearTimer = o.clearTimer;
     this.onDispatch = o.onDispatch; // (entry, waitedMs, provider)
-    this.onSettle = o.onSettle;     // (entry, outcome, provider, tookMs)
+    this.onSettle = o.onSettle;     // (entry, outcome, provider, tookMs, info{opened,recovered,cooldownMs})
     this.waiting = [];              // entries (مرتبة)
     this.running = new Map();       // key -> entry
     this.timer = null;
@@ -102,8 +102,8 @@ class ConnectQueue {
     try { p = Promise.resolve(entry.dispatch(provider)); } catch (e) { p = Promise.reject(e); }
     p.catch((e) => ({ kind: 'transient', error: e })).then((outcome) => {
       this.running.delete(entry.key);
-      this.pool.end(provider, outcome);
-      if (this.onSettle) { try { this.onSettle(entry, outcome, provider, this.now() - startedAt); } catch (e) { /* metrics فقط */ } }
+      const info = this.pool.end(provider, outcome);
+      if (this.onSettle) { try { this.onSettle(entry, outcome, provider, this.now() - startedAt, info); } catch (e) { /* metrics فقط */ } }
       entry.resolve({ outcome, provider });
       this.pump();
     });

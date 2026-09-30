@@ -3,9 +3,12 @@
 //
 // المزود = { مفتاح API (اختياري) + عنوان سيرفر التوقيع + مسار (مباشر أو بروكسي) }.
 // لكل مزود: محدّد معدل تكيّفي مستقل (حصة Euler لكل مفتاح/IP) وقاطع دائرة مستقل.
-// المزودات مرتبة بطبقات (tier): 0 = الأساسي (المفاتيح، أو الطبقة المجانية لو ما فيه مفتاح)،
-// 1 = عناوين توقيع بديلة، 2 = الطبقة المجانية كملاذ أخير عند وجود مفاتيح. الطبقة الأدنى ما تُستخدم
-// إلا لو كل مزودي الطبقة الأعلى معطّلين (قاطع مفتوح) — مو لمجرد ازدحام لحظي.
+// المزودات مرتبة بطبقات (tier). الاستراتيجية الافتراضية "متسلسلة" (TIKTOK_KEY_STRATEGY=sequential):
+// المفتاح الأول وحده يعمل ما دام سليماً، ولو "خلص" (429 حصة/معدل، أو 402 رفض، أو تعطّل) ينتقل الاتصال
+// تلقائياً للثاني، ثم الثالث… ويرجع للأول تلقائياً أول ما يتعافى قاطعه. الترتيب:
+//   المفتاح 1 (tier 0) ← المفتاح 2 (tier 1) ← … ← عناوين توقيع بديلة ← الطبقة المجانية كملاذ أخير.
+// الاستراتيجية "متوازنة" (balanced): كل المفاتيح بنفس الطبقة وتتقاسم الحمل بالتساوي.
+// الطبقة الأدنى ما تُستخدم إلا لو كل مزودي الطبقة الأعلى معطّلين (قاطع مفتوح) — مو لمجرد ازدحام لحظي.
 //
 // لا أسرار هنا: كل شيء من متغيرات البيئة، والأسماء الظاهرة (name) عامة بلا مفاتيح ولا عناوين بروكسي.
 
@@ -34,20 +37,22 @@ function loadProviderDefs(env, defaults) {
   const fallbackUrls = splitList(e.TIKTOK_SIGN_FALLBACK_URLS);
   const proxies = splitList(e.TIKTOK_PROXIES);
   const freeFallback = String(e.TIKTOK_FREE_FALLBACK == null ? '1' : e.TIKTOK_FREE_FALLBACK) !== '0';
+  const sequential = String(e.TIKTOK_KEY_STRATEGY || 'sequential').trim().toLowerCase() !== 'balanced';
 
   const routes = [{ id: 'direct', proxyUrl: '' }].concat(proxies.map((p, i) => ({ id: 'proxy' + (i + 1), proxyUrl: p })));
   const defs = [];
   const push = (def) => { if (defs.length < MAX_PROVIDERS) defs.push(def); };
 
   if (keys.length) {
-    keys.forEach((key, ki) => routes.forEach((r) => push({ name: 'key' + (ki + 1) + '/' + r.id, tier: 0, apiKey: key, signUrl: primaryUrl, route: r.id, proxyUrl: r.proxyUrl, free: false })));
+    keys.forEach((key, ki) => routes.forEach((r) => push({ name: 'key' + (ki + 1) + '/' + r.id, tier: sequential ? ki : 0, apiKey: key, signUrl: primaryUrl, route: r.id, proxyUrl: r.proxyUrl, free: false })));
   } else {
     // بلا مفاتيح: الطبقة المجانية هي الأساس، وكل بروكسي = IP مستقل بحصته المجانية.
     routes.forEach((r) => push({ name: 'free/' + r.id, tier: 0, apiKey: '', signUrl: primaryUrl, route: r.id, proxyUrl: r.proxyUrl, free: true }));
   }
-  fallbackUrls.forEach((url, i) => push({ name: 'fallback' + (i + 1) + '/direct', tier: 1, apiKey: keys[0] || '', signUrl: url, route: 'direct', proxyUrl: '', free: !keys[0] }));
-  if (keys.length && freeFallback) push({ name: 'free/direct', tier: 2, apiKey: '', signUrl: primaryUrl, route: 'direct', proxyUrl: '', free: true });
-  return { defs, keyCount: keys.length, proxyCount: proxies.length, fallbackCount: fallbackUrls.length, keySource: firstLegacy || (keys.length ? 'EULER_API_KEYS' : '') };
+  const fbTier = sequential ? Math.max(1, keys.length) : 1;
+  fallbackUrls.forEach((url, i) => push({ name: 'fallback' + (i + 1) + '/direct', tier: fbTier, apiKey: keys[0] || '', signUrl: url, route: 'direct', proxyUrl: '', free: !keys[0] }));
+  if (keys.length && freeFallback) push({ name: 'free/direct', tier: fbTier + (fallbackUrls.length ? 1 : 0), apiKey: '', signUrl: primaryUrl, route: 'direct', proxyUrl: '', free: true });
+  return { defs, keyCount: keys.length, proxyCount: proxies.length, fallbackCount: fallbackUrls.length, sequential, keySource: firstLegacy || (keys.length ? 'EULER_API_KEYS' : '') };
 }
 
 class ProviderPool {
@@ -108,13 +113,17 @@ class ProviderPool {
   }
 
   // outcome: {ok:true} | {kind, retryAfterMs}
+  // يرجع { opened, recovered, cooldownMs } لتسجيل "المفتاح خلص/رجع" باللوغ.
   end(provider, outcome) {
     provider.limiter.release();
+    const wasOpen = provider.breaker.state !== 'closed';
+    const info = { opened: false, recovered: false, cooldownMs: 0 };
     if (outcome && outcome.ok) {
       provider.successes++;
       provider.breaker.onSuccess();
       provider.limiter.onSuccess();
-      return;
+      info.recovered = wasOpen;
+      return info;
     }
     const kind = (outcome && outcome.kind) || 'transient';
     provider.failures[kind] = (provider.failures[kind] || 0) + 1;
@@ -128,6 +137,9 @@ class ProviderPool {
     }
     // user_not_found / offline / blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع
     // (المهلة قد تكون من تيك توك نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة).
+    info.opened = !wasOpen && provider.breaker.state === 'open';
+    info.cooldownMs = Math.max(0, provider.breaker.waitMs());
+    return info;
   }
 
   // مجموع معدل الاتصال (طلب/ثانية) للمزودين المتاحين الآن — لتقدير زمن الانتظار بالطابور.
@@ -142,10 +154,14 @@ class ProviderPool {
   }
 
   snapshot() {
+    // الدور: active = يخدم الآن (أدنى طبقة فيها مزود سليم)، standby = احتياطي ينتظر، cooling = "خلص"/معطّل مؤقتاً
+    const healthy = this.providers.filter((p) => p.breaker.state !== 'open');
+    const activeTier = healthy.length ? Math.min(...healthy.map((p) => p.tier)) : null;
     return this.providers.map((p) => ({
       name: p.name,
       tier: p.tier,
       route: p.route,
+      role: p.breaker.state === 'open' ? 'cooling' : (p.tier === activeTier ? 'active' : 'standby'),
       breaker: p.breaker.state,
       cooldownSec: Math.ceil(Math.max(0, p.breaker.waitMs()) / 1000),
       ratePerMin: Math.round(p.limiter.rate * 60 * 10) / 10,
@@ -183,6 +199,7 @@ function buildConnectionOptions(provider, deps) {
     provider.client = new Client(cfg);
   }
   const options = { processInitialData: false, eulerApiInstance: provider.client };
+  if (deps.fetchRoomInfoOnConnect === false) options.fetchRoomInfoOnConnect = false;
   if (def.proxyUrl) {
     provider.agent = provider.agent || new deps.HttpsProxyAgent(def.proxyUrl);
     options.webClientOptions = { agent: { http: provider.agent, https: provider.agent } };

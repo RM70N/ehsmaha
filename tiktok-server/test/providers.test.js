@@ -26,7 +26,7 @@ test('env: several keys + fallback url + proxies + free last resort', () => {
   assert.ok(names.includes('key1/direct') && names.includes('key1/proxy1') && names.includes('key4/proxy1'));
   assert.ok(names.includes('fallback1/direct'));
   assert.equal(r.defs.at(-1).name, 'free/direct');
-  assert.equal(r.defs.at(-1).tier, 2);
+  assert.equal(r.defs.at(-1).tier, 5, 'sequential: after 4 keys + 1 fallback url');
   assert.ok(r.defs.every((d) => !/SECRET|proxyhost|pw@/.test(d.name)), 'names never leak secrets');
   assert.equal(mk({ EULER_API_KEY: 'k', TIKTOK_FREE_FALLBACK: '0' }).defs.length, 1);
 });
@@ -125,4 +125,45 @@ test('buildConnectionOptions: per-provider Euler client with key/basePath/timeou
   assert.ok(o2.wsClientOptions.agent instanceof HttpsProxyAgent);
   assert.ok(o2.webClientOptions.agent.https instanceof HttpsProxyAgent);
   assert.notEqual(o1.eulerApiInstance, o2.eulerApiInstance);
+});
+
+test('sequential (default): each key is its own tier — key1 first, key2 only when key1 is down, free tier last', () => {
+  const r = mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C' });
+  assert.equal(r.sequential, true);
+  assert.deepEqual(r.defs.map((d) => [d.name, d.tier]), [['key1/direct', 0], ['key2/direct', 1], ['key3/direct', 2], ['free/direct', 3]]);
+  assert.deepEqual(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_KEY_STRATEGY: 'balanced' }).defs.map((d) => d.tier), [0, 0, 0, 1]);
+});
+
+test('six extra keys (EULER_API_KEYS) after the primary = 7 keys in strict order', () => {
+  const r = mk({ EULER_API_KEY: 'K1', EULER_API_KEYS: 'K2,K3,K4,K5,K6,K7' });
+  assert.equal(r.keyCount, 7);
+  assert.deepEqual(r.defs.filter((d) => !d.free).map((d) => d.apiKey), ['K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7']);
+});
+
+test('sequential failover: uses key1 alone; when key1 is exhausted (429) moves to key2, then key3; returns to key1 when it recovers', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_FREE_FALLBACK: '0' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  const use = () => { const r = p.pick(); p.begin(r.provider); return r.provider; };
+  for (let i = 0; i < 5; i++) { const a = use(); assert.equal(a.name, 'key1/direct'); p.end(a, { ok: true }); c.t += 10; }
+  const a = use(); p.end(a, { kind: 'rate_limited', retryAfterMs: 20000 });
+  assert.equal(p.pick().provider.name, 'key2/direct');
+  const b = use(); p.end(b, { kind: 'provider_denied' });
+  assert.equal(p.pick().provider.name, 'key3/direct');
+  const snap = p.snapshot();
+  assert.deepEqual(snap.map((x) => x.role), ['cooling', 'cooling', 'active']);
+  c.t += 21000; // key1 تعافى (retry-after انتهى) → يرجع الأول
+  assert.equal(p.pick().provider.name, 'key1/direct');
+  const probe = use(); p.end(probe, { ok: true });
+  assert.deepEqual(p.snapshot().map((x) => x.role), ['active', 'cooling', 'standby']);
+});
+
+test('end() reports when a key just ran out / recovered (for logging)', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEY: 'A' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  const a = p.providers[0];
+  p.begin(a); const down = p.end(a, { kind: 'rate_limited', retryAfterMs: 5000 });
+  assert.equal(down.opened, true); assert.equal(down.cooldownMs, 5000);
+  c.t += 6000;
+  p.begin(a); const up = p.end(a, { ok: true });
+  assert.equal(up.recovered, true);
 });

@@ -379,8 +379,11 @@ function buildKickComment(messageData) {
   };
 }
 
+// srv: نسخة بروتوكول الجسر. 2 = طابور الاتصال (حالات queued/retrying وحقول التقدّم). الواجهة تستخدمها لكشف
+// سيرفر Render القديم (لا يرسلها) وتنبّه المستخدم بدل فشل غامض.
+const BRIDGE_PROTOCOL_VERSION = 2;
 function buildStatus(state, message, extra) {
-  return Object.assign({ type: 'bridge_status', state, message, timestamp: Date.now() }, extra || {});
+  return Object.assign({ type: 'bridge_status', state, message, timestamp: Date.now(), srv: BRIDGE_PROTOCOL_VERSION }, extra || {});
 }
 
 // ------------------------------------------------------------------ تحليل مُدخلات يوتيوب/كيك (يوزر أو رابط، بدون أي مفتاح)
@@ -615,14 +618,24 @@ const providerPool = new ProviderPool(providerConfig.defs, {
   breakerMaxCooldownMs: envNum('TIKTOK_BREAKER_MAX_COOLDOWN_MS', 300000),
   deniedCooldownMs: envNum('TIKTOK_DENIED_COOLDOWN_MS', 600000),
 });
-const providerDeps = { lib: tiktokLib, sdk: tiktokSdk, HttpsProxyAgent, signTimeoutMs: TIKTOK_SIGN_TIMEOUT_MS };
+// فحص "هل البث مفتوح" (room/info) قبل التوقيع يذهب لتيك توك مباشرة من IP السيرفر، وقد يُحجب من IP خدمات
+// الاستضافة فيفشل الاتصال كله رغم سلامة التوقيع. TIKTOK_FETCH_ROOM_INFO=0 يتجاوزه (للتشخيص فقط).
+const FETCH_ROOM_INFO = String(process.env.TIKTOK_FETCH_ROOM_INFO || '1') !== '0';
+const providerDeps = { lib: tiktokLib, fetchRoomInfoOnConnect: FETCH_ROOM_INFO, sdk: tiktokSdk, HttpsProxyAgent, signTimeoutMs: TIKTOK_SIGN_TIMEOUT_MS };
 const connectQueue = new ConnectQueue(providerPool, {
   onDispatch: (entry, waitedMs, provider) => {
     metrics.observe('queue_wait', waitedMs);
     metrics.inc('connect_attempts_total', { provider: provider.name });
   },
-  onSettle: (entry, outcome, provider, tookMs) => {
+  onSettle: (entry, outcome, provider, tookMs, info) => {
     if (outcome && outcome.skipped) return; // غرفة أُغلقت قبل بدء المحاولة: لا تُحسب
+    // "المفتاح خلص" / "رجع": سطر واضح باللوغ + عدّاد، وبعده ينتقل الاتصال تلقائياً للمفتاح التالي
+    if (info && info.opened) {
+      metrics.inc('provider_down_total', { provider: provider.name });
+      slog('warn', 'provider_down', { provider: provider.name, kind: outcome && outcome.kind, cooldownSec: Math.round(info.cooldownMs / 1000), next: (providerPool.pick().provider || {}).name || 'none-ready' });
+    }
+    if (info && info.recovered) slog('info', 'provider_recovered', { provider: provider.name });
+    if (outcome && !outcome.ok) recordFailure(outcome, provider);
     metrics.observe('attempt_duration', tookMs);
     metrics.inc(outcome && outcome.ok ? 'connect_success_total' : 'connect_failure_total', outcome && outcome.ok ? { provider: provider.name } : { kind: (outcome && outcome.kind) || 'transient', provider: provider.name });
   },
@@ -646,6 +659,19 @@ function safeTikTokDisconnect(conn) {
     const p = conn.disconnect();
     return capPromise(Promise.resolve(p).catch(() => {}), 4000);
   } catch (e) { return Promise.resolve(); }
+}
+
+// آخر أعطال الاتصال (للتشخيص فقط، بدون أسرار): تُعرض بـ/diag المحمي بكلمة سر لأنها قد تحوي يوزرنيمات.
+const RECENT_FAILURES_MAX = 30;
+const recentFailures = [];
+function recordFailure(outcome, provider) {
+  recentFailures.push({
+    at: new Date().toISOString(),
+    kind: outcome.kind,
+    provider: provider && provider.name,
+    detail: redactSecrets(describeError(outcome.error)).slice(0, 500),
+  });
+  if (recentFailures.length > RECENT_FAILURES_MAX) recentFailures.shift();
 }
 
 const FATAL_REASON_TEXT = {
@@ -1485,6 +1511,17 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (path === '/diag') {
+    // تشخيص مفصّل (آخر أعطال الاتصال بأسبابها الحقيقية). مغلق تماماً ما لم تضبط BRIDGE_DIAG_TOKEN، ويتطلب ?token=.
+    // (لا نعرضه بـ/health لأن تلك عامة وقد تحوي الأعطال يوزرنيمات ستريمرز.)
+    const token = process.env.BRIDGE_DIAG_TOKEN || '';
+    const given = new URL(req.url, 'http://localhost').searchParams.get('token') || '';
+    if (!token || given !== token) { res.writeHead(404); res.end('not found'); return; }
+    res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }));
+    res.end(JSON.stringify({ health: healthSnapshot(), recentFailures: recentFailures.slice().reverse() }, null, 2));
+    return;
+  }
+
   if (path === '/metrics') {
     // صيغة Prometheus النصية (عدّادات المحاولات/الفشل بالنوع/المزود، أزمنة الطابور والاتصال).
     res.writeHead(200, profileCorsHeaders({ 'Content-Type': 'text/plain; version=0.0.4; charset=utf-8', 'Cache-Control': 'no-store' }));
@@ -1618,7 +1655,7 @@ initFirestore();
 server.listen(PORT, () => {
   log('info', 'خادم جسر البث يعمل على المنفذ ' + PORT + ' (WebSocket: /ws?platform=tiktok|youtube|kick&u=username)');
   log('info', 'tiktok-live-connector ' + TIKTOK_LIB_VERSION + ' على Node ' + process.version);
-  slog('info', 'providers', { count: providerPool.size, keys: providerConfig.keyCount, keySource: providerConfig.keySource, proxies: providerConfig.proxyCount, fallbackUrls: providerConfig.fallbackCount, names: providerPool.snapshot().map((p) => p.name).join(',') });
+  slog('info', 'providers', { count: providerPool.size, strategy: providerConfig.sequential ? 'sequential' : 'balanced', keys: providerConfig.keyCount, keySource: providerConfig.keySource, proxies: providerConfig.proxyCount, fallbackUrls: providerConfig.fallbackCount, names: providerPool.snapshot().map((p) => p.name).join(',') });
   slog('info', 'connect_policy', { ratePerMinPerProvider: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120), burst: envNum('TIKTOK_CONNECT_BURST', 6), inFlightPerProvider: envNum('TIKTOK_CONNECT_INFLIGHT', 4), maxAttempts: TIKTOK_MAX_ATTEMPTS, giveUpSec: Math.round(TIKTOK_GIVE_UP_MS / 1000) });
   // تشخيص مباشر لأشيع سبب لـ429: المفتاح غير مضبوط أصلاً على المستضيف.
   if (providerConfig.keyCount > 0) {
