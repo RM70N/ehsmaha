@@ -3095,6 +3095,7 @@ function chips(box) {
     if (inp.type === 'file' || inp.type === 'password' || SKIP_ID.test(inp.id || '')) return;
     var v;
     if (inp.type === 'checkbox') v = inp.checked ? 'مفعّل' : 'متوقف';
+    else if (inp.type === 'radio') { var ck = row.querySelector('input[type=radio]:checked'); v = ck ? txt(ck.closest('label') || ck.parentElement) : ''; }
     else if (inp.tagName === 'SELECT') v = txt(inp.options[inp.selectedIndex]);
     else v = (inp.value || '').trim();
     if (!v) return;

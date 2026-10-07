@@ -39,6 +39,14 @@ PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tests/bridge/lobby.
 شارة الاتصال/العدّاد/الفعالية/ديسكورد، الكتلة العلوية اليمنى، الجوال (bottom-sheet وأهداف اللمس)،
 وتقليل الحركة، وهروب HTML، وظهور لعبة جديدة تُضاف للسجل تلقائياً.
 
+## شاشات ألعاب الستريمر (تصميم Game Screens)
+
+```bash
+tests/bridge/servers.sh start
+PLAYWRIGHT_PATH=... node tests/bridge/game-screens.test.js         # 19 فحصاً: الهيكل، الألوان، المعاينة الحيّة، لعب حقيقي (قنبلة)، الجوال
+PLAYWRIGHT_PATH=... node tests/bridge/game-shots.js /tmp/shots 14   # لقطات انتظار/راوند لكل الـ29 لعبة للمراجعة البصرية
+```
+
 ## طابور الاتصال والتعافي (شكوى "خدمة تيك توك مزدحمة… انتظر دقيقة")
 
 ```bash
