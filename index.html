@@ -2610,6 +2610,11 @@ body{padding-top:64px;}
 @keyframes gsPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.6);opacity:0}}
 @keyframes gsEq{0%{transform:scaleY(.3)}100%{transform:scaleY(1)}}
 @keyframes gsPop{from{opacity:0;transform:translateY(10px) scale(.88)}to{opacity:1;transform:none}}
+@keyframes pvIdle{from{transform:translateX(0)}to{transform:translateX(-14px)}}
+@keyframes pvSpin{to{transform:rotate(360deg)}}
+@keyframes pvTremble{from{transform:translateY(-1.5px)}to{transform:translateY(1.5px)}}
+@keyframes pvBlinkA{0%{opacity:1}50%{opacity:.25}}
+@keyframes pvBlinkB{0%{opacity:.25}50%{opacity:1}}
 @keyframes gsCount{0%{transform:scale(1.16)}100%{transform:scale(1)}}
 
 :is(#pg-setup-cr,#pg-cr,#pg-cr-winner,#pg-setup-battery,#pg-battery,#pg-battery-winner,#pg-setup-lastletter,#pg-lastletter,#pg-lastletter-winner,#pg-setup-reverseword,#pg-reverseword,#pg-reverseword-winner,#pg-setup-crownsteal,#pg-crownsteal,#pg-crownsteal-winner,#pg-setup-letterscramble,#pg-letterscramble,#pg-letterscramble-winner,#pg-setup-wordrace,#pg-wordrace,#pg-wordrace-winner,#pg-setup-maze,#pg-maze,#pg-maze-winner,#pg-setup-tt10,#pg-tt10,#pg-tt10-roundwinner,#pg-tt10-winner,#pg-setup-ev,#pg-ev,#pg-ev-winner,#pg-setup-sniper,#pg-sniper,#pg-sniper-winner,#pg-setup-roulette,#pg-roulette,#pg-rou-winner,#pg-setup-bomb,#pg-bomb,#pg-bomb-winner,#pg-setup-countrywar,#pg-countrywar,#pg-countrywar-winner,#pg-setup-box,#pg-box,#pg-box-winner,#pg-setup-chairs,#pg-chairs,#pg-chairs-winner,#pg-setup-rlgl,#pg-rlgl,#pg-rlgl-winner,#pg-setup-glz,#pg-glz,#pg-glz-winner,#pg-setup-volcanic-lands,#pg-volcanic-lands,#pg-setup-hz,#pg-hz,#pg-hz-winner,#pg-setup,#pg-dash,#pg-winner,#pg-setup-guessword,#pg-guessword,#pg-guessword-winner,#pg-setup-timer,#pg-timer,#pg-timer-winner,#pg-setup-whoami,#pg-whoami,#pg-whoami-winner,#pg-setup-priceguess,#pg-priceguess,#pg-priceguess-winner,#pg-setup-findball,#pg-findball,#pg-findball-winner,#pg-setup-draw,#pg-draw,#pg-draw-winner,#pg-setup-ig,#pg-ig,#pg-ig-winner,#pg-ig-final,#pg-setup-tug,#pg-tug,#pg-tug-winner,#pg-bridge-setup,#pg-bridge-lobby,#pg-bridge-round){
@@ -2633,8 +2638,8 @@ body{padding-top:64px;}
 
   /* ================= شاشة الإعداد ================= */
   & .setup-box{
-    width:100%; max-width:1180px; margin:clamp(8px,2vw,24px) auto 48px;
-    display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.95fr); column-gap:clamp(20px,3vw,44px); align-content:start;
+    width:100%; max-width:1440px; margin:clamp(8px,2vw,24px) auto 48px;
+    display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); column-gap:clamp(20px,3vw,44px); align-content:start;
     padding:clamp(20px,3vw,40px);
     background:var(--gs-card); border:1px solid var(--gs-line); border-radius:28px; box-shadow:0 40px 90px -50px #000;
     animation:gsRise .5s var(--gs-ease) both;
@@ -2761,49 +2766,116 @@ body{padding-top:64px;}
   & .btn-primary:disabled{ transform:none; opacity:.45; background:var(--gs-c); color:var(--gs-ink); box-shadow:none; cursor:not-allowed; }
   & .status-msg{ margin-top:14px; border-radius:16px; }
 
-  /* ================= معاينة الإعداد الحيّة ================= */
+  /* ================= معاينة الراوند الحيّة (الإعداد + الانتظار) ================= */
   & .gs-preview{
-    display:flex; flex-direction:column; gap:18px; padding:22px 26px 24px; min-height:420px;
+    display:flex; flex-direction:column; gap:16px; padding:22px 24px 24px; min-height:520px;
     border-radius:28px; background:var(--gs-card); border:1px solid var(--gs-line);
   }
   & .gs-pv-label{ font-size:16px; font-weight:700; color:var(--gs-lilac); }
-  & .gs-pv-body{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; text-align:center; padding:8px 0; }
-  & .gs-pv-icon{ width:104px; height:104px; border-radius:30px; display:grid; place-items:center; font-size:54px; line-height:1;
-    background:var(--gs-tint); border:1px solid var(--gs-edge); box-shadow:0 0 60px -18px var(--gs-c); }
-  & .gs-pv-name{ font-family:'Cairo',sans-serif; font-weight:900; font-size:clamp(24px,3vw,34px); line-height:1.2; color:var(--gs-text); }
-  & .gs-pv-join{ display:flex; flex-direction:column; align-items:center; gap:8px; }
-  & .gs-pv-lead{ font-size:18px; font-weight:700; color:var(--gs-lilac); }
-  & .gs-pv-kw{
-    display:inline-flex; align-items:center; max-width:100%; padding:2px 28px 8px; border-radius:30px 30px 30px 10px;
-    background:var(--gs-c); color:var(--gs-ink); font-family:'Cairo',sans-serif; font-weight:900; font-size:clamp(28px,4vw,46px); line-height:1.25;
-    box-shadow:0 20px 44px -22px var(--gs-c); overflow-wrap:anywhere;
-  }
-  & .gs-pv-chips{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
-  & .gs-pv-chip{ display:inline-flex; align-items:center; gap:8px; padding:7px 14px; border-radius:999px; background:rgba(11,5,24,.55); font-size:14px; color:var(--gs-lilac); }
-  & .gs-pv-chip b{ font-family:'Cairo',sans-serif; font-weight:900; color:var(--gs-text); }
+  & .gs-pv-stage{ flex:1; min-height:380px; display:flex; flex-direction:column; border-radius:24px; background:#0f0820; border:1px solid var(--gs-edge); overflow:hidden; }
   & .gs-pv-rule{ margin:0; font-size:15px; line-height:1.7; color:#B7A9DE; }
+  & .pv-body{ flex:1; display:flex; flex-direction:column; align-items:stretch; justify-content:center; gap:16px; padding:22px 24px; min-height:0; }
+  & .pv-join{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; padding:14px 22px; border-top:1px solid var(--gs-line); background:rgba(11,5,24,.55); font-size:17px; font-weight:700; color:var(--gs-lilac); }
+  & .pv-join b{ display:inline-flex; padding:0 20px 5px; border-radius:22px 22px 22px 8px; background:var(--gs-c); color:var(--gs-ink); font-family:'Cairo',sans-serif; font-weight:900; font-size:28px; line-height:1.3; box-shadow:0 14px 30px -18px var(--gs-c); overflow-wrap:anywhere; }
+  & .pv-foot{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 18px; font-size:15px; color:var(--gs-lilac); }
+  & .pv-foot b{ color:var(--gs-text); font-family:'Cairo',sans-serif; font-weight:900; }
+  & .pv-chips{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+  & .pv-chip{ padding:7px 14px; border-radius:999px; background:rgba(11,5,24,.6); border:1px solid var(--gs-line); font-size:14px; color:var(--gs-lilac); }
+  & .pv-chip b{ color:var(--gs-text); font-family:'Cairo',sans-serif; }
+  & .pv-art{ flex:1; min-height:240px; display:grid; place-items:center; border-radius:20px; overflow:hidden; background:radial-gradient(120% 95% at 85% 0%,var(--gs-glow),transparent 62%),#170d30; position:relative; }
+  & .pv-art svg{ width:100%; height:100%; display:block; --hv:0; position:absolute; inset:0; }
+  & .pv-art:hover svg{ --hv:1; }
+  /* سباق */
+  & .pv-race{ position:relative; flex:1; display:flex; gap:10px; min-height:260px; }
+  & .pv-flag{ flex:none; width:16px; border-radius:4px; background:repeating-conic-gradient(#EDE9FF 0 25%,#0b0518 0 50%) 0 0/10px 10px; }
+  & .pv-lanes{ flex:1; display:flex; flex-direction:column; }
+  & .pv-lane{ flex:1; display:flex; align-items:center; justify-content:flex-start; gap:12px; border-bottom:1px dashed var(--gs-line); font-size:13px; color:var(--gs-mute); position:relative; }
+  & .pv-lane i{ font-style:normal; min-width:70px; }
+  & .pv-lane:last-child{ border-bottom:0; }
+  & .pv-car{ width:56px; height:28px; border-radius:16px 8px 8px 16px; box-shadow:inset -8px 0 0 rgba(11,5,24,.22); opacity:.55; animation:pvIdle 1.2s ease-in-out infinite alternate; }
+  /* قنبلة */
+  & .pv-bombwrap{ position:relative; align-self:center; width:min(260px,70%); aspect-ratio:1; margin-top:14px; display:grid; place-items:center; }
+  & .pv-bomb{ width:78%; aspect-ratio:1; border-radius:50%; background:radial-gradient(circle at 35% 30%,#3a2a55,#0d0620 70%); border:4px solid var(--gs-c); box-shadow:0 0 60px -10px var(--gs-glow); display:grid; place-items:center; }
+  & .pv-bomb b{ font-family:'Cairo',sans-serif; font-weight:900; font-size:clamp(46px,7vw,84px); color:var(--gs-c); }
+  & .pv-fuse{ position:absolute; top:6%; right:2%; width:42%; height:10px; transform:rotate(-38deg); transform-origin:0 50%; border-radius:5px; background:repeating-linear-gradient(90deg,#8C7BB6 0 6px,#C4B0FF 6px 9px); }
+  & .pv-fuse i{ position:absolute; left:-12px; top:-7px; width:24px; height:24px; border-radius:50%; background:radial-gradient(circle,#fff 0 20%,#F59E0B 40%,transparent 70%); }
+  & .pv-holder{ position:absolute; bottom:-6px; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:4px; white-space:nowrap; }
+  & .pv-holder small{ font-size:13px; color:var(--gs-lilac); }
+  & .pv-holder span{ padding:4px 16px; border-radius:999px; background:var(--gs-tint); border:1px solid var(--gs-edge); font-family:'Cairo',sans-serif; font-weight:900; font-size:18px; }
+  & .pv-bars{ display:flex; align-items:flex-end; gap:10px; height:96px; margin-top:20px; }
+  & .pv-bars div{ flex:1; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:6px; height:100%; }
+  & .pv-bars em{ font-style:normal; font-family:'Cairo',sans-serif; font-weight:900; font-size:15px; color:var(--gs-c); }
+  & .pv-bars span{ width:100%; border-radius:8px 8px 4px 4px; background:var(--gs-c); }
+  /* ساعة */
+  & .pv-dial{ position:relative; align-self:center; width:min(340px,80%); aspect-ratio:1; border-radius:50%; background:radial-gradient(circle,#1a1030 0 60%,#130a25 100%); border:3px solid var(--gs-edge); }
+  & .pv-dial u{ position:absolute; left:50%; top:3%; width:2px; height:8px; margin-left:-1px; background:var(--gs-lilac); opacity:.4; transform-origin:50% 47.5%; }
+  & .pv-dial u:nth-child(5n+1){ width:4px; margin-left:-2px; }
+  & .pv-hand{ position:absolute; left:50%; top:50%; width:5px; height:42%; margin:-42% 0 0 -2.5px; border-radius:3px; background:var(--gs-c); transform-origin:50% 100%; animation:pvSpin 6s linear infinite; }
+  & .pv-pin{ position:absolute; left:50%; top:50%; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%; background:var(--gs-text); border:5px solid var(--gs-c); }
+  & .pv-target{ position:absolute; left:0; right:0; top:62%; display:flex; flex-direction:column; align-items:center; }
+  & .pv-target small{ font-size:13px; color:var(--gs-mute); }
+  & .pv-target b{ font-family:'Cairo',sans-serif; font-weight:900; font-size:26px; direction:ltr; }
+  /* حبل */
+  & .pv-rope{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px; }
+  & .pv-team{ flex:none; width:25%; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
+  & .pv-team span{ width:clamp(70px,9vw,110px); aspect-ratio:1; border-radius:50%; display:grid; place-items:center; background:var(--tc); color:var(--gs-ink); font-family:'Cairo',sans-serif; font-weight:900; font-size:clamp(30px,4vw,46px); }
+  & .pv-team b{ font-family:'Cairo',sans-serif; font-weight:900; font-size:18px; overflow-wrap:anywhere; }
+  & .pv-team small{ font-size:14px; color:var(--tc); font-weight:800; overflow-wrap:anywhere; }
+  & .pv-ropeline{ position:relative; flex:1; height:18px; border-radius:9px; background:repeating-linear-gradient(60deg,#C4B0FF 0 8px,#8C7BB6 8px 16px); animation:pvTremble .14s ease-in-out infinite alternate; }
+  & .pv-ropeline i{ position:absolute; left:50%; top:-10px; width:36px; height:36px; margin-left:-18px; border-radius:6px; background:var(--gs-c); transform:rotate(45deg); box-shadow:0 0 28px var(--gs-glow); }
+  & .pv-pull{ text-align:center; font-size:16px; color:var(--gs-mute); }
+  & .pv-pull b{ color:var(--gs-text); font-family:'Cairo',sans-serif; }
+  /* ضوء أخضر وأحمر */
+  & .pv-rlgl{ flex:1; display:flex; flex-direction:column; gap:18px; align-items:center; justify-content:center; }
+  & .pv-light{ display:flex; gap:12px; padding:10px 16px; border-radius:30px; background:#0b0518; border:2px solid var(--gs-edge); }
+  & .pv-light i{ width:38px; height:38px; border-radius:50%; background:#ef4444; opacity:.3; }
+  & .pv-light i + i{ background:#34D399; }
+  & .pv-light i:first-child{ animation:pvBlinkA 2s steps(1) infinite; }
+  & .pv-light i + i{ animation:pvBlinkB 2s steps(1) infinite; }
+  & .pv-l-slow i{ animation-duration:3.4s !important; } & .pv-l-fast i{ animation-duration:.9s !important; }
+  & .pv-steps{ width:100%; display:flex; align-items:flex-end; gap:5px; height:70px; position:relative; }
+  & .pv-steps u{ flex:1; background:var(--gs-c); opacity:.5; border-radius:3px; height:30%; }
+  & .pv-steps u:nth-child(3n){ height:55%; } & .pv-steps u:last-of-type{ opacity:1; height:90%; }
+  & .pv-steps s{ position:absolute; top:-6px; left:0; text-decoration:none; padding:2px 10px; border-radius:999px; background:var(--gs-tint); font-size:12px; color:var(--gs-c); font-weight:800; }
+  /* متاهة */
+  & .pv-maze{ position:relative; align-self:center; display:grid; grid-template-columns:repeat(var(--n),1fr); width:min(380px,86%); aspect-ratio:1; gap:2px; padding:6px; border-radius:14px; background:#130a25; border:2px solid var(--gs-edge); }
+  & .pv-maze u{ border-radius:2px; background:rgba(167,139,255,.08); } & .pv-maze u.w{ background:var(--gs-c); opacity:.55; }
+  & .pv-maze u:first-child{ background:var(--gs-c); border-radius:50%; opacity:1; }
+  /* مؤقّت وحلقة */
+  & .pv-ring{ align-self:center; width:150px; aspect-ratio:1; border-radius:50%; display:grid; place-content:center; text-align:center; background:radial-gradient(circle,#130a25 58%,transparent 59%),conic-gradient(var(--gs-c) 72%,rgba(167,139,255,.14) 0); }
+  & .pv-ring b{ font-family:'Cairo',sans-serif; font-weight:900; font-size:44px; line-height:1; } & .pv-ring small{ font-size:13px; color:var(--gs-mute); }
+  & .pv-dots{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; } & .pv-dots u{ width:22px; height:22px; border-radius:50%; opacity:.8; }
+  /* زجاج */
+  & .pv-glass{ flex:1; display:flex; flex-direction:column-reverse; align-items:center; justify-content:center; gap:10px; min-height:220px; }
+  & .pv-glass div{ width:var(--w); display:flex; gap:12px; } & .pv-glass .g{ flex:1; height:30px; border-radius:8px; background:linear-gradient(160deg,rgba(255,255,255,.28),var(--gs-tint)); border:1px solid var(--gs-edge); }
+  & .pv-glass .g.c{ background:repeating-linear-gradient(135deg,rgba(255,255,255,.1) 0 4px,transparent 4px 8px); opacity:.6; }
+  /* بركان */
+  & .pv-vl{ position:relative; flex:1; min-height:240px; display:flex; flex-direction:column; justify-content:flex-end; border-radius:16px; overflow:hidden; background:linear-gradient(#170d30,#1a0d25); }
+  & .pv-cols{ position:absolute; inset:0 0 0 0; display:flex; align-items:flex-end; gap:12px; padding:0 18px; } & .pv-cols span{ flex:1; border-radius:6px 6px 0 0; background:linear-gradient(#3b2870,#2a1b4d); }
+  & .pv-lava{ position:relative; z-index:1; background:linear-gradient(#f2620f,#c4290b); } & .pv-q{ position:absolute; top:12px; left:50%; transform:translateX(-50%); padding:2px 24px; border-radius:10px; background:var(--gs-card2); font-family:'Cairo',sans-serif; font-weight:900; font-size:28px; }
+  /* توب 10 */
+  & .pv-top10{ display:flex; flex-direction:column; gap:6px; } & .pv-top10 div{ display:flex; align-items:center; gap:10px; } & .pv-top10 span{ width:24px; text-align:center; font-family:'Cairo',sans-serif; font-weight:900; color:var(--gs-lilac); }
+  & .pv-top10 i{ height:18px; border-radius:9px; background:var(--gs-c); opacity:.5; }
 
   /* ================= شاشة الانتظار والراوند ================= */
   & [class$="-center"]{ background:transparent !important; align-items:stretch; }
-  & .panel-right, & .panel-left{
-    background:rgba(11,5,24,.78) !important; border-color:var(--gs-line) !important; backdrop-filter:blur(14px);
-  }
-  & .panel-head{ border-bottom-color:var(--gs-line); }
-  & .panel-label{ font-family:'Cairo',sans-serif; font-weight:800; color:var(--gs-lilac); }
+  /* الشات الجانبي محذوف من كل ألعاب الستريمر: المسرح بعرض الصفحة كاملة */
+  & .panel-right, & .panel-left{ display:none !important; }
+  & [class$="-layout"]{ grid-template-columns:minmax(0,1fr) !important; }
   & .room-info{ padding:6px 14px; border-radius:999px; background:rgba(19,10,37,.8); border:1px solid var(--gs-field-bd); }
   & .chat-toggle-btn{ background:var(--gs-tint); border:1px solid var(--gs-edge); color:var(--gs-c); border-radius:999px; }
   & .chat-toggle-btn:hover{ background:var(--gs-edge); color:var(--gs-ink); }
 
   /* الهيكل: [العنوان + الشارة] ← [الانضمام | المسرح] ← [الأزرار + النص] */
-  & .gs-top, & .gs-main, & .gs-foot{ width:100%; max-width:1180px; margin-inline:auto; }
+  & .gs-top, & .gs-main, & .gs-foot{ width:100%; max-width:1560px; margin-inline:auto; }
   & .gs-top{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px 24px; margin-bottom:22px; animation:gsRise .5s var(--gs-ease) both; }
-  & .gs-main{ display:grid; grid-template-columns:minmax(280px,430px) minmax(0,1fr); gap:22px; align-items:start; }
+  & .gs-main{ display:grid; grid-template-columns:minmax(300px,440px) minmax(0,1fr); gap:24px; align-items:stretch; }
   & .gs-side{ display:flex; flex-direction:column; align-items:stretch; gap:14px; min-width:0; animation:gsRise .5s var(--gs-ease) .08s both; }
   & .gs-stage{
-    position:relative; min-width:0; min-height:420px; padding:18px; display:flex; flex-direction:column; align-items:stretch; gap:14px;
+    position:relative; min-width:0; min-height:max(440px,56vh); padding:18px; display:flex; flex-direction:column; align-items:stretch; gap:14px;
     border-radius:28px; background:var(--gs-card); border:1px solid var(--gs-edge); animation:gsRise .5s var(--gs-ease) .12s both;
   }
-  & .gs-foot{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 24px; margin-top:22px; }
+  & .gs-foot{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px 24px; margin-top:22px; padding-bottom:84px; }
   & .gs-foot .game-bottom-row{ width:auto; max-width:none; margin:0; }
   & .gs-helper{ font-size:clamp(16px,1.8vw,21px); color:var(--gs-lilac); }
   & .gs-join-lead{ font-size:clamp(17px,1.8vw,22px); font-weight:700; color:var(--gs-lilac); }
@@ -2814,13 +2886,9 @@ body{padding-top:64px;}
     & .gs-stage{ min-height:0; order:2; }
   }
 
-  /* مسرح فارغ قبل الراوند: هوية اللعبة */
-  & .gs-stage-idle{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:34px 18px; text-align:center; }
-  & .gs-stage.has-live > .gs-stage-idle{ display:none; }
-  & .gs-idle-icon{ width:120px; height:120px; border-radius:34px; display:grid; place-items:center; font-size:64px; line-height:1;
-    background:var(--gs-tint); border:1px solid var(--gs-edge); box-shadow:0 0 70px -20px var(--gs-c); }
-  & .gs-idle-name{ font-family:'Cairo',sans-serif; font-weight:900; font-size:clamp(24px,3vw,34px); color:var(--gs-text); }
-  & .gs-idle-desc{ max-width:46ch; font-size:16px; line-height:1.8; color:#B7A9DE; }
+  /* مسرح الانتظار: معاينة الراوند (تختفي عند ظهور مسرح اللعبة الفعلي) */
+  & .gs-stage-pv{ flex:1; min-height:0; display:flex; flex-direction:column; border-radius:22px; background:#0f0820; border:1px solid var(--gs-edge); overflow:hidden; }
+  & .gs-stage.has-live > .gs-stage-pv{ display:none; }
 
   /* العنوان + شارة التصنيف */
   & .game-title-header{
@@ -2878,6 +2946,7 @@ body{padding-top:64px;}
   & .game-special-btn:disabled{ opacity:1; }
 
   /* لوحة العدّاد والمنضمين */
+  & .gs-side .participants-overlay{ flex:1; min-height:0; }
   & .participants-overlay{
     position:relative; overflow:hidden; width:100%; max-width:none; margin:0; padding:20px;
     display:flex; flex-direction:column; gap:14px;
@@ -2894,7 +2963,7 @@ body{padding-top:64px;}
   }
   & .participants-label{ order:1; width:auto; font-size:clamp(17px,2vw,22px); font-weight:700; color:var(--gs-text); letter-spacing:0; }
   & .participants-usernames{
-    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:min-content; gap:8px; max-height:216px; overflow-y:auto; scrollbar-width:thin;
+    display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:min-content; gap:8px; max-height:min(52vh,520px); overflow-y:auto; scrollbar-width:thin; padding-inline-end:4px;
   }
   & .p-empty-placeholder{
     grid-column:1 / -1; display:flex; align-items:center; padding:12px 16px; border-radius:14px; border:0;
@@ -2906,7 +2975,7 @@ body{padding-top:64px;}
   }
   & .p-username-tag:not(.p-has-full-frame) .p-avatar-circle{ width:34px; height:34px; font-size:16px; border:0; box-shadow:none; }
   & .p-username-tag:not(.p-has-full-frame):hover .p-avatar-circle{ transform:none; }
-  & .p-username-tag.p-has-full-frame{ grid-column:1 / -1; justify-self:center; }
+  & .p-username-tag.p-has-full-frame{ grid-column:1 / -1; justify-self:center; height:76px; }
   & .p-username-number{ background:var(--gs-c); color:var(--gs-ink); border:2px solid #0b0518; box-shadow:none; font-family:'Cairo',sans-serif; font-weight:900; }
   & .p-username-tag:not(.p-has-full-frame) .p-username-name{ min-width:0; max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; font-size:16px; color:var(--gs-text); }
   & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
@@ -2963,6 +3032,28 @@ body{padding-top:64px;}
   & .tt10-lb-title, & .glz-roster-title{ font-family:'Cairo',sans-serif; font-weight:800; color:var(--gs-lilac); }
   & .glz-roster-avatar, & .glz-roster-avatar-fb{ border:2px solid var(--gs-edge); box-shadow:0 6px 18px -8px var(--gs-c); }
 
+
+  /* ================= الراوند الجاري: المسرح وحده بملء الشاشة ================= */
+  &.gs-live .top-bar, &.gs-live .gs-top, &.gs-live .gs-side, &.gs-live .gs-helper, &.gs-live .btn-start-round{ display:none !important; }
+  &.gs-live .gs-main{ display:block; }
+  &.gs-live .gs-stage{
+    position:fixed; inset:0; z-index:4; margin:0; max-width:none; min-height:0; border-radius:0; border:0; animation:none;
+    padding:clamp(76px,11vh,112px) clamp(14px,3vw,48px); overflow:auto; align-items:center; justify-content:center;
+    background:radial-gradient(900px 600px at 15% 0%, var(--gs-glow), transparent 70%),radial-gradient(800px 600px at 100% 100%, var(--gs-glow2), transparent 70%),#0b0518;
+  }
+  &.gs-live .gs-stage > *:not(.gs-stage-pv){ zoom:var(--gs-zoom,1); width:calc(100% / var(--gs-zoom,1)); max-width:calc(1500px / var(--gs-zoom,1)); margin-inline:auto; flex:none; }
+  &.gs-live .gs-stage > .gs-stage-pv{ display:none; }
+  /* شريط الأزرار (رئيسية/ريست/طرد) يظهر عند تمرير الماوس أعلى الشاشة فقط */
+  &.gs-live .gs-foot{
+    position:fixed; top:0; left:50%; z-index:9; width:auto; max-width:calc(100% - 24px); margin:0; padding:10px 18px; justify-content:center;
+    border-radius:0 0 22px 22px; background:rgba(11,5,24,.94); border:1px solid var(--gs-line); border-top:0;
+    transform:translate(-50%,-115%); opacity:0; transition:transform .3s var(--gs-ease),opacity .3s;
+  }
+  &.gs-live .gs-foot:hover, &.gs-live:has(.gs-hot:hover) .gs-foot{ transform:translate(-50%,0); opacity:1; }
+  & .gs-hot{ display:none; }
+  &.gs-live .gs-hot{ display:block; position:fixed; top:0; left:0; right:0; height:34px; z-index:8; }
+  &.gs-live .rf-badge{ z-index:6; }
+
   /* ---------- شاشة الفوز ---------- */
   & .w-congrats{ font-family:'Cairo',sans-serif; font-weight:900; color:var(--gs-lilac); background:none; -webkit-text-fill-color:currentColor; }
   & .w-name{ font-family:'Cairo',sans-serif; font-weight:900; color:var(--gs-c); background:none; -webkit-text-fill-color:currentColor; text-shadow:0 0 40px var(--gs-glow); }
@@ -2992,27 +3083,140 @@ body{padding-top:64px;}
 </style>
 <script id="ehsemha-gs-layout">
 /* شاشات ألعاب الستريمر (تصميم Game Screens): يعيد ترتيب عناصر الصفحات الموجودة (ينقلها كما هي بدون
-   إعادة إنشاء — فتبقى كل المعرّفات والمستمعات) داخل هيكل: [عنوان + شارة الحالة] ← [عمود الانضمام | المسرح]
-   ← [أزرار + نص مساعد]، ويضيف لوحة «معاينة حيّة للإعدادات» لصفحات الإعداد. بصري بالكامل. */
+   إعادة إنشاء — فتبقى كل المعرّفات والمستمعات):
+   • الإعداد: النموذج + معاينة حيّة للراوند تتغيّر مع كل إعداد.
+   • الانتظار: معاينة الراوند كبيرة + عمود المنضمين (أفتارات وإطارات).
+   • الراوند: يختفي كل شيء ويبقى المسرح وحده بملء الشاشة (شريط الأزرار يظهر عند تمرير الماوس أعلى الشاشة).
+   بصري بالكامل. */
 (function () {
 'use strict';
-var PAIRS = [["pg-setup-cr", "pg-cr"], ["pg-setup-ev", "pg-ev"], ["pg-setup", "pg-dash"], ["pg-setup-guessword", "pg-guessword"], ["pg-setup-sniper", "pg-sniper"], ["pg-setup-battery", "pg-battery"], ["pg-setup-roulette", "pg-roulette"], ["pg-setup-timer", "pg-timer"], ["pg-setup-bomb", "pg-bomb"], ["pg-setup-lastletter", "pg-lastletter"], ["pg-setup-whoami", "pg-whoami"], ["pg-setup-reverseword", "pg-reverseword"], ["pg-setup-priceguess", "pg-priceguess"], ["pg-setup-crownsteal", "pg-crownsteal"], ["pg-setup-letterscramble", "pg-letterscramble"], ["pg-setup-countrywar", "pg-countrywar"], ["pg-setup-box", "pg-box"], ["pg-setup-chairs", "pg-chairs"], ["pg-setup-findball", "pg-findball"], ["pg-setup-wordrace", "pg-wordrace"], ["pg-setup-draw", "pg-draw"], ["pg-setup-tug", "pg-tug"], ["pg-setup-rlgl", "pg-rlgl"], ["pg-setup-maze", "pg-maze"], ["pg-setup-tt10", "pg-tt10"], ["pg-setup-glz", "pg-glz"], ["pg-setup-volcanic-lands", "pg-volcanic-lands"], ["pg-setup-hz", "pg-hz"], ["pg-setup-ig", "pg-ig"]];   // [صفحة الإعداد, صفحة اللعبة]
+var PAIRS = [["pg-setup-cr", "pg-cr", "cr", "chat"], ["pg-setup-ev", "pg-ev", "ev", "luck"], ["pg-setup", "pg-dash", "main", "guess"], ["pg-setup-guessword", "pg-guessword", "guessword", "guess"], ["pg-setup-sniper", "pg-sniper", "sniper", "luck"], ["pg-setup-battery", "pg-battery", "battery", "chat"], ["pg-setup-roulette", "pg-roulette", "rou", "luck"], ["pg-setup-timer", "pg-timer", "tmr", "guess"], ["pg-setup-bomb", "pg-bomb", "bomb", "luck"], ["pg-setup-lastletter", "pg-lastletter", "ll", "chat"], ["pg-setup-whoami", "pg-whoami", "wai", "guess"], ["pg-setup-reverseword", "pg-reverseword", "rw", "chat"], ["pg-setup-priceguess", "pg-priceguess", "pgs", "guess"], ["pg-setup-crownsteal", "pg-crownsteal", "cs", "chat"], ["pg-setup-letterscramble", "pg-letterscramble", "lsc", "chat"], ["pg-setup-countrywar", "pg-countrywar", "cw", "luck"], ["pg-setup-box", "pg-box", "box", "luck"], ["pg-setup-chairs", "pg-chairs", "chairs", "luck"], ["pg-setup-findball", "pg-findball", "findball", "guess"], ["pg-setup-wordrace", "pg-wordrace", "wr", "chat"], ["pg-setup-draw", "pg-draw", "draw", "guess"], ["pg-setup-tug", "pg-tug", "tug", "teams"], ["pg-setup-rlgl", "pg-rlgl", "rlgl", "luck"], ["pg-setup-maze", "pg-maze", "maze", "chat"], ["pg-setup-tt10", "pg-tt10", "tt10", "chat"], ["pg-setup-glz", "pg-glz", "glz", "luck"], ["pg-setup-volcanic-lands", "pg-volcanic-lands", "volcanic-lands", "luck"], ["pg-setup-hz", "pg-hz", "hz", "luck"], ["pg-setup-ig", "pg-ig", "ig", "guess"]];   // [صفحة الإعداد, صفحة اللعبة, وسم اللعبة, التصنيف]
 var mk = function (c, tag) { var d = document.createElement(tag || 'div'); d.className = c; return d; };
 var $ = function (r, s) { return r.querySelector(s); };
 var txt = function (e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+var COLORS = ['#A78BFF', '#EC4899', '#22D3EE', '#F59E0B', '#34D399', '#C4B0FF'];
+var HUE = { chat: '#A78BFF', luck: '#F59E0B', guess: '#22D3EE', teams: '#34D399' };
+var byId = function (i) { return document.getElementById(i); };
 
-/* ---------------- شاشة الانتظار / الراوند ---------------- */
+/* ============================ قراءة إعدادات صفحة الإعداد ============================ */
+function reader() {
+  var num = function (id, d) { var e = byId(id), v = e ? parseFloat(e.value) : NaN; return isNaN(v) ? d : v; };
+  var t = function (id, d) { var e = byId(id), v = e && e.value ? e.value.trim() : ''; return v || d || ''; };
+  var chk = function (id) { var e = byId(id); return !!(e && e.checked); };
+  var sel = function (id, d) { var e = byId(id); return e && e.value ? e.value : d; };
+  var selTxt = function (id, d) { var e = byId(id); return e && e.options && e.selectedIndex >= 0 ? txt(e.options[e.selectedIndex]) : d; };
+  return { num: num, txt: t, chk: chk, sel: sel, selTxt: selTxt };
+}
+
+/* ============================ معاينات الراوند ============================ */
+var cap = function (n, a, b) { return Math.max(a, Math.min(b, n)); };
+var chip = function (a, b) { return '<span class="pv-chip">' + esc(a) + (b != null ? ' <b>' + esc(b) + '</b>' : '') + '</span>'; };
+var foot = function (parts) { return '<div class="pv-foot">' + parts.join('') + '</div>'; };
+
+var R = {
+  // سباق الشات: مسارات بعدد المتسابقين وطول المضمار
+  cr: function (S) {
+    var len = S.num('cr-tracklen', 20), max = S.num('cr-maxracers', 10), n = cap(Math.round(max), 2, 8), h = '';
+    for (var i = 0; i < n; i++) h += '<div class="pv-lane"><i>مقعد فارغ</i><span class="pv-car" style="background:' + COLORS[i % COLORS.length] + ';animation-delay:' + (-i * .27) + 's"></span></div>';
+    return '<div class="pv-race"><span class="pv-flag"></span><div class="pv-lanes">' + h + '</div></div>' + foot(['<span>المضمار: <b>' + esc(len) + '</b> خطوة</span>', '<span>' + n + ' من ' + esc(max) + ' مقعد</span>']);
+  },
+  // القنبلة المتحركة
+  bomb: function () {
+    var tm = [15, 12, 10, 7, 5, 4], mx = 15;
+    return '<div class="pv-bombwrap"><div class="pv-fuse"><i></i></div><div class="pv-bomb"><b>' + tm[0] + '</b></div><div class="pv-holder"><small>القنبلة الآن مع</small><span>بانتظار اللاعبين</span></div></div>' +
+      '<div class="pv-bars">' + tm.map(function (v, i) { return '<div><em>' + v + 'ث</em><span style="height:' + (Math.round(v / mx * 58) + 8) + 'px;opacity:' + (i === 0 ? 1 : .45) + '"></span></div>'; }).join('') + '</div>';
+  },
+  // لعبة التوقيت: ساعة والوقت السري مخفي
+  tmr: function () {
+    var ticks = '';
+    for (var i = 0; i < 60; i++) ticks += '<u style="transform:rotate(' + (i * 6) + 'deg)' + (i % 5 === 0 ? ';height:16px;opacity:1' : '') + '"></u>';
+    return '<div class="pv-dial">' + ticks + '<span class="pv-hand"></span><i class="pv-pin"></i><div class="pv-target"><small>الهدف</small><b>؟؟.؟؟</b></div></div>';
+  },
+  // شد الحبل: الفريقان وكلماتهما وكلمة السحب والخيارات
+  tug: function (S) {
+    var a = S.txt('tug-team-a-name', 'الفريق الأول'), b = S.txt('tug-team-b-name', 'الفريق الثاني'), ak = S.txt('tug-team-a-kw', '—'), bk = S.txt('tug-team-b-kw', '—'), pull = S.txt('tug-pull-kw', '—');
+    var opts = [['tug-opt-rubberband', 'تعويض المتأخر'], ['tug-opt-goldenpull', 'سحبة ذهبية'], ['tug-opt-streak', 'مكافأة التتابع'], ['tug-opt-teambalance', 'توازن الفريقين'], ['tug-opt-latejoin', 'انضمام متأخر']].filter(function (o) { return S.chk(o[0]); });
+    var ch = function (n) { return esc((n.replace(/^ال/, '') || '؟').charAt(0)); };
+    return '<div class="pv-rope"><div class="pv-team" style="--tc:#22D3EE"><span>' + ch(a) + '</span><b>' + esc(a) + '</b><small>' + esc(ak) + '</small></div>' +
+      '<div class="pv-ropeline"><i></i><em></em></div><div class="pv-team" style="--tc:#EC4899"><span>' + ch(b) + '</span><b>' + esc(b) + '</b><small>' + esc(bk) + '</small></div></div>' +
+      '<div class="pv-pull">كلمة السحب: <b>' + esc(pull) + '</b></div>' + (opts.length ? '<div class="pv-chips">' + opts.map(function (o) { return chip(o[1]); }).join('') + '</div>' : '');
+  },
+  // الضوء الأخضر والأحمر
+  rlgl: function (S) {
+    var steps = cap(Math.round(S.num('rlgl-steps', 12)), 3, 30), spd = S.sel('rlgl-light-speed', 'medium'), cls = { slow: 'pv-l-slow', medium: 'pv-l-mid', fast: 'pv-l-fast' }[spd] || 'pv-l-mid', t = '';
+    for (var i = 0; i < steps; i++) t += '<u></u>';
+    return '<div class="pv-rlgl"><div class="pv-light ' + cls + '"><i></i><i></i></div><div class="pv-steps">' + t + '<s>خط النهاية</s></div></div>' +
+      foot(['<span>الخطوات: <b>' + steps + '</b></span>', '<span>الجولة: <b>' + esc(S.num('rlgl-round-seconds', 90)) + '</b> ث</span>', '<span>سرعة الضوء: <b>' + esc(S.selTxt('rlgl-light-speed', '')) + '</b></span>', '<span>أقصى لاعبين: <b>' + esc(S.num('rlgl-max-players', 50)) + '</b></span>']);
+  },
+  // المتاهة: شبكة بحجم المتاهة
+  maze: function (S) {
+    var n = { small: 7, medium: 11, large: 15 }[S.sel('mz-size', 'medium')] || 11, cells = '', seed = 7;
+    for (var i = 0; i < n * n; i++) { seed = (seed * 9301 + 49297) % 233280; var w = (seed / 233280) > .62 && i !== 0 && i !== n * n - 1; cells += '<u' + (w ? ' class="w"' : '') + '></u>'; }
+    return '<div class="pv-maze" style="--n:' + n + '">' + cells + '</div>' + foot(['<span>الحجم: <b>' + esc(S.selTxt('mz-size', '')) + '</b></span>', '<span>أقصى لاعبين: <b>' + esc(S.num('mz-maxplayers', 12)) + '</b></span>']);
+  },
+  // التصويت بالإقصاء: مؤقّت الجولة واللاعبون
+  ev: function (S) {
+    var max = cap(Math.round(S.num('ev-maxplayers', 12)), 2, 40), sec = S.num('ev-roundtime', 25), d = '';
+    for (var i = 0; i < max; i++) d += '<u style="background:' + COLORS[i % COLORS.length] + '"></u>';
+    return '<div class="pv-ring"><b>' + esc(sec) + '</b><small>ثانية</small></div><div class="pv-dots">' + d + '</div>' + foot(['<span>أقصى لاعبين: <b>' + max + '</b></span>', '<span>كسر التعادل: <b>' + esc(S.selTxt('ev-tiebreak', '')) + '</b></span>']);
+  },
+  // الطريق الزجاجي
+  glz: function (S) {
+    var rows = '';
+    for (var r = 0; r < 5; r++) rows += '<div style="--w:' + (62 + r * 14) + '%"><span class="g"></span><span class="g' + (r === 1 ? ' c' : '') + '"></span></div>';
+    return '<div class="pv-glass">' + rows + '</div>' + foot(['<span>كلمة الانضمام: <b>' + esc(S.txt('glz-join-kw', '—')) + '</b></span>', '<span>السؤال: <b>' + esc(S.num('glz-round-seconds', 15)) + '</b> ث</span>', '<span>أقصى متسابقين: <b>' + esc(S.num('glz-maxplayers', 20)) + '</b></span>']);
+  },
+  // الأراضي البركانية: لافا بحسب الصعوبة
+  'volcanic-lands': function (S) {
+    var dif = S.sel('volcanic-lands-difficulty', 'normal'), lava = { easy: 18, normal: 30, hard: 44 }[dif] || 30, c = '';
+    for (var i = 0; i < 6; i++) c += '<span style="height:' + (34 + ((i * 37) % 46)) + '%"></span>';
+    return '<div class="pv-vl"><div class="pv-cols">' + c + '</div><div class="pv-lava" style="height:' + lava + '%"></div><div class="pv-q">؟</div></div>' +
+      foot(['<span>مدة السؤال: <b>' + esc(S.num('volcanic-lands-duration', 20)) + '</b> ث</span>', '<span>الصعوبة: <b>' + esc(S.selTxt('volcanic-lands-difficulty', '')) + '</b></span>', '<span>أقصى لاعبين: <b>' + esc(S.num('volcanic-lands-maxplayers', 60)) + '</b></span>']);
+  },
+  // توب 10
+  tt10: function (S) {
+    var rows = '', on = S.chk('tt10-timer-enable');
+    for (var i = 0; i < 10; i++) rows += '<div><span>' + (i + 1) + '</span><i style="width:' + (92 - i * 7) + '%"></i></div>';
+    return '<div class="pv-top10">' + rows + '</div>' + foot([on ? '<span>مؤقّت الجولة: <b>' + esc(S.num('tt10-timer-seconds', 45)) + '</b> ث</span>' : '<span>بدون مؤقّت</span>']);
+  },
+};
+
+var TEXT_FIELDS = { rw: ['rw-word', 'الكلمة المعكوسة'], pgs: ['pgs-product', 'المنتج'], wai: ['wai-desc', 'وصف الشخصية'] };
+var KW = { main: 'inp-kw', guessword: 'gw-inp-kw', tmr: 'tmr-kw', bomb: 'bomb-kw', cr: 'cr-kw', maze: 'mz-kw', ev: 'ev-kw', ll: 'll-kw', wai: 'wai-kw', ig: 'ig-kw', rw: 'rw-kw', pgs: 'pgs-kw', lsc: 'lsc-kw', wr: 'wr-kw', cw: 'cw-kw', cs: 'cs-kw', box: 'box-kw', chairs: 'chairs-kw', findball: 'findball-kw', sniper: 'sniper-kw', hz: 'hz-kw', rou: 'rou-kw', rlgl: 'rlgl-join-kw', glz: 'glz-join-kw', 'volcanic-lands': 'volcanic-lands-join-kw' };
+
+// الألعاب بلا مشهد مخصّص: رسمة اللعبة نفسها (من مكتبة الرئيسية) + الإعدادات النصية
+function defaultPv(tag, S, cat) {
+  var art = window.ehsGameArt && window.ehsGameArt[tag] ? window.ehsGameArt[tag](HUE[cat] || HUE.chat) : '';
+  var extra = TEXT_FIELDS[tag] ? chip(TEXT_FIELDS[tag][1], S.txt(TEXT_FIELDS[tag][0], '—').slice(0, 40)) : '';
+  return '<div class="pv-art">' + art + '</div>' + (extra ? '<div class="pv-chips">' + extra + '</div>' : '');
+}
+
+function pvHtml(tag, cat, withJoin) {
+  var S = reader(), body = R[tag] ? R[tag](S) : defaultPv(tag, S, cat);
+  var kwId = KW[tag], kw = kwId ? S.txt(kwId, '') : '';
+  var join = kwId && withJoin ? '<div class="pv-join"><span>اكتب في الشات للانضمام</span><b>' + esc(kw || '—') + '</b></div>' : '';
+  return '<div class="pv-body">' + body + '</div>' + join;
+}
+
+function pvSig(setup) {
+  var s = '';
+  setup.querySelectorAll('input,select,textarea').forEach(function (i) { s += (i.type === 'checkbox' || i.type === 'radio' ? (i.checked ? 1 : 0) : (i.type === 'password' ? '' : i.value)) + '|'; });
+  return s;
+}
+
+/* ============================ شاشة الانتظار / الراوند ============================ */
 var TOP = '.game-title-header,.status-strip,.tt10-round-badge,.glz-round-badge,.ig-round-indicator';
 var SIDE = '.game-special-btn,.kw-bar,.participants-overlay,.glz-lobby-grid,.tug-teams-wrap';
 var FOOT = '.game-bottom-row';
 
-function layoutGame(page) {
+function layoutGame(page, pair) {
   var head = $(page, '.game-title-header');
   if (!head || page.getAttribute('data-gs-game')) return;
   var host = head.parentElement;
   page.setAttribute('data-gs-game', '1');
   var top = mk('gs-top'), main = mk('gs-main'), side = mk('gs-side'), stage = mk('gs-stage'), foot = mk('gs-foot');
-  var idle = mk('gs-stage-idle'), lead = mk('gs-join-lead'), helper = mk('gs-helper');
+  var pv = mk('gs-stage-pv'), lead = mk('gs-join-lead'), helper = mk('gs-helper'), hot = mk('gs-hot');
   var kids = Array.prototype.slice.call(host.children);
   var from = kids.indexOf(head);
   host.insertBefore(top, head);
@@ -3022,12 +3226,7 @@ function layoutGame(page) {
     else if (k.matches(FOOT)) foot.appendChild(k);
     else stage.appendChild(k);
   });
-  var icon = txt($(page, '.gth-icon')), name = txt($(page, '.gth-name')), desc = txt($(page, '.gth-desc'));
-  idle.innerHTML = '<div class="gs-idle-icon"></div><div class="gs-idle-name"></div><div class="gs-idle-desc"></div>';
-  $(idle, '.gs-idle-icon').textContent = icon;
-  $(idle, '.gs-idle-name').textContent = name;
-  $(idle, '.gs-idle-desc').textContent = desc;
-  stage.insertBefore(idle, stage.firstChild);
+  stage.insertBefore(pv, stage.firstChild);
   var isTeams = !!$(side, '.tug-teams-wrap');
   lead.textContent = isTeams ? 'اكتب كلمة فريقك في الشات' : 'اكتب في الشات للانضمام';
   side.insertBefore(lead, side.firstChild);
@@ -3035,15 +3234,16 @@ function layoutGame(page) {
   main.appendChild(side); main.appendChild(stage);
   host.insertBefore(main, top.nextSibling);
   host.insertBefore(foot, main.nextSibling);
-  new MutationObserver(function () { schedule(page); }).observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style'], characterData: true });
-  sync(page);
+  page.appendChild(hot);
+  new MutationObserver(function () { schedule(page, pair); }).observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ['class', 'style'], characterData: true });
+  sync(page, pair);
 }
 
 var pending = new WeakSet();
-function schedule(page) {
+function schedule(page, pair) {
   if (pending.has(page)) return;
   pending.add(page);
-  requestAnimationFrame(function () { pending.delete(page); if (page.classList.contains('active')) sync(page); });
+  requestAnimationFrame(function () { pending.delete(page); if (page.classList.contains('active')) sync(page, pair); });
 }
 
 function visible(el) {
@@ -3053,25 +3253,37 @@ function visible(el) {
   var r = el.getBoundingClientRect();
   return r.width > 0 && r.height > 0;
 }
-
-// بدون قياس الحجم: العمود نفسه قد يكون مخفياً (side-empty) فأبناؤه بحجم صفر دائماً
+// بدون قياس الحجم: العمود نفسه قد يكون مخفياً فأبناؤه بحجم صفر دائماً
 function shown(el) { if (el.hidden) return false; var cs = getComputedStyle(el); return cs.display !== 'none' && cs.visibility !== 'hidden'; }
 
-function sync(page) {
-  var stage = $(page, '.gs-stage');
+function sync(page, pair) {
+  var stage = $(page, '.gs-stage'), strip = $(page, '.status-strip');
+  var live = false;
   if (stage) {
-    var live = Array.prototype.some.call(stage.children, function (c) { return !c.classList.contains('gs-stage-idle') && visible(c); });
+    live = Array.prototype.some.call(stage.children, function (c) { return !c.classList.contains('gs-stage-pv') && visible(c); });
     stage.classList.toggle('has-live', live);
   }
+  // الراوند الجاري: شارة الحالة "active"، أو (بلا شارة ظاهرة) مسرح اللعبة ظاهر، أو وضع rd-live
+  var stripOn = strip && shown(strip);
+  var inRound = page.classList.contains('rd-live') || (stripOn ? strip.classList.contains('active') : live);
+  page.classList.toggle('gs-live', !!inRound);
+  // تكبير محتوى الراوند ليملأ الشاشة (بحسب مساحتها؛ لا يصغّر أبداً)
+  var z = Math.max(1, Math.min(2, (window.innerWidth - 120) / 920, (window.innerHeight - 200) / 540));
+  if (inRound) page.style.setProperty('--gs-zoom', z.toFixed(2)); else page.style.removeProperty('--gs-zoom');
   var side = $(page, '.gs-side'), main = $(page, '.gs-main');
   if (side && main) {
     var any = Array.prototype.some.call(side.children, function (c) { return !c.classList.contains('gs-join-lead') && shown(c); });
     main.classList.toggle('side-empty', !any);
   }
+  // معاينة الراوند (من إعدادات صفحة الإعداد)
+  var pv = $(page, '.gs-stage-pv');
+  if (pv && pair) {
+    var setup = byId(pair[0]), sig = setup ? pvSig(setup) : '';
+    if (pv.getAttribute('data-sig') !== sig || !pv.firstChild) { pv.setAttribute('data-sig', sig); pv.innerHTML = pvHtml(pair[2], pair[3], false); }
+  }
   var helper = $(page, '.gs-helper');
   if (helper) {
-    var strip = $(page, '.status-strip');
-    var n = parseInt(txt($(page, '.participants-big-count')).replace(/[^\d٠-٩]/g, '').replace(/[٠-٩]/g, function (d) { return d.charCodeAt(0) - 1632; }), 10);
+    var n = parseInt(txt($(page, '.participants-big-count')).replace(/[٠-٩]/g, function (d) { return d.charCodeAt(0) - 1632; }).replace(/[^\d]/g, ''), 10);
     var t;
     if (strip && strip.classList.contains('active')) t = 'الشات يتحكم في الجولة الآن';
     else if (strip && strip.classList.contains('finished')) t = 'افتح جولة جديدة متى شئت';
@@ -3081,80 +3293,41 @@ function sync(page) {
   }
 }
 
-/* ---------------- شاشة الإعداد: لوحة المعاينة الحيّة ---------------- */
-var SKIP_ID = /user|key|token|channel|url|link/i;
-function chips(box) {
-  var out = [], kw = '';
-  var kwInput = $(box, 'input[id$="-kw"],input[id$="kw"],input[id*="-kw-"]');
-  if (kwInput) kw = kwInput.value.trim();
-  box.querySelectorAll('.field, .mod-setting-row').forEach(function (row) {
-    var lab = row.classList.contains('field') ? $(row, 'label') : $(row, '.mod-setting-label');
-    var inp = row.querySelector('input,select,textarea');
-    if (!lab || !inp || inp === kwInput) return;
-    if (row.offsetParent === null && !row.closest('details')) return;
-    if (inp.type === 'file' || inp.type === 'password' || SKIP_ID.test(inp.id || '')) return;
-    var v;
-    if (inp.type === 'checkbox') v = inp.checked ? 'مفعّل' : 'متوقف';
-    else if (inp.type === 'radio') { var ck = row.querySelector('input[type=radio]:checked'); v = ck ? txt(ck.closest('label') || ck.parentElement) : ''; }
-    else if (inp.tagName === 'SELECT') v = txt(inp.options[inp.selectedIndex]);
-    else v = (inp.value || '').trim();
-    if (!v) return;
-    out.push([txt(lab).replace(/[:：]\s*$/, ''), v]);
-  });
-  return { kw: kw, items: out.slice(0, 8) };
-}
-
-function renderPreview(setup, game, aside) {
-  var box = $(setup, '.setup-box');
-  var c = chips(box);
-  var gi = game ? txt($(game, '.gth-icon')) : '';
-  var gn = game ? txt($(game, '.gth-name')) : '';
-  $(aside, '.gs-pv-icon').textContent = gi;
-  $(aside, '.gs-pv-name').textContent = gn;
-  var kw = $(aside, '.gs-pv-kw');
-  kw.textContent = c.kw || '—';
-  kw.parentNode.style.display = $(box, 'input[id$="-kw"],input[id$="kw"],input[id*="-kw-"]') ? '' : 'none';
-  var holder = $(aside, '.gs-pv-chips');
-  holder.textContent = '';
-  c.items.forEach(function (it) {
-    var d = mk('gs-pv-chip');
-    var a = mk('', 'span'); a.textContent = it[0];
-    var b = mk('', 'b'); b.textContent = it[1];
-    d.appendChild(a); d.appendChild(b); holder.appendChild(d);
-  });
-  var rule = $(aside, '.gs-pv-rule');
-  var sub = txt($(box, '.setup-sub'));
+/* ============================ شاشة الإعداد: المعاينة الحيّة ============================ */
+function renderSetupPv(setup, pair, aside) {
+  var box = $(setup, '.setup-box'), pv = $(aside, '.gs-pv-stage');
+  var sig = pvSig(setup);
+  if (pv.getAttribute('data-sig') !== sig || !pv.firstChild) { pv.setAttribute('data-sig', sig); pv.innerHTML = pvHtml(pair[2], pair[3], true); }
+  var rule = $(aside, '.gs-pv-rule'), sub = txt($(box, '.setup-sub'));
   if (rule.textContent !== sub) rule.textContent = sub;
 }
 
-function layoutSetup(setup, game) {
+function layoutSetup(setup, pair) {
   var box = $(setup, '.setup-box');
   if (!box || setup.getAttribute('data-gs-setup')) return;
   setup.setAttribute('data-gs-setup', '1');
   var aside = mk('gs-preview', 'aside');
   aside.setAttribute('aria-label', 'معاينة حيّة للإعدادات');
-  aside.innerHTML = '<span class="gs-pv-label">معاينة حيّة للإعدادات</span>' +
-    '<div class="gs-pv-body"><div class="gs-pv-icon" aria-hidden="true"></div><div class="gs-pv-name"></div>' +
-    '<div class="gs-pv-join"><span class="gs-pv-lead">اكتب في الشات للانضمام</span><div class="gs-pv-kw"></div></div>' +
-    '<div class="gs-pv-chips"></div></div><p class="gs-pv-rule"></p>';
+  aside.innerHTML = '<span class="gs-pv-label">معاينة حيّة للإعدادات</span><div class="gs-pv-stage"></div><p class="gs-pv-rule"></p>';
   box.appendChild(aside);
-  var raf = 0, go = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; renderPreview(setup, game, aside); }); };
+  var raf = 0, go = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; renderSetupPv(setup, pair, aside); }); };
   box.addEventListener('input', go); box.addEventListener('change', go); box.addEventListener('click', go);
-  new MutationObserver(go).observe(box, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class', 'open'] });
-  renderPreview(setup, game, aside);
+  new MutationObserver(go).observe(box, { subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class', 'open', 'value'] });
+  renderSetupPv(setup, pair, aside);
 }
 
 function init() {
   PAIRS.forEach(function (p) {
-    var s = document.getElementById(p[0]), g = document.getElementById(p[1]);
-    if (g) layoutGame(g);
-    if (s) layoutSetup(s, g);
+    var s = byId(p[0]), g = byId(p[1]);
+    if (g) layoutGame(g, p);
+    if (s) layoutSetup(s, p);
   });
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-// الصفحة تتحدّث أيضاً لحظة فتحها (show) — المسرح/الحالة تُقرأ من الـDOM الفعلي
-document.addEventListener('click', function () { PAIRS.forEach(function (p) { var g = document.getElementById(p[1]); if (g && g.classList.contains('active')) schedule(g); }); }, true);
-window.gsRefresh = function () { PAIRS.forEach(function (p) { var g = document.getElementById(p[1]); if (g) sync(g); var s = document.getElementById(p[0]); if (s && s.getAttribute('data-gs-setup')) { var a = $(s, '.gs-preview'); if (a) renderPreview(s, g, a); } }); };
+// صفحة اللعبة تتحدّث لحظة فتحها (show) وبعد أي ضغطة
+document.addEventListener('click', function () { PAIRS.forEach(function (p) { var g = byId(p[1]); if (g && g.classList.contains('active')) schedule(g, p); }); }, true);
+window.addEventListener('resize', function () { PAIRS.forEach(function (p) { var g = byId(p[1]); if (g && g.classList.contains('gs-live')) sync(g, p); }); });
+window.gsRefresh = function () { PAIRS.forEach(function (p) { var g = byId(p[1]); if (g) sync(g, p); var s = byId(p[0]); if (s && s.getAttribute('data-gs-setup')) { var a = $(s, '.gs-preview'); if (a) renderSetupPv(s, p, a); } }); };
 })();
 </script>
 <style id="ehsemha-lobby">
@@ -7575,6 +7748,7 @@ if (cluster && 'ResizeObserver' in window) new ResizeObserver(syncCluster).obser
 if ('MutationObserver' in window) new MutationObserver(syncCluster).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
 // ---- واجهة عامة تستعملها بقية الموقع ----
+window.ehsGameArt = ART;
 window.homeApplyFilter = cat => setCat(cat || 'all');
 window.lobbyGoLibrary = () => scrollToId('library');
 window.lobbyRender = () => render(true);
