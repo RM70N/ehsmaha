@@ -177,7 +177,11 @@ const settle = (p) => p.waitForTimeout(120);
   await page.evaluate(() => { document.getElementById('home-event-winners').style.display = 'block'; });
   check('بانر فائزي الفعالية قابل للإظهار', await page.evaluate(() => document.getElementById('home-event-winners').getBoundingClientRect().height > 50));
   await page.evaluate(() => { document.getElementById('home-event-winners').style.display = 'none'; });
-  check('زر ديسكورد ظاهر برابطه', await page.evaluate(() => { const a = document.getElementById('home-discord-btn'); return a.href.startsWith('https://discord.gg/') && a.getBoundingClientRect().height > 0; }));
+  check('زر ديسكورد ظاهر برابطه بأعلى الصفحة (داخل أزرار البطل، بدون تمرير)', await page.evaluate(() => { const a = document.getElementById('home-discord-btn'); const r = a.getBoundingClientRect(); return a.href.startsWith('https://discord.gg/') && r.height >= 50 && r.top < innerHeight && !!a.closest('.hlob-hero-cta') && getComputedStyle(a).backgroundColor === 'rgb(88, 101, 242)'; }));
+  // لوحة المالك: «إخفاء/إظهار» يمر عبر مستند config/discordServer — نحاكي لقطة Firestore بنفس الدالة الحقيقية homeDiscordBoot
+  const dc = await page.evaluate(() => { const snap = (d) => ({ exists: () => true, data: () => d }); const w = document.getElementById('home-discord-cta'); const out = {}; const run = (d) => { fb = { db: {}, doc: () => 0, onSnapshot: (ref, cb) => { cb(snap(d)); return () => {}; } }; homeDiscordUnsub = null; homeDiscordBoot(); return getComputedStyle(w).display; };
+    out.hidden = run({ visible: false }); out.shown = run({ visible: true, url: 'https://discord.gg/abc' }); out.href = document.getElementById('home-discord-btn').href; out.h = w.getBoundingClientRect().height; return out; });
+  check('«إظهار» من لوحة المالك يُظهر الزر و«إخفاء» يخفيه ويحدّث الرابط', dc.hidden === 'none' && dc.shown !== 'none' && dc.h > 40 && dc.href === 'https://discord.gg/abc', dc);
 
   // ---------- 9) الكتلة العلوية اليمنى (☰ + اسم اليوزر) ما تغطي الشعار ----------
   await page.evaluate(() => { document.getElementById('burger-fab-btn').classList.add('visible'); const c = document.getElementById('auth-user-chip'); c.classList.add('visible'); document.getElementById('auth-user-name').textContent = 'اسم_مستخدم_طويل_جداً'; });
