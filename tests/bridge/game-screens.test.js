@@ -37,14 +37,15 @@ const PAGES = [
     const sp = document.getElementById('pg-' + s), gp = document.getElementById('pg-' + g);
     const has = (el, sel) => !!(el && el.querySelector(sel));
     return { tag, setupPreview: has(sp, '.setup-box > .gs-preview'), top: has(gp, '.gs-top'), main: has(gp, '.gs-main'), side: has(gp, '.gs-side'), stage: has(gp, '.gs-stage'), foot: has(gp, '.gs-foot'),
-      title: has(gp, '.gs-top .game-title-header'), pv: has(gp, '.gs-stage > .gs-stage-pv'), pvSetup: has(sp, '.gs-pv-stage'), strip: has(gp, '.gs-top .status-strip') || has(gp, '.status-strip'), start: has(gp, '.gs-foot .game-bottom-row') || has(gp, '.game-bottom-row') };
+      title: has(gp, '.gs-top .game-title-header'), titleAny: has(gp, '.game-title-header'), pv: has(gp, '.gs-stage > .gs-stage-pv'), pvSetup: has(sp, '.gs-pv-stage'), strip: has(gp, '.gs-top .status-strip') || has(gp, '.status-strip'), start: has(gp, '.gs-foot .game-bottom-row') || has(gp, '.game-bottom-row') };
   }), PAGES);
-  const badStruct = struct.filter((x) => !(x.setupPreview && x.pvSetup && x.pv && x.top && x.main && x.side && x.stage && x.foot && x.title));
-  check('كل الـ29 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة', badStruct.length === 0, badStruct.map((x) => x.tag));
+  const CLASSIC = ['rou', 'cw', 'volcanic-lands'];
+  const badStruct = struct.filter((x) => CLASSIC.includes(x.tag) ? !(x.setupPreview && x.pvSetup && !x.main && x.titleAny) : !(x.setupPreview && x.pvSetup && x.pv && x.top && x.main && x.side && x.stage && x.foot && x.title));
+  check('كل الـ29 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
 
   // ---------- 2) ألوان التصنيف ----------
   const colors = await page.evaluate((P) => P.map(([tag, s, g, c]) => [tag, getComputedStyle(document.getElementById('pg-' + g)).getPropertyValue('--gs-c').trim().toUpperCase(), getComputedStyle(document.getElementById('pg-' + s)).getPropertyValue('--gs-c').trim().toUpperCase(), c]), PAGES);
-  const badC = colors.filter((x) => x[1] !== x[3] || x[2] !== x[3]);
+  const badC = colors.filter((x) => (CLASSIC.includes(x[0]) ? x[2] !== x[3] : (x[1] !== x[3] || x[2] !== x[3])));
   check('لون كل لعبة بإعدادها وانتظارها حسب تصنيفها (دردشة بنفسجي، حظ كهرماني، تخمين سماوي، فرق أخضر)', badC.length === 0, badC);
   const pills = await page.evaluate(() => ['bomb', 'cr', 'tmr', 'tug'].map((t) => { const id = { bomb: 'bomb', cr: 'cr', tmr: 'timer', tug: 'tug' }[t]; return getComputedStyle(document.querySelector('#pg-' + id + ' .gth-name'), '::after').content; }));
   check('شارة التصنيف بجانب اسم اللعبة (حظ/دردشة/تخمين/فرق)', pills.join() === '"حظ","دردشة","تخمين","فرق"', pills);
@@ -78,6 +79,20 @@ const PAGES = [
   await page.evaluate(() => show('setup-cr')); await sleep(250);
   const nav = await page.evaluate(() => { const b = document.querySelector('#pg-setup-cr .btn-primary'); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderRadius }; });
   check('زر "ابدأ اللعبة" كبير دائري بلون التصنيف (72px)', nav.h >= 70 && nav.bg === 'rgb(167, 139, 255)' && parseInt(nav.radius) >= 100, nav);
+
+  // ---------- 3ب) دائرة الإقصاء / الدول / الأراضي البركانية: راوندها القديم بالمعاينة وصفحتها كما كانت ----------
+  const old = await page.evaluate(() => {
+    const q = (id, sel) => { const el = document.querySelector('#pg-setup-' + id + ' .gs-pv-stage'); return el ? { has: !!el.querySelector(sel), w: Math.round(el.getBoundingClientRect().width) } : null; };
+    return { rou: q('roulette', '.pv-old .rd-stage .rd-num-gold'), cw: q('countrywar', '.pv-old .rd-stage .rd-num-gold'), vl: q('volcanic-lands', '.pv-old .vl-stage .vl-tower'),
+      dupIds: ['rou-wheel-section', 'cw-wheel-section', 'volcanic-lands-stage', 'rou-stage', 'cw-stage'].filter((i) => document.querySelectorAll('[id="' + i + '"]').length > 1),
+      layout: ['roulette', 'countrywar', 'volcanic-lands'].map((g) => !!document.querySelector('#pg-' + g + ' .gs-main')),
+      chat: ['roulette', 'countrywar', 'volcanic-lands'].map((g) => getComputedStyle(document.querySelector('#pg-' + g + ' .panel-right')).display) };
+  });
+  check('معاينة الإعداد للثلاث تعرض تصميم الراوند القديم نفسه (rd-stage للدائرة والدول، vl-stage للبركانية) بلا تكرار معرّفات', old.rou && old.rou.has && old.cw && old.cw.has && old.vl && old.vl.has && old.dupIds.length === 0, old);
+  check('الثلاث: صفحة اللعبة بشكلها القديم (بلا هيكل gs-main) والشات محذوف منها أيضاً', old.layout.every((x) => !x) && old.chat.every((d) => d === 'none'), old);
+  await page.evaluate(() => show('setup-volcanic-lands')); await sleep(250);
+  await page.selectOption('#volcanic-lands-difficulty', 'hell'); await page.fill('#volcanic-lands-duration', '35'); await sleep(300);
+  check('الأراضي البركانية: إعدادات المدة والصعوبة تنعكس بتذييل المعاينة', await page.evaluate(() => { const f = document.querySelector('#pg-setup-volcanic-lands .gs-pv-stage .pv-foot'); return !!f && /35/.test(f.textContent); }));
 
   // ---------- 4) لعب حقيقي: انتظار ← انضمام ← راوند ----------
   const g = games.find((x) => x.tag === 'bomb');

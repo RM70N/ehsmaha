@@ -15,7 +15,7 @@ const FROM = Number(process.env.FROM || 1), TO = Number(process.env.TO || 99);
 const ROUND = { gw: 'gwStartRound', main: 'startRound', sniper: 'startSniperRound', hz: 'startHzRound', rou: 'startRouletteRound', bomb: 'startBombRound', box: 'startBoxRound', cr: 'startCrRound', mz: 'startMzRound', ev: 'startEvRound', ll: 'startLastLetterRound', wai: 'startWAIRound', ig: 'startIGRound', rw: 'startRWRound', pgs: 'startPGRound', lsc: 'startLSCRound', wr: 'startWRRound', draw: 'startDrawRound', cw: 'startCountryWarRound', cs: 'startCrownStealRound', chairs: 'chairsStartRoundClick', findball: 'findballStartRoundClick', tug: 'startTugRound', rlgl: 'startRlglRound', 'volcanic-lands': 'vlStart' };
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  await H.serveSite();
+  await H.serveSite(8765, process.env.SITE_FILE || 'index.html');
   const browser = await H.launchBrowser();
   const page = await H.newPage(browser, { query: '' });
   await page.setViewportSize({ width: VW, height: VH });
