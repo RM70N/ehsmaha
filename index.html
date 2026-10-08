@@ -82127,7 +82127,7 @@ if(document.fonts&&document.fonts.load){
     if (typeof liveCommandsBoot === 'function') liveCommandsBoot(TAG, {});
     participants.clear(); kicked.clear(); pendingFollowers.clear(); aims.clear(); names.clear(); nameOwner.clear();
     window.cannonLastResult = null;
-    buildFrame();
+    destroyFrame(); gameErr = null; // اللعبة ثلاثية الأبعاد تُحمَّل عند بدء الجولة فقط: شاشة الانتظار تبقى خفيفة (الجوال) ولا تزاحم استقبال الشات
     initRoomUI();
     window.cannonStatus = 'waiting';
     show('cannon');
@@ -82380,6 +82380,7 @@ if(document.fonts&&document.fonts.load){
     if (window.cannonStatus !== 'waiting') return;
     if (participants.size < cfg.minp) { note('لازم ' + ar(cfg.minp) + ' لاعبين على الأقل'); return; }
     window.cannonStatus = 'launching'; clearInterval(timerInt); W('start').disabled = true;
+    if (!frameEl) buildFrame(); // بدء تحميل اللعبة أثناء شاشة «انطلقنا!»
     W('gof').classList.add('hcw-on');
     launching = setTimeout(function () { launching = null; enterRound(); }, 1800);
   }
@@ -82388,7 +82389,7 @@ if(document.fonts&&document.fonts.load){
     var go = function (failed) {
       if (window.cannonStatus !== 'launching') return;
       var g = gw();
-      if (failed || !g) { W('gof').classList.remove('hcw-on'); window.cannonStatus = 'waiting'; startWaiting(); note('تعذّر تشغيل اللعبة — تأكد من الإنترنت ثم اضغط ريست'); return; }
+      if (failed || !g) { destroyFrame(); gameErr = null; W('gof').classList.remove('hcw-on'); window.cannonStatus = 'waiting'; startWaiting(); note('تعذّر تشغيل اللعبة — تأكد من الإنترنت ثم اضغط ريست'); return; }
       var list = [];
       participants.forEach(function (u, uid) {
         var a = aims.get(uid);
@@ -82402,7 +82403,7 @@ if(document.fonts&&document.fonts.load){
     if (gameReady) go(); else if (gameErr) go(true); else { note('جارٍ تحميل اللعبة…'); readyWait = go; setTimeout(function () { if (readyWait === go) { readyWait = null; go(true); } }, 30000); }
   }
   function backToWaiting() {
-    var g = gw(); if (g) { try { g.HC.reset(); g.HC.hide(); } catch (e) {} }
+    destroyFrame(); // تحرير WebGL بعد كل جولة؛ الجولة الجاية تُحمَّل من جديد
     setLive(false);
     participants.clear(); aims.clear(); pendingFollowers.clear(); names.clear(); nameOwner.clear(); shownCrowd.clear();
     kicked.forEach(function (uid) {});
@@ -82415,7 +82416,7 @@ if(document.fonts&&document.fonts.load){
     if (launching) { clearTimeout(launching); launching = null; }
     if (window.cannonStatus === 'round' || window.cannonStatus === 'launching') { backToWaiting(); }
     else { participants.clear(); aims.clear(); pendingFollowers.clear(); names.clear(); nameOwner.clear(); shownCrowd.clear(); startWaiting(); }
-    if (gameErr || !gameReady && !frameEl) buildFrame(); // إعادة محاولة تحميل اللعبة بعد فشل
+    gameErr = null; // ريست = إعادة محاولة تحميل اللعبة عند البدء
     note('تم تصفير الجولة');
   }
 

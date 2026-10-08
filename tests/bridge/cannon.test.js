@@ -108,7 +108,7 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
     };
   });
   check('الانتظار: @يوزر البث · متصل · كلمة الانضمام · ٣٠ لاعب · سلّم ٨ هدايا · زر البدء معطّل', w0.user === '@' + STREAMER && /متصل/.test(w0.plt) && !w0.dotOff && w0.kw === 'انضم' && w0.mx === '٣٠' && w0.steps === 8 && w0.start && w0.gname === 'المدفع البشري', w0);
-  check('معالج البث مسجّل للعبة وiframe اللعبة جاهز مسبقاً', w0.listeners.includes('cannon') && w0.frame && (await waitFor(page, () => document.getElementById('cannon-w-frame').contentWindow.HC && document.getElementById('cannon-w-frame').contentWindow.HC.info().state === 'idle' || document.getElementById('cannon-w-frame').contentWindow.HC.info().state !== undefined, null, 8000)), w0.listeners);
+  check('معالج البث مسجّل للعبة، واللعبة ثلاثية الأبعاد لا تُحمَّل أثناء الانتظار (شاشة خفيفة لا تزاحم الشات)', w0.listeners.includes('cannon') && !w0.frame, { l: w0.listeners, frame: w0.frame });
 
   await say('p0', 'انضم'); await say('p1', 'انضم😍'); await say('p2', '‏انضم!!'); await say('p0', 'انضم'); await say('p3', 'مرحبا');
   await sleep(900);
@@ -201,8 +201,8 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   const score = await page.evaluate((key) => { const db = JSON.parse(localStorage.getItem('streamer_games_scores') || '{}'); const s = db['streamer1'] || db[Object.keys(db)[0]] || {}; return Object.values(s).filter((u) => u.games && u.games['المدفع البشري']).map((u) => [u.nickname, u.games['المدفع البشري']]); }, null);
   check('الفوز مسجّل بلوحة المتصدرين باسم اللعبة', score.length === 1 && score[0][1] === 1, score);
   const back = await waitFor(page, () => cannonStatus === 'waiting' && !document.body.classList.contains('hc-live') && document.getElementById('cannon-w-live').hidden, null, 60000);
-  const after = await page.evaluate(() => ({ n: cannonParticipants.size, tm: document.getElementById('cannon-w-tm').textContent, active: document.querySelector('.page.active').id, state: document.getElementById('cannon-w-frame').contentWindow.HC.info().state }));
-  check('بعد الفوز ترجع لشاشة الانتظار بجولة جديدة (قائمة فارغة، اللعبة خاملة)', back && after.n === 0 && after.active === 'pg-cannon' && after.state === 'idle', after);
+  const after = await page.evaluate(() => ({ n: cannonParticipants.size, tm: document.getElementById('cannon-w-tm').textContent, active: document.querySelector('.page.active').id, frame: !!document.getElementById('cannon-w-frame') }));
+  check('بعد الفوز ترجع لشاشة الانتظار بجولة جديدة (قائمة فارغة، اللعبة محرَّرة من الذاكرة)', back && after.n === 0 && after.active === 'pg-cannon' && !after.frame, after);
 
   // ============ 7) جولة ثانية بعدة رميات وانضمام متأخر + عقوبات (النافذة) ============
   await page.evaluate(() => goHome());
@@ -239,6 +239,16 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await page.evaluate(() => show('solo-home')); await sleep(300);
   check('الانتقال لأي صفحة أخرى أثناء الانتظار ينهي اللعبة ويحرر المعالج', await page.evaluate(() => cannonStatus === 'idle' && !Object.keys(homeGameListeners).includes('cannon') && !document.getElementById('cannon-w-frame')));
   check('لا أخطاء JS ولا أخطاء كونسول طوال الرحلة الكاملة', page._errors.length === 0 && page._consoleErrors.length === 0, { e: page._errors, c: page._consoleErrors });
+
+  // ============ 8.5) كلمة انضمام بمسافة (جملة) + انقطاع الشات وعودته: الانضمام يستمر بعد العودة ============
+  await page.evaluate(() => { goSetupCannon(); document.getElementById('cannon-s-kw').value = 'السلام عليكم'; launchCannon(); }); await sleep(900);
+  await say('k1', 'السلام عليكم'); await say('k2', ' السلام  عليكم '); await say('k3', 'السلام عليكم ورحمة الله'); await sleep(900);
+  const kwj = await page.evaluate(() => [...cannonParticipants.keys()].sort().join());
+  check('كلمة انضمام جملة («السلام عليكم»): تطابق الكلمة (ولو مسافات زائدة) وتتجاهل الجملة الأطول', kwj === 'tiktok:k1,tiktok:k2', kwj);
+  await ctl({ cmd: 'dropUpstream' }); await sleep(2500);
+  await say('k4', 'السلام عليكم'); await sleep(1500);
+  check('بعد انقطاع الشات من تيك توك وعودته يستمر الانضمام بنفس الكلمة', await page.evaluate(() => cannonParticipants.has('tiktok:k4') && homeConnOverall() === 'connected'), await page.evaluate(() => ({ o: homeConnOverall(), n: cannonParticipants.size })));
+  await page.evaluate(() => cannonTeardown());
 
   // ============ 9) فشل تحميل Three.js: رسالة واضحة ورجوع للانتظار بدل التعليق ============
   const bad = await newGamePage(browser);
