@@ -113,13 +113,17 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await say('p0', 'انضم'); await say('p1', 'انضم😍'); await say('p2', '‏انضم!!'); await say('p0', 'انضم'); await say('p3', 'مرحبا');
   await sleep(900);
   const j1 = await page.evaluate(() => ({ n: cannonParticipants.size, keys: [...cannonParticipants.keys()].sort().join(), count: document.getElementById('cannon-w-n').textContent, start: document.getElementById('cannon-w-start').disabled }));
+  const fd1 = await page.evaluate(() => [...document.querySelectorAll('#cannon-w-feed div')].map((d) => d.textContent));
   check('الانضمام بصيغ الكلمة (إيموجي/علامات/مسافة خفية) وبلا تكرار، وغير الكلمة لا ينضم', j1.n === 3 && j1.keys === 'tiktok:p0,tiktok:p1,tiktok:p2' && j1.count === '٣' && !j1.start, j1);
   // شرط الفولو: غير متابع معروف يتعلّق حتى يتابع
   await say('nf1', 'انضم', { identity: { isFollowerOfAnchor: false } }); await sleep(500);
   const nf1 = await page.evaluate(() => cannonParticipants.has('tiktok:nf1'));
   await ctl({ cmd: 'follow', viewer: 'nf1' }); await sleep(600);
   const nf2 = await page.evaluate(() => cannonParticipants.has('tiktok:nf1'));
+  const fd2 = await page.evaluate(() => [...document.querySelectorAll('#cannon-w-feed div')].map((d) => d.textContent));
   check('شرط الفولو: غير المتابع لا ينضم، وينضم تلقائياً بعد المتابعة', !nf1 && nf2, { before: nf1, after: nf2 });
+  check('سجل الشات المباشر بشاشة الانتظار: يظهر الانضمام، والرسالة التي لا تطابق الكلمة، وسبب رفض غير المتابع', fd1.some((t) => /مرحبا/.test(t) && /ليست كلمة الانضمام/.test(t)), fd1);
+  check('سجل الشات يوضّح سبب الرفض (لازم يتابعك أولاً)', fd2.some((t) => /يتابعك/.test(t)), fd2);
   await ctl({ cmd: 'burst', count: 12, prefix: 'b', text: 'انضم', identity: { isFollowerOfAnchor: true }, perMs: 30 }); await sleep(1800);
   const j2 = await page.evaluate(() => ({ n: cannonParticipants.size, count: document.getElementById('cannon-w-n').textContent, crowd: document.getElementById('cannon-w-crowd').children.length, list: document.getElementById('cannon-w-list').children.length, start: document.getElementById('cannon-w-start').disabled, crowdNames: [...document.querySelectorAll('#cannon-w-crowd .hcw-nm')].length }));
   check('١٦ منضم: العدّاد ١٦ · دائرة الجمهور ٨ شخصيات · قائمة الجاهزين ١٢ · زر البدء مفعّل', j2.n === 16 && j2.count === '١٦' && j2.crowd === 8 && j2.list === 12 && !j2.start && j2.crowdNames === 8, j2);
@@ -132,7 +136,8 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await page.evaluate(() => document.getElementById('cannon-w-kx').click());
   await say('b3', 'انضم'); await sleep(500);
   const kd2 = await page.evaluate(() => ({ n: cannonParticipants.size, has: cannonParticipants.has('tiktok:b3') }));
-  check('نافذة الطرد: تعرض المنضمين، تطرد لاعباً، والمطرود لا يعود بالكلمة', kd.on && kd.rows === 16 && kd2.n === 15 && !kd2.has, { kd, kd2 });
+  check('كتابة أمر «زاوية قوة» مباشرة بلا كلمة انضمام تُدخل صاحبها (وأمره محفوظ)', await page.evaluate(() => cannonParticipants.has('tiktok:stranger')));
+  check('نافذة الطرد: تعرض المنضمين، تطرد لاعباً، والمطرود لا يعود بالكلمة', kd.on && kd.rows === 17 && kd2.n === 16 && !kd2.has, { kd, kd2 });
   // ريست
   await page.evaluate(() => document.getElementById('cannon-w-reset').click()); await sleep(400);
   check('ريست: يصفّر المنضمين ويرجع العدّاد', await page.evaluate(() => cannonParticipants.size === 0 && document.getElementById('cannon-w-n').textContent === '٠' && document.getElementById('cannon-w-start').disabled && cannonStatus === 'waiting'));
@@ -178,10 +183,10 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   check('الإعدادات وصلت للعبة (رميات/طاقة/رياح/حد الزاوية/عوائق/هدايا/عقوبات)', rd.cfg.shots === 1 && rd.cfg.energyRate === 2 && rd.cfg.wind === 1 && rd.cfg.maxAngle === 80 && rd.cfg.obs && rd.cfg.gift && !rd.cfg.pen && rd.cfg.auto && !rd.cfg.late && rd.cfg.max === 30, rd.cfg);
   check('لا عناصر ثابتة من الموقع فوق الراوند (مؤشرات/أزرار عائمة مخفية)', rd.fixedVisible.length === 0, rd.fixedVisible);
   // انضمام أثناء نافذة الأوامر + أمر جديد + هدية قبل الإطلاق (تُتجاهل) + تجاهل غير المنضم
-  await say('r3', 'انضم'); await sleep(500); await say('r3', '60 100'); await say('r2', '٥٠ ٧٠'); await say('r0', '85 90'); await say('stranger2', '30 50');
-  await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; const t = [...w.document.querySelectorAll('#rows li')].map((li) => li.innerText.replace(/\s+/g, ' ')); return t.length === 4 && t.some((x) => /r0/.test(x) && /80° · 90/.test(x)) && t.some((x) => /r2/.test(x) && /50° · 70/.test(x)); }, null, 15000);
+  await say('r3', 'انضم'); await sleep(500); await say('r3', '60 100'); await say('r2', '٥٠ ٧٠'); await say('r0', '85 90'); await say('direct1', '30 50'); await say('chatter', 'مرحبا يا شباب');
+  await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; const t = [...w.document.querySelectorAll('#rows li')].map((li) => li.innerText.replace(/\s+/g, ' ')); return t.length === 5 && t.some((x) => /r0/.test(x) && /80° · 90/.test(x)) && t.some((x) => /r2/.test(x) && /50° · 70/.test(x)); }, null, 15000);
   const inRound = await page.evaluate(() => { const w = document.getElementById('cannon-w-frame').contentWindow; return { info: w.HC.info(), r0: [...w.document.querySelectorAll('#rows li')].map((li) => li.innerText.replace(/\s+/g, ' ')), joined: cannonParticipants.has('tiktok:r3') }; });
-  check('انضمام أثناء نافذة الأوامر مسموح، والمنضم يرسل أمره، وغير المنضم يُتجاهل', inRound.joined && inRound.info.players === 4 && inRound.info.aimed === 4 && !inRound.r0.some((t) => /stranger2/.test(t)), inRound);
+  check('انضمام أثناء نافذة الأوامر: بالكلمة، وبكتابة الأمر مباشرة (زاوية قوة بلا كلمة)، ومن يكتب كلاماً عادياً لا ينضم', inRound.joined && inRound.info.players === 5 && inRound.info.aimed === 5 && inRound.r0.some((t) => /direct1/.test(t)) && !inRound.r0.some((t) => /chatter/.test(t)), inRound);
   check('الزاوية الأعلى من الحد (85 > 80) تُقصّ إلى 80', inRound.r0.some((t) => /r0/.test(t) && /80° · 90/.test(t)), inRound.r0);
   // الإطلاق + هدايا
   check('تبدأ مرحلة الإطلاق بعد نافذة الأوامر', await waitFor(page, () => document.getElementById('cannon-w-frame').contentWindow.HC.info().state === 'firing', null, 15000));
@@ -194,7 +199,7 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   check('هدايا البث تظهر كقوى للاعب الطائر: جالاكسي = حصانة كاملة، كورجي بالسعر = مظلة، ووردة = دعم', /حصانة كاملة/.test(gifts.fx) && /مظلة/.test(gifts.fx) && /دعم/.test(gifts.fx), gifts);
   // طرد لاعب أثناء الجولة
   await page.evaluate(() => { const u = [...cannonParticipants.keys()].find((k) => k === 'tiktok:r2'); document.getElementById('cannon-w-bar-kick').click(); document.querySelector('#cannon-w-dl .hcw-kb[data-uid="' + u + '"]').click(); document.getElementById('cannon-w-kx').click(); });
-  check('طرد لاعب أثناء الجولة يخرجه من اللعبة', await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; return w.HC.info().players === 3 && ![...w.document.querySelectorAll('#rows .nm')].some((n) => n.textContent === 'r2'); }, null, 15000));
+  check('طرد لاعب أثناء الجولة يخرجه من اللعبة', await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; return w.HC.info().players === 4 && ![...w.document.querySelectorAll('#rows .nm')].some((n) => n.textContent === 'r2'); }, null, 15000));
   const res = await waitFor(page, () => !!cannonLastResult, null, 360000);
   const result = await page.evaluate(() => cannonLastResult);
   check('انتهت الجولة بنتيجة: فائز بأبعد مسافة وترتيب كامل للاعبين الذين أطلقوا', res && result.winner && result.results.length >= 2 && result.results[0].key === result.winner.key && result.results.every((r, i, a) => i === 0 || a[i - 1].dist >= r.dist) && result.winner.dist > 0, result);

@@ -80439,6 +80439,12 @@ document.addEventListener('DOMContentLoaded', function () {
 /* أثناء الجولة: لا شيء يظهر غير الراوند */
 body.hc-live #left-panels,body.hc-live #top-right-cluster,body.hc-live #burger-fab-btn,body.hc-live #conn-status-pill{display:none!important}
 
+/* آخر ما وصل من الشات: يثبت للستريمر أن الرسائل تصل ويوضّح سبب أي رفض */
+#pg-cannon .hcw-feed{display:grid;gap:4px;margin-top:12px;min-height:20px;font:600 12.5px/1.5 Tajawal;color:var(--mute)}
+#pg-cannon .hcw-feed div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:hcw-in .3s var(--ease) both}
+#pg-cannon .hcw-feed .hcw-ok{color:var(--mint)}
+#pg-cannon .hcw-feed .hcw-no{color:#FBBF24}
+
 /* كرت المدفع البشري (حركة المشهد من ملف الكرت المعتمد) */
 .hlob-art-in .hcn-barrel{transform-box:view-box;transform-origin:78px 150px;animation:hcn-aim 5s ease-in-out infinite}
 @keyframes hcn-aim{0%,18%{transform:rotate(-4deg)}30%{transform:rotate(-9deg)}40%{transform:rotate(3deg)}100%{transform:rotate(-4deg)}}
@@ -80658,6 +80664,7 @@ body.hc-live #left-panels,body.hc-live #top-right-cluster,body.hc-live #burger-f
       <h2><svg class="hcw-i"><use href="#cannon-w-i-chat"/></svg>كيف ينضم المتابع؟</h2>
       <p>يكتب كلمة الانضمام في الشات. وفي دوره يكتب زاوية الإطلاق ثم القوة.</p>
       <div class="hcw-keys"><span class="hcw-key" id="cannon-w-kw">انضم</span><span class="hcw-lbl">ثم</span><span class="hcw-key hcw-ty" id="cannon-w-ty">45 80</span><span class="hcw-lbl">زاوية · قوة</span></div>
+      <div class="hcw-feed" id="cannon-w-feed" role="log" aria-live="polite" aria-label="آخر ما وصل من الشات"></div>
     </section>
     <section class="hcw-box">
       <div class="hcw-rh"><h2><svg class="hcw-i"><use href="#cannon-w-i-users"/></svg>الجاهزون للإطلاق</h2><div class="hcw-cnt"><span id="cannon-w-n">٠</span> <small>/ <span id="cannon-w-mx">٣٠</span></small></div></div>
@@ -82170,6 +82177,14 @@ if(document.fonts&&document.fonts.load){
       })();
     })();
   }
+  // سجل مختصر لآخر ما وصل من الشات (انضمام/رفض بسببه/رسالة لا تطابق الكلمة)
+  function feed(kind, text) {
+    var f = W('feed'); if (!f) return;
+    var d = document.createElement('div'); d.className = kind ? 'hcw-' + kind : ''; d.textContent = text;
+    f.insertBefore(d, f.firstChild);
+    while (f.children.length > 3) f.removeChild(f.lastChild);
+  }
+  function nick(u) { return String(u.nickname || u.uniqueId || '؟').slice(0, 24); }
   function note(m) {
     var n = W('note'); n.textContent = m; clearTimeout(noteT); noteT = setTimeout(function () { n.textContent = ''; }, 2600);
   }
@@ -82260,23 +82275,27 @@ if(document.fonts&&document.fonts.load){
   }
   function cannonJoin(user) {
     if (!user || !user.uniqueId || !cfg) return;
-    if (participants.has(user.uniqueId) || kicked.has(user.uniqueId)) return;
+    if (participants.has(user.uniqueId)) return;
+    if (kicked.has(user.uniqueId)) { feed('no', '🚫 ' + nick(user) + ' مطرود من هذي الجولة'); return; }
     var inRound = window.cannonStatus === 'round';
     if (window.cannonStatus !== 'waiting' && !inRound) return;
-    if (participants.size >= cfg.max) { if (typeof toastFast === 'function') toastFast('⚠️ المدفع مكتمل — أقصى عدد لاعبين ' + cfg.max); return; }
+    if (participants.size >= cfg.max) { feed('no', '⚠️ ' + nick(user) + ': المدفع مكتمل (' + cfg.max + ')'); if (typeof toastFast === 'function') toastFast('⚠️ المدفع مكتمل — أقصى عدد لاعبين ' + cfg.max); return; }
     var g = null;
-    if (inRound) { g = gw(); if (!g || !g.HC.canJoin()) return; }
+    if (inRound) { g = gw(); if (!g || !g.HC.canJoin()) { feed('no', '⏳ ' + nick(user) + ': الانضمام مغلق الآن' + (cfg.late ? '' : ' (الانضمام المتأخر مطفأ)')); return; } }
     if (!followGateAllows(TAG, user)) {
       pendingFollowers.set(user.uniqueId, user);
+      feed('no', '⚠️ ' + nick(user) + ' لازم يتابعك أولاً (شرط الفولو) — ينضم تلقائياً بعد المتابعة');
       toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');
       return;
     }
     var nm = gameNameFor(user);
-    if (inRound && !g.HC.addPlayer({ name: nm, avatarUrl: gameAvatar(user), key: user.uniqueId })) return;
+    if (inRound && !g.HC.addPlayer({ name: nm, avatarUrl: gameAvatar(user), key: user.uniqueId })) { feed('no', '⚠️ ' + nick(user) + ': تعذّر إدخاله للجولة'); return; }
     participants.set(user.uniqueId, user);
-    if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(user);
-    if (typeof toastFast === 'function') toastFast('🎯 ' + (user.nickname || user.uniqueId) + ' ركب المدفع'); else toast('🎯 ' + (user.nickname || user.uniqueId) + ' ركب المدفع');
-    if (typeof liveRoundsMirror === 'function') liveRoundsMirror(TAG, participants);
+    feed('ok', '✓ ' + nick(user) + ' انضم (' + participants.size + ')');
+    // خطوات ثانوية: أي فشل فيها ما يمنع الانضمام ولا عرضه
+    try { if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(user); } catch (e) { console.warn('[cannon] announce', e); }
+    try { if (typeof toastFast === 'function') toastFast('🎯 ' + nick(user) + ' ركب المدفع'); } catch (e) {}
+    try { if (typeof liveRoundsMirror === 'function') liveRoundsMirror(TAG, participants); } catch (e) { console.warn('[cannon] mirror', e); }
     if (window.cannonStatus === 'waiting') renderRoster(false);
   }
   window.cannonJoin = cannonJoin;
@@ -82285,6 +82304,7 @@ if(document.fonts&&document.fonts.load){
     if (!cfg) return;
     var messages = (data && data.messages) || (data && data.type ? [data] : []);
     for (var i = 0; i < messages.length; i++) {
+     try {
       var msg = messages[i], type = msg.type || msg.event;
       if (type === 'WebcastGiftMessage' || type === 'gift') {
         if (window.cannonStatus !== 'round') continue;
@@ -82306,12 +82326,26 @@ if(document.fonts&&document.fonts.load){
       if (!text) continue;
       if (handleAdminChatCommand(TAG, text, user, { participantsMap: participants, joinFn: window.cannonJoin })) continue;
       if (joinTextMatches(text, cfg.kw, TAG, user)) { window.cannonJoin(user); continue; }
-      if (!participants.has(user.uniqueId)) continue;
+      if (!participants.has(user.uniqueId)) {
+        // من يكتب أمر «زاوية قوة» مباشرة ينضم بنفس الأمر (كما في اللعبة الأصلية وكما يوحي الكرت «اكتب 45 80»)
+        var aimNew = parseAim(text);
+        if (aimNew) {
+          window.cannonJoin(user);
+          if (participants.has(user.uniqueId)) {
+            if (window.cannonStatus === 'waiting') aims.set(user.uniqueId, aimNew);
+            else { var gj = gw(); if (gj) { try { gj.HC.aim(names.get(user.uniqueId), text); } catch (e) {} } }
+          }
+          continue;
+        }
+        if (window.cannonStatus === 'waiting') feed('', '💬 ' + nick(user) + ': «' + text.slice(0, 30) + '» — ليست كلمة الانضمام «' + cfg.kw + '»');
+        continue;
+      }
       if (window.cannonStatus === 'waiting') {
         var a = parseAim(text); if (a) aims.set(user.uniqueId, a);
       } else if (window.cannonStatus === 'round') {
         var gg = gw(); if (gg) { try { gg.HC.aim(names.get(user.uniqueId), text); } catch (e) {} }
       }
+     } catch (err) { console.error('[cannon] event', err); feed('no', '⚠️ خطأ داخلي بمعالجة رسالة: ' + (err && err.message)); }
     }
   }
   window.cannonHandleEvent = cannonHandleEvent;
