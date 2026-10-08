@@ -80437,7 +80437,7 @@ document.addEventListener('DOMContentLoaded', function () {
 #pg-cannon .hcw-bar{position:fixed;top:0;left:50%;z-index:63;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:calc(100% - 24px);padding:10px 18px;border-radius:0 0 22px 22px;background:rgba(11,5,24,.94);border:1px solid var(--line);border-top:0;transform:translate(-50%,-115%);opacity:0;transition:transform .3s var(--ease),opacity .3s;pointer-events:none}
 #pg-cannon .hcw-hot:hover+.hcw-bar,#pg-cannon .hcw-bar:hover,#pg-cannon .hcw-bar:focus-within{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 /* أثناء الجولة: لا شيء يظهر غير الراوند */
-body.hc-live #top-right-cluster,body.hc-live #burger-fab-btn,body.hc-live #conn-status-pill{display:none!important}
+body.hc-live #left-panels,body.hc-live #top-right-cluster,body.hc-live #burger-fab-btn,body.hc-live #conn-status-pill{display:none!important}
 
 /* كرت المدفع البشري (حركة المشهد من ملف الكرت المعتمد) */
 .hlob-art-in .hcn-barrel{transform-box:view-box;transform-origin:78px 150px;animation:hcn-aim 5s ease-in-out infinite}
@@ -82106,6 +82106,9 @@ if(document.fonts&&document.fonts.load){
     if (window.cannonStatus !== 'idle') teardown();
     cannonUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
     gamePlatform[TAG] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform[TAG];
+    var c = readSettings();
+    if (!c.kw || c.kw.length > 12) { setStatus('err', '⚠️ كلمة الانضمام لازم تكون 1–12 حرفاً'); return; }
+    if (!(c.max >= 2 && c.max <= 100)) { setStatus('err', '⚠️ أقصى عدد لاعبين لازم بين 2 و100'); return; }
     if (!homeHasActiveConnection() || !cannonUser) {
       setStatus('err', '⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
       // نفتح نافذة الربط السريع ونرجع للإطلاق تلقائياً بعد نجاح الاتصال (نفس أسلوب وردل)
@@ -82115,9 +82118,6 @@ if(document.fonts&&document.fonts.load){
       }
       return;
     }
-    var c = readSettings();
-    if (!c.kw || c.kw.length > 12) { setStatus('err', '⚠️ كلمة الانضمام لازم تكون 1–12 حرفاً'); return; }
-    if (!(c.max >= 2 && c.max <= 100)) { setStatus('err', '⚠️ أقصى عدد لاعبين لازم بين 2 و100'); return; }
     cfg = c;
     window.cannonKeyword = c.kw;
     setStatus('load', '⏳ جارٍ تجهيز المدفع…'); S('go').disabled = true;
@@ -82494,6 +82494,7 @@ if(document.fonts&&document.fonts.load){
   if (typeof CONN_DIAG_JOIN_FNS === 'object') CONN_DIAG_JOIN_FNS[TAG] = ['cannonJoin', 'cannonParticipants', 'cannonStatus', 'cannonKeyword'];
   bindSetup(); bindRoom();
 })();
+
 
 </script>
 <!-- END cannon -->

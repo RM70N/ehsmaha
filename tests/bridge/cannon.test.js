@@ -158,6 +158,7 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await page.evaluate(() => launchCannon()); await sleep(700);
   for (const v of ['r0', 'r1', 'r2']) await say(v, 'انضم'); await sleep(600);
   await say('r0', '45 80'); await say('r1', '35 100'); await sleep(300);
+  await page.setViewportSize({ width: 480, height: 270 }); // تصيير WebGL البرمجي ببيئة الاختبار بطيء؛ نصغّر النافذة ليكمل الراوند بوقت معقول
   await page.evaluate(() => cannonStartRound());
   const overlay = await page.evaluate(() => document.getElementById('cannon-w-gof').classList.contains('hcw-on'));
   check('«انطلقنا!» تظهر عند بدء الجولة', overlay);
@@ -177,7 +178,8 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   check('الإعدادات وصلت للعبة (رميات/طاقة/رياح/حد الزاوية/عوائق/هدايا/عقوبات)', rd.cfg.shots === 1 && rd.cfg.energyRate === 2 && rd.cfg.wind === 1 && rd.cfg.maxAngle === 80 && rd.cfg.obs && rd.cfg.gift && !rd.cfg.pen && rd.cfg.auto && !rd.cfg.late && rd.cfg.max === 30, rd.cfg);
   check('لا عناصر ثابتة من الموقع فوق الراوند (مؤشرات/أزرار عائمة مخفية)', rd.fixedVisible.length === 0, rd.fixedVisible);
   // انضمام أثناء نافذة الأوامر + أمر جديد + هدية قبل الإطلاق (تُتجاهل) + تجاهل غير المنضم
-  await say('r3', 'انضم'); await sleep(500); await say('r3', '60 100'); await say('r2', '٥٠ ٧٠'); await say('r0', '85 90'); await say('stranger2', '30 50'); await sleep(500);
+  await say('r3', 'انضم'); await sleep(500); await say('r3', '60 100'); await say('r2', '٥٠ ٧٠'); await say('r0', '85 90'); await say('stranger2', '30 50');
+  await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; const t = [...w.document.querySelectorAll('#rows li')].map((li) => li.innerText.replace(/\s+/g, ' ')); return t.length === 4 && t.some((x) => /r0/.test(x) && /80° · 90/.test(x)) && t.some((x) => /r2/.test(x) && /50° · 70/.test(x)); }, null, 15000);
   const inRound = await page.evaluate(() => { const w = document.getElementById('cannon-w-frame').contentWindow; return { info: w.HC.info(), r0: [...w.document.querySelectorAll('#rows li')].map((li) => li.innerText.replace(/\s+/g, ' ')), joined: cannonParticipants.has('tiktok:r3') }; });
   check('انضمام أثناء نافذة الأوامر مسموح، والمنضم يرسل أمره، وغير المنضم يُتجاهل', inRound.joined && inRound.info.players === 4 && inRound.info.aimed === 4 && !inRound.r0.some((t) => /stranger2/.test(t)), inRound);
   check('الزاوية الأعلى من الحد (85 > 80) تُقصّ إلى 80', inRound.r0.some((t) => /r0/.test(t) && /80° · 90/.test(t)), inRound.r0);
@@ -192,14 +194,13 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   check('هدايا البث تظهر كقوى للاعب الطائر: جالاكسي = حصانة كاملة، كورجي بالسعر = مظلة، ووردة = دعم', /حصانة كاملة/.test(gifts.fx) && /مظلة/.test(gifts.fx) && /دعم/.test(gifts.fx), gifts);
   // طرد لاعب أثناء الجولة
   await page.evaluate(() => { const u = [...cannonParticipants.keys()].find((k) => k === 'tiktok:r2'); document.getElementById('cannon-w-bar-kick').click(); document.querySelector('#cannon-w-dl .hcw-kb[data-uid="' + u + '"]').click(); document.getElementById('cannon-w-kx').click(); });
-  await sleep(500);
-  check('طرد لاعب أثناء الجولة يخرجه من اللعبة', await page.evaluate(() => { const w = document.getElementById('cannon-w-frame').contentWindow; return w.HC.info().players === 3 && ![...w.document.querySelectorAll('#rows .nm')].some((n) => n.textContent === 'r2'); }));
-  const res = await waitFor(page, () => !!cannonLastResult, null, 90000);
+  check('طرد لاعب أثناء الجولة يخرجه من اللعبة', await waitFor(page, () => { const w = document.getElementById('cannon-w-frame').contentWindow; return w.HC.info().players === 3 && ![...w.document.querySelectorAll('#rows .nm')].some((n) => n.textContent === 'r2'); }, null, 15000));
+  const res = await waitFor(page, () => !!cannonLastResult, null, 360000);
   const result = await page.evaluate(() => cannonLastResult);
   check('انتهت الجولة بنتيجة: فائز بأبعد مسافة وترتيب كامل للاعبين الذين أطلقوا', res && result.winner && result.results.length >= 2 && result.results[0].key === result.winner.key && result.results.every((r, i, a) => i === 0 || a[i - 1].dist >= r.dist) && result.winner.dist > 0, result);
   const score = await page.evaluate((key) => { const db = JSON.parse(localStorage.getItem('streamer_games_scores') || '{}'); const s = db['streamer1'] || db[Object.keys(db)[0]] || {}; return Object.values(s).filter((u) => u.games && u.games['المدفع البشري']).map((u) => [u.nickname, u.games['المدفع البشري']]); }, null);
   check('الفوز مسجّل بلوحة المتصدرين باسم اللعبة', score.length === 1 && score[0][1] === 1, score);
-  const back = await waitFor(page, () => cannonStatus === 'waiting' && !document.body.classList.contains('hc-live') && document.getElementById('cannon-w-live').hidden, null, 25000);
+  const back = await waitFor(page, () => cannonStatus === 'waiting' && !document.body.classList.contains('hc-live') && document.getElementById('cannon-w-live').hidden, null, 60000);
   const after = await page.evaluate(() => ({ n: cannonParticipants.size, tm: document.getElementById('cannon-w-tm').textContent, active: document.querySelector('.page.active').id, state: document.getElementById('cannon-w-frame').contentWindow.HC.info().state }));
   check('بعد الفوز ترجع لشاشة الانتظار بجولة جديدة (قائمة فارغة، اللعبة خاملة)', back && after.n === 0 && after.active === 'pg-cannon' && after.state === 'idle', after);
 
@@ -208,7 +209,8 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await page.evaluate(() => goSetupCannon()); await setChip(page, 'join', '0'); await setChip(page, 'shots', '2'); await setToggle(page, 'late', true); await setToggle(page, 'pen', true); await setToggle(page, 'obs', false); await setToggle(page, 'gift', false);
   await page.evaluate(() => { const p = document.getElementById('cannon-s-pen'); p.value = '2'; p.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.evaluate(() => launchCannon()); await sleep(700);
-  await say('s0', 'انضم'); await say('s1', 'انضم'); await sleep(500); await say('s0', '40 90'); await say('s1', '55 85'); await sleep(300);
+  await say('s0', 'انضم'); await say('s1', 'انضم'); await sleep(500); await say('s0', '40 90'); await sleep(300); // s1 ينضم بلا أمر: ما يطلق
+  await page.setViewportSize({ width: 480, height: 270 });
   await page.evaluate(() => cannonStartRound());
   await waitFor(page, () => cannonStatus === 'round', null, 10000); await sleep(1000);
   const cfg2 = await hc(page, 'HC.cfg()');
@@ -218,14 +220,14 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   await sleep(1500);
   await say('late1', 'انضم'); await sleep(600); await say('late1', '30 95'); await sleep(400);
   const lateIn = await page.evaluate(() => { const w = document.getElementById('cannon-w-frame').contentWindow; return { info: w.HC.info(), joined: cannonParticipants.has('tiktok:late1') }; });
-  check('انضمام متأخر أثناء الإطلاق (بعد تفعيله) يدخل اللاعب بدوره', lateIn.joined && lateIn.info.players === 3 && lateIn.info.aimed === 3, lateIn);
+  check('انضمام متأخر أثناء الإطلاق (بعد تفعيله) يدخل اللاعب بدوره', lateIn.joined && lateIn.info.players === 3 && lateIn.info.aimed === 2, lateIn);
 
   // نافذة العقوبة: الستريمر الآلي يختارها أو يضغطها الستريمر يدوياً
   const pen = await waitFor(page, () => !document.getElementById('cannon-w-frame').contentDocument.getElementById('penBtns').hidden, null, 40000);
   check('نافذة عقوبة اللاعب تظهر قبل الرمية', pen);
-  const res2 = await waitFor(page, () => !!cannonLastResult && cannonLastResult.round >= 1 && cannonLastResult.results.length === 3, null, 150000);
+  const res2 = await waitFor(page, () => !!cannonLastResult && cannonLastResult.round >= 1 && cannonLastResult.results.length === 2, null, 600000);
   const r2 = await page.evaluate(() => cannonLastResult);
-  check('رميتان لكل لاعب: النتيجة تعدّ أفضل مسافة، وأعيد اللاعب المتأخر في الطابور (٣ لاعبين بالنتيجة)', res2 && r2.results.length === 3 && r2.winner.dist === Math.max(...r2.results.map((x) => x.dist)), r2);
+  check('رميتان لكل لاعب: النتيجة تعدّ أفضل مسافة، واللاعب المتأخر دخل الطابور (لاعبان بالنتيجة، ومن لم يرسل أمراً لا يُطلَق)', res2 && r2.results.length === 2 && r2.winner.dist === Math.max(...r2.results.map((x) => x.dist)), r2);
   await waitFor(page, () => cannonStatus === 'waiting', null, 25000);
 
   // ============ 8) الخروج للرئيسية: إيقاف كل شيء ============
