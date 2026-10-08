@@ -37,6 +37,20 @@ async function stats(target) {
   return r.json();
 }
 
+const THREE_DIR = path.join(__dirname, 'fixtures', 'three-r128');
+async function routeThree(ctxOrPage) {
+  const fulfill = (rel) => async (route) => {
+    const f = path.join(THREE_DIR, rel);
+    if (!fs.existsSync(f)) return route.abort();
+    await route.fulfill({ status: 200, body: fs.readFileSync(f), contentType: 'application/javascript' });
+  };
+  await ctxOrPage.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js\/r128\/three\.min\.js/, fulfill('build/three.min.js'));
+  await ctxOrPage.route(/(cdn\.jsdelivr\.net\/npm|unpkg\.com)\/three@0\.128\.0\/(.*)$/, async (route) => {
+    const m = route.request().url().match(/three@0\.128\.0\/(.*)$/);
+    return fulfill(m[1])(route);
+  });
+}
+
 async function newPage(browser, opts = {}) {
   const ctx = await browser.newContext();
   const page = await ctx.newPage();
@@ -78,6 +92,8 @@ async function newPage(browser, opts = {}) {
       await route.fulfill({ status: r.status, body: await r.text() });
     } catch (e) { await route.abort('connectionrefused'); }
   });
+  // Three.js (المدفع البشري) يُحمَّل من CDN بالموقع؛ بيئة الاختبار محجوبة عن الإنترنت فنخدمه من نسخة r128 المحلية بنفس الملفات
+  await routeThree(page);
   if (opts.init) await page.addInitScript(opts.init);
   await page.goto('http://localhost:8765/' + (opts.query || ''), { waitUntil: 'domcontentloaded', timeout: 90000 });
   await page.waitForTimeout(opts.settleMs || 2000);
@@ -113,4 +129,4 @@ async function launch(page, g) {
 
 async function launchBrowser() { return chromium.launch({ args: ['--no-proxy-server'] }); }
 
-module.exports = { serveSite, ctl, stats, newPage, linkAccount, launch, launchBrowser, PRIMARY, FALLBACK, ROOT };
+module.exports = { serveSite, ctl, stats, newPage, linkAccount, launch, launchBrowser, routeThree, PRIMARY, FALLBACK, ROOT };

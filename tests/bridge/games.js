@@ -29,4 +29,5 @@ module.exports = [
  { name:'tt10', tag:'tt10', pmap:'tt10Participants', launch:'tt10Launch', inputs:{}, st:'tt10GameStatus', kw:'مرحبا', chat:null, joinMap:'tt10Participants', connect:'tt10ConnectTikTok', dot:'tt10SetDot', joinNote:'tt10: أي تعليق يسجّل صاحبه بـtt10Participants' },
  { name:'glz (الزجاج)', tag:'glz', pmap:'glzParticipants', launch:'glzLaunch', inputs:{'glz-join-kw':'زجاج'}, st:'glzGameStatus', kw:'زجاج', chat:null, join:'glzAddParticipant', connect:'glzConnectTikTok', dot:'glzSetDot' },
  { name:'volcanic-lands', tag:'volcanic-lands', launch:'launchVolcanicLands', inputs:{}, st:null, kw:null, chat:null },
+ { name:'cannon (المدفع البشري)', tag:'cannon', pmap:'cannonParticipants', launch:'launchCannon', inputs:{'cannon-s-kw':'انضم'}, st:'cannonStatus', kw:'انضم', chat:null, join:'cannonJoin', joinNote:'cannon: الانضمام بالكلمة؛ الراوند داخل iframe (Three.js)' },
 ];
