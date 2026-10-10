@@ -18,7 +18,7 @@ const check = (name, ok, detail) => { results.push({ name, ok: !!ok }); console.
       const f = { db:{}, doc:(db,c,i)=>({c,i}), collection:(db,c)=>({c}),
         setDoc: async (ref,data)=>{ if(opt.fsFail) throw Object.assign(new Error('denied'),{code:'permission-denied'}); fs[ref.c]=fs[ref.c]||{}; fs[ref.c][ref.i]=Object.assign({},data); fsSubs.forEach(s=>s(snapOf(ref.c))); },
         onSnapshot:(ref,cb,err)=>{fsSubs.push(cb); if(opt.fsFail&&err) err({message:'denied'}); return ()=>{}} };
-      if(!opt.noRt){ f.rtdb={}; f.rtdbRef=(db,p)=>({p}); f.rtdbSet=async(ref,data)=>{ if(opt.rtFail) throw new Error('denied'); const [a,b]=ref.p.split('/'); rt[b]=JSON.parse(JSON.stringify(data)); rtSubs.forEach(cb=>cb({val:()=>rt})); };
+      if(!opt.noRt){ f.rtdb={}; f.rtdbRef=(db,p)=>({p}); f.rtdbSet=async(ref,data)=>{ if(opt.rtFail) throw new Error('denied'); if(!/^fsMirror\/gameOrder\//.test(ref.p)) throw new Error('rule: path not allowed'); const b=ref.p.split('/').pop(); rt[b]=JSON.parse(JSON.stringify(data)); rtSubs.forEach(cb=>cb({val:()=>rt})); };
         f.rtdbOnValue=(ref,cb)=>{ rtSubs.push(cb); cb({val:()=>rt}); return ()=>{}; }; }
       return {f,fs,rt};
     };

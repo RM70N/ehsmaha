@@ -23545,7 +23545,7 @@ function gameOrderRecompute() {
 function gameOrderRtdbBoot() {
   if (gameOrderRtUnsub || !fb || !fb.rtdb) return;
   try {
-    const ref = fb.rtdbRef(fb.rtdb, 'gameOrder');
+    const ref = fb.rtdbRef(fb.rtdb, 'fsMirror/gameOrder');
     fb.rtdbOnValue(ref, (rsnap) => {
       const val = rsnap.val() || {};
       ownerOrderRtState = {};
@@ -23572,7 +23572,7 @@ async function ownerSetGameOrder(sectionKey, tags, stamp, prevTags) {
     new Promise((resolve) => setTimeout(() => resolve(false), 8000))
   ]);
   const rtdbOk = (fb.rtdb && fb.rtdbSet)
-    ? fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'gameOrder/' + sectionKey), data).then(() => true).catch((err) => {
+    ? fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'fsMirror/gameOrder/' + sectionKey), data).then(() => true).catch((err) => {
         console.error('🎮 ownerSetGameOrder: فشل الحفظ بـRTDB —', err);
         return false;
       })
