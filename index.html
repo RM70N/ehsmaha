@@ -21491,7 +21491,13 @@ let ownerOnlineNowCache = []; // آخر لقطة من presence المتصلين 
 window.addEventListener('pagehide', () => { ownerClearActiveStreamerForCurrentUser(); });
 let ownerUnsubBadges = null;
 let ownerUnsubGameOrder = null;
-let ownerOrderState = {}; // sectionKey -> { tags: [tag, ...] } — ترتيب الألعاب المحفوظ لكل قسم
+let ownerOrderState = {}; // sectionKey -> { tags: [tag, ...] } — ترتيب الألعاب المحفوظ لكل قسم (المحسوب = أحدث مصدر)
+// ترتيب الألعاب يُحفظ بمكانين معاً (Firestore + Realtime Database) ويُقرأ من الاثنين والأحدث (updatedAt) يغلب،
+// فلو تعذّر أحدهما (قواعد الأمان/حصة Firestore) ينحفظ ويظهر للكل من الثاني.
+let ownerOrderFsState = {};    // آخر لقطة من Firestore (gameOrder)
+let ownerOrderRtState = {};    // آخر لقطة من Realtime Database (gameOrder)
+let ownerOrderLocal = {};      // آخر نقلة أجراها هذا المالك (تظهر فوراً قبل تأكيد الحفظ)
+let gameOrderRtUnsub = null;
 // شارات افتراضية للألعاب الجديدة (المالك يغيّرها أو يلغيها من لوحته فتطغى حالة السيرفر)
 const OWNER_DEFAULT_BADGES = { cannon: 'new' };
 // ألعاب تُعرض أولاً بقسم الستريمر ما لم يضعها المالك بترتيب محفوظ
@@ -21784,14 +21790,16 @@ function ownerBoot() {
 
   // ---- Games tab: saved display order per section (top/bottom/up/down) ----
   ownerUnsubGameOrder = fb.onSnapshot(fb.collection(fb.db, 'gameOrder'), (snap) => {
-    ownerOrderState = {};
-    snap.forEach(d => { ownerOrderState[d.id] = d.data(); });
+    ownerOrderFsState = {};
+    snap.forEach(d => { const v = d.data() || {}; ownerOrderFsState[d.id] = { tags: v.tags, updatedAt: Number(v.updatedAt) || 0 }; });
+    gameOrderRecompute();
     ownerRenderGamesTab();
     ownerApplyOrderToHome();
   }, (err) => {
     ownerRenderGamesTab();
-    toast('⚠️ تعذّر تحميل ترتيب الألعاب: ' + err.message);
+    if (!(fb.rtdb && gameOrderRtUnsub)) toast('⚠️ تعذّر تحميل ترتيب الألعاب: ' + err.message);
   });
+  gameOrderRtdbBoot();
 }
 
 // يرتب مصفوفة ألعاب قسم واحد حسب الترتيب المحفوظ بـ ownerOrderState[section] (مصفوفة
@@ -23522,11 +23530,61 @@ function ownerApplyBadgesToHome() {
 // يحفظ ترتيب قسم كامل دفعة وحدة (مصفوفة tags بالترتيب المطلوب) — يُستدعى من
 // ownerMoveGame بعد ما يحسب الترتيب الجديد محلياً، فكل نقلة توثّق فوراً
 // بمستند واحد لكل قسم (gameOrder/<sectionKey>) بدل حقل منفصل لكل لعبة.
-async function ownerSetGameOrder(sectionKey, tags) {
+function gameOrderRecompute() {
+  const out = {};
+  const keys = new Set([].concat(Object.keys(ownerOrderFsState), Object.keys(ownerOrderRtState), Object.keys(ownerOrderLocal)));
+  keys.forEach(k => {
+    const cands = [ownerOrderFsState[k], ownerOrderRtState[k], ownerOrderLocal[k]].filter(c => c && Array.isArray(c.tags));
+    if (!cands.length) return;
+    out[k] = cands.reduce((best, c) => ((c.updatedAt || 0) >= (best.updatedAt || 0) ? c : best));
+  });
+  ownerOrderState = out;
+}
+
+// مستمع Realtime Database لترتيب الألعاب (المصدر الثاني) — يخدم المالك والزوّار.
+function gameOrderRtdbBoot() {
+  if (gameOrderRtUnsub || !fb || !fb.rtdb) return;
   try {
-    await fb.setDoc(fb.doc(fb.db, 'gameOrder', sectionKey), { tags }, { merge: true });
-  } catch (err) {
-    toast('⚠️ تعذّر حفظ ترتيب الألعاب');
+    const ref = fb.rtdbRef(fb.rtdb, 'gameOrder');
+    fb.rtdbOnValue(ref, (rsnap) => {
+      const val = rsnap.val() || {};
+      ownerOrderRtState = {};
+      Object.keys(val).forEach(k => {
+        const v = val[k] || {};
+        const tags = (Array.isArray(v.tags) ? v.tags : Object.values(v.tags || {})).filter(t => typeof t === 'string');
+        if (tags.length) ownerOrderRtState[k] = { tags, updatedAt: Number(v.updatedAt) || 0 };
+      });
+      gameOrderRecompute();
+      if (document.getElementById('owner-games-list')) ownerRenderGamesTab();
+      ownerApplyOrderToHome();
+    }, () => { /* أفضل جهد — Firestore يغطي لو القراءة من RTDB مرفوضة */ });
+    gameOrderRtUnsub = true;
+  } catch (e) { /* أفضل جهد */ }
+}
+
+async function ownerSetGameOrder(sectionKey, tags, stamp, prevTags) {
+  const data = { tags, updatedAt: stamp };
+  const firestoreOk = Promise.race([
+    fb.setDoc(fb.doc(fb.db, 'gameOrder', sectionKey), data, { merge: true }).then(() => true).catch((err) => {
+      console.error('🎮 ownerSetGameOrder: فشل الحفظ بـFirestore —', err);
+      return false;
+    }),
+    new Promise((resolve) => setTimeout(() => resolve(false), 8000))
+  ]);
+  const rtdbOk = (fb.rtdb && fb.rtdbSet)
+    ? fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'gameOrder/' + sectionKey), data).then(() => true).catch((err) => {
+        console.error('🎮 ownerSetGameOrder: فشل الحفظ بـRTDB —', err);
+        return false;
+      })
+    : Promise.resolve(false);
+  const [fsDone, rtDone] = await Promise.all([firestoreOk, rtdbOk]);
+  if (!fsDone && !rtDone) {
+    // ما انحفظ بأي مكان: نرجّع العرض لآخر ترتيب محفوظ فعلاً بدل ما يبان محفوظاً وهو لا
+    if (ownerOrderLocal[sectionKey] && ownerOrderLocal[sectionKey].updatedAt === stamp) ownerOrderLocal[sectionKey] = { tags: prevTags, updatedAt: stamp };
+    gameOrderRecompute();
+    ownerRenderGamesTab();
+    ownerApplyOrderToHome();
+    toast('⚠️ تعذّر حفظ ترتيب الألعاب (Firestore وRTDB معاً) — راجع قواعد الأمان');
   }
 }
 
@@ -23554,10 +23612,12 @@ function ownerMoveGame(sectionKey, tag, direction) {
 
   // تحديث فوري متفائل (optimistic) بالحالة المحلية قبل حتى ما يوصل تأكيد
   // الحفظ من Firestore — يخلي الأزرار تستجيب فوراً بدون تأخير محسوس
-  ownerOrderState[sectionKey] = { tags };
+  const stamp = Date.now(), prevTags = ordered.map(g => g.tag);
+  ownerOrderLocal[sectionKey] = { tags, updatedAt: stamp };
+  gameOrderRecompute();
   ownerRenderGamesTab();
   ownerApplyOrderToHome();
-  ownerSetGameOrder(sectionKey, tags);
+  ownerSetGameOrder(sectionKey, tags, stamp, prevTags);
 }
 
 // يعيد ترتيب بطاقات .gcard الفعلية داخل كل .games-grid حسب الترتيب المحفوظ —
@@ -23622,10 +23682,12 @@ function publicGameOrderBoot() {
   if (publicGameOrderListenerStarted) return;
   publicGameOrderListenerStarted = true;
   fb.onSnapshot(fb.collection(fb.db, 'gameOrder'), (snap) => {
-    ownerOrderState = {};
-    snap.forEach(d => { ownerOrderState[d.id] = d.data(); });
+    ownerOrderFsState = {};
+    snap.forEach(d => { const v = d.data() || {}; ownerOrderFsState[d.id] = { tags: v.tags, updatedAt: Number(v.updatedAt) || 0 }; });
+    gameOrderRecompute();
     ownerApplyOrderToHome();
-  });
+  }, () => { /* أفضل جهد — مصدر RTDB يغطي لو Firestore تعذّر */ });
+  gameOrderRtdbBoot();
 }
 
 // Records that `username` just launched `gameName` (tagged `gameTag`) on `platform`.
