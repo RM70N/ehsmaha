@@ -40,7 +40,7 @@ const settle = (p) => p.waitForTimeout(120);
   // ---------- 2) الشبكة من السجل ----------
   const reg = await page.evaluate(() => Array.from(document.querySelectorAll('#pg-home .games-grid.hlob-registry .gcard[data-tag]')).map((c) => ({ tag: c.dataset.tag, name: c.querySelector('.gcard-name').textContent.trim(), onclick: c.getAttribute('onclick') })));
   const tags = await shown(page);
-  check('30 بطاقة بالسجل + 30 بالواجهة بنفس الترتيب (المدفع البشري أولاً)', reg.length === 30 && tags.length === 30 && tags[0] === 'cannon' && tags.join() === reg.map((r) => r.tag).join(), { reg: reg.length, tags: tags.length });
+  check('31 بطاقة بالسجل + 31 بالواجهة بنفس الترتيب (المدفع البشري أولاً)', reg.length === 31 && tags.length === 31 && tags[0] === 'cannon' && tags.join() === reg.map((r) => r.tag).join(), { reg: reg.length, tags: tags.length });
   const names = await page.evaluate(() => Array.from(document.querySelectorAll('#hlob-grid .hlob-card h3')).map((h) => h.textContent));
   check('أسماء البطاقات = أسماء السجل', names.join('|') === reg.map((r) => r.name).join('|'));
   const art = await page.evaluate(() => Array.from(document.querySelectorAll('#hlob-grid .hlob-card')).filter((c) => !c.querySelector('.hlob-art svg')).map((c) => c.dataset.tag));
@@ -49,7 +49,7 @@ const settle = (p) => p.waitForTimeout(120);
   const ids = await page.evaluate(() => ['home-conn-badge', 'home-conn-badge-text', 'home-platform-status-bar', 'home-live-counter', 'home-live-counter-num', 'home-quick-reconnect-btn', 'home-quick-reconnect-user', 'home-event-cta-btn', 'home-discord-cta', 'home-discord-btn', 'home-event-winners', 'hew-duration-avatar', 'hew-duration-name', 'hew-duration-value', 'hew-wins-avatar', 'hew-wins-name', 'hew-wins-value', 'home-lib-head', 'home-lib-count', 'home-lib-filters'].filter((i) => !document.getElementById(i)));
   check('كل عناصر الرئيسية التي تعتمد عليها بقية الشيفرة موجودة', ids.length === 0, ids);
   const sumTxt = await page.evaluate(() => document.getElementById('hlob-summary').textContent + '|' + document.getElementById('home-lib-count').textContent);
-  check('الملخّص والعدّاد', sumTxt === '٣٠ لعبة — ٥ فئات|٣٠ لعبة', sumTxt);
+  check('الملخّص والعدّاد', sumTxt === '٣١ لعبة — ٥ فئات|٣١ لعبة', sumTxt);
 
   // ---------- 3) فلاتر وبحث ----------
   const counts = {};
@@ -61,7 +61,7 @@ const settle = (p) => p.waitForTimeout(120);
   check('الفلاتر تطابق data-category بالسجل', JSON.stringify(counts) === JSON.stringify({ chat: regCounts.chat, teams: regCounts.teams, luck: regCounts.luck, guess: regCounts.guess }), { counts, regCounts });
   check('الفلتر النشط aria-pressed + زر إعادة الضبط', await page.evaluate(() => document.querySelector('#home-lib-filters .home-lib-filter.active').dataset.filter === 'guess' && document.querySelector('#home-lib-filters .active').getAttribute('aria-pressed') === 'true' && getComputedStyle(document.getElementById('hlob-reset')).display !== 'none'));
   await page.click('#hlob-reset'); await settle(page);
-  check('إعادة الضبط ترجع 30', (await shown(page)).length === 30);
+  check('إعادة الضبط ترجع 31', (await shown(page)).length === 31);
   await page.fill('#hlob-q', 'شد'); await settle(page);
   let sres = await shown(page);
   check('بحث "شد" يجيب شد الحبل', sres.includes('tug'), sres);
@@ -72,12 +72,12 @@ const settle = (p) => p.waitForTimeout(120);
   check('البحث بالأوجد/أ-ا', (await shown(page)).includes('main'));
   await page.fill('#hlob-q', 'zzzxxx'); await settle(page);
   check('لا نتائج ← حالة فارغة ظاهرة والشبكة فاضية', (await shown(page)).length === 0 && await page.evaluate(() => getComputedStyle(document.getElementById('hlob-empty')).display !== 'none'));
-  check('عدّاد النتائج "٠ من ٣٠ لعبة"', (await page.textContent('#home-lib-count')) === '٠ من ٣٠ لعبة');
+  check('عدّاد النتائج "٠ من ٣٠ لعبة"', (await page.textContent('#home-lib-count')) === '٠ من ٣١ لعبة');
   await page.click('#hlob-empty [data-hlob="reset"]'); await settle(page);
-  check('"عرض كل الألعاب" يمسح البحث', (await shown(page)).length === 30 && (await page.inputValue('#hlob-q')) === '');
+  check('"عرض كل الألعاب" يمسح البحث', (await shown(page)).length === 31 && (await page.inputValue('#hlob-q')) === '');
   await page.fill('#hlob-q', 'سباق'); await settle(page);
   await page.click('.hlob-clear'); await settle(page);
-  check('زر مسح البحث', (await shown(page)).length === 30 && (await page.inputValue('#hlob-q')) === '');
+  check('زر مسح البحث', (await shown(page)).length === 31 && (await page.inputValue('#hlob-q')) === '');
   await page.evaluate(() => homeApplyFilter('chat')); await settle(page);
   check('واجهة homeApplyFilter القديمة ما زالت تعمل', (await shown(page)).length === regCounts.chat);
   await page.evaluate(() => homeApplyFilter('all')); await settle(page);
@@ -89,7 +89,7 @@ const settle = (p) => p.waitForTimeout(120);
   check('"ابدأ اللعبة" يشغّل onclick الأصلي للعبة (سباق الشات + شد الحبل)', JSON.stringify(await page.evaluate(() => window.__calls)) === '["goSetupCr","goSetupTug"]', await page.evaluate(() => window.__calls));
   // كل لعبة تصل لدالة بدايتها الخاصة
   const allStart = await page.evaluate(() => { window.__calls = []; const want = []; document.querySelectorAll('#pg-home .gcard[data-tag]').forEach((c) => { const m = /^(\w+)\(/.exec(c.getAttribute('onclick')); want.push(m[1]); document.querySelector('#hlob-grid .hlob-card[data-tag="' + c.dataset.tag + '"] [data-hlob="start"]').click(); }); return { want, got: window.__calls }; });
-  check('كل الـ30 لعبة: زر "ابدأ" يستدعي دالتها بالضبط وبالترتيب', JSON.stringify(allStart.want) === JSON.stringify(allStart.got) && allStart.want.length === 30, allStart.got.length);
+  check('كل الـ31 لعبة: زر "ابدأ" يستدعي دالتها بالضبط وبالترتيب', JSON.stringify(allStart.want) === JSON.stringify(allStart.got) && allStart.want.length === 31, allStart.got.length);
 
   // ---------- 5) نافذة التفاصيل ----------
   await page.evaluate(() => { window.__calls = []; });
@@ -225,7 +225,7 @@ const settle = (p) => p.waitForTimeout(120);
   const xss = await page.evaluate(() => { const n = document.querySelector('#pg-home .gcard[data-tag="cr"] .gcard-name'); n.textContent = '<img src=x onerror="window.__xss=1"><b>'; lobbyRender(); return new Promise((r) => setTimeout(() => r({ img: document.querySelectorAll('#hlob-grid img').length, xss: window.__xss || 0, h3: document.querySelector('#hlob-grid .hlob-card[data-tag="cr"] h3').textContent }), 200)); });
   check('النصوص تُهرَّب (لا حقن HTML من أسماء البطاقات)', xss.img === 0 && !xss.xss && xss.h3.startsWith('<img'), xss);
   const newGame = await page.evaluate(() => { const g = document.querySelector('#pg-home .games-grid.hlob-registry'); const c = document.createElement('div'); c.className = 'gcard'; c.dataset.tag = 'zz-new'; c.dataset.category = 'chat'; c.setAttribute('onclick', 'window.__zz=1'); c.innerHTML = '<span class="badge" data-badge-slot></span><div class="gcard-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg></div><div class="gcard-name">لعبة جديدة</div><div class="gcard-desc">وصف قصير. وصف ثاني</div>'; g.appendChild(c); return new Promise((r) => setTimeout(() => { const card = document.querySelector('#hlob-grid .hlob-card[data-tag="zz-new"]'); if (card) card.querySelector('[data-hlob="start"]').click(); r({ has: !!card, fallbackArt: !!(card && card.querySelector('.hlob-art-fallback svg')), launched: window.__zz === 1, total: document.querySelectorAll('#hlob-grid .hlob-card').length }); }, 200)); });
-  check('لعبة جديدة تُضاف للسجل تظهر تلقائياً (أيقونة بديلة) وتشتغل', newGame.has && newGame.fallbackArt && newGame.launched && newGame.total === 31, newGame);
+  check('لعبة جديدة تُضاف للسجل تظهر تلقائياً (أيقونة بديلة) وتشتغل', newGame.has && newGame.fallbackArt && newGame.launched && newGame.total === 32, newGame);
 
   await browser.close();
   const bad = results.filter((r) => !r.ok);
