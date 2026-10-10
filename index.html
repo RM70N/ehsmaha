@@ -25886,6 +25886,7 @@ function show(page) {
   if (page === 'contest-top20') top20Boot(); else top20Teardown();
   if (page === 'home') homeEventWinnersCheckAndShow();
   if (typeof cannonOnShow === 'function') cannonOnShow(page); // المدفع البشري: إنهاء الجولة عند مغادرة صفحتها
+  if (typeof lateJoinOnShow === 'function') lateJoinOnShow(page); // «لاعب متأخر»: زر اللعبة النشطة وتصفير الجولة عند المغادرة
   if (page === 'home' && typeof homeClearGameListeners === 'function') { homeClearGameListeners(null); if (typeof homeConnPillRender === 'function') homeConnPillRender(); }
   // جسر المصير — تهيئة صفحاته الثلاث
   if (page === 'bridge-setup' && typeof brgSetupRender === 'function') brgSetupRender();
@@ -26380,6 +26381,8 @@ function homeDispatchToGameListeners(evt) {
   Object.keys(homeGameListeners).forEach(tag => {
     try { homeGameListeners[tag](evt); } catch (e) { /* best-effort — خطأ بلعبة وحدة ما يوقف الباقي */ }
   });
+  // «لاعب متأخر»: يمر بعد معالج اللعبة (فرسالة الانضمام نفسها لا تُحتسب كإجابة/حركة للاعب الجديد)
+  if (typeof lateJoinAfterDispatch === 'function') { try { lateJoinAfterDispatch(evt); } catch (e) { console.warn('[late-join]', e); } }
 }
 
 // ==================== مطابقة حرفية (خمّن الموضوع) ====================
@@ -32495,7 +32498,7 @@ function handleBatteryTikTokEvent(data) {
       const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
       if (!text) return;
       addBatteryChatMsg(user, text);
-      if (!batteryFinished && joinTextMatches(text, BATTERY_KEYWORD, 'battery', user)) {
+      if (!batteryFinished && joinTextMatches(text, BATTERY_KEYWORD, 'battery', user) && (typeof lateJoinGate !== 'function' || lateJoinGate('battery', user))) {
         batteryApplyCharge(user);
       }
     }
@@ -35896,7 +35899,7 @@ function handleTimerTikTokEvent(data) {
 
       // انضمام بالكلمة المفتاحية
       if (tmrGameStatus === 'waiting' || tmrGameStatus === 'running') {
-        if (joinTextMatches(text, tmrKeyword, 'tmr', user)) {
+        if (joinTextMatches(text, tmrKeyword, 'tmr', user) && (tmrGameStatus === 'waiting' || typeof lateJoinGate !== 'function' || lateJoinGate('tmr', user))) {
           tmrJoinParticipant(user);
         }
       }
@@ -46046,7 +46049,7 @@ function drawHandleEvent(data) {
       drawAddChatMsg(user, text);
 
       if (drawGameStatus === 'active') {
-        if (!drawParticipants.has(user.uniqueId) && !drawKickedDuringRound.has(user.uniqueId)) {
+        if (!drawParticipants.has(user.uniqueId) && !drawKickedDuringRound.has(user.uniqueId) && (typeof lateJoinGate !== 'function' || lateJoinGate('draw', user))) {
           drawJoinParticipant(user);
         }
         if (drawParticipants.has(user.uniqueId)) drawProcessGuess(user, text);
@@ -53102,7 +53105,7 @@ function tugHandleEvent(data) {
         const team = tugTeamOf(user.uniqueId);
         if (team && norm === tugNormalize(tugPullKw)) {
           tugRegisterPull(user, team);
-        } else if (!team && tugOptLateJoin) {
+        } else if (!team && tugOptLateJoin && (typeof lateJoinGate !== 'function' || lateJoinGate('tug', user))) {
           // خيار "الانضمام أثناء الجولة": نفس شرط الفولو المعتاد، لكن العضو
           // الجديد ينضم بدون قوة سحب فورية — لازم يكتب كلمة السحب لاحقاً
           // كباقي الأعضاء، هذا يمنع استغلال الانضمام المتأخر كسحبة مجانية.
@@ -80233,6 +80236,17 @@ document.addEventListener('DOMContentLoaded', function () {
   window.vlRestart = vlRestart;
   window.vlNewSession = vlNewSession;
   window.vlToggleLateJoin = vlToggleLateJoin;
+  // نظام «لاعب متأخر» المركزي: نفس محرك الانضمام المتأخر الموجود (allowLateJoin) — قراءة وتحكم فقط.
+  window.vlLateApi = {
+    phase: function () { return engine ? engine.machine.current : null; },
+    keyword: function () { return engine ? engine.settings.joinKeyword : ''; },
+    players: function () { return engine ? engine.players : null; },
+    getLate: function () { return !!(engine && engine.settings.allowLateJoin); },
+    setLate: function (on) {
+      vlToggleLateJoin(!!on);
+      var cb = document.getElementById('volcanic-lands-live-latejoin'); if (cb) cb.checked = !!on;
+    }
+  };
   window.vlOpenKickModal = vlOpenKickModal;
   window.vlSimulatePlayers = vlSimulatePlayers;
   window.vlToggleRevive = vlToggleRevive;
@@ -80324,7 +80338,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if(typeof contestNoteActivity==='function') contestNoteActivity();
     if(typeof scoreCurrentStreamer!=='undefined'){ try{ scoreCurrentStreamer=streamerUser; }catch(e){} }
     var lu=$(TAG+'-live-user'); if(lu) lu.textContent='@'+streamerUser;
-    ready=false; queue=[]; var f=frame(); f.onload=onFrameLoad; f.src='/roulette3d.html?embed=1&v=1';
+    ready=false; queue=[]; var f=frame(); f.onload=onFrameLoad; f.src='/roulette3d.html?embed=1&v=2';
     show(TAG);
     if(typeof homeRegisterGameListener==='function') homeRegisterGameListener(TAG,rr3dHandleEvent);
     setStatus('','');
@@ -82472,6 +82486,14 @@ if(document.fonts&&document.fonts.load){
     if (window.cannonStatus === 'waiting') renderRoster(false);
   }
   window.cannonJoin = cannonJoin;
+  // نظام «لاعب متأخر» المركزي: يقرأ حالة الجولة ويتحكم بإعداد «الانضمام المتأخر» نفسه
+  // الموجود أصلاً باللعبة (cfg.late ↔ HC.configure) — بدون أي مسار انضمام موازٍ.
+  window.cannonLateApi = {
+    kicked: function () { return kicked; },
+    frameState: function () { var g = gw(); try { return g ? g.HC.state() : null; } catch (e) { return null; } },
+    getLate: function () { return !!(cfg && cfg.late); },
+    setLate: function (on) { if (!cfg) return; cfg.late = !!on; var g = gw(); if (g) { try { g.HC.configure({ late: !!on }); } catch (e) {} } }
+  };
 
   function cannonHandleEvent(data) {
     if (!cfg) return;
@@ -86484,6 +86506,8 @@ function tt10HandleTikTokEvent(data) {
 
     // أي رسالة أثناء اللعبة تسجّل صاحبها بلائحة الحضور (لأدوات الإدارة فقط،
     // بدون شرط فولو — شرط الفولو يُطبَّق فقط عند احتساب نقاط فعلية بالأسفل).
+    // «لاعب متأخر»: لو أوقف الستريمر استقبال المتأخرين، مشاهد جديد وسط جولة شغّالة لا يُحتسب
+    if (tt10GameStatus === 'active' && !tt10Participants.has(user.uniqueId) && !(typeof lateJoinGate !== 'function' || lateJoinGate('tt10', user))) return;
     if (tt10GameStatus !== 'finished' && !tt10Participants.has(user.uniqueId)) {
       tt10Participants.set(user.uniqueId, user);
     }
@@ -88184,6 +88208,662 @@ gamePlatform['glz'] = 'tiktok';
 #pg-setup-glz{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.30) 0%,transparent 60%),var(--bg);}
 #pg-setup-tt10{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.30) 0%,transparent 60%),var(--bg);}
 </style>
+
+<!-- BEGIN late-join — «لاعب متأخر»: انضمام المتأخرين وسط الجولة لكل ألعاب الستريمر (نظام مركزي + محوّل لكل لعبة) -->
+<style id="late-join-style">
+:root{--lj-bg:#160F22;--lj-l:#B79CFF;--lj-d:#7B3FE4;--lj-tx:#F3EEFF;--lj-mute:#A898C9;--lj-ok:#34D399;--lj-off:#F87171;--lj-wait:#FBBF24}
+/* الزر: يأخذ شكل أزرار لوحة اللعبة المجاورة (btn-reset/hcw-btn/...) ويضيف لمسة بنفسجية خفيفة */
+.lj-btn{position:relative;display:inline-flex!important;align-items:center;justify-content:center;gap:7px;white-space:nowrap;cursor:pointer;
+  border-color:rgba(183,156,255,.55)!important;box-shadow:0 0 0 0 rgba(123,63,228,0);transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .25s,border-color .25s,background .25s;-webkit-tap-highlight-color:transparent}
+.lj-btn:hover{transform:translateY(-2px);border-color:var(--lj-l)!important;box-shadow:0 8px 22px -10px rgba(123,63,228,.9),0 0 0 3px rgba(183,156,255,.14)}
+.lj-btn:active{transform:translateY(1px) scale(.96);box-shadow:none}
+.lj-btn:focus-visible{outline:3px solid var(--lj-l);outline-offset:2px}
+.lj-btn .lj-dot{width:8px;height:8px;border-radius:50%;background:rgba(183,156,255,.45);flex:none;transition:background .2s}
+.lj-btn[data-on="1"] .lj-dot{background:var(--lj-ok);box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:ljPulse 1.6s infinite}
+.lj-btn .lj-badge{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--lj-d);color:#fff;font:800 12px/20px Cairo,Tajawal,sans-serif;text-align:center}
+.lj-btn .lj-badge:empty{display:none}
+.lj-btn.lj-bump{animation:ljBump .5s cubic-bezier(.2,.8,.2,1)}
+@keyframes ljPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.65)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+@keyframes ljBump{0%{transform:scale(1)}35%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+/* النافذة */
+.lj-modal{position:fixed;inset:0;z-index:2147483640;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(6,3,14,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);opacity:0;transition:opacity .22s ease;direction:rtl}
+.lj-modal[hidden]{display:none}
+.lj-modal.lj-in{opacity:1}
+.lj-card{position:relative;box-sizing:border-box;width:min(460px,100%);aspect-ratio:1/1;display:flex;flex-direction:column;gap:10px;padding:20px 22px 20px;
+  background:radial-gradient(420px 260px at 50% -10%,rgba(123,63,228,.32),transparent 70%),var(--lj-bg);color:var(--lj-tx);border:1.5px solid rgba(183,156,255,.55);border-radius:26px;
+  box-shadow:0 30px 80px -24px rgba(0,0,0,.85),0 0 0 1px rgba(123,63,228,.35) inset,0 0 42px -12px rgba(123,63,228,.75);
+  transform:scale(.9) translateY(10px);opacity:0;transition:transform .32s cubic-bezier(.2,.9,.25,1.2),opacity .25s;font-family:Tajawal,Cairo,sans-serif;text-align:center}
+.lj-modal.lj-in .lj-card{transform:none;opacity:1;animation:ljGlow 3.2s ease-in-out infinite}
+@keyframes ljGlow{0%,100%{box-shadow:0 30px 80px -24px rgba(0,0,0,.85),0 0 0 1px rgba(123,63,228,.35) inset,0 0 36px -14px rgba(123,63,228,.7)}50%{box-shadow:0 30px 80px -24px rgba(0,0,0,.85),0 0 0 1px rgba(183,156,255,.5) inset,0 0 54px -8px rgba(123,63,228,.95)}}
+.lj-card.lj-flash{animation:ljFlash .8s ease-out}
+@keyframes ljFlash{0%{box-shadow:0 0 0 0 rgba(183,156,255,.95),0 0 80px 10px rgba(123,63,228,.9)}100%{box-shadow:0 30px 80px -24px rgba(0,0,0,.85),0 0 0 1px rgba(123,63,228,.35) inset,0 0 42px -12px rgba(123,63,228,.75)}}
+.lj-x{position:absolute;top:12px;inset-inline-start:12px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(183,156,255,.35);background:rgba(123,63,228,.16);color:var(--lj-tx);font:700 16px/1 sans-serif;cursor:pointer;transition:background .2s,transform .2s}
+.lj-x:hover{background:rgba(123,63,228,.4);transform:rotate(90deg)}
+.lj-x:focus-visible{outline:3px solid var(--lj-l);outline-offset:2px}
+.lj-head{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:2px}
+.lj-head>div{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+.lj-ico{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:15px;background:linear-gradient(135deg,var(--lj-d),#5B21B6);box-shadow:0 10px 24px -10px var(--lj-d);font-size:22px}
+.lj-head h2{margin:0;font:900 24px/1.2 Cairo,Tajawal,sans-serif;color:#fff}
+.lj-game{font:700 12.5px Tajawal,sans-serif;color:var(--lj-l);opacity:.9}
+.lj-text{margin:0;font-size:14.5px;line-height:1.65;color:var(--lj-mute)}
+.lj-kw{padding:12px 14px;border-radius:18px;background:rgba(123,63,228,.14);border:1px dashed rgba(183,156,255,.55)}
+.lj-kw small{display:block;font:700 12px Tajawal,sans-serif;color:var(--lj-mute);margin-bottom:2px}
+.lj-kw b{display:block;font:900 clamp(26px,7vw,38px)/1.25 Cairo,Tajawal,sans-serif;color:#fff;letter-spacing:.01em;word-break:break-word;text-shadow:0 0 18px rgba(183,156,255,.55)}
+.lj-kw b.lj-long{font-size:clamp(18px,4.6vw,24px)}
+.lj-mid{display:flex;align-items:stretch;gap:10px}
+.lj-status{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(183,156,255,.18);font:800 13.5px Tajawal,sans-serif;line-height:1.4}
+.lj-status i{width:10px;height:10px;border-radius:50%;flex:none;background:var(--lj-mute)}
+.lj-status[data-s="on"] i{background:var(--lj-ok);animation:ljPulse 1.6s infinite}
+.lj-status[data-s="off"] i{background:var(--lj-off)}
+.lj-status[data-s="wait"] i{background:var(--lj-wait)}
+.lj-count{min-width:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 10px;border-radius:14px;background:linear-gradient(160deg,rgba(123,63,228,.35),rgba(123,63,228,.12));border:1px solid rgba(183,156,255,.4)}
+.lj-count b{font:900 30px/1 Cairo,sans-serif;color:#fff;font-variant-numeric:tabular-nums}
+.lj-count b.lj-bump{animation:ljBump .5s cubic-bezier(.2,.8,.2,1)}
+.lj-count small{font:700 11.5px Tajawal,sans-serif;color:var(--lj-l);margin-top:3px}
+.lj-recent{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.lj-recent:empty{display:none}
+.lj-recent span{padding:3px 10px;border-radius:999px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.35);color:#B7F5DA;font:700 12.5px Tajawal,sans-serif;animation:ljChip .35s cubic-bezier(.2,.8,.2,1)}
+@keyframes ljChip{from{opacity:0;transform:translateY(6px) scale(.9)}}
+.lj-note{margin:0;font-size:12.5px;line-height:1.6;color:var(--lj-mute)}
+.lj-note:empty{display:none}
+.lj-toggle{margin-top:auto;flex:none;height:48px;border-radius:999px;border:0;cursor:pointer;font:900 16px Cairo,Tajawal,sans-serif;color:#fff;background:linear-gradient(135deg,var(--lj-d),#5B21B6);box-shadow:0 14px 30px -14px var(--lj-d);transition:transform .18s,box-shadow .25s,filter .2s}
+.lj-toggle:hover{transform:translateY(-2px);box-shadow:0 18px 36px -14px var(--lj-d)}
+.lj-toggle:active{transform:translateY(1px) scale(.97)}
+.lj-toggle:focus-visible{outline:3px solid var(--lj-l);outline-offset:2px}
+.lj-toggle[data-on="1"]{background:rgba(248,113,113,.14);border:1px solid rgba(248,113,113,.55);color:#FECACA;box-shadow:none}
+@media (max-width:480px),(max-height:520px){.lj-card{aspect-ratio:auto;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto;padding:18px 16px 16px;gap:10px}.lj-head h2{font-size:21px}.lj-mid{flex-direction:column}.lj-count{flex-direction:row;gap:8px}}
+@media (prefers-reduced-motion:reduce){.lj-modal,.lj-card,.lj-btn{transition:none}.lj-card,.lj-modal.lj-in .lj-card,.lj-btn[data-on="1"] .lj-dot,.lj-status i{animation:none!important}}
+
+/* إشعار «انضم لاعب جديد!» (يتجمّع عند كثرة المنضمين) */
+.lj-notify{position:fixed;top:14px;left:50%;z-index:2147483641;transform:translate(-50%,-140%);opacity:0;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:10px 18px 10px 14px;border-radius:999px;
+  background:rgba(22,15,34,.96);border:1.5px solid rgba(183,156,255,.6);box-shadow:0 16px 40px -14px rgba(0,0,0,.8),0 0 30px -10px rgba(123,63,228,.9);color:#fff;direction:rtl;pointer-events:none;
+  transition:transform .4s cubic-bezier(.2,.9,.25,1.2),opacity .3s;font-family:Tajawal,Cairo,sans-serif}
+.lj-notify.lj-in{transform:translate(-50%,0);opacity:1}
+.lj-notify .lj-n-ico{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--lj-d);font-size:15px;flex:none}
+.lj-notify b{display:block;font:900 15px Cairo,sans-serif}
+.lj-notify small{display:block;font:700 13px Tajawal,sans-serif;color:var(--lj-l);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62vw}
+</style>
+<script id="late-join">
+/* ============================================================================
+   «لاعب متأخر» — نظام مركزي واحد لكل ألعاب الستريمر (31 لعبة).
+   • المشاهد يكتب الكلمة المفتاحية للعبة أثناء جولة شغّالة ← يدخل كلاعب حقيقي عبر دالة
+     الانضمام الأصلية للعبة نفسها (نفس الخريطة/الشريحة/المزامنة liveRoundsMirror) مع ما
+     تحتاجه كل لعبة لتُدخله في منطق الجولة (طابور، دور، خانة، مسار، عجلة...).
+   • الهوية = uniqueId الثابت من المنصة (مع بادئتها)، لا الاسم الظاهر.
+   • سجل الجولة (seen): كل من شارك بالجولة الحالية — لقطة عند بدايتها + كل من دخلها بعد ذلك —
+     ومعه سجلات الإقصاء/الطرد الأصلية للعبة. أي uniqueId فيه لا يدخل مرة ثانية بنفس الجولة
+     مهما كرر الكلمة أو غيّر اسمه. الحجز يتم بشكل متزامن قبل استدعاء الانضمام (لا تكرار).
+   • جولة جديدة (رجوع اللعبة لشاشة الانتظار أو بدء جولة جديدة) = سجل جديد.
+   • الألعاب المفتوحة أصلاً (التوقيت، الرسم، توب 10، البطارية، وخيار شد الحبل/المدفع/البركانية)
+     تبقى على سلوكها، والزر يعرض حالتها ويوقفها/يشغّلها فعلياً عبر بوابة lateJoinGate.
+   لا خدمات خارجية، لا LocalStorage: الحالة في ذاكرة الجولة مثل حالة اللعبة نفسها.
+   ========================================================================== */
+(function () {
+'use strict';
+
+var TICK_MS = 500;
+var PAGE_TAG = {
+  'cannon': 'cannon', 'cr': 'cr', 'ev': 'ev', 'dash': 'main', 'guessword': 'gw', 'sniper': 'sniper', 'battery': 'battery',
+  'roulette': 'rou', 'timer': 'tmr', 'bomb': 'bomb', 'lastletter': 'll', 'whoami': 'wai', 'reverseword': 'rw', 'priceguess': 'pgs',
+  'crownsteal': 'cs', 'letterscramble': 'lsc', 'countrywar': 'cw', 'box': 'box', 'chairs': 'chairs', 'findball': 'findball',
+  'wordrace': 'wr', 'draw': 'draw', 'tug': 'tug', 'rlgl': 'rlgl', 'maze': 'mz', 'tt10': 'tt10', 'glz': 'glz',
+  'volcanic-lands': 'volcanic-lands', 'hz': 'hz', 'ig': 'ig', 'roulette3d': 'roulette3d'
+};
+
+/* ---------------- أدوات صغيرة ---------------- */
+function phStd(s) { return s === 'waiting' ? 'lobby' : (s === 'active' ? 'live' : (s ? 'over' : null)); }
+function keysOf(m) { return m ? Array.from(m.keys()) : []; }
+function setHas(s, uid) { return !!(s && typeof s.has === 'function' && s.has(uid)); }
+function norm(t) { try { return normalize(String(t || '')); } catch (e) { return String(t || '').trim().toLowerCase(); } }
+function kwMatch(text, kw, tag, user) {
+  if (!kw) return false;
+  try { if (joinTextMatches(text, kw, tag, user)) return true; } catch (e) {}
+  return norm(text) !== '' && norm(text) === norm(kw);
+}
+function nickOf(u) { return String((u && (u.nickname || u.uniqueId)) || 'لاعب'); }
+function randOf(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+/* تشغيل دالة انضمام أصلية مع كتم توست «فلان انضم» الخاص بها (النظام يعرض إشعاره المجمّع بدلها) */
+function quiet(fn) {
+  var t = window.toast, tf = window.toastFast;
+  var wrap = function (orig) { return function (m) { if (typeof m === 'string' && /انضم|اختبأ|ركب المدفع/.test(m)) return; return orig.apply(this, arguments); }; };
+  if (typeof t === 'function') window.toast = wrap(t);
+  if (typeof tf === 'function') window.toastFast = wrap(tf);
+  try { return fn(); } finally { if (typeof t === 'function') window.toast = t; if (typeof tf === 'function') window.toastFast = tf; }
+}
+/* بعض الألعاب ترفض الانضمام داخل دالتها بعد البدء (السباق/المتاهة/التصويت): نفس الدالة الأصلية
+   تُستدعى مع رفع بوابة الحالة لحظياً فقط (متزامن، يرجع كما كان مهما حصل). */
+function withStatus(get, set, tmp, fn) { var prev = get(); set(tmp); try { return fn(); } finally { set(prev); } }
+
+/* ================================================================
+   المحوّلات: كل لعبة تصف كيف تُقرأ جولتها وكيف يُدخل المتأخر بأمان
+   kind: managed = النظام يُدخل المتأخر عبر دالة اللعبة · native = اللعبة تقبله بنفسها والنظام يتحكم بالبوابة
+   ================================================================ */
+var AD = {};
+function std(tag, o) { o.tag = tag; o.kind = o.kind || 'managed'; AD[tag] = o; }
+
+std('main', { name: 'اوجد الكلمة', phase: function () { return phStd(gameStatus); }, kw: function () { return keyword; },
+  map: function () { return participants; }, join: function (u) { joinParticipant(u); }, starts: ['startRound'] });
+std('gw', { name: 'خمّن الموضوع', phase: function () { return phStd(gwGameStatus); }, kw: function () { return gwKeyword; },
+  map: function () { return gwParticipants; }, join: function (u) { gwJoinParticipant(u); }, starts: ['gwBeginNewRound'] });
+function sniperFreeCells() { var a = []; for (var i = 1; i <= SNIPER_GRID_SIZE; i++) if (sniperCells[i] && sniperCells[i].length < sniperCellCapacity) a.push(i); return a; }
+std('sniper', { name: 'القناص', phase: function () { return phStd(sniperGameStatus); }, kw: function () { return sniperKeyword; },
+  map: function () { return sniperParticipants; }, sets: function () { return [sniperKickedDuringRound, sniperEliminatedHistory]; },
+  full: function () { return sniperFreeCells().length === 0; },
+  note: 'يختبئ المتأخر تلقائياً بمربع سري فاضٍ عشوائي.',
+  join: function (u) { sniperJoinParticipant(u, null); if (!sniperParticipants.has(u.uniqueId)) return false; var f = sniperFreeCells(); if (!f.length) return true; sniperChooseCell(u, randOf(f)); return true; },
+  starts: ['startSniperRound'] });
+function hzFree() { for (var i = 1; i <= HZ_GRID_SIZE; i++) if (!hzCells[i]) return true; return false; }
+std('hz', { name: 'ضربة الحظ', phase: function () { return phStd(hzGameStatus); }, kw: function () { return hzKeyword; },
+  map: function () { return hzParticipants; }, sets: function () { return [hzKickedDuringRound, hzEliminatedHistory]; },
+  full: function () { return !hzFree(); }, note: 'يأخذ المتأخر صندوق حظ سري فاضياً.',
+  join: function (u) { hzJoinParticipant(u); }, starts: ['startHzRound'] });
+std('rou', { name: 'دائرة الإقصاء', phase: function () { return phStd(rouGameStatus); }, kw: function () { return rouKeyword; },
+  map: function () { return rouParticipants; }, sets: function () { return [rouKickedDuringRound, rouEliminatedHistory]; },
+  reject: function (u) { return (rouActivePlayers || []).indexOf(u.nickname) >= 0 ? 'name_clash' : ''; },
+  note: 'يُضاف المتأخر للعجلة برقم جديد ويدخل الدوران القادم.',
+  join: function (u) { rouJoinParticipant(u); }, starts: ['startRouletteRound'] });
+std('tmr', { name: 'لعبة التوقيت', kind: 'native', nativeDefault: function () { return true; },
+  phase: function () { return tmrGameStatus === 'waiting' ? 'lobby' : (tmrGameStatus === 'running' ? 'live' : (tmrGameStatus ? 'over' : null)); },
+  kw: function () { return tmrKeyword; }, map: function () { return tmrParticipants; }, sets: function () { return [tmrKickedDuringRound]; },
+  note: 'اللعبة تقبل المتأخر أثناء العدّ أصلاً — زر الإيقاف يقفل ذلك فعلياً.', starts: ['startTimerClock'] });
+std('bomb', { name: 'القنبلة المتحركة', phase: function () { return phStd(bombGameStatus); }, kw: function () { return bombKeyword; },
+  map: function () { return bombParticipants; }, sets: function () { return [bombKickedDuringRound, bombEliminatedHistory]; },
+  note: 'يأخذ المتأخر رقماً ويمكن تمرير القنبلة له مباشرة.', join: function (u) { bombJoinParticipant(u); }, starts: ['startBombRound'] });
+std('box', { name: 'الصندوق العشوائي', phase: function () { return phStd(boxGameStatus); }, kw: function () { return boxKeyword; },
+  map: function () { return boxParticipants; }, sets: function () { return [boxKickedDuringRound, boxEliminatedHistory]; },
+  note: 'يُضاف المتأخر لآخر ترتيب الأدوار — دوره بعد الموجودين.',
+  join: function (u) { boxJoinParticipant(u); if (boxParticipants.has(u.uniqueId) && boxTurnOrder.indexOf(u.uniqueId) < 0) boxTurnOrder.push(u.uniqueId); }, starts: ['startBoxRound'] });
+std('cr', { name: 'سباق الشات', phase: function () { return phStd(crGameStatus); }, kw: function () { return crKeyword; },
+  map: function () { return crParticipants; }, sets: function () { return [crKickedDuringRound]; },
+  full: function () { return crParticipants.size >= crMaxRacers; }, note: 'يبدأ المتأخر من خط البداية بمسار جديد.',
+  join: function (u) {
+    withStatus(function () { return crGameStatus; }, function (v) { crGameStatus = v; }, 'waiting', function () { crJoinParticipant(u); });
+    if (!crParticipants.has(u.uniqueId)) return false; crRenderTrack(); return true;
+  }, starts: ['startCrRound'] });
+std('mz', { name: 'المتاهة', phase: function () { return phStd(mzGameStatus); }, kw: function () { return mzKeyword; },
+  map: function () { return mzParticipants; }, sets: function () { return [mzKickedDuringRound]; },
+  full: function () { return mzParticipants.size >= mzMaxPlayers; }, note: 'يظهر المتأخر بنقطة بداية المتاهة.',
+  join: function (u) {
+    withStatus(function () { return mzGameStatus; }, function (v) { mzGameStatus = v; }, 'waiting', function () { mzJoinParticipant(u); });
+    if (!mzParticipants.has(u.uniqueId)) return false; mzRenderTokens(); return true;
+  }, starts: ['startMzRound'] });
+std('ev', { name: 'التصويت بالإقصاء', phase: function () { return phStd(evGameStatus); }, kw: function () { return evKeyword; },
+  map: function () { return evParticipants; }, sets: function () { return [evKickedDuringRound]; },
+  full: function () { return evParticipants.size >= evMaxPlayers; }, note: 'تظهر بطاقة المتأخر برقمه ويدخل التصويت مباشرة.',
+  join: function (u) {
+    withStatus(function () { return evGameStatus; }, function (v) { evGameStatus = v; }, 'waiting', function () { evJoinParticipant(u); });
+    var uid = u.uniqueId; if (!evParticipants.has(uid)) return false;
+    var grid = document.getElementById('ev-grid');
+    if (grid && !document.getElementById('ev-card-' + uid)) { // بطاقة واحدة فقط — بدون إعادة رسم الشبكة (لا تتصفّر أصوات البقية)
+      var card = document.createElement('div'); card.className = 'ev-card'; card.id = 'ev-card-' + uid;
+      var nw = document.createElement('div'); nw.className = 'ev-card-numwrap';
+      nw.appendChild(buildParticipantChip(u, evPlayerNumbers.get(uid) || 0, null));
+      var vs = document.createElement('span'); vs.className = 'ev-card-votes'; vs.id = 'ev-votes-' + uid; vs.textContent = '0';
+      nw.appendChild(vs); card.appendChild(nw); grid.appendChild(card);
+    }
+    return true;
+  }, starts: ['startEvRound'] });
+std('ll', { name: 'آخر حرف', phase: function () { return phStd(llGameStatus); }, kw: function () { return llKeyword; },
+  map: function () { return llParticipants; }, sets: function () { return [llKickedDuringRound, llEliminatedHistory, llEliminated]; },
+  note: 'يُضاف المتأخر لآخر طابور السلسلة.',
+  join: function (u) { llJoinParticipant(u); if (!llParticipants.has(u.uniqueId)) return false; if (llQueue.indexOf(u.uniqueId) < 0) { llQueue.push(u.uniqueId); renderQueue(); } return true; },
+  starts: ['startLastLetterRound'] });
+std('wai', { name: 'من أنا؟', phase: function () { return phStd(waiGameStatus); }, kw: function () { return waiKeyword; },
+  map: function () { return waiParticipants; }, sets: function () { return [waiKickedDuringRound]; },
+  join: function (u) { waiJoinParticipant(u); if (waiParticipants.has(u.uniqueId) && !waiAttempts.has(u.uniqueId)) waiAttempts.set(u.uniqueId, 0); }, starts: ['startWAIRound'] });
+std('ig', { name: 'خمن الصورة', phase: function () { return phStd(igGameStatus); }, kw: function () { return igKeyword; },
+  map: function () { return igParticipants; }, sets: function () { return [igKickedDuringRound]; }, join: function (u) { igJoinParticipant(u); }, starts: ['startIGRound'] });
+std('rw', { name: 'عكس الكلمة', phase: function () { return phStd(rwGameStatus); }, kw: function () { return rwKeyword; },
+  map: function () { return rwParticipants; }, sets: function () { return [rwKickedDuringRound]; }, join: function (u) { rwJoinParticipant(u); }, starts: ['startRWRound'] });
+std('pgs', { name: 'تخمين السعر', phase: function () { return phStd(pgsGameStatus); }, kw: function () { return pgsKeyword; },
+  map: function () { return pgsParticipants; }, sets: function () { return [pgsKickedDuringRound]; }, join: function (u) { pgsJoinParticipant(u); }, starts: ['startPGRound'] });
+std('lsc', { name: 'ترتيب الحروف', phase: function () { return phStd(lscGameStatus); }, kw: function () { return lscKeyword; },
+  map: function () { return lscParticipants; }, sets: function () { return [lscKickedDuringRound]; }, join: function (u) { lscJoinParticipant(u); }, starts: ['startLSCRound'] });
+std('wr', { name: 'سباق الكلمات السريع', phase: function () { return phStd(wrGameStatus); }, kw: function () { return wrKeyword; },
+  map: function () { return wrParticipants; }, sets: function () { return [wrKickedDuringRound]; }, join: function (u) { wrJoinParticipant(u); }, starts: ['startWRRound'] });
+std('cs', { name: 'سرقة التاج', phase: function () { return phStd(csGameStatus); }, kw: function () { return csKeyword; },
+  map: function () { return csParticipants; }, sets: function () { return [csKickedDuringRound]; }, join: function (u) { csJoinParticipant(u); }, starts: ['startCrownStealRound'] });
+std('cw', { name: 'الدول', phase: function () { return phStd(cwGameStatus); }, kw: function () { return cwKeyword; },
+  map: function () { return cwParticipants; }, sets: function () { return [cwKickedDuringRound, cwEliminatedHistory]; },
+  isIn: function (uid) { return cwParticipants.has(uid) || cwActiveCountries.some(function (c) { return c.uid === uid; }); },
+  note: 'يأخذ المتأخر دولة سرية جديدة غير مستخدمة.', join: function (u) { cwJoinParticipant(u); }, starts: ['startCountryWarRound'] });
+std('draw', { name: 'خمن الرسمة', kind: 'native', nativeDefault: function () { return true; }, phase: function () { return phStd(drawGameStatus); },
+  kwLabel: function () { return 'أي تخمين بالشات'; }, noKw: true, noFollow: true,
+  map: function () { return drawParticipants; }, sets: function () { return [drawKickedDuringRound]; },
+  note: 'اللعبة مفتوحة: أول تخمين يُدخل المشاهد — زر الإيقاف يقفل دخول الجدد فعلياً.', starts: ['startDrawRound'] });
+std('findball', { name: 'اعثر على الكورة',
+  phase: function () { var s = findballGameStatus; return s === 'waiting' ? 'lobby' : (s === 'finished' ? 'over' : (s ? 'live' : null)); },
+  kw: function () { return findballKeyword; }, map: function () { return findballParticipants; },
+  sets: function () { return [findballKickedDuringRound, findballEliminatedHistory]; },
+  canJoinNow: function () { return findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'; },
+  note: 'لعبة بمراحل: المتأخر ينضم عند أول نقطة آمنة (بين الجولات أو لحظة إخفاء الكورة) حتى لا يُقصى بلا فرصة تخمين.',
+  join: function (u) { findballJoinParticipant(u); }, starts: ['findballStartRoundClick'], flushBefore: true });
+std('chairs', { name: 'الكرسي المتحرك',
+  phase: function () { var s = chairsGameStatus; return (s === 'waiting' && !chairsRoundNum) ? 'lobby' : (s === 'finished' ? 'over' : (s ? 'live' : null)); },
+  kw: function () { return chairsKeyword; }, map: function () { return chairsParticipants; },
+  sets: function () { return [chairsKickedDuringRound, chairsEliminatedHistory]; },
+  canJoinNow: function () { return chairsGameStatus === 'finished-round'; },
+  note: 'لعبة بمراحل: عدد الكراسي يُحسب مع بداية كل دوران، فالمتأخر يدخل مع الدوران التالي مباشرة.',
+  join: function (u) { chairsJoinParticipant(u); }, starts: ['chairsStartRoundClick'], flushBefore: true });
+function tugTeamFor(text, user) {
+  if (kwMatch(text, tugTeamAKw, 'tug', user) || tugNormalize(text) === tugNormalize(tugTeamAKw)) return 'a';
+  if (kwMatch(text, tugTeamBKw, 'tug', user) || tugNormalize(text) === tugNormalize(tugTeamBKw)) return 'b';
+  return null;
+}
+std('tug', { name: 'شد الحبل', nativeDefault: function () { return !!tugOptLateJoin; }, phase: function () { return phStd(tugGameStatus); },
+  kws: function () { return [tugTeamAKw, tugTeamBKw]; },
+  kwLabel: function () { return tugTeamAName + ': ' + tugTeamAKw + '  ·  ' + tugTeamBName + ': ' + tugTeamBKw; },
+  matches: function (text, user) { return !!tugTeamFor(text, user); },
+  members: function () { return keysOf(tugTeamA).concat(keysOf(tugTeamB)); }, isIn: function (uid) { return !!tugTeamOf(uid); },
+  note: 'المتأخر يختار فريقه بكلمة الفريق، وينضم بدون سحبة مجانية (يكتب كلمة السحب كالبقية).',
+  join: function (u, text) { var t = tugTeamFor(text || '', u); if (!t) return false; tugJoinTeam(u, t); }, starts: ['startTugRound'] });
+function rlglLateToken(uid, user, layout) {
+  var track = document.getElementById('rlgl-arena-track'); if (!track || document.getElementById('rlgltoken-' + uid)) return;
+  var token = document.createElement('div'); token.className = 'rlgl-token'; token.id = 'rlgltoken-' + uid;
+  var size = layout.avatarSize;
+  token.innerHTML = (layout.showNameBadge ? '<div class="rlgl-token-name">' + esc(user.nickname || uid) + '</div>' : '') +
+    '<div class="rlgl-token-avwrap" style="width:' + size + 'px;height:' + size + 'px"></div>' +
+    '<div class="rlgl-token-progress">' + rlglToArabicDigits(0) + '/' + rlglToArabicDigits(layout.totalSteps) + '</div>';
+  if (!layout.showNameBadge) token.title = user.nickname || uid;
+  var av = token.querySelector('.rlgl-token-avwrap'); av.appendChild(avatarHTMLNode(user, size));
+  if (typeof framesApplyToChip === 'function') framesApplyToChip(av, uid, Math.round(size * 1.5));
+  track.appendChild(token);
+}
+std('rlgl', { name: 'الضوء الأخضر · الضوء الأحمر', phase: function () { return phStd(rlglGameStatus); }, kw: function () { return rlglJoinKw; },
+  matches: function (text, user) { return kwMatch(text, rlglJoinKw, 'rlgl', user) || rlglNormalize(text) === rlglNormalize(rlglJoinKw); },
+  map: function () { return rlglParticipants; }, sets: function () { return [rlglEliminated]; },
+  full: function () { return rlglParticipants.size >= rlglMaxPlayers; }, note: 'يُضاف للمتأخر مسار جديد من خط البداية بدون تحريك أحد.',
+  join: function (u) {
+    var uid = u.uniqueId; rlglJoinParticipant(u); if (!rlglParticipants.has(uid)) return false;
+    rlglProgress.set(uid, 0); rlglIdlePhase.set(uid, Math.random() * Math.PI * 2);
+    rlglLaneCount = rlglParticipants.size; rlglLaneOf.set(uid, rlglLaneCount - 1);
+    var layout = rlglComputeLayout(); rlglBuildTrackVisuals(layout); rlglLateToken(uid, u, layout);
+    rlglParticipants.forEach(function (_, id) { rlglRenderTokenPosition(id, false, layout); });
+    if (typeof rlglUpdateHudPlayerCount === 'function') rlglUpdateHudPlayerCount();
+    return true;
+  }, starts: ['startRlglRound'] });
+std('tt10', { name: 'توب 10', kind: 'native', nativeDefault: function () { return true; }, noKw: true, noFollow: true,
+  phase: function () { return tt10GameStatus === 'waiting' ? 'lobby' : (tt10GameStatus === 'active' ? 'live' : (tt10GameStatus ? 'over' : null)); },
+  kwLabel: function () { return 'أي إجابة بالشات'; }, map: function () { return tt10Participants; },
+  note: 'اللعبة مفتوحة: أي مشاهد يجاوب يدخل — زر الإيقاف يقفل دخول الجدد وسط الجولة فعلياً.', starts: ['tt10StartRound'] });
+function glzPlaceLate() {
+  var scene = document.getElementById('glz-scene'); if (!scene) return;
+  var ids = Array.from(glzAlive), n = ids.length, spacing = Math.min(26, (scene.clientWidth - 40) / Math.max(1, n));
+  var startX = scene.clientWidth / 2 - spacing * (n - 1) / 2 - 13;
+  ids.forEach(function (uid, i) {
+    if (glzVotes.has(uid)) return; // من جاوب يبقى على لوحته — لا نحرّكه
+    var w = glzCreateAvatarWrap(uid); if (!w) return;
+    w.style.opacity = '1'; w.style.left = Math.max(4, startX + i * spacing) + 'px'; w.style.top = (scene.clientHeight - 40) + 'px';
+  });
+}
+std('glz', { name: 'الطريق الزجاجي', noFollow: true,
+  phase: function () { var s = glzGameStatus; return s === 'lobby' ? 'lobby' : ((s === 'active' || s === 'resolving') ? 'live' : (s ? 'over' : null)); },
+  kw: function () { return glzJoinKeyword; }, map: function () { return glzParticipants; },
+  full: function () { return glzParticipants.size >= glzMaxPlayers; }, canJoinNow: function () { return glzGameStatus === 'active'; },
+  note: 'المتأخر يدخل على خط البداية مع السؤال الحالي (أو التالي لو الإجابة تُكشف الآن).',
+  join: function (u) {
+    var uid = u.uniqueId; if (glzParticipants.has(uid) || glzGameStatus !== 'active') return false;
+    glzParticipants.set(uid, u); glzAlive.add(uid);
+    if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(u);
+    glzPlaceLate();
+    var an = document.getElementById('glz-alive-num'); if (an) an.textContent = glzAlive.size;
+    glzUpdateAnsweredCount();
+    if (typeof liveRoundsMirror === 'function') liveRoundsMirror('glz', glzParticipants);
+    return true;
+  }, starts: ['glzStartRound'] });
+std('battery', { name: 'الزر المشحون', kind: 'native', nativeDefault: function () { return true; }, noFollow: true,
+  _in: new Set(), phase: function () { return batteryFinished ? 'over' : 'live'; }, kw: function () { return BATTERY_KEYWORD; },
+  members: function () { return Array.from(AD.battery._in); }, isIn: function (uid) { return AD.battery._in.has(uid); },
+  admit: function (uid) { AD.battery._in.add(uid); }, onOpen: function () { AD.battery._in = new Set(); }, restarts: ['batteryNewRound', 'initBatteryDashboard'],
+  note: 'لعبة جماعية مفتوحة: كل من يكتب الكلمة يشحن — زر الإيقاف يقصر الشحن على من شارك قبله.' });
+std('volcanic-lands', { name: 'الأراضي البركانية', kind: 'native', noFollow: true,
+  phase: function () { var a = window.vlLateApi, p = a && a.phase(); if (!p) return null; return (p === 'IDLE' || p === 'LOBBY' || p === 'COUNTDOWN') ? 'lobby' : (p === 'GAME_OVER' ? 'over' : 'live'); },
+  kw: function () { return window.vlLateApi ? window.vlLateApi.keyword() : ''; },
+  members: function () { var m = window.vlLateApi && window.vlLateApi.players(); return keysOf(m); },
+  isIn: function (uid) { var m = window.vlLateApi && window.vlLateApi.players(); return !!(m && m.has(uid)); },
+  getLate: function () { return !!(window.vlLateApi && window.vlLateApi.getLate()); }, setLate: function (on) { if (window.vlLateApi) window.vlLateApi.setLate(on); },
+  note: 'المحرّك يُدخل المتأخر فوق سطح اللافا الحالي بأمان أثناء السؤال — المحترق لا يرجع بالكلمة.' });
+std('cannon', { name: 'المدفع البشري', kind: 'native',
+  phase: function () { var s = window.cannonStatus; return (s === 'waiting' || s === 'launching') ? 'lobby' : (s === 'round' ? 'live' : null); },
+  // نافذة الأوامر (entry) نافذة انضمام عادية باللعبة نفسها: من يدخل فيها لا يُحسب «متأخراً»
+  normalWindow: function () { return !!(window.cannonLateApi && window.cannonLateApi.frameState() === 'entry'); },
+  kw: function () { return window.cannonKeyword; }, map: function () { return window.cannonParticipants; },
+  sets: function () { return [window.cannonLateApi && window.cannonLateApi.kicked()]; },
+  getLate: function () { return !!(window.cannonLateApi && window.cannonLateApi.getLate()); }, setLate: function (on) { if (window.cannonLateApi) window.cannonLateApi.setLate(on); },
+  note: 'يدخل المتأخر طابور الإطلاق بدوره (نفس خيار «انضمام متأخر» باللعبة).' });
+function rr3d() { try { var f = document.getElementById('roulette3d-frame'); return f && f.contentWindow && f.contentWindow.EhsemhaRoulette || null; } catch (e) { return null; } }
+function rr3dState() { var a = rr3d(); try { return a ? a.getState() : null; } catch (e) { return null; } }
+std('roulette3d', { name: 'الروليت الروسي', noFollow: true,
+  phase: function () { var s = rr3dState(); if (!s) return null; return s.state === 'JOINING' ? 'lobby' : ((s.state === 'GAME_OVER' || s.state === 'RESULTS' || s.state === 'IDLE') ? 'over' : 'live'); },
+  kw: function () { var a = rr3d(); try { return a ? a.settings().keyword : ''; } catch (e) { return ''; } },
+  members: function () { var s = rr3dState(); return s ? s.players.map(function (p) { return p.id; }) : []; },
+  isIn: function (uid) { var s = rr3dState(); return !!(s && s.players.some(function (p) { return p.id === uid; })); },
+  note: 'المتأخر يجلس على الطاولة مع بداية الجولة التالية (لا يقطع دوراناً أو قراراً جارياً)، ولا يُضاف بعد إعلان المواجهة النهائية.',
+  join: function (u) {
+    var a = rr3d(); if (!a || !a.lateJoin) return false;
+    var av = u.avatar || ''; try { if (av && typeof avatarProxyUrl === 'function') av = avatarProxyUrl(av); } catch (e) {}
+    return a.lateJoin(u.uniqueId, u.nickname || u.rawUniqueId || u.uniqueId, av) ? 'queued' : false;
+  },
+  cancel: function () { var a = rr3d(); try { if (a && a.lateCancel) a.lateCancel(); } catch (e) {} } });
+
+/* ================================================================
+   حالة كل لعبة + سجل الجولة
+   ================================================================ */
+var S = {}, curTag = null, ticker = null;
+function st(tag) {
+  return S[tag] || (S[tag] = { mode: 'idle', open: false, phase: null, round: 0, seen: new Set(), count: 0, recent: [], pending: new Map(), awaiting: new Map(), pendingFollow: new Map(), noted: new Set() });
+}
+function call(A, k) { try { return A[k] ? A[k].apply(A, [].slice.call(arguments, 2)) : undefined; } catch (e) { return undefined; } }
+function members(A) { var m = A.members ? call(A, 'members') : keysOf(call(A, 'map')); return m || []; }
+function isIn(A, uid) { if (A.isIn) return !!call(A, 'isIn', uid); var m = call(A, 'map'); return !!(m && m.has(uid)); }
+function blockReason(A, uid) {
+  var sets = call(A, 'sets') || [];
+  for (var i = 0; i < sets.length; i++) if (setHas(sets[i], uid)) return 'eliminated_or_kicked';
+  return '';
+}
+function nativeOn(A) { return A.getLate ? !!call(A, 'getLate') : !!call(A, 'nativeDefault'); }
+function effectiveOn(tag) {
+  var A = AD[tag], s = st(tag); if (!A) return false;
+  if (A.getLate) return nativeOn(A);       // خيار اللعبة نفسه هو المرجع (المدفع/البركانية)
+  if (s.mode === 'on') return true;
+  if (s.mode === 'off') return false;
+  return nativeOn(A);
+}
+function diag(tag, user, reason, detail) {
+  try { if (typeof joinDiagRecord === 'function') joinDiagRecord(tag, user, reason, detail); } catch (e) {}
+}
+function resetRound(s) { s.open = false; s.seen = new Set(); s.count = 0; s.recent = []; s.pending.clear(); s.awaiting.clear(); s.pendingFollow.clear(); s.noted.clear(); }
+function openRound(tag) {
+  var A = AD[tag], s = st(tag);
+  resetRound(s); call(A, 'onOpen');
+  s.open = true; s.round++;
+  members(A).forEach(function (uid) { s.seen.add(uid); });
+}
+function sync(tag) {
+  var A = AD[tag]; if (!A) return null;
+  var s = st(tag), ph = call(A, 'phase') || null;
+  if (ph === 'live') { if (!s.open) openRound(tag); }
+  else if (ph === 'lobby') { if (s.open || s.seen.size || s.count) { resetRound(s); s.phase = ph; render(); } }
+  else if (s.open) { // انتهت الجولة: الطلبات المعلّقة تسقط، والسجل يبقى حتى الجولة الجديدة
+    s.open = false; s.pending.clear(); s.awaiting.clear(); s.pendingFollow.clear(); call(A, 'cancel');
+  }
+  s.phase = ph;
+  return ph;
+}
+function absorb(tag) { var A = AD[tag], s = st(tag); if (!s.open) return; members(A).forEach(function (uid) { s.seen.add(uid); }); }
+
+function recordLate(tag, user) {
+  var s = st(tag), uid = user.uniqueId;
+  s.seen.add(uid); s.count++;
+  s.recent.unshift(nickOf(user)); if (s.recent.length > 6) s.recent.length = 6;
+  diag(tag, user, 'late_joined', 'لاعب متأخر #' + s.count);
+  notify(user);
+  if (tag === curTag) { flashModal(); bumpButton(); }
+}
+function doJoin(tag, user, text) {
+  var A = AD[tag], s = st(tag), uid = user.uniqueId, r;
+  try { r = quiet(function () { return A.join(user, text); }); } catch (e) { r = false; console.warn('[late-join] ' + tag, e); }
+  if (r === 'queued') { s.awaiting.set(uid, user); diag(tag, user, 'late_queued_safe_point'); render(); return; }
+  if (r !== false && isIn(A, uid)) { recordLate(tag, user); return; }
+  s.seen.delete(uid); // ما دخل فعلياً (رفضته اللعبة) — يبقى له حق محاولة لاحقة بنفس الجولة
+  diag(tag, user, 'late_rejected_by_game');
+}
+/* محاولة انضمام متأخر واحدة — كل الفحوص والحجز متزامنة (لا تكرار حتى مع رسائل متزامنة) */
+function tryLate(tag, user, text, viaFollow) {
+  var A = AD[tag], s = st(tag); if (!A || !user || !user.uniqueId) return;
+  var uid = user.uniqueId;
+  if (!s.open || A.kind !== 'managed' || !effectiveOn(tag)) return;
+  if (isIn(A, uid)) return;
+  if (s.pending.has(uid) || s.awaiting.has(uid)) return;                  // طلبه قيد التنفيذ
+  if (s.seen.has(uid)) { diag(tag, user, 'late_already_played_this_round'); return; }
+  var b = blockReason(A, uid); if (b) { diag(tag, user, 'late_blocked_' + b); return; }
+  var rj = call(A, 'reject', user); if (rj) { diag(tag, user, 'late_rejected_' + rj); return; }
+  if (!A.noFollow && typeof followGateAllows === 'function' && !followGateAllows(tag, user)) {
+    s.pendingFollow.set(uid, user); diag(tag, user, 'late_pending_follow'); return;
+  }
+  if (call(A, 'full')) { diag(tag, user, 'late_full'); return; }
+  s.seen.add(uid);                                                         // حجز ذرّي قبل أي استدعاء
+  if (A.canJoinNow && !call(A, 'canJoinNow')) { s.pending.set(uid, { user: user, text: text }); diag(tag, user, 'late_waiting_safe_point'); render(); return; }
+  doJoin(tag, user, text);
+}
+function flushPending(tag) {
+  var A = AD[tag], s = st(tag); if (!s.open || !s.pending.size) return;
+  if (!effectiveOn(tag)) { s.pending.forEach(function (p, uid) { s.seen.delete(uid); }); s.pending.clear(); return; }
+  if (A.canJoinNow && !call(A, 'canJoinNow')) return;
+  var list = Array.from(s.pending.values()); s.pending.clear();
+  list.forEach(function (p) {
+    if (isIn(A, p.user.uniqueId)) return;
+    if (call(A, 'full')) { s.seen.delete(p.user.uniqueId); diag(tag, p.user, 'late_full'); return; }
+    doJoin(tag, p.user, p.text);
+  });
+}
+function confirmAwaiting(tag) {
+  var A = AD[tag], s = st(tag); if (!s.awaiting.size) return;
+  s.awaiting.forEach(function (user, uid) { if (isIn(A, uid)) { s.awaiting.delete(uid); recordLate(tag, user); } });
+}
+
+/* بوابة الألعاب المفتوحة أصلاً: تُستدعى من مسار الانضمام وسط الجولة داخل معالج اللعبة نفسه */
+function lateJoinGate(tag, user) {
+  var A = AD[tag]; if (!A || !user || !user.uniqueId) return true;
+  var s = st(tag); sync(tag);
+  if (!s.open) return true;                       // مو وسط جولة: سلوك اللعبة كما هو
+  var uid = user.uniqueId;
+  if (isIn(A, uid)) return true;
+  // سجل التشخيص مرة وحدة لكل مشاهد بالجولة (الألعاب المفتوحة تمرّر كل رسائل الشات هنا)
+  if (!effectiveOn(tag)) { if (!s.noted.has(uid)) { s.noted.add(uid); diag(tag, user, 'late_receiving_off'); } return false; }
+  if (s.seen.has(uid) || blockReason(A, uid)) { if (!s.noted.has(uid)) { s.noted.add(uid); diag(tag, user, 'late_blocked'); } return false; }
+  if (A.admit) { call(A, 'admit', uid); recordLate(tag, user); } // الدخول هنا = المشاركة نفسها (البطارية)
+  return true;
+}
+window.lateJoinGate = lateJoinGate;
+
+/* بعد كل دفعة أحداث (بعد معالج اللعبة) */
+function msgUser(m) { try { return extractUser(m); } catch (e) { return null; } }
+window.lateJoinAfterDispatch = function (evt) {
+  var tag = curTag, A = tag && AD[tag]; if (!A) return;
+  var s = st(tag); sync(tag); if (!s.open) return;
+  var msgs = (evt && evt.messages) || (evt && evt.type ? [evt] : []);
+  for (var i = 0; i < msgs.length; i++) {
+    var m = msgs[i], type = m && (m.type || m.event);
+    var chat = type === 'WebcastChatMessage' || type === 'chat' || type === 'comment';
+    var follow = type === 'WebcastSocialMessage' || type === 'follow' || type === 'social';
+    if (!chat && !follow) continue;
+    var u = msgUser(m); if (!u || !u.uniqueId) continue;
+    var uid = u.uniqueId;
+    if (isIn(A, uid)) { if (!s.seen.has(uid)) { if (call(A, 'normalWindow')) s.seen.add(uid); else recordLate(tag, u); } continue; } // دخل وسط الجولة بمسار اللعبة نفسها
+    if (follow) { var pf = s.pendingFollow.get(uid); if (pf) { s.pendingFollow.delete(uid); tryLate(tag, Object.assign({}, pf, { isFollower: true, followKnown: true }), pf.__ljText, true); } continue; }
+    var text = String(m.comment || m.content || (m.data && m.data.comment) || '').trim();
+    if (!text || A.kind !== 'managed') continue;
+    var ok = A.matches ? call(A, 'matches', text, u) : kwMatch(text, call(A, 'kw'), tag, u);
+    if (!ok) continue;
+    u.__ljText = text;
+    tryLate(tag, u, text, false);
+  }
+  confirmAwaiting(tag);
+};
+
+/* ربط بدايات الجولات: لقطة السجل لحظة البدء + تفريغ المنتظرين عند النقطة الآمنة */
+function wrapStarts() {
+  Object.keys(AD).forEach(function (tag) {
+    (AD[tag].starts || []).concat(AD[tag].restarts || []).forEach(function (name) {
+      var orig = window[name], restart = (AD[tag].restarts || []).indexOf(name) >= 0;
+      if (typeof orig !== 'function' || orig.__lj) return;
+      var w = function () {
+        if (AD[tag].flushBefore) { try { sync(tag); flushPending(tag); } catch (e) {} }
+        var r = orig.apply(this, arguments);
+        try { if (restart && call(AD[tag], 'phase') === 'live') openRound(tag); sync(tag); flushPending(tag); render(); } catch (e) {}
+        return r;
+      };
+      w.__lj = true; w.__ljOrig = orig;
+      window[name] = w;
+    });
+  });
+}
+
+/* ================================================================
+   الواجهة: الزر + النافذة + الإشعار
+   ================================================================ */
+var btn = null, modal = null, notifyEl = null, notifyQ = [], notifyT = null, notifyHideT = null;
+function anchorFor(tag, page) {
+  if (!page) return null;
+  var sel = { tt10: '#tt10-btn-end', glz: '#glz-btn-endround', cannon: '#cannon-w-bar-kick', roulette3d: '.rr3d-bar button' }[tag];
+  return sel ? page.querySelector(sel) : page.querySelector('.btn-reset');
+}
+function ensureButton() {
+  var tag = curTag; if (!tag) { if (btn && btn.parentNode) btn.parentNode.removeChild(btn); return; }
+  var page = document.getElementById('pg-' + Object.keys(PAGE_TAG).filter(function (p) { return PAGE_TAG[p] === tag; })[0]);
+  var anchor = anchorFor(tag, page); if (!anchor) return;
+  if (!btn) {
+    btn = document.createElement('button'); btn.type = 'button'; btn.id = 'lj-btn';
+    btn.setAttribute('aria-haspopup', 'dialog');
+    btn.innerHTML = '<span class="lj-dot" aria-hidden="true"></span><span class="lj-lbl">لاعب متأخر</span><span class="lj-badge" aria-label="عدد المتأخرين"></span>';
+    btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openModal(); });
+  }
+  var cls = (anchor.className || '').split(/\s+/).filter(function (c) { return c && !/^(hcw-kick|active|tst-inline-btn)$/.test(c); });
+  var want = cls.concat(['lj-btn']).join(' ');
+  if (btn.className !== want) btn.className = want;
+  if (anchor.nextSibling !== btn) anchor.insertAdjacentElement('afterend', btn);
+  var on = effectiveOn(tag) ? '1' : '0'; if (btn.getAttribute('data-on') !== on) btn.setAttribute('data-on', on);
+  var c = st(tag).count, b = btn.querySelector('.lj-badge'), t = c ? String(c) : ''; if (b.textContent !== t) b.textContent = t;
+  btn.title = on === '1' ? 'استقبال اللاعبين المتأخرين مفعّل' : 'لاعب متأخر';
+}
+function bumpButton() { if (!btn) return; btn.classList.remove('lj-bump'); void btn.offsetWidth; btn.classList.add('lj-bump'); ensureButton(); }
+function buildModal() {
+  modal = document.createElement('div'); modal.className = 'lj-modal'; modal.id = 'lj-modal'; modal.hidden = true;
+  modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-labelledby', 'lj-title');
+  modal.innerHTML =
+    '<div class="lj-card" id="lj-card">' +
+      '<button type="button" class="lj-x" id="lj-x" aria-label="إغلاق">✕</button>' +
+      '<div class="lj-head"><span class="lj-ico" aria-hidden="true">⏱️</span><div><h2 id="lj-title">لاعب متأخر</h2><span class="lj-game" id="lj-game"></span></div></div>' +
+      '<p class="lj-text">فاتتك بداية الجولة؟ اكتب الكلمة المفتاحية في الشات وادخل المنافسة!</p>' +
+      '<div class="lj-kw"><small id="lj-kw-cap">الكلمة المفتاحية</small><b id="lj-kw">—</b></div>' +
+      '<div class="lj-mid"><div class="lj-status" id="lj-status" data-s="idle" role="status" aria-live="polite"><i></i><span id="lj-status-t"></span></div>' +
+        '<div class="lj-count"><b id="lj-count">٠</b><small>انضموا متأخرين</small></div></div>' +
+      '<div class="lj-recent" id="lj-recent" aria-live="polite"></div>' +
+      '<p class="lj-note" id="lj-note"></p>' +
+      '<button type="button" class="lj-toggle" id="lj-toggle"></button>' +
+    '</div>';
+  document.body.appendChild(modal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  modal.querySelector('#lj-x').addEventListener('click', closeModal);
+  modal.querySelector('#lj-toggle').addEventListener('click', function () { if (curTag) setMode(curTag, !effectiveOn(curTag)); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal && !modal.hidden) closeModal(); });
+}
+function arNum(n) { try { return Number(n).toLocaleString('ar-EG'); } catch (e) { return String(n); } }
+var lastCount = -1;
+function render() {
+  if (curTag) ensureButton();
+  if (!modal || modal.hidden || !curTag) return;
+  var tag = curTag, A = AD[tag], s = st(tag), on = effectiveOn(tag);
+  var $ = function (id) { return modal.querySelector('#' + id); };
+  $('lj-game').textContent = A.name;
+  var kw = A.kwLabel ? call(A, 'kwLabel') : call(A, 'kw'); kw = String(kw || '—');
+  var kb = $('lj-kw'); if (kb.textContent !== kw) kb.textContent = kw; kb.classList.toggle('lj-long', kw.length > 14);
+  $('lj-kw-cap').textContent = A.noKw ? 'طريقة الدخول' : (tag === 'tug' ? 'كلمات الفرق' : 'الكلمة المفتاحية');
+  var ph = s.phase, stt = 'idle', txt;
+  if (!on) { stt = 'off'; txt = 'الاستقبال متوقف'; }
+  else if (ph === 'live') {
+    var q = s.pending.size + s.awaiting.size;
+    stt = 'on'; txt = q ? ('الاستقبال مفعّل — ' + arNum(q) + ' بانتظار النقطة الآمنة') : 'الاستقبال مفعّل — بانتظار المتأخرين';
+  }
+  else if (ph === 'lobby') { stt = 'wait'; txt = 'الجولة لم تبدأ — الانضمام العادي مفتوح، والاستقبال جاهز'; }
+  else { stt = 'wait'; txt = 'لا توجد جولة شغّالة الآن — الاستقبال جاهز للجولة القادمة'; }
+  var sEl = $('lj-status'); sEl.setAttribute('data-s', stt); $('lj-status-t').textContent = txt;
+  var cEl = $('lj-count');
+  if (s.count !== lastCount) { cEl.textContent = arNum(s.count); if (lastCount >= 0 && s.count > lastCount) { cEl.classList.remove('lj-bump'); void cEl.offsetWidth; cEl.classList.add('lj-bump'); } lastCount = s.count; }
+  var rec = $('lj-recent'), html = s.recent.map(function (n) { return '<span>' + esc(n) + '</span>'; }).join('');
+  if (rec.__h !== html) { rec.innerHTML = html; rec.__h = html; }
+  $('lj-note').textContent = A.note || '';
+  var tg = $('lj-toggle'); tg.setAttribute('data-on', on ? '1' : '0'); tg.textContent = on ? '⏹ إيقاف استقبال المتأخرين' : '▶ تشغيل استقبال المتأخرين';
+}
+function openModal() {
+  var tag = curTag; if (!tag) return;
+  if (!modal) buildModal();
+  sync(tag);
+  var s = st(tag);
+  if (!effectiveOn(tag) && s.mode !== 'off') setMode(tag, true, true); // الضغط على الزر = بدء الاستقبال
+  lastCount = -1;
+  modal.hidden = false; requestAnimationFrame(function () { modal.classList.add('lj-in'); });
+  render();
+  try { modal.querySelector('#lj-toggle').focus({ preventScroll: true }); } catch (e) {}
+}
+function closeModal() { // الإغلاق لا يوقف الاستقبال
+  if (!modal || modal.hidden) return;
+  modal.classList.remove('lj-in');
+  setTimeout(function () { if (!modal.classList.contains('lj-in')) modal.hidden = true; }, 230);
+  if (btn) try { btn.focus({ preventScroll: true }); } catch (e) {}
+}
+function setMode(tag, on, silent) {
+  var A = AD[tag], s = st(tag);
+  s.mode = on ? 'on' : 'off'; s.noted.clear();
+  if (A.setLate) call(A, 'setLate', !!on);
+  if (!on) { // الإيقاف أثناء طلبات معلّقة: تسقط كلها ولا يدخل أحد بعدها
+    s.pending.forEach(function (p, uid) { s.seen.delete(uid); }); s.pending.clear(); s.pendingFollow.clear();
+    if (s.awaiting.size) { s.awaiting.forEach(function (u, uid) { s.seen.delete(uid); }); s.awaiting.clear(); call(A, 'cancel'); }
+  } else { sync(tag); flushPending(tag); }
+  if (!silent && typeof toastFast === 'function') toastFast(on ? '⏱️ استقبال اللاعبين المتأخرين مفعّل' : '⏹ تم إيقاف استقبال اللاعبين المتأخرين');
+  render();
+}
+function flashModal() {
+  if (!modal || modal.hidden) return;
+  var c = modal.querySelector('#lj-card'); c.classList.remove('lj-flash'); void c.offsetWidth; c.classList.add('lj-flash');
+  render();
+}
+function notify(user) {
+  notifyQ.push(nickOf(user));
+  if (notifyT) return;
+  notifyT = setTimeout(function () {
+    notifyT = null; var names = notifyQ.splice(0); if (!names.length) return;
+    if (!notifyEl) {
+      notifyEl = document.createElement('div'); notifyEl.className = 'lj-notify'; notifyEl.id = 'lj-notify'; notifyEl.setAttribute('role', 'status'); notifyEl.setAttribute('aria-live', 'polite');
+      notifyEl.innerHTML = '<span class="lj-n-ico" aria-hidden="true">⏱️</span><div><b></b><small></small></div>';
+      document.body.appendChild(notifyEl);
+    }
+    var title = names.length === 1 ? 'انضم لاعب جديد!' : ('انضم ' + arNum(names.length) + ' لاعبين جدد!');
+    var sub = names.length <= 3 ? names.join('، ') : (names.slice(0, 3).join('، ') + ' و' + arNum(names.length - 3) + ' آخرين');
+    notifyEl.querySelector('b').textContent = title; notifyEl.querySelector('small').textContent = sub;
+    notifyEl.classList.add('lj-in');
+    if (notifyHideT) clearTimeout(notifyHideT);
+    notifyHideT = setTimeout(function () { notifyEl.classList.remove('lj-in'); }, 3200);
+  }, 650);
+}
+
+/* ================================================================
+   دورة الحياة
+   ================================================================ */
+function tick() {
+  var tag = curTag; if (!tag) return;
+  try { sync(tag); absorb(tag); flushPending(tag); confirmAwaiting(tag); render(); } catch (e) { console.warn('[late-join] tick', e); }
+}
+window.lateJoinOnShow = function (page) {
+  var tag = PAGE_TAG[page] || null;
+  if (tag !== curTag) {
+    if (modal && !modal.hidden) closeModal();
+    if (notifyT) { clearTimeout(notifyT); notifyT = null; } notifyQ.length = 0; // إشعارات لعبة سابقة لا تظهر بلعبة جديدة
+    if (notifyEl) notifyEl.classList.remove('lj-in');
+    if (/^(home|setup|setup-.+)$/.test(page)) S = {}; // خروج من اللعبة أو إعداد لعبة جديدة = بداية نظيفة
+    curTag = tag;
+  }
+  if (curTag) { sync(curTag); if (!ticker) ticker = setInterval(tick, TICK_MS); }
+  else if (ticker) { clearInterval(ticker); ticker = null; }
+  ensureButton();
+};
+function init() {
+  wrapStarts();
+  var act = document.querySelector('.page.active');
+  if (act) window.lateJoinOnShow(act.id.replace(/^pg-/, ''));
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+// للاختبارات والتشخيص فقط (قراءة الحالة)
+window.__lateJoin = {
+  adapters: AD, state: function (tag) { return st(tag); }, cur: function () { return curTag; }, sync: sync, effectiveOn: effectiveOn,
+  open: openModal, close: closeModal, setMode: setMode, tick: tick
+};
+})();
+</script>
+<!-- END late-join -->
 
 </body>
 </html>

@@ -935,6 +935,31 @@ function join(id,name,url,isBot){
 }
 function removeChar(p){ if(p.C){ scene.remove(p.C.g); p.C.mats.forEach(function(m){ m.dispose(); }); p.headTex&&p.headTex.dispose(); p.labelT&&p.labelT.dispose(); p.C=null; } }
 
+/* ---------- لاعب متأخر (نظام «لاعب متأخر» بالمنصة) ----------
+   المنصة تتحقق من الأهلية (لم يشارك بالجولة، غير مُقصى، الكلمة صحيحة) ثم تستدعي lateJoin.
+   أثناء التسجيل = انضمام عادي. أثناء المباراة: يدخل طابوراً ويُجلس عند أول نقطة آمنة
+   (بداية الجولة التالية NEXT_ROUND) — لا يقطع دوراناً ولا قراراً جارياً، ولا يُضاف بعد
+   إعلان المواجهة النهائية، ويبدأ بنفس عدد الامتناعات المعتمد بالمباراة. */
+var lateQ=[];
+function lateJoin(id,name,url){
+  id=String(id==null?'':id).trim(); name=cleanName(name); if(!id) return false;
+  if(ST==='JOINING') return join(id,name,url,false);
+  if(!M||M.duel||ST==='GAME_OVER'||ST==='RESULTS'||ST==='IDLE') return false;
+  if(byId(id)||lateQ.some(function(q){ return q.id===id; })) return false;
+  if(players.length+lateQ.length>=CFG.maxP) return false;
+  lateQ.push({id:id,name:name,url:url||''}); log('late_queue',{id:id,name:name}); return true;
+}
+function flushLate(){
+  if(!lateQ.length||!M) return;
+  var q=lateQ.splice(0), added=[];
+  if(M.duel) return;
+  q.forEach(function(x){ if(byId(x.id)||players.length>=CFG.maxP) return; var p=newPlayer(x.id,x.name,x.url,false); p.passes=M.cfg.passes; p.late=true; players.push(p); added.push(p); log('late_join',{id:x.id,name:p.name}); });
+  if(!added.length) return;
+  seatPlayers(); added.forEach(function(p){ placeChar(p); });
+  added.forEach(function(p){ emit('join',{id:p.id,name:p.name,count:players.length,late:true}); });
+  AUD.play('join',0); updateHUD(); persist();
+}
+
 /* ---------- الشات ---------- */
 function chat(id,name,msg,avatarUrl,ts){
   name=cleanName(name); id=String(id==null?'':id).trim(); if(!id) id='name:'+name; msg=String(msg||''); if(!msg.trim()) return;
@@ -992,7 +1017,7 @@ async function runMatch(resume){
       go('COUNTDOWN'); await countdownScene(id);
     }
     while(true){
-      check(id); go('NEXT_ROUND'); var al=alive(); updateHUD();
+      check(id); go('NEXT_ROUND'); flushLate(); var al=alive(); updateHUD();
       if(al.length<=1) break;
       if(al.length===2&&!M.duel){ M.duel=true; go('FINAL_DUEL'); await duelScene(id); }
       await playRound(id);
@@ -1082,7 +1107,7 @@ async function resumeMatch(s){
   }catch(e){ if(e!==ABORT) console.error(e); }
 }
 async function runMatchContinue(id){
-  while(true){ check(id); go('NEXT_ROUND'); var al=alive(); if(al.length<=1) break; if(al.length===2&&!M.duel){ M.duel=true; go('FINAL_DUEL'); await duelScene(id); } await playRound(id); }
+  while(true){ check(id); go('NEXT_ROUND'); flushLate(); var al=alive(); if(al.length<=1) break; if(al.length===2&&!M.duel){ M.duel=true; go('FINAL_DUEL'); await duelScene(id); } await playRound(id); }
   go('GAME_OVER'); await winnerScene(id);
 }
 
@@ -1094,6 +1119,7 @@ window.EhsemhaRoulette={
   start:function(){ startMatch(); }, newMatch:function(){ openLobby(false); }, replay:function(){ openLobby(true); },
   settings:function(o){ if(o){ Object.assign(CFG,o); saveCfg(); } return JSON.parse(JSON.stringify(CFG)); },
   getState:function(){ return {state:ST,players:players.map(function(p){return {id:p.id,name:p.name,alive:p.alive,passes:p.passes,survived:p.survived};}),round:M?M.round:0,pending:M&&M.pending?{pid:M.pending.pid}:null,chat:chatStatus}; },
+  lateJoin:function(id,name,url){ return lateJoin(id,name,url); }, lateQueue:function(){ return lateQ.map(function(q){ return q.id; }); }, lateCancel:function(){ var n=lateQ.length; lateQ=[]; return n; },
   results:function(){ return buildResults(); }, streamMode:function(v){ setStream(v); }, stop:function(){ runId++; }
 };
 
