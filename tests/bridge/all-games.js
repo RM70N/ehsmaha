@@ -20,8 +20,8 @@ function guard(promise, label, stuck) {
 const FROM = Number(process.env.FROM || 1), TO = Number(process.env.TO || 99);
 
 // سقوف اللاعبين قواعد لعب (ما تُغيَّر) — نضبطها لأعلى قيمة يسمح بها الإعداد نفسه
-const CAPS = { cr: ['cr-maxracers', 30], mz: ['mz-maxplayers', 30], ev: ['ev-maxplayers', 40], rlgl: ['rlgl-max-players', 50], glz: ['glz-maxplayers', 40], 'volcanic-lands': ['volcanic-lands-maxplayers', 60] };
-const ROUND = { gw: 'gwStartRound', main: 'startRound', sniper: 'startSniperRound', hz: 'startHzRound', rou: 'startRouletteRound', bomb: 'startBombRound', box: 'startBoxRound', cr: 'startCrRound', mz: 'startMzRound', ev: 'startEvRound', ll: 'startLastLetterRound', wai: 'startWAIRound', ig: 'startIGRound', rw: 'startRWRound', pgs: 'startPGRound', lsc: 'startLSCRound', wr: 'startWRRound', draw: 'startDrawRound', cw: 'startCountryWarRound', cs: 'startCrownStealRound', chairs: 'chairsStartRoundClick', findball: 'findballStartRoundClick', tug: 'startTugRound', rlgl: 'startRlglRound', 'volcanic-lands': 'vlStart' };
+const CAPS = { cr: ['cr-maxracers', 30], mz: ['mz-maxplayers', 30], ev: ['ev-maxplayers', 40], rlgl: ['rlgl-max-players', 50], glz: ['glz-maxplayers', 40], 'volcanic-lands': ['volcanic-lands-maxplayers', 60], cannon: ['cannon-s-max', 100] };
+const ROUND = { gw: 'gwStartRound', main: 'startRound', sniper: 'startSniperRound', hz: 'startHzRound', rou: 'startRouletteRound', bomb: 'startBombRound', box: 'startBoxRound', cr: 'startCrRound', mz: 'startMzRound', ev: 'startEvRound', ll: 'startLastLetterRound', wai: 'startWAIRound', ig: 'startIGRound', rw: 'startRWRound', pgs: 'startPGRound', lsc: 'startLSCRound', wr: 'startWRRound', draw: 'startDrawRound', cw: 'startCountryWarRound', cs: 'startCrownStealRound', chairs: 'chairsStartRoundClick', findball: 'findballStartRoundClick', tug: 'startTugRound', rlgl: 'startRlglRound', 'volcanic-lands': 'vlStart', cannon: 'cannonStartRound' };
 const PMAP_VL = "({ size: (document.getElementById('volcanic-lands-lobby-grid') || { children: [] }).children.length })";
 
 (async () => {

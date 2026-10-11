@@ -10,7 +10,7 @@ Protobuf حقيقي من نفس تعريفات المكتبة). المتصفح (
 cd tiktok-server && npm install --ignore-scripts && cd ..
 tests/bridge/servers.sh start            # السيرفران الوهميان
 node tests/bridge/scenarios.js all       # قياسات: follow/listeners/outage/load/sockets
-node tests/bridge/all-games.js           # الـ29 لعبة: ربط ← فتح ← انضمام ← لعب ← رجوع
+node tests/bridge/all-games.js           # الـ30 لعبة: ربط ← فتح ← انضمام ← لعب ← رجوع
 node tests/bridge/normalize.test.js      # تطبيع الكلمة والأرقام (28 حالة)
 node tests/bridge/diag.test.js           # لوحة التشخيص: سبب كل محاولة انضمام
 node tests/bridge/platforms-smoke.test.js  # تويتش/كيك/يوتيوب/ديسكورد
@@ -26,6 +26,51 @@ EULER_API_KEY=dummy-test-key PORT=18095 CTL_PORT=19095 node tests/bridge/start-s
 T_PORT=18095 T_CTL=19095 node tests/bridge/bridge-contract.test.js
 # الواجهة: حذف حقل مفتاح EulerStream بفعالية 100 + extractUser (بدون سيرفرات):
 node tests/bridge/frontend-contract.test.js
+```
+
+## الصفحة الرئيسية (تصميم Lobby)
+
+```bash
+PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tests/bridge/lobby.test.js   # 62 فحصاً، بدون سيرفرات
+```
+يفتح `index.html` الحقيقي ويتحقق: حذف التصميم القديم، الشبكة (30 بطاقة، المدفع البشري أولها) مرسومة من سجل `#pg-home .games-grid .gcard`
+بنفس الترتيب والأسماء، البحث والفلاتر (تطبيع عربي)، نافذة التفاصيل (كيبورد/Escape/تثبيت التركيز)،
+زر "ابدأ اللعبة" يستدعي دالة كل لعبة من الـ30، شارات المالك والصيانة والترتيب والتثبيت، أوضاع اللعب،
+شارة الاتصال/العدّاد/الفعالية/ديسكورد، الكتلة العلوية اليمنى، الجوال (bottom-sheet وأهداف اللمس)،
+وتقليل الحركة، وهروب HTML، وظهور لعبة جديدة تُضاف للسجل تلقائياً.
+
+## المدفع البشري (لعبة ثلاثية الأبعاد)
+
+```bash
+tests/bridge/servers.sh start
+PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tests/bridge/cannon.test.js
+```
+رحلة كاملة عبر سيرفر الجسر الحقيقي: الكرت أول لعبة بالمكتبة بتصميم ملف الكرت، شاشة الإعداد (القيم الافتراضية والمعاينة الحيّة)،
+ربط البث من نافذة الربط السريع مع استئناف اللعبة تلقائياً، الانتظار (انضمام بصيَغ الكلمة، شرط الفولو، طرد، ريست، المؤقّت)،
+الراوند داخل iframe (Three.js): أوامر «زاوية قوة» وقصّ الزاوية، هدايا البث كقوى، رميات متعددة، انضمام متأخر، نافذة العقوبة،
+الفائز يُسجَّل بلوحة المتصدرين ثم الرجوع لجولة جديدة، الخروج، وفشل تحميل Three.js.
+Three.js يُحمَّل من CDN بالموقع؛ بيئة الاختبار تخدمه محلياً من `fixtures/three-r128` (نفس ملفات r128) عبر `harness.routeThree`.
+
+## «لاعب متأخر» (كل ألعاب الستريمر الـ31)
+
+```bash
+tests/bridge/servers.sh start
+PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright CYCLES=5 node tests/bridge/late-join.test.js   # أو: ... late-join.test.js main,cr,chairs
+PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tests/bridge/late-join-extra.test.js
+```
+لكل لعبة: بدء جولة ← زر «لاعب متأخر» واحد بلوحتها ← بدون تفعيل لا يدخل أحد (الألعاب غير المفتوحة) ← النافذة (الكلمة الفعلية،
+مربعة #160F22) ← المتأخر يدخل كلاعب حقيقي ومدمج بمنطق اللعبة (طابور/دور/خانة/مسار/عجلة/بطاقة…) ← تكرار ×7 مع تغيير الاسم
+بلا تكرار ← من أُقصي/خرج بالجولة لا يرجع ← إيقاف الاستقبال فعلي ← دفعة ٢٥ متأخر متزامنين ← تغيير الكلمة ← جولة جديدة تصفّر
+الأهلية. الإضافي: ١٠٠ متأخر دفعة وحدة (أداء وإشعار مجمّع)، انقطاع البث، شرط الفولو، طلبات معلّقة تسقط عند الإيقاف/انتهاء
+الجولة (الكرسي)، التنقّل بين ١٠ ألعاب بلا تكرار أزرار/معالجات، والجوال (390px).
+مفاتيح اختبار فقط: `window.CANNON_ENTRY_SECONDS` (مدة نافذة الأوامر، الافتراضي 14) و`window.CANNON_TICK_MS` (تسريع عدّاد الانضمام).
+
+## شاشات ألعاب الستريمر (تصميم Game Screens)
+
+```bash
+tests/bridge/servers.sh start
+PLAYWRIGHT_PATH=... node tests/bridge/game-screens.test.js         # 19 فحصاً: الهيكل، الألوان، المعاينة الحيّة، لعب حقيقي (قنبلة)، الجوال
+PLAYWRIGHT_PATH=... node tests/bridge/game-shots.js /tmp/shots 14   # لقطات انتظار/راوند لكل الـ30 لعبة للمراجعة البصرية
 ```
 
 ## طابور الاتصال والتعافي (شكوى "خدمة تيك توك مزدحمة… انتظر دقيقة")
@@ -48,3 +93,12 @@ Playwright غير مثبّت محلياً بالمستودع: مرّر مسار�
 - `start-server.js` يفتح منفذ تحكم (19081/19082): `POST /ctl` بأوامر `chat/burst/mode/dropUpstream/...`، و`GET /stats`.
 - `results-before.json` / `results-after.json`: القياسات قبل وبعد الإصلاحات.
 - `REPORT.md`: التقرير الكامل. `MANUAL-TEST.md`: اختبار البث الحقيقي.
+
+## مؤقّتات جولة قديمة بعد الريست/الخروج
+
+```bash
+PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tests/bridge/stale-timers.test.js
+```
+اعثر على الكورة: ريست/خروج أثناء الإخفاء أو الخلط لا يرمي أخطاء ولا يقلب الحالة، والجولة التالية تكمل طبيعياً.
+الطريق الزجاجي: الخروج أثناء كشف الإجابة أو السؤال لا يبدأ سؤالاً جديداً بالخلفية ولا يفتح شاشة الفوز فوق صفحة ثانية.
+(على النسخة السابقة: 2/7 — بعد الإصلاح: 7/7.)
