@@ -27557,8 +27557,10 @@ function disconnectAllGames() {
   drawDisconnectWS(); drawGameStatus = 'finished';
   cwDisconnectWS(); cwGameStatus = 'finished';
   csDisconnectWS(); csGameStatus = 'finished'; if (csRafId) { cancelAnimationFrame(csRafId); csRafId = null; }
-  findballDisconnectWS(); findballGameStatus = 'finished'; if (findballGuessTimerInterval) { clearInterval(findballGuessTimerInterval); findballGuessTimerInterval = null; }
+  findballDisconnectWS(); findballGameStatus = 'finished'; findballRunId++; findballShuffling = false; if (findballGuessTimerInterval) { clearInterval(findballGuessTimerInterval); findballGuessTimerInterval = null; }
   chairsDisconnectWS(); chairsGameStatus = 'finished';
+  // الطريق الزجاجي: الرجوع للرئيسية يوقف مؤقّت السؤال وأي كشف معلّق (نفس glzQuit) حتى ما تكمل اللعبة بالخلفية
+  if (typeof glzRunId !== 'undefined' && glzGameStatus !== 'finished') { glzGameStatus = 'finished'; glzRunId++; if (glzTimerInterval) { clearInterval(glzTimerInterval); glzTimerInterval = null; } }
   if (mzReconnectTimer) { clearTimeout(mzReconnectTimer); mzReconnectTimer = null; } if (mzWs) { try { mzWs.close(1000); } catch(e){} mzWs = null; } mzGameStatus = 'finished';
 }
 
@@ -50230,6 +50232,9 @@ let FINDBALL_SWAP_COUNT = 6;
 let findballRevivalEnabled = false;
 let findballRevivalMaxUses = 2;
 let findballShuffling = false;
+// رقم تشغيل الجولة: الريست يغيّره فتتوقف مؤقّتات الإخفاء/الخلط/الكشف المعلّقة من الجولة السابقة
+// (قبل: ريست أثناء خلط الأكواب يترك doSwap شغّالاً على أكواب ممسوحة فيرمي خطأ ويقلب الحالة لاحقاً)
+let findballRunId = 0;
 let findballGuessTimerEnabled = true;
 let FINDBALL_GUESS_TIMER_SECONDS = 10;
 let findballGuessTimerInterval = null;
@@ -50972,6 +50977,7 @@ function initFindballDashboard() {
   findballLastWinningSlot = null;
   findballRoundNum = 0;
   findballShuffling = false;
+  findballRunId++;
   findballGameStatus = 'waiting';
   findballConnectedOnce = false;
   findballSetGameStatus('waiting');
@@ -51277,6 +51283,7 @@ function findballRedrawNumbers() {
 // enforced in findballShuffle() below, against the previous round's REVEALED
 // slot (findballLastWinningSlot), which is what the player actually sees.
 function findballHideBall() {
+  const run = ++findballRunId;
   const hiddenSlot = 1 + Math.floor(Math.random() * 3);
   const cupId = findballCupInSlot[hiddenSlot];
   const cupEl = document.getElementById('findball-cup-' + cupId);
@@ -51284,10 +51291,13 @@ function findballHideBall() {
 
   cupEl.classList.add('lifted');
   setTimeout(() => {
+    if (run !== findballRunId) return;
     ballEl.classList.add('show');
     setTimeout(() => {
+      if (run !== findballRunId) return;
       cupEl.classList.remove('lifted');
       setTimeout(() => {
+        if (run !== findballRunId) return;
         ballEl.classList.remove('show');
         findballGameStatus = 'shuffling';
         findballSetGameStatus('shuffling');
@@ -51315,7 +51325,9 @@ function findballShuffle(ballCupId) {
   ['a', 'b', 'c'].forEach(cupId => document.getElementById('findball-cup-' + cupId).classList.add('shuffling'));
 
   let step = 0;
+  const run = findballRunId;
   function doSwap() {
+    if (run !== findballRunId) return; // جولة قديمة أُلغيت بريست/خروج
     step++;
     const cupIds = ['a', 'b', 'c'];
     const cupA = cupIds[Math.floor(Math.random() * 3)];
@@ -51452,7 +51464,8 @@ function findballRevealBall() {
     el.classList.add(cupId === winningCupId ? 'correct' : 'wrong');
   });
 
-  setTimeout(() => findballResolveRound(winningSlot), 900);
+  const run = findballRunId;
+  setTimeout(() => { if (run === findballRunId) findballResolveRound(winningSlot); }, 900);
 }
 
 function findballResolveRound(winningCup) {
@@ -87502,6 +87515,9 @@ let glzRound = 0;
 let glzUsedIdx = [];
 let glzCurrentQuestion = null;
 let glzTimerInterval = null, glzTimeLeft = 0;
+// رقم تشغيل اللعبة: الخروج أو لعبة جديدة يغيّره، فمؤقّتات كشف الإجابة المعلّقة لا تبدأ سؤالاً جديداً
+// بالخلفية ولا تفتح شاشة الفوز فوق لعبة ثانية (قبل: الخروج أثناء الكشف يكمل اللعبة بالخلفية).
+let glzRunId = 0;
 let glzSimMode = false;
 
 function goSetupGlz() { show('setup-glz'); }
@@ -87629,6 +87645,7 @@ function glzLaunch() {
 
   if (!homeHasActiveConnection() || !glzTiktokUser) return glzSetStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
 
+  glzRunId++;
   glzJoinKeyword = (document.getElementById('glz-join-kw').value || 'زجاج').trim() || 'زجاج';
   glzMaxPlayers = Math.max(2, Math.min(40, parseInt(document.getElementById('glz-maxplayers').value, 10) || 20));
   glzRoundSeconds = Math.max(8, Math.min(30, parseInt(document.getElementById('glz-round-seconds').value, 10) || 15));
@@ -87908,6 +87925,7 @@ function glzRenderRoster() {
 function glzResolveRound() {
   if (glzGameStatus !== 'active') return;
   glzGameStatus = 'resolving';
+  const run = glzRunId;
   if (glzTimerInterval) { clearInterval(glzTimerInterval); glzTimerInterval = null; }
 
   const q = glzCurrentQuestion;
@@ -87954,13 +87972,14 @@ function glzResolveRound() {
         toast('💥 سقط ' + eliminated.length + ' من على الزجاج المكسور: ' + names);
       }
       setTimeout(() => {
+        if (run !== glzRunId) return; // خرج الستريمر أو بدأ لعبة جديدة أثناء الكشف
         eliminated.forEach(uid => glzAlive.delete(uid));
         glzRenderRoster();
         document.getElementById('glz-alive-num').textContent = glzAlive.size;
         if (glzAlive.size <= 1) {
           glzShowWinner();
         } else {
-          setTimeout(() => glzStartRound(), 1100);
+          setTimeout(() => { if (run === glzRunId) glzStartRound(); }, 1100);
         }
       }, 750);
     }, 900);
@@ -88024,6 +88043,8 @@ function glzShowWinner() {
 
 function glzQuit() {
   glzGameStatus = 'finished';
+  glzRunId++;
+  if (glzTimerInterval) { clearInterval(glzTimerInterval); glzTimerInterval = null; }
   glzDisconnectWS();
   if (typeof homeUnregisterGameListener === 'function') homeUnregisterGameListener('glz');
   show('home');

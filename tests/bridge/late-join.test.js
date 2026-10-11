@@ -65,9 +65,7 @@ const C = {
     elim: 'cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1), cwEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'cwKeyword', n: 4,
     deep: 'cwAssignments.has(uid)' },
   draw: { g: G('draw'), kind: 'native', noKw: true, isIn: 'drawParticipants.has(uid)', start: 'startDrawRound()', lobby: RESET, n: 0 },
-  findball: { g: G('findball'), drive: "findballGameStatus === 'guessing' && [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup)))", isIn: 'findballParticipants.has(uid)', start: 'findballStartRoundClick()', elim: 'findballParticipants.delete(uid), findballEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'findballKeyword', staged: "findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'", n: 4,
-    // ريست أثناء خلط الأكواب يترك مؤقّت doSwap شغّال (خلل قديم بالنسخة الأصلية، خارج نطاق هذه الميزة) — نعمل الريست بعد الخلط
-    lobbyWhen: "findballGameStatus !== 'shuffling' && findballGameStatus !== 'hiding'" },
+  findball: { g: G('findball'), drive: "findballGameStatus === 'guessing' && [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup)))", isIn: 'findballParticipants.has(uid)', start: 'findballStartRoundClick()', elim: 'findballParticipants.delete(uid), findballEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'findballKeyword', staged: "findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'", n: 4 },
   chairs: { g: G('chairs'), isIn: 'chairsParticipants.has(uid)', start: 'chairsStartRoundClick()', elim: 'chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'chairsKeyword', staged: "chairsGameStatus === 'finished-round'", n: 5,
     drive: "chairsGameStatus === 'claiming' && [...chairsParticipants.values()].forEach((u, i) => chairsProcessClaim(u, String(chairsActiveChairNumbers[i] || 0)))" },
   tug: { g: G('tug'), afterJoin: async () => { await say('tug_b0', 'ازرق'); await say('tug_b1', 'ازرق'); }, isIn: '!!tugTeamOf(uid)', start: 'startTugRound()', lobby: RESET, kwVar: 'tugTeamAKw', deep: "tugTeamOf(uid) === 'a'" },
@@ -224,7 +222,6 @@ async function runGame(page, tag) {
   // 12) جولة جديدة = أهلية جديدة
   if (c.lobby) {
     const r0 = await lj(page, tag);
-    if (c.lobbyWhen) await waitFor(page, (e) => (0, eval)(e), c.lobbyWhen, 30000);
     page.once('dialog', (d) => d.accept().catch(() => {}));
     await ev(page, c.lobby); await sleep(900);
     const s = await lj(page, tag);
@@ -232,8 +229,6 @@ async function runGame(page, tag) {
   }
   // الخروج من اللعبة بزر الخروج الخاص بها (مثل الستريمر) — goHome وحده لا يوقف مؤقّتات بعض الألعاب
   const EXIT = { glz: 'glzQuit()', tt10: 'tt10Quit()', roulette3d: 'rr3dGoHome()', 'volcanic-lands': 'vlGoHome()' };
-  // الطريق الزجاجي: الخروج أثناء كشف الإجابة يترك مؤقّت الجولة التالية يكمل بالخلفية (خلل قديم خارج نطاق الميزة) — نخرج أثناء السؤال
-  if (tag === 'glz') await waitFor(page, () => glzGameStatus === 'active' || glzGameStatus === 'finished', null, 30000);
   if (EXIT[tag]) { await ev(page, EXIT[tag]); await sleep(300); }
   const errs = page._errors.slice(err0);
   check('بدون أخطاء JavaScript', errs.length === 0, errs.slice(0, 3));
