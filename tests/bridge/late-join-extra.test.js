@@ -82,7 +82,7 @@ const G = (tag) => Object.assign({}, games.find((g) => g.tag === tag));
   check('الزر: تأثير hover (رفع) وضغط (تصغير) بانتقال سلس', tr0 !== hovT && hovT !== 'none' && actT !== hovT && /matrix/.test(actT), { tr0, hovT, actT });
 
   // ===== 4) التنقّل بين الألعاب: زر واحد، مؤقّت واحد، معالجات بلا تكرار =====
-  const tags = ['sniper', 'rou', 'bomb', 'box', 'cr', 'mz', 'ev', 'll', 'main', 'gw'];
+  const tags = ['sniper', 'rou', 'hz', 'box', 'cr', 'mz', 'ev', 'll', 'main', 'gw'];
   const seen = [];
   for (const t of tags) {
     await page.evaluate(() => { try { goHome(); } catch (e) {} }); await sleep(200);

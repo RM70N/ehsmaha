@@ -11,11 +11,11 @@ const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail !== undefined ? '  ' + JSON.stringify(detail) : '')); };
 const hideLoader = (p) => p.evaluate(() => { const l = document.getElementById('auth-loader'); if (l) l.style.display = 'none'; });
 
-// صفحات الألعاب الـ29: [وسم، صفحة الإعداد، صفحة اللعبة، لون التصنيف]
+// صفحات الألعاب الـ28 (القنبلة صارت لعبة 3D بإطار مستقل — يغطيها bomb3d.test.js): [وسم، صفحة الإعداد، صفحة اللعبة، لون التصنيف]
 const PAGES = [
   ['cr', 'setup-cr', 'cr', '#A78BFF'], ['ev', 'setup-ev', 'ev', '#F59E0B'], ['main', 'setup', 'dash', '#22D3EE'], ['guessword', 'setup-guessword', 'guessword', '#22D3EE'],
   ['sniper', 'setup-sniper', 'sniper', '#F59E0B'], ['battery', 'setup-battery', 'battery', '#A78BFF'], ['rou', 'setup-roulette', 'roulette', '#F59E0B'], ['tmr', 'setup-timer', 'timer', '#22D3EE'],
-  ['bomb', 'setup-bomb', 'bomb', '#F59E0B'], ['ll', 'setup-lastletter', 'lastletter', '#A78BFF'], ['wai', 'setup-whoami', 'whoami', '#22D3EE'], ['rw', 'setup-reverseword', 'reverseword', '#A78BFF'],
+  ['ll', 'setup-lastletter', 'lastletter', '#A78BFF'], ['wai', 'setup-whoami', 'whoami', '#22D3EE'], ['rw', 'setup-reverseword', 'reverseword', '#A78BFF'],
   ['pgs', 'setup-priceguess', 'priceguess', '#22D3EE'], ['cs', 'setup-crownsteal', 'crownsteal', '#A78BFF'], ['lsc', 'setup-letterscramble', 'letterscramble', '#A78BFF'], ['cw', 'setup-countrywar', 'countrywar', '#F59E0B'],
   ['box', 'setup-box', 'box', '#F59E0B'], ['chairs', 'setup-chairs', 'chairs', '#F59E0B'], ['findball', 'setup-findball', 'findball', '#22D3EE'], ['wr', 'setup-wordrace', 'wordrace', '#A78BFF'],
   ['draw', 'setup-draw', 'draw', '#22D3EE'], ['tug', 'setup-tug', 'tug', '#34D399'], ['rlgl', 'setup-rlgl', 'rlgl', '#F59E0B'], ['maze', 'setup-maze', 'maze', '#A78BFF'],
@@ -41,13 +41,13 @@ const PAGES = [
   }), PAGES);
   const CLASSIC = ['rou', 'cw', 'volcanic-lands'];
   const badStruct = struct.filter((x) => CLASSIC.includes(x.tag) ? !(x.setupPreview && x.pvSetup && !x.main && x.titleAny) : !(x.setupPreview && x.pvSetup && x.pv && x.top && x.main && x.side && x.stage && x.foot && x.title));
-  check('كل الـ29 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
+  check('كل الـ28 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
 
   // ---------- 2) ألوان التصنيف ----------
   const colors = await page.evaluate((P) => P.map(([tag, s, g, c]) => [tag, getComputedStyle(document.getElementById('pg-' + g)).getPropertyValue('--gs-c').trim().toUpperCase(), getComputedStyle(document.getElementById('pg-' + s)).getPropertyValue('--gs-c').trim().toUpperCase(), c]), PAGES);
   const badC = colors.filter((x) => (CLASSIC.includes(x[0]) ? x[2] !== x[3] : (x[1] !== x[3] || x[2] !== x[3])));
   check('لون كل لعبة بإعدادها وانتظارها حسب تصنيفها (دردشة بنفسجي، حظ كهرماني، تخمين سماوي، فرق أخضر)', badC.length === 0, badC);
-  const pills = await page.evaluate(() => ['bomb', 'cr', 'tmr', 'tug'].map((t) => { const id = { bomb: 'bomb', cr: 'cr', tmr: 'timer', tug: 'tug' }[t]; return getComputedStyle(document.querySelector('#pg-' + id + ' .gth-name'), '::after').content; }));
+  const pills = await page.evaluate(() => ['sniper', 'cr', 'tmr', 'tug'].map((t) => { const id = { sniper: 'sniper', cr: 'cr', tmr: 'timer', tug: 'tug' }[t]; return getComputedStyle(document.querySelector('#pg-' + id + ' .gth-name'), '::after').content; }));
   check('شارة التصنيف بجانب اسم اللعبة (حظ/دردشة/تخمين/فرق)', pills.join() === '"حظ","دردشة","تخمين","فرق"', pills);
 
   // ---------- 3) معاينة الراوند الحيّة بالإعداد: تتغيّر مع كل إعداد ----------
@@ -75,7 +75,7 @@ const PAGES = [
   await setVal('#hz-kw', 'العب');
   check('لعبة بلا مشهد مخصّص (ضربة الحظ): رسمة اللعبة + الكلمة المفتاحية بالمعاينة', await page.evaluate(() => { const p = document.querySelector('#pg-setup-hz .gs-pv-stage'); return !!p.querySelector('.pv-art svg') && p.querySelector('.pv-join b').textContent === 'العب'; }));
   const pvAll = await page.evaluate((P) => P.map(([tag, s]) => { const el = document.querySelector('#pg-' + s + ' .gs-pv-stage'); return [tag, !!el && el.innerHTML.length > 80]; }).filter((x) => !x[1]), PAGES);
-  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ29', pvAll.length === 0, pvAll);
+  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ28', pvAll.length === 0, pvAll);
   await page.evaluate(() => show('setup-cr')); await sleep(250);
   const nav = await page.evaluate(() => { const b = document.querySelector('#pg-setup-cr .btn-primary'); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderRadius }; });
   check('زر "ابدأ اللعبة" كبير دائري بلون التصنيف (72px)', nav.h >= 70 && nav.bg === 'rgb(167, 139, 255)' && parseInt(nav.radius) >= 100, nav);
@@ -95,43 +95,43 @@ const PAGES = [
   check('الأراضي البركانية: إعدادات المدة والصعوبة تنعكس بتذييل المعاينة', await page.evaluate(() => { const f = document.querySelector('#pg-setup-volcanic-lands .gs-pv-stage .pv-foot'); return !!f && /35/.test(f.textContent); }));
 
   // ---------- 4) لعب حقيقي: انتظار ← انضمام ← راوند ----------
-  const g = games.find((x) => x.tag === 'bomb');
+  const g = games.find((x) => x.tag === 'box');
   await page.evaluate(() => { try { goHome(); } catch (e) {} });
   await H.launch(page, g);
   await hideLoader(page);
   await sleep(300);
-  const w0 = await page.evaluate(() => { const p = document.getElementById('pg-bomb'); return { helper: p.querySelector('.gs-helper').textContent, idle: getComputedStyle(p.querySelector('.gs-stage-pv')).display, pvH: p.querySelector('.gs-stage-pv').getBoundingClientRect().height, chat: getComputedStyle(p.querySelector('.panel-right')).display, strip: p.querySelector('.status-strip').className }; });
+  const w0 = await page.evaluate(() => { const p = document.getElementById('pg-box'); return { helper: p.querySelector('.gs-helper').textContent, idle: getComputedStyle(p.querySelector('.gs-stage-pv')).display, pvH: p.querySelector('.gs-stage-pv').getBoundingClientRect().height, chat: getComputedStyle(p.querySelector('.panel-right')).display, strip: p.querySelector('.status-strip').className }; });
   check('الشات الجانبي محذوف (panel-right مخفي) والمسرح بعرض الصفحة', w0.chat === 'none', w0.chat);
   check('انتظار: نص مساعد "بانتظار أول مشارك" ومعاينة الراوند ظاهرة وشارة "waiting"', w0.helper === 'بانتظار أول مشارك' && w0.idle === 'flex' && /waiting/.test(w0.strip) && w0.pvH > 300, w0);
-  await H.ctl(H.PRIMARY, { cmd: 'burst', user: STREAMER, count: 6, prefix: 'bomb_p', text: 'ادخل', identity: { isFollowerOfAnchor: true }, perMs: 40 });
+  await H.ctl(H.PRIMARY, { cmd: 'burst', user: STREAMER, count: 6, prefix: 'box_p', text: 'ادخل', identity: { isFollowerOfAnchor: true }, perMs: 40 });
   await sleep(1500);
-  const w1 = await page.evaluate(() => { const p = document.getElementById('pg-bomb'); return { helper: p.querySelector('.gs-helper').textContent, count: p.querySelector('.participants-big-count').textContent, chips: p.querySelectorAll('.participants-usernames .p-username-tag').length, grid: getComputedStyle(p.querySelector('.participants-usernames')).gridTemplateColumns.split(' ').length, kwChip: p.querySelector('.game-special-btn b').textContent }; });
+  const w1 = await page.evaluate(() => { const p = document.getElementById('pg-box'); return { helper: p.querySelector('.gs-helper').textContent, count: p.querySelector('.participants-big-count').textContent, chips: p.querySelectorAll('.participants-usernames .p-username-tag').length, grid: getComputedStyle(p.querySelector('.participants-usernames')).gridTemplateColumns.split(' ').length, kwChip: p.querySelector('.game-special-btn b').textContent }; });
   check('انضمام 6 لاعبين: العدّاد 6، رقائق اللاعبين بعمودين، النص المساعد، شريحة الكلمة', w1.count === '6' && w1.chips === 6 && w1.grid === 2 && /6 لاعب جاهز/.test(w1.helper) && w1.kwChip === 'ادخل', w1);
-  const geom = await page.evaluate(() => { const p = document.getElementById('pg-bomb'); const m = p.querySelector('.gs-main').getBoundingClientRect(); const s = p.querySelector('.gs-side').getBoundingClientRect(); const st = p.querySelector('.gs-stage').getBoundingClientRect(); return { sideRight: s.left > st.left, noOverlap: s.left >= st.right - 1 || st.left >= s.right - 1, within: s.right <= m.right + 1 && st.left >= m.left - 1 }; });
+  const geom = await page.evaluate(() => { const p = document.getElementById('pg-box'); const m = p.querySelector('.gs-main').getBoundingClientRect(); const s = p.querySelector('.gs-side').getBoundingClientRect(); const st = p.querySelector('.gs-stage').getBoundingClientRect(); return { sideRight: s.left > st.left, noOverlap: s.left >= st.right - 1 || st.left >= s.right - 1, within: s.right <= m.right + 1 && st.left >= m.left - 1 }; });
   check('عمود الانضمام يمين المسرح (RTL) بدون تراكب', geom.sideRight && geom.noOverlap && geom.within, geom);
-  await page.evaluate(async () => { await startBombRound(); });
+  await page.evaluate(async () => { await startBoxRound(); });
   await sleep(1200);
-  const r1 = await page.evaluate(() => { const p = document.getElementById('pg-bomb'); const st = p.querySelector('.gs-stage'); return { live: st.classList.contains('has-live'), idle: getComputedStyle(p.querySelector('.gs-stage-pv')).display, strip: p.querySelector('.status-strip').className, helper: p.querySelector('.gs-helper').textContent, bomb: getComputedStyle(p.querySelector('#bomb-stage')).display, bg: getComputedStyle(p.querySelector('.status-strip')).backgroundColor }; });
-  check('الراوند: المسرح يعرض القنبلة ويخفي الغلاف، الشارة خضراء "active"، والنص "الشات يتحكم"', r1.live && r1.idle === 'none' && /active/.test(r1.strip) && r1.bomb !== 'none' && r1.bg === 'rgb(52, 211, 153)' && /الشات يتحكم/.test(r1.helper), r1);
+  const r1 = await page.evaluate(() => { const p = document.getElementById('pg-box'); const st = p.querySelector('.gs-stage'); return { live: st.classList.contains('has-live'), idle: getComputedStyle(p.querySelector('.gs-stage-pv')).display, strip: p.querySelector('.status-strip').className, helper: p.querySelector('.gs-helper').textContent, bomb: getComputedStyle(p.querySelector('#box-stage')).display, bg: getComputedStyle(p.querySelector('.status-strip')).backgroundColor }; });
+  check('الراوند: المسرح يعرض المسرح ويخفي الغلاف، الشارة خضراء "active"، والنص "الشات يتحكم"', r1.live && r1.idle === 'none' && /active/.test(r1.strip) && r1.bomb !== 'none' && r1.bg === 'rgb(52, 211, 153)' && /الشات يتحكم/.test(r1.helper), r1);
   await page.mouse.move(600, 500); await sleep(450);
-  const live = await page.evaluate(() => { const p = document.getElementById('pg-bomb'); const R = (e) => e.getBoundingClientRect(); const st = p.querySelector('.gs-stage'); const foot = p.querySelector('.gs-foot');
+  const live = await page.evaluate(() => { const p = document.getElementById('pg-box'); const R = (e) => e.getBoundingClientRect(); const st = p.querySelector('.gs-stage'); const foot = p.querySelector('.gs-foot');
     return { cls: p.classList.contains('gs-live'), side: getComputedStyle(p.querySelector('.gs-side')).display, top: getComputedStyle(p.querySelector('.gs-top')).display, bar: getComputedStyle(p.querySelector('.top-bar')).display, pos: getComputedStyle(st).position, w: Math.round(R(st).width), h: Math.round(R(st).height), iw: innerWidth, ih: innerHeight, footOp: getComputedStyle(foot).opacity, zoom: parseFloat(p.style.getPropertyValue('--gs-zoom')), helper: getComputedStyle(p.querySelector('.gs-helper')).display }; });
   check('الراوند بملء الشاشة: كل شيء مخفي (العنوان/الانضمام/العدّاد/الأزرار) والمسرح fixed بحجم النافذة', live.cls && live.side === 'none' && live.top === 'none' && live.bar === 'none' && live.pos === 'fixed' && live.w === live.iw && live.h === live.ih && live.footOp === '0' && live.helper === 'none', live);
   check('محتوى الراوند يكبّر ليملأ الشاشة (zoom > 1)', live.zoom > 1.2, live.zoom);
   await page.mouse.move(600, 6); await sleep(500);
-  const bar = await page.evaluate(() => { const f = document.querySelector('#pg-bomb .gs-foot'); return { op: getComputedStyle(f).opacity, btns: Array.from(f.querySelectorAll('button')).filter((b) => b.offsetParent !== null).map((b) => b.className.split(' ')[0]) }; });
+  const bar = await page.evaluate(() => { const f = document.querySelector('#pg-box .gs-foot'); return { op: getComputedStyle(f).opacity, btns: Array.from(f.querySelectorAll('button')).filter((b) => b.offsetParent !== null).map((b) => b.className.split(' ')[0]) }; });
   check('عند تمرير الماوس أعلى الشاشة يظهر شريط (رئيسية/ريست/اطرد لاعب) فقط', bar.op === '1' && bar.btns.includes('btn-home') && bar.btns.includes('btn-reset') && bar.btns.includes('btn-kick') && !bar.btns.includes('btn-start-round'), bar);
   await page.mouse.move(600, 500);
-  await page.evaluate(() => { const st = document.querySelector('#pg-bomb .status-strip'); st.className = 'status-strip finished'; }); await sleep(600);
-  check('عند انتهاء الراوند (الشارة finished) يرجع هيكل الانتظار ويزول وضع الملء الكامل', await page.evaluate(() => { const p = document.getElementById('pg-bomb'); return !p.classList.contains('gs-live') && getComputedStyle(p.querySelector('.gs-side')).display !== 'none'; }));
+  await page.evaluate(() => { const st = document.querySelector('#pg-box .status-strip'); st.className = 'status-strip finished'; }); await sleep(600);
+  check('عند انتهاء الراوند (الشارة finished) يرجع هيكل الانتظار ويزول وضع الملء الكامل', await page.evaluate(() => { const p = document.getElementById('pg-box'); return !p.classList.contains('gs-live') && getComputedStyle(p.querySelector('.gs-side')).display !== 'none'; }));
   // زر "ابدأ الراوند" و"رئيسية" و"ريست" ما زالت تعمل
-  const btnIds = await page.evaluate(() => ['bomb-btn-round'].map((i) => !!document.getElementById(i)).concat([!!document.querySelector('#pg-bomb .gs-foot .btn-home'), !!document.querySelector('#pg-bomb .gs-foot .btn-reset'), !!document.querySelector('#pg-bomb .gs-foot .btn-kick')]));
+  const btnIds = await page.evaluate(() => ['box-btn-round'].map((i) => !!document.getElementById(i)).concat([!!document.querySelector('#pg-box .gs-foot .btn-home'), !!document.querySelector('#pg-box .gs-foot .btn-reset'), !!document.querySelector('#pg-box .gs-foot .btn-kick')]));
   check('أزرار ابدأ الراوند/رئيسية/ريست/اطرد لاعب داخل صف الأسفل بنفس معرّفاتها', btnIds.every(Boolean), btnIds);
   await page.evaluate(() => { try { goHome(); } catch (e) {} });
 
   // ---------- 5) الجوال والتجاوب ----------
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const id of ['setup-bomb', 'bomb', 'setup-tug', 'tug', 'cr']) {
+  for (const id of ['setup-sniper', 'sniper', 'setup-tug', 'tug', 'cr']) {
     await page.evaluate((x) => { show(x); window.scrollTo(0, 0); }, id);
     await sleep(250);
     const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth, cols: (() => { const el = document.querySelector('.page.active .gs-main'); return el ? getComputedStyle(el).gridTemplateColumns.replace(/\([^)]*\)/g, 'X').split(' ').length : 1; })() }));

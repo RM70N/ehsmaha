@@ -327,7 +327,7 @@
     "@type": "SoftwareApplication",
     "name": "القنبلة المتحركة | احسمها",
     "alternateName": "القنبلة المتحركة",
-    "description": "قنبلة تتنقل بين المتابعين بالمنشن في الشات — من تنفجر عنده يخرج من اللعبة حتى يبقى فائز واحد.",
+    "description": "قنبلة ثلاثية الأبعاد تتنقل بين المتابعين بكتابة رقم اللاعب في الشات — من تنفجر عنده يخرج من اللعبة حتى يبقى فائز واحد.",
     "applicationCategory": "GameApplication",
     "operatingSystem": "Web-based",
     "url": "https://ehsmaha.com/games/al-qunbula-al-mutaharrika",
@@ -3611,7 +3611,7 @@ body{padding-top:64px;}
    بصري بالكامل. */
 (function () {
 'use strict';
-var PAIRS = [["pg-setup-cr", "pg-cr", "cr", "chat"], ["pg-setup-ev", "pg-ev", "ev", "luck"], ["pg-setup", "pg-dash", "main", "guess"], ["pg-setup-guessword", "pg-guessword", "guessword", "guess"], ["pg-setup-sniper", "pg-sniper", "sniper", "luck"], ["pg-setup-battery", "pg-battery", "battery", "chat"], ["pg-setup-roulette", "pg-roulette", "rou", "luck"], ["pg-setup-timer", "pg-timer", "tmr", "guess"], ["pg-setup-bomb", "pg-bomb", "bomb", "luck"], ["pg-setup-lastletter", "pg-lastletter", "ll", "chat"], ["pg-setup-whoami", "pg-whoami", "wai", "guess"], ["pg-setup-reverseword", "pg-reverseword", "rw", "chat"], ["pg-setup-priceguess", "pg-priceguess", "pgs", "guess"], ["pg-setup-crownsteal", "pg-crownsteal", "cs", "chat"], ["pg-setup-letterscramble", "pg-letterscramble", "lsc", "chat"], ["pg-setup-countrywar", "pg-countrywar", "cw", "luck"], ["pg-setup-box", "pg-box", "box", "luck"], ["pg-setup-chairs", "pg-chairs", "chairs", "luck"], ["pg-setup-findball", "pg-findball", "findball", "guess"], ["pg-setup-wordrace", "pg-wordrace", "wr", "chat"], ["pg-setup-draw", "pg-draw", "draw", "guess"], ["pg-setup-tug", "pg-tug", "tug", "teams"], ["pg-setup-rlgl", "pg-rlgl", "rlgl", "luck"], ["pg-setup-maze", "pg-maze", "maze", "chat"], ["pg-setup-tt10", "pg-tt10", "tt10", "chat"], ["pg-setup-glz", "pg-glz", "glz", "luck"], ["pg-setup-volcanic-lands", "pg-volcanic-lands", "volcanic-lands", "luck"], ["pg-setup-hz", "pg-hz", "hz", "luck"], ["pg-setup-ig", "pg-ig", "ig", "guess"]];   // [صفحة الإعداد, صفحة اللعبة, وسم اللعبة, التصنيف]
+var PAIRS = [["pg-setup-cr", "pg-cr", "cr", "chat"], ["pg-setup-ev", "pg-ev", "ev", "luck"], ["pg-setup", "pg-dash", "main", "guess"], ["pg-setup-guessword", "pg-guessword", "guessword", "guess"], ["pg-setup-sniper", "pg-sniper", "sniper", "luck"], ["pg-setup-battery", "pg-battery", "battery", "chat"], ["pg-setup-roulette", "pg-roulette", "rou", "luck"], ["pg-setup-timer", "pg-timer", "tmr", "guess"], ["pg-setup-lastletter", "pg-lastletter", "ll", "chat"], ["pg-setup-whoami", "pg-whoami", "wai", "guess"], ["pg-setup-reverseword", "pg-reverseword", "rw", "chat"], ["pg-setup-priceguess", "pg-priceguess", "pgs", "guess"], ["pg-setup-crownsteal", "pg-crownsteal", "cs", "chat"], ["pg-setup-letterscramble", "pg-letterscramble", "lsc", "chat"], ["pg-setup-countrywar", "pg-countrywar", "cw", "luck"], ["pg-setup-box", "pg-box", "box", "luck"], ["pg-setup-chairs", "pg-chairs", "chairs", "luck"], ["pg-setup-findball", "pg-findball", "findball", "guess"], ["pg-setup-wordrace", "pg-wordrace", "wr", "chat"], ["pg-setup-draw", "pg-draw", "draw", "guess"], ["pg-setup-tug", "pg-tug", "tug", "teams"], ["pg-setup-rlgl", "pg-rlgl", "rlgl", "luck"], ["pg-setup-maze", "pg-maze", "maze", "chat"], ["pg-setup-tt10", "pg-tt10", "tt10", "chat"], ["pg-setup-glz", "pg-glz", "glz", "luck"], ["pg-setup-volcanic-lands", "pg-volcanic-lands", "volcanic-lands", "luck"], ["pg-setup-hz", "pg-hz", "hz", "luck"], ["pg-setup-ig", "pg-ig", "ig", "guess"]];   // [صفحة الإعداد, صفحة اللعبة, وسم اللعبة, التصنيف]
 var mk = function (c, tag) { var d = document.createElement(tag || 'div'); d.className = c; return d; };
 var $ = function (r, s) { return r.querySelector(s); };
 var txt = function (e) { return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
@@ -7621,14 +7621,16 @@ function landingCtaClick(){
       <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(167,139,255,.14);color:var(--accent2);">تخمين</span></div>
     </div>
 
-    <div class="gcard" data-tag="bomb" data-category="luck" onclick="goSetupBomb()">
+<!-- BEGIN bomb3d:card (القنبلة المتحركة 3D — بتصميم جديد) -->
+    <div class="gcard" data-tag="bomb" data-category="luck" data-extra-cats="3d" onclick="goSetupBomb()">
       <span class="gcard-num">٠٩</span>
       <span class="badge" data-badge-slot></span>
-      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="15" r="6" fill="none"/><path d="M15 9l2-2"/><path d="M17 4v3h3"/></svg></div>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14.5" r="6.5"/><path d="M14.8 9.8 17 7.6"/><path d="M17 4.2v3.4h3.4"/><path d="M7.4 12.2a3.8 3.8 0 0 1 2-1.5"/></svg></div>
       <div class="gcard-name">القنبلة المتحركة</div>
-      <div class="gcard-desc">القنبلة عند متابع عشوائي — منشن شخص بالشات لتمريرها! الوقت ينقص مع كل تمريرة. من تنفجر عنده يُقصى!</div>
-      <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span></div>
+      <div class="gcard-desc">لاعبون مجسّمون ثلاثيو الأبعاد وقنبلة بفتيل مشتعل — من معه القنبلة يكتب رقم لاعب آخر بالشات ليمررها له. من تنفجر عنده يُقصى وآخر ناجٍ يفوز!</div>
+      <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span><span class="gcard-tag" style="background:rgba(167,139,255,.14);color:var(--accent2);">٣D</span></div>
     </div>
+<!-- END bomb3d:card -->
 
     <div class="gcard" data-tag="ll" data-category="chat" onclick="goSetupLastLetter()">
       <span class="gcard-num">١٠</span>
@@ -7976,9 +7978,38 @@ const ART = {
     <line x1="212" y1="78" x2="222" y2="72" stroke="${C.T}" stroke-width="4" stroke-linecap="round"/>
     <g ${mv(0, 0, 38, 0, '160px 108px')}><line x1="160" y1="108" x2="186" y2="70" stroke="${C.T}" stroke-width="4" stroke-linecap="round"/></g><circle cx="160" cy="108" r="6" fill="${C.T}"/>
     ${bubble(240, 120, 54, 'وقف', C.V)}${bubble(26, 60, 54, 'وقف')}`),
-  bomb: h => wrap(`${avatar(272, 150, 17, C.L)}${avatar(46, 150, 17, C.s3)}${tx(272, 116, '@', 18, C.L, 900)}
-    <path d="M200 92 Q246 70 266 126" fill="none" stroke="${C.A}" stroke-width="2.5" stroke-dasharray="5 6"/><path d="M262 118 l5 10 8 -8" fill="none" stroke="${C.A}" stroke-width="2.5"/>
-    ${sh(150, 170, 48)}<g ${mv(18, -6, 10)}><circle cx="150" cy="118" r="46" fill="${C.s2}" stroke="${C.s3}" stroke-width="3"/><path d="M128 92 a32 32 0 0 1 34 -10" fill="none" stroke="${C.L}" stroke-width="5" stroke-linecap="round" opacity=".7"/><rect x="164" y="62" width="20" height="16" rx="4" transform="rotate(30 174 70)" fill="${C.s3}"/><path d="M180 62 q10 -20 26 -16" fill="none" stroke="${C.L}" stroke-width="3"/><circle cx="208" cy="46" r="7" fill="${h}"/><circle cx="208" cy="46" r="13" fill="${h}" opacity=".25"/></g>`),
+  bomb: h => {
+    const ch = (x, y, n, hot, s = 1) => `<g transform="translate(${x} ${y}) scale(${s})">
+      <ellipse cx="0" cy="30" rx="20" ry="5" fill="${C.k}" opacity=".65"/>
+      ${hot ? `<ellipse cx="0" cy="30" rx="26" ry="7" fill="none" stroke="#F5B53C" stroke-width="2" opacity=".9"/>` : ''}
+      <rect x="-11" y="2" width="22" height="28" rx="9" fill="url(#bb3Body)"/>
+      <circle cx="0" cy="-8" r="13" fill="url(#bb3Head)"/>
+      <ellipse cx="-4" cy="-13" rx="4" ry="2.6" fill="#fff" opacity=".28"/>
+      <rect x="-11" y="-41" width="22" height="17" rx="6" fill="${hot ? '#F5B53C' : C.s1}" stroke="${hot ? '#FFE3A1' : C.A}" stroke-width="1.6"/>
+      ${tx(0, -28.5, n, 12, hot ? '#1a0f00' : C.T, 900)}
+    </g>`;
+    return wrap(`<defs>
+      <radialGradient id="bb3Head" cx="35%" cy="30%" r="75%"><stop offset="0" stop-color="#E4D8FF"/><stop offset=".55" stop-color="#9D7BFF"/><stop offset="1" stop-color="#4C1D95"/></radialGradient>
+      <linearGradient id="bb3Body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b2870"/><stop offset="1" stop-color="#150d2c"/></linearGradient>
+      <radialGradient id="bb3Bomb" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#6a6580"/><stop offset=".45" stop-color="#24202f"/><stop offset="1" stop-color="#07050c"/></radialGradient>
+      <radialGradient id="bb3Glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#FFB347" stop-opacity=".95"/><stop offset="1" stop-color="#FF5A1F" stop-opacity="0"/></radialGradient>
+      <radialGradient id="bb3Floor" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7C3AED" stop-opacity=".5"/><stop offset="1" stop-color="#7C3AED" stop-opacity="0"/></radialGradient>
+    </defs>
+    <ellipse cx="160" cy="150" rx="150" ry="40" fill="url(#bb3Floor)"/>
+    <ellipse cx="160" cy="150" rx="104" ry="24" fill="none" stroke="${C.A}" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="4 6"/>
+    ${ch(56, 128, '3', false, .86)}${ch(104, 104, '1', false, .8)}${ch(216, 104, '4', false, .8)}${ch(264, 128, '2', true, .92)}
+    <path d="M176 84 Q232 46 258 84" fill="none" stroke="#F5B53C" stroke-width="2.4" stroke-dasharray="5 6" stroke-linecap="round" opacity=".95"/>
+    <path d="M250 80 l9 6 -3 -11" fill="none" stroke="#F5B53C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <g ${mv(0, -6, 6, 0, '160px 120px')}>
+      <circle cx="160" cy="86" r="34" fill="url(#bb3Glow)" opacity=".55"/>
+      <circle cx="160" cy="112" r="25" fill="url(#bb3Bomb)" stroke="#000" stroke-width="1.5"/>
+      <ellipse cx="152" cy="103" rx="8" ry="5" fill="#fff" opacity=".2"/>
+      <rect x="152" y="84" width="16" height="9" rx="2.5" fill="#5b5670"/>
+      <path d="M164 84 q6 -13 18 -11" fill="none" stroke="#C9B08A" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="184" cy="73" r="5" fill="#FFD27A"/><circle cx="184" cy="73" r="10" fill="#FF8A2B" opacity=".4"/>
+    </g>
+    <rect x="132" y="146" width="56" height="13" rx="6.5" fill="${C.s1}" stroke="${C.A}" stroke-width="1.4"/>${tx(160, 156, '٤', 11, C.L, 900)}`);
+  },
   ll: () => {
     const w = [['قلم', 250], ['مطر', 160], ['رمل', 70]];
     return wrap(`${w.map(([s, x], i) => `<g ${i ? mv(-8 * i, 0) : ''}><rect x="${x - 38}" y="96" width="76" height="44" rx="12" fill="${i === 0 ? C.V : C.s2}" stroke="${C.s3}"/>${tx(x, 119, s, 19, C.T, 800)}</g>`).join('')}
@@ -8076,7 +8107,7 @@ const ART = {
 };
 
 // إجراء الشات الموثّق من وصف كل لعبة
-const META = {"cannon":["اكتب","45 80"],"cr":["الشات يحرّك","كل رسالة خطوة"],"ev":["الشات يكتب","اسم اللاعب"],"main":["الشات يكتب","تخمين الكلمة"],"guessword":["الشات يكتب","الكلمة السرية"],"sniper":["الشات يكتب","رقم المربع"],"battery":["الشات يكتب","«اشحن»"],"rou":["الحسم","بالحظ"],"tmr":["الشات يكتب","«وقف»"],"bomb":["الشات يكتب","@منشن"],"ll":["الشات يكتب","كلمة من آخر حرف"],"wai":["الشات يكتب","اسم الشخصية"],"rw":["الشات يكتب","الكلمة معكوسة"],"pgs":["الشات يكتب","السعر · محاولتين"],"cs":["الشات يكتب","«تاج» «اسرق»"],"lsc":["الشات يكتب","الكلمة مرتبة"],"cw":["الحسم","الدائرة تختار"],"box":["الشات يكتب","١ أو ٢ أو ٣"],"chairs":["الشات يكتب","رقم الكرسي"],"findball":["الشات يكتب","رقم الكوب"],"wr":["الشات يكتب","الجملة بلا خطأ"],"draw":["الشات يكتب","اسم الرسمة"],"tug":["الشات يكتب","رسالة فريقه"],"rlgl":["الشات يكتب","كلمة الحركة"],"maze":["الشات يكتب","يمين · يسار · فوق · تحت"],"tt10":["الشات يكتب","إجابة من العشر"],"glz":["الشات يكتب","الخيار الصحيح"],"volcanic-lands":["الشات يكتب","رقم الإجابة"],"hz":["الشات يكتب","الكلمة المفتاحية"],"ig":["الشات يكتب","اسم الشي"]};
+const META = {"cannon":["اكتب","45 80"],"cr":["الشات يحرّك","كل رسالة خطوة"],"ev":["الشات يكتب","اسم اللاعب"],"main":["الشات يكتب","تخمين الكلمة"],"guessword":["الشات يكتب","الكلمة السرية"],"sniper":["الشات يكتب","رقم المربع"],"battery":["الشات يكتب","«اشحن»"],"rou":["الحسم","بالحظ"],"tmr":["الشات يكتب","«وقف»"],"bomb":["الشات يكتب","رقم لاعب"],"ll":["الشات يكتب","كلمة من آخر حرف"],"wai":["الشات يكتب","اسم الشخصية"],"rw":["الشات يكتب","الكلمة معكوسة"],"pgs":["الشات يكتب","السعر · محاولتين"],"cs":["الشات يكتب","«تاج» «اسرق»"],"lsc":["الشات يكتب","الكلمة مرتبة"],"cw":["الحسم","الدائرة تختار"],"box":["الشات يكتب","١ أو ٢ أو ٣"],"chairs":["الشات يكتب","رقم الكرسي"],"findball":["الشات يكتب","رقم الكوب"],"wr":["الشات يكتب","الجملة بلا خطأ"],"draw":["الشات يكتب","اسم الرسمة"],"tug":["الشات يكتب","رسالة فريقه"],"rlgl":["الشات يكتب","كلمة الحركة"],"maze":["الشات يكتب","يمين · يسار · فوق · تحت"],"tt10":["الشات يكتب","إجابة من العشر"],"glz":["الشات يكتب","الخيار الصحيح"],"volcanic-lands":["الشات يكتب","رقم الإجابة"],"hz":["الشات يكتب","الكلمة المفتاحية"],"ig":["الشات يكتب","اسم الشي"]};
 META["roulette3d"]=["الشات يكتب","١ أطلق · ٢ لا تطلق"];
 
 /* ---------- المتحكّم (Vanilla) ---------- */
@@ -36209,7 +36240,6 @@ function addTmrChatMsg(user, text) {
 <!-- ==================== BOMB GAME ==================== -->
 <style>
 /* ===== BOMB SETUP ===== */
-#pg-setup-bomb{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(239,68,68,.16) 0%,transparent 60%),radial-gradient(ellipse 120% 60% at 50% -10%,rgba(124,58,237,.14) 0%,transparent 55%),var(--bg);}
 
 /* ===== BOMB DASHBOARD ===== */
 #pg-bomb{padding:0;background:var(--bg);overflow:hidden;}
@@ -36248,877 +36278,194 @@ function addTmrChatMsg(user, text) {
 .bomb-ended-banner.show{display:block;animation:popIn .4s ease;}
 
 /* Winner page */
-#pg-bomb-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(239,68,68,.18) 0%,var(--bg) 70%);}
 </style>
 
-<!-- ====== BOMB SETUP ====== -->
+<!-- BEGIN bomb3d:pages (القنبلة المتحركة 3D — تحل محل النسخة القديمة بالكامل) -->
+<style>
+#pg-setup-bomb{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.22) 0%,transparent 60%),var(--bg);}
+#pg-setup-bomb .b3s-how{margin:6px 0 14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(167,139,255,.28);background:linear-gradient(135deg,rgba(124,58,237,.14),rgba(124,58,237,.03));font-size:14px;line-height:1.8}
+#pg-setup-bomb .b3s-how b{color:var(--accent2)}
+#pg-setup-bomb .b3s-how .b3s-num{display:inline-flex;min-width:26px;height:26px;padding:0 6px;align-items:center;justify-content:center;border-radius:8px;border:1.5px solid var(--accent2);font-weight:900;margin-inline:2px;background:rgba(18,10,36,.6)}
+#pg-setup-bomb .b3s-list{margin:0 0 6px;padding:0;list-style:none;display:grid;gap:6px;font-size:13px;opacity:.9}
+#pg-setup-bomb .b3s-list li::before{content:"●";color:var(--accent2);margin-inline-end:8px;font-size:9px}
+#pg-bomb.active{position:fixed;inset:0;z-index:2147483000;background:#0b0518;padding:0!important;margin:0!important;display:block;overflow:hidden}
+#pg-bomb iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#0b0518}
+#pg-bomb .b3s-bar{position:absolute;top:10px;inset-inline-end:50%;transform:translateX(50%);display:flex;align-items:center;gap:8px;z-index:2;padding:6px 10px;border-radius:999px;background:rgba(12,9,20,.7);border:1px solid rgba(183,156,255,.2);font:700 12px Cairo,sans-serif;color:#F3EEFF;opacity:.3;transition:opacity .25s}
+#pg-bomb .b3s-bar:hover,#pg-bomb .b3s-bar:focus-within{opacity:1}
+#pg-bomb .b3s-bar button{all:unset;cursor:pointer;padding:4px 10px;border-radius:999px;background:rgba(123,63,228,.35)}
+</style>
 <div id="pg-setup-bomb" class="page">
   <div class="setup-box">
     <button class="back-btn" onclick="show('home')">← رجوع</button>
-    <div class="setup-title">💣 إعداد لعبة القنبلة</div>
-    <div class="setup-sub">القنبلة تنتقل بالمنشن — من تنفجر عنده يُقصى!</div>
-
-    <div class="legacy-connect-box">
-    <div class="platform-toggle">
-      <button type="button" class="ptab active" id="bomb-tab-tiktok" onclick="setPlatform('bomb','tiktok')">📱 تيك توك</button>
-      <button type="button" class="ptab" id="bomb-tab-twitch" onclick="setPlatform('bomb','twitch')">🟣 تويتش</button>
-      <button type="button" class="ptab plat-kick" id="bomb-tab-kick" onclick="setPlatform('bomb','kick')">🟢 كيك</button>
-      <button type="button" class="ptab plat-youtube" id="bomb-tab-youtube" onclick="setPlatform('bomb','youtube')">▶️ يوتيوب</button>
+    <div class="setup-title">💣 إعداد القنبلة المتحركة</div>
+    <div class="setup-sub">لاعبون مجسّمون ثلاثيو الأبعاد في ساحة مظلمة — القنبلة تنتقل بكتابة رقم اللاعب بالشات، ومن تنفجر عنده يُقصى.</div>
+    <div class="b3s-how">
+      <b>طريقة التمرير:</b> من معه القنبلة يكتب في الشات <b>رقم لاعب آخر فقط</b> مثل <span class="b3s-num">5</span>
+      <ul class="b3s-list">
+        <li>رقمان أو أكثر بدون كلام أو رموز أو منشن — الرقم وحده (حتى ٤ خانات)</li>
+        <li>يعمل بنفس الطريقة على تيك توك وتويتش وكيك ويوتيوب</li>
+        <li>تُتجاهل رسائل غير الحامل، والرقم غير الموجود، ورقمك أنت</li>
+      </ul>
     </div>
-
-    <div class="api-section" id="bomb-tiktok-section">
-      <div class="api-section-title">🔑 مفتاح API — تيك توك</div>
-      <div class="field-hint" id="bomb-tiktok-apikey-hint" style="margin-bottom:0;font-size:13px;">
-        اربط مفتاح تيك توك مرة وحدة من <b>بروفايلي</b> (اضغط اسم حسابك فوق بالزاوية اليمنى) وبيشتغل تلقائياً هنا وبكل الألعاب.
-      </div>
-    </div>
-    <div class="api-section" id="bomb-twitch-section" style="display:none">
-      <div class="api-section-title">🟣 ربط بث تويتش — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على تويتش الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب اسم قناتك بالضبط في الحقل تحت (نفس اللي بعد twitch.tv/)</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key!</span></div>
-      </div>
-    </div>
-    <div class="api-section" id="bomb-kick-section" style="display:none">
-      <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
-      </div>
-    </div>
-    <div class="api-section" id="bomb-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
-      </div>
-    </div>
-
     <div class="field">
-      <label id="bomb-user-label">يوزر تيك توك (بدون @)</label>
-      <input type="text" id="bomb-user" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
+      <label for="bomb-kw">كلمة مفتاحية للانضمام</label>
+      <input type="text" id="bomb-kw" placeholder="مثال: دخول" value="دخول" maxlength="24" />
+      <div class="field-hint">المتابعون يكتبونها في الشات للدخول — كل لاعب يأخذ رقماً ثابتاً فوق رأسه</div>
     </div>
-
-    <div class="field" id="bomb-kick-field" style="display:none">
-      <label>🟢 يوزر قناتك على كيك</label>
-      <input type="text" id="bomb-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
-    </div>
-    <div class="field" id="bomb-youtube-field" style="display:none">
-      <label>▶️ يوزر قناتك على يوتيوب</label>
-      <input type="text" id="bomb-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
-    </div>
-    </div>
-
-    <div class="field">
-      <label>كلمة مفتاحية للانضمام</label>
-      <input type="text" id="bomb-kw" placeholder="مثال: العب" />
-      <div class="field-hint">المتابعون يكتبونها في الشات للدخول</div>
-    </div>
-
     <div id="mod-advanced-bomb"></div>
-
     <button class="btn-primary" id="btn-bomb-launch" onclick="launchBomb()">🚀 ابدأ اللعبة</button>
     <div class="status-msg" id="bomb-status"></div>
   </div>
 </div>
-
-<!-- ====== BOMB DASHBOARD ====== -->
 <div id="pg-bomb" class="page">
-  <img class="rf-badge rf-badge-logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="ehsmaha.com" aria-hidden="true">
-  <img class="rf-badge rf-badge-tiktok" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="@ehsmaha7" aria-hidden="true">
-  <div class="bomb-layout">
-
-    <div class="panel bomb-center">
-      <div class="top-bar">
-        <div class="room-info">
-          <div class="dot connecting" id="bomb-dot"></div>
-          <div class="room-username" id="bomb-live-user">@username</div>
-        </div>
-      </div>
-
-      <div class="game-title-header">
-        <div class="gth-icon">💣</div>
-        <div class="gth-name">القنبلة المتحركة</div>
-        <div class="gth-desc">القنبلة تنتقل بالمنشن — من تنفجر عنده يُقصى!</div>
-      </div>
-
-      <div class="status-strip waiting" id="bomb-status-strip">
-        ⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في الشات
-      </div>
-
-      <button class="game-special-btn" type="button" disabled>الكلمة المفتاحية: <b id="bomb-kw-show">—</b> 🔑</button>
-
-      <!-- Participants overlay -->
-      <div class="participants-overlay">
-        <div class="participants-overlay-header">
-          <div class="participants-big-count" id="bomb-p-count">0</div>
-          <div class="participants-label">مشارك في اللعبة</div>
-        </div>
-        <div class="participants-usernames" id="bomb-p-usernames">
-          <span class="p-empty-placeholder" style="font-size:12px;color:var(--muted)">في انتظار المشاركين...</span>
-        </div>
-      </div>
-
-      <div class="game-bottom-row">
-        <button class="btn-start-round" id="bomb-btn-round" onclick="startBombRound()">▶ ابدأ الراوند</button>
-        <button class="btn-home" onclick="goHome()">🏠 رئيسية</button>
-        <button class="btn-reset" onclick="resetBomb()">🔄 ريست</button>
-        <button class="btn-kick" onclick="bombOpenKickModal()">🚫 اطرد لاعب</button>
-      </div>
-
-      <!-- Bomb stage -->
-      <div class="bomb-stage" id="bomb-stage" style="display:none;">
-        <div class="bomb-emoji idle" id="bomb-emoji">💣</div>
-        <div class="bomb-holder-name" id="bomb-holder-name">—</div>
-        <div class="bomb-holder-sub" id="bomb-holder-sub">منشن شخص لتمرير القنبلة!</div>
-        <div class="bomb-timer-wrap">
-          <svg class="bomb-timer-svg" viewBox="0 0 130 130">
-            <circle class="bomb-timer-bg" cx="65" cy="65" r="56"/>
-            <circle class="bomb-timer-fill" id="bomb-circle" cx="65" cy="65" r="56" stroke-dasharray="351.86" stroke-dashoffset="0"/>
-          </svg>
-          <div class="bomb-timer-num" id="bomb-timer-num">15</div>
-        </div>
-      </div>
-
-      <!-- Ended banner -->
-      <div class="bomb-ended-banner" id="bomb-ended-banner">💥 انتهى الراوند — محد فاز هالمرة!</div>
-
-      <!-- Eliminated log -->
-      <div class="bomb-elim-log" id="bomb-elim-log"></div>
-    </div>
-
-    <!-- Right: Chat -->
-    <div class="panel panel-right">
-      <div class="panel-head"><div class="panel-label">شات البث</div><button type="button" class="chat-toggle-btn" onclick="toggleGameChatPanel(this)" title="إخفاء شات البث">◀</button></div>
-      <div class="chat-scroll" id="bomb-chat-list">
-        <div class="empty"><div class="empty-icon">💬</div><div class="empty-txt">الشات سيظهر هنا</div></div>
-      </div>
-    </div>
-
-  </div>
+  <div class="b3s-bar"><div class="dot connecting" id="bomb-live-dot"></div><span id="bomb-live-user">@</span><button type="button" onclick="bomb3dGoHome()" aria-label="العودة لألعاب الستريمر">🏠 خروج</button></div>
+  <iframe id="bomb-frame" title="القنبلة المتحركة" allow="autoplay; fullscreen"></iframe>
 </div>
-
-<!-- ====== BOMB WINNER ====== -->
-<div id="pg-bomb-winner" class="page">
-  <div class="winner-box">
-    <div class="w-confetti">💣</div>
-    <div id="bomb-w-avatar-wrap"></div>
-    <div class="w-congrats">🏆 نجا من القنبلة!</div>
-    <div class="w-name" id="bomb-w-name">—</div>
-    <div class="w-label" id="bomb-w-label">آخر من بقي سليماً!</div>
-    <button class="btn-again" onclick="goHome()">🔁 العب مجدداً</button>
-  </div>
-</div>
-
 <script>
-// ==================== BOMB STATE ====================
-let bombApiKey = '';
-let bombUser = '';
-let bombKeyword = '';
-let bombWs = null;
-let bombReconnectTimer = null;
-let bombConnectedOnce = false;
-let bombReconnectAttempts = 0;
-let bombGameStatus = 'waiting'; // waiting | active | finished
-let bombParticipants = new Map(); // uniqueId -> user (اللاعبون الأحياء)
-let bombPendingFollowers = new Map();
-let bombPlayerNumbers = new Map(); // uniqueId -> رقم ثابت يُعطى عند الانضمام (يبقى معه طول الجولة)
-let bombNextPlayerNumber = 1;
-let bombKickedDuringRound = new Set(); // uniqueIds مطرودين أثناء راوند شغّال — يُمنعون من الرجوع لحد راوند جديد
-let bombRevivalEnabled = false;
-let bombRevivalMaxUses = 2;
-let bombEliminatedHistory = new Set();
-let bombRevivalCounts = new Map(); // uniqueId -> عدد مرات الانعاش بالهدايا هالراوند
-let bombRevivalBootedForStreamer = null;
-let bombRevivalMap = new Map();
-let bombRevivalUnsub = null;
-let bombHolderUid = null;        // من عنده القنبلة الآن
-let bombCountdown = 15;          // الوقت الحالي بالثوانٍ
-let bombCountdownInterval = null;
-let bombPassCount = 0;           // عدد التمريرات في الراوند الحالي
-
-// جدول الأوقات: بعد كل تمريرة الوقت ينقص — يُعاد ضبطه من إعدادات المشرف في startBombRound()
-let BOMB_TIMES = [15, 12, 10, 7, 5, 4];
-
-// ==================== BOMB NAV ====================
-function goSetupBomb() { show('setup-bomb'); modInitAdvancedSection('bomb'); }
-
-// ==================== BOMB SETUP ====================
-function launchBomb() {
-    bombApiKey = getTikTokApiKey();
-  bombUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
-  gamePlatform['bomb'] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform['bomb'];
-  bombKeyword = document.getElementById('bomb-kw').value.trim();
-
-  if (!homeHasActiveConnection() || !bombUser) return setBombStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
-  if (!bombKeyword) return setBombStatus('err','⚠️ أدخل الكلمة المفتاحية');
-
-  scoreCurrentStreamer = bombUser; // سجّل الستريمر الحالي
-  ownerRegisterActiveStreamer('bomb', bombUser, gamePlatform['bomb'], 'القنبلة المتحركة');
-  contestNoteActivity();
-  liveCommandsBoot('bomb', bombLiveCommandHandlers);
-  bombRevivalBoot(bombUser);
-  setBombStatus('load','⏳ جاري الاتصال ببثك...');
-  document.getElementById('btn-bomb-launch').disabled = true;
-  initBombDashboard();
-  show('bomb');
-  homeRegisterGameListener('bomb', handleBombTikTokEvent);
-  document.getElementById('btn-bomb-launch').disabled = false;
-  document.getElementById('bomb-status').className = 'status-msg';
-}
-
-function setBombStatus(type, msg) {
-  const el = document.getElementById('bomb-status');
-  el.className = 'status-msg ' + type;
-  el.textContent = msg;
-}
-
-// ==================== BOMB DASHBOARD INIT ====================
-function initBombDashboard() {
-  document.getElementById('bomb-live-user').textContent = strongestStreamerBadgePrefix(bombUser) + '@' + bombUser;
-  document.getElementById('bomb-kw-show').textContent = bombKeyword;
-  document.getElementById('bomb-p-count').textContent = '0';
-  document.getElementById('bomb-p-usernames').innerHTML = '<span class="p-empty-placeholder" style="font-size:12px;color:var(--muted)">في انتظار المشاركين...</span>';
-  document.getElementById('bomb-chat-list').innerHTML = '';
-  document.getElementById('bomb-elim-log').innerHTML = '';
-  document.getElementById('bomb-stage').style.display = 'none';
-  document.getElementById('bomb-ended-banner').className = 'bomb-ended-banner';
-  document.getElementById('bomb-btn-round').disabled = false;
-  document.getElementById('bomb-btn-round').textContent = '▶ ابدأ الراوند';
-
-  bombParticipants.clear();
-  bombPendingFollowers.clear();
-  bombPlayerNumbers.clear();
-  bombNextPlayerNumber = 1;
-  bombKickedDuringRound.clear();
-  bombHolderUid = null;
-  bombCountdown = 15;
-  bombPassCount = 0;
-  bombEliminatedHistory.clear();
-  bombRevivalCounts.clear();
-  bombGameStatus = 'waiting';
-  if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-  setBombGameStatus('waiting');
-  setDotById('bomb-dot','connecting');
-}
-
-// ==================== BOMB TIKTOK ====================
-function connectBombKick() {
-  if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
-  if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
-  setDotById('bomb-dot','connecting');
-  const kickUser = (document.getElementById('bomb-kickuser') || {}).value?.trim() || '';
-  if (!kickUser) { toast('⚠️ أدخل يوزر أو رابط قناتك على كيك'); setDotById('bomb-dot','off'); return; }
-  bombWs = kickBridgeOpenWS(kickUser,
-    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBombTikTokEvent(evt); },
-    () => { setDotById('bomb-dot','on'); toast('✅ متصل بشات كيك'); },
-    (e) => {
-      setDotById('bomb-dot','off');
-      if (gamePlatform['bomb'] !== 'kick') return;
-      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
-      bombReconnectAttempts++;
-      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات كيك — تأكد من اليوزر'); return; }
-      bombReconnectTimer = setTimeout(connectBombKick, 4000);
-    }
-  );
-}
-
-function connectBombYouTube() {
-  if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
-  if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
-  setDotById('bomb-dot','connecting');
-  const ytUser = (document.getElementById('bomb-ytuser') || {}).value?.trim() || '';
-  if (!ytUser) { toast('⚠️ أدخل يوزر قناتك على يوتيوب أو رابط البث'); setDotById('bomb-dot','off'); return; }
-  bombWs = youtubeBridgeOpenWS(ytUser,
-    (evt) => { if (evt && evt.type === 'bridge_status') return; handleBombTikTokEvent(evt); },
-    () => { setDotById('bomb-dot','on'); toast('✅ متصل ببث يوتيوب المباشر'); },
-    (e) => {
-      setDotById('bomb-dot','off');
-      if (gamePlatform['bomb'] !== 'youtube') return;
-      if (e && e.code === 4403) { toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
-      bombReconnectAttempts++;
-      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال ببث يوتيوب — تأكد من اليوزر/الرابط'); return; }
-      bombReconnectTimer = setTimeout(connectBombYouTube, 6000);
-    }
-  );
-}
-
-function connectBombTwitch() {
-  if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
-  if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
-  setDotById('bomb-dot','connecting');
-  bombWs = twitchOpenIRC(bombUser,
-    (displayName, uniqueId, message) => handleBombTikTokEvent(twitchEventShape(displayName, uniqueId, message)),
-    () => { setDotById('bomb-dot','on'); toast('✅ متصل بشات تويتش: ' + bombUser); },
-    (e) => {
-      setDotById('bomb-dot','off');
-      if (gamePlatform['bomb'] !== 'twitch') return;
-      bombReconnectAttempts++;
-      if (bombReconnectAttempts > 6) { toast('⚠️ تعذّر الاتصال بشات تويتش — تأكد من اسم القناة'); return; }
-      bombReconnectTimer = setTimeout(connectBombTwitch, 4000);
-    }
-  );
-}
-
-function connectBombTikTok() {
-  if (gamePlatform['bomb'] === 'twitch') { connectBombTwitch(); return; }
-  if (gamePlatform['bomb'] === 'kick') { connectBombKick(); return; }
-  if (gamePlatform['bomb'] === 'youtube') { connectBombYouTube(); return; }
-  if (bombReconnectTimer) { clearTimeout(bombReconnectTimer); bombReconnectTimer = null; }
-  if (bombWs) { try { bombWs.close(1000); } catch(e){} bombWs = null; }
-  setDotById('bomb-dot','connecting');
-
-  // اتصال الشات عبر نفس جسر تيك توك المستخدم بمودال "ربط الحساب" (tiktokOpenWS + failover
-  // بين TIKTOK_BRIDGE_SERVERS). onOpen يُطلق فقط بعد bridge_status:connected حقيقي.
-  let bombClosedOnce = false;
-  const bombWsStatus = tiktokGameBridgeStatusHandler((s) => setDotById('bomb-dot', s), bombUser, toast);
-  let bombWsSock = null;
-  bombWsSock = bombWs = tiktokOpenWS(bombUser, '',
-    (data) => {
-      if (data && data.type === 'bridge_status') { bombWsStatus(data); return; }
-      handleBombTikTokEvent(data);
-    },
-    () => {
-      setDotById('bomb-dot','on');
-      bombReconnectAttempts = 0;
-      connectBombTikTok._notLiveTries = 0;
-      if (!bombConnectedOnce) { toast('✅ متصل ببث @' + bombUser); bombConnectedOnce = true; }
-    },
-    (e) => {
-      if (!bombWsSock || bombWs !== bombWsSock) return; // اتصال قديم استُبدل أو أُغلق عمداً
-      if (e && e.code === 4403) { setDotById('bomb-dot', 'off'); toast('⛔ هذا الحساب معطّل من إدارة المنصة'); return; }
-      if (bombClosedOnce) return;
-      bombClosedOnce = true;
-      setDotById('bomb-dot','off');
-      if (e.code === 4404) {
-        connectBombTikTok._notLiveTries = (connectBombTikTok._notLiveTries || 0) + 1;
-        if (connectBombTikTok._notLiveTries <= 3) { bombReconnectTimer = setTimeout(connectBombTikTok, 4000 * connectBombTikTok._notLiveTries); return; }
-        connectBombTikTok._notLiveTries = 0;
-        toast('⚠️ البث مو شغال');
-      }
-      else if (e.code === 4400) { toast('❌ يوزر البث غير صحيح — تأكد من كتابته'); }
-      else if (bombGameStatus !== 'finished') {
-        bombReconnectAttempts++;
-        if (bombReconnectAttempts <= 5) bombReconnectTimer = setTimeout(connectBombTikTok, 5000);
-        else toast('⚠️ تعذّر الاتصال — تأكد إن البث مفتوح');
-      }
-    });
-  if (!bombWsSock) { toast('❌ فشل الاتصال'); setDotById('bomb-dot','off'); return; }
-}
-
-function handleBombTikTokEvent(data) {
-  const messages = data.messages || (data.type ? [data] : []);
-  messages.forEach(msg => {
-    const type = msg.type || msg.event;
-    if (type === 'WebcastChatMessage' || type === 'chat' || type === 'comment') {
-      const user = extractUser(msg);
-      const text = (msg.comment || msg.content || msg.data?.comment || '').trim();
-      if (!text) return;
-      if (handleAdminChatCommand('bomb', text, user, {
-        participantsMap: bombParticipants,
-        joinFn: bombJoinParticipant,
-        eliminatedSet: bombEliminatedHistory,
-        isParticipant: (uid) => bombParticipants.has(uid),
-        statusCheckFn: () => bombGameStatus !== 'finished' && bombGameStatus !== 'waiting',
-        reviveFn: (u) => setTimeout(() => bombJoinParticipant(Object.assign({}, u, { isFollower: true })), 3000)
-      })) return;
-
-      // تمرير القنبلة أولاً — قبل أي شيء ثاني لتجنب التأخير
-      // تيك توك: منشن @اسم كما هو. كيك/يوتيوب/تويتش: رقم اللاعب الثابت فقط
-      // (بدون أي رمز) — مطابقة دقيقة 100%، بدون تخمين بالاسم.
-      if (bombGameStatus === 'active' && bombHolderUid === user.uniqueId) {
-        if (gamePlatform['bomb'] === 'tiktok') {
-          const match = text.match(/@([^@]+)/);
-          if (match) bombPassTo(match[1].trim());
-        } else {
-          bombPassToByNumber(text);
-        }
-      }
-
-      // انضمام
-      if (bombGameStatus === 'waiting') {
-        if (joinTextMatches(text, bombKeyword, 'bomb', user)) bombJoinParticipant(user);
-      }
-
-      addBombChatMsg(user, text);
-    }
-    if (type === 'WebcastSocialMessage' || type === 'follow' || type === 'social') {
-      const user = extractUser(msg);
-      user.isFollower = true;
-      if (bombPendingFollowers.has(user.uniqueId)) {
-        bombPendingFollowers.delete(user.uniqueId);
-        bombJoinParticipant(user);
-      }
-    }
-    if (type === 'WebcastGiftMessage' || type === 'gift') {
-      const user = extractUser(msg);
-      const giftName = msg.giftName || msg.gift?.name || msg.data?.giftName || 'هدية';
-      const diamondCount = Number(msg.diamondCount || msg.gift?.diamond_count || msg.data?.diamondCount || 0) || 0;
-      const repeatCount = Number(msg.repeatCount || msg.data?.repeatCount || 1) || 1;
-      bombHandleGift(user, giftName, diamondCount * repeatCount);
-    }
-  });
-}
-
-function bombJoinParticipant(user) {
-  if (bombParticipants.has(user.uniqueId)) return;
-  if (bombKickedDuringRound.has(user.uniqueId)) return; // مطرود أثناء هذا الراوند — ممنوع من الرجوع لحد راوند جديد
-  if (!followGateAllows('bomb', user)) {
-    bombPendingFollowers.set(user.uniqueId, user);
-    toast('⚠️ ' + (user.nickname || user.uniqueId) + ' لازم تسوي فولو للستريمر عشان تدخل الراوند!');
-    return;
-  }
-  bombParticipants.set(user.uniqueId, user);
-  const playerNumber = bombNextPlayerNumber++;
-  bombPlayerNumbers.set(user.uniqueId, playerNumber);
-  document.getElementById('bomb-p-count').textContent = bombParticipants.size;
-  announceDeveloperJoinIfApplicable(user);
-  const container = document.getElementById('bomb-p-usernames');
-  const placeholder = container.querySelector('.p-empty-placeholder');
-  if (placeholder) placeholder.remove();
-  const tag = buildParticipantChip(user, playerNumber, 'bomb-tag-' + user.uniqueId);
-  container.appendChild(tag);
-  toastFast('👤 ' + user.nickname + ' انضم! (رقمه: ' + playerNumber + ')');
-  liveRoundsMirror('bomb', bombParticipants);
-}
-
-// يزيل مشاركاً فوراً (أمر "مغادرة" من لوحة المالك). لو كان هو حامل القنبلة
-// حالياً، يوقف العداد وينقلها فوراً للاعب عشوائي آخر (بنفس منطق bombExplode)،
-// أو ينهي الراوند لو ما تبقى غيره أو ولا أحد.
-function bombRemoveParticipant(uniqueId) {
-  if (!bombParticipants.has(uniqueId)) return;
-  const wasHolder = (bombHolderUid === uniqueId);
-  bombParticipants.delete(uniqueId);
-  bombPlayerNumbers.delete(uniqueId);
-  document.getElementById('bomb-p-count').textContent = bombParticipants.size;
-  const tag = document.getElementById('bomb-tag-' + uniqueId);
-  if (tag) tag.remove();
-
-  if (bombGameStatus === 'active') {
-    const alive = bombParticipants.size;
-    if (alive === 1) {
-      if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-      const winner = [...bombParticipants.values()][0];
-      showBombWinner(winner);
-    } else if (alive === 0) {
-      if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-      bombGameStatus = 'finished';
-      setBombGameStatus('finished');
-    } else if (wasHolder) {
-      bombPassCount = 0;
-      const players = [...bombParticipants.keys()];
-      const randUid = players[Math.floor(Math.random() * players.length)];
-      bombGiveBombTo(randUid, BOMB_TIMES[0]);
-      toast('💣 القنبلة انتقلت إلى ' + bombParticipants.get(randUid)?.nickname);
-    }
-  }
-  liveRoundsMirror('bomb', bombParticipants);
-}
-
-// يطرد لاعباً من زر "🚫 اطرد لاعب" بداشبورد الستريمر نفسه. لو الراوند شغّال
-// (active) يُمنع من الرجوع لحد بداية راوند جديد (initBombDashboard يصفّر
-// القائمة) — لو لسا "waiting" فالطرد عادي وقابل للرجوع بكتابة الكلمة المفتاحية.
-function bombKickParticipant(uniqueId) {
-  const __u = bombParticipants.get(uniqueId);
-  if (checkAndConsumeImmunity(uniqueId, __u && __u.nickname)) return;
-  if (bombGameStatus === 'active') bombKickedDuringRound.add(uniqueId);
-  bombRemoveParticipant(uniqueId);
-  toast('🚫 تم طرد المشارك');
-}
-
-function bombOpenKickModal() {
-  kickModalOpen('bomb', bombParticipants, bombKickParticipant);
-}
-
-function bombForceWin(user) {
-  if (bombGameStatus === 'finished') return;
-  if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-  showBombWinner(user);
-}
-
-const bombLiveCommandHandlers = {
-  join(payload) {
-    bombJoinParticipant(liveCommandBuildSyntheticUser(payload));
-  },
-  leave(payload) {
-    bombRemoveParticipant(payload.uniqueId);
-  },
-  forceWinOther(payload) {
-    const user = bombParticipants.get(payload.uniqueId);
-    if (!user) return;
-    bombForceWin(user);
-  },
-  forceWinSelf(payload) {
-    let user = bombParticipants.get(payload.uniqueId);
-    if (!user) {
-      user = liveCommandBuildSyntheticUser(payload);
-      bombJoinParticipant(user);
-      user = bombParticipants.get(payload.uniqueId);
-    }
-    if (!user) return;
-    bombForceWin(user);
-  }
-};
-
-// ==================== BOMB ROUND ====================
-function startBombRound() {
-  if (bombGameStatus === 'active') return;
-  if (bombParticipants.size < 2) { toast('⚠️ يجب أن يكون هناك لاعبان على الأقل'); return; }
-
-  BOMB_TIMES = modGetSetting('bomb', 'times', [15, 12, 10, 7, 5, 4]);
-  bombRevivalEnabled = modGetSetting('bomb', 'revivalEnabled', true);
-  bombRevivalMaxUses = modGetSetting('bomb', 'revivalMaxUses', 2);
-
-  bombGameStatus = 'active';
-  bombPassCount = 0;
-  setBombGameStatus('active');
-  contestNoteRoundStarted('bomb');
-  document.getElementById('bomb-btn-round').disabled = true;
-  document.getElementById('bomb-btn-round').textContent = '⏸ الراوند شغال...';
-  document.getElementById('bomb-stage').style.display = 'flex';
-  document.getElementById('bomb-ended-banner').className = 'bomb-ended-banner';
-
-  // اختر حامل القنبلة عشوائياً
-  const players = [...bombParticipants.keys()];
-  const randUid = players[Math.floor(Math.random() * players.length)];
-  bombGiveBombTo(randUid, BOMB_TIMES[0]);
-  toast('💣 الراوند بدأ! القنبلة عند ' + bombParticipants.get(randUid).nickname);
-}
-
-function bombGiveBombTo(uid, timeLimit) {
-  if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-
-  bombHolderUid = uid;
-  bombCountdown = timeLimit;
-
-  const user = bombParticipants.get(uid);
-  const name = user ? user.nickname : '—';
-
-  // تحديث الواجهة
-  document.getElementById('bomb-holder-name').textContent = '💣 ' + name;
-  document.getElementById('bomb-holder-sub').textContent = gamePlatform['bomb'] === 'tiktok'
-    ? 'منشن شخص بالشات لتمرير القنبلة!'
-    : 'اكتب رقم لاعب بالشات لتمرير القنبلة له!';
-  updateBombTimerUI(timeLimit, timeLimit);
-
-  // تحديث emoji حسب الوقت
-  const emoji = document.getElementById('bomb-emoji');
-  if (timeLimit <= 3) { emoji.className = 'bomb-emoji danger'; }
-  else { emoji.className = 'bomb-emoji'; }
-
-  // صوت اشتعال الفتيل يبقى شغّالاً طول ما القنبلة بيد لاعب (يتوقف عند الانفجار/الفوز)
-  try { sfx.fuseStart(soundManager.gain('bomb_fuse')); } catch (e) {}
-
-  // شغّل العداد
-  let remaining = timeLimit;
-  bombCountdownInterval = setInterval(() => {
-    if (isGamePausedForRevival('bomb')) return; // الجولة مجمّدة أثناء أنيميشن الإنعاش — لا ينقص الوقت
-    remaining -= 0.1;
-    if (remaining <= 0) {
-      clearInterval(bombCountdownInterval);
-      bombCountdownInterval = null;
-      updateBombTimerUI(0, timeLimit);
-      bombExplode(uid);
-      return;
-    }
-    // danger animation لما يبقى ثانيتين
-    if (remaining <= 2) document.getElementById('bomb-emoji').className = 'bomb-emoji danger';
-    else if (remaining <= 5) document.getElementById('bomb-emoji').className = 'bomb-emoji';
-    updateBombTimerUI(remaining, timeLimit);
-  }, 100);
-}
-
+/* ===== القنبلة المتحركة 3D: ربط الإطار المستقل بالموقع (شات/هدايا/حصانة/إنعاش/متابعة/فوز/إدارة) ===== */
+var bombParticipants = new Map(), bombGameStatus = 'waiting', bombKeyword = '', bombUser = '';
+var bombKickedDuringRound = new Set(), bombEliminatedHistory = new Set();
+var bombReconnectTimer = null, bombWs = null, bombCountdownInterval = null;
+var BOMB_TIMES = [15, 12, 10, 7, 5, 4];
+var bombRevivalEnabled = true, bombRevivalMaxUses = 2;
+var bombRevivalMap = new Map(), bombRevivalUnsub = null, bombRevivalBootedForStreamer = null;
 function updateBombTimerUI(remaining, total, circleId, numId) {
   const circumference = 351.86;
   const fraction = Math.max(0, remaining / total);
   const offset = circumference * (1 - fraction);
   const circle = document.getElementById(circleId || 'bomb-circle');
   const numEl = document.getElementById(numId || 'bomb-timer-num');
-
+  if (!circle || !numEl) return;
   circle.style.strokeDashoffset = offset;
-  // لون يتغير حسب الوقت
   if (fraction > 0.5) circle.style.stroke = 'var(--green)';
   else if (fraction > 0.25) circle.style.stroke = 'var(--gold)';
   else circle.style.stroke = 'var(--red)';
-
   numEl.textContent = Math.ceil(remaining);
   if (remaining <= 3) numEl.className = 'bomb-timer-num danger';
   else numEl.className = 'bomb-timer-num';
 }
-
-// يمرر القنبلة عبر رقم اللاعب الثابت (كيك/يوتيوب/تويتش) — مطابقة دقيقة
-// تماماً بدون أي تخمين بالاسم، عكس bombPassTo (تيك توك) اللي تعتمد على @منشن.
-function bombPassToByNumber(text) {
-  if (isGamePausedForRevival('bomb')) return; // الجولة مجمّدة أثناء أنيميشن الإنعاش
-  const numRaw = foldChatDigits(text).trim();
-  if (!/^\d{1,4}$/.test(numRaw)) return; // أي شيء غير رقم صافٍ يُتجاهل
-  const num = parseInt(numRaw, 10);
-
-  let targetUid = null;
-  for (const [uid, n] of bombPlayerNumbers.entries()) {
-    if (n === num && bombParticipants.has(uid)) { targetUid = uid; break; }
+(function(){
+  'use strict';
+  var TAG='bomb', ready=false, queue=[], statusTimer=null, pendingCfg=null, siteUsers=new Map(), lastState=null;
+  function $(id){ return document.getElementById(id); }
+  function frame(){ return $('bomb-frame'); }
+  function api(){ try{ var w=frame().contentWindow; return w&&w.EhsemhaBomb3D; }catch(e){ return null; } }
+  function setStatus(kind,msg){ var n=$('bomb-status'); if(!n) return; n.className='status-msg '+(kind||''); n.textContent=msg||''; }
+  function proxied(u){ if(!u) return ''; try{ return (typeof avatarProxyUrl==='function')?avatarProxyUrl(u):u; }catch(e){ return u; } }
+  function plat(){ try{ return (typeof gamePlatform==='object'&&gamePlatform[TAG])||'tiktok'; }catch(e){ return 'tiktok'; } }
+  function remember(u){ if(u&&u.uniqueId){ siteUsers.set(String(u.uniqueId),u); if(siteUsers.size>3000){ siteUsers.delete(siteUsers.keys().next().value); } } }
+  function toGameUser(u){ return {uid:u.uniqueId,name:u.nickname||u.rawUniqueId||u.uniqueId,avatar:proxied(u.avatar),isFollower:!!u.isFollower}; }
+  function syncState(){ var a=api(); if(!a) return null; try{ var s=a.getState(); lastState=s;
+      bombGameStatus=s.status; bombParticipants=new Map(s.players.map(function(p){ return [p.id,{uniqueId:p.id,nickname:p.name}]; })); bombEliminatedHistory=new Set(s.eliminated); bombKickedDuringRound=new Set(s.kicked); return s; }catch(e){ return null; } }
+  function relayChat(u,text){ var a=api(); var gu=toGameUser(u); if(ready&&a){ a.chat(gu,text,plat()); } else if(queue.length<200){ queue.push(['c',gu,text]); } }
+  function adminBindings(){
+    syncState();
+    return { participantsMap: bombParticipants, eliminatedSet: bombEliminatedHistory,
+      joinFn: function(u){ var a=api(); if(a) a.admin('join',{uniqueId:u.uniqueId,nickname:u.nickname,avatar:proxied(u.avatar)}); },
+      isParticipant: function(uid){ return bombParticipants.has(uid); },
+      statusCheckFn: function(){ return bombGameStatus==='active'; },
+      reviveFn: function(u){ setTimeout(function(){ var a=api(); if(a) a.admin('join',{uniqueId:u.uniqueId,nickname:u.nickname,avatar:proxied(u.avatar)}); },3000); } };
   }
-  if (!targetUid) return; // مو رقم لاعب موجود حالياً — تجاهل
-  if (targetUid === bombHolderUid) return; // ما يمرر لنفسه
-
-  bombPassCount++;
-  const passerName   = bombParticipants.get(bombHolderUid)?.nickname || '—';
-  const receiverName = bombParticipants.get(targetUid)?.nickname     || '—';
-  toastFast('💣 ' + passerName + ' مرّرها لـ ' + receiverName + '!');
-
-  const newTime = BOMB_TIMES[Math.min(bombPassCount, BOMB_TIMES.length - 1)];
-  bombGiveBombTo(targetUid, newTime);
-}
-
-function bombPassTo(targetRaw) {
-  if (isGamePausedForRevival('bomb')) return; // الجولة مجمّدة أثناء أنيميشن الإنعاش
-  // تنظيف المنشن — نفس normalize() المستخدمة بباقي الموقع (توحّد أشكال الألف/التاء
-  // المربوطة/الألف المقصورة) بالإضافة لإزالة @ والمسافات والـ underscore. سابقاً
-  // كانت هذي الدالة تستخدم تنظيف أضعف خاص بها لا يوحّد الأحرف العربية المتشابهة،
-  // فيسبب فشل مطابقة صامت لأسماء فيها فروق ألف/همزة بين المكتوب والمخزّن.
-  const clean = s => normalize((s || '').replace(/@/g,'').replace(/_/g,'').replace(/\s/g,''));
-  const targetClean = clean(targetRaw);
-  if (!targetClean) return;
-
-  // المنشن قد يحتوي بقية الرسالة (مسافات) — جرّب كل بادئة ممكنة من الكلمة الأولى وحتى النص كامل
-  const targetVariants = [targetClean];
-  {
-    const rawWords = (targetRaw || '').trim().split(/\s+/);
-    let acc = '';
-    for (const w of rawWords) {
-      acc += w;
-      const c = clean(acc);
-      if (c && !targetVariants.includes(c)) targetVariants.push(c);
-    }
-  }
-
-  // مسح كل المشاركين أولاً لجمع كل من يطابق تطابقاً تاماً (uid أو nickname)، ثم
-  // الرجوع لتطابق تقريبي (بادئة/احتواء) فقط لو ما فيه ولا تطابق تام — بهذا
-  // الترتيب ثابت وواضح (مو معتمد على ترتيب انضمام اللاعبين)، وتطابق تام لشخص
-  // واحد بالضبط لا يمكن أن "يُسرق" من مشارك آخر انضم قبله أو بعده.
-  const exactMatches = [];
-  let bestPartialMatch = null;
-  let bestPartialScore = 0;
-
-  for (const [uid, u] of bombParticipants.entries()) {
-    const cleanUid  = clean(u.uniqueId);
-    const cleanNick = clean(u.nickname);
-
-    for (const tv of targetVariants) {
-      if (!tv) continue;
-      if (cleanUid === tv || cleanNick === tv) {
-        if (!exactMatches.includes(uid)) exactMatches.push(uid);
-        continue;
+  function handleBombTikTokEvent(d){
+    var msgs=(d&&d.messages)||(d&&d.type?[d]:[]);
+    for(var i=0;i<msgs.length;i++){ var m=msgs[i], t=m.type||m.event;
+      if(t==='WebcastChatMessage'||t==='chat'||t==='comment'){
+        var u=extractUser(m); var txt=String(m.comment||m.content||(m.data&&m.data.comment)||'').trim(); if(!txt||!u||!u.uniqueId) continue;
+        remember(u);
+        try{ if(typeof handleAdminChatCommand==='function'&&handleAdminChatCommand(TAG,txt,u,adminBindings())) continue; }catch(e){}
+        relayChat(u,txt);
+      } else if(t==='WebcastSocialMessage'||t==='follow'||t==='social'){
+        var f=extractUser(m); if(!f||!f.uniqueId) continue; f.isFollower=true; remember(f); var a=api(); if(ready&&a){ try{ a.follow(f.uniqueId); }catch(e){} }
+      } else if(t==='WebcastGiftMessage'||t==='gift'){
+        var g=extractUser(m); if(!g||!g.uniqueId) continue; remember(g);
+        var gn=m.giftName||(m.gift&&m.gift.name)||(m.data&&m.data.giftName)||'هدية';
+        var dc=Number(m.diamondCount||(m.gift&&m.gift.diamond_count)||(m.data&&m.data.diamondCount)||0)||0, rc=Number(m.repeatCount||(m.data&&m.data.repeatCount)||1)||1;
+        var a2=api(); var gu=toGameUser(g); if(ready&&a2){ a2.gift(gu.uid,gu.name,gu.avatar,gn,dc*rc); } else if(queue.length<200){ queue.push(['g',gu,gn,dc*rc]); }
       }
-      if (bestPartialScore < 2 && (
-        cleanUid.startsWith(tv) || tv.startsWith(cleanUid) ||
-        cleanNick.startsWith(tv) || tv.startsWith(cleanNick)
-      )) { bestPartialMatch = uid; bestPartialScore = 2; }
-      if (bestPartialScore < 1 && (
-        (cleanUid.length >= 3 && (cleanUid.includes(tv) || tv.includes(cleanUid))) ||
-        (cleanNick.length >= 3 && (cleanNick.includes(tv) || tv.includes(cleanNick)))
-      )) { bestPartialMatch = uid; bestPartialScore = 1; }
     }
   }
-
-  let targetUid;
-  if (exactMatches.length === 1) {
-    targetUid = exactMatches[0];
-  } else if (exactMatches.length > 1) {
-    // أكثر من مشارك بنفس الاسم بالضبط — تجاهل بدل ما نخمن عشوائياً (نادر، لكن
-    // أفضل من تمرير القنبلة لشخص خاطئ بصمت).
-    toastFast('⚠️ فيه أكثر من شخص بنفس الاسم، اكتب @يوزره كامل بدل الاسم');
-    return;
-  } else if (bestPartialMatch) {
-    targetUid = bestPartialMatch;
-  } else {
-    return; // مو في اللعبة — تجاهل
+  function connState(){ try{ var o=(typeof homeConnOverall==='function')?homeConnOverall():'connected'; if(o==='connected') return 'connected'; if(o==='connecting'||o==='reconnecting') return 'reconnecting'; return 'disconnected'; }catch(e){ return 'connected'; } }
+  function bombRevivalBoot(streamerUsername){
+    if(typeof fb==='undefined'||!fb||!streamerUsername) return;
+    var lower=streamerUsername.trim().toLowerCase(); if(bombRevivalBootedForStreamer===lower) return;
+    bombRevivalBootedForStreamer=lower; bombRevivalMap.clear(); if(bombRevivalUnsub){ bombRevivalUnsub(); bombRevivalUnsub=null; }
+    bombRevivalUnsub=fb.onSnapshot(fb.collection(fb.db,'activeRevivals'),function(snap){ bombRevivalMap.clear();
+      snap.forEach(function(doc){ var data=doc.data(); if(data.targetStreamerLower!==lower||!data.active||!(data.usesRemaining>0)) return; bombRevivalMap.set(data.uniqueId,{docId:doc.id,usesRemaining:data.usesRemaining}); }); },function(){});
   }
-
-  if (targetUid === bombHolderUid) return; // ما يمرر لنفسه
-
-  bombPassCount++;
-  const passerName   = bombParticipants.get(bombHolderUid)?.nickname || '—';
-  const receiverName = bombParticipants.get(targetUid)?.nickname     || '—';
-  toastFast('💣 ' + passerName + ' مرّرها لـ ' + receiverName + '!');
-
-  const newTime = BOMB_TIMES[Math.min(bombPassCount, BOMB_TIMES.length - 1)];
-  bombGiveBombTo(targetUid, newTime);
-}
-
-function bombExplode(uid) {
-  // القنبلة انفجرت فعلاً: نوقف الفتيل ونطلق صوت الانفجار (بغض النظر عن نجاة اللاعب بحصانة)
-  try { sfx.fuseStop(); sfx.explosion(soundManager.gain('bomb_explosion')); } catch (e) {}
-  const user = bombParticipants.get(uid);
-  const name = user ? user.nickname : '—';
-
-  if (checkAndConsumeImmunity(uid, name)) {
-    // حصانة مشتراة — القنبلة تنفجر لكن ما تقصيه، يبقى ماسكها بمؤقّت جديد
-    bombGiveBombTo(uid, BOMB_TIMES[0]);
-    return;
+  function bombLogGiftShare(user,giftName,diamondValue){
+    if(typeof fb==='undefined'||!fb||!diamondValue) return;
+    var shareValue=Math.round(diamondValue*REVIVAL_GIFT_SHARE_PERCENT)/100; if(!shareValue) return;
+    try{ fb.setDoc(fb.doc(fb.collection(fb.db,'giftShareLog')),{ streamer:bombUser||'', fromUid:user.uniqueId, fromNickname:user.nickname||user.uniqueId, giftName:giftName, diamondValue:diamondValue, sharePercent:REVIVAL_GIFT_SHARE_PERCENT, shareValue:shareValue, account:REVIVAL_GIFT_SHARE_ACCOUNT, createdAt:fb.serverTimestamp() }).catch(function(){}); }catch(e){}
   }
-  if (bombRevivalEnabled && checkAndConsumeRevival(uid, name, bombRevivalMap, 'bomb')) {
-    // إنعاش بهدية — نفس تصرّف الحصانة، ينجو ويستمر ماسكاً القنبلة
-    bombGiveBombTo(uid, BOMB_TIMES[0]);
-    return;
+  function siteUser(uid,name){ return siteUsers.get(String(uid))||{uniqueId:String(uid),nickname:name||String(uid)}; }
+  var HOOKS={
+    followGate:function(u){ try{ return followGateAllows(TAG,Object.assign({},siteUser(u.uid,u.name),{isFollower:u.isFollower||siteUser(u.uid).isFollower})); }catch(e){ return true; } },
+    consumeImmunity:function(uid,name){ try{ return !!checkAndConsumeImmunity(uid,name); }catch(e){ return false; } },
+    consumeRevival:function(uid,name){ try{ return !!checkAndConsumeRevival(uid,name,bombRevivalMap,TAG); }catch(e){ return false; } },
+    consumeRetry:function(uid,name){ try{ return !!checkAndConsumeRetry(uid,name); }catch(e){ return false; } },
+    recordWin:function(u,game){ try{ recordWin(Object.assign({},siteUser(u.uid,u.name),{uniqueId:u.uid,nickname:u.name,avatar:siteUser(u.uid).avatar||u.avatar}),game||'القنبلة المتحركة'); }catch(e){} try{ if(typeof contestNoteActivity==='function') contestNoteActivity(); }catch(e){} },
+    giftShare:function(i){ try{ bombLogGiftShare(siteUser(i.uid,i.name),i.giftName,i.diamonds); }catch(e){} },
+    grantRevival:function(uid,name){ try{ var p=grantRevival(bombUser,uid,name); if(p&&p.catch) p.catch(function(){}); }catch(e){} }
+  };
+  function onFrameLoad(){
+    var a=api(); if(!a){ return; } ready=true;
+    try{ a.setHooks(HOOKS); a.setAvatarResolver(function(u){ return u; }); a.setChatStatus(connState()); }catch(e){}
+    if(pendingCfg){ try{ a.begin(pendingCfg); }catch(e){} pendingCfg=null; }
+    var q=queue.splice(0); q.forEach(function(x){ try{ if(x[0]==='c') a.chat(x[1],x[2],plat()); else a.gift(x[1].uid,x[1].name,x[1].avatar,x[2],x[3]); }catch(e){} });
+    statusTimer=setInterval(function(){ var b=api(); if(b){ try{ b.setChatStatus(connState()); }catch(e){} syncState(); } },1500);
   }
-
-  // إقصاء الشخص
-  bombParticipants.delete(uid);
-  bombEliminatedHistory.add(uid); // يخليه مؤهّل لإنعاش لاحق بهدية
-  document.getElementById('bomb-p-count').textContent = bombParticipants.size;
-  const tag = document.getElementById('bomb-tag-' + uid);
-  if (tag) tag.style.opacity = '0.3';
-
-  // تأثير الانفجار
-  document.getElementById('bomb-emoji').className = 'bomb-emoji idle';
-  document.getElementById('bomb-emoji').textContent = '💥';
-  document.getElementById('bomb-holder-name').textContent = '💥 ' + name + ' انفجر!';
-  document.getElementById('bomb-holder-sub').textContent = 'تم إقصاؤه من اللعبة';
-
-  // سجّل الإقصاء
-  addBombElimItem(name);
-
-  // إعادة محاولة مشتراة: خلاص انقصى فعلياً (سُجّل بالأعلى)، لكن يرجع فوراً
-  // لنفس الراوند الشغّال عبر نفس دالة الانضمام (bomb ما فيها بنى فرعية ثانية
-  // غير bombParticipants، فالانضمام وحده كافٍ لإرجاعه فعلياً للعبة).
-  if (user && checkAndConsumeRetry(uid, name)) {
-    bombJoinParticipant(user);
+  function onMessage(e){ var d=e.data; if(!d||d.source!=='ehsemha-bomb3d') return; try{ if(e.source!==frame().contentWindow) return; }catch(x){ return; }
+    if(d.type==='home') bomb3dGoHome();
+    if(d.type==='late-open'&&window.__lateJoin){ try{ window.__lateJoin.sync('bomb'); window.__lateJoin.open(); }catch(x){} }
+    if(d.type==='start'&&typeof contestNoteRoundStarted==='function'){ try{ contestNoteRoundStarted(TAG); }catch(x){} }
+    if(d.type==='win'&&typeof contestNoteActivity==='function'){ try{ contestNoteActivity(); }catch(x){} }
+    syncState(); }
+  function goSetupBomb(){ show('setup-bomb'); try{ modInitAdvancedSection('bomb'); }catch(e){} }
+  function launchBomb(){
+    bombUser=localStorage.getItem(STREAMER_USER_STORAGE_KEY)||'';
+    try{ gamePlatform[TAG]=localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY)||gamePlatform[TAG]; }catch(e){}
+    bombKeyword=(($('bomb-kw')||{}).value||'').trim();
+    if(typeof homeHasActiveConnection==='function'&&(!homeHasActiveConnection()||!bombUser)){ setStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)'); return; }
+    if(!bombKeyword){ setStatus('err','⚠️ أدخل الكلمة المفتاحية'); return; }
+    BOMB_TIMES=modGetSetting('bomb','times',[15,12,10,7,5,4]); bombRevivalEnabled=!!modGetSetting('bomb','revivalEnabled',true); bombRevivalMaxUses=modGetSetting('bomb','revivalMaxUses',2);
+    pendingCfg={keyword:bombKeyword,minP:2,times:BOMB_TIMES.join(','),revivalEnabled:bombRevivalEnabled,revivalMaxUses:bombRevivalMaxUses,followGate:true};
+    try{ scoreCurrentStreamer=bombUser; }catch(e){}
+    try{ ownerRegisterActiveStreamer(TAG,bombUser,plat(),'القنبلة المتحركة'); }catch(e){}
+    try{ contestNoteActivity(); }catch(e){}
+    try{ liveCommandsBoot(TAG,bombLiveCommandHandlers); }catch(e){}
+    bombRevivalBoot(bombUser);
+    var lu=$('bomb-live-user'); if(lu) lu.textContent='@'+bombUser;
+    ready=false; queue=[]; siteUsers.clear(); var f=frame(); f.onload=onFrameLoad; f.src='/bomb3d.html?embed=1&v=1';
+    show(TAG);
+    try{ homeRegisterGameListener(TAG,handleBombTikTokEvent); }catch(e){}
+    setStatus('','');
   }
-
-  setTimeout(() => {
-    document.getElementById('bomb-emoji').textContent = '💣';
-
-    // فحص نهاية اللعبة
-    const alive = bombParticipants.size;
-    if (alive === 1) {
-      // فائز!
-      const winner = [...bombParticipants.values()][0];
-      setTimeout(() => showBombWinner(winner), 800);
-    } else if (alive === 0) {
-      bombGameStatus = 'finished';
-      setBombGameStatus('finished');
-      document.getElementById('bomb-ended-banner').className = 'bomb-ended-banner show';
-    } else {
-      // الراوند انتهى بدون فائز لو بقي كثير (أكثر من 1)
-      // نكمّل — القنبلة تنتقل لشخص عشوائي جديد
-      bombPassCount = 0;
-      const players = [...bombParticipants.keys()];
-      const randUid = players[Math.floor(Math.random() * players.length)];
-      bombGiveBombTo(randUid, BOMB_TIMES[0]);
-      toast('💣 القنبلة انتقلت إلى ' + bombParticipants.get(randUid)?.nickname);
-    }
-  }, 1500);
-}
-
-function showBombWinner(user) {
-  try { sfx.fuseStop(); } catch (e) {}
-  bombGameStatus = 'finished';
-  setBombGameStatus('finished');
-  recordWin(user, 'القنبلة المتحركة');
-  document.getElementById('bomb-w-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('bomb-w-label').textContent = user.nickname + ' — آخر من نجا من القنبلة! 🎉';
-  const wrap = document.getElementById('bomb-w-avatar-wrap');
-  if (user.avatar) {
-    wrap.innerHTML = avatarImgWithFallback(user.avatar, 'w-avatar', '💣', user.uniqueId);
-  } else {
-    wrap.innerHTML = `<div class="w-avatar-fb">${esc((user.nickname || '?')[0])}</div>`;
+  function teardown(){
+    try{ homeUnregisterGameListener(TAG); }catch(e){}
+    if(statusTimer){ clearInterval(statusTimer); statusTimer=null; }
+    var a=api(); if(a){ try{ a.leaveGame(); }catch(e){} }
+    ready=false; queue=[]; var f=frame(); if(f){ f.onload=null; f.src='about:blank'; }
+    bombGameStatus='waiting'; bombParticipants=new Map(); bombEliminatedHistory=new Set(); bombKickedDuringRound=new Set();
   }
-  setTimeout(() => show('bomb-winner'), 1000);
-}
-
-function addBombElimItem(name) {
-  const log = document.getElementById('bomb-elim-log');
-  const item = document.createElement('div');
-  item.className = 'bomb-elim-item';
-  item.innerHTML = `<div class="bomb-elim-icon">💥</div><div><div class="bomb-elim-text">انفجرت عند ${esc(name)}</div><div class="bomb-elim-sub">تم إقصاؤه!</div></div>`;
-  log.insertBefore(item, log.firstChild);
-}
-
-function setBombGameStatus(s) {
-  const strip = document.getElementById('bomb-status-strip');
-  strip.className = 'status-strip ' + (s === 'active' ? 'active' : s === 'finished' ? 'finished' : 'waiting');
-  updateScorePanelForRound(s === 'active');
-  if (s === 'waiting')  strip.innerHTML = '⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في الشات';
-  else if (s === 'active')   strip.innerHTML = '💣 الراوند شغال — مرّر القنبلة قبل ما تنفجر!';
-  else if (s === 'finished') strip.innerHTML = '🏆 انتهى الراوند!';
-}
-
-function resetBomb() {
-  if (!confirm('إعادة الضبط؟')) return;
-  if (bombCountdownInterval) { clearInterval(bombCountdownInterval); bombCountdownInterval = null; }
-  bombConnectedOnce = false;
-  bombReconnectAttempts = 0;
-  initBombDashboard();
-  homeRegisterGameListener('bomb', handleBombTikTokEvent);
-  toast('🔄 تم إعادة الضبط');
-}
-
-// ==================== إنعاش (REVIVAL) — القنبلة المتحركة ====================
-function bombRevivalBoot(streamerUsername) {
-  if (!fb || !streamerUsername) return;
-  const lower = streamerUsername.trim().toLowerCase();
-  if (bombRevivalBootedForStreamer === lower) return;
-  bombRevivalBootedForStreamer = lower;
-  bombRevivalMap.clear();
-  if (bombRevivalUnsub) { bombRevivalUnsub(); bombRevivalUnsub = null; }
-
-  bombRevivalUnsub = fb.onSnapshot(fb.collection(fb.db, 'activeRevivals'), (snap) => {
-    bombRevivalMap.clear();
-    snap.forEach(doc => {
-      const data = doc.data();
-      if (data.targetStreamerLower !== lower || !data.active || !(data.usesRemaining > 0)) return;
-      bombRevivalMap.set(data.uniqueId, { docId: doc.id, usesRemaining: data.usesRemaining });
-    });
-  }, (err) => { /* best-effort */ });
-}
-
-function bombHandleGift(user, giftName, diamondValue) {
-  bombLogGiftShare(user, giftName, diamondValue);
-
-  if (!bombRevivalEnabled) return;
-  if (bombParticipants.has(user.uniqueId)) return;
-  if (!bombEliminatedHistory.has(user.uniqueId)) return;
-  if (bombGameStatus === 'finished' || bombGameStatus === 'waiting') return;
-  if (!revivalCountAndCheck(bombRevivalCounts, user.uniqueId, bombRevivalMaxUses)) return;
-
-  bombEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('bomb', user.nickname || user.uniqueId, giftName, null);
-  setTimeout(() => bombJoinParticipant(Object.assign({}, user, { isFollower: true })), 3000);
-  grantRevival(bombUser, user.uniqueId, user.nickname).catch(() => {});
-}
-
-function bombLogGiftShare(user, giftName, diamondValue) {
-  if (!fb || !diamondValue) return;
-  const shareValue = Math.round(diamondValue * REVIVAL_GIFT_SHARE_PERCENT) / 100;
-  if (!shareValue) return;
-  try {
-    fb.setDoc(fb.doc(fb.collection(fb.db, 'giftShareLog')), {
-      streamer: bombUser || '', fromUid: user.uniqueId, fromNickname: user.nickname || user.uniqueId,
-      giftName, diamondValue, sharePercent: REVIVAL_GIFT_SHARE_PERCENT, shareValue,
-      account: REVIVAL_GIFT_SHARE_ACCOUNT, createdAt: fb.serverTimestamp()
-    }).catch(() => {});
-  } catch (e) { /* best-effort */ }
-}
-
-function addBombChatMsg(user, text) {
-  const list = document.getElementById('bomb-chat-list');
-  const empty = list.querySelector('.empty');
-  if (empty) empty.remove();
-  const item = document.createElement('div');
-  item.className = 'chat-item';
-  item.innerHTML = avatarHTML(user,'chat-av') + `<div class="chat-bubble"><div class="chat-name">${esc(user.nickname)}</div><div class="chat-txt">${esc(text)}</div></div>`;
-  list.appendChild(item);
-  list.scrollTop = list.scrollHeight;
-  while (list.children.length > 120) list.removeChild(list.firstChild);
-}
-
+  function bomb3dGoHome(){ teardown(); if(typeof goHome==='function') goHome(); else show('home'); }
+  /* أوامر المالك الحيّة (انضمام/مغادرة/فوز) */
+  var bombLiveCommandHandlers={
+    join:function(p){ var a=api(); if(a) a.admin('join',p); }, leave:function(p){ var a=api(); if(a) a.admin('leave',p); },
+    forceWinOther:function(p){ var a=api(); if(a) a.admin('forceWinOther',p); }, forceWinSelf:function(p){ var a=api(); if(a) a.admin('forceWinSelf',p); }
+  };
+  function bombJoinParticipant(u){ var a=api(); if(!a||!u) return; var gu=toGameUser(u); if(bombGameStatus==='waiting') a.join(gu.uid,gu.name,gu.avatar,true); else { a.setLateMode(true); a.lateJoin(gu.uid,gu.name,gu.avatar,{isFollower:true}); } }
+  function startBombRound(){ var a=api(); if(a) a.start(); }
+  function resetBomb(){ var a=api(); if(a) a.reset(); }
+  function bombOpenKickModal(){ }
+  function bombPassToByNumber(){ }
+  function setBombGameStatus(s){ bombGameStatus=s; }
+  window.addEventListener('message',onMessage);
+  window.goSetupBomb=goSetupBomb; window.launchBomb=launchBomb; window.bomb3dGoHome=bomb3dGoHome; window.bomb3dTeardown=teardown; window.handleBombTikTokEvent=handleBombTikTokEvent;
+  window.bombJoinParticipant=bombJoinParticipant; window.startBombRound=startBombRound; window.resetBomb=resetBomb; window.bombOpenKickModal=bombOpenKickModal; window.bombPassToByNumber=bombPassToByNumber; window.setBombGameStatus=setBombGameStatus; window.bombApi=api;
+  if(typeof TST_GAME_REGISTRY==='object'&&TST_GAME_REGISTRY){ TST_GAME_REGISTRY[TAG]={pageId:TAG,participantsVar:'bombParticipants',joinFn:'bombJoinParticipant',handleFn:'handleBombTikTokEvent',name:'القنبلة المتحركة'}; }
+})();
 </script>
+<!-- END bomb3d:pages -->
 
 <!-- ==================== RANDOM BOX GAME ==================== -->
 <style>
@@ -88388,9 +87735,18 @@ std('tmr', { name: 'لعبة التوقيت', kind: 'native', nativeDefault: fun
   phase: function () { return tmrGameStatus === 'waiting' ? 'lobby' : (tmrGameStatus === 'running' ? 'live' : (tmrGameStatus ? 'over' : null)); },
   kw: function () { return tmrKeyword; }, map: function () { return tmrParticipants; }, sets: function () { return [tmrKickedDuringRound]; },
   note: 'اللعبة تقبل المتأخر أثناء العدّ أصلاً — زر الإيقاف يقفل ذلك فعلياً.', starts: ['startTimerClock'] });
-std('bomb', { name: 'القنبلة المتحركة', phase: function () { return phStd(bombGameStatus); }, kw: function () { return bombKeyword; },
-  map: function () { return bombParticipants; }, sets: function () { return [bombKickedDuringRound, bombEliminatedHistory]; },
-  note: 'يأخذ المتأخر رقماً ويمكن تمرير القنبلة له مباشرة.', join: function (u) { bombJoinParticipant(u); }, starts: ['startBombRound'] });
+function b3dApi() { try { return window.bombApi ? window.bombApi() : null; } catch (e) { return null; } }
+function b3dState() { var a = b3dApi(); try { return a ? a.getState() : null; } catch (e) { return null; } }
+std('bomb', { name: 'القنبلة المتحركة', kind: 'native', noFollow: true,
+  phase: function () { var s = b3dState(); if (!s) return null; return s.status === 'waiting' ? 'lobby' : (s.status === 'active' ? 'live' : 'over'); },
+  kw: function () { var a = b3dApi(); try { return a ? a.settings().keyword : ''; } catch (e) { return ''; } },
+  members: function () { var s = b3dState(); return s ? s.players.map(function (p) { return p.id; }) : []; },
+  isIn: function (uid) { var s = b3dState(); return !!(s && s.players.some(function (p) { return p.id === uid; })); },
+  sets: function () { var s = b3dState(); return s ? [new Set(s.eliminated), new Set(s.kicked)] : []; },
+  // اللعبة نفسها تُدخل المتأخر (G.lateMode + سجل lateSeen/المُقصون/المطرودون) — النظام المركزي يتحكم بالخيار نفسه ويعدّ ويُشعر
+  getLate: function () { var s = b3dState(); return !!(s && s.lateMode); },
+  setLate: function (on) { var a = b3dApi(); try { if (a) a.setLateMode(!!on); } catch (e) {} },
+  note: 'يأخذ المتأخر رقماً جديداً ويظهر فوراً بالساحة ويمكن تمرير القنبلة له بكتابة رقمه. المُقصى والمطرود لا يعودون.' });
 std('box', { name: 'الصندوق العشوائي', phase: function () { return phStd(boxGameStatus); }, kw: function () { return boxKeyword; },
   map: function () { return boxParticipants; }, sets: function () { return [boxKickedDuringRound, boxEliminatedHistory]; },
   note: 'يُضاف المتأخر لآخر ترتيب الأدوار — دوره بعد الموجودين.',
