@@ -66,7 +66,7 @@ const C = {
   cw: { g: G('cw'), isIn: "cwActiveCountries.some(c => c.uid === uid)", start: 'startCountryWarRound()',
     elim: 'cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1), cwEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'cwKeyword', n: 4,
     deep: 'cwAssignments.has(uid)' },
-  draw: { g: G('draw'), kind: 'native', noKw: true, isIn: 'drawParticipants.has(uid)', start: 'startDrawRound()', lobby: RESET, n: 0 },
+  draw: { g: G('draw'), kind: 'native', noKw: true, isIn: 'drawParticipants.has(uid)', start: 'startDrawRound()', lobby: RESET + ", (document.getElementById('gd-modal-yes') || { click() {} }).click()", n: 0 },
   findball: { g: G('findball'), drive: "findballGameStatus === 'guessing' && [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup)))", isIn: 'findballParticipants.has(uid)', start: 'findballStartRoundClick()', elim: 'findballParticipants.delete(uid), findballEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'findballKeyword', staged: "findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'", n: 4 },
   chairs: { g: G('chairs'), isIn: 'chairsParticipants.has(uid)', start: 'chairsStartRoundClick()', elim: 'chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'chairsKeyword', staged: "chairsGameStatus === 'finished-round'", n: 5,
     drive: "chairsGameStatus === 'claiming' && [...chairsParticipants.values()].forEach((u, i) => chairsProcessClaim(u, String(chairsActiveChairNumbers[i] || 0)))" },
@@ -177,7 +177,8 @@ async function runGame(page, tag) {
   const nameIn = (await page.evaluate((uid) => { const s = __lateJoin.state(__lateJoin.cur()); return s.recent.join('|'); }, L1));
   await waitFor(page, () => { const n = document.getElementById('lj-notify'); return !!(n && n.classList.contains('lj-in')); }, null, 4000);
   const notif = await page.evaluate(() => { const n = document.getElementById('lj-notify'); return n && n.classList.contains('lj-in') ? n.innerText.replace(/\s+/g, ' ') : ''; });
-  check('إشعار «انضم لاعب جديد!» مع الاسم', /انضم (لاعب جديد|[٠-٩\d]+ لاعبين جدد)!/.test(notif) && (notif.includes(L1) || /لاعبين جدد/.test(notif)), { notif, recent: nameIn });
+  if (tag === 'draw') check('«خمن الرسمة»: لا إشعار عائم للمتأخر (اللعبة بلا toasts) — يظهر في نافذة اللاعب المتأخر فقط', !notif && !!nameIn, { notif, recent: nameIn });
+  else check('إشعار «انضم لاعب جديد!» مع الاسم', /انضم (لاعب جديد|[٠-٩\d]+ لاعبين جدد)!/.test(notif) && (notif.includes(L1) || /لاعبين جدد/.test(notif)), { notif, recent: nameIn });
   // 7) تكرار + تغيير اسم
   const before = await lj(page, tag);
   for (let k = 0; k < 6; k++) await say(L1, kw);
