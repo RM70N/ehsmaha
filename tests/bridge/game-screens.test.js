@@ -11,14 +11,14 @@ const results = [];
 const check = (name, ok, detail) => { results.push({ name, ok: !!ok }); console.log((ok ? 'PASS ' : 'FAIL ') + name + (detail !== undefined ? '  ' + JSON.stringify(detail) : '')); };
 const hideLoader = (p) => p.evaluate(() => { const l = document.getElementById('auth-loader'); if (l) l.style.display = 'none'; });
 
-// صفحات الألعاب الـ27 (القنبلة صارت لعبة 3D بإطار مستقل — يغطيها bomb3d.test.js، و«خمن الرسمة» صارت بواجهة مستقلة كلياً — يغطيها draw-game.test.js): [وسم، صفحة الإعداد، صفحة اللعبة، لون التصنيف]
+// صفحات الألعاب الـ27 (القنبلة صارت لعبة 3D بإطار مستقل — يغطيها bomb3d.test.js، و«خمن الرسمة» صارت بواجهة مستقلة كلياً — يغطيها draw-game.test.js، و«شد الحبل» صارت 3D بإطار مستقل — يغطيها tug3d.test.js): [وسم، صفحة الإعداد، صفحة اللعبة، لون التصنيف]
 const PAGES = [
   ['cr', 'setup-cr', 'cr', '#A78BFF'], ['ev', 'setup-ev', 'ev', '#F59E0B'], ['main', 'setup', 'dash', '#22D3EE'], ['guessword', 'setup-guessword', 'guessword', '#22D3EE'],
   ['sniper', 'setup-sniper', 'sniper', '#F59E0B'], ['battery', 'setup-battery', 'battery', '#A78BFF'], ['rou', 'setup-roulette', 'roulette', '#F59E0B'], ['tmr', 'setup-timer', 'timer', '#22D3EE'],
   ['ll', 'setup-lastletter', 'lastletter', '#A78BFF'], ['wai', 'setup-whoami', 'whoami', '#22D3EE'], ['rw', 'setup-reverseword', 'reverseword', '#A78BFF'],
   ['pgs', 'setup-priceguess', 'priceguess', '#22D3EE'], ['cs', 'setup-crownsteal', 'crownsteal', '#A78BFF'], ['lsc', 'setup-letterscramble', 'letterscramble', '#A78BFF'], ['cw', 'setup-countrywar', 'countrywar', '#F59E0B'],
   ['box', 'setup-box', 'box', '#F59E0B'], ['chairs', 'setup-chairs', 'chairs', '#F59E0B'], ['findball', 'setup-findball', 'findball', '#22D3EE'], ['wr', 'setup-wordrace', 'wordrace', '#A78BFF'],
-  ['tug', 'setup-tug', 'tug', '#34D399'], ['rlgl', 'setup-rlgl', 'rlgl', '#F59E0B'], ['maze', 'setup-maze', 'maze', '#A78BFF'],
+  ['rlgl', 'setup-rlgl', 'rlgl', '#F59E0B'], ['maze', 'setup-maze', 'maze', '#A78BFF'],
   ['tt10', 'setup-tt10', 'tt10', '#A78BFF'], ['glz', 'setup-glz', 'glz', '#F59E0B'], ['volcanic-lands', 'setup-volcanic-lands', 'volcanic-lands', '#F59E0B'], ['hz', 'setup-hz', 'hz', '#F59E0B'], ['ig', 'setup-ig', 'ig', '#22D3EE'],
 ];
 
@@ -41,14 +41,14 @@ const PAGES = [
   }), PAGES);
   const CLASSIC = ['rou', 'cw', 'volcanic-lands'];
   const badStruct = struct.filter((x) => CLASSIC.includes(x.tag) ? !(x.setupPreview && x.pvSetup && !x.main && x.titleAny) : !(x.setupPreview && x.pvSetup && x.pv && x.top && x.main && x.side && x.stage && x.foot && x.title));
-  check('كل الـ27 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
+  check('كل الـ26 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
 
   // ---------- 2) ألوان التصنيف ----------
   const colors = await page.evaluate((P) => P.map(([tag, s, g, c]) => [tag, getComputedStyle(document.getElementById('pg-' + g)).getPropertyValue('--gs-c').trim().toUpperCase(), getComputedStyle(document.getElementById('pg-' + s)).getPropertyValue('--gs-c').trim().toUpperCase(), c]), PAGES);
   const badC = colors.filter((x) => (CLASSIC.includes(x[0]) ? x[2] !== x[3] : (x[1] !== x[3] || x[2] !== x[3])));
   check('لون كل لعبة بإعدادها وانتظارها حسب تصنيفها (دردشة بنفسجي، حظ كهرماني، تخمين سماوي، فرق أخضر)', badC.length === 0, badC);
-  const pills = await page.evaluate(() => ['sniper', 'cr', 'tmr', 'tug'].map((t) => { const id = { sniper: 'sniper', cr: 'cr', tmr: 'timer', tug: 'tug' }[t]; return getComputedStyle(document.querySelector('#pg-' + id + ' .gth-name'), '::after').content; }));
-  check('شارة التصنيف بجانب اسم اللعبة (حظ/دردشة/تخمين/فرق)', pills.join() === '"حظ","دردشة","تخمين","فرق"', pills);
+  const pills = await page.evaluate(() => ['sniper', 'cr', 'tmr'].map((t) => { const id = { sniper: 'sniper', cr: 'cr', tmr: 'timer' }[t]; return getComputedStyle(document.querySelector('#pg-' + id + ' .gth-name'), '::after').content; }));
+  check('شارة التصنيف بجانب اسم اللعبة (حظ/دردشة/تخمين)', pills.join() === '"حظ","دردشة","تخمين"', pills);
 
   // ---------- 3) معاينة الراوند الحيّة بالإعداد: تتغيّر مع كل إعداد ----------
   const setVal = async (sel, v) => { await page.fill(sel, String(v)); await sleep(220); };
@@ -58,11 +58,6 @@ const PAGES = [
   check('سباق الشات: المعاينة تعرض مسارات بعدد المتسابقين وطول المضمار والكلمة (4 مسارات، 55 خطوة، "سباق")', cr.lanes === 4 && /55/.test(cr.foot) && /4 من 4/.test(cr.foot) && cr.join === 'سباق' && cr.w > 400 && cr.h > 350, cr);
   await setVal('#cr-maxracers', 30);
   check('رفع أقصى المتسابقين إلى 30 يحدّث المعاينة فوراً (8 مسارات كحد أقصى للرسم و"30 مقعد")', await page.evaluate(() => { const p = document.querySelector('#pg-setup-cr .gs-pv-stage'); return p.querySelectorAll('.pv-lane').length === 8 && /8 من 30/.test(p.querySelector('.pv-foot').textContent); }));
-  await page.evaluate(() => show('setup-tug')); await sleep(300);
-  await setVal('#tug-team-a-name', 'الصقور'); await setVal('#tug-team-b-name', 'النمور'); await setVal('#tug-pull-kw', 'شد');
-  await page.evaluate(() => { const c = document.getElementById('tug-opt-streak'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); }); await sleep(250);
-  const tug = await page.evaluate(() => { const p = document.querySelector('#pg-setup-tug .gs-pv-stage'); return { names: Array.from(p.querySelectorAll('.pv-team b')).map((b) => b.textContent), pull: p.querySelector('.pv-pull b').textContent, opt: Array.from(p.querySelectorAll('.pv-chip')).map((c) => c.textContent.trim()) }; });
-  check('شد الحبل: المعاينة تعرض اسمَي الفريقين وكلمة السحب والخيار المفعّل', tug.names.join() === 'الصقور,النمور' && tug.pull === 'شد' && tug.opt.includes('مكافأة التتابع'), tug);
   await page.evaluate(() => show('setup-rlgl')); await sleep(300);
   await setVal('#rlgl-steps', 20);
   await page.selectOption('#rlgl-light-speed', 'fast'); await sleep(250);
@@ -75,7 +70,7 @@ const PAGES = [
   await setVal('#hz-kw', 'العب');
   check('لعبة بلا مشهد مخصّص (ضربة الحظ): رسمة اللعبة + الكلمة المفتاحية بالمعاينة', await page.evaluate(() => { const p = document.querySelector('#pg-setup-hz .gs-pv-stage'); return !!p.querySelector('.pv-art svg') && p.querySelector('.pv-join b').textContent === 'العب'; }));
   const pvAll = await page.evaluate((P) => P.map(([tag, s]) => { const el = document.querySelector('#pg-' + s + ' .gs-pv-stage'); return [tag, !!el && el.innerHTML.length > 80]; }).filter((x) => !x[1]), PAGES);
-  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ27', pvAll.length === 0, pvAll);
+  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ26', pvAll.length === 0, pvAll);
   await page.evaluate(() => show('setup-cr')); await sleep(250);
   const nav = await page.evaluate(() => { const b = document.querySelector('#pg-setup-cr .btn-primary'); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderRadius }; });
   check('زر "ابدأ اللعبة" كبير دائري بلون التصنيف (72px)', nav.h >= 70 && nav.bg === 'rgb(167, 139, 255)' && parseInt(nav.radius) >= 100, nav);
@@ -131,19 +126,13 @@ const PAGES = [
 
   // ---------- 5) الجوال والتجاوب ----------
   await page.setViewportSize({ width: 390, height: 844 });
-  for (const id of ['setup-sniper', 'sniper', 'setup-tug', 'tug', 'cr']) {
+  for (const id of ['setup-sniper', 'sniper', 'cr']) {
     await page.evaluate((x) => { show(x); window.scrollTo(0, 0); }, id);
     await sleep(250);
     const m = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth, cols: (() => { const el = document.querySelector('.page.active .gs-main'); return el ? getComputedStyle(el).gridTemplateColumns.replace(/\([^)]*\)/g, 'X').split(' ').length : 1; })() }));
     check('الجوال ' + id + ': بلا تمرير أفقي وعمود واحد', m.sw <= m.iw && m.cols === 1, m);
   }
   await page.setViewportSize({ width: 1360, height: 900 });
-
-  // ---------- 6) شد الحبل: صندوقا الفريقين داخل عمود الانضمام (ما يتجاوزانه) ----------
-  await page.evaluate(() => show('tug'));
-  await sleep(300);
-  const tug2 = await page.evaluate(() => { const p = document.getElementById('pg-tug'); const s = p.querySelector('.gs-side').getBoundingClientRect(); const w = p.querySelector('#tug-teams-wrap').getBoundingClientRect(); return { inside: w.left >= s.left - 1 && w.right <= s.right + 1, pageErr: 0 }; });
-  check('شد الحبل: صندوقا الفريقين داخل عمود الانضمام', tug2.inside, tug2);
 
   check('لا أخطاء JS', page._errors.length === 0, page._errors.slice(0, 3));
   await browser.close();
