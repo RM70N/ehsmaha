@@ -42,8 +42,10 @@ const C = {
     deep: "rouActivePlayers.includes(rouParticipants.get(uid).nickname) && rouPlayerNumbers.has(uid)" },
   tmr: { g: G('tmr'), kind: 'native', isIn: 'tmrParticipants.has(uid)', start: 'startTimerClock()', lobby: RESET, kwVar: 'tmrKeyword',
     play: ['وقف'], deep: "tmrGuesses.some(x => (x.uid || (x.user && x.user.uniqueId)) === uid)" },
-  bomb: { g: G('bomb'), isIn: 'bombParticipants.has(uid)', start: 'startBombRound()', elim: 'bombParticipants.delete(uid), bombEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'bombKeyword', n: 4,
-    deep: 'bombPlayerNumbers.has(uid)' },
+  bomb: { g: G('bomb'), kind: 'native', heavy: 1, n: 4, isIn: "bombApi().getState().players.some(p => p.id === uid)",
+    start: "(bombApi().settings({ times: '600,600,600' }), bombApi().start())",
+    openBtn: "document.querySelector('#bomb-frame').contentDocument.getElementById('b3d-bLate')", openVia: "document.querySelector('#bomb-frame').contentDocument.getElementById('b3d-bLate').click()", elim: 'bombApi().kick(uid)', lobby: 'bombApi().reset()',
+    deep: "bombApi().getState().players.find(p => p.id === uid).num > 0" },
   box: { g: G('box'), isIn: 'boxParticipants.has(uid)', start: 'startBoxRound()', elim: 'boxParticipants.delete(uid), boxEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'boxKeyword', n: 4,
     deep: 'boxTurnOrder.includes(uid)' },
   cr: { g: G('cr'), isIn: 'crParticipants.has(uid)', start: 'startCrRound()', elim: 'crParticipants.delete(uid)', lobby: RESET, kwVar: 'crKeyword',
@@ -102,7 +104,7 @@ async function runGame(page, tag) {
   if (l.err) check('تشغيل اللعبة', false, l.err);
   const pg0 = await page.evaluate(() => ({ page: document.querySelector('.page.active').id, st: [...document.querySelectorAll('.page.active .status-msg, .status-msg')].map((e) => e.textContent.trim()).filter(Boolean).slice(0, 3) }));
   if (!/^pg-(?!setup|home)/.test(pg0.page)) console.log('LAUNCH-DIAG [' + tag + '] ' + JSON.stringify(pg0));
-  if (tag === 'roulette3d' || tag === 'cannon') await waitFor(page, (t) => { const s = __lateJoin.adapters[t].phase(); return s === 'lobby'; }, tag, 60000);
+  if (tag === 'roulette3d' || tag === 'cannon' || tag === 'bomb') await waitFor(page, (t) => { const s = __lateJoin.adapters[t].phase(); return s === 'lobby'; }, tag, 60000);
   const kw = c.kwVal || (c.noKw ? 'مرحبا' : (g.kw || await page.evaluate((t) => __lateJoin.adapters[t].kw(), tag)));
   const isIn = (uid) => ev(page, c.isIn, 'tiktok:' + uid);
   // 1) لاعبون عاديون قبل الجولة
@@ -116,8 +118,15 @@ async function runGame(page, tag) {
   check('الجولة بدأت ونظام المتأخرين التقط بدايتها (سجل الجولة = اللاعبون الحاليون)', live, await lj(page, tag));
   if (!live) return;
   // 3) الزر: واحد فقط، داخل لوحة اللعبة النشطة، بجانب أزرارها، وبنفس فئة الأزرار المجاورة
-  const b = await page.evaluate(() => { const all = document.querySelectorAll('#lj-btn'), x = all[0], p = document.querySelector('.page.active'); return { page: p && p.id, cur: __lateJoin.cur(), shows: (window.__shows || []).slice(-6), n: all.length, inPage: !!(x && p.contains(x)), cls: x && x.className, prev: x && x.previousElementSibling && x.previousElementSibling.className, text: x && x.innerText.replace(/\s+/g, ' ').trim() }; });
-  check('زر «لاعب متأخر» واحد داخل لوحة اللعبة بجانب أزرارها', b.n === 1 && b.inPage && /لاعب متأخر/.test(b.text) && /lj-btn/.test(b.cls), b);
+  if (c.openVia) {
+    // زر «لاعب متأخر» داخل اللعبة نفسها (بإطار مستقل) يفتح نافذة المنصة الموحّدة — بدون زر ثانٍ من الموقع
+    const bb = await page.evaluate((e) => { let x = null; try { x = (0, eval)(e.btn); } catch (er) {} return { has: !!x, text: x && x.textContent, site: document.querySelectorAll('#lj-btn').length }; }, { btn: c.openBtn });
+    check('زر «لاعب متأخر» موجود بلوحة اللعبة (واحد فقط، بدون زر مكرر من الموقع)', bb.has && /لاعب متأخر/.test(bb.text) && bb.site === 0, bb);
+  } else {
+    const b = await page.evaluate(() => { const all = document.querySelectorAll('#lj-btn'), x = all[0], p = document.querySelector('.page.active'); return { page: p && p.id, cur: __lateJoin.cur(), shows: (window.__shows || []).slice(-6), n: all.length, inPage: !!(x && p.contains(x)), cls: x && x.className, prev: x && x.previousElementSibling && x.previousElementSibling.className, text: x && x.innerText.replace(/\s+/g, ' ').trim() }; });
+    check('زر «لاعب متأخر» واحد داخل لوحة اللعبة بجانب أزرارها', b.n === 1 && b.inPage && /لاعب متأخر/.test(b.text) && /lj-btn/.test(b.cls), b);
+
+  }
   // 4) قبل التفعيل
   const st0 = await lj(page, tag);
   if (c.kind !== 'native') {
@@ -125,7 +134,8 @@ async function runGame(page, tag) {
     check('قبل الضغط على الزر: كاتب الكلمة وسط الجولة لا يدخل (سلوك اللعبة الأصلي)', !(await isIn(tag + '_early')) && !st0.on, st0);
   }
   // 5) فتح النافذة
-  await page.evaluate(() => document.getElementById('lj-btn').click()); await sleep(700);
+  if (c.openVia) await ev(page, c.openVia); else await page.evaluate(() => document.getElementById('lj-btn').click());
+  await sleep(700);
   const m = await page.evaluate(() => { const mo = document.getElementById('lj-modal'); const r = mo.querySelector('.lj-card').getBoundingClientRect(); const cs = getComputedStyle(mo.querySelector('.lj-card'));
     return { vis: !mo.hidden && mo.classList.contains('lj-in'), title: mo.querySelector('#lj-title').textContent, text: mo.querySelector('.lj-text').textContent, kw: mo.querySelector('#lj-kw').textContent,
       status: mo.querySelector('#lj-status').dataset.s, toggle: mo.querySelector('#lj-toggle').textContent, w: Math.round(r.width), h: Math.round(r.height), bg: cs.backgroundColor, bd: cs.borderTopColor, z: getComputedStyle(mo).zIndex }; });
@@ -228,7 +238,7 @@ async function runGame(page, tag) {
     check('جولة جديدة/ريست: السجل يتصفّر (عدّاد ٠ وأهلية جديدة)', s.count === 0 && (s.phase !== 'live' || s.round > r0.round), s);
   }
   // الخروج من اللعبة بزر الخروج الخاص بها (مثل الستريمر) — goHome وحده لا يوقف مؤقّتات بعض الألعاب
-  const EXIT = { glz: 'glzQuit()', tt10: 'tt10Quit()', roulette3d: 'rr3dGoHome()', 'volcanic-lands': 'vlGoHome()' };
+  const EXIT = { bomb: 'bomb3dGoHome()', glz: 'glzQuit()', tt10: 'tt10Quit()', roulette3d: 'rr3dGoHome()', 'volcanic-lands': 'vlGoHome()' };
   if (EXIT[tag]) { await ev(page, EXIT[tag]); await sleep(300); }
   const errs = page._errors.slice(err0);
   check('بدون أخطاء JavaScript', errs.length === 0, errs.slice(0, 3));

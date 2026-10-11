@@ -1,6 +1,6 @@
 # نقل الموقع إلى GitHub Pages (ehsmaha.com)
 
-الموقع ملفات ثابتة: `index.html` + `roulette3d.html` + `discord-logo.png`. الـ workflow `.github/workflows/pages.yml` ينشرها لوحدها
+الموقع ملفات ثابتة: `index.html` + `roulette3d.html` + `bomb3d.html` + `discord-logo.png`. الـ workflow `.github/workflows/pages.yml` ينشرها لوحدها
 (ومعها `404.html` نسخة من `index.html` عشان روابط الإحالة مثل `ehsmaha.com/ahmed-2024` تظل تشتغل، و`CNAME` و`.nojekyll`).
 ملف `netlify.toml` و`_redirects` خاصان بـNetlify وما يؤثران على GitHub Pages.
 
@@ -18,4 +18,4 @@
 ## ملاحظات
 - **Firebase**: لو ضفت رابط مؤقت `<حساب>.github.io` للتجربة، أضفه في Firebase Console → Authentication → Settings → Authorized domains. الدومين `ehsmaha.com` نفسه ما يحتاج تغيير.
 - **سيرفر الجسر (Render)**: ما يتأثر طالما الدومين نفسه `ehsmaha.com`.
-- كل تعديل لاحق على `index.html` أو `roulette3d.html` يُنشر تلقائياً عند دمجه بـ`main`، أو يدوياً: Actions → Deploy site to GitHub Pages → Run workflow.
+- كل تعديل لاحق على `index.html` أو `roulette3d.html` أو `bomb3d.html` يُنشر تلقائياً عند دمجه بـ`main`، أو يدوياً: Actions → Deploy site to GitHub Pages → Run workflow.
