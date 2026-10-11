@@ -70,7 +70,9 @@ const C = {
   findball: { g: G('findball'), drive: "findballGameStatus === 'guessing' && [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup)))", isIn: 'findballParticipants.has(uid)', start: 'findballStartRoundClick()', elim: 'findballParticipants.delete(uid), findballEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'findballKeyword', staged: "findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'", n: 4 },
   chairs: { g: G('chairs'), isIn: 'chairsParticipants.has(uid)', start: 'chairsStartRoundClick()', elim: 'chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'chairsKeyword', staged: "chairsGameStatus === 'finished-round'", n: 5,
     drive: "chairsGameStatus === 'claiming' && [...chairsParticipants.values()].forEach((u, i) => chairsProcessClaim(u, String(chairsActiveChairNumbers[i] || 0)))" },
-  tug: { g: G('tug'), afterJoin: async () => { await say('tug_b0', 'ازرق'); await say('tug_b1', 'ازرق'); }, isIn: '!!tugTeamOf(uid)', start: 'startTugRound()', lobby: RESET, kwVar: 'tugTeamAKw', deep: "tugTeamOf(uid) === 'a'" },
+  tug: { g: G('tug'), kind: 'native', heavy: 1, afterJoin: async () => { await say('tug_b0', 'ازرق'); await say('tug_b1', 'ازرق'); }, isIn: '!!tugTeamOf(uid)', start: 'startTugRound()',
+    openBtn: "document.querySelector('#tug-frame').contentDocument.getElementById('eht-late')", openVia: "document.querySelector('#tug-frame').contentDocument.getElementById('eht-late').click()",
+    lobby: 'tugApi().reset()', deep: "tugTeamOf(uid) === 'a'" },
   rlgl: { g: G('rlgl'), isIn: 'rlglParticipants.has(uid)', start: 'startRlglRound()', elim: "rlglEliminatePlayer(uid, 'red-light')", elimCheck: 'rlglEliminated.has(uid)', lobby: RESET, kwVar: 'rlglJoinKw',
     deep: "!!document.getElementById('rlgltoken-' + uid) && rlglLaneOf.has(uid) && rlglLaneCount === rlglParticipants.size && document.querySelectorAll('#rlgl-arena-track .rlgl-token').length === rlglParticipants.size" },
   tt10: { g: G('tt10'), kind: 'native', noKw: true, isIn: 'tt10Participants.has(uid)', start: 'tt10StartRound()', n: 2,
@@ -104,7 +106,7 @@ async function runGame(page, tag) {
   if (l.err) check('تشغيل اللعبة', false, l.err);
   const pg0 = await page.evaluate(() => ({ page: document.querySelector('.page.active').id, st: [...document.querySelectorAll('.page.active .status-msg, .status-msg')].map((e) => e.textContent.trim()).filter(Boolean).slice(0, 3) }));
   if (!/^pg-(?!setup|home)/.test(pg0.page)) console.log('LAUNCH-DIAG [' + tag + '] ' + JSON.stringify(pg0));
-  if (tag === 'roulette3d' || tag === 'cannon' || tag === 'bomb') await waitFor(page, (t) => { const s = __lateJoin.adapters[t].phase(); return s === 'lobby'; }, tag, 60000);
+  if (tag === 'roulette3d' || tag === 'cannon' || tag === 'bomb' || tag === 'tug') await waitFor(page, (t) => { const s = __lateJoin.adapters[t].phase(); return s === 'lobby'; }, tag, 60000);
   const kw = c.kwVal || (c.noKw ? 'مرحبا' : (g.kw || await page.evaluate((t) => __lateJoin.adapters[t].kw(), tag)));
   const isIn = (uid) => ev(page, c.isIn, 'tiktok:' + uid);
   // 1) لاعبون عاديون قبل الجولة
@@ -239,7 +241,7 @@ async function runGame(page, tag) {
     check('جولة جديدة/ريست: السجل يتصفّر (عدّاد ٠ وأهلية جديدة)', s.count === 0 && (s.phase !== 'live' || s.round > r0.round), s);
   }
   // الخروج من اللعبة بزر الخروج الخاص بها (مثل الستريمر) — goHome وحده لا يوقف مؤقّتات بعض الألعاب
-  const EXIT = { bomb: 'bomb3dGoHome()', glz: 'glzQuit()', tt10: 'tt10Quit()', roulette3d: 'rr3dGoHome()', 'volcanic-lands': 'vlGoHome()' };
+  const EXIT = { bomb: 'bomb3dGoHome()', tug: 'tugGoHome()', glz: 'glzQuit()', tt10: 'tt10Quit()', roulette3d: 'rr3dGoHome()', 'volcanic-lands': 'vlGoHome()' };
   if (EXIT[tag]) { await ev(page, EXIT[tag]); await sleep(300); }
   const errs = page._errors.slice(err0);
   check('بدون أخطاء JavaScript', errs.length === 0, errs.slice(0, 3));

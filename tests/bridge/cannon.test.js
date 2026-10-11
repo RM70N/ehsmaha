@@ -56,7 +56,7 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
   check('رسم الكرت (SVG المدفع) بحركته: المدفع/الارتداد/المقذوف/العلامة', lib.svg && lib.anim && lib.barrelAnim === 'hcn-aim', { svg: lib.svg, anim: lib.anim, a: lib.barrelAnim });
   check('فئة «ثلاثية الأبعاد» ضمن فلاتر المكتبة', lib.cats.includes('ثلاثية الأبعاد'), lib.cats);
   await page.evaluate(() => homeApplyFilter('3d')); await sleep(300);
-  check('فلتر ثلاثية الأبعاد يعرض المدفع أولاً (ومعه القنبلة والروليت 3D)', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#hlob-grid .hlob-card')].map((c) => c.dataset.tag))) === '["cannon","bomb","roulette3d"]');
+  check('فلتر ثلاثية الأبعاد يعرض المدفع أولاً (ومعه القنبلة وشد الحبل والروليت 3D)', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#hlob-grid .hlob-card')].map((c) => c.dataset.tag))) === '["cannon","bomb","tug","roulette3d"]');
   await page.evaluate(() => homeApplyFilter('all')); await sleep(200);
   await page.evaluate(() => document.querySelector('#hlob-grid .hlob-card[data-tag="cannon"] [data-hlob="open"]').click()); await sleep(300);
   const dlg = await page.evaluate(() => ({ on: document.getElementById('hlob-dlg-ov').classList.contains('on'), title: document.getElementById('dlg-title').textContent, art: !!document.querySelector('#hlob-dlg-art-in .hcn-barrel'), cmd: document.getElementById('hlob-dlg-cmd').innerText.replace(/\s+/g, ' ').trim() }));
