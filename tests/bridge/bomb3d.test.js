@@ -136,6 +136,13 @@ const holderViewer = async (page) => { const s = await st(page); return s.holder
   s = await st(page);
   check('آخر لاعب ينجو فيفوز: الحالة finished وشاشة الفوز', winned && s.winner && s.screen === 'win', { winner: s.winner && s.winner.name, screen: s.screen });
 
+  // شاشة الفوز الجديدة (EhsemhaWin) داخل إطار القنبلة: الشاشة القديمة محذوفة
+  const fwin = await page.evaluate(() => { const d = document.querySelector('#bomb-frame').contentDocument, r = d.getElementById('ehsemha-win'); return { vis: !!r && !r.hidden, name: d.getElementById('ehsemha-win-name').textContent, tag: d.getElementById('ehsemha-win-tag').textContent, meta: d.getElementById('ehsemha-win-meta').textContent, oldHidden: d.getElementById('b3d-win').hidden, btns: [...d.querySelectorAll('#ehsemha-win-actions button')].map((b) => b.textContent), full: r && Math.round(r.getBoundingClientRect().width) === d.defaultView.innerWidth }; });
+  check('القنبلة: شاشة الفوز الجديدة تظهر باسم الفائز وشعار «حسمها!» والأزرار، والشاشة القديمة مخفية', fwin.vis && fwin.name === s.winner.name && fwin.tag === 'حسمها!' && fwin.oldHidden && fwin.btns.length === 2 && fwin.full && /نجا من القنبلة/.test(fwin.meta), fwin);
+  await page.evaluate(() => { document.querySelector('#bomb-frame').contentDocument.querySelector('#ehsemha-win-actions button').click(); }); await sleep(700);
+  const afterAgain = await page.evaluate(() => ({ st: bombApi().getState().status, hidden: document.querySelector('#bomb-frame').contentDocument.getElementById('ehsemha-win').hidden }));
+  check('القنبلة: «العب مجددًا» يعيد للانتظار ويخفي شاشة الفوز', afterAgain.st === 'waiting' && afterAgain.hidden, afterAgain);
+
   // ===== 7) إعادة الضبط وجولة جديدة =====
   await page.evaluate(() => bombApi().reset()); await sleep(600);
   s = await st(page);
