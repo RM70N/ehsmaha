@@ -89311,6 +89311,21 @@ window.__lateJoin = {
   try { if (new URLSearchParams(location.search).get('play')) return; } catch (e) { } // رابط فتح لعبة مباشر: لا نعترضه
   if (/code-race\.html$/i.test(location.pathname)) return;
 
+  function judge(st, days) {
+    if (!st) return false;
+    var end = st + (days || SEASON_DAYS_FALLBACK) * DAY, now = Date.now();
+    return now >= st && now < end;
+  }
+  // الموسم قد يكون محفوظًا في Firestore (codeRace/s1) أو في Realtime Database (codeRaceRT/s1/season)
+  // لما تمتلئ حصة Firestore — نسأل الاثنين.
+  function rtSeason(fb, cb) {
+    if (!(fb && fb.rtdb && fb.rtdbGet && fb.rtdbRef)) return cb(false);
+    fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'codeRaceRT/s1/season')).then(function (snap) {
+      if (!snap.exists()) return cb(false);
+      var d = snap.val();
+      cb(judge(typeof d.startAt === 'number' ? d.startAt : null, d.days));
+    }).catch(function () { cb(false); });
+  }
   function seasonActive(cb) {
     // ننتظر واجهة Firebase التي يعرّفها الموقع (window.__fb) ثم نقرأ موسم السباق
     var tries = 0;
@@ -89319,12 +89334,11 @@ window.__lateJoin = {
       if (fb && fb.db && fb.getDoc && fb.doc) {
         clearInterval(t);
         fb.getDoc(fb.doc(fb.db, 'codeRace', 's1')).then(function (snap) {
-          if (!snap.exists()) return cb(false);
+          if (!snap.exists()) return rtSeason(fb, cb);
           var d = snap.data(), st = d.startAt && d.startAt.toMillis ? d.startAt.toMillis() : null;
-          if (!st) return cb(false);
-          var end = st + (d.days || SEASON_DAYS_FALLBACK) * DAY, now = Date.now();
-          cb(now >= st && now < end);
-        }).catch(function () { cb(false); });
+          if (!st) return rtSeason(fb, cb);
+          cb(judge(st, d.days));
+        }).catch(function () { rtSeason(fb, cb); });
       } else if (++tries > 60) { clearInterval(t); cb(false); }
     }, 250);
   }

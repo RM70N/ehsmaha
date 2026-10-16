@@ -1547,6 +1547,7 @@ const FB_CONFIG = {
   apiKey: 'AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE',
   authDomain: 'streamgame-180b8.firebaseapp.com',
   projectId: 'streamgame-180b8',
+  databaseURL: 'https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app',
   storageBucket: 'streamgame-180b8.firebasestorage.app',
   messagingSenderId: '149723106437',
   appId: '1:149723106437:web:b17b83b755f086998d2dec',
@@ -1562,7 +1563,374 @@ const raceURL = (hash = '') => (/^https?:$/.test(location.protocol) ? location.o
 
 class RaceErr extends Error { constructor(reason, msg) { super(msg || reason); this.reason = reason; } }
 
+/* =========================================================================
+   الحفظ الاحتياطي في Realtime Database عند امتلاء حصة Firestore
+   -------------------------------------------------------------------------
+   لما يرد Firestore بـ resource-exhausted (انتهت الحصة اليومية) تُحفظ العملية
+   في codeRaceQueue/{season}/{uid}/… (قواعد RTDB تتحقق من الصيغة، ودعم واحد فقط).
+   لا تُحتسب هناك: تُرحَّل تلقائيًا لـFirestore عند عودته بنفس قواعده (مرة واحدة
+   لكل حساب، منع كود الشخص نفسه، نهاية الموسم…)، ثم تُحذف من الطابور.
+   الاتصال بـRTDB يُفتح عند الحاجة فقط ثم يُغلق (حد الاتصالات المتزامنة).
+   ========================================================================= */
+const Q = {
+  m: null, db: null, busy: false, lastTry: 0, lastUid: null, offT: null,
+  key() { return Live.user ? 'ehsmaha.codeRace.queue.' + RACE.SEASON_ID + '.' + Live.user.uid : null; },
+  view() { try { const k = this.key(); return (k && JSON.parse(localStorage.getItem(k) || 'null')) || {}; } catch (e) { return {}; } },
+  mark(fn) {
+    try {
+      const k = this.key(); if (!k) return;
+      const v = this.view(); fn(v);
+      if (Object.keys(v).length) localStorage.setItem(k, JSON.stringify(v)); else localStorage.removeItem(k);
+    } catch (e) { }
+    Live.sync();
+  },
+  isQuota(e) {
+    if (!e || e instanceof RaceErr) return false;
+    return /resource-exhausted/.test(e.code || '') || /quota|resource[ _-]?exhausted/i.test(e.message || '');
+  },
+  async load() {
+    if (!this.db) { this.m = await import(Live.fbBase + 'firebase-database.js'); this.db = this.m.getDatabase(Live.app); }
+    clearTimeout(this.offT); this.m.goOnline(this.db);
+    return this.m;
+  },
+  idle() { clearTimeout(this.offT); this.offT = setTimeout(() => { try { this.m && this.m.goOffline(this.db); } catch (e) { } }, 4000); },
+  ref(p) { return this.m.ref(this.db, `codeRaceQueue/${RACE.SEASON_ID}/${Live.user.uid}` + (p ? '/' + p : '')); },
+  async put(p, val, merge) {
+    if (!Live.user) throw new RaceErr('login');
+    const m = await this.load();
+    const data = { ...val, ts: m.serverTimestamp() };
+    try {
+      await Promise.race([merge ? m.update(this.ref(p), data) : m.set(this.ref(p), data),
+        new Promise((_, rej) => setTimeout(() => rej(new RaceErr('offline')), 10000))]);
+    } finally { this.idle(); }
+  },
+  async queueCreate(code) {
+    const v = this.view();
+    if (v.createCode) return { ok: false, reason: 'queued', code: v.createCode };
+    try { await this.put('createCode', { key: code, name: Store.state.me.name }); }
+    catch (e) { console.warn('queueCreate', e); return { ok: false, reason: 'offline' }; }
+    this.mark(x => x.createCode = code);
+    return { ok: false, reason: 'queued', code };
+  },
+  async queueUse(key) {
+    const s = Store.state, v = this.view();
+    if (s.supported) return { ok: false, reason: 'already_supported' };
+    if (key === Live.myKey) return { ok: false, reason: 'own_code' };
+    if (v.use) return { ok: false, reason: 'queued', code: v.use };
+    try { await this.put('use', { key }); }
+    catch (e) { console.warn('queueUse', e); return { ok: false, reason: 'offline' }; }
+    this.mark(x => x.use = key);
+    return { ok: false, reason: 'queued', code: key };
+  },
+  maybeReplay(s) {
+    if (this.busy || !Live.user || s.auth !== 'in' || !s.profileReady || !s.season) return;
+    if (!Object.keys(this.view()).length) return;
+    if (this.lastUid === Live.user.uid && Date.now() - this.lastTry < 5 * 60000) return;
+    this.lastTry = Date.now(); this.lastUid = Live.user.uid;
+    setTimeout(() => this.replay().catch(e => { this.busy = false; console.warn('replay', e); }), 0);
+  },
+  /** ترحيل المحفوظ احتياطيًا لـFirestore. أي رفض نهائي يحذف العملية، والحصة الممتلئة توقف الترحيل لمحاولة لاحقة */
+  async replay() {
+    this.busy = true;
+    const uid = Live.user.uid, f = Live.fb, msgs = [];
+    const later = (e) => this.isQuota(e) || /unavailable|deadline/.test((e && e.code) || '');
+    try {
+      const m = await this.load();
+      const q = (await m.get(this.ref(''))).val() || {};
+      const drop = async (p, fn) => { await m.remove(this.ref(p)); this.mark(fn); };
+      // الطابور فاضي على الخادم (تُرحّل من جهاز آخر): ننظف المحلي
+      if (!Object.keys(q).length) { this.mark(v => Object.keys(v).forEach(k => delete v[k])); return; }
+      if (q.createCode) {
+        const r = await Live.createCode(q.createCode.key, { noQueue: true });
+        if (!r.ok && later(r.raw)) return;
+        await drop('createCode', v => delete v.createCode);
+        msgs.push(r.ok ? `اعتُمد كودك <span class="code-txt">${esc(q.createCode.key)}</span>` : `تعذّر اعتماد الكود ${esc(q.createCode.key)}: ${r.reason === 'taken' ? 'سبقك إليه لاعب آخر' : 'رفضه الخادم'}`);
+      }
+      if (q.use) {
+        const r = await Live.confirmUse(q.use.key, { noQueue: true });
+        if (!r.ok && later(r.raw)) return;
+        await drop('use', v => delete v.use);
+        if (r.ok) msgs.push(`احتُسب دعمك لـ${esc(r.owner.name)}`);
+        else if (r.reason !== 'already_supported') msgs.push(`لم يُحتسب دعمك للكود ${esc(q.use.key)} (${r.reason === 'season_ended' ? 'انتهى الموسم' : r.reason === 'not_found' ? 'الكود غير موجود' : 'رفضه الخادم'})`);
+      }
+      if (q.design) {
+        if (Live.myKey) { try { await f.updateDoc(Live.P.code(Live.myKey), { design: q.design.design }); } catch (e) { if (later(e)) return; } }
+        await drop('design', v => delete v.design);
+      }
+      if (q.vip && Live.vipDoc) {
+        const cur = Live.ts(Live.vipDoc.updatedAt) || 0;
+        if ((q.vip.ts || 0) > cur) {
+          try { await f.updateDoc(Live.P.vip(uid), { state: JSON.parse(q.vip.state), updatedAt: f.serverTimestamp() }); Live.dirty = false; }
+          catch (e) { if (later(e)) return; }
+        }
+        await drop('vip', v => delete v.vip);
+      }
+      for (const h of Object.keys(q.joins || {})) {
+        try { await f.setDoc(Live.P.join(h, uid), { name: Store.state.me.name, at: f.serverTimestamp() }); } catch (e) { if (later(e)) return; }
+        await drop('joins/' + h, v => { if (v.joins) { delete v.joins[h]; if (!Object.keys(v.joins).length) delete v.joins; } });
+      }
+      for (const h of Object.keys(q.votes || {})) {
+        const { ts, ...fields } = q.votes[h] || {};
+        try { await f.setDoc(Live.P.vote(h, uid), { ...fields, at: f.serverTimestamp() }, { merge: true }); } catch (e) { if (later(e)) return; }
+        await drop('votes/' + h, v => { if (v.votes) { delete v.votes[h]; if (!Object.keys(v.votes).length) delete v.votes; } });
+      }
+    } finally {
+      this.busy = false; this.idle(); Live.sync();
+      if (msgs.length) toast(msgs.join('<br>'), 'ok', 'check', 6000);
+    }
+  }
+};
+
+/* =========================================================================
+   وضع Realtime Database الكامل (يُفعَّل تلقائيًا لما تمتلئ حصة Firestore اليومية)
+   -------------------------------------------------------------------------
+   الموسم يُحفظ في مكان واحد فقط طوال عمره: Firestore (codeRace/…) أو Realtime
+   Database (codeRaceRT/…). يُختار عند الإقلاع:
+     • الموسم موجود في Firestore ← وضع Firestore.
+     • غير موجود فيه وموجود في RTDB ← وضع RTDB (بدأ أثناء امتلاء الحصة).
+     • Firestore ممتلئ/معطّل ولا موسم في أي مكان ← وضع RTDB، وزر البدء يبدأ هناك.
+   قواعد قاعدة البيانات (database.rules.json ← codeRaceRT) تفرض نفس شروط Firestore:
+   دعم واحد لكل حساب، منع كود الشخص نفسه، زيادة واحدة فقط مع سجل الدعم في نفس
+   العملية، المتصدر يتحدث مع الاستخدام، انتهاء الموسم بعد 14 يومًا، لوحة الفائز.
+   ========================================================================= */
+const RT = {
+  m: null, db: null,
+  async load() {
+    if (!this.db) { this.m = await import(Live.fbBase + 'firebase-database.js'); this.db = this.m.getDatabase(Live.app); }
+    try { this.m.goOnline(this.db); } catch (e) { }
+    return this.m;
+  },
+  ref(p) { return this.m.ref(this.db, 'codeRaceRT/' + RACE.SEASON_ID + (p ? '/' + p : '')); },
+  sv() { return this.m.serverTimestamp(); },
+  tmo(p, ms = 12000) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new RaceErr('offline')), ms))]); },
+  denied(e) { return /permission[_ -]?denied/i.test(((e && e.code) || '') + ' ' + ((e && e.message) || '')); },
+  async get(p) { const m = await this.load(); return this.tmo(m.get(this.ref(p))); },
+  /** كتابة عدة مسارات دفعة واحدة (ذرّية): مفاتيحها نسبية لجذر الموسم */
+  async multi(obj) {
+    const m = await this.load(), flat = {};
+    for (const k in obj) flat['codeRaceRT/' + RACE.SEASON_ID + '/' + k] = obj[k];
+    return this.tmo(m.update(m.ref(this.db), flat));
+  },
+  vipDoc(v) {
+    if (!v) return null;
+    let state = null; try { state = JSON.parse(v.state); } catch (e) { }
+    return { ...v, state };
+  },
+  /* ---------- المستمعون ---------- */
+  listenSeason() {
+    const m = this.m;
+    Live.unsub.season = m.onValue(this.ref('season'), (snap) => {
+      Live.seasonData = snap.exists() ? snap.val() : null; Live.seasonErr = null; Live.sync();
+    }, (e) => { console.error('rt season', e); Live.seasonErr = 'rtdb:' + ((e && e.code) || 'error'); Live.sync(); });
+  },
+  listenTop() {
+    const m = this.m;
+    const q = m.query(this.ref('codes'), m.orderByChild('uses'), m.limitToLast(TOP_LIMIT));
+    Live.unsub.top = m.onValue(q, (snap) => {
+      const a = []; snap.forEach((c) => { a.push({ key: c.key, ...c.val() }); });
+      a.reverse(); Live.top = a; Live.sync();
+    }, (e) => console.error('rt top', e));
+  },
+  attachUser(u) {
+    const m = this.m;
+    Live.unsub.owner = m.onValue(this.ref('owners/' + u.uid), (s) => {
+      const key = s.exists() ? s.val().key : null;
+      if (key !== Live.myKey) {
+        if (Live.unsub.code) { Live.unsub.code(); delete Live.unsub.code; }
+        Live.myKey = key; Live.myCodeData = null;
+        if (key) Live.unsub.code = m.onValue(this.ref('codes/' + key), (cs) => { Live.myCodeData = cs.exists() ? cs.val() : null; Live.refreshMyRank(); Live.sync(); }, () => { });
+      }
+      Live.sync();
+    }, () => { });
+    Live.unsub.support = m.onValue(this.ref('supports/' + u.uid), (s) => {
+      if (!s.exists()) { Live.supportData = null; Live.sync(); return; }
+      const sd = s.val();
+      const top = (Live.top.find(t => t.key === sd.key) || {});
+      const done = (name) => { Live.supportData = { code: sd.key, ownerName: name, at: sd.at || Date.now() }; Live.sync(); };
+      if (top.name) return done(top.name);
+      this.get('codes/' + sd.key).then(cs => done(cs.exists() ? cs.val().name : sd.key), () => done(sd.key));
+    }, () => { });
+    Live.unsub.vip = m.onValue(this.ref('vip/' + u.uid), (s) => {
+      Live.vipDoc = this.vipDoc(s.exists() ? s.val() : null);
+      if (Live.vipDoc && !Live.unsub.joins) Live.listenHall(u.uid);
+      Live.sync();
+    }, () => { });
+  },
+  listenHall(uid) {
+    const m = this.m, list = (snap) => { const a = []; snap.forEach((c) => { a.push({ id: c.key, ...c.val() }); }); return a; };
+    Live.unsub.joins = m.onValue(this.ref('vip/' + uid + '/joins'), (snap) => { Live.joins = list(snap); Live.sync(); }, () => { });
+    Live.unsub.votes = m.onValue(this.ref('vip/' + uid + '/votes'), (snap) => { Live.votes = list(snap); Live.sync(); }, () => { });
+  },
+  async refreshMyRank() {
+    const c = Live.myCodeData; if (!c || !c.uses) { Live.myRankCount = null; return; }
+    const minTop = Live.top.length ? Live.top[Live.top.length - 1].uses : 0;
+    if (Live.top.length < TOP_LIMIT || c.uses >= minTop) { Live.myRankCount = null; return; }
+    try {
+      const m = await this.load();
+      const r = await this.tmo(m.get(m.query(this.ref('codes'), m.orderByChild('uses'), m.startAt(c.uses + 1))));
+      Live.myRankCount = r.size + 1; Live.sync();
+    } catch (e) { }
+  },
+  async refreshTopSeason() {
+    const m = await this.load();
+    const snap = await this.tmo(m.get(m.query(this.ref('codes'), m.orderByChild('uses'), m.limitToLast(TOP_LIMIT))));
+    const a = []; snap.forEach((c) => { a.push({ key: c.key, ...c.val() }); }); a.reverse(); Live.top = a;
+    const ss = await this.get('season'); if (ss.exists()) Live.seasonData = ss.val();
+  },
+  /* ---------- الكتابة ---------- */
+  async startSeason() {
+    const m = await this.load();
+    if ((await this.get('season')).exists()) throw new RaceErr('exists', 'الموسم مبدوء مسبقًا');
+    await this.multi({ season: { name: RACE.SEASON_NAME, days: RACE.SEASON_DAYS, startAt: m.serverTimestamp(), leader: { uses: 0 } } });
+  },
+  async createCode(code) {
+    try {
+      Live.needUser();
+      const err = codeError(code); if (err) throw new RaceErr('invalid', err);
+      if (!Sel.isOpen()) throw new RaceErr('season_ended');
+      const uid = Live.user.uid, m = await this.load();
+      const [own, cs] = await Promise.all([this.get('owners/' + uid), this.get('codes/' + code)]);
+      if (own.exists()) throw new RaceErr('already_has_code');
+      if (cs.exists()) throw new RaceErr('taken');
+      try {
+        await this.multi({
+          ['codes/' + code]: { ownerUid: uid, name: Store.state.me.name, createdAt: m.serverTimestamp(), uses: 0, lastUseAt: m.serverTimestamp(), design: 'base' },
+          ['owners/' + uid]: { key: code, at: m.serverTimestamp() }
+        });
+      } catch (e) {
+        if (this.denied(e)) {
+          const [o2, c2] = await Promise.all([this.get('owners/' + uid), this.get('codes/' + code)]);
+          if (o2.exists()) throw new RaceErr('already_has_code');
+          if (c2.exists()) throw new RaceErr('taken');
+        }
+        throw e;
+      }
+      return { ok: true, code };
+    } catch (e) { console.warn('rt createCode', e); return { ok: false, reason: Live.mapErr(e), message: e.message, raw: e }; }
+  },
+  async isAvailable(code) {
+    try { return { available: !(await this.get('codes/' + code)).exists() }; } catch (e) { return { available: true }; }
+  },
+  async lookupCode(code) {
+    try {
+      const s = await this.get('codes/' + code);
+      if (!s.exists()) return { found: false };
+      const d = s.val(), r = Sel.standings().rows.find(x => x.code === code);
+      return { found: true, code, owner: { name: d.name, uses: d.uses || 0, rank: r ? r.rank || null : null, me: !!(Live.user && d.ownerUid === Live.user.uid) } };
+    } catch (e) { return { found: false, error: Live.mapErr(e) }; }
+  },
+  async confirmUse(key) {
+    try {
+      Live.needUser();
+      const uid = Live.user.uid, m = await this.load();
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const [ss, cs, sup] = await Promise.all([this.get('season'), this.get('codes/' + key), this.get('supports/' + uid)]);
+        if (!ss.exists()) throw new RaceErr('season_ended');
+        const sd = ss.val(), start = sd.startAt, end = start + (sd.days || 14) * DAY, now = Store.now();
+        if (now >= end) throw new RaceErr('season_ended');
+        if (!cs.exists()) throw new RaceErr('not_found');
+        const d = cs.val();
+        if (d.ownerUid === uid) throw new RaceErr('own_code');
+        if (sup.exists()) throw new RaceErr('already_supported');
+        const n = (d.uses || 0) + 1, day = 'd' + clamp(Math.floor((now - start) / DAY) + 1, 1, 14), b = 'codes/' + key + '/';
+        const u = {};
+        u[b + 'uses'] = n; u[b + 'lastUseAt'] = m.serverTimestamp(); u[b + 'daily/' + day] = ((d.daily || {})[day] || 0) + 1;
+        if (MS_KEYS.includes(n)) u[b + 'ms/n' + n] = m.serverTimestamp();
+        u['supports/' + uid] = { key, at: m.serverTimestamp() };
+        if (n > ((sd.leader || {}).uses || 0)) u['season/leader'] = { key, uses: n, at: m.serverTimestamp() };
+        try { await this.multi(u); return { ok: true, owner: { name: d.name, uid: d.ownerUid }, code: key, at: Date.now(), uses: n }; }
+        catch (e) { if (!this.denied(e)) throw e; await new Promise(r => setTimeout(r, 200 + attempt * 200)); /* تزامن مع داعم آخر أو رفض: أعد القراءة */ }
+      }
+      throw new RaceErr('denied');
+    } catch (e) { console.warn('rt confirmUse', e); return { ok: false, reason: Live.mapErr(e), raw: e }; }
+  },
+  async setDesign(design) { await this.multi({ ['codes/' + Live.myKey + '/design']: design }); return true; },
+  async ensureVip() {
+    const uid = Live.user.uid, s = Store.state;
+    try { if ((await this.get('vip/' + uid)).exists()) return; } catch (e) { return; }
+    const start = s.season.end, m = await this.load();
+    const hallCode = Array.from({ length: 6 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('');
+    try {
+      await this.multi({ ['vip/' + uid]: { uid, name: s.me.name, startAt: start, endAt: start + RACE.VIP_DAYS * DAY, hallCode, state: JSON.stringify(Vip.seed(start)), updatedAt: m.serverTimestamp() } });
+    } catch (e) { console.warn('rt ensureVip', e); }
+  },
+  async saveVip(state) {
+    const m = await this.load(), uid = Live.user.uid;
+    await this.multi({ ['vip/' + uid + '/state']: JSON.stringify(state), ['vip/' + uid + '/updatedAt']: m.serverTimestamp() });
+  },
+  async claimDaily(day) {
+    const uid = Live.user.uid, m = await this.load();
+    if ((await this.get('rewards/' + uid + '/' + day)).exists()) return { ok: false, reason: 'already_claimed' };
+    await this.multi({ ['rewards/' + uid + '/' + day]: { day, amount: RACE.VIP_DAILY_REWARD, at: m.serverTimestamp(), credited: false } });
+    this.creditPoints(day, true);
+    return { ok: true, amount: RACE.VIP_DAILY_REWARD };
+  },
+  /** النقاط تعيش في Firestore (users.onlinePoints): نضيفها لما يتوفر، وقاعدة RTDB تضمن احتسابها مرة واحدة (false ← pending ← true) */
+  async creditPoints(day, fresh) {
+    const uid = Live.user.uid, f = Live.fb, m = await this.load();
+    const flag = this.ref('rewards/' + uid + '/' + day + '/credited');
+    const lk = 'ehsmaha.codeRace.credit.' + uid + '.' + day;
+    try { await this.tmo(m.set(flag, 'pending')); } catch (e) { return false; } // محجوزة من تبويب آخر أو محتسبة
+    try { localStorage.setItem(lk, String(Date.now())); } catch (e) { }
+    try {
+      await this.tmo(f.updateDoc(Live.P.user(uid), { onlinePoints: f.increment(RACE.VIP_DAILY_REWARD) }), 15000);
+      await this.tmo(m.set(flag, true));
+      try { localStorage.removeItem(lk); } catch (e) { }
+      if (!fresh) toast(`أُضيفت ${P.points(RACE.VIP_DAILY_REWARD)} المؤجلة لرصيد مكافآتك`, 'gold', 'gift');
+      return true;
+    } catch (e) {
+      try { await this.tmo(m.set(flag, false)); } catch (e2) { }
+      try { localStorage.removeItem(lk); } catch (e2) { }
+      if (fresh) toast('استُلمت المكافأة، وتُضاف النقاط لحسابك تلقائيًا عند عودة خادم النقاط (Firestore).', '', 'hourglass', 6000);
+      return false;
+    }
+  },
+  async creditPending() {
+    if (this.busyCredit || !Live.user) return;
+    this.busyCredit = true;
+    try {
+      const snap = await this.get('rewards/' + Live.user.uid), todo = [];
+      const m = await this.load(), uid = Live.user.uid;
+      snap.forEach((c) => {
+        const v = c.val() || {};
+        if (v.credited === false) todo.push(c.key);
+        else if (v.credited === 'pending') {
+          // عالقة: أغلق صاحبها الصفحة قبل الإتمام. لا نلمسها لو قفلها تبويب حي (أقل من دقيقتين) في هذا المتصفح
+          let t = 0; try { t = +localStorage.getItem('ehsmaha.codeRace.credit.' + uid + '.' + c.key) || 0; } catch (e) { }
+          if (Date.now() - t > 120000) todo.push('!' + c.key);
+        }
+      });
+      for (const d of todo) {
+        let day = d;
+        if (d[0] === '!') { day = d.slice(1); try { await this.tmo(m.set(this.ref('rewards/' + uid + '/' + day + '/credited'), false)); } catch (e) { continue; } }
+        if (!(await this.creditPoints(day, false))) break;
+      }
+    } catch (e) { } finally { this.busyCredit = false; }
+  },
+  async joinHall(host) { const m = await this.load(); await this.multi({ [`vip/${host}/joins/${Live.user.uid}`]: { name: Store.state.me.name, at: m.serverTimestamp() } }); },
+  async removeJoin(host, uid) { await this.multi({ [`vip/${host}/joins/${uid}`]: null }); },
+  async vote(host, fields) {
+    const m = await this.load(), u = {};
+    for (const k in fields) u[`vip/${host}/votes/${Live.user.uid}/${k}`] = fields[k];
+    u[`vip/${host}/votes/${Live.user.uid}/at`] = m.serverTimestamp();
+    await this.multi(u);
+  },
+  async findHall(code) {
+    const m = await this.load();
+    const snap = await this.tmo(m.get(m.query(this.ref('vip'), m.orderByChild('hallCode'), m.equalTo(code), m.limitToFirst(1))));
+    let id = null; snap.forEach((c) => { id = c.key; }); return id;
+  },
+  watchHall(uid, cb) {
+    const m = this.m, out = {}, un = [];
+    un.push(m.onValue(this.ref('vip/' + uid), (s) => { out.vip = this.vipDoc(s.exists() ? s.val() : null); cb(out); }, () => { out.vip = null; cb(out); }));
+    un.push(m.onValue(this.ref('vip/' + uid + '/joins'), (s) => { const a = []; s.forEach((c) => { a.push({ id: c.key, ...c.val() }); }); out.joins = a; cb(out); }, () => { }));
+    if (Live.user) un.push(m.onValue(this.ref('vip/' + uid + '/votes/' + Live.user.uid), (s) => { out.myVote = s.exists() ? s.val() : null; cb(out); }, () => { }));
+    return () => un.forEach(f => f());
+  }
+};
+
 const Live = {
+  mode: 'fs',
   ready: false, fb: null, user: null, profile: null,
   seasonData: null, top: [], myKey: null, myCodeData: null, supportData: null,
   vipDoc: null, joins: [], votes: [], friends: [], presence: {},
@@ -1585,6 +1953,7 @@ const Live = {
     try { db = fsM.initializeFirestore(app, { experimentalForceLongPolling: true }); } catch (e) { db = fsM.getFirestore(app); }
     const auth = authM.getAuth(app);
     this.fb = { ...fsM, db, auth, authM };
+    this.app = app; this.fbBase = base;
     const S = RACE.SEASON_ID, d = (...p) => fsM.doc(db, 'codeRace', S, ...p), c = (...p) => fsM.collection(db, 'codeRace', S, ...p);
     this.P = {
       season: () => fsM.doc(db, 'codeRace', S), code: (k) => d('codes', k), codes: () => c('codes'),
@@ -1593,9 +1962,33 @@ const Live = {
       reward: (u, day) => d('rewards', u + '_' + day), user: (u) => fsM.doc(db, 'users', u), presence: (u) => fsM.doc(db, 'presence', u)
     };
     this.ready = true;
-    this.listenSeason();
-    this.listenTop();
+    this.mode = await this.decideMode();
+    if (this.mode === 'rt') { await RT.load(); RT.listenSeason(); RT.listenTop(); }
+    else { this.listenSeason(); this.listenTop(); }
     authM.onAuthStateChanged(auth, (u) => this.onAuth(u));
+  },
+  /** اختيار مكان الموسم عند الإقلاع (انظر شرح RT أعلاه) */
+  async decideMode() {
+    const f = this.fb, wait = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej({ code: 'timeout' }), ms))]);
+    let fsFail = null;
+    try {
+      const s = await wait(f.getDocFromServer(this.P.season()), 7000);
+      if (s.exists()) return 'fs';
+    } catch (e) { fsFail = e; this.seasonErr = (e && e.code) || 'error'; }
+    try {
+      await RT.load();
+      const rs = await wait(RT.get('season'), 8000);
+      if (rs.exists()) { this.seasonErr = null; return 'rt'; }
+      if (fsFail) { this.seasonErr = null; return 'rt'; } // Firestore ممتلئ/معطّل ولا موسم بعد: نعمل على RTDB
+    } catch (e) { console.warn('rt probe', e); }
+    return 'fs';
+  },
+  /** من وضع Firestore إلى RTDB أثناء الجلسة (مثلًا فشل بدء الموسم بسبب الحصة) */
+  async switchToRT() {
+    this.mode = 'rt';
+    ['season', 'top'].forEach(k => { if (this.unsub[k]) { try { this.unsub[k](); } catch (e) { } delete this.unsub[k]; } });
+    await RT.load(); this.seasonErr = null; RT.listenSeason(); RT.listenTop();
+    if (this.user) await this.onAuth(this.user);
   },
   ts(v) { return v && typeof v.toMillis === 'function' ? v.toMillis() : (typeof v === 'number' ? v : null); },
   data(snap) { return snap.data({ serverTimestamps: 'estimate' }); },
@@ -1603,7 +1996,7 @@ const Live = {
     if (e instanceof RaceErr) return e.reason;
     const c = e && e.code || '';
     if (/unavailable|deadline|network|failed-precondition/.test(c) || !navigator.onLine) return 'offline';
-    if (/permission-denied/.test(c)) return Store.now() >= (Store.state.season ? Store.state.season.end : Infinity) ? 'season_ended' : fallback;
+    if (/permission[_-]?denied/i.test(c + ' ' + (e && e.message || ''))) return Store.now() >= (Store.state.season ? Store.state.season.end : Infinity) ? 'season_ended' : fallback;
     return fallback;
   },
   isOwner() { return !!(this.user && this.user.email === OWNER_EMAIL); },
@@ -1612,9 +2005,9 @@ const Live = {
   listenSeason() {
     const f = this.fb;
     this.unsub.season = f.onSnapshot(this.P.season(), (snap) => {
-      this.seasonData = snap.exists() ? this.data(snap) : null;
+      this.seasonData = snap.exists() ? this.data(snap) : null; this.seasonErr = null;
       this.sync();
-    }, (e) => { console.error('season', e); this.seasonData = null; this.sync(); });
+    }, (e) => { console.error('season', e); this.seasonErr = (e && e.code) || 'error'; if (!this.seasonData) this.sync(); /* لا نمسح بيانات سبق تحميلها */ });
   },
   listenTop() {
     const f = this.fb;
@@ -1625,12 +2018,14 @@ const Live = {
   },
   async onAuth(u) {
     ['owner', 'code', 'support', 'profile', 'vip', 'joins', 'votes', 'friends'].forEach(k => { if (this.unsub[k]) { this.unsub[k](); delete this.unsub[k]; } });
-    this.user = u; this.profile = null; this.myKey = null; this.myCodeData = null; this.supportData = null; this.vipDoc = null; this.lastMyUses = null;
+    this.user = u; this.profile = null; this.profileFailed = false; this.myKey = null; this.myCodeData = null; this.supportData = null; this.vipDoc = null; this.lastMyUses = null;
     Store.loadLocal(u ? u.uid : null);
     if (!u) { Store.state.auth = 'out'; this.sync(); return; }
     Store.state.auth = 'in'; Store.state.profileReady = false;
     const f = this.fb;
-    this.unsub.profile = f.onSnapshot(this.P.user(u.uid), (s) => { this.profile = s.exists() ? s.data() : null; Store.state.profileReady = true; this.sync(); }, () => { Store.state.profileReady = true; this.sync(); });
+    // الملف الشخصي من Firestore؛ لو الحصة ممتلئة نستخدم اسم الحساب (displayName = اليوزر وقت التسجيل) حتى لا يتعطل الإنشاء والدعم
+    this.unsub.profile = f.onSnapshot(this.P.user(u.uid), (s) => { this.profile = s.exists() ? s.data() : null; Store.state.profileReady = true; this.sync(); }, () => { this.profileFailed = true; Store.state.profileReady = true; this.sync(); });
+    if (this.mode === 'rt') { RT.attachUser(u); this.attachFriends(u); this.sync(); return; }
     this.unsub.owner = f.onSnapshot(this.P.owner(u.uid), (s) => {
       const key = s.exists() ? s.data().key : null;
       if (key !== this.myKey) {
@@ -1653,19 +2048,25 @@ const Live = {
       if (this.vipDoc && !this.unsub.joins) this.listenHall(u.uid);
       this.sync();
     }, () => { });
+    this.attachFriends(u);
+    this.sync();
+  },
+  attachFriends(u) {
+    const f = this.fb;
     this.unsub.friends = f.onSnapshot(f.query(f.collection(f.db, 'friendships'), f.where('uids', 'array-contains', u.uid)), async (snap) => {
       this.friends = snap.docs.map(x => { const dd = x.data(); const other = dd.uids.find(v => v !== u.uid); return { id: other, name: (dd.usernames && dd.usernames[other]) || 'صديق' }; });
       await Promise.all(this.friends.map(async fr => { try { this.presence[fr.id] = (await f.getDoc(this.P.presence(fr.id))).exists(); } catch (e) { } }));
       this.sync();
     }, () => { });
-    this.sync();
   },
   listenHall(uid) {
+    if (this.mode === 'rt') return RT.listenHall(uid);
     const f = this.fb;
     this.unsub.joins = f.onSnapshot(this.P.joins(uid), (snap) => { this.joins = snap.docs.map(x => ({ id: x.id, ...this.data(x) })); this.sync(); }, () => { });
     this.unsub.votes = f.onSnapshot(this.P.votes(uid), (snap) => { this.votes = snap.docs.map(x => ({ id: x.id, ...this.data(x) })); this.sync(); }, () => { });
   },
   async refreshMyRank() {
+    if (this.mode === 'rt') return RT.refreshMyRank();
     const c = this.myCodeData; if (!c || !c.uses) { this.myRankCount = null; return; }
     const minTop = this.top.length ? this.top[this.top.length - 1].uses : 0;
     if (this.top.length < TOP_LIMIT || c.uses >= minTop) { this.myRankCount = null; return; }
@@ -1708,7 +2109,7 @@ const Live = {
     const dayNow = Sel.dayIndex(s, Store.now()), dk = 'd' + dayNow;
     // اللاعب
     const name = (this.profile && (this.profile.username || this.profile.displayName)) || (this.user && this.user.displayName) || '';
-    s.me = this.user ? { uid: this.user.uid, name, handle: name, hasProfile: !!(this.profile && this.profile.username) } : { uid: null, name: '', handle: '' };
+    s.me = this.user ? { uid: this.user.uid, name, handle: name, hasProfile: !!(this.profile && this.profile.username) || !!(this.profileFailed && this.user.displayName) } : { uid: null, name: '', handle: '' };
     const mc = this.myCodeData;
     if (mc && this.myKey) {
       s.myCode = { code: this.myKey, createdAt: this.ts(mc.createdAt) || start, design: mc.design || 'base', locked: true };
@@ -1743,6 +2144,9 @@ const Live = {
     if (Store.now() >= s.season.end && !s.final && !this.finalPromise && s.auth !== 'loading' && (s.auth === 'out' || s.profileReady)) this.finalize(true);
     // VIP
     this.syncVip(s);
+    s.pending = Q.view();
+    if (this.mode === 'rt') { if (this.user && s.auth === 'in' && !this._credT) { this._credT = setTimeout(() => { this._credT = null; RT.creditPending(); }, 4000); } }
+    else Q.maybeReplay(s);
     // تقدم اللاعب: احتفالات وتنبيه التجاوز
     const myN = s.myUses.length;
     if (this.lastMyUses !== null && myN > this.lastMyUses) Progress.afterChange({ uses: this.lastMyUses, rank: this.lastMyRank });
@@ -1801,8 +2205,9 @@ const Live = {
     if (!this.user) throw new RaceErr('login');
     if (!Store.state.me.hasProfile) throw new RaceErr('no_profile');
   },
-  async createCode(raw) {
+  async createCode(raw, opts = {}) {
     const code = normalizeCode(raw);
+    if (this.mode === 'rt') return RT.createCode(code);
     try {
       this.needUser();
       const err = codeError(code); if (err) throw new RaceErr('invalid', err);
@@ -1815,14 +2220,19 @@ const Live = {
         tx.set(this.P.owner(uid), { key: code, at: f.serverTimestamp() });
       });
       return { ok: true, code };
-    } catch (e) { console.warn('createCode', e); return { ok: false, reason: this.mapErr(e), message: e.message }; }
+    } catch (e) {
+      if (!opts.noQueue && Q.isQuota(e)) return Q.queueCreate(code);
+      console.warn('createCode', e); return { ok: false, reason: this.mapErr(e), message: e.message, raw: e };
+    }
   },
   async isAvailable(raw) {
+    if (this.mode === 'rt') return RT.isAvailable(normalizeCode(raw));
     try { const s = await this.fb.getDoc(this.P.code(normalizeCode(raw))); return { available: !s.exists() }; }
     catch (e) { return { available: true }; }
   },
   async lookupCode(raw) {
     const code = normalizeCode(raw);
+    if (this.mode === 'rt') return RT.lookupCode(code);
     try {
       const s = await this.fb.getDoc(this.P.code(code));
       if (!s.exists()) return { found: false };
@@ -1831,8 +2241,9 @@ const Live = {
       return { found: true, code, owner: { name: d.name, uses: d.uses || 0, rank: r ? r.rank || null : null, me: !!(this.user && d.ownerUid === this.user.uid) } };
     } catch (e) { return { found: false, error: this.mapErr(e) }; }
   },
-  async confirmUse(raw) {
+  async confirmUse(raw, opts = {}) {
     const key = normalizeCode(raw);
+    if (this.mode === 'rt') return RT.confirmUse(key);
     try {
       this.needUser();
       const f = this.fb, uid = this.user.uid;
@@ -1856,15 +2267,35 @@ const Live = {
         if (n > (L.uses || 0)) tx.update(this.P.season(), { leader: { key, uses: n, at: f.serverTimestamp() } });
       });
       return { ok: true, owner: { name: ownerName, uid: ownerUid }, code: key, at: Date.now(), uses: n };
-    } catch (e) { console.warn('confirmUse', e); return { ok: false, reason: this.mapErr(e) }; }
+    } catch (e) {
+      if (!opts.noQueue && Q.isQuota(e)) return Q.queueUse(key);
+      console.warn('confirmUse', e); return { ok: false, reason: this.mapErr(e), raw: e };
+    }
   },
   async setDesign(design) {
+    if (this.mode === 'rt') { try { return await RT.setDesign(design); } catch (e) { toast('تعذّر حفظ التصميم. حاول مرة ثانية.', 'err'); return false; } }
     try { await this.fb.updateDoc(this.P.code(this.myKey), { design }); return true; }
-    catch (e) { toast('تعذّر حفظ التصميم. حاول مرة ثانية.', 'err'); return false; }
+    catch (e) {
+      if (Q.isQuota(e)) {
+        try { await Q.put('design', { design }); Q.mark(v => v.design = design); toast('الخادم ممتلئ مؤقتًا: حُفظ اختيارك احتياطيًا ويُطبَّق تلقائيًا عند عودته.', '', 'hourglass', 5000); return true; } catch (e2) { }
+      }
+      toast('تعذّر حفظ التصميم. حاول مرة ثانية.', 'err'); return false;
+    }
   },
-  async startSeason() {
+  async startSeason(opts = {}) {
     const f = this.fb;
-    await f.setDoc(this.P.season(), { name: RACE.SEASON_NAME, days: RACE.SEASON_DAYS, startAt: f.serverTimestamp(), leader: { key: null, uses: 0, at: null } });
+    if (this.mode === 'rt' || opts.rt) { await RT.startSeason(); if (this.mode !== 'rt') await this.switchToRT(); return; }
+    try {
+      await f.setDoc(this.P.season(), { name: RACE.SEASON_NAME, days: RACE.SEASON_DAYS, startAt: f.serverTimestamp(), leader: { key: null, uses: 0, at: null } });
+    } catch (e) {
+      // الحصة ممتلئة (أو Firestore معطّل): يبدأ الموسم على Realtime Database ويكمل هناك
+      if (Q.isQuota(e) || /unavailable|deadline|permission/.test((e && e.code) || '')) {
+        await RT.startSeason(); await this.switchToRT();
+        toast('Firestore غير متاح الآن: بدأ الموسم على Realtime Database ويكمل هناك تلقائيًا.', 'gold', 'flag-3', 7000);
+        return 'rt';
+      }
+      throw e;
+    }
   },
   /** النتيجة النهائية: المتصدر يحدده الخادم (leader) أثناء السباق، والكتابة تتوقف بعد النهاية بقاعدة الأمان */
   finalize(silent) {
@@ -1875,9 +2306,11 @@ const Live = {
     this.finalizing = true;
     const f = this.fb, s = Store.state;
     try {
+      if (this.mode === 'rt') await RT.refreshTopSeason(); else {
       const snap = await f.getDocs(f.query(this.P.codes(), f.orderBy('uses', 'desc'), f.limit(TOP_LIMIT)));
       this.top = snap.docs.map(x => ({ key: x.id, ...this.data(x) }));
       const ss = await f.getDoc(this.P.season()); if (ss.exists()) this.seasonData = this.data(ss);
+      }
     } catch (e) { }
     const rows = this.top.filter(t => (t.uses || 0) > 0).map(t => ({ uid: t.ownerUid, name: t.name, code: t.key, uses: t.uses, reachedAt: this.ts(t.lastUseAt) || 0, me: !!(this.user && t.ownerUid === this.user.uid) }))
       .sort((a, b) => b.uses - a.uses || a.reachedAt - b.reachedAt);
@@ -1902,6 +2335,7 @@ const Live = {
     return final;
   },
   async ensureVip() {
+    if (this.mode === 'rt') return RT.ensureVip();
     const f = this.fb, uid = this.user.uid, s = Store.state;
     try { if ((await f.getDoc(this.P.vip(uid))).exists()) return; } catch (e) { return; } // موجودة: لا نكتب فوق لوحتك
     const start = s.season.end;
@@ -1922,13 +2356,32 @@ const Live = {
     const v = Store.state.vip; if (!v) return;
     const { start, end, members, ...rest } = v;
     const state = JSON.parse(JSON.stringify({ ...rest, members: (members || []).map(m => ({ id: m.id, inHall: !!m.inHall })) }));
-    try { await this.fb.updateDoc(this.P.vip(this.user.uid), { state, updatedAt: this.fb.serverTimestamp() }); this.dirty = false; }
-    catch (e) { this.dirty = false; this.sync(); console.warn('saveVip', e); toast(this.mapErr(e) === 'offline' ? 'تعذّر الحفظ: لا يوجد اتصال. سنعيد المحاولة عند أي تعديل.' : 'رفض الخادم الحفظ. ربما انتهت مدة VIP.', 'err', 'alert-triangle'); }
+    try {
+      if (this.mode === 'rt') await RT.saveVip(state); else await this.fb.updateDoc(this.P.vip(this.user.uid), { state, updatedAt: this.fb.serverTimestamp() });
+      this.dirty = false;
+    }
+    catch (e) {
+      if (this.mode !== 'rt' && Q.isQuota(e)) {
+        // نُبقي التعديلات ظاهرة محليًا (dirty) حتى تُرحَّل لـFirestore
+        try {
+          await Q.put('vip', { state: JSON.stringify(state) }); Q.mark(v => v.vip = 1);
+          if (Date.now() - (this.queuedToastAt || 0) > 60000) { this.queuedToastAt = Date.now(); toast('الخادم ممتلئ مؤقتًا: تعديلات لوحتك محفوظة احتياطيًا وتُرحَّل تلقائيًا.', '', 'hourglass', 5000); }
+          return;
+        } catch (e2) { }
+      }
+      this.dirty = false; this.sync(); console.warn('saveVip', e); toast(this.mapErr(e) === 'offline' ? 'تعذّر الحفظ: لا يوجد اتصال. سنعيد المحاولة عند أي تعديل.' : 'رفض الخادم الحفظ. ربما انتهت مدة VIP.', 'err', 'alert-triangle'); }
   },
   async claimDaily() {
     const v = Sel.vip(); if (!v) return { ok: false, reason: 'no_vip' };
     if (v.expired) return { ok: false, reason: 'expired' };
     const f = this.fb, uid = this.user.uid, day = v.dayIdx;
+    if (this.mode === 'rt') {
+      try {
+        const r = await RT.claimDaily(day);
+        if (r.ok) Vip.mut(x => { x.reward.balance += RACE.VIP_DAILY_REWARD; x.reward.lastDay = day; x.reward.claims += 1; }, `استلمت مكافأة اليوم ${day}: ${P.points(RACE.VIP_DAILY_REWARD)} تُضاف لنقاطك في احسمها`);
+        return r;
+      } catch (e) { console.warn('rt claim', e); const r = this.mapErr(e); return { ok: false, reason: r === 'denied' ? 'already_claimed' : r }; }
+    }
     try {
       const ex = await f.getDoc(this.P.reward(uid, day));
       if (ex.exists()) return { ok: false, reason: 'already_claimed' };
@@ -1938,25 +2391,39 @@ const Live = {
       await b.commit();
       Vip.mut(x => { x.reward.balance += RACE.VIP_DAILY_REWARD; x.reward.lastDay = day; x.reward.claims += 1; }, `استلمت مكافأة اليوم ${day}: ${P.points(RACE.VIP_DAILY_REWARD)} أُضيفت لنقاطك في احسمها`);
       return { ok: true, amount: RACE.VIP_DAILY_REWARD };
-    } catch (e) { console.warn('claim', e); const r = this.mapErr(e); return { ok: false, reason: r === 'denied' ? 'already_claimed' : r }; }
+    } catch (e) { console.warn('claim', e); if (Q.isQuota(e)) return { ok: false, reason: 'busy' }; const r = this.mapErr(e); return { ok: false, reason: r === 'denied' ? 'already_claimed' : r }; }
   },
   /* القاعة العامة: الانضمام والتصويت (للزوار المسجلين) */
   async joinHall(hostUid) {
     this.needUser();
-    await this.fb.setDoc(this.P.join(hostUid, this.user.uid), { name: Store.state.me.name, at: this.fb.serverTimestamp() });
+    if (this.mode === 'rt') return RT.joinHall(hostUid);
+    try { await this.fb.setDoc(this.P.join(hostUid, this.user.uid), { name: Store.state.me.name, at: this.fb.serverTimestamp() }); }
+    catch (e) {
+      if (!Q.isQuota(e)) throw e;
+      await Q.put('joins/' + hostUid, { name: Store.state.me.name }); Q.mark(v => { (v.joins = v.joins || {})[hostUid] = 1; });
+      return 'queued';
+    }
   },
-  async leaveHall(hostUid) { await this.fb.deleteDoc(this.P.join(hostUid, this.user.uid)); },
-  async kick(hostUid, uid) { try { await this.fb.deleteDoc(this.P.join(hostUid, uid)); } catch (e) { } },
+  async leaveHall(hostUid) { if (this.mode === 'rt') return RT.removeJoin(hostUid, this.user.uid); await this.fb.deleteDoc(this.P.join(hostUid, this.user.uid)); },
+  async kick(hostUid, uid) { try { if (this.mode === 'rt') await RT.removeJoin(hostUid, uid); else await this.fb.deleteDoc(this.P.join(hostUid, uid)); } catch (e) { } },
   async vote(hostUid, fields) {
     this.needUser();
-    await this.fb.setDoc(this.P.vote(hostUid, this.user.uid), { ...fields, at: this.fb.serverTimestamp() }, { merge: true });
+    if (this.mode === 'rt') return RT.vote(hostUid, fields);
+    try { await this.fb.setDoc(this.P.vote(hostUid, this.user.uid), { ...fields, at: this.fb.serverTimestamp() }, { merge: true }); }
+    catch (e) {
+      if (!Q.isQuota(e)) throw e;
+      await Q.put('votes/' + hostUid, fields, true); Q.mark(v => { (v.votes = v.votes || {})[hostUid] = 1; });
+      return 'queued';
+    }
   },
   async findHall(code) {
+    if (this.mode === 'rt') return RT.findHall(normalizeCode(code));
     const f = this.fb;
     const snap = await f.getDocs(f.query(this.P.vips(), f.where('hallCode', '==', normalizeCode(code)), f.limit(1)));
     return snap.empty ? null : snap.docs[0].id;
   },
   watchHall(uid, cb) {
+    if (this.mode === 'rt') return RT.watchHall(uid, cb);
     const f = this.fb; const out = {};
     const u1 = f.onSnapshot(this.P.vip(uid), (s) => { out.vip = s.exists() ? this.data(s) : null; cb(out); }, () => { out.vip = null; cb(out); });
     const u2 = f.onSnapshot(this.P.joins(uid), (s) => { out.joins = s.docs.map(x => ({ id: x.id, ...x.data() })); cb(out); }, () => { });
@@ -2550,6 +3017,7 @@ Pages.create = {
     const s = Store.state, ph = Sel.phase(s);
     if (s.myCode) return `<div class="wrap">${pageHead('كودك جاهز', '', ['#/', 'السباق'])}${emptyState('lock', 'لديك كود في هذا الموسم', `كودك <span class="code-txt">${esc(s.myCode.code)}</span> معتمد ولا يمكن إنشاء كود ثانٍ لنفس الحساب، حتى لا تتوزع الاستخدامات.`, `<a class="btn btn-primary" href="#/me"><span>${ic('id-badge')} افتح كودي</span></a>`)}</div>`;
     if (!Sel.isOpen(s)) return `<div class="wrap">${pageHead('أنشئ كودك', '', ['#/', 'السباق'])}${emptyState('flag', 'انتهى الموسم', 'لا يمكن إنشاء أكواد بعد نهاية الأسبوعين. تابع النتائج النهائية.', `<a class="btn btn-primary" href="#/board"><span>النتائج</span></a>`)}</div>`;
+    if (s.pending && s.pending.createCode) return `<div class="wrap">${pageHead('أنشئ كودك', '', ['#/', 'السباق'])}${emptyState('hourglass', 'طلب كودك محفوظ', `الخادم كان ممتلئًا، فحفظنا طلب الكود <span class="code-txt">${esc(s.pending.createCode)}</span> احتياطيًا. يُعتمد تلقائيًا عند عودة الخادم ما لم يسبقك إليه لاعب.`, `<a class="btn btn-ghost" href="#/board"><span>الصدارة</span></a>`)}</div>`;
     const sugg = [normalizeCode(s.me.handle).replace(/[^A-Z0-9]/g, '').slice(0, 8), 'FARES', 'FARES7', 'FRS' + (new Date().getFullYear() % 100)].filter((v, i, a) => v && a.indexOf(v) === i && !codeError(v)).slice(0, 3);
     return `<div class="wrap">
       ${pageHead('أنشئ كودك', 'كود واحد لحسابك في هذا الموسم. اختره قصيرًا وسهل النطق ليكتبه متابعوك بسرعة.', ['#/', 'السباق'])}
@@ -2620,8 +3088,9 @@ Pages.create = {
       btn.classList.add('is-loading');
       const r = await RaceAPI.createCode(code);
       btn.classList.remove('is-loading');
+      if (!r.ok && r.reason === 'queued') { Router.render(true); return; }
       if (!r.ok) {
-        const m = { taken: 'سبقك لاعب لهذا الكود قبل لحظات. اختر كودًا آخر.', offline: 'تعذّر الاتصال. لم يُنشأ الكود. حاول مرة ثانية.', season_ended: 'انتهى الموسم.', already_has_code: 'لديك كود بالفعل.', invalid: r.message, login: 'سجّل دخولك أولًا.', no_profile: 'اختر اسم مستخدم في احسمها أولًا.', denied: 'رفض الخادم إنشاء الكود. ربما الكود محجوز أو لديك كود.' }[r.reason] || 'تعذّر إنشاء الكود.';
+        const m = { taken: 'سبقك لاعب لهذا الكود قبل لحظات. اختر كودًا آخر.', offline: 'تعذّر الاتصال. لم يُنشأ الكود. حاول مرة ثانية.', season_ended: 'انتهى الموسم.', already_has_code: 'لديك كود بالفعل.', invalid: r.message, login: 'سجّل دخولك أولًا.', no_profile: 'اختر اسم مستخدم في احسمها أولًا.', denied: `رفض الخادم إنشاء الكود (${(r.raw && r.raw.code) || 'denied'}). ربما الكود محجوز أو لديك كود، أو قواعد Firestore لم تُنشر بعد.`, queued: `الخادم ممتلئ مؤقتًا: حفظنا طلب الكود ${esc(r.code || code)} ويُعتمد تلقائيًا عند عودته، ما لم يسبقك إليه لاعب.` }[r.reason] || 'تعذّر إنشاء الكود.';
         if (r.reason === 'taken') avail = false;
         draw(); msg.innerHTML = `<span class="err">${ic('alert-circle', 'ico-sm')}${m}</span>`; inp.focus();
         return;
@@ -2661,7 +3130,8 @@ const ENTER_ERR = {
   invalid: () => ({ t: 'صيغة غير صحيحة', p: 'الأكواد حروف إنجليزية وأرقام فقط، من 3 إلى 12 خانة.' }),
   login: () => ({ t: 'سجّل دخولك أولًا', p: 'الدعم يُسجَّل باسم حسابك في احسمها. <a href="#/me">سجّل الدخول</a>' }),
   no_profile: () => ({ t: 'أكمل حسابك', p: 'اختر اسم مستخدم في احسمها ثم ارجع.' }),
-  denied: () => ({ t: 'رفض الخادم العملية', p: 'لم يُحتسب شيء. ربما دعمت كودًا من قبل أو انتهى الموسم. حدّث الصفحة وحاول مرة ثانية.' })
+  denied: () => ({ t: 'رفض الخادم العملية', p: 'لم يُحتسب شيء. ربما دعمت كودًا من قبل أو انتهى الموسم. حدّث الصفحة وحاول مرة ثانية.' }),
+  queued: (c) => ({ t: 'حُفظ دعمك احتياطيًا', p: `الخادم ممتلئ مؤقتًا. دعمك للكود <span class="code-txt">${esc(c)}</span> محفوظ ويُحتسب تلقائيًا عند عودة الخادم بنفس الشروط (مرة واحدة لكل حساب). لا تحتاج تعيده.` })
 };
 Pages.enter = {
   title: 'أدخل كود لاعب',
@@ -2677,7 +3147,8 @@ Pages.enter = {
       ${pageHead('أدخل كود لاعب', 'إدخالك للكود يدعم صاحبه في السباق ويُضاف لرصيده مرة واحدة. أنت لا تحصل على إطار أو مكافأة مقابل ذلك.')}
       <div class="note" style="margin-bottom:16px">${ic('info-circle')}<div>هذا مختلف عن <b>الكود السري</b> الذي يمنح الإطارات في احسمها. أكواد السباق لا تفتح إطارًا.</div></div>
       <div id="enter-body">
-      ${sup ? `<div class="panel stack-lg"><div class="note note-ok">${ic('check')}<div><b>دعمت ${esc(sup.ownerName)} في هذا الموسم</b><br>الكود <span class="code-txt">${esc(sup.code)}</span> · ${fmtDateTime(sup.at)}. لكل حساب دعم واحد، ولا يمكن تغييره.</div></div>
+      ${!sup && s.pending && s.pending.use ? `<div class="panel stack-lg"><div class="note note-warn">${ic('hourglass')}<div><b>دعمك بانتظار الاحتساب</b><br>دعمك للكود <span class="code-txt">${esc(s.pending.use)}</span> محفوظ احتياطيًا لأن الخادم كان ممتلئًا، ويُحتسب تلقائيًا عند عودته.</div></div></div>`
+        : sup ? `<div class="panel stack-lg"><div class="note note-ok">${ic('check')}<div><b>دعمت ${esc(sup.ownerName)} في هذا الموسم</b><br>الكود <span class="code-txt">${esc(sup.code)}</span> · ${fmtDateTime(sup.at)}. لكل حساب دعم واحد، ولا يمكن تغييره.</div></div>
           <div class="btn-row"><a class="btn btn-ghost" href="#/board">${ic('list-numbers')}<span>الصدارة</span></a>${!s.myCode && !closed ? `<a class="btn btn-primary" href="#/create"><span>${ic('plus')} أنشئ كودك أنت</span></a>` : ''}</div></div>`
         : closed ? `<div class="panel">${emptyState('flag', 'انتهى الموسم', 'لا تُحتسب استخدامات بعد نهاية الأسبوعين. النتائج معتمدة.', `<a class="btn btn-primary" href="#/board"><span>النتائج</span></a>`)}</div>`
         : `<form class="panel stack-lg" id="enter-form" novalidate>
@@ -2741,8 +3212,8 @@ Pages.enter = {
       btn.classList.add('is-loading'); errBox.innerHTML = '';
       const r = await RaceAPI.confirmUse(found.code);
       btn.classList.remove('is-loading');
-      if (!r.ok) { showErr(r.reason, found.code); return; }
-      const after = Sel.standings().byUid[r.owner.uid];
+      if (!r.ok) { if (r.reason === 'queued') { Router.render(true); return; } showErr(r.reason, found.code); return; }
+      const after = { ...(Sel.standings().byUid[r.owner.uid] || {}), uses: r.uses };
       Signal.fly(btn, () => { });
       Sound.chime();
       $('#enter-body').innerHTML = `<div class="panel success-burst" tabindex="-1" id="enter-ok">
@@ -3248,8 +3719,10 @@ Pages._waiting = {
         <p class="hero-sub">يبدأ الموسم قريبًا. عند الانطلاق: أنشئ كودك، شاركه، وكل حساب مختلف يؤكده يضيف لك استخدامًا. الأعلى بعد 14 يومًا يفوز بـVIP لمدة 30 يومًا.</p>
         <div class="hero-actions"><a class="btn btn-ghost btn-lg" href="#/rules">${ic('list-details')}<span>اقرأ القواعد</span></a></div>
       </div>
+      ${Live.seasonErr ? `<div class="note note-err">${ic('alert-triangle')}<div><b>تعذّرت قراءة بيانات السباق من الخادم (${esc(Live.seasonErr)})</b><br>${/permission/.test(Live.seasonErr) ? 'قواعد Firestore في مشروعك لا تحتوي قسم «سباق الأكواد» بعد (أو لم تُنشر). افتح Firebase Console ← Firestore Database ← Rules، الصق ملف firestore.rules الجديد كاملًا ثم اضغط Publish، وحدّث الصفحة.' : 'تحقق من الاتصال بالإنترنت وحدّث الصفحة.'}</div></div>` : ''}
       ${s.isOwner ? `<div class="panel panel-gold stack-lg"><h2 style="font-size:20px">لوحة المالك</h2><p class="t2">بدء الموسم يثبّت وقت البداية من الخادم، وينتهي تلقائيًا بعد ${RACE.SEASON_DAYS} يومًا بالضبط. لا يمكن تمديده من الواجهة.</p>
-        <button class="btn btn-gold btn-lg" data-start-season><span>${ic('player-play')} ابدأ ${RACE.SEASON_NAME} الآن</span></button></div>`
+        <button class="btn btn-gold btn-lg" data-start-season><span>${ic('player-play')} ابدأ ${RACE.SEASON_NAME} الآن</span></button>
+        <p class="small muted">لو كانت حصة Firestore ممتلئة يبدأ الموسم تلقائيًا على Realtime Database ويكمل هناك بالقواعد نفسها. ${Live.mode === 'rt' ? '<b>الوضع الحالي: Realtime Database.</b>' : ''}</p></div>`
         : `<div class="panel stack"><h2 style="font-size:18px">لم يبدأ الموسم بعد</h2><p class="t2">تابع حساب احسمها لتعرف موعد الانطلاق. الصفحة تتحدث تلقائيًا لحظة البدء.</p></div>`}
       </section></div>`;
   },
@@ -3259,7 +3732,7 @@ Pages._waiting = {
       const ok = await Dialog.confirm({ title: `بدء ${RACE.SEASON_NAME}؟`, body: `<p class="t2">يبدأ العد التنازلي فورًا لكل اللاعبين: ${RACE.SEASON_DAYS} يومًا. لا يمكن التراجع من الواجهة.</p>`, ok: 'ابدأ الموسم', kind: 'gold', icon: 'player-play' });
       if (!ok) return;
       b.classList.add('is-loading');
-      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); toast('رفض الخادم بدء الموسم. تأكد من نشر قواعد firestore.rules الجديدة.', 'err'); }
+      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); b.classList.remove('is-loading'); toast(`لم يبدأ الموسم (${(e && e.code) || 'error'}). ${/permission/.test((e && e.code) || '') ? 'قواعد Firestore لم تُنشر بعد أو الموسم مبدوء مسبقًا: انشر firestore.rules كاملًا من Firebase Console ثم أعد المحاولة.' : 'تحقق من الاتصال وأعد المحاولة.'}`, 'err', 'alert-triangle', 9000); }
       b.classList.remove('is-loading');
     });
   }
@@ -3271,6 +3744,7 @@ const Header = {
     const s = Store.state, tag = $('#preview-tag');
     if (!tag || !s.live) return;
     if (s.auth === 'in' && s.me.name) tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me" title="حسابك في احسمها">${ic('user', 'ico-sm')}<span>${esc(s.me.name)}</span></a>`;
+    else if (s.auth === 'in') tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me" title="حسابك في احسمها">${ic('user', 'ico-sm')}<span>حسابي</span></a>`;
     else if (s.auth === 'out') tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me">${ic('user', 'ico-sm')}<span>دخول</span></a>`;
   }
 };
@@ -3332,10 +3806,10 @@ Pages.hall = {
       if (!Store.state.live) { toast('في المعاينة: هذه صفحة الجمهور كما يراها المتابع.', '', 'eye'); return; }
       if (Store.state.auth !== 'in') { location.hash = '#/me'; return; }
       try {
-        if (act === 'join') { await Live.joinHall(uid); toast('انضممت للقاعة', 'ok', 'check'); }
+        if (act === 'join') { const q = await Live.joinHall(uid); toast(q === 'queued' ? 'الخادم ممتلئ مؤقتًا: حُفظ انضمامك ويظهر تلقائيًا عند عودته.' : 'انضممت للقاعة', 'ok', 'check'); }
         if (act === 'leave') { await Live.leaveHall(uid); toast('غادرت القاعة', '', 'logout'); }
-        if (act === 'vote') { await Live.vote(uid, { game: +a.dataset.i, gameRound: a.dataset.round }); toast('سُجّل صوتك', 'ok', 'check'); }
-        if (act === 'rule') { await Live.vote(uid, { rule: a.dataset.v, ruleRound: a.dataset.round }); toast('سُجّل صوتك', 'ok', 'check'); }
+        if (act === 'vote') { const q = await Live.vote(uid, { game: +a.dataset.i, gameRound: a.dataset.round }); toast(q === 'queued' ? 'الخادم ممتلئ مؤقتًا: حُفظ صوتك ويُحتسب تلقائيًا عند عودته.' : 'سُجّل صوتك', 'ok', 'check'); }
+        if (act === 'rule') { const q = await Live.vote(uid, { rule: a.dataset.v, ruleRound: a.dataset.round }); toast(q === 'queued' ? 'الخادم ممتلئ مؤقتًا: حُفظ صوتك ويُحتسب تلقائيًا عند عودته.' : 'سُجّل صوتك', 'ok', 'check'); }
       } catch (err) { toast(Live.mapErr(err) === 'offline' ? 'لا يوجد اتصال.' : 'تعذّرت العملية. ربما انتهت مدة VIP.', 'err'); }
     };
     root.addEventListener('click', h);
@@ -4156,7 +4630,7 @@ const VipActions = {
     const r = await RaceAPI.claimDailyReward();
     b.classList.remove('is-loading');
     if (r.ok) { toast(`أُضيفت ${P.points(r.amount)} لرصيد مكافآتك`, 'gold', 'gift'); Sound.chime(); }
-    else toast({ already_claimed: 'استلمت مكافأة اليوم. التالية غدًا.', expired: 'انتهت مدة VIP.', offline: 'تعذّر الاتصال. لم تُستلم المكافأة.' }[r.reason] || 'تعذّر الاستلام.', 'err');
+    else toast({ already_claimed: 'استلمت مكافأة اليوم. التالية غدًا.', expired: 'انتهت مدة VIP.', offline: 'تعذّر الاتصال. لم تُستلم المكافأة.', busy: 'الخادم مزدحم الآن (امتلأت حصته اليومية). جرّب الاستلام لاحقًا اليوم.' }[r.reason] || 'تعذّر الاستلام.', 'err');
   },
   jump(b) {
     const id = b.dataset.id; const el = id === 'reward' ? $('.vip-hero .reward') : $('#tool-' + id);
@@ -4413,7 +4887,7 @@ const Demo = {
     Store.on(() => {
       const s = Store.state, r = Router.parse().route;
       const g = Gate.check(r);
-      const key = [s.loading, s.auth, s.me && s.me.uid, s.me && s.me.hasProfile, !!s.season, !!s.myCode, !!s.vip, !!s.final, g && g.title, s.fatal].join('|');
+      const key = [s.loading, s.auth, s.me && s.me.uid, s.me && s.me.hasProfile, !!s.season, !!s.myCode, !!s.vip, !!s.final, g && g.title, s.fatal, !!(s.pending && s.pending.use), !!(s.pending && s.pending.createCode)].join('|');
       Header.update();
       if (key !== lastKey) { lastKey = key; if (!Ceremony.busy) Router.render(true); }
       else renderNav(Router.route);
