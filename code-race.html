@@ -2004,6 +2004,10 @@ const Live = {
     await RT.load(); this.seasonErr = null; RT.listenSeason(); RT.listenTop();
     if (this.user) await this.onAuth(this.user);
   },
+  /** يحوّل تعليق الكتابة (حصة ممتلئة) إلى خطأ صريح يُعالَج بالمسار الاحتياطي */
+  fsw(p, ms = 9000) {
+    return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('write timeout (quota?)'), { code: 'resource-exhausted' })), ms))]);
+  },
   ts(v) { return v && typeof v.toMillis === 'function' ? v.toMillis() : (typeof v === 'number' ? v : null); },
   data(snap) { return snap.data({ serverTimestamps: 'estimate' }); },
   mapErr(e, fallback = 'denied') {
@@ -2288,7 +2292,7 @@ const Live = {
   },
   async setDesign(design) {
     if (this.mode === 'rt') { try { return await RT.setDesign(design); } catch (e) { toast('تعذّر حفظ التصميم. حاول مرة ثانية.', 'err'); return false; } }
-    try { await this.fb.updateDoc(this.P.code(this.myKey), { design }); return true; }
+    try { await this.fsw(this.fb.updateDoc(this.P.code(this.myKey), { design })); return true; }
     catch (e) {
       if (Q.isQuota(e)) {
         try { await Q.put('design', { design }); Q.mark(v => v.design = design); toast('الخادم ممتلئ مؤقتًا: حُفظ اختيارك احتياطيًا ويُطبَّق تلقائيًا عند عودته.', '', 'hourglass', 5000); return true; } catch (e2) { }
@@ -2298,18 +2302,18 @@ const Live = {
   },
   async startSeason(opts = {}) {
     const f = this.fb;
-    if (this.mode === 'rt' || opts.rt) { await RT.startSeason(); if (this.mode !== 'rt') await this.switchToRT(); return; }
-    try {
-      await f.setDoc(this.P.season(), { name: RACE.SEASON_NAME, days: RACE.SEASON_DAYS, startAt: f.serverTimestamp(), leader: { key: null, uses: 0, at: null } });
-    } catch (e) {
-      // الحصة ممتلئة (أو Firestore معطّل): يبدأ الموسم على Realtime Database ويكمل هناك
-      if (Q.isQuota(e) || /unavailable|deadline|permission/.test((e && e.code) || '')) {
-        await RT.startSeason(); await this.switchToRT();
-        toast('Firestore غير متاح الآن: بدأ الموسم على Realtime Database ويكمل هناك تلقائيًا.', 'gold', 'flag-3', 7000);
-        return 'rt';
-      }
-      throw e;
-    }
+    if (this.mode === 'rt') return RT.startSeason();
+    // الأفضلية لـRealtime Database: لا حصة تمنعه، والموسم يبقى فيه حتى نهايته
+    let rtErr = null;
+    try { await RT.startSeason(); await this.switchToRT(); return 'rt'; }
+    catch (e) { if (e && e.reason === 'exists') throw e; rtErr = e; console.warn('rt start failed, trying Firestore', e); }
+    if (opts.rt) throw rtErr;
+    // تعذّر RTDB (قواعده لم تُنشر؟): نجرّب Firestore بمعاملة حتى لا يبقى الحفظ محليًا فقط
+    await f.runTransaction(f.db, async (tx) => {
+      const ex = await tx.get(this.P.season()); if (ex.exists()) throw new RaceErr('exists', 'الموسم مبدوء مسبقًا');
+      tx.set(this.P.season(), { name: RACE.SEASON_NAME, days: RACE.SEASON_DAYS, startAt: f.serverTimestamp(), leader: { key: null, uses: 0, at: null } });
+    });
+    return 'fs';
   },
   /** النتيجة النهائية: المتصدر يحدده الخادم (leader) أثناء السباق، والكتابة تتوقف بعد النهاية بقاعدة الأمان */
   finalize(silent) {
@@ -2356,7 +2360,7 @@ const Live = {
     const hallCode = Array.from({ length: 6 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('');
     const state = Vip.seed(start);
     try {
-      await f.setDoc(this.P.vip(uid), { uid, name: s.me.name, startAt: f.Timestamp.fromMillis(start), endAt: f.Timestamp.fromMillis(start + RACE.VIP_DAYS * DAY), hallCode, state, updatedAt: f.serverTimestamp() });
+      await this.fsw(f.setDoc(this.P.vip(uid), { uid, name: s.me.name, startAt: f.Timestamp.fromMillis(start), endAt: f.Timestamp.fromMillis(start + RACE.VIP_DAYS * DAY), hallCode, state, updatedAt: f.serverTimestamp() }));
     } catch (e) { console.warn('ensureVip', e); }
   },
   /** حفظ حالة لوحة VIP (مؤجل قليلًا لتجميع التعديلات المتتالية) */
@@ -2371,7 +2375,7 @@ const Live = {
     const { start, end, members, ...rest } = v;
     const state = JSON.parse(JSON.stringify({ ...rest, members: (members || []).map(m => ({ id: m.id, inHall: !!m.inHall })) }));
     try {
-      if (this.mode === 'rt') await RT.saveVip(state); else await this.fb.updateDoc(this.P.vip(this.user.uid), { state, updatedAt: this.fb.serverTimestamp() });
+      if (this.mode === 'rt') await RT.saveVip(state); else await this.fsw(this.fb.updateDoc(this.P.vip(this.user.uid), { state, updatedAt: this.fb.serverTimestamp() }));
       this.dirty = false;
     }
     catch (e) {
@@ -2402,7 +2406,7 @@ const Live = {
       const b = f.writeBatch(f.db);
       b.set(this.P.reward(uid, day), { uid, day, amount: RACE.VIP_DAILY_REWARD, at: f.serverTimestamp() });
       b.update(this.P.user(uid), { onlinePoints: f.increment(RACE.VIP_DAILY_REWARD) });
-      await b.commit();
+      await this.fsw(b.commit());
       Vip.mut(x => { x.reward.balance += RACE.VIP_DAILY_REWARD; x.reward.lastDay = day; x.reward.claims += 1; }, `استلمت مكافأة اليوم ${day}: ${P.points(RACE.VIP_DAILY_REWARD)} أُضيفت لنقاطك في احسمها`);
       return { ok: true, amount: RACE.VIP_DAILY_REWARD };
     } catch (e) { console.warn('claim', e); if (Q.isQuota(e)) return { ok: false, reason: 'busy' }; const r = this.mapErr(e); return { ok: false, reason: r === 'denied' ? 'already_claimed' : r }; }
@@ -2411,7 +2415,7 @@ const Live = {
   async joinHall(hostUid) {
     this.needUser();
     if (this.mode === 'rt') return RT.joinHall(hostUid);
-    try { await this.fb.setDoc(this.P.join(hostUid, this.user.uid), { name: Store.state.me.name, at: this.fb.serverTimestamp() }); }
+    try { await this.fsw(this.fb.setDoc(this.P.join(hostUid, this.user.uid), { name: Store.state.me.name, at: this.fb.serverTimestamp() })); }
     catch (e) {
       if (!Q.isQuota(e)) throw e;
       await Q.put('joins/' + hostUid, { name: Store.state.me.name }); Q.mark(v => { (v.joins = v.joins || {})[hostUid] = 1; });
@@ -2423,7 +2427,7 @@ const Live = {
   async vote(hostUid, fields) {
     this.needUser();
     if (this.mode === 'rt') return RT.vote(hostUid, fields);
-    try { await this.fb.setDoc(this.P.vote(hostUid, this.user.uid), { ...fields, at: this.fb.serverTimestamp() }, { merge: true }); }
+    try { await this.fsw(this.fb.setDoc(this.P.vote(hostUid, this.user.uid), { ...fields, at: this.fb.serverTimestamp() }, { merge: true })); }
     catch (e) {
       if (!Q.isQuota(e)) throw e;
       await Q.put('votes/' + hostUid, fields, true); Q.mark(v => { (v.votes = v.votes || {})[hostUid] = 1; });
@@ -3744,7 +3748,7 @@ Pages._waiting = {
       ${Live.seasonErr ? `<div class="note note-err">${ic('alert-triangle')}<div><b>تعذّرت قراءة بيانات السباق من الخادم (${esc(Live.seasonErr)})</b><br>${/exhausted|quota|unavailable|timeout/i.test(Live.seasonErr) ? 'حصة Firestore اليومية ممتلئة. يعمل السباق في هذه الحالة على Realtime Database تلقائيًا، لكنه لم يرد' + (Live.rtErr ? ' (' + esc(Live.rtErr) + ')' : '') + ': تأكد أن قواعد Realtime Database المنشورة تحتوي قسم <b>codeRaceRT</b> (ملف database.rules.json في المستودع)، ثم انتظر قليلًا أو حدّث الصفحة. تحاول الصفحة الاتصال تلقائيًا كل 15 ثانية.' : /permission/.test(Live.seasonErr) ? 'قواعد Firestore في مشروعك لا تحتوي قسم «سباق الأكواد» بعد (أو لم تُنشر). افتح Firebase Console ← Firestore Database ← Rules، الصق ملف firestore.rules الجديد كاملًا ثم اضغط Publish، وحدّث الصفحة.' : 'تحقق من الاتصال بالإنترنت وحدّث الصفحة.'}</div></div>` : ''}
       ${s.isOwner ? `<div class="panel panel-gold stack-lg"><h2 style="font-size:20px">لوحة المالك</h2><p class="t2">بدء الموسم يثبّت وقت البداية من الخادم، وينتهي تلقائيًا بعد ${RACE.SEASON_DAYS} يومًا بالضبط. لا يمكن تمديده من الواجهة.</p>
         <button class="btn btn-gold btn-lg" data-start-season><span>${ic('player-play')} ابدأ ${RACE.SEASON_NAME} الآن</span></button>
-        <p class="small muted">لو كانت حصة Firestore ممتلئة يبدأ الموسم تلقائيًا على Realtime Database ويكمل هناك بالقواعد نفسها. ${Live.mode === 'rt' ? '<b>الوضع الحالي: Realtime Database.</b>' : ''}</p></div>`
+        <p class="small muted">يبدأ الموسم على Realtime Database (لا تمنعه حصة Firestore) ويكمل هناك بالقواعد نفسها، وإن تعذّر يُجرَّب Firestore. ${Live.mode === 'rt' ? '<b>الوضع الحالي: Realtime Database.</b>' : ''}</p></div>`
         : `<div class="panel stack"><h2 style="font-size:18px">لم يبدأ الموسم بعد</h2><p class="t2">تابع حساب احسمها لتعرف موعد الانطلاق. الصفحة تتحدث تلقائيًا لحظة البدء.</p></div>`}
       </section></div>`;
   },
@@ -3754,7 +3758,7 @@ Pages._waiting = {
       const ok = await Dialog.confirm({ title: `بدء ${RACE.SEASON_NAME}؟`, body: `<p class="t2">يبدأ العد التنازلي فورًا لكل اللاعبين: ${RACE.SEASON_DAYS} يومًا. لا يمكن التراجع من الواجهة.</p>`, ok: 'ابدأ الموسم', kind: 'gold', icon: 'player-play' });
       if (!ok) return;
       b.classList.add('is-loading');
-      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); b.classList.remove('is-loading'); toast(`لم يبدأ الموسم (${(e && e.code) || 'error'}). ${/permission/.test((e && e.code) || '') ? 'قواعد Firestore لم تُنشر بعد أو الموسم مبدوء مسبقًا: انشر firestore.rules كاملًا من Firebase Console ثم أعد المحاولة.' : 'تحقق من الاتصال وأعد المحاولة.'}`, 'err', 'alert-triangle', 9000); }
+      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); b.classList.remove('is-loading'); toast(`لم يبدأ الموسم (${(e && (e.code || e.message)) || 'error'}). ${/permission/.test((e && e.code) || '') ? 'قواعد Firestore لم تُنشر بعد أو الموسم مبدوء مسبقًا: انشر firestore.rules كاملًا من Firebase Console ثم أعد المحاولة.' : 'تحقق من الاتصال وأعد المحاولة.'}`, 'err', 'alert-triangle', 9000); }
       b.classList.remove('is-loading');
     });
   }
