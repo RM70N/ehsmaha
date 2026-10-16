@@ -4900,7 +4900,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
   </div>
   <div class="topnav-tabs">
     <button type="button" class="topnav-tab active" id="topnav-tab-streamer" onclick="topnavGoSection('streamer')"> ألعاب الستريمر</button>
-    <button type="button" class="topnav-tab topnav-tab-event" id="topnav-tab-event" onclick="show('contest-top20')" style="display:none;">🏆 الفعالية</button>
+    <button type="button" class="topnav-tab topnav-tab-event" id="topnav-tab-event" onclick="openCodeRace()">سباق الأكواد</button>
     <button type="button" class="topnav-tab" id="topnav-tab-solo" onclick="topnavGoSection('solo')"> ألعاب فردية</button>
     <button type="button" class="topnav-tab" id="topnav-tab-party" onclick="topnavGoSection('party')"> العاب الجمعات</button>
     <button type="button" class="topnav-tab" id="topnav-tab-online" onclick="topnavGoSection('online')">  العاب اونلاين</button>
@@ -7390,7 +7390,7 @@ function landingCtaClick(){
           <button type="button" class="hlob-btn hlob-btn-lg" data-hlob="library">استكشف ألعاب الستريمر <span class="hlob-btn-chip"><svg class="hlob-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></button>
           <button type="button" class="hlob-btn-ghost hlob-btn-lg" onclick="homeOpenQuickConnect()">ابدأ بثاً سريعاً</button>
           <button type="button" id="home-quick-reconnect-btn" class="hlob-btn-ghost hlob-quick-re" style="display:none;" onclick="homeQuickReconnectClick()">🚀 ابدأ بثاً سريعاً — @<span id="home-quick-reconnect-user"></span></button>
-          <button type="button" id="home-event-cta-btn" class="home-event-cta-btn" style="display:none;" onclick="show('contest-top20')">🏆 الفعالية</button>
+          <button type="button" id="home-event-cta-btn" class="home-event-cta-btn" onclick="openCodeRace()">سباق الأكواد</button>
           <!-- زر "سيرفر احسمها بالديسكورد" — الرابط/الظهور يُقرَآن من config/discordServer (تُدار من لوحة المالك) -->
   <div class="home-discord-cta" id="home-discord-cta">
     <a class="home-discord-btn" id="home-discord-btn" href="https://discord.gg/wsNNMqXEV" target="_blank" rel="noopener noreferrer">
@@ -20201,10 +20201,15 @@ function sevtActiveEventBoot() {
 // التصميم، لذا زر الصفحة الرئيسية (home-event-cta-btn) هو المكان الفعلي
 // الظاهر للمستخدم — نُبقي تحديث زر التنقل القديم أيضاً لعدم كسر أي شيء يعتمد عليه.
 function sevtUpdateEventTabVisibility() {
-  const tab = document.getElementById('topnav-tab-event');
-  if (tab) tab.style.display = contestActiveEventId ? '' : 'none';
-  const homeBtn = document.getElementById('home-event-cta-btn');
-  if (homeBtn) homeBtn.style.display = contestActiveEventId ? '' : 'none';
+  // زرّا "الفعالية" صارا زر "سباق الأكواد" الدائم (code-race.html)، فلا نخفيهما
+  // بحسب فعالية الستريمرز. فعالية الستريمرز ما زالت تُفتح من بانر الإعلان
+  // ("اذهب للفعالية" → sevtGoToContest).
+}
+
+// يفتح صفحة فعالية "سباق الأكواد". داخل تطبيق سطح المكتب (file://) نفتح نسخة الموقع.
+function openCodeRace() {
+  const base = /^https?:$/.test(location.protocol) ? '/' : 'https://ehsmaha.com/';
+  location.href = base + 'code-race.html';
 }
 
 // ==================== STREAMER EVENTS — بانر الإعلان (مرة وحدة للأبد لكل
@@ -89272,5 +89277,138 @@ window.__lateJoin = {
 </script>
 <!-- END late-join -->
 
+
+<!-- ====== بانر «بدأت فعالية سباق الأكواد» ======
+     نافذة منبثقة في منتصف الشاشة عند دخول الموقع. تظهر فقط خلال موسم السباق
+     (14 يومًا من startAt في codeRace/s1 بقاعدة البيانات)، وتعود عند كل دخول
+     جديد للموقع (بدون localStorage). الصورة كما هي: code-race-banner.png (1122×1402).
+     منطقة زر «توجه للفعالية» المرسوم داخل الصورة رابط شفاف بنِسب مئوية من أبعادها. -->
+<style>
+.crb-overlay{position:fixed;inset:0;z-index:100050;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));background:rgba(8,3,18,.62);opacity:0;transition:opacity .28s ease;}
+.crb-overlay.crb-in{opacity:1;}
+.crb-dialog{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;transform:translateY(10px) scale(.97);transition:transform .32s cubic-bezier(.16,1,.3,1);}
+.crb-overlay.crb-in .crb-dialog{transform:none;}
+.crb-bar{width:100%;display:flex;justify-content:flex-start;}
+.crb-close{width:44px;height:44px;border-radius:50%;border:1px solid rgba(196,176,255,.45);background:rgba(20,10,40,.9);color:#EDE9FF;display:grid;place-items:center;cursor:pointer;font:inherit;padding:0;}
+.crb-close:hover{background:rgba(40,22,74,.95);}
+.crb-close:focus-visible,.crb-cta:focus-visible{outline:3px solid #C4B0FF;outline-offset:3px;}
+.crb-close svg{width:20px;height:20px;}
+/* الإطار بنسبة الصورة نفسها؛ يُحسب من العرض والارتفاع معًا (مع مكان زر الإغلاق) */
+.crb-frame{position:relative;aspect-ratio:1122/1402;width:min(92vw,460px,calc((88vh - 54px) * 0.8003));border-radius:18px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.55);background:#0b0518;}
+@supports (height:1dvh){.crb-frame{width:min(92vw,460px,calc((88dvh - 54px) * 0.8003));}}
+.crb-frame img{display:block;width:100%;height:100%;object-fit:contain;}
+/* زر «توجه للفعالية» المرسوم: x 302–824 ، y 1136–1248 من 1122×1402 */
+.crb-cta{position:absolute;left:26.92%;top:81.03%;width:46.52%;height:7.99%;border-radius:999px;display:block;background:transparent;-webkit-tap-highlight-color:transparent;}
+.crb-cta:hover{box-shadow:0 0 0 2px rgba(255,255,255,.35) inset;}
+.crb-sr{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+@media (prefers-reduced-motion:reduce){.crb-overlay,.crb-dialog{transition:none;}.crb-dialog{transform:none;}}
+</style>
+<script>
+(function () {
+  if (window.__crbBooted) return; // يمنع نسختين من البانر
+  window.__crbBooted = true;
+  var SEASON_DAYS_FALLBACK = 14, DAY = 86400000;
+  try { if (new URLSearchParams(location.search).get('play')) return; } catch (e) { } // رابط فتح لعبة مباشر: لا نعترضه
+  if (/code-race\.html$/i.test(location.pathname)) return;
+
+  function seasonActive(cb) {
+    // ننتظر واجهة Firebase التي يعرّفها الموقع (window.__fb) ثم نقرأ موسم السباق
+    var tries = 0;
+    var t = setInterval(function () {
+      var fb = window.__fb;
+      if (fb && fb.db && fb.getDoc && fb.doc) {
+        clearInterval(t);
+        fb.getDoc(fb.doc(fb.db, 'codeRace', 's1')).then(function (snap) {
+          if (!snap.exists()) return cb(false);
+          var d = snap.data(), st = d.startAt && d.startAt.toMillis ? d.startAt.toMillis() : null;
+          if (!st) return cb(false);
+          var end = st + (d.days || SEASON_DAYS_FALLBACK) * DAY, now = Date.now();
+          cb(now >= st && now < end);
+        }).catch(function () { cb(false); });
+      } else if (++tries > 60) { clearInterval(t); cb(false); }
+    }, 250);
+  }
+
+  function show() {
+    if (document.getElementById('crb-overlay')) return;
+    var img = new Image();
+    img.src = 'code-race-banner.png';
+    img.alt = 'بدأت فعالية سباق الأكواد في احسمها. جائزة المركز الأول: لوحة VIP خاصة بالفائز لمدة 30 يومًا.';
+    img.width = 1122; img.height = 1402;
+    var ready = img.decode ? img.decode() : new Promise(function (res, rej) { img.onload = res; img.onerror = rej; });
+    ready.then(function () {
+      if (document.getElementById('crb-overlay')) return;
+      var prevFocus = document.activeElement;
+      var prevOverflow = document.documentElement.style.overflow, prevBodyOverflow = document.body.style.overflow;
+      var ov = document.createElement('div');
+      ov.className = 'crb-overlay'; ov.id = 'crb-overlay';
+      ov.innerHTML =
+        '<div class="crb-dialog" role="dialog" aria-modal="true" aria-label="إعلان فعالية سباق الأكواد">' +
+          '<div class="crb-bar"><button type="button" class="crb-close" aria-label="إغلاق الإعلان">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+          '<div class="crb-frame"></div>' +
+        '</div>';
+      var frame = ov.querySelector('.crb-frame');
+      frame.appendChild(img);
+      var cta = document.createElement('a');
+      cta.className = 'crb-cta'; cta.href = '/code-race.html';
+      if (!/^https?:$/.test(location.protocol)) cta.href = 'https://ehsmaha.com/code-race.html';
+      cta.setAttribute('aria-label', 'توجه لفعالية سباق الأكواد');
+      cta.innerHTML = '<span class="crb-sr">توجه لفعالية سباق الأكواد</span>';
+      frame.appendChild(cta);
+      document.body.appendChild(ov);
+      document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+      var closeBtn = ov.querySelector('.crb-close');
+      function restoreScroll() { document.documentElement.style.overflow = prevOverflow; document.body.style.overflow = prevBodyOverflow; }
+      function close() {
+        if (!ov.isConnected) return;
+        document.removeEventListener('keydown', onKey, true);
+        restoreScroll();
+        ov.remove();
+        var target = prevFocus && prevFocus.isConnected && prevFocus !== document.body ? prevFocus : document.getElementById('home-event-cta-btn');
+        if (target && target.offsetParent !== null && target.focus) target.focus({ preventScroll: true });
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+        if (e.key === 'Tab') { // حبس التركيز بين زر الإغلاق ورابط الفعالية
+          var f = [closeBtn, cta];
+          var i = f.indexOf(document.activeElement);
+          e.preventDefault();
+          f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+        }
+      }
+      closeBtn.addEventListener('click', close);
+      ov.addEventListener('click', function (e) { if (e.target === ov) close(); });
+      cta.addEventListener('click', function () { restoreScroll(); });
+      document.addEventListener('keydown', onKey, true);
+      requestAnimationFrame(function () { ov.classList.add('crb-in'); closeBtn.focus({ preventScroll: true }); });
+    }).catch(function () { /* الصورة لم تُحمّل: لا نعرض شيئًا */ });
+  }
+
+  function start() { seasonActive(function (on) { if (on) show(); }); }
+  if (document.readyState === 'complete') start(); else window.addEventListener('load', start, { once: true });
+})();
+</script>
+
+<script>
+/* ===== رابط مباشر للعبة: ehsmaha.com/?play=TAG =====
+   تستخدمه لوحة VIP في سباق الأكواد (code-race.html) لفتح لعبة الستريمر
+   مباشرة. ينتظر حتى تُرسم بطاقات الألعاب وتكتمل حالة الدخول ثم يضغط بطاقة اللعبة. */
+(function () {
+  let tag = null;
+  try { tag = new URLSearchParams(location.search).get('play'); } catch (e) { }
+  if (!tag || !/^[a-z0-9-]{1,32}$/.test(tag)) return;
+  try { const p = new URLSearchParams(location.search); p.delete('play'); history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : '') + location.hash); } catch (e) { }
+  let tries = 0;
+  const t = setInterval(function () {
+    tries++;
+    const card = document.querySelector('.gcard[data-tag="' + tag + '"]');
+    const signedIn = typeof currentUser !== 'undefined' && !!currentUser;
+    // ننتظر اكتمال تسجيل الدخول (أو 6 ثوانٍ للزائر) حتى لا تُفتح اللعبة قبل جاهزية الحساب
+    if (card && (signedIn ? tries > 2 : tries > 12)) { clearInterval(t); try { card.click(); } catch (e) { } }
+    if (tries > 80) clearInterval(t);
+  }, 500);
+})();
+</script>
 </body>
 </html>
