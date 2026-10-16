@@ -1964,7 +1964,7 @@ const Live = {
     this.ready = true;
     this.mode = await this.decideMode();
     if (this.mode === 'rt') { await RT.load(); RT.listenSeason(); RT.listenTop(); }
-    else { this.listenSeason(); this.listenTop(); }
+    else { this.listenSeason(); this.listenTop(); if (this.fsFailed) this.watchRT(); }
     authM.onAuthStateChanged(auth, (u) => this.onAuth(u));
   },
   /** اختيار مكان الموسم عند الإقلاع (انظر شرح RT أعلاه) */
@@ -1975,13 +1975,27 @@ const Live = {
       const s = await wait(f.getDocFromServer(this.P.season()), 7000);
       if (s.exists()) return 'fs';
     } catch (e) { fsFail = e; this.seasonErr = (e && e.code) || 'error'; }
+    this.fsFailed = !!fsFail; this.rtErr = null;
     try {
       await RT.load();
       const rs = await wait(RT.get('season'), 8000);
       if (rs.exists()) { this.seasonErr = null; return 'rt'; }
       if (fsFail) { this.seasonErr = null; return 'rt'; } // Firestore ممتلئ/معطّل ولا موسم بعد: نعمل على RTDB
-    } catch (e) { console.warn('rt probe', e); }
+    } catch (e) { console.warn('rt probe', e); this.rtErr = (e && (e.code || e.message)) || 'error'; }
     return 'fs';
+  },
+  /** Firestore معطّل وRTDB لم يردّ (غالبًا قواعده لم تُنشر بعد): نعيد المحاولة تلقائيًا وننتقل له فور توفره */
+  watchRT() {
+    if (this._rtWatch) return;
+    let n = 0;
+    this._rtWatch = setInterval(async () => {
+      if (this.mode === 'rt' || ++n > 40) { clearInterval(this._rtWatch); return; }
+      try {
+        const rs = await RT.get('season');
+        this.rtErr = null; clearInterval(this._rtWatch);
+        if (rs.exists() || this.fsFailed) { await this.switchToRT(); Store.emit('all'); Router.render(true); }
+      } catch (e) { this.rtErr = (e && (e.code || e.message)) || 'error'; }
+    }, 15000);
   },
   /** من وضع Firestore إلى RTDB أثناء الجلسة (مثلًا فشل بدء الموسم بسبب الحصة) */
   async switchToRT() {
@@ -2239,7 +2253,7 @@ const Live = {
       const d = s.data();
       const r = Sel.standings().rows.find(x => x.code === code);
       return { found: true, code, owner: { name: d.name, uses: d.uses || 0, rank: r ? r.rank || null : null, me: !!(this.user && d.ownerUid === this.user.uid) } };
-    } catch (e) { return { found: false, error: this.mapErr(e) }; }
+    } catch (e) { return { found: false, error: Q.isQuota(e) ? 'quota' : this.mapErr(e) }; }
   },
   async confirmUse(raw, opts = {}) {
     const key = normalizeCode(raw);
@@ -3130,6 +3144,7 @@ const ENTER_ERR = {
   invalid: () => ({ t: 'صيغة غير صحيحة', p: 'الأكواد حروف إنجليزية وأرقام فقط، من 3 إلى 12 خانة.' }),
   login: () => ({ t: 'سجّل دخولك أولًا', p: 'الدعم يُسجَّل باسم حسابك في احسمها. <a href="#/me">سجّل الدخول</a>' }),
   no_profile: () => ({ t: 'أكمل حسابك', p: 'اختر اسم مستخدم في احسمها ثم ارجع.' }),
+  unavailable: () => ({ t: 'تعذّر التحقق الآن', p: 'لم نستطع الوصول للخادم. حدّث الصفحة وحاول بعد قليل.', retry: true }),
   denied: () => ({ t: 'رفض الخادم العملية', p: 'لم يُحتسب شيء. ربما دعمت كودًا من قبل أو انتهى الموسم. حدّث الصفحة وحاول مرة ثانية.' }),
   queued: (c) => ({ t: 'حُفظ دعمك احتياطيًا', p: `الخادم ممتلئ مؤقتًا. دعمك للكود <span class="code-txt">${esc(c)}</span> محفوظ ويُحتسب تلقائيًا عند عودة الخادم بنفس الشروط (مرة واحدة لكل حساب). لا تحتاج تعيده.` })
 };
@@ -3189,6 +3204,13 @@ Pages.enter = {
         const r = await RaceAPI.lookupCode(code);
         done();
         if (my !== seq) return;
+        if (!r.found && r.error === 'quota') {
+          // الخادم ممتلئ: لا نقدر نتحقق الآن، لكن الدعم يُحفظ ويُحتسب تلقائيًا بنفس الشروط عند عودته
+          found = { code, name: code, uses: 0, rank: null, blind: true };
+          peek.innerHTML = `<div class="note note-warn">${ic('hourglass')}<div><b>الخادم ممتلئ مؤقتًا</b><br>لا نقدر نتحقق من الكود <span class="code-txt">${esc(code)}</span> الآن. اضغط «تأكيد»: يُحفظ دعمك ويُحتسب تلقائيًا عند عودة الخادم إن كان الكود صحيحًا.</div></div>`;
+          return;
+        }
+        if (!r.found && r.error) { peek.innerHTML = ''; showErr(r.error === 'offline' ? 'offline' : 'unavailable', code); return; }
         if (!r.found) { peek.innerHTML = ''; showErr('not_found', code); return; }
         if (r.owner.me) { peek.innerHTML = ''; showErr('own_code', code); return; }
         found = { code, ...r.owner };
@@ -3719,7 +3741,7 @@ Pages._waiting = {
         <p class="hero-sub">يبدأ الموسم قريبًا. عند الانطلاق: أنشئ كودك، شاركه، وكل حساب مختلف يؤكده يضيف لك استخدامًا. الأعلى بعد 14 يومًا يفوز بـVIP لمدة 30 يومًا.</p>
         <div class="hero-actions"><a class="btn btn-ghost btn-lg" href="#/rules">${ic('list-details')}<span>اقرأ القواعد</span></a></div>
       </div>
-      ${Live.seasonErr ? `<div class="note note-err">${ic('alert-triangle')}<div><b>تعذّرت قراءة بيانات السباق من الخادم (${esc(Live.seasonErr)})</b><br>${/permission/.test(Live.seasonErr) ? 'قواعد Firestore في مشروعك لا تحتوي قسم «سباق الأكواد» بعد (أو لم تُنشر). افتح Firebase Console ← Firestore Database ← Rules، الصق ملف firestore.rules الجديد كاملًا ثم اضغط Publish، وحدّث الصفحة.' : 'تحقق من الاتصال بالإنترنت وحدّث الصفحة.'}</div></div>` : ''}
+      ${Live.seasonErr ? `<div class="note note-err">${ic('alert-triangle')}<div><b>تعذّرت قراءة بيانات السباق من الخادم (${esc(Live.seasonErr)})</b><br>${/exhausted|quota|unavailable|timeout/i.test(Live.seasonErr) ? 'حصة Firestore اليومية ممتلئة. يعمل السباق في هذه الحالة على Realtime Database تلقائيًا، لكنه لم يرد' + (Live.rtErr ? ' (' + esc(Live.rtErr) + ')' : '') + ': تأكد أن قواعد Realtime Database المنشورة تحتوي قسم <b>codeRaceRT</b> (ملف database.rules.json في المستودع)، ثم انتظر قليلًا أو حدّث الصفحة. تحاول الصفحة الاتصال تلقائيًا كل 15 ثانية.' : /permission/.test(Live.seasonErr) ? 'قواعد Firestore في مشروعك لا تحتوي قسم «سباق الأكواد» بعد (أو لم تُنشر). افتح Firebase Console ← Firestore Database ← Rules، الصق ملف firestore.rules الجديد كاملًا ثم اضغط Publish، وحدّث الصفحة.' : 'تحقق من الاتصال بالإنترنت وحدّث الصفحة.'}</div></div>` : ''}
       ${s.isOwner ? `<div class="panel panel-gold stack-lg"><h2 style="font-size:20px">لوحة المالك</h2><p class="t2">بدء الموسم يثبّت وقت البداية من الخادم، وينتهي تلقائيًا بعد ${RACE.SEASON_DAYS} يومًا بالضبط. لا يمكن تمديده من الواجهة.</p>
         <button class="btn btn-gold btn-lg" data-start-season><span>${ic('player-play')} ابدأ ${RACE.SEASON_NAME} الآن</span></button>
         <p class="small muted">لو كانت حصة Firestore ممتلئة يبدأ الموسم تلقائيًا على Realtime Database ويكمل هناك بالقواعد نفسها. ${Live.mode === 'rt' ? '<b>الوضع الحالي: Realtime Database.</b>' : ''}</p></div>`
