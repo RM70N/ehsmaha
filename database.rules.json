@@ -226,6 +226,222 @@
         }
       }
     },
+    "codeRaceRT": {
+      "$s": {
+        "season": {
+          ".read": true,
+          ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com' && (data.exists() || (newData.child('startAt').val() === now && newData.child('days').val() === 14 && newData.child('leader').child('uses').val() === 0) || !newData.exists())",
+          ".validate": "newData.hasChildren(['name', 'days', 'startAt', 'leader'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length <= 60"
+          },
+          "days": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 60"
+          },
+          "startAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "leader": {
+            ".write": "auth != null && newData.child('at').val() === now && newData.child('uses').val() > data.child('uses').val() && newData.child('uses').val() === newData.parent().parent().child('codes').child(newData.child('key').val()).child('uses').val() && root.child('codeRaceRT').child($s).child('codes').child(newData.child('key').val()).child('uses').val() + 1 === newData.child('uses').val() && (now >= root.child('codeRaceRT').child($s).child('season').child('startAt').val() && now < (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000))",
+            ".validate": "newData.hasChildren(['uses']) && (newData.child('uses').val() === 0 || newData.hasChildren(['key', 'uses', 'at']))",
+            "key": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Z][A-Z0-9]{2,11}$/)"
+            },
+            "uses": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "codes": {
+          ".read": true,
+          ".indexOn": [
+            "uses"
+          ],
+          "$key": {
+            ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || (!data.exists() && newData.child('ownerUid').val() === auth.uid && newData.child('uses').val() === 0 && newData.child('createdAt').val() === now && newData.child('lastUseAt').val() === now && (now >= root.child('codeRaceRT').child($s).child('season').child('startAt').val() && now < (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000)) && !root.child('codeRaceRT').child($s).child('owners').child(auth.uid).exists() && newData.parent().parent().child('owners').child(auth.uid).child('key').val() === $key) || (data.exists() && newData.child('ownerUid').val() === data.child('ownerUid').val() && data.child('ownerUid').val() !== auth.uid && newData.child('name').val() === data.child('name').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('design').val() === data.child('design').val() && newData.child('uses').val() === data.child('uses').val() + 1 && newData.child('lastUseAt').val() === now && (now >= root.child('codeRaceRT').child($s).child('season').child('startAt').val() && now < (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000)) && !root.child('codeRaceRT').child($s).child('supports').child(auth.uid).exists() && newData.parent().parent().child('supports').child(auth.uid).child('key').val() === $key && ((newData.child('daily/d1').exists() ? newData.child('daily/d1').val() : 0) + (newData.child('daily/d2').exists() ? newData.child('daily/d2').val() : 0) + (newData.child('daily/d3').exists() ? newData.child('daily/d3').val() : 0) + (newData.child('daily/d4').exists() ? newData.child('daily/d4').val() : 0) + (newData.child('daily/d5').exists() ? newData.child('daily/d5').val() : 0) + (newData.child('daily/d6').exists() ? newData.child('daily/d6').val() : 0) + (newData.child('daily/d7').exists() ? newData.child('daily/d7').val() : 0) + (newData.child('daily/d8').exists() ? newData.child('daily/d8').val() : 0) + (newData.child('daily/d9').exists() ? newData.child('daily/d9').val() : 0) + (newData.child('daily/d10').exists() ? newData.child('daily/d10').val() : 0) + (newData.child('daily/d11').exists() ? newData.child('daily/d11').val() : 0) + (newData.child('daily/d12').exists() ? newData.child('daily/d12').val() : 0) + (newData.child('daily/d13').exists() ? newData.child('daily/d13').val() : 0) + (newData.child('daily/d14').exists() ? newData.child('daily/d14').val() : 0)) === ((data.child('daily/d1').exists() ? data.child('daily/d1').val() : 0) + (data.child('daily/d2').exists() ? data.child('daily/d2').val() : 0) + (data.child('daily/d3').exists() ? data.child('daily/d3').val() : 0) + (data.child('daily/d4').exists() ? data.child('daily/d4').val() : 0) + (data.child('daily/d5').exists() ? data.child('daily/d5').val() : 0) + (data.child('daily/d6').exists() ? data.child('daily/d6').val() : 0) + (data.child('daily/d7').exists() ? data.child('daily/d7').val() : 0) + (data.child('daily/d8').exists() ? data.child('daily/d8').val() : 0) + (data.child('daily/d9').exists() ? data.child('daily/d9').val() : 0) + (data.child('daily/d10').exists() ? data.child('daily/d10').val() : 0) + (data.child('daily/d11').exists() ? data.child('daily/d11').val() : 0) + (data.child('daily/d12').exists() ? data.child('daily/d12').val() : 0) + (data.child('daily/d13').exists() ? data.child('daily/d13').val() : 0) + (data.child('daily/d14').exists() ? data.child('daily/d14').val() : 0)) + 1 && (newData.child('uses').val() === 5 ? newData.child('ms').child('n5').val() === now : newData.child('ms').child('n5').val() === data.child('ms').child('n5').val()) && (newData.child('uses').val() === 25 ? newData.child('ms').child('n25').val() === now : newData.child('ms').child('n25').val() === data.child('ms').child('n25').val()) && (newData.child('uses').val() === 50 ? newData.child('ms').child('n50').val() === now : newData.child('ms').child('n50').val() === data.child('ms').child('n50').val()) && (newData.child('uses').val() === 100 ? newData.child('ms').child('n100').val() === now : newData.child('ms').child('n100').val() === data.child('ms').child('n100').val()) && (newData.child('uses').val() === 120 ? newData.child('ms').child('n120').val() === now : newData.child('ms').child('n120').val() === data.child('ms').child('n120').val()) && (newData.child('uses').val() <= root.child('codeRaceRT').child($s).child('season').child('leader').child('uses').val() || (newData.parent().parent().child('season').child('leader').child('key').val() === $key && newData.parent().parent().child('season').child('leader').child('uses').val() === newData.child('uses').val()))))",
+            ".validate": "$key.matches(/^[A-Z][A-Z0-9]{2,11}$/) && !$key.matches(/^(ADMIN|EHSMAHA|AHSEMHA|VIP|OWNER|MOD|SUPPORT|TEST|NULL|SYSTEM)$/) && newData.hasChildren(['ownerUid', 'name', 'createdAt', 'uses', 'lastUseAt'])",
+            "ownerUid": {
+              ".validate": "newData.isString()"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+            },
+            "createdAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "lastUseAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "uses": {
+              ".validate": "newData.isNumber() && newData.val() >= 0"
+            },
+            "design": {
+              ".write": "auth != null && root.child('codeRaceRT').child($s).child('codes').child($key).child('ownerUid').val() === auth.uid && (newData.val() === 'base' || (newData.val() === 'silver' && root.child('codeRaceRT').child($s).child('codes').child($key).child('uses').val() >= 25) || (newData.val() === 'gold' && root.child('codeRaceRT').child($s).child('codes').child($key).child('uses').val() >= 100))",
+              ".validate": "newData.val() === 'base' || newData.val() === 'silver' || newData.val() === 'gold'"
+            },
+            "daily": {
+              "$d": {
+                ".validate": "$d.matches(/^d([1-9]|1[0-4])$/) && newData.isNumber() && newData.val() >= 0"
+              }
+            },
+            "ms": {
+              "$n": {
+                ".validate": "$n.matches(/^n(5|25|50|100|120)$/) && newData.isNumber()"
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "owners": {
+          ".read": true,
+          "$uid": {
+            ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || (auth.uid === $uid && !data.exists() && newData.child('at').val() === now && !root.child('codeRaceRT').child($s).child('codes').child(newData.child('key').val()).exists() && newData.parent().parent().child('codes').child(newData.child('key').val()).child('ownerUid').val() === $uid))",
+            ".validate": "newData.hasChildren(['key', 'at']) && newData.child('key').isString() && newData.child('key').val().matches(/^[A-Z][A-Z0-9]{2,11}$/)",
+            "key": {
+              ".validate": true
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "supports": {
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+            ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || (auth.uid === $uid && !data.exists() && newData.child('at').val() === now && newData.parent().parent().child('codes').child(newData.child('key').val()).child('uses').val() === root.child('codeRaceRT').child($s).child('codes').child(newData.child('key').val()).child('uses').val() + 1 && root.child('codeRaceRT').child($s).child('codes').child(newData.child('key').val()).child('ownerUid').val() !== $uid))",
+            ".validate": "newData.hasChildren(['key', 'at']) && newData.child('key').isString() && newData.child('key').val().matches(/^[A-Z][A-Z0-9]{2,11}$/)",
+            "key": {
+              ".validate": true
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "vip": {
+          ".read": true,
+          ".indexOn": [
+            "hallCode"
+          ],
+          "$uid": {
+            ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || (auth.uid === $uid && !data.exists() && now >= (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000) && root.child('codeRaceRT').child($s).child('season').child('leader').child('key').val() !== null && newData.child('uid').val() === $uid && newData.child('startAt').val() === (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000) && newData.child('endAt').val() === (root.child('codeRaceRT').child($s).child('season').child('startAt').val() + root.child('codeRaceRT').child($s).child('season').child('days').val() * 86400000) + 30 * 86400000 && newData.child('updatedAt').val() === now && newData.child('hallCode').val().matches(/^[A-Z0-9]{6}$/) && root.child('codeRaceRT').child($s).child('codes').child(root.child('codeRaceRT').child($s).child('season').child('leader').child('key').val()).child('ownerUid').val() === $uid))",
+            ".validate": "newData.hasChildren(['uid', 'name', 'startAt', 'endAt', 'hallCode', 'state', 'updatedAt'])",
+            "uid": {
+              ".validate": "newData.isString()"
+            },
+            "name": {
+              ".validate": "newData.isString() && newData.val().length <= 60"
+            },
+            "startAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "endAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "hallCode": {
+              ".validate": "newData.isString()"
+            },
+            "state": {
+              ".write": "auth != null && auth.uid === $uid && root.child('codeRaceRT').child($s).child('vip').child($uid).child('endAt').val() > now",
+              ".validate": "newData.isString() && newData.val().length <= 200000"
+            },
+            "updatedAt": {
+              ".write": "auth != null && auth.uid === $uid && root.child('codeRaceRT').child($s).child('vip').child($uid).child('endAt').val() > now",
+              ".validate": "newData.val() === now"
+            },
+            "joins": {
+              ".read": true,
+              "$u": {
+                ".write": "auth != null && ((auth.uid === $u && newData.exists() && root.child('codeRaceRT').child($s).child('vip').child($uid).child('endAt').val() > now) || (!newData.exists() && (auth.uid === $u || auth.uid === $uid)))",
+                ".validate": "newData.hasChildren(['name', 'at'])",
+                "name": {
+                  ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40"
+                },
+                "at": {
+                  ".validate": "newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            },
+            "votes": {
+              ".read": true,
+              "$u": {
+                ".write": "auth != null && ((auth.uid === $u && newData.exists() && root.child('codeRaceRT').child($s).child('vip').child($uid).child('endAt').val() > now) || (!newData.exists() && (auth.uid === $u || auth.uid === $uid)))",
+                ".validate": "newData.hasChild('at')",
+                "game": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10"
+                },
+                "gameRound": {
+                  ".validate": "newData.isString() && newData.val().length <= 20"
+                },
+                "rule": {
+                  ".validate": "newData.val() === 'a' || newData.val() === 'b'"
+                },
+                "ruleRound": {
+                  ".validate": "newData.isString() && newData.val().length <= 20"
+                },
+                "at": {
+                  ".validate": "newData.val() === now"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              }
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "rewards": {
+          "$uid": {
+            ".read": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
+            "$day": {
+              ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || (auth.uid === $uid && !data.exists() && newData.exists() && $day === newData.child('day').val() + '' && newData.child('amount').val() === 150 && newData.child('at').val() === now && newData.child('credited').val() === false && now >= root.child('codeRaceRT').child($s).child('vip').child($uid).child('startAt').val() && now < root.child('codeRaceRT').child($s).child('vip').child($uid).child('endAt').val() && newData.child('day').val() === ((now - root.child('codeRaceRT').child($s).child('vip').child($uid).child('startAt').val()) - ((now - root.child('codeRaceRT').child($s).child('vip').child($uid).child('startAt').val()) % 86400000)) / 86400000 + 1))",
+              ".validate": "newData.hasChildren(['day', 'amount', 'at', 'credited'])",
+              "day": {
+                ".validate": "newData.isNumber()"
+              },
+              "amount": {
+                ".validate": "newData.isNumber()"
+              },
+              "at": {
+                ".validate": "newData.isNumber()"
+              },
+              "credited": {
+                ".write": "auth != null && auth.uid === $uid && ((data.val() === false && newData.val() === 'pending') || (data.val() === 'pending' && (newData.val() === true || newData.val() === false)))",
+                ".validate": "newData.isBoolean() || newData.val() === 'pending'"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "fsMirror": {
       "abExperiments": {
         ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",

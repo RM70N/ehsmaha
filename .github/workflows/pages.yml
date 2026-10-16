@@ -12,6 +12,7 @@ on:
       - bomb3d.html
       - tug3d.html
       - code-race.html
+      - code-race-banner.png
       - discord-logo.png
       - CNAME
       - .github/workflows/pages.yml
@@ -38,7 +39,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp index.html roulette3d.html bomb3d.html tug3d.html code-race.html discord-logo.png CNAME _site/
+          cp index.html roulette3d.html bomb3d.html tug3d.html code-race.html code-race-banner.png discord-logo.png CNAME _site/
           # GitHub Pages لا يدعم _redirects/netlify.toml: روابط الإحالة مثل ehsmaha.com/ahmed-2024
           # لازم تحمّل نفس index.html، فنخلّي 404.html نسخة منه (تطبيق صفحة واحدة يقرأ المسار بنفسه).
           cp index.html _site/404.html
