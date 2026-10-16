@@ -1732,9 +1732,9 @@ const Live = {
   listenSeason() {
     const f = this.fb;
     this.unsub.season = f.onSnapshot(this.P.season(), (snap) => {
-      this.seasonData = snap.exists() ? this.data(snap) : null;
+      this.seasonData = snap.exists() ? this.data(snap) : null; this.seasonErr = null;
       this.sync();
-    }, (e) => { console.error('season', e); this.seasonData = null; this.sync(); });
+    }, (e) => { console.error('season', e); this.seasonErr = (e && e.code) || 'error'; this.seasonData = null; this.sync(); });
   },
   listenTop() {
     const f = this.fb;
@@ -2775,7 +2775,7 @@ Pages.create = {
       btn.classList.remove('is-loading');
       if (!r.ok && r.reason === 'queued') { Router.render(true); return; }
       if (!r.ok) {
-        const m = { taken: 'سبقك لاعب لهذا الكود قبل لحظات. اختر كودًا آخر.', offline: 'تعذّر الاتصال. لم يُنشأ الكود. حاول مرة ثانية.', season_ended: 'انتهى الموسم.', already_has_code: 'لديك كود بالفعل.', invalid: r.message, login: 'سجّل دخولك أولًا.', no_profile: 'اختر اسم مستخدم في احسمها أولًا.', denied: 'رفض الخادم إنشاء الكود. ربما الكود محجوز أو لديك كود.', queued: `الخادم ممتلئ مؤقتًا: حفظنا طلب الكود ${esc(r.code || code)} ويُعتمد تلقائيًا عند عودته، ما لم يسبقك إليه لاعب.` }[r.reason] || 'تعذّر إنشاء الكود.';
+        const m = { taken: 'سبقك لاعب لهذا الكود قبل لحظات. اختر كودًا آخر.', offline: 'تعذّر الاتصال. لم يُنشأ الكود. حاول مرة ثانية.', season_ended: 'انتهى الموسم.', already_has_code: 'لديك كود بالفعل.', invalid: r.message, login: 'سجّل دخولك أولًا.', no_profile: 'اختر اسم مستخدم في احسمها أولًا.', denied: `رفض الخادم إنشاء الكود (${(r.raw && r.raw.code) || 'denied'}). ربما الكود محجوز أو لديك كود، أو قواعد Firestore لم تُنشر بعد.`, queued: `الخادم ممتلئ مؤقتًا: حفظنا طلب الكود ${esc(r.code || code)} ويُعتمد تلقائيًا عند عودته، ما لم يسبقك إليه لاعب.` }[r.reason] || 'تعذّر إنشاء الكود.';
         if (r.reason === 'taken') avail = false;
         draw(); msg.innerHTML = `<span class="err">${ic('alert-circle', 'ico-sm')}${m}</span>`; inp.focus();
         return;
@@ -3404,6 +3404,7 @@ Pages._waiting = {
         <p class="hero-sub">يبدأ الموسم قريبًا. عند الانطلاق: أنشئ كودك، شاركه، وكل حساب مختلف يؤكده يضيف لك استخدامًا. الأعلى بعد 14 يومًا يفوز بـVIP لمدة 30 يومًا.</p>
         <div class="hero-actions"><a class="btn btn-ghost btn-lg" href="#/rules">${ic('list-details')}<span>اقرأ القواعد</span></a></div>
       </div>
+      ${Live.seasonErr ? `<div class="note note-err">${ic('alert-triangle')}<div><b>تعذّرت قراءة بيانات السباق من الخادم (${esc(Live.seasonErr)})</b><br>${/permission/.test(Live.seasonErr) ? 'قواعد Firestore في مشروعك لا تحتوي قسم «سباق الأكواد» بعد (أو لم تُنشر). افتح Firebase Console ← Firestore Database ← Rules، الصق ملف firestore.rules الجديد كاملًا ثم اضغط Publish، وحدّث الصفحة.' : 'تحقق من الاتصال بالإنترنت وحدّث الصفحة.'}</div></div>` : ''}
       ${s.isOwner ? `<div class="panel panel-gold stack-lg"><h2 style="font-size:20px">لوحة المالك</h2><p class="t2">بدء الموسم يثبّت وقت البداية من الخادم، وينتهي تلقائيًا بعد ${RACE.SEASON_DAYS} يومًا بالضبط. لا يمكن تمديده من الواجهة.</p>
         <button class="btn btn-gold btn-lg" data-start-season><span>${ic('player-play')} ابدأ ${RACE.SEASON_NAME} الآن</span></button></div>`
         : `<div class="panel stack"><h2 style="font-size:18px">لم يبدأ الموسم بعد</h2><p class="t2">تابع حساب احسمها لتعرف موعد الانطلاق. الصفحة تتحدث تلقائيًا لحظة البدء.</p></div>`}
@@ -3415,7 +3416,7 @@ Pages._waiting = {
       const ok = await Dialog.confirm({ title: `بدء ${RACE.SEASON_NAME}؟`, body: `<p class="t2">يبدأ العد التنازلي فورًا لكل اللاعبين: ${RACE.SEASON_DAYS} يومًا. لا يمكن التراجع من الواجهة.</p>`, ok: 'ابدأ الموسم', kind: 'gold', icon: 'player-play' });
       if (!ok) return;
       b.classList.add('is-loading');
-      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); toast('رفض الخادم بدء الموسم. تأكد من نشر قواعد firestore.rules الجديدة.', 'err'); }
+      try { await Live.startSeason(); toast('بدأ الموسم', 'gold', 'flag-3'); } catch (e) { console.error(e); b.classList.remove('is-loading'); toast(`لم يبدأ الموسم (${(e && e.code) || 'error'}). ${/permission/.test((e && e.code) || '') ? 'قواعد Firestore لم تُنشر بعد أو الموسم مبدوء مسبقًا: انشر firestore.rules كاملًا من Firebase Console ثم أعد المحاولة.' : 'تحقق من الاتصال وأعد المحاولة.'}`, 'err', 'alert-triangle', 9000); }
       b.classList.remove('is-loading');
     });
   }
@@ -3427,6 +3428,7 @@ const Header = {
     const s = Store.state, tag = $('#preview-tag');
     if (!tag || !s.live) return;
     if (s.auth === 'in' && s.me.name) tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me" title="حسابك في احسمها">${ic('user', 'ico-sm')}<span>${esc(s.me.name)}</span></a>`;
+    else if (s.auth === 'in') tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me" title="حسابك في احسمها">${ic('user', 'ico-sm')}<span>حسابي</span></a>`;
     else if (s.auth === 'out') tag.outerHTML = `<a class="preview-tag acct" id="preview-tag" href="#/me">${ic('user', 'ico-sm')}<span>دخول</span></a>`;
   }
 };
