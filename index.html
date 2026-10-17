@@ -7820,6 +7820,46 @@ function landingCtaClick(){
     </div>
 <!-- END roulette3d:card -->
 
+<!-- BEGIN xo:card (إكس أو — بطولة إقصائية بالشات) -->
+<style>
+.gcard[data-tag="xo"]{background:radial-gradient(120% 90% at 100% 0%,rgba(201,180,255,.16),transparent 55%),radial-gradient(90% 80% at 0% 100%,rgba(242,198,109,.10),transparent 60%),linear-gradient(165deg,var(--surface),var(--bg-3))}
+.gcard[data-tag="xo"] .xo-art{position:relative;width:92px;height:92px;margin-bottom:16px;border-radius:20px;background:rgba(10,6,22,.55);border:1px solid rgba(201,180,255,.28);box-shadow:inset 0 0 22px rgba(123,63,228,.25),0 8px 22px rgba(0,0,0,.35);transition:transform .25s}
+.gcard[data-tag="xo"]:hover .xo-art{transform:rotate(-4deg) scale(1.06)}
+.gcard[data-tag="xo"] .xo-art svg{width:100%;height:100%;display:block}
+.gcard[data-tag="xo"] .xo-g{stroke:rgba(201,180,255,.4);stroke-width:1.6;stroke-linecap:round}
+.gcard[data-tag="xo"] .xo-x{stroke:#C9B4FF;stroke-width:3.2;stroke-linecap:round;fill:none}
+.gcard[data-tag="xo"] .xo-o{stroke:#F2C66D;stroke-width:3.2;fill:none}
+.gcard[data-tag="xo"] .xo-w{stroke:#fff;stroke-width:3;stroke-linecap:round;opacity:.9;stroke-dasharray:70;stroke-dashoffset:70;filter:drop-shadow(0 0 4px #C9B4FF);animation:xoCardWin 3.6s ease-in-out infinite}
+@keyframes xoCardWin{0%,35%{stroke-dashoffset:70}55%,85%{stroke-dashoffset:0}100%{stroke-dashoffset:-70}}
+.gcard[data-tag="xo"] .xo-art svg.xo-crown{position:absolute;top:-11px;inset-inline-start:-9px;width:26px;height:26px;color:#F2C66D;filter:drop-shadow(0 2px 6px rgba(242,198,109,.55));transform:rotate(-14deg)}
+.gcard[data-tag="xo"] .xo-chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:5px 10px;border-radius:999px;background:rgba(201,180,255,.1);border:1px dashed rgba(201,180,255,.35);font-size:12px;font-weight:800;color:var(--accent-light)}
+.gcard[data-tag="xo"] .xo-chip b{color:#F2C66D;font-size:13px}
+@media (prefers-reduced-motion:reduce){.gcard[data-tag="xo"] .xo-w{animation:none;stroke-dashoffset:0}}
+</style>
+    <div class="gcard" data-tag="xo" data-category="luck" onclick="goSetupXo()">
+      <span class="gcard-num">٣١</span>
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon xo-art" style="font-size:0">
+        <svg viewBox="0 0 96 96" aria-hidden="true">
+          <path class="xo-g" d="M38 14v68M58 14v68M14 38h68M14 58h68"/>
+          <path class="xo-x" d="M18 18l14 14M32 18L18 32"/>
+          <circle class="xo-o" cx="48" cy="25" r="7.5"/>
+          <path class="xo-x" d="M64 18l14 14M78 18L64 32"/>
+          <circle class="xo-o" cx="25" cy="48" r="7.5"/>
+          <path class="xo-x" d="M40 40l16 16M56 40L40 56"/>
+          <circle class="xo-o" cx="71" cy="48" r="7.5"/>
+          <path class="xo-x" d="M18 64l14 14M32 64L18 78"/>
+          <path class="xo-x" d="M64 64l14 14M78 64L64 78"/>
+          <path class="xo-w" d="M20 20L76 76"/>
+        </svg>
+        <svg class="xo-crown" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5L3 8z"/><rect x="5" y="20" width="14" height="2" rx="1"/></svg>
+      </div>
+      <div class="gcard-name">إكس أو</div>
+      <div class="gcard-desc">بطولة إقصائية بالشات — يواجه كل متسابق خصماً عشوائياً على لوحة إكس أو، يكتب رقم المربع بدوره، والفائز يتأهل حتى يتبقى بطل واحد يتوّج بالتاج.</div>
+      <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span><span class="gcard-tag" style="background:rgba(167,139,255,.14);color:var(--accent2);">رقم المربع ١–٩</span></div>
+    </div>
+<!-- END xo:card -->
+
   </div>
 </div>
 </div>
@@ -8099,6 +8139,7 @@ const ART = {
 // إجراء الشات الموثّق من وصف كل لعبة
 const META = {"cannon":["اكتب","45 80"],"cr":["الشات يحرّك","كل رسالة خطوة"],"ev":["الشات يكتب","اسم اللاعب"],"main":["الشات يكتب","تخمين الكلمة"],"guessword":["الشات يكتب","الكلمة السرية"],"sniper":["الشات يكتب","رقم المربع"],"battery":["الشات يكتب","«اشحن»"],"rou":["الحسم","بالحظ"],"tmr":["الشات يكتب","«وقف»"],"bomb":["الشات يكتب","رقم لاعب"],"ll":["الشات يكتب","كلمة من آخر حرف"],"wai":["الشات يكتب","اسم الشخصية"],"rw":["الشات يكتب","الكلمة معكوسة"],"pgs":["الشات يكتب","السعر · محاولتين"],"cs":["الشات يكتب","«تاج» «اسرق»"],"lsc":["الشات يكتب","الكلمة مرتبة"],"cw":["الحسم","الدائرة تختار"],"box":["الشات يكتب","١ أو ٢ أو ٣"],"chairs":["الشات يكتب","رقم الكرسي"],"findball":["الشات يكتب","رقم الكوب"],"wr":["الشات يكتب","الجملة بلا خطأ"],"draw":["الشات يكتب","اسم الرسمة"],"tug":["الشات يكتب","رسالة فريقه"],"rlgl":["الشات يكتب","كلمة الحركة"],"maze":["الشات يكتب","يمين · يسار · فوق · تحت"],"tt10":["الشات يكتب","إجابة من العشر"],"glz":["الشات يكتب","الخيار الصحيح"],"volcanic-lands":["الشات يكتب","رقم الإجابة"],"hz":["الشات يكتب","الكلمة المفتاحية"],"ig":["الشات يكتب","اسم الشي"]};
 META["roulette3d"]=["الشات يكتب","١ أطلق · ٢ لا تطلق"];
+META["xo"]=["الشات يكتب","رقم المربع"];
 
 /* ---------- المتحكّم (Vanilla) ---------- */
 const root = document.getElementById('pg-home');
@@ -80744,6 +80785,224 @@ document.addEventListener('DOMContentLoaded', function () {
 })();
 </script>
 <!-- END roulette3d:pages -->
+
+<!-- BEGIN xo:pages (إكس أو — إطار مستقل xo.html + جسر الشات/المتابعة/الفوز/الإدارة) -->
+<style>
+#pg-setup-xo{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.16) 0%,transparent 60%),var(--bg);}
+#pg-setup-xo .xo-set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+#pg-setup-xo .xo-set-note{font-size:13px;opacity:.85;margin:6px 0 2px;line-height:1.8}
+#pg-setup-xo .xo-link-state{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;border:1px solid rgba(183,156,255,.3);font-size:13px;font-weight:700}
+#pg-setup-xo .xo-link-state i{width:8px;height:8px;border-radius:50%;background:#8a7fa6}
+#pg-setup-xo .xo-link-state.on i{background:#9fe3b5}
+#pg-setup-xo .xo-link-state.off i{background:#ff9db2}
+#pg-xo.active{position:fixed !important;inset:0;z-index:2147483000;background:#160F22;padding:0 !important;margin:0 !important;display:block;overflow:hidden}
+#pg-xo iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#160F22}
+#pg-xo .xo-host-bar{position:absolute;top:10px;inset-inline-end:50%;transform:translateX(50%);display:flex;align-items:center;gap:8px;z-index:2;padding:6px 10px;border-radius:999px;background:rgba(12,9,20,.7);border:1px solid rgba(183,156,255,.2);font:700 12px Cairo,sans-serif;color:#F3EEFF;opacity:.3;transition:opacity .25s}
+#pg-xo .xo-host-bar:hover,#pg-xo .xo-host-bar:focus-within{opacity:1}
+#pg-xo .xo-host-bar button{all:unset;cursor:pointer;padding:4px 10px;border-radius:999px;background:rgba(123,63,228,.35)}
+</style>
+<div id="pg-setup-xo" class="page">
+  <div class="setup-box">
+    <button class="back-btn" onclick="show('home')">← رجوع</button>
+    <div class="setup-title">إعداد إكس أو</div>
+    <div class="setup-sub">اكتب رقم المربع بدورك، وافز بمواجهتك عشان تتأهل للمرحلة التالية. يدخل الجمهور بالكلمة المفتاحية، تُخلط الأسماء عشوائياً، وتتواجه الأزواج مرحلة بعد مرحلة حتى يتبقى بطل واحد.</div>
+    <div class="xo-set-grid">
+      <div class="field"><label for="xo-join-kw">الكلمة المفتاحية للانضمام (إلزامية)</label><input type="text" id="xo-join-kw" value="العب" maxlength="30" autocomplete="off"><div class="field-hint">يكتبها المتابع مرة واحدة بالشات ليدخل البطولة. لا تكن رقماً من 1 إلى 9.</div></div>
+      <div class="field"><label for="xo-turn-sec">مدة الدور (ثانية)</label><input type="number" id="xo-turn-sec" value="20" min="10" max="60"><div class="field-hint">من 10 إلى 60. إذا انتهى وقت اللاعب دون رقم صحيح يخسر المواجهة.</div></div>
+    </div>
+    <div class="field"><label>حالة اتصال البث</label><div><span class="xo-link-state" id="xo-link-state"><i></i><span id="xo-link-state-t">—</span></span></div></div>
+    <div class="dev-visuals-toggle-row">
+      <label class="dev-visuals-toggle-label" for="xo-opt-lot">الحسم بالقرعة بعد 3 تعادلات — قاعدة إضافية للبطولة: عند التعادل الثالث في المواجهة نفسها تُجرى قرعة متساوية الاحتمال بين اللاعبَين. عند التعطيل تُعاد المواجهة (مع تبديل الرمزين) حتى فوز أحدهما أو انتهاء وقته.</label>
+      <label class="mod-toggle"><input type="checkbox" id="xo-opt-lot" checked><span class="mod-toggle-slider"></span></label>
+    </div>
+    <div class="xo-set-note">من يكتب الكلمة بعد بدء البطولة ينتظر البطولة التالية ولا يُضاف لجدول جارٍ. الفوز الرسمي والنقاط للبطل النهائي فقط.</div>
+    <button class="btn-primary" id="btn-xo-launch" onclick="launchXo()">دخول شاشة الانتظار</button>
+    <div class="status-msg" id="xo-status"></div>
+  </div>
+</div>
+<div id="pg-xo" class="page">
+  <div class="xo-host-bar"><div class="dot connecting" id="xo-live-dot"></div><span id="xo-live-user">@</span><button type="button" onclick="xoGoHome()" aria-label="العودة لألعاب الستريمر">خروج</button></div>
+  <iframe id="xo-frame" title="إكس أو" allow="autoplay; fullscreen"></iframe>
+</div>
+<script>
+/* ===== إكس أو: ربط الإطار المستقل (xo.html) بالموقع: شات/متابعة/فوز/إدارة ===== */
+/* متغيرات مرآة بأسماء اللعبة (تقرؤها أنظمة الموقع المشتركة عند الحاجة) */
+var xoUser = '', xoKeyword = '', xoTurnSec = 20, xoLotAfter3 = true;
+var xoGameStatus = 'waiting';                  // waiting -> active -> finished (مرآة لحالة الإطار)
+var xoParticipants = new Map();                // uniqueId -> user (لاعبو البطولة الحالية، مرآة)
+(function () {
+  'use strict';
+  var TAG = 'xo', dead = false, ready = false, queue = [], statusTimer = null, setupTimer = null, pendingCfg = null, siteUsers = new Map(), lastState = null;
+  function $(id) { return document.getElementById(id); }
+  function frame() { return $('xo-frame'); }
+  function api() { if (dead) return null; try { var w = frame().contentWindow; return w && w.EhsemhaXO; } catch (e) { return null; } }
+  function setStatus(kind, msg) { var n = $('xo-status'); if (!n) return; n.className = 'status-msg ' + (kind || ''); n.textContent = msg || ''; }
+  function proxied(u) { if (!u) return ''; try { return (typeof avatarProxyUrl === 'function') ? avatarProxyUrl(u) : u; } catch (e) { return u; } }
+  function plat() { try { return (typeof gamePlatform === 'object' && gamePlatform[TAG]) || 'tiktok'; } catch (e) { return 'tiktok'; } }
+  function remember(u) { if (u && u.uniqueId) { siteUsers.set(String(u.uniqueId), u); if (siteUsers.size > 3000) siteUsers.delete(siteUsers.keys().next().value); } }
+  function siteUser(u) {
+    var uid = String((u && (u.uniqueId != null ? u.uniqueId : u.uid)) || '');
+    var s = siteUsers.get(uid) || {};
+    return Object.assign({}, s, { uniqueId: uid, nickname: (u && u.nickname) || s.nickname || uid, avatar: s.avatar || (u && u.avatar) || '', isFollower: !!((u && u.isFollower) || s.isFollower) });
+  }
+  function toXo(u) { return { uniqueId: u.uniqueId, nickname: u.nickname || u.rawUniqueId || u.uniqueId, avatar: proxied(u.avatar), isFollower: !!u.isFollower, followKnown: u.followKnown }; }
+  function connState() { try { var o = (typeof homeConnOverall === 'function') ? homeConnOverall() : 'connected'; if (o === 'connected') return 'connected'; if (o === 'connecting' || o === 'reconnecting') return 'reconnecting'; return 'disconnected'; } catch (e) { return 'connected'; } }
+  function foldDigits(s) { return String(s == null ? '' : s).replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); }).replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); }).trim(); }
+  /* نفس تحقق الإطار: الكلمة إلزامية وليست رمزاً فقط وليست رقماً 1–9 */
+  function validateKeyword(kw) {
+    kw = String(kw || '').trim();
+    if (!kw) return '⚠️ أدخل الكلمة المفتاحية للانضمام';
+    var stripped = kw.replace(/[\s\-_.,،!؟?]/g, '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '');
+    if (!stripped) return '⚠️ الكلمة المفتاحية لا يمكن أن تكون رموزاً فقط';
+    if (/^[1-9]$/.test(foldDigits(kw))) return '⚠️ الكلمة المفتاحية لا يجب أن تكون رقماً من 1 إلى 9 لأنها تتعارض مع أرقام المربعات';
+    return null;
+  }
+  function linkStateRender() {
+    var n = $('xo-link-state'), t = $('xo-link-state-t'); if (!n || !t) return;
+    var cs = connState(), ok = false;
+    try { ok = (typeof homeHasActiveConnection === 'function') ? !!homeHasActiveConnection() : true; } catch (e) { ok = true; }
+    n.className = 'xo-link-state ' + (ok && cs === 'connected' ? 'on' : 'off');
+    t.textContent = ok ? (cs === 'connected' ? 'الشات متصل' : (cs === 'reconnecting' ? 'جارٍ إعادة الاتصال' : 'الشات غير متصل')) : 'غير مربوط: اربط بثك من الصفحة الرئيسية (ابدأ بثاً سريعاً)';
+  }
+  function syncState() {
+    var a = api(); if (!a) return null;
+    try {
+      var s = a.getState(); lastState = s;
+      xoGameStatus = s.phase === 'active' || s.phase === 'intro' || s.phase === 'result' || s.phase === 'stage' ? 'active' : (s.phase === 'finished' ? 'finished' : 'waiting');
+      xoParticipants = new Map(s.players.map(function (id) { return [id, siteUser({ uniqueId: id })]; }));
+      return s;
+    } catch (e) { return null; }
+  }
+  function relay(ev) {
+    var a = api();
+    if (ready && a) { try { a.receiveEvent(ev); } catch (e) { console.error('[xo]', e); } }
+    else if (queue.length < 200) queue.push(ev);
+  }
+  function xoHandleEvent(d) {
+    var msgs = (d && d.messages) || (d && d.type ? [d] : []);
+    for (var i = 0; i < msgs.length; i++) {
+      var m = msgs[i], t = m.type || m.event;
+      if (t === 'WebcastChatMessage' || t === 'chat' || t === 'comment') {
+        var u = extractUser(m), txt = String(m.comment || m.content || (m.data && m.data.comment) || '').trim();
+        if (!txt || !u || !u.uniqueId) continue;
+        remember(u);
+        relay({ type: 'chat', uniqueId: u.uniqueId, nickname: u.nickname || u.rawUniqueId || u.uniqueId, avatar: proxied(u.avatar), comment: txt, isFollower: !!u.isFollower, followKnown: u.followKnown, msgId: m.msgId || m.eventId || m.id || (m.data && (m.data.msgId || m.data.eventId)) || null });
+      } else if (t === 'WebcastSocialMessage' || t === 'follow' || t === 'social') {
+        var f = extractUser(m); if (!f || !f.uniqueId) continue;
+        f.isFollower = true; remember(f);
+        relay({ type: 'follow', uniqueId: f.uniqueId, nickname: f.nickname, avatar: proxied(f.avatar), isFollower: true });
+      }
+    }
+  }
+  function chooseSlot(u) {
+    var a = api(); if (!a) return false;
+    var st = a.has(u.uniqueId); if (st) return true;
+    remember(u); a.join(toXo(u)); syncState();
+    return !!a.has(u.uniqueId);
+  }
+  function adminBindings() {
+    syncState();
+    var all = new Map(); (api() ? api().members() : []).forEach(function (id) { all.set(id, siteUser({ uniqueId: id })); });
+    return { participantsMap: { has: function (uid) { return all.has(uid); }, get: function (uid) { return all.get(uid); }, keys: function () { return all.keys(); }, size: all.size }, joinFn: null, chooseSlotFn: chooseSlot };
+  }
+  var HOOKS = {
+    followGate: function (u) { try { return followGateAllows(TAG, siteUser(u)); } catch (e) { return true; } },
+    lateJoinGate: function (u) { try { return (typeof lateJoinGate !== 'function') || lateJoinGate(TAG, siteUser(u)); } catch (e) { return true; } },
+    matchKeyword: function (text, kw, u) { try { return (typeof joinTextMatches === 'function') ? !!joinTextMatches(text, kw, TAG, siteUser(u)) : undefined; } catch (e) { return undefined; } },
+    adminCommand: function (text, u) { try { return !!(typeof handleAdminChatCommand === 'function' && handleAdminChatCommand(TAG, text, siteUser(u), adminBindings())); } catch (e) { return false; } },
+    onJoin: function (u) { try { announceDeveloperJoinIfApplicable(siteUser(u)); } catch (e) {} syncState(); try { liveRoundsMirror(TAG, xoParticipants); } catch (e) {} },
+    onRoundEnd: function () { syncState(); try { if (typeof contestNoteActivity === 'function') contestNoteActivity(); } catch (e) {} },
+    onWin: function (u) { try { recordWin(siteUser(u), 'إكس أو'); } catch (e) {} },   // البطل النهائي فقط، ومرة واحدة
+    onStatus: function () { syncState(); }
+  };
+  function onFrameLoad() {
+    var a = api(); if (!a) return; ready = true;
+    var cs = connState();
+    try { a.setHooks(HOOKS); a.setLinkStatus(cs === 'connected', cs === 'connected' ? 'الشات متصل' : 'الشات غير متصل'); } catch (e) {}
+    if (pendingCfg) { var ok = false; try { ok = a.open(pendingCfg); } catch (e) {} pendingCfg = null; if (!ok) setStatus('err', '⚠️ تعذّر فتح اللعبة'); }
+    var q = queue.splice(0); q.forEach(function (ev) { try { a.receiveEvent(ev); } catch (e) {} });
+    statusTimer = setInterval(function () {
+      var b = api(); if (!b) return;
+      var c = connState(); try { b.setLinkStatus(c === 'connected', c === 'connected' ? 'الشات متصل' : 'الشات غير متصل'); } catch (e) {}
+      var dot = $('xo-live-dot'); if (dot) dot.className = 'dot' + (c === 'connected' ? '' : (c === 'reconnecting' ? ' connecting' : ' off'));
+      syncState();
+    }, 1500);
+  }
+  function onMessage(e) {
+    var d = e.data; if (!d || d.source !== 'ehsemha-xo') return;
+    try { if (e.source !== frame().contentWindow) return; } catch (x) { return; }
+    if (d.type === 'home') { xoGoHome(); return; }
+    if (d.type === 'setup') { teardown(); show('setup-xo'); return; }
+    if (d.type === 'start' && typeof contestNoteRoundStarted === 'function') { try { contestNoteRoundStarted(TAG); } catch (x) {} }
+    if (d.type === 'finish' && typeof contestNoteActivity === 'function') { try { contestNoteActivity(); } catch (x) {} }
+    syncState();
+  }
+  function goSetupXo() {
+    show('setup-xo'); linkStateRender();
+    if (setupTimer) clearInterval(setupTimer);
+    setupTimer = setInterval(linkStateRender, 1500);
+  }
+  function launchXo() {
+    xoUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
+    try { gamePlatform[TAG] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform[TAG]; } catch (e) {}
+    xoKeyword = ($('xo-join-kw').value || '').trim();
+    var n = parseInt($('xo-turn-sec').value, 10); if (isNaN(n)) n = 20; xoTurnSec = Math.max(10, Math.min(60, n)); $('xo-turn-sec').value = xoTurnSec;
+    xoLotAfter3 = !!$('xo-opt-lot').checked;
+    if (typeof homeHasActiveConnection === 'function' && (!homeHasActiveConnection() || !xoUser)) { setStatus('err', '⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)'); return; }
+    var err = validateKeyword(xoKeyword);
+    if (err) { setStatus('err', err); return; }
+    pendingCfg = { mode: 'link', kw: xoKeyword, turnSec: xoTurnSec, lotAfter3: xoLotAfter3 };
+    try { scoreCurrentStreamer = xoUser; } catch (e) {}
+    try { ownerRegisterActiveStreamer(TAG, xoUser, plat(), 'إكس أو'); } catch (e) {}
+    try { contestNoteActivity(); } catch (e) {}
+    try { liveCommandsBoot(TAG, xoLiveCommandHandlers); } catch (e) {}
+    var lu = $('xo-live-user'); if (lu) lu.textContent = '@' + xoUser;
+    if (setupTimer) { clearInterval(setupTimer); setupTimer = null; }
+    dead = false; ready = false; queue = []; siteUsers.clear(); xoParticipants = new Map(); xoGameStatus = 'waiting';
+    var f = frame(); f.onload = onFrameLoad; f.src = '/xo.html?embed=1&v=1';
+    show(TAG);
+    try { homeRegisterGameListener(TAG, xoHandleEvent); } catch (e) {}
+    setStatus('', '');
+  }
+  function teardown() {
+    try { homeUnregisterGameListener(TAG); } catch (e) {}
+    var a0 = api(); dead = true;
+    if (statusTimer) { clearInterval(statusTimer); statusTimer = null; }
+    if (a0) { try { a0.destroy(); } catch (e) {} }
+    ready = false; queue = []; pendingCfg = null;
+    var f = frame(); if (f) { f.onload = null; f.src = 'about:blank'; }
+    xoGameStatus = 'waiting'; xoParticipants = new Map();
+  }
+  function xoGoHome() { teardown(); if (typeof goHome === 'function') goHome(); else show('home'); }
+  /* مغادرة صفحة اللعبة بأي طريقة (غير الأزرار): تنظيف الإطار والمؤقّتات */
+  function xoOnShow(page) {
+    if (page !== 'setup-xo' && setupTimer) { clearInterval(setupTimer); setupTimer = null; }
+    if (page !== TAG && (ready || statusTimer || (frame() && frame().src && !/about:blank$/.test(frame().src)))) teardown();
+  }
+  var xoLiveCommandHandlers = {
+    join: function (p) { chooseSlot(liveCommandBuildSyntheticUser(p)); },
+    leave: function (p) { var a = api(); if (a) a.removePlayer(String(p.uniqueId)); syncState(); },
+    forceWinOther: function (p) { var a = api(); if (a) a.forceWin(String(p.uniqueId)); },
+    forceWinSelf: function (p) { var a = api(); if (!a) return; var uid = String(p.uniqueId); if (!a.has(uid)) chooseSlot(liveCommandBuildSyntheticUser(p)); a.forceWin(uid); }
+  };
+  function xoRemoveParticipant(uid) { var a = api(); if (a) a.removePlayer(String(uid)); syncState(); }
+  function xoOpenKickModal() { syncState(); try { kickModalOpen(TAG, xoParticipants, xoRemoveParticipant); } catch (e) {} }
+  function startXo() { var a = api(); return a ? a.start() : false; }
+  function resetXo() { var a = api(); if (a) a.reset(); syncState(); }
+  /* نلفّ show() مرة واحدة لتنظيف الإطار عند أي تنقّل، بدل تعديل الدالة الأصلية */
+  if (typeof window.show === 'function' && !window.show.__xoWrapped) {
+    var origShow = window.show;
+    window.show = function (page) { var r = origShow.apply(this, arguments); try { xoOnShow(page); } catch (e) {} return r; };
+    window.show.__xoWrapped = true;
+  }
+  window.addEventListener('message', onMessage);
+  window.goSetupXo = goSetupXo; window.launchXo = launchXo; window.xoGoHome = xoGoHome; window.xoTeardown = teardown; window.xoOnShow = xoOnShow;
+  window.xoHandleEvent = xoHandleEvent; window.xoRemoveParticipant = xoRemoveParticipant; window.xoOpenKickModal = xoOpenKickModal;
+  window.startXo = startXo; window.resetXo = resetXo; window.xoApi = api; window.xoLiveCommandHandlers = xoLiveCommandHandlers;
+  if (typeof TST_GAME_REGISTRY === 'object' && TST_GAME_REGISTRY) { TST_GAME_REGISTRY[TAG] = { pageId: TAG, participantsVar: null, joinFn: null, handleFn: 'xoHandleEvent', name: 'إكس أو' }; }
+})();
+</script>
+<!-- END xo:pages -->
 
 
 

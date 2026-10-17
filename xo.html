@@ -1,0 +1,1545 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>إكس أو | احسمها</title>
+<meta name="theme-color" content="#160F22">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* احسمها | إكس أو. كل الأنماط بالبادئة xo- ومعزولة داخل #xo.
+   لا زجاج ولا نيون: أسطح داكنة مائلة للبنفسجي بخطوط دقيقة. X بنفسجي فاتح، O ذهبي هادئ (من هوية الموقع)،
+   والفرق بين الرمزين في الشكل أيضاً (تقاطع خطين مقابل حلقة) فلا يعتمد على اللون وحده. */
+:root{--xo-bg:#160F22;--xo-bg2:#1d1430;--xo-ink:#F4EFFF;--xo-muted:#B7A9D6;--xo-acc:#7B3FE4;--xo-acc2:#B79CFF;--xo-x:#C9B4FF;--xo-o:#F2C66D;--xo-line:rgba(183,156,255,.22);--xo-line2:rgba(183,156,255,.4);--xo-panel:rgba(24,16,40,.9);--xo-ok:#9fe3b5;--xo-bad:#ff9db2;--xo-font:'Cairo','Tajawal',system-ui,-apple-system,'Segoe UI',sans-serif;--xo-ease:cubic-bezier(.2,.8,.2,1);--bs:min(54vh,34vw,560px)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--xo-bg);color:var(--xo-ink);font-family:var(--xo-font);overflow:hidden}
+#xo{position:fixed;inset:0;height:100dvh;direction:rtl;font-family:var(--xo-font);color:var(--xo-ink);background:radial-gradient(90% 70% at 50% 18%,#2a1a4a 0%,rgba(42,26,74,0) 62%),linear-gradient(180deg,#171024,#120b1d 70%,#0f0a18);overflow:hidden;isolation:isolate;-webkit-tap-highlight-color:transparent}
+#xo button,#xo input,#xo select{font-family:inherit}
+#xo [hidden]{display:none!important}
+.xo-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- أزرار وحقول ---------- */
+.xo-btn{appearance:none;cursor:pointer;min-height:44px;padding:0 20px;border-radius:999px;border:1px solid transparent;font:800 15px/1 var(--xo-font);color:var(--xo-ink);white-space:nowrap;touch-action:manipulation;background:rgba(183,156,255,.09);border-color:rgba(183,156,255,.32);transition:transform .16s var(--xo-ease),background-color .2s,border-color .2s,box-shadow .2s}
+.xo-btn:hover{background:rgba(183,156,255,.18);border-color:rgba(183,156,255,.55)}
+.xo-btn:active{transform:translateY(1px) scale(.985)}
+.xo-btn.pri{background:linear-gradient(135deg,#8f56f0,#7B3FE4 50%,#5d28b8);color:#fff;border-color:transparent;box-shadow:0 8px 22px rgba(123,63,228,.34),inset 0 1px 0 rgba(255,255,255,.24)}
+.xo-btn.pri:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(123,63,228,.45)}
+.xo-btn.sm{min-height:38px;padding:0 14px;font-size:14px}
+.xo-btn.dng{border-color:rgba(255,157,178,.5);color:var(--xo-bad)}
+.xo-btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+.xo-btn[aria-pressed=true]{background:rgba(123,63,228,.34);border-color:var(--xo-acc2)}
+#xo button:focus-visible,#xo input:focus-visible,#xo select:focus-visible{outline:3px solid #fff;outline-offset:2px;box-shadow:0 0 0 6px rgba(123,63,228,.6)}
+.xo-in{width:100%;min-height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--xo-line2);background:rgba(10,6,18,.55);color:var(--xo-ink);font:700 16px var(--xo-font)}
+.xo-in::placeholder{color:#8a7fa6}
+.xo-field{display:flex;flex-direction:column;gap:6px}
+.xo-field>label,.xo-lbl{font:800 14px var(--xo-font);color:var(--xo-ink)}
+.xo-hint{font:600 13px/1.6 var(--xo-font);color:var(--xo-muted)}
+.xo-err{min-height:22px;font:700 14px var(--xo-font);color:var(--xo-bad)}
+
+/* ---------- الإعداد ---------- */
+.xo-screen{position:absolute;inset:0}
+.xo-setup{z-index:5;overflow:auto;display:grid;place-items:center;padding:56px 16px 24px}
+.xo-setup-in{width:min(100%,640px);display:flex;flex-direction:column;gap:16px}
+.xo-h1{margin:0;font:900 clamp(30px,5vw,46px)/1.2 var(--xo-font);display:flex;align-items:center;gap:14px}
+.xo-h1 svg{width:1.1em;height:1.1em;flex:none}
+.xo-sub{margin:0;color:var(--xo-muted);font:600 16px/1.8 var(--xo-font);max-width:58ch}
+.xo-card{display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:16px;border:1px solid var(--xo-line);background:rgba(22,14,38,.6)}
+.xo-modes{display:inline-flex;padding:4px;border-radius:999px;border:1px solid var(--xo-line);gap:4px;align-self:flex-start}
+.xo-modes button{appearance:none;cursor:pointer;min-height:38px;padding:0 18px;border-radius:999px;border:0;background:transparent;color:var(--xo-muted);font:800 14px var(--xo-font)}
+.xo-modes button[aria-pressed=true]{background:var(--xo-acc);color:#fff}
+.xo-turnrow{display:flex;align-items:center;gap:12px}
+.xo-turnrow input[type=range]{flex:1;accent-color:var(--xo-acc)}
+.xo-turnrow output{min-width:3.4ch;text-align:center;font:900 22px var(--xo-font);color:var(--xo-acc2)}
+.xo-tog{display:flex;align-items:flex-start;gap:12px;cursor:pointer}
+.xo-tog input{position:absolute;opacity:0;width:1px;height:1px}
+.xo-sw{flex:none;width:46px;height:26px;border-radius:999px;background:rgba(183,156,255,.18);border:1px solid var(--xo-line2);position:relative;transition:background .2s;margin-top:2px}
+.xo-sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s var(--xo-ease)}
+.xo-tog input:checked+.xo-sw{background:var(--xo-acc);border-color:var(--xo-acc2)}
+.xo-tog input:checked+.xo-sw::after{transform:translateX(-20px)}
+.xo-tog input:focus-visible+.xo-sw{outline:3px solid #fff;outline-offset:2px}
+.xo-tog b{display:block;font:800 15px var(--xo-font)}
+.xo-actions{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- المسرح ---------- */
+.xo-stage{z-index:2}
+.xo-chips{position:absolute;z-index:8;top:max(10px,env(safe-area-inset-top));left:12px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;max-width:40vw}
+.xo-chip{display:inline-flex;align-items:center;gap:8px;min-height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--xo-line);background:rgba(22,14,38,.8);font:700 13px/1 var(--xo-font);color:var(--xo-ink)}
+.xo-chip i{width:8px;height:8px;border-radius:50%;background:var(--xo-muted)}
+.xo-chip.live i{background:var(--xo-ok)}
+.xo-chip.off{border-color:rgba(255,157,178,.5)}
+.xo-chip.off i{background:var(--xo-bad)}
+.xo-chip.sim{border-color:rgba(183,156,255,.55);background:rgba(123,63,228,.28)}
+.xo-chip.sim i{background:var(--xo-acc2)}
+
+.xo-main{position:absolute;inset:0 0 76px 0;display:grid;grid-template-columns:minmax(230px,300px) minmax(0,1fr) minmax(230px,300px);direction:ltr;padding:max(10px,env(safe-area-inset-top)) 12px 8px}
+.xo-main>*{direction:rtl;min-height:0;min-width:0}
+.xo-rail{display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
+.xo-rail.l .xo-panes{grid-row:1;align-self:start;margin-top:44px}
+.xo-rail.l .xo-pc{grid-row:2}
+.xo-center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative}
+
+/* ---------- فائز مؤقت (أعلى اليمين فعلياً) ---------- */
+.xo-tmpwrap{display:flex;flex-direction:column;gap:8px;min-height:0;max-height:46vh}
+.xo-tmp{display:flex;flex-direction:column;min-height:0;border-radius:16px;border:1px solid var(--xo-line2);background:var(--xo-panel);overflow:hidden}
+.xo-tmp-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--xo-line)}
+.xo-tmp-h h2{margin:0;font:900 17px var(--xo-font);color:var(--xo-acc2)}
+.xo-tmp-n{font:800 13px var(--xo-font);color:var(--xo-muted)}
+.xo-tmp-l{list-style:none;margin:0;padding:8px;display:flex;flex-direction:column;gap:6px;overflow:auto;min-height:0;scrollbar-width:thin}
+.xo-tmp-e{padding:14px;color:var(--xo-muted);font:600 13px/1.6 var(--xo-font);text-align:center}
+.xo-ti{display:flex;align-items:center;gap:10px;padding:6px 10px 6px 8px;border-radius:12px;background:rgba(123,63,228,.14);border:1px solid rgba(183,156,255,.2)}
+.xo-ti.pop{animation:xo-pop .5s var(--xo-ease)}
+.xo-ti.ghost{visibility:hidden}
+.xo-ti .nm{flex:1;min-width:0;font:800 14px var(--xo-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xo-ti .kd{font:700 11.5px var(--xo-font);color:var(--xo-muted);white-space:nowrap}
+.xo-ti .ck{width:18px;height:18px;flex:none;color:var(--xo-ok)}
+.xo-stagepill{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:8px 12px;border-radius:12px;border:1px solid var(--xo-line);background:rgba(22,14,38,.78);font:800 13px var(--xo-font)}
+.xo-stagepill b{color:var(--xo-acc2)}
+.xo-stagepill span{color:var(--xo-muted)}
+
+/* ---------- بطاقات اللاعبين ---------- */
+.xo-pc{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px 12px 14px;border-radius:18px;border:1px solid var(--xo-line);background:rgba(22,14,38,.62);position:relative;align-self:center;width:100%;transition:border-color .25s,background-color .25s,opacity .3s,transform .3s var(--xo-ease)}
+.xo-pc.turn{border-color:var(--xo-acc2);background:rgba(123,63,228,.22);box-shadow:0 0 0 2px rgba(183,156,255,.5)}
+.xo-pc.out{opacity:.5}
+.xo-pc.won{border-color:var(--xo-ok);box-shadow:0 0 0 2px rgba(159,227,181,.55)}
+.xo-pc.enter{animation:xo-in-r .7s var(--xo-ease) both}
+.xo-rail.l .xo-pc.enter{animation-name:xo-in-l}
+.xo-pc .ring{position:relative;width:calc(var(--ava) + 14px);height:calc(var(--ava) + 14px);border-radius:50%;display:grid;place-items:center;--p:1;background:conic-gradient(var(--xo-acc2) calc(var(--p)*360deg),rgba(183,156,255,.14) 0)}
+.xo-pc:not(.turn) .ring{background:rgba(183,156,255,.14)}
+.xo-pc .ring::before{content:"";position:absolute;inset:5px;border-radius:50%;background:#1b1230}
+.xo-pc .ring .xo-av{position:relative}
+.xo-pc{--ava:96px}
+.xo-pc .nm{max-width:100%;font:900 18px/1.3 var(--xo-font);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xo-sym{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;min-width:52px;padding:0 14px;border-radius:999px;border:1px solid var(--xo-line2);font:900 15px var(--xo-font)}
+.xo-sym svg{width:24px;height:24px}
+.xo-sym.x{color:var(--xo-x)}
+.xo-sym.o{color:var(--xo-o)}
+.xo-sym.swap{animation:xo-pop .6s var(--xo-ease)}
+.xo-turntag{position:absolute;top:-13px;inset-inline:0;margin-inline:auto;width:max-content;padding:5px 16px;border-radius:999px;background:var(--xo-acc);color:#fff;font:900 14px var(--xo-font);opacity:0;transform:translateY(6px) scale(.9);transition:opacity .25s,transform .3s var(--xo-ease);pointer-events:none}
+.xo-pc.turn .xo-turntag{opacity:1;transform:none}
+.xo-av{display:block;position:relative;width:var(--sz,48px);height:var(--sz,48px);border-radius:50%;overflow:hidden;flex:none;background:#2a1d44}
+.xo-av .fb{position:absolute;inset:0;display:grid;place-items:center;color:#fff;font:900 calc(var(--sz,48px)*.44) var(--xo-font)}
+.xo-av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s}
+.xo-av.ok img{opacity:1}
+
+/* ---------- المؤقت واللوحة ---------- */
+.xo-mhead{font:900 clamp(18px,2.2vw,28px)/1.2 var(--xo-font);text-align:center;color:var(--xo-ink)}
+.xo-mhead small{display:block;font:700 14px var(--xo-font);color:var(--xo-muted);margin-top:4px}
+.xo-mhead.final{color:var(--xo-o)}
+.xo-timer{width:var(--bs);display:flex;align-items:center;gap:12px;direction:ltr}
+.xo-timer-n{min-width:2.4ch;font:900 clamp(30px,4.4vw,52px)/1 var(--xo-font);text-align:center;font-variant-numeric:tabular-nums;color:var(--xo-ink)}
+.xo-timer-b{flex:1;height:10px;border-radius:999px;background:rgba(183,156,255,.15);overflow:hidden}
+.xo-timer-b i{display:block;height:100%;width:100%;transform-origin:left center;background:var(--xo-acc2);border-radius:999px}
+.xo-timer.low .xo-timer-n{color:var(--xo-bad)}
+.xo-timer.low .xo-timer-b i{background:var(--xo-bad)}
+.xo-timer.low .xo-timer-n{animation:xo-pulse 1s steps(2,end) infinite}
+.xo-timer.idle{opacity:.35}
+.xo-board{position:relative;width:var(--bs);height:var(--bs);direction:ltr;flex:none}
+.xo-grid{position:absolute;inset:0}
+.xo-grid line{stroke:var(--xo-line2);stroke-width:2;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.xo-board.draw .xo-grid line{animation:xo-draw .8s var(--xo-ease) both}
+.xo-board.draw .xo-grid line:nth-child(2){animation-delay:.08s}.xo-board.draw .xo-grid line:nth-child(3){animation-delay:.16s}.xo-board.draw .xo-grid line:nth-child(4){animation-delay:.24s}
+.xo-cells{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);direction:ltr}
+.xo-c{position:relative;display:grid;place-items:center;direction:ltr}
+.xo-c .n{font:900 calc(var(--bs)*.12) var(--xo-font);color:var(--xo-acc2);opacity:.62;font-variant-numeric:tabular-nums;transition:opacity .2s,transform .25s}
+.xo-c.used .n{opacity:0;transform:scale(.6)}
+.xo-c svg{position:absolute;inset:14%;width:72%;height:72%;overflow:visible}
+.xo-c svg path,.xo-c svg circle{fill:none;stroke-width:9;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.xo-c.x svg{color:var(--xo-x)}
+.xo-c.o svg{color:var(--xo-o)}
+.xo-c.x svg path,.xo-c.o svg circle{stroke:currentColor}
+.xo-c.o svg circle{transform:rotate(-90deg);transform-origin:50% 50%}
+.xo-c.fresh.x svg path:nth-child(1){animation:xo-draw .26s var(--xo-ease) both}
+.xo-c.fresh.x svg path:nth-child(2){animation:xo-draw .26s .22s var(--xo-ease) both}
+.xo-c.fresh.o svg circle{animation:xo-draw .5s var(--xo-ease) both}
+.xo-board.done .xo-c:not(.win){opacity:.3;transition:opacity .4s}
+.xo-c.win svg{filter:drop-shadow(0 0 6px currentColor)}
+.xo-wline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;visibility:hidden}
+.xo-wline.show{visibility:visible}
+.xo-wline line{stroke:#fff;stroke-width:7;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0;opacity:.92}
+.xo-wline.go line{animation:xo-draw .55s var(--xo-ease) both}
+.xo-hintline{font:700 14px var(--xo-font);color:var(--xo-muted);text-align:center;min-height:22px}
+.xo-banner{min-height:62px;display:grid;place-items:center;text-align:center;max-width:min(100%,640px);padding:0 8px}
+.xo-banner .t{font:900 clamp(22px,2.8vw,34px)/1.25 var(--xo-font);color:var(--xo-ink)}
+.xo-banner .s{font:700 clamp(14px,1.5vw,18px)/1.5 var(--xo-font);color:var(--xo-muted)}
+.xo-banner.pop>div{animation:xo-pop .55s var(--xo-ease)}
+.xo-banner.tie .t{color:var(--xo-o)}
+
+/* ---------- الانتظار ---------- */
+.xo-wait{display:flex;flex-direction:column;align-items:center;gap:14px;width:min(100%,760px);max-height:100%;min-height:0}
+.xo-wait h2{margin:0;font:900 clamp(30px,4vw,48px)/1.15 var(--xo-font);display:flex;align-items:center;gap:12px}
+.xo-wait h2 svg{width:1.05em;height:1.05em}
+.xo-kw{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;font:800 clamp(18px,2.2vw,26px)/1.4 var(--xo-font)}
+.xo-kw b{padding:4px 18px;border-radius:999px;border:2px solid var(--xo-acc2);background:rgba(123,63,228,.25);color:#fff;font-weight:900}
+.xo-count{font:800 16px var(--xo-font);color:var(--xo-muted)}
+.xo-count b{font:900 28px var(--xo-font);color:var(--xo-ink);margin-inline:6px}
+.xo-wgrid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:12px 8px;overflow:auto;min-height:0;padding:6px 4px;scrollbar-width:thin;align-content:start}
+.xo-wp{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.xo-wp.in{animation:xo-pop .45s var(--xo-ease)}
+.xo-wp .nm{max-width:100%;font:700 13px var(--xo-font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xo-wp button{position:absolute;top:-4px;inset-inline-end:6px;width:26px;height:26px;border-radius:50%;border:1px solid var(--xo-line2);background:#2a1d44;color:var(--xo-ink);cursor:pointer;display:grid;place-items:center;padding:0;opacity:0;transition:opacity .15s}
+.xo-wp:hover button,.xo-wp:focus-within button{opacity:1}
+.xo-wp button svg{width:12px;height:12px}
+.xo-wmore{display:grid;place-items:center;width:56px;height:56px;border-radius:50%;border:1px dashed var(--xo-line2);font:900 15px var(--xo-font);color:var(--xo-muted)}
+.xo-note{font:600 14px/1.7 var(--xo-font);color:var(--xo-muted);text-align:center}
+.xo-queued{font:800 14px var(--xo-font);color:var(--xo-acc2);text-align:center}
+
+/* ---------- اللوحات القابلة للطي ---------- */
+.xo-panes{display:flex;flex-direction:column;gap:8px;min-height:0}
+.xo-pane{display:flex;flex-direction:column;min-height:0;border-radius:14px;border:1px solid var(--xo-line);background:var(--xo-panel);overflow:hidden}
+.xo-pane>button{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-height:40px;padding:0 14px;border:0;background:transparent;color:var(--xo-ink);font:800 14px var(--xo-font);cursor:pointer}
+.xo-pane>button svg{width:14px;height:14px;transition:transform .2s;color:var(--xo-muted)}
+.xo-pane>button[aria-expanded=false] svg{transform:rotate(180deg)}
+.xo-pane .b{display:none;flex-direction:column;gap:6px;padding:8px 10px 10px;overflow:auto;max-height:24vh;border-top:1px solid var(--xo-line);scrollbar-width:thin}
+.xo-pane>button[aria-expanded=true]+.b{display:flex}
+.xo-log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.xo-log li{font:600 12.5px/1.5 var(--xo-font);color:var(--xo-muted)}
+.xo-log li b{color:var(--xo-ink);font-weight:800}
+.xo-log li.k-win{color:var(--xo-ok)}
+.xo-log li.k-bad{color:var(--xo-bad)}
+.xo-hs{font:800 12.5px var(--xo-font);color:var(--xo-acc2);margin-top:4px}
+.xo-sim-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.xo-sim-row select,.xo-sim-row input[type=text]{min-height:36px;border-radius:10px;border:1px solid var(--xo-line2);background:rgba(10,6,18,.6);color:var(--xo-ink);font:700 13px var(--xo-font);padding:0 8px;min-width:0;flex:1}
+.xo-sim-out{font:700 12px var(--xo-font);color:var(--xo-muted);min-height:18px}
+
+/* ---------- الشريط السفلي ---------- */
+.xo-dock{position:absolute;z-index:9;inset-inline:0;bottom:0;padding:10px 14px max(12px,env(safe-area-inset-bottom));display:flex;gap:8px;flex-wrap:wrap;justify-content:center;background:linear-gradient(0deg,rgba(15,10,24,.92),rgba(15,10,24,0))}
+
+/* ---------- طبقات التقديم ---------- */
+.xo-ov{position:absolute;z-index:12;inset:0;display:grid;place-items:center;pointer-events:none;padding:16px}
+.xo-ov.on{pointer-events:auto}
+.xo-ovc{max-width:min(92vw,620px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 30px;border-radius:20px;border:1px solid var(--xo-line2);background:rgba(18,11,31,.94);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.xo-ovc.final{border-color:var(--xo-o)}
+.xo-ovc h3{margin:0;font:900 clamp(26px,3.6vw,42px)/1.2 var(--xo-font)}
+.xo-ovc p{margin:0;font:700 clamp(15px,1.8vw,20px)/1.6 var(--xo-font);color:var(--xo-muted)}
+.xo-ovc .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.xo-ov .xo-ovc{animation:xo-pop .5s var(--xo-ease)}
+.xo-lotbox{display:flex;gap:22px;align-items:center;justify-content:center}
+.xo-lotp{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;border-radius:16px;border:2px solid transparent;transition:border-color .1s,background-color .1s,transform .1s;min-width:120px}
+.xo-lotp.hl{border-color:var(--xo-acc2);background:rgba(123,63,228,.3);transform:scale(1.06)}
+.xo-lotp.win{border-color:var(--xo-ok);background:rgba(159,227,181,.12)}
+.xo-lotp .nm{font:800 15px var(--xo-font);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xo-pausebar{position:absolute;z-index:11;inset-inline:0;top:12px;margin-inline:auto;width:min(92vw,560px);display:flex;gap:12px;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:14px;border:1px solid rgba(242,198,109,.6);background:rgba(30,20,10,.94);font:800 14px/1.5 var(--xo-font)}
+.xo-pausebar.link{border-color:rgba(255,157,178,.6);background:rgba(40,12,22,.94)}
+
+/* ---------- التتويج ---------- */
+.xo-champ{z-index:20;background:radial-gradient(70% 60% at 50% 40%,rgba(123,63,228,.55),rgba(15,10,24,.985) 72%);display:none;place-items:center;overflow:hidden}
+.xo-champ.on{display:grid;animation:xo-fade .5s both}
+.xo-champ-in{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:16px}
+.xo-crownwrap{position:relative;display:grid;place-items:center;margin-top:30px}
+.xo-crown{position:absolute;top:-72px;width:128px;height:90px;z-index:2;filter:drop-shadow(0 6px 14px rgba(123,63,228,.55));animation:xo-drop .9s .2s var(--xo-ease) both}
+.xo-champ .xo-av{box-shadow:0 0 0 6px rgba(183,156,255,.35),0 0 0 12px rgba(123,63,228,.25)}
+.xo-champ-n{font:900 clamp(28px,4.5vw,50px)/1.2 var(--xo-font);max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.xo-champ-t{font:800 clamp(18px,2.4vw,26px) var(--xo-font);color:var(--xo-acc2)}
+.xo-conf{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.xo-conf i{position:absolute;top:-20px;width:9px;height:16px;border-radius:2px;animation:xo-fall linear infinite;opacity:.9}
+
+/* ---------- نوافذ ---------- */
+.xo-modal{position:absolute;z-index:30;inset:0;background:rgba(10,5,18,.72);display:grid;place-items:center;padding:16px}
+.xo-md{width:min(100%,520px);max-height:86vh;display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:18px;border:1px solid var(--xo-line2);background:#1a1130}
+.xo-md-h{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.xo-md-h h3{margin:0;font:900 20px var(--xo-font)}
+.xo-md-l{list-style:none;margin:0;padding:0;overflow:auto;display:flex;flex-direction:column;gap:6px;min-height:60px;scrollbar-width:thin}
+.xo-md-l li{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;background:rgba(183,156,255,.07)}
+.xo-md-l .nm{flex:1;min-width:0;font:800 14px var(--xo-font);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xo-md-l .st{font:700 12px var(--xo-font);color:var(--xo-muted);white-space:nowrap}
+.xo-toast{position:absolute;z-index:40;bottom:92px;inset-inline:0;margin-inline:auto;width:max-content;max-width:90vw;padding:10px 18px;border-radius:999px;background:#2a1d44;border:1px solid var(--xo-line2);font:800 14px var(--xo-font);opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;pointer-events:none}
+.xo-toast.on{opacity:1;transform:none}
+.xo-flight{position:fixed;z-index:50;pointer-events:none;border-radius:50%;overflow:hidden;will-change:transform}
+
+/* ---------- حركة ---------- */
+@keyframes xo-pop{0%{opacity:0;transform:scale(.82)}60%{transform:scale(1.04)}100%{opacity:1;transform:none}}
+@keyframes xo-in-r{from{opacity:0;transform:translateX(60px)}to{opacity:1;transform:none}}
+@keyframes xo-in-l{from{opacity:0;transform:translateX(-60px)}to{opacity:1;transform:none}}
+@keyframes xo-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes xo-pulse{50%{opacity:.55}}
+@keyframes xo-fade{from{opacity:0}to{opacity:1}}
+@keyframes xo-drop{from{opacity:0;transform:translateY(-40px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes xo-fall{to{transform:translateY(110vh) rotate(540deg)}}
+#xo.xo-reduced *,#xo.xo-reduced *::before,#xo.xo-reduced *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){#xo *,#xo *::before,#xo *::after{animation:none!important;transition:none!important}}
+
+/* وضع التضمين داخل احسمها (?embed=1): الإعداد والمحاكي من صفحة الموقع */
+.xo-embed #xo-setup,.xo-embed #xo-chip-sim,.xo-embed #xo-p-sim{display:none!important}
+
+/* ---------- جوال ---------- */
+@media (max-width:900px){
+  :root{--bs:min(86vw,calc(100dvh - 430px),440px)}
+  .xo-chips{max-width:60vw;left:8px;top:max(6px,env(safe-area-inset-top))}
+  .xo-main{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start;overflow:auto;direction:rtl;padding:max(40px,calc(env(safe-area-inset-top) + 34px)) 10px 8px;inset:0 0 64px 0}
+  .xo-main>*{direction:rtl}
+  .xo-rail{display:contents}
+  .xo-tmpwrap{grid-column:1/-1;order:1;max-height:none;gap:6px}
+  .xo-rail.r .xo-pc{order:2}
+  .xo-rail.l .xo-pc{order:2}
+  .xo-center{grid-column:1/-1;order:3;gap:8px;min-height:max-content;justify-content:flex-start}
+  .xo-tmp-l{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:6px}
+  .xo-ti{flex:none;padding:4px 10px 4px 6px}
+  .xo-ti .kd{display:none}
+  .xo-tmp-e{padding:8px}
+  .xo-stagepill{padding:6px 10px;font-size:12.5px}
+  .xo-pc{--ava:46px;padding:14px 8px 10px;gap:6px}
+  .xo-pc .nm{font-size:14px}
+  .xo-turntag{font-size:12px;padding:3px 12px;top:-11px}
+  .xo-sym{min-height:28px;padding:0 10px;font-size:13px}
+  .xo-wait{width:100%}
+  .xo-dock{padding:8px 8px max(10px,env(safe-area-inset-bottom));gap:6px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+  .xo-dock::-webkit-scrollbar{display:none}
+  .xo-dock .xo-btn{min-height:40px;padding:0 14px;font-size:13.5px;flex:none}
+  .xo-panes{position:fixed;z-index:10;inset-inline:10px;bottom:76px;display:none}
+  .xo-panes[data-open]{display:flex}
+  .xo-panes .xo-pane{display:none}
+  .xo-panes[data-open=chat] #xo-p-chat,.xo-panes[data-open=hist] #xo-p-hist,.xo-panes[data-open=sim] #xo-p-sim{display:flex}
+  .xo-pane .b{max-height:34vh}
+  .xo-rail.l .xo-panes{margin-top:0;grid-row:auto}
+  .xo-rail.l .xo-pc{grid-row:auto}
+}
+@media (min-width:901px){.xo-dock .xo-mob{display:none}}
+@media (max-height:520px) and (min-width:901px){:root{--bs:min(60vh,34vw)}}
+</style></head>
+<body>
+<div id="xo" data-phase="setup">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="xo-i-x" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></symbol>
+      <symbol id="xo-i-o" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2.6"/></symbol>
+      <symbol id="xo-i-ck" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="xo-i-chev" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+      <symbol id="xo-i-rm" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></symbol>
+      <symbol id="xo-i-logo" viewBox="0 0 48 48"><rect x="3" y="3" width="42" height="42" rx="12" fill="none" stroke="currentColor" stroke-opacity=".35" stroke-width="2"/><path d="M16 16l7 7M23 16l-7 7" stroke="#C9B4FF" stroke-width="3.2" stroke-linecap="round"/><circle cx="32" cy="32" r="5.5" fill="none" stroke="#F2C66D" stroke-width="3.2"/><path d="M26 18h8M18 26v8" stroke="currentColor" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"/></symbol>
+    </defs>
+  </svg>
+
+  <!-- ===== الإعداد ===== -->
+  <section class="xo-screen xo-setup" id="xo-setup" aria-labelledby="xo-h1">
+    <div class="xo-setup-in">
+      <h1 class="xo-h1" id="xo-h1"><svg aria-hidden="true"><use href="#xo-i-logo"/></svg>إكس أو</h1>
+      <p class="xo-sub">اكتب رقم المربع بدورك، وافز بمواجهتك عشان تتأهل للمرحلة التالية</p>
+      <div class="xo-modes" role="group" aria-label="مصدر الشات">
+        <button type="button" id="xo-m-demo" aria-pressed="true">محاكاة</button>
+        <button type="button" id="xo-m-link" aria-pressed="false">ربط البث</button>
+      </div>
+      <div class="xo-card">
+        <div class="xo-field">
+          <label for="xo-kw">الكلمة المفتاحية للانضمام (إلزامية)</label>
+          <input class="xo-in" id="xo-kw" type="text" maxlength="30" placeholder="مثال: العب" autocomplete="off">
+          <div class="xo-hint">يكتبها المشاهد مرة واحدة بالشات ليدخل البطولة. لا تكن رقماً من 1 إلى 9.</div>
+        </div>
+        <div class="xo-field">
+          <span class="xo-lbl">حالة اتصال البث</span>
+          <div><span class="xo-chip" id="xo-s-link"><i></i><span id="xo-s-link-t">وضع المحاكاة</span></span></div>
+        </div>
+        <div class="xo-field">
+          <label for="xo-turn">مدة الدور</label>
+          <div class="xo-turnrow"><input type="range" id="xo-turn" min="10" max="60" step="1" value="20"><output id="xo-turn-o" for="xo-turn">20</output><span class="xo-hint">ثانية</span></div>
+          <div class="xo-hint">إذا انتهى وقتك دون رقم صحيح تخسر المواجهة. من 10 إلى 60 ثانية.</div>
+        </div>
+        <label class="xo-tog" for="xo-lot"><input type="checkbox" id="xo-lot" checked><span class="xo-sw"></span>
+          <span><b>الحسم بالقرعة بعد 3 تعادلات</b><span class="xo-hint">قاعدة إضافية للبطولة: عند التعادل الثالث في المواجهة نفسها تُجرى قرعة متساوية الاحتمال بين اللاعبَين، ويتأهل صاحب الحظ. عند تعطيلها تُعاد المواجهة (مع تبديل الرمزين) حتى فوز أحدهما أو انتهاء وقته.</span></span>
+        </label>
+        <div class="xo-err" id="xo-setup-err" role="alert"></div>
+        <div class="xo-actions">
+          <button type="button" class="xo-btn pri" id="xo-go">دخول شاشة الانتظار</button>
+          <button type="button" class="xo-btn" id="xo-back">رجوع</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== الانتظار + المواجهات ===== -->
+  <section class="xo-screen xo-stage" id="xo-stage" hidden>
+    <div class="xo-chips">
+      <span class="xo-chip" id="xo-chip-link"><i></i><span id="xo-chip-link-t">الشات</span></span>
+      <span class="xo-chip sim" id="xo-chip-sim"><i></i>وضع المحاكاة</span>
+    </div>
+
+    <div class="xo-main" id="xo-main">
+      <aside class="xo-rail l">
+        <div class="xo-panes" id="xo-panes">
+          <section class="xo-pane" id="xo-p-chat"><button type="button" aria-expanded="true" aria-controls="xo-chat-b"><span>سجل الشات</span><svg aria-hidden="true"><use href="#xo-i-chev"/></svg></button>
+            <div class="b" id="xo-chat-b"><ul class="xo-log" id="xo-chat" aria-live="off"></ul></div></section>
+          <section class="xo-pane" id="xo-p-hist"><button type="button" aria-expanded="false" aria-controls="xo-hist-b"><span>سجل المواجهات</span><svg aria-hidden="true"><use href="#xo-i-chev"/></svg></button>
+            <div class="b" id="xo-hist-b"><div id="xo-hist"></div></div></section>
+          <section class="xo-pane" id="xo-p-sim"><button type="button" aria-expanded="false" aria-controls="xo-sim-b"><span>المحاكي (للتجربة فقط)</span><svg aria-hidden="true"><use href="#xo-i-chev"/></svg></button>
+            <div class="b" id="xo-sim-b">
+              <div class="xo-sim-row"><select id="xo-sim-n" aria-label="عدد اللاعبين"><option>2</option><option>3</option><option>5</option><option>7</option><option selected>8</option><option>16</option><option>32</option></select>
+                <button type="button" class="xo-btn sm" id="xo-sim-add">انضمام جماعي</button></div>
+              <label class="xo-tog" for="xo-sim-auto"><input type="checkbox" id="xo-sim-auto"><span class="xo-sw"></span><span><b>لاعبو المحاكاة يلعبون تلقائياً</b></span></label>
+              <div class="xo-sim-row"><select id="xo-sim-acct" aria-label="الحساب"></select></div>
+              <div class="xo-sim-row"><input type="text" id="xo-sim-txt" placeholder="رسالة شات (مثال: 5)" autocomplete="off"><button type="button" class="xo-btn sm" id="xo-sim-send">إرسال</button></div>
+              <div class="xo-sim-out" id="xo-sim-out"></div>
+            </div></section>
+        </div>
+        <div class="xo-pc" id="xo-pcb" hidden>
+          <span class="xo-turntag">دورك</span>
+          <div class="ring"><span class="av"></span></div>
+          <div class="nm"></div>
+          <span class="xo-sym"></span>
+        </div>
+      </aside>
+
+      <section class="xo-center" id="xo-center">
+        <!-- الانتظار -->
+        <div class="xo-wait" id="xo-wait">
+          <h2><svg aria-hidden="true" width="40" height="40"><use href="#xo-i-logo"/></svg>إكس أو</h2>
+          <div class="xo-kw"><span>اكتب بالشات للانضمام:</span><b id="xo-wkw"></b></div>
+          <div class="xo-count">المشاركون<b id="xo-wcount">0</b></div>
+          <div class="xo-wgrid" id="xo-wgrid" role="list" aria-label="المشاركون"></div>
+          <div class="xo-queued" id="xo-wqueued" hidden></div>
+          <div class="xo-note" id="xo-wnote">تبدأ البطولة بلاعبين على الأقل. بعد البداية تُغلق القائمة، ومن يكتب الكلمة متأخراً ينتظر البطولة التالية.</div>
+        </div>
+        <!-- المواجهة -->
+        <div id="xo-play" hidden style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%">
+          <div class="xo-mhead" id="xo-mhead"></div>
+          <div class="xo-timer idle" id="xo-timer"><div class="xo-timer-n" id="xo-tn">20</div><div class="xo-timer-b"><i id="xo-tb"></i></div></div>
+          <div class="xo-board" id="xo-board" role="img" aria-label="لوحة إكس أو مرقمة من 1 إلى 9">
+            <svg class="xo-grid" viewBox="0 0 300 300" aria-hidden="true"><line pathLength="1" x1="100" y1="12" x2="100" y2="288"/><line pathLength="1" x1="200" y1="12" x2="200" y2="288"/><line pathLength="1" x1="12" y1="100" x2="288" y2="100"/><line pathLength="1" x1="12" y1="200" x2="288" y2="200"/></svg>
+            <div class="xo-cells" id="xo-cells"></div>
+            <svg class="xo-wline" id="xo-wline" viewBox="0 0 300 300" aria-hidden="true"><line pathLength="1" x1="0" y1="0" x2="0" y2="0"/></svg>
+          </div>
+          <div class="xo-hintline" id="xo-hintline">اكتب رقم المربع (1–9) بالشات في دورك</div>
+          <div class="xo-banner" id="xo-banner" aria-live="polite"><div></div></div>
+        </div>
+      </section>
+
+      <aside class="xo-rail r">
+        <div class="xo-tmpwrap" id="xo-tmpwrap" hidden>
+          <div class="xo-tmp" aria-label="فائز مؤقت">
+            <div class="xo-tmp-h"><h2>فائز مؤقت</h2><span class="xo-tmp-n" id="xo-tmp-n">0</span></div>
+            <ul class="xo-tmp-l" id="xo-tmp-l"></ul>
+          </div>
+          <div class="xo-stagepill" id="xo-stagepill"></div>
+        </div>
+        <div class="xo-pc" id="xo-pca" hidden>
+          <span class="xo-turntag">دورك</span>
+          <div class="ring"><span class="av"></span></div>
+          <div class="nm"></div>
+          <span class="xo-sym"></span>
+        </div>
+      </aside>
+    </div>
+
+    <!-- شريط التحكم -->
+    <div class="xo-dock" id="xo-dock" role="toolbar" aria-label="تحكم الستريمر">
+      <button type="button" class="xo-btn pri" id="xo-start" disabled>ابدأ البطولة</button>
+      <button type="button" class="xo-btn" id="xo-pause" hidden>إيقاف مؤقت</button>
+      <button type="button" class="xo-btn" id="xo-resume" hidden>استئناف</button>
+      <button type="button" class="xo-btn" id="xo-plist">المشاركون <span id="xo-plist-n">0</span></button>
+      <button type="button" class="xo-btn xo-mob" id="xo-open-chat">الشات</button>
+      <button type="button" class="xo-btn xo-mob" id="xo-open-hist">السجل</button>
+      <button type="button" class="xo-btn xo-mob" id="xo-open-sim">المحاكي</button>
+      <button type="button" class="xo-btn dng" id="xo-reset">إعادة ضبط</button>
+      <button type="button" class="xo-btn" id="xo-mute" aria-pressed="false">كتم الصوت</button>
+      <button type="button" class="xo-btn" id="xo-motion" aria-pressed="false">تقليل الحركة</button>
+      <button type="button" class="xo-btn" id="xo-tosetup">الإعداد</button>
+      <button type="button" class="xo-btn" id="xo-home">الرئيسية</button>
+    </div>
+
+    <div class="xo-pausebar" id="xo-pausebar" hidden role="status"><span id="xo-pausebar-t"></span><button type="button" class="xo-btn sm pri" id="xo-pausebar-b">استئناف</button></div>
+
+    <!-- تقديم المواجهة / نهاية المرحلة / القرعة -->
+    <div class="xo-ov" id="xo-ov-intro" hidden aria-live="polite"><div class="xo-ovc" id="xo-ov-intro-c"></div></div>
+    <div class="xo-ov" id="xo-ov-stage" hidden aria-live="polite"><div class="xo-ovc" id="xo-ov-stage-c"></div></div>
+    <div class="xo-ov" id="xo-ov-lot" hidden aria-live="polite"><div class="xo-ovc" id="xo-ov-lot-c"></div></div>
+
+    <!-- التتويج -->
+    <div class="xo-screen xo-champ" id="xo-champ" role="dialog" aria-modal="true" aria-labelledby="xo-champ-t">
+      <div class="xo-conf" id="xo-conf" aria-hidden="true"></div>
+      <div class="xo-champ-in">
+        <div class="xo-crownwrap" id="xo-crownwrap">
+          <svg class="xo-crown" viewBox="0 0 128 90" aria-hidden="true"><defs><linearGradient id="xo-cg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B79CFF"/><stop offset="1" stop-color="#6a30d0"/></linearGradient></defs><path d="M10 78 L4 24 L38 46 L64 8 L90 46 L124 24 L118 78 Z" fill="url(#xo-cg)" stroke="#E6DAFF" stroke-width="3" stroke-linejoin="round"/><rect x="10" y="78" width="108" height="9" rx="4" fill="#5d28b8" stroke="#E6DAFF" stroke-width="2"/><circle cx="4" cy="22" r="6" fill="#E6DAFF"/><circle cx="64" cy="7" r="7" fill="#E6DAFF"/><circle cx="124" cy="22" r="6" fill="#E6DAFF"/></svg>
+          <span id="xo-champ-av"></span>
+        </div>
+        <div class="xo-champ-n" id="xo-champ-n"></div>
+        <div class="xo-champ-t" id="xo-champ-t">بطل إكس أو</div>
+        <div class="xo-actions" style="justify-content:center">
+          <button type="button" class="xo-btn pri" id="xo-champ-new">بطولة جديدة</button>
+          <button type="button" class="xo-btn" id="xo-champ-home">الرئيسية</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- نافذة المشاركين -->
+    <div class="xo-modal" id="xo-modal" hidden role="dialog" aria-modal="true" aria-labelledby="xo-md-t">
+      <div class="xo-md"><div class="xo-md-h"><h3 id="xo-md-t">المشاركون</h3><button type="button" class="xo-btn sm" id="xo-md-x">إغلاق</button></div>
+        <ul class="xo-md-l" id="xo-md-l"></ul></div>
+    </div>
+    <!-- تأكيد إعادة الضبط -->
+    <div class="xo-modal" id="xo-confirm" hidden role="alertdialog" aria-modal="true" aria-labelledby="xo-cf-t">
+      <div class="xo-md"><div class="xo-md-h"><h3 id="xo-cf-t">إعادة ضبط البطولة؟</h3></div>
+        <p class="xo-note" style="text-align:start">سيُمسح الجدول والمتأهلون وتعود لقائمة الانتظار (ومن كتب الكلمة متأخراً ينتقل إليها). لن يُسجَّل أي فوز.</p>
+        <div class="xo-actions"><button type="button" class="xo-btn dng" id="xo-cf-yes">نعم، أعد الضبط</button><button type="button" class="xo-btn" id="xo-cf-no">إلغاء</button></div></div>
+    </div>
+    <div class="xo-toast" id="xo-toast" role="status"></div>
+  </section>
+</div>
+
+<script>
+/* احسمها | إكس أو (ألعاب الستريمر): بطولة إقصائية عشوائية بالشات. ملف مستقل بلا مكتبات خارجية.
+   الواجهة البرمجية: window.EhsemhaXO (receiveEvent / setHooks / open / start / pause / resume / reset / removePlayer / join / forceWin / getState / destroy) */
+/*CORE-BEGIN*/
+/* ===== محرك البطولة (بلا DOM): كل القرارات هنا، والواجهة تعرضها فقط =====
+   - لا مؤقّتات setTimeout داخل المحرك: كل مرحلة لها موعد انتهاء (phaseEndsAt) يفحصه tick().
+     لذلك لا توجد مؤقّتات قديمة تعدّل حالة جديدة بعد الريست أو الإيقاف.
+   - قرار الحركة/انتهاء الوقت يمرّ بمسار واحد: handleChat يستدعي tick() أولاً. */
+function createCore(env){
+  env=env||{};
+  var rng=env.rng||Math.random, clock=env.now||function(){return Date.now();};
+  var K={
+    INTRO_MS:2800, FINAL_INTRO_MS:3800, REMATCH_MS:1500, RESULT_MS:2600, TIE_MS:2200, LOT_MS:4600, REMOVE_MS:1800, STAGE_MS:3400,
+    TURN_MIN:10, TURN_MAX:60, TURN_DEF:20, TIE_LIMIT:3, MIN_PLAYERS:2, MAX_PLAYERS:256, LINK_GRACE:4000, SEEN_MAX:6000, LOG_MAX:200
+  };
+  var LINES=[[1,2,3],[4,5,6],[7,8,9],[1,4,7],[2,5,8],[3,6,9],[1,5,9],[3,5,7]];
+  var hooks={followGate:null,lateJoinGate:null,adminCommand:null,matchKeyword:null,onJoin:null,onRoundEnd:null,onWin:null,onStatus:null};
+  var bus={h:{},on:function(n,f){(this.h[n]=this.h[n]||[]).push(f);return function(){var a=bus.h[n]||[],i=a.indexOf(f);if(i>=0)a.splice(i,1);};},
+    emit:function(n,a,b,c,d){var l=(this.h[n]||[]).slice();for(var i=0;i<l.length;i++){try{l[i](a,b,c,d);}catch(e){if(typeof console!=='undefined')console.error('[ehsemha-xo]',n,e);}}}};
+
+  /* ---------- توحيد النصوص (نفس منطق شد الحبل: الأرقام العربية/الهندية + مطابقة الكلمة المتسامحة) ---------- */
+  function foldDigits(s){return String(s==null?'':s).replace(/[​-‏‪-‮⁦-⁩﻿­]/g,'').replace(/[٠-٩]/g,function(d){return String(d.charCodeAt(0)-0x0660);}).replace(/[۰-۹]/g,function(d){return String(d.charCodeAt(0)-0x06F0);});}
+  function baseNorm(s){return String(s==null?'':s).replace(/[أإآ]/g,'ا').replace(/ة/g,'ت').replace(/ى/g,'ي').trim().toLowerCase();}
+  function kwNorm(s){return baseNorm(s).replace(/[ً-ٰـ]/g,'').replace(/ه/g,'ت').replace(/[\s\-_.,،!؟?]/g,'').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu,'').trim();}
+  function joinNorm(s){var t=foldDigits(s);try{t=t.normalize('NFKC');}catch(e){}t=t.replace(/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/[ةه]/g,'ت').replace(/ؤ/g,'و').replace(/ئ/g,'ي').toLowerCase();try{t=t.replace(/[^\p{L}\p{N}]/gu,'');}catch(e){t=t.replace(/[\s\-_.,،!؟?]/g,'');}return t;}
+  function kwMatches(text,kw,user){
+    if(!kw)return false;
+    var a=kwNorm(text),b=kwNorm(kw);
+    if(a&&a===b)return true;
+    var c=joinNorm(text),d=joinNorm(kw); if(c&&c===d)return true;
+    if(hooks.matchKeyword){try{if(hooks.matchKeyword(text,kw,user)===true)return true;}catch(e){}}
+    return false;
+  }
+  /* رقم واحد 1..9 فقط: يقبل ٥ و۵ والمسافات الطرفية، ويرفض الكلمات والرموز والمنشن والأرقام خارج النطاق */
+  function parseMove(text){var t=foldDigits(text);try{t=t.normalize('NFKC');}catch(e){}t=t.trim();return /^[1-9]$/.test(t)?+t:0;}
+  function validateKeyword(kw){
+    kw=String(kw==null?'':kw).trim();
+    if(!kw)return 'أدخل الكلمة المفتاحية للانضمام';
+    if(!kwNorm(kw)||!joinNorm(kw))return 'الكلمة المفتاحية لا يمكن أن تكون رموزاً فقط';
+    if(parseMove(kw))return 'الكلمة المفتاحية لا يجب أن تكون رقماً من 1 إلى 9 لأنها تتعارض مع أرقام المربعات';
+    return null;
+  }
+  function clampTurn(v){v=Math.round(+v);if(!isFinite(v))v=K.TURN_DEF;return Math.max(K.TURN_MIN,Math.min(K.TURN_MAX,v));}
+
+  /* ---------- الحالة ---------- */
+  function emptyBoard(){return [null,null,null,null,null,null,null,null,null];}
+  function fresh(){return {
+    status:'setup', paused:false, pauseReason:null, pauseLeft:0, phaseEndsAt:0, phaseMs:0,
+    mode:'demo', linkLive:true, linkDownAt:0, linkBackAt:0,
+    kw:'', turnSec:K.TURN_DEF, lotAfter3:true, requireFollow:false,
+    epoch:0, tid:0, turnSeq:0,
+    players:new Map(), queue:new Map(), pending:new Map(), eliminated:new Map(), qualified:[], byes:new Map(),
+    stageNo:0, stageMatches:[], nextIdx:0, stageTotal:0, stageDone:0, isFinal:false, cur:null, matchNo:0, curLog:null, stages:[],
+    champion:null, result:null, winRecorded:false, seen:new Set(), rejected:0, moves:0
+  };}
+  var S=fresh();
+
+  function now(){return clock();}
+  function uidOf(u){return u&&u.uniqueId!=null?String(u.uniqueId):null;}
+  function isAlive(uid){return S.players.has(uid)&&!S.eliminated.has(uid);}
+  function aliveCount(){var n=0;S.players.forEach(function(u,id){if(!S.eliminated.has(id))n++;});return n;}
+  function userOf(uid){return S.players.get(uid)||null;}
+  function inPlay(){return S.status==='intro'||S.status==='active'||S.status==='result'||S.status==='stage';}
+  function otherOf(m,uid){return uid===m.a?m.b:m.a;}
+
+  function setPhase(st,ms){
+    var changed=S.status!==st; S.status=st; S.phaseMs=ms|0;
+    if(S.paused){S.pauseLeft=ms|0;S.phaseEndsAt=0;}else S.phaseEndsAt=ms>0?now()+ms:0;
+    if(changed){bus.emit('status',st);if(hooks.onStatus)try{hooks.onStatus(st);}catch(e){}}
+  }
+  function shuffle(a){for(var i=a.length-1;i>0;i--){var j=Math.floor(rng()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}  /* Fisher–Yates */
+
+  /* ---------- الإعداد ---------- */
+  function configure(cfg){
+    cfg=cfg||{};
+    var kw=String(cfg.kw==null?'':cfg.kw).trim(); var err=validateKeyword(kw); if(err)return err;
+    S.kw=kw; S.turnSec=clampTurn(cfg.turnSec==null?K.TURN_DEF:cfg.turnSec); S.lotAfter3=cfg.lotAfter3!==false; S.requireFollow=!!cfg.requireFollow;
+    return null;
+  }
+  function wipeTournament(){
+    S.epoch++; S.tid++; S.paused=false; S.pauseReason=null; S.pauseLeft=0; S.phaseEndsAt=0;
+    S.players=new Map(); S.pending=new Map(); S.eliminated=new Map(); S.qualified=[]; S.byes=new Map();
+    S.stageNo=0; S.stageMatches=[]; S.nextIdx=0; S.stageTotal=0; S.stageDone=0; S.isFinal=false; S.cur=null; S.matchNo=0; S.curLog=null; S.stages=[];
+    S.champion=null; S.result=null; S.winRecorded=false; S.rejected=0; S.moves=0;
+  }
+  /* يفتح قائمة الانتظار. المتأخرون الذين كتبوا الكلمة أثناء البطولة السابقة ينتقلون إليها تلقائياً. */
+  function openWaiting(){
+    var carry=S.queue; S.queue=new Map(); wipeTournament(); setPhase('waiting',0);
+    carry.forEach(function(u,id){if(S.players.size<K.MAX_PLAYERS)S.players.set(id,u);});
+    bus.emit('reset');
+    return true;
+  }
+  function toSetup(){wipeTournament();S.queue=new Map();setPhase('setup',0);bus.emit('reset');}
+
+  /* ---------- الانضمام ---------- */
+  function followOk(user){
+    if(hooks.followGate){try{return !!hooks.followGate(user);}catch(e){return true;}}
+    if(!S.requireFollow)return true;
+    if(user.isFollower)return true;
+    if(user.followKnown!==true)return true;
+    return false;
+  }
+  function cleanUser(u){return {uniqueId:String(u.uniqueId),nickname:String(u.nickname||u.rawUniqueId||u.uniqueId).slice(0,40),avatar:u.avatar||'',isFollower:!!u.isFollower,followKnown:u.followKnown};}
+  /* يعيد: true (دخل البطولة)، 'queued' (ينتظر البطولة التالية)، false */
+  function join(user){
+    if(!user||user.uniqueId==null)return false;
+    var uid=String(user.uniqueId);
+    if(S.status==='setup')return false;
+    if(S.status==='waiting'){
+      if(S.players.has(uid))return false;
+      if(S.players.size>=K.MAX_PLAYERS){bus.emit('full',user);return false;}
+      if(!followOk(user)){S.pending.set(uid,{user:user,late:false});bus.emit('followPending',user);return false;}
+      S.pending.delete(uid); var cu=cleanUser(user); S.players.set(uid,cu);
+      bus.emit('join',cu); if(hooks.onJoin)try{hooks.onJoin(cu);}catch(e){}
+      return true;
+    }
+    /* بطولة جارية أو منتهية: لا دخول للبطولة الحالية. المتأخر ينتظر التالية. المقصي/الموجود بالجدول لا يعود. */
+    if(S.players.has(uid)||S.queue.has(uid))return false;
+    if(hooks.lateJoinGate){var ok=true;try{ok=!!hooks.lateJoinGate(user);}catch(e){ok=true;} if(!ok)return false;}
+    if(!followOk(user)){S.pending.set(uid,{user:user,late:true});bus.emit('followPending',user);return false;}
+    if(S.queue.size>=K.MAX_PLAYERS)return false;
+    S.pending.delete(uid); var q=cleanUser(user); S.queue.set(uid,q); bus.emit('queue',q);
+    return 'queued';
+  }
+
+  /* ---------- المراحل والمواجهات ---------- */
+  function newMatch(a,b,idx){return {id:S.stageNo+'-'+(idx+1),stage:S.stageNo,idx:idx,a:a,b:b,x:a,o:b,turn:a,board:emptyBoard(),moves:[],ties:0,state:'pending',outcome:null,turnId:0,no:0};}
+  function pickBye(pool){
+    var min=Infinity;pool.forEach(function(id){var c=S.byes.get(id)||0;if(c<min)min=c;});
+    var c=pool.filter(function(id){return (S.byes.get(id)||0)===min;});
+    return c[Math.floor(rng()*c.length)];
+  }
+  function qualify(uid,kind){
+    if(!isAlive(uid))return false;
+    for(var i=0;i<S.qualified.length;i++)if(S.qualified[i].uid===uid)return false;   /* مرة واحدة فقط */
+    S.qualified.push({uid:uid,kind:kind,stage:S.stageNo}); bus.emit('qualify',uid,kind); return true;
+  }
+  function eliminate(uid,reason){if(!uid||S.eliminated.has(uid))return;S.eliminated.set(uid,{stage:S.stageNo,reason:reason});bus.emit('eliminate',uid,reason);}
+  function logMatch(m,extra){
+    if(!S.curLog)return;
+    var o=m.outcome||{};
+    S.curLog.matches.push(Object.assign({id:m.id,a:m.a,b:m.b,winner:o.winner||null,reason:o.reason||(o.void?'void':null),ties:m.ties},extra||{}));
+    S.stageDone++;
+  }
+  function beginStage(elig){
+    elig=elig.filter(isAlive);
+    S.stageNo++; S.qualified=[]; S.stageMatches=[]; S.nextIdx=0; S.cur=null; S.stageDone=0;
+    if(elig.length===0)return finishTournament(null);
+    if(elig.length===1)return finishTournament(elig[0]);
+    S.isFinal=elig.length===2;
+    var pool=elig.slice(), bye=null;
+    if(pool.length%2===1){bye=pickBye(pool);pool.splice(pool.indexOf(bye),1);}
+    shuffle(pool);                                  /* قرعة واحدة للمرحلة، تُحفظ في stageMatches ولا تُعاد */
+    for(var i=0;i<pool.length;i+=2)S.stageMatches.push(newMatch(pool[i],pool[i+1],S.stageMatches.length));
+    S.stageTotal=S.stageMatches.length;
+    S.curLog={stage:S.stageNo,final:S.isFinal,players:elig.length,matches:[],byes:[],qualified:[]};
+    S.stages.push(S.curLog); if(S.stages.length>K.LOG_MAX)S.stages.shift();
+    if(bye!==null){S.byes.set(bye,(S.byes.get(bye)||0)+1);S.curLog.byes.push(bye);qualify(bye,'bye');}
+    bus.emit('stage',S.stageNo,S.isFinal,elig.length);
+    advanceAfterMatch();
+  }
+  function nextMatch(){while(S.nextIdx<S.stageMatches.length){var m=S.stageMatches[S.nextIdx++];if(m.state==='pending')return m;}return null;}
+  function advanceAfterMatch(){var m=nextMatch();if(m)startMatch(m);else stageComplete();}
+  function stageComplete(){
+    S.qualified=S.qualified.filter(function(q){return isAlive(q.uid);});
+    if(S.curLog)S.curLog.qualified=S.qualified.map(function(q){return q.uid;});
+    S.lastMatch=S.cur; S.cur=null;
+    if(S.qualified.length===0)return finishTournament(null);
+    if(S.qualified.length===1)return finishTournament(S.qualified[0].uid);
+    setPhase('stage',K.STAGE_MS); bus.emit('stageDone',S.stageNo,S.qualified.length);
+  }
+  function startMatch(m){
+    S.cur=m; m.state='intro'; m.no=++S.matchNo;
+    if(rng()<0.5){m.x=m.a;m.o=m.b;}else{m.x=m.b;m.o=m.a;}
+    m.turn=m.x; m.board=emptyBoard(); m.moves=[];
+    setPhase('intro',S.isFinal?K.FINAL_INTRO_MS:K.INTRO_MS); bus.emit('matchIntro',m);
+  }
+  function openTurn(m){
+    m.state='active'; m.turnId=++S.turnSeq;
+    setPhase('active',S.turnSec*1000); bus.emit('turn',m,m.turn);
+  }
+  function resolveMatch(m,winner,reason,line,ms){
+    if(!m||m.state==='done')return false;
+    var loser=otherOf(m,winner);
+    m.state='done'; m.outcome={winner:winner,loser:loser,reason:reason,line:line||null,lot:reason==='lot'};
+    eliminate(loser,reason==='removed'?'removed':'lost');
+    var kind=reason==='line'||reason==='forced'?'win':(reason==='timeout'?'timeout':(reason==='lot'?'lot':'removed'));
+    qualify(winner,kind); logMatch(m);
+    setPhase('result',ms); bus.emit('matchEnd',m);
+    return true;
+  }
+  function winLine(board,sym){for(var i=0;i<LINES.length;i++){var l=LINES[i];if(board[l[0]-1]===sym&&board[l[1]-1]===sym&&board[l[2]-1]===sym)return l.slice();}return null;}
+  function place(m,uid,cell){
+    var sym=uid===m.x?'X':'O'; m.board[cell-1]=sym; m.moves.push({uid:uid,cell:cell,sym:sym}); S.moves++;
+    bus.emit('move',m,uid,cell,sym);
+    var line=winLine(m.board,sym);
+    if(line)return resolveMatch(m,uid,'line',line,K.RESULT_MS);
+    var full=true;for(var i=0;i<9;i++)if(!m.board[i]){full=false;break;}
+    if(full)return onTie(m);
+    m.turn=otherOf(m,uid); openTurn(m);
+  }
+  function onTie(m){
+    m.ties++; m.state='tie';
+    if(S.lotAfter3&&m.ties>=K.TIE_LIMIT){
+      var w=rng()<0.5?m.a:m.b;                     /* القرعة تُحسم مرة واحدة هنا، والأنيميشن يعرضها فقط */
+      bus.emit('lot',m,w);
+      return resolveMatch(m,w,'lot',null,K.LOT_MS);
+    }
+    m.outcome={tie:true,n:m.ties}; setPhase('result',K.TIE_MS); bus.emit('tie',m);
+  }
+  function rematch(m){
+    var t=m.x;m.x=m.o;m.o=t;                       /* تبديل الرمزين: يبدأ اللاعب الآخر */
+    m.board=emptyBoard(); m.moves=[]; m.turn=m.x; m.outcome=null; m.state='intro';
+    setPhase('intro',K.REMATCH_MS); bus.emit('rematch',m);
+  }
+  function expire(){
+    var m=S.cur; if(!m||m.state!=='active')return;
+    resolveMatch(m,otherOf(m,m.turn),'timeout',null,K.RESULT_MS);
+  }
+  function afterResult(){
+    var m=S.cur;
+    if(m&&m.state==='tie'){rematch(m);return;}
+    advanceAfterMatch();
+  }
+
+  /* ---------- الإنهاء ---------- */
+  function finishTournament(winnerUid){
+    if(S.status==='finished')return;
+    S.paused=false;S.pauseReason=null;S.pauseLeft=0;
+    var champ=winnerUid?userOf(winnerUid):null; S.champion=champ;
+    S.result={tid:S.tid,champion:champ?{uniqueId:champ.uniqueId,nickname:champ.nickname,avatar:champ.avatar}:null,stages:S.stageNo,players:S.players.size,moves:S.moves,at:Date.now()};
+    setPhase('finished',0); bus.emit('finish',S.result);
+    if(hooks.onRoundEnd)try{hooks.onRoundEnd(S.result);}catch(e){}
+    if(champ&&!S.winRecorded){S.winRecorded=true;if(hooks.onWin)try{hooks.onWin(champ,S.result);}catch(e){}}   /* الفوز الرسمي: مرة واحدة فقط */
+    try{if(typeof window!=='undefined'&&window.dispatchEvent)window.dispatchEvent(new CustomEvent('ehsemha-xo:result',{detail:S.result}));}catch(e){}
+  }
+
+  /* ---------- البدء والإيقاف ---------- */
+  function start(){
+    if(S.status!=='waiting')return false;
+    if(S.players.size<K.MIN_PLAYERS)return false;
+    S.queue=new Map(S.queue); S.stages=[]; S.matchNo=0;
+    bus.emit('start',S.tid);
+    beginStage(Array.from(S.players.keys()));
+    return true;
+  }
+  function pause(reason){
+    if(S.paused||!inPlay())return false;
+    S.pauseLeft=Math.max(0,S.phaseEndsAt-now()); S.paused=true; S.pauseReason=reason||'manual'; S.phaseEndsAt=0;
+    bus.emit('pause',S.pauseReason); return true;
+  }
+  function resume(){
+    if(!S.paused)return false;
+    S.paused=false; S.pauseReason=null; S.phaseEndsAt=now()+S.pauseLeft; S.pauseLeft=0;
+    if(S.mode==='link'&&!S.linkLive)S.linkDownAt=now();
+    S.linkBackAt=0; bus.emit('resume'); return true;
+  }
+  function setMode(m){S.mode=m==='link'?'link':'demo';}
+  function setLink(live){
+    live=!!live; S.linkLive=live;
+    if(live){S.linkDownAt=0;S.linkBackAt=(S.paused&&S.pauseReason==='link')?now():0;}
+    else if(!S.linkDownAt)S.linkDownAt=now();
+    bus.emit('link',live);
+  }
+  function timeLeft(){
+    if(S.status==='active')return S.paused?S.pauseLeft/1000:Math.max(0,(S.phaseEndsAt-now())/1000);
+    return S.turnSec;
+  }
+
+  function tick(){
+    if(S.paused)return;
+    for(var guard=0;guard<12;guard++){
+      var t=now();
+      if(S.mode==='link'&&S.linkDownAt&&t-S.linkDownAt>=K.LINK_GRACE&&inPlay()){pause('link');return;}
+      if(!S.phaseEndsAt||t<S.phaseEndsAt)return;
+      var st=S.status;
+      if(st==='intro')openTurn(S.cur);
+      else if(st==='active')expire();
+      else if(st==='result')afterResult();
+      else if(st==='stage')beginStage(S.qualified.map(function(q){return q.uid;}));
+      else return;
+    }
+  }
+
+  /* ---------- رسائل الشات ---------- */
+  function seenId(id){
+    if(id==null||id==='')return false;
+    id=String(id); if(S.seen.has(id))return true;
+    S.seen.add(id); if(S.seen.size>K.SEEN_MAX){S.seen.delete(S.seen.values().next().value);}
+    return false;
+  }
+  /* يعيد: 'join' | 'queued' | 'move' | 'ignored' | 'admin' | 'dup' */
+  function handleChat(user,text,evId){
+    tick();
+    if(!user||user.uniqueId==null)return 'ignored';
+    text=String(text==null?'':text).trim(); if(!text)return 'ignored';
+    if(seenId(evId))return 'dup';
+    var uid=String(user.uniqueId);
+    if(hooks.adminCommand){try{if(hooks.adminCommand(text,user,api))return 'admin';}catch(e){}}
+    var st=S.status;
+    if(st==='setup')return 'ignored';
+    if(st==='waiting'){
+      if(S.players.has(uid))return 'ignored';
+      if(kwMatches(text,S.kw,user)){var r=join(user);return r===true?'join':'ignored';}
+      return 'ignored';
+    }
+    var m=S.cur;
+    if(S.players.has(uid)){
+      /* لاعب في البطولة: الحركة فقط، وبشرط أن يكون دوره والاستقبال مفتوحاً */
+      if(st!=='active'||S.paused||!m||m.state!=='active'||m.turn!==uid)return 'ignored';
+      var cell=parseMove(text);
+      if(!cell){S.rejected++;return 'ignored';}
+      if(m.board[cell-1]){S.rejected++;bus.emit('reject',user,cell,'used');return 'ignored';}   /* لا تغيير للوحة ولا للدور ولا للمؤقّت */
+      place(m,uid,cell);
+      return 'move';
+    }
+    if(kwMatches(text,S.kw,user)){var q=join(user);return q==='queued'?'queued':'ignored';}
+    return 'ignored';
+  }
+  function handleFollow(user){
+    if(!user||user.uniqueId==null)return false;
+    var uid=String(user.uniqueId),p=S.pending.get(uid); if(!p)return false;
+    var u=Object.assign({},p.user,{isFollower:true});
+    if(p.late&&S.status!=='waiting'){S.pending.delete(uid);return join(u)==='queued';}
+    S.pending.delete(uid);
+    return join(u)===true;
+  }
+
+  /* ---------- الإزالة وأوامر الستريمر ---------- */
+  function removePlayer(uid){
+    uid=String(uid); var had=false;
+    if(S.pending.delete(uid))had=true;
+    if(S.queue.delete(uid)){had=true;bus.emit('queue');}
+    if(S.status==='waiting'){if(S.players.delete(uid)){had=true;bus.emit('leave',uid);}return had;}
+    if(S.status==='setup'||S.status==='finished')return had;
+    if(!isAlive(uid))return had;
+    var m=S.cur, handled=false;
+    /* 1) من المواجهة الجارية: منافسه يتأهل مع تسجيل السبب */
+    if(m&&(m.state==='intro'||m.state==='active'||m.state==='tie')&&(uid===m.a||uid===m.b)){
+      var opp=otherOf(m,uid); eliminate(uid,'removed');
+      if(isAlive(opp))resolveMatch(m,opp,'removed',null,K.REMOVE_MS);
+      else{m.state='done';m.outcome={void:true};logMatch(m);advanceAfterMatch();}
+      handled=true;
+    }
+    /* 2) من مواجهة منتظرة: تُلغى ويتأهل منافسها بلا تكرار لاعب أو مواجهة */
+    if(!handled){
+      for(var i=0;i<S.stageMatches.length;i++){
+        var pm=S.stageMatches[i];
+        if(pm.state==='pending'&&(uid===pm.a||uid===pm.b)){
+          pm.state='void'; var o=otherOf(pm,uid); eliminate(uid,'removed');
+          pm.outcome={winner:isAlive(o)?o:null,loser:uid,reason:isAlive(o)?'removed':'void'}; logMatch(pm);
+          if(isAlive(o))qualify(o,'removed');
+          handled=true;break;
+        }
+      }
+    }
+    /* 3) من المتأهلين: يُزال قبل قرعة المرحلة التالية */
+    if(!handled){
+      for(var j=0;j<S.qualified.length;j++){
+        if(S.qualified[j].uid===uid){S.qualified.splice(j,1);eliminate(uid,'removed');bus.emit('unqualify',uid);handled=true;break;}
+      }
+    }
+    if(!handled)eliminate(uid,'removed');
+    bus.emit('leave',uid);
+    if(S.status!=='finished'&&aliveCount()===0)finishTournament(null);   /* أُزيل الجميع: انتهاء بلا بطل */
+    return true;
+  }
+  /* فوز إجباري (أوامر المالك): للاعب في المواجهة الحالية فقط */
+  function forceWin(uid){
+    uid=String(uid); var m=S.cur;
+    if(!m||!(S.status==='intro'||S.status==='active'||S.status==='result')||m.state==='done')return false;
+    if(uid!==m.a&&uid!==m.b)return false;
+    if(!isAlive(uid))return false;
+    return resolveMatch(m,uid,'forced',null,K.RESULT_MS);
+  }
+
+  /* ---------- لقطة الحالة للواجهة والاختبارات ---------- */
+  function matchView(m){
+    if(!m)return null;
+    return {id:m.id,no:m.no,stage:m.stage,a:m.a,b:m.b,x:m.x,o:m.o,turn:m.turn,board:m.board.slice(),ties:m.ties,state:m.state,outcome:m.outcome,left:timeLeft()};
+  }
+  function getState(){
+    var q=S.qualified.map(function(x){return {uid:x.uid,kind:x.kind,stage:x.stage};});
+    var played=S.stageDone,total=S.stageTotal;
+    return {
+      status:S.paused?'paused':S.status, phase:S.status, paused:S.paused, pauseReason:S.pauseReason, linkBack:!!S.linkBackAt,
+      kw:S.kw, turnSec:S.turnSec, lotAfter3:S.lotAfter3, mode:S.mode, linkLive:S.linkLive,
+      players:Array.from(S.players.keys()), queued:Array.from(S.queue.keys()), pending:Array.from(S.pending.keys()),
+      alive:Array.from(S.players.keys()).filter(isAlive), eliminated:Array.from(S.eliminated.keys()),
+      qualified:q, stageNo:S.stageNo, isFinal:S.isFinal, stageTotal:total, stageDone:played, stageLeft:Math.max(0,total-played),
+      cur:matchView(S.cur), champion:S.champion?S.champion.uniqueId:null, result:S.result, winRecorded:S.winRecorded,
+      stages:S.stages, left:timeLeft(), rejected:S.rejected, moves:S.moves, tid:S.tid, epoch:S.epoch, byes:Array.from(S.byes.entries())
+    };
+  }
+
+  var api={K:K,LINES:LINES,hooks:hooks,bus:bus,S:function(){return S;},configure:configure,openWaiting:openWaiting,toSetup:toSetup,reset:openWaiting,
+    join:join,handleChat:handleChat,handleFollow:handleFollow,start:start,pause:pause,resume:resume,tick:tick,setMode:setMode,setLink:setLink,
+    removePlayer:removePlayer,forceWin:forceWin,getState:getState,timeLeft:timeLeft,parseMove:parseMove,kwMatches:kwMatches,validateKeyword:validateKeyword,
+    clampTurn:clampTurn,winLine:winLine,isAlive:isAlive,userOf:userOf,now:now,
+    setRng:function(f){rng=f||Math.random;},setClock:function(f){clock=f||function(){return Date.now();};}};
+  return api;
+}
+/*CORE-END*/
+/* ===== الواجهة: تعرض قرارات المحرك ولا تقرّرها ===== */
+(function(){
+'use strict';
+var core=createCore({}), S=core.S, K=core.K, bus=core.bus, hooks=core.hooks;
+var root=document.getElementById('xo');
+var EMBED=/[?&]embed=1/.test(location.search);
+var destroyed=false, rafId=0, tickInt=0, cleanups=[], timers=new Set(), flights=new Set(), mode='demo', linkLabel='';
+var reducedMq=window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
+var manualReduced=false;
+var ui={sec:-1, lastMatch:null, lot:null, histQ:0, pendingFlight:new Map(), tmpEls:new Map(), waitEls:new Map(), lastPauseKey:'', lastDock:''};
+
+function $(id){return document.getElementById(id);}
+function on(t,n,f,o){t.addEventListener(n,f,o);cleanups.push(function(){t.removeEventListener(n,f,o);});}
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function use(id,cls){var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('aria-hidden','true');if(cls)s.setAttribute('class',cls);var u=document.createElementNS('http://www.w3.org/2000/svg','use');u.setAttribute('href','#'+id);s.appendChild(u);return s;}
+function post(type,data){if(!EMBED)return;try{window.parent.postMessage({source:'ehsemha-xo',type:type,data:data||null},'*');}catch(e){}}
+function reduced(){return manualReduced||!!reducedMq.matches;}
+/* مؤقّت واجهة مرتبط برقم الحقبة: الريست يبطل كل ما سبقه */
+function later(fn,ms){var ep=S().epoch,id=setTimeout(function(){timers.delete(id);if(destroyed||S().epoch!==ep)return;fn();},ms);timers.add(id);return id;}
+function clearLater(){timers.forEach(clearTimeout);timers.clear();}
+function nameOf(uid){var u=core.userOf(uid);return u?u.nickname:String(uid||'');}
+function toast(msg){var t=$('xo-toast');t.textContent=msg;t.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(function(){t.classList.remove('on');},2600);}
+
+/* ---------- الصوت: WebAudio مولَّد، يبدأ بعد تفاعل المستخدم ويحترم الكتم ---------- */
+var AUD=(function(){
+  var armed=false,ac=null,master=null,muted=false,vol=.7,voices=0,MAXV=8,calls={};
+  function ensure(){if(ac)return ac;try{var AX=window.AudioContext||window.webkitAudioContext;if(!AX)return null;ac=new AX();master=ac.createGain();master.gain.value=muted?0:vol;master.connect(ac.destination);}catch(e){ac=null;}return ac;}
+  function unlock(){armed=true;var a=ensure();if(a&&a.state==='suspended'){try{a.resume();}catch(e){}}}
+  function ok(){return armed&&!!ac&&ac.state==='running'&&!muted&&voices<MAXV;}
+  function tone(f,d,type,g,delay,f2){
+    if(!ok())return; var t0=ac.currentTime+(delay||0),o=ac.createOscillator(),gn=ac.createGain();
+    o.type=type||'sine';o.frequency.setValueAtTime(f,t0);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t0+d);
+    gn.gain.setValueAtTime(.0001,t0);gn.gain.exponentialRampToValueAtTime(g||.2,t0+.014);gn.gain.exponentialRampToValueAtTime(.0001,t0+d);
+    o.connect(gn);gn.connect(master);o.start(t0);o.stop(t0+d+.04);voices++;o.onended=function(){voices--;};
+  }
+  var P={
+    intro:function(){tone(392,.16,'triangle',.2);tone(587,.22,'triangle',.2,.14);},
+    rematch:function(){tone(330,.14,'triangle',.16);tone(330,.14,'triangle',.16,.16);},
+    final:function(){tone(262,.2,'sawtooth',.12);tone(392,.2,'sawtooth',.12,.18);tone(523,.2,'sawtooth',.12,.36);tone(784,.5,'triangle',.2,.54);},
+    x:function(){tone(880,.09,'square',.09,0,740);},
+    o:function(){tone(440,.14,'sine',.2,0,330);},
+    tick:function(){tone(900,.05,'square',.06);},
+    tickfast:function(){tone(1300,.06,'square',.08);},
+    win:function(){tone(523,.14,'triangle',.2);tone(659,.14,'triangle',.2,.12);tone(784,.3,'triangle',.22,.24);},
+    timeout:function(){tone(300,.4,'sawtooth',.12,0,150);},
+    tie:function(){tone(392,.2,'sine',.18);tone(330,.3,'sine',.18,.2);},
+    lottick:function(){tone(700,.04,'square',.07);},
+    lot:function(){tone(523,.12,'triangle',.18);tone(784,.3,'triangle',.2,.12);},
+    champ:function(){[523,659,784,1047].forEach(function(f,i){tone(f,.35,'triangle',.22,i*.14);});tone(523,1.2,'sine',.12,.6);tone(784,1.2,'sine',.12,.6);},
+    pause:function(){tone(300,.2,'sine',.14,0,200);}
+  };
+  return {unlock:unlock,calls:calls,
+    play:function(n){calls[n]=(calls[n]||0)+1;var f=P[n];if(f&&ok()){try{f();}catch(e){}}},
+    setMuted:function(m){muted=!!m;if(master)master.gain.value=muted?0:vol;},isMuted:function(){return muted;},
+    close:function(){try{if(ac)ac.close();}catch(e){}ac=null;}};
+})();
+
+/* ---------- صور الحسابات: فشل التحميل يعرض الحرف الأول ---------- */
+function hue(s){var h=0;s=String(s);for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))%360;return h;}
+function avatarEl(u,size){
+  var d=el('span','xo-av');d.style.setProperty('--sz',size+'px');
+  var fb=el('span','fb',(Array.from(String((u&&u.nickname)||'?').trim())[0]||'?'));fb.style.background='hsl('+hue(u&&u.uniqueId)+' 42% 36%)';d.appendChild(fb);
+  var src=u&&u.avatar;
+  if(src&&/^(https?:\/\/|data:image\/)/i.test(src)){
+    var img=new Image();img.alt='';img.decoding='async';img.referrerPolicy='no-referrer';
+    img.onload=function(){d.classList.add('ok');};img.onerror=function(){try{img.remove();}catch(e){}};img.src=src;d.appendChild(img);
+  }
+  return d;
+}
+
+/* ---------- الانتقال بين الشاشات ---------- */
+function screen(name){
+  $('xo-setup').hidden=name!=='setup';
+  $('xo-stage').hidden=name!=='stage';
+}
+var cardA=$('xo-pca'), cardB=$('xo-pcb');
+function sizeVar(card){var v=parseInt(getComputedStyle(card).getPropertyValue('--ava'),10);return isFinite(v)&&v>0?v:96;}
+
+/* ---------- لوحة المربعات ---------- */
+var cells=[];
+(function buildCells(){
+  var host=$('xo-cells');
+  for(var i=1;i<=9;i++){var c=el('div','xo-c');c.dataset.n=i;c.appendChild(el('span','n',String(i)));host.appendChild(c);cells.push(c);}
+})();
+function markSvg(sym){
+  var s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 100 100');s.setAttribute('aria-hidden','true');
+  if(sym==='X'){
+    ['M24 24L76 76','M76 24L24 76'].forEach(function(d){var p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',d);p.setAttribute('pathLength','1');s.appendChild(p);});
+  }else{
+    var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx','50');c.setAttribute('cy','50');c.setAttribute('r','29');c.setAttribute('pathLength','1');s.appendChild(c);
+  }
+  return s;
+}
+function resetBoard(){
+  cells.forEach(function(c,i){c.className='xo-c';c.removeAttribute('aria-label');while(c.lastChild&&c.lastChild!==c.firstChild)c.removeChild(c.lastChild);});
+  var b=$('xo-board');b.classList.remove('done');
+  var wl=$('xo-wline');wl.classList.remove('go','show');var l=wl.firstElementChild;['x1','y1','x2','y2'].forEach(function(a){l.setAttribute(a,'0');});
+  b.classList.remove('draw');void b.offsetWidth;if(!reduced())b.classList.add('draw');
+}
+function setMark(n,sym,fresh){
+  var c=cells[n-1];if(!c||c.classList.contains('used'))return;
+  c.classList.add('used',sym==='X'?'x':'o');if(fresh)c.classList.add('fresh');
+  c.setAttribute('aria-label','المربع '+n+': '+sym);c.appendChild(markSvg(sym));
+}
+function drawWinLine(line){
+  var pos=function(n){var r=Math.floor((n-1)/3),k=(n-1)%3;return [50+100*k,50+100*r];};
+  var a=pos(line[0]),b=pos(line[2]),dx=b[0]-a[0],dy=b[1]-a[1],len=Math.sqrt(dx*dx+dy*dy)||1,ex=dx/len*14,ey=dy/len*14;
+  var wl=$('xo-wline'),l=wl.firstElementChild;
+  l.setAttribute('x1',a[0]-ex);l.setAttribute('y1',a[1]-ey);l.setAttribute('x2',b[0]+ex);l.setAttribute('y2',b[1]+ey);
+  wl.classList.remove('go');wl.classList.add('show');void wl.getBoundingClientRect();if(!reduced())wl.classList.add('go');
+  line.forEach(function(n){cells[n-1].classList.add('win');});
+  $('xo-board').classList.add('done');
+}
+
+/* ---------- بطاقات اللاعبين ---------- */
+function symOf(m,uid){return uid===m.x?'X':'O';}
+function fillSym(card,sym,swap){
+  var s=card.querySelector('.xo-sym');s.className='xo-sym '+(sym==='X'?'x':'o')+(swap&&!reduced()?' swap':'');
+  s.textContent='';s.appendChild(use(sym==='X'?'xo-i-x':'xo-i-o'));s.appendChild(el('span','xo-sr',sym==='X'?'الرمز X':'الرمز O'));
+}
+function fillCard(card,uid,m,swap){
+  var u=core.userOf(uid)||{uniqueId:uid,nickname:uid,avatar:''};
+  card.dataset.uid=uid;card.classList.remove('turn','won','out','enter');
+  var ring=card.querySelector('.ring');ring.style.setProperty('--p','1');
+  var old=ring.querySelector('.xo-av');if(old)old.remove();
+  var ph=ring.querySelector('.av');if(ph)ph.remove();
+  var av=avatarEl(u,sizeVar(card));ring.appendChild(av);
+  card.querySelector('.nm').textContent=u.nickname;card.querySelector('.nm').title=u.nickname;
+  fillSym(card,symOf(m,uid),swap);
+  card.hidden=false;
+}
+function cardOf(uid){return cardA.dataset.uid===uid?cardA:(cardB.dataset.uid===uid?cardB:null);}
+function setTurnCard(uid){[cardA,cardB].forEach(function(c){c.classList.toggle('turn',!!uid&&c.dataset.uid===uid);if(c.dataset.uid!==uid)c.querySelector('.ring').style.setProperty('--p','1');});}
+
+/* ---------- رأس المواجهة والمؤقّت ---------- */
+function setHead(m,extra){
+  var s=S(),h=$('xo-mhead');h.textContent='';h.classList.toggle('final',!!s.isFinal);
+  if(s.isFinal){h.appendChild(document.createTextNode('النهائي'));}
+  else{h.appendChild(document.createTextNode('المرحلة '+s.stageNo));}
+  var sm=el('small',null,s.isFinal?('المرحلة '+s.stageNo):('المواجهة '+(m.idx+1)+' من '+s.stageTotal));
+  if(extra)sm.textContent+=' · '+extra;
+  h.appendChild(sm);
+}
+function frame(){
+  var s=S(),st=s.status,tm=$('xo-timer');
+  var active=st==='active'&&s.cur&&s.cur.state==='active';
+  if(active){
+    var left=core.timeLeft(),sec=Math.ceil(left);
+    if(sec!==ui.sec){
+      ui.sec=sec;$('xo-tn').textContent=String(sec);tm.classList.toggle('low',sec<=5);
+      if(!s.paused&&sec<=5&&sec>0)AUD.play(sec<=3?'tickfast':'tick');
+    }
+    $('xo-tb').style.transform='scaleX('+Math.max(0,Math.min(1,left/s.turnSec)).toFixed(4)+')';
+    tm.classList.remove('idle');
+    var c=cardOf(s.cur.turn);if(c)c.querySelector('.ring').style.setProperty('--p',Math.max(0,Math.min(1,left/s.turnSec)).toFixed(4));
+  }else if(ui.sec!==-2){
+    ui.sec=-2;tm.classList.add('idle');tm.classList.remove('low');$('xo-tn').textContent=String(s.turnSec);$('xo-tb').style.transform='scaleX(1)';
+  }
+  pauseBar();
+}
+function pauseBar(){
+  var s=S(),pb=$('xo-pausebar'),key='';
+  if(s.paused){
+    var back=s.pauseReason==='link'&&s.linkBackAt;
+    key=s.pauseReason+(back?':back':'');
+    if(key!==ui.lastPauseKey){
+      ui.lastPauseKey=key;pb.hidden=false;pb.classList.toggle('link',s.pauseReason==='link');
+      $('xo-pausebar-t').textContent=s.pauseReason==='link'?(back?'عاد الاتصال بالبث. اضغط استئناف لإكمال البطولة من نفس الوقت المتبقي.':'انقطع الاتصال بالبث، فتوقفت البطولة وحُفظ الوقت المتبقي. لن يُقصى أحد حتى تستأنف.'):'البطولة متوقفة مؤقتاً، والوقت المتبقي محفوظ.';
+    }
+  }else if(ui.lastPauseKey){ui.lastPauseKey='';pb.hidden=true;}
+}
+
+/* ---------- البانر والطبقات ---------- */
+function banner(title,sub,cls){
+  var b=$('xo-banner'),d=b.firstElementChild;d.textContent='';b.className='xo-banner'+(cls?' '+cls:'');
+  if(title){d.appendChild(el('div','t',title));if(sub)d.appendChild(el('div','s',sub));if(!reduced()){void b.offsetWidth;b.classList.add('pop');}}
+}
+function overlay(id,on){var o=$(id);o.hidden=!on;o.classList.toggle('on',!!on);if(!on)o.firstElementChild.textContent='';}
+function hideOverlays(){overlay('xo-ov-intro',false);overlay('xo-ov-stage',false);overlay('xo-ov-lot',false);}
+function personChip(u,size){var d=el('div',null);d.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;min-width:96px';d.appendChild(avatarEl(u,size));var n=el('div',null,u.nickname);n.style.cssText='font:800 15px var(--xo-font);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';d.appendChild(n);return d;}
+
+/* ---------- قائمة الانتظار ---------- */
+var WAIT_CAP=120;
+function renderWait(){
+  var s=S(),ids=Array.from(s.players.keys());
+  $('xo-wkw').textContent=s.kw;$('xo-wcount').textContent=String(ids.length);
+  var grid=$('xo-wgrid'),show=ids.slice(0,WAIT_CAP),keep=new Set(show);
+  ui.waitEls.forEach(function(e,id){if(!keep.has(id)){e.remove();ui.waitEls.delete(id);}});
+  show.forEach(function(id){
+    if(ui.waitEls.has(id))return;
+    var u=s.players.get(id),w=el('div','xo-wp'+(reduced()?'':' in'));w.setAttribute('role','listitem');w.dataset.uid=id;
+    w.appendChild(avatarEl(u,56));w.appendChild(el('div','nm',u.nickname));
+    var b=el('button',null);b.type='button';b.setAttribute('aria-label','إزالة '+u.nickname);b.appendChild(use('xo-i-rm'));
+    b.addEventListener('click',function(){doRemove(id);});w.appendChild(b);
+    grid.appendChild(w);ui.waitEls.set(id,w);
+  });
+  var more=grid.querySelector('.xo-wmore');
+  if(ids.length>WAIT_CAP){if(!more){more=el('div','xo-wmore');grid.appendChild(more);}more.textContent='+'+(ids.length-WAIT_CAP);}else if(more)more.remove();
+  var q=$('xo-wqueued'),qn=s.queue.size;q.hidden=!qn;q.textContent=qn?('بانتظار البطولة التالية: '+qn):'';
+  renderDock();
+}
+
+/* ---------- فائز مؤقت ---------- */
+var KIND={win:'فوز',timeout:'انتهاء وقت المنافس',bye:'تأهل مباشر',lot:'قرعة',removed:'انسحاب المنافس'};
+function renderTmp(){
+  var s=S(),list=$('xo-tmp-l'),want=new Map();
+  s.qualified.forEach(function(q){want.set(q.uid,q);});
+  ui.tmpEls.forEach(function(li,id){if(!want.has(id)){li.remove();ui.tmpEls.delete(id);}});
+  want.forEach(function(q,id){
+    if(ui.tmpEls.has(id))return;                                  /* البطاقة تضاف مرة واحدة فقط */
+    var u=core.userOf(id)||{uniqueId:id,nickname:id,avatar:''},li=el('li','xo-ti');li.dataset.uid=id;
+    li.appendChild(avatarEl(u,30));li.appendChild(el('span','nm',u.nickname));li.appendChild(el('span','kd',KIND[q.kind]||''));
+    var ck=use('xo-i-ck','ck');li.appendChild(ck);li.setAttribute('aria-label',u.nickname+' متأهل: '+(KIND[q.kind]||''));
+    var fly=ui.pendingFlight.get(id);
+    if(fly&&!reduced()&&q.kind!=='bye')li.classList.add('ghost');else if(!reduced())li.classList.add('pop');
+    list.appendChild(li);ui.tmpEls.set(id,li);
+    if(!fly&&!reduced()){}
+  });
+  var empty=list.querySelector('.xo-tmp-e');
+  if(!want.size){if(!empty){list.appendChild(el('li','xo-tmp-e','لم يتأهل أحد بعد في هذه المرحلة'));}}else if(empty)empty.remove();
+  updTmpCount();
+}
+function updTmpCount(){var n=0;ui.tmpEls.forEach(function(li){if(!li.classList.contains('ghost'))n++;});$('xo-tmp-n').textContent=String(n);}
+function renderPill(){
+  var s=S(),p=$('xo-stagepill');p.textContent='';
+  if(!s.stageNo)return;
+  p.appendChild(el('b',null,s.isFinal?'النهائي':('المرحلة '+s.stageNo)));
+  p.appendChild(el('span',null,'انتهت '+s.stageDone+' من '+s.stageTotal));
+  p.appendChild(el('span',null,'متبقية '+Math.max(0,s.stageTotal-s.stageDone)));
+}
+function flyTo(uid,delay){
+  var li=ui.tmpEls.get(uid),src=cardOf(uid);
+  if(!li||!li.classList.contains('ghost'))return;
+  var reveal=function(){li.classList.remove('ghost');if(!reduced())li.classList.add('pop');updTmpCount();};
+  if(!src||!li.animate||reduced()){reveal();return;}
+  later(function(){
+    if(!li.isConnected){return;}
+    var sa=src.querySelector('.xo-av'),ta=li.querySelector('.xo-av');
+    if(!sa||!ta||!sa.isConnected){reveal();return;}
+    var a=sa.getBoundingClientRect(),b=ta.getBoundingClientRect();
+    if(!a.width||!b.width){reveal();return;}
+    var u=core.userOf(uid)||{uniqueId:uid,nickname:uid},c=el('div','xo-flight');c.style.cssText+='left:'+a.left+'px;top:'+a.top+'px;width:'+a.width+'px;height:'+a.height+'px';
+    var av=avatarEl(u,a.width);c.appendChild(av);document.body.appendChild(c);
+    var dx=b.left-a.left,dy=b.top-a.top,sc=b.width/a.width,done=false;
+    var fin=function(){if(done)return;done=true;flights.delete(anim);try{c.remove();}catch(e){}if(li.isConnected)reveal();};
+    var anim=c.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+(dx*0.5)+'px,'+(dy*0.5-40)+'px) scale('+((1+sc)/2+.25)+')',opacity:1,offset:.5},{transform:'translate('+dx+'px,'+dy+'px) scale('+sc+')',opacity:1}],{duration:760,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+    anim.cancelFn=fin;flights.add(anim);anim.onfinish=fin;anim.oncancel=fin;
+    setTimeout(fin,1400);
+  },delay||0);
+  /* شبكة أمان: لا تبقى البطاقة مخفية إن لم تتم الحركة */
+  later(function(){if(li.isConnected&&li.classList.contains('ghost'))reveal();},(delay||0)+1800);
+}
+function cancelFlights(){flights.forEach(function(a){try{a.cancelFn&&a.cancelFn();a.cancel();}catch(e){}});flights.clear();document.querySelectorAll('.xo-flight').forEach(function(n){n.remove();});ui.pendingFlight.clear();}
+
+/* ---------- السجلات ---------- */
+function addLog(cls,parts){
+  var ul=$('xo-chat'),li=el('li',cls||'');
+  parts.forEach(function(p){if(typeof p==='string')li.appendChild(document.createTextNode(p));else li.appendChild(el('b',null,p.b));});
+  var near=ul.parentNode.scrollHeight-ul.parentNode.scrollTop-ul.parentNode.clientHeight<40;
+  ul.appendChild(li);while(ul.children.length>70)ul.removeChild(ul.firstChild);
+  if(near)ul.parentNode.scrollTop=ul.parentNode.scrollHeight;
+}
+var RS={line:'بخط كامل',timeout:'بانتهاء وقت المنافس',lot:'بالقرعة',removed:'لانسحاب المنافس',forced:'بقرار الستريمر'};
+function renderHist(){
+  var h=$('xo-hist');h.textContent='';var s=S();
+  if(!s.stages.length){h.appendChild(el('div','xo-hint','لا توجد مواجهات بعد'));return;}
+  s.stages.forEach(function(st){
+    h.appendChild(el('div','xo-hs',st.final?'النهائي':('المرحلة '+st.stage)));
+    var ul=el('ul','xo-log');
+    st.matches.forEach(function(m){
+      var li=el('li',m.winner?'k-win':'');
+      li.appendChild(document.createTextNode(nameOf(m.a)+' ضد '+nameOf(m.b)));
+      if(m.winner){li.appendChild(document.createTextNode(' ← '));li.appendChild(el('b',null,nameOf(m.winner)));li.appendChild(document.createTextNode(' '+(RS[m.reason]||'')+(m.ties?(' · '+m.ties+' تعادل'):'')));}
+      else li.appendChild(document.createTextNode(' ← ألغيت'));
+      ul.appendChild(li);
+    });
+    st.byes.forEach(function(b){var li=el('li',null);li.appendChild(el('b',null,nameOf(b)));li.appendChild(document.createTextNode(' تأهل مباشر'));ul.appendChild(li);});
+    h.appendChild(ul);
+  });
+}
+function scheduleHist(){if(ui.histQ)return;ui.histQ=requestAnimationFrame(function(){ui.histQ=0;if(!destroyed)renderHist();});}
+
+/* ---------- شريط التحكم ---------- */
+function renderDock(){
+  var s=S(),st=s.status,inplay=st==='intro'||st==='active'||st==='result'||st==='stage';
+  var key=[st,s.paused,s.players.size,s.queue.size,s.alive].join('|');
+  $('xo-start').hidden=st!=='waiting';$('xo-start').disabled=!(st==='waiting'&&s.players.size>=K.MIN_PLAYERS);
+  $('xo-pause').hidden=!(inplay&&!s.paused);$('xo-resume').hidden=!s.paused;
+  $('xo-tosetup').hidden=!(st==='waiting'||st==='finished');
+  $('xo-plist-n').textContent=String(s.players.size+s.queue.size);
+  $('xo-open-sim').hidden=EMBED;
+}
+function renderPhase(){
+  var s=S(),st=s.status;root.dataset.phase=st;
+  var play=!(st==='setup'||st==='waiting');
+  if(st==='setup'){screen('setup');return;}
+  screen('stage');
+  $('xo-wait').hidden=st!=='waiting';$('xo-play').hidden=!play;
+  $('xo-tmpwrap').hidden=!play;cardA.hidden=!play||!cardA.dataset.uid;cardB.hidden=!play||!cardB.dataset.uid;
+  $('xo-chip-sim').hidden=mode!=='demo';
+  linkChip();renderDock();
+}
+function linkChip(){
+  var s=S(),c=$('xo-chip-link'),t=$('xo-chip-link-t');
+  if(mode==='demo'){c.className='xo-chip sim';t.textContent='وضع المحاكاة';c.hidden=true;return;}
+  c.hidden=false;var live=s.linkLive;c.className='xo-chip '+(live?'live':'off');t.textContent=linkLabel||(live?'الشات متصل':'الشات غير متصل');
+  var sc=$('xo-s-link');if(sc){sc.className='xo-chip '+(live?'live':'off');$('xo-s-link-t').textContent=t.textContent;}
+}
+
+/* ---------- أحداث المحرك ← الواجهة ---------- */
+bus.on('status',function(st){renderPhase();post('status',{status:st});});
+bus.on('join',function(u){if(S().status==='waiting'){renderWait();addLog('',[{b:u.nickname},' انضم']);}});
+bus.on('leave',function(uid){
+  if(S().status==='waiting')renderWait();else{renderTmp();renderPill();renderDock();}
+  renderModal();
+});
+bus.on('queue',function(u){if(u){addLog('',[{b:u.nickname},' ينتظر البطولة التالية']);}renderWait();renderDock();renderModal();});
+bus.on('followPending',function(u){addLog('k-bad',[{b:u.nickname},' يحتاج متابعة للانضمام']);});
+bus.on('full',function(){toast('وصلت القائمة للحد الأقصى ('+K.MAX_PLAYERS+')');});
+bus.on('reset',function(){
+  clearLater();cancelFlights();hideOverlays();$('xo-champ').classList.remove('on');$('xo-conf').textContent='';
+  ui.tmpEls.forEach(function(e){e.remove();});ui.tmpEls.clear();ui.waitEls.forEach(function(e){e.remove();});ui.waitEls.clear();
+  cardA.dataset.uid='';cardB.dataset.uid='';cardA.hidden=true;cardB.hidden=true;ui.lot=null;ui.sec=-1;ui.lastPauseKey='';$('xo-pausebar').hidden=true;
+  $('xo-tmp-l').textContent='';$('xo-hist').textContent='';$('xo-stagepill').textContent='';banner('');renderTmp();
+  renderPhase();if(S().status==='waiting')renderWait();
+});
+bus.on('start',function(){addLog('k-win',['بدأت البطولة']);post('start');});
+bus.on('stage',function(n,fin,count){
+  overlay('xo-ov-stage',false);renderTmp();renderPill();scheduleHist();
+  addLog('',[fin?'النهائي':('بدأت المرحلة '+n),' · '+count+' لاعبين']);
+});
+bus.on('matchIntro',function(m){
+  var s=S();hideOverlays();banner('');resetBoard();ui.sec=-1;
+  fillCard(cardA,m.a,m,false);fillCard(cardB,m.b,m,false);
+  if(!reduced()){cardA.classList.add('enter');cardB.classList.add('enter');}
+  setTurnCard(null);renderPhase();setHead(m);renderPill();
+  $('xo-hintline').textContent=s.isFinal?'النهائي: اكتب رقم المربع (1–9) بالشات في دورك':'اكتب رقم المربع (1–9) بالشات في دورك';
+  var c=$('xo-ov-intro-c');c.textContent='';c.className='xo-ovc'+(s.isFinal?' final':'');
+  c.appendChild(el('h3',null,s.isFinal?'النهائي':('المرحلة '+s.stageNo)));
+  if(!s.isFinal)c.appendChild(el('p',null,'المواجهة '+(m.idx+1)+' من '+s.stageTotal));
+  var row=el('div','row'),xu=core.userOf(m.x),ou=core.userOf(m.o);
+  [xu,ou].forEach(function(u,i){var p=personChip(u,s.isFinal?84:68);var sy=el('span','xo-sym '+(i===0?'x':'o'));sy.appendChild(use(i===0?'xo-i-x':'xo-i-o'));sy.appendChild(el('span','xo-sr',i===0?'الرمز X':'الرمز O'));p.appendChild(sy);row.appendChild(p);});
+  c.appendChild(row);c.appendChild(el('p',null,xu.nickname+' يبدأ بالرمز X'));
+  overlay('xo-ov-intro',true);
+  AUD.play(s.isFinal?'final':'intro');
+  addLog('',['المواجهة '+m.no+': ',{b:xu.nickname},' (X) ضد ',{b:ou.nickname},' (O)']);
+});
+bus.on('turn',function(m,uid){
+  overlay('xo-ov-intro',false);ui.sec=-1;setTurnCard(uid);
+  $('xo-hintline').textContent='دور '+nameOf(uid)+': اكتب رقم مربع فارغ (1–9)';
+});
+bus.on('move',function(m,uid,cell,sym){
+  setMark(cell,sym,!reduced());AUD.play(sym==='X'?'x':'o');
+  addLog('',[{b:nameOf(uid)},' اختار '+cell+' ('+sym+')']);
+});
+bus.on('qualify',function(uid,kind){
+  /* الحركة لقائمة «فائز مؤقت» تتأخر حتى يرى الجمهور سبب التأهل */
+  if(kind!=='bye'&&cardOf(uid)){ui.pendingFlight.set(uid,true);}
+  renderTmp();renderPill();
+  if(ui.pendingFlight.get(uid)){
+    var d={win:1100,timeout:700,lot:Math.max(600,K.LOT_MS-700),removed:500}[kind];
+    flyTo(uid,d==null?600:d);ui.pendingFlight.delete(uid);
+  }
+});
+bus.on('unqualify',function(){renderTmp();renderPill();});
+bus.on('eliminate',function(){renderModal();});
+bus.on('matchEnd',function(m){
+  var o=m.outcome,s=S();setTurnCard(null);renderPill();
+  if(o.void){scheduleHist();banner('أُلغيت المواجهة','لا يوجد لاعب متأهل منها');return;}
+  var w=core.userOf(o.winner),c=cardOf(o.winner),l=cardOf(o.loser);
+  var lotWait=o.reason==='lot'?Math.max(600,K.LOT_MS-700):0;      /* القرعة: لا نكشف النتيجة قبل انتهاء الأنيميشن */
+  var mark=function(){if(c)c.classList.add('won');if(l)l.classList.add('out');scheduleHist();addLog('k-win',[{b:w.nickname},' تأهل '+(RS[o.reason]||'')]);};
+  if(lotWait)later(mark,lotWait);else mark();
+  $('xo-hintline').textContent='';
+  var fin=s.isFinal;
+  if(o.reason==='line'){drawWinLine(o.line);banner(w.nickname+(fin?' يتأهل للتتويج':' يتأهل'),'أكمل ثلاثة في خط واحد');AUD.play('win');}
+  else if(o.reason==='timeout'){banner(w.nickname+' يتأهل','تأهل بانتهاء وقت المنافس');AUD.play('timeout');}
+  else if(o.reason==='lot'){startLot(m);}
+  else if(o.reason==='removed'){banner(w.nickname+' يتأهل','تأهل لانسحاب المنافس');AUD.play('win');}
+  else{banner(w.nickname+' يتأهل','تأهل بقرار الستريمر');AUD.play('win');}
+});
+bus.on('tie',function(m){
+  setTurnCard(null);$('xo-board').classList.add('done');$('xo-hintline').textContent='';
+  var left=K.TIE_LIMIT-m.ties;
+  banner('تعادل — إعادة المواجهة',S().lotAfter3?(left>0?('تبقى '+left+' تعادل قبل الحسم بالقرعة'):''):'ستُعاد حتى يفوز أحدكما','tie');
+  AUD.play('tie');addLog('',['تعادل رقم '+m.ties+' في المواجهة '+m.no]);
+});
+bus.on('rematch',function(m){
+  overlay('xo-ov-stage',false);resetBoard();banner('');ui.sec=-1;
+  fillSym(cardA,symOf(m,m.a),true);fillSym(cardB,symOf(m,m.b),true);
+  cardA.classList.remove('won','out');cardB.classList.remove('won','out');setTurnCard(null);
+  setHead(m,'إعادة بعد تعادل');
+  var c=$('xo-ov-intro-c');c.textContent='';c.className='xo-ovc';
+  c.appendChild(el('h3',null,'تبديل الرمزين'));c.appendChild(el('p',null,nameOf(m.x)+' يبدأ الآن بالرمز X'));
+  overlay('xo-ov-intro',true);AUD.play('rematch');
+});
+bus.on('stageDone',function(n,count){
+  var s=S(),c=$('xo-ov-stage-c');c.textContent='';c.className='xo-ovc';
+  hideOverlaysExcept('xo-ov-stage');
+  c.appendChild(el('h3',null,'انتهت المرحلة '+n));
+  c.appendChild(el('p',null,'تأهل '+count+' لاعبين إلى '+(count===2?'النهائي':'المرحلة التالية')));
+  var row=el('div','row');s.qualified.slice(0,10).forEach(function(q){row.appendChild(avatarEl(core.userOf(q.uid),44));});c.appendChild(row);
+  overlay('xo-ov-stage',true);banner('');
+});
+function hideOverlaysExcept(id){['xo-ov-intro','xo-ov-stage','xo-ov-lot'].forEach(function(i){if(i!==id)overlay(i,false);});}
+bus.on('pause',function(r){AUD.play('pause');renderDock();pauseBar();});
+bus.on('resume',function(){renderDock();pauseBar();});
+bus.on('link',function(){linkChip();});
+bus.on('finish',function(res){
+  hideOverlays();setTurnCard(null);renderPhase();renderTmp();scheduleHist();
+  showChamp(res);post('finish',res);
+});
+
+/* ---------- القرعة ---------- */
+function startLot(m){
+  var o=m.outcome,w=o.winner,s=S(),ep=s.epoch,c=$('xo-ov-lot-c');
+  hideOverlaysExcept('xo-ov-lot');c.textContent='';c.className='xo-ovc';
+  c.appendChild(el('h3',null,'القرعة'));
+  var st=el('p',null,'تعادلتما '+m.ties+' مرات، والحسم بالقرعة المتساوية الاحتمال…');c.appendChild(st);
+  var box=el('div','xo-lotbox'),pa={};
+  [m.a,m.b].forEach(function(id){var d=el('div','xo-lotp');d.appendChild(avatarEl(core.userOf(id),72));d.appendChild(el('div','nm',nameOf(id)));box.appendChild(d);pa[id]=d;});
+  c.appendChild(box);overlay('xo-ov-lot',true);ui.lot=ep;
+  var fin=function(){
+    if(S().epoch!==ep||destroyed)return;
+    Object.keys(pa).forEach(function(id){pa[id].classList.remove('hl');pa[id].classList.toggle('win',id===w);});
+    st.textContent=nameOf(w)+': تأهل بالقرعة';AUD.play('lot');banner(nameOf(w)+' يتأهل','تأهل بالقرعة');
+  };
+  if(reduced()){fin();return;}
+  var spin=Math.max(1200,K.LOT_MS-1500),iv=90,t=0,seq=[];
+  while(t<spin){seq.push(iv);t+=iv;iv*=1.13;}
+  var ids=[m.a,m.b],lastIdx=ids.indexOf(w);
+  if((seq.length-1)%2!==lastIdx)seq.push(iv);
+  var at=0;
+  seq.forEach(function(d,i){at+=d;later(function(){var cur=ids[i%2];Object.keys(pa).forEach(function(id){pa[id].classList.toggle('hl',id===cur);});AUD.play('lottick');},at);});
+  later(fin,at+250);
+}
+
+/* ---------- التتويج ---------- */
+function showChamp(res){
+  var ch=$('xo-champ'),av=$('xo-champ-av'),nm=$('xo-champ-n'),tt=$('xo-champ-t'),crown=document.querySelector('.xo-crown');
+  av.textContent='';
+  if(res.champion){
+    av.appendChild(avatarEl(res.champion,168));nm.textContent=res.champion.nickname;tt.textContent='بطل إكس أو';crown.style.display='';
+    AUD.play('champ');
+  }else{
+    nm.textContent='انتهت البطولة دون بطل';tt.textContent='أُزيل جميع اللاعبين';crown.style.display='none';
+  }
+  ch.classList.add('on');
+  var cf=$('xo-conf');cf.textContent='';
+  if(res.champion&&!reduced()){
+    var cols=['#B79CFF','#7B3FE4','#F2C66D','#E6DAFF','#ff9db2'];
+    for(var i=0;i<34;i++){var p=document.createElement('i');p.style.left=(Math.random()*100)+'%';p.style.background=cols[i%cols.length];p.style.animationDuration=(3+Math.random()*3)+'s';p.style.animationDelay=(-Math.random()*5)+'s';cf.appendChild(p);}
+  }
+  setTimeout(function(){try{$('xo-champ-new').focus();}catch(e){}},50);
+}
+
+/* ---------- نافذة المشاركين ---------- */
+function statusOfUid(uid){
+  var s=S();
+  if(s.status==='waiting')return 'في الانتظار';
+  if(s.eliminated.has(uid))return s.eliminated.get(uid).reason==='removed'?'أُزيل':'مقصي';
+  if(s.cur&&(s.cur.a===uid||s.cur.b===uid)&&s.cur.state!=='done')return 'يلعب الآن';
+  for(var i=0;i<s.qualified.length;i++)if(s.qualified[i].uid===uid)return 'متأهل';
+  return 'ينتظر مواجهته';
+}
+function renderModal(){
+  var m=$('xo-modal');if(m.hidden)return;
+  var s=S(),l=$('xo-md-l');l.textContent='';
+  var rows=[];
+  s.players.forEach(function(u,id){rows.push({u:u,id:id,st:statusOfUid(id),can:s.status==='waiting'||!s.eliminated.has(id)});});
+  s.queue.forEach(function(u,id){rows.push({u:u,id:id,st:'بانتظار البطولة التالية',can:true});});
+  if(!rows.length)l.appendChild(el('li',null,'لا يوجد مشاركون'));
+  rows.slice(0,300).forEach(function(r){
+    var li=el('li',null);li.appendChild(avatarEl(r.u,34));li.appendChild(el('span','nm',r.u.nickname));li.appendChild(el('span','st',r.st));
+    if(r.can){var b=el('button','xo-btn sm dng','إزالة');b.type='button';b.setAttribute('aria-label','إزالة '+r.u.nickname);b.addEventListener('click',function(){doRemove(r.id);});li.appendChild(b);}
+    l.appendChild(li);
+  });
+}
+function openModal(){var m=$('xo-modal');m.hidden=false;renderModal();setTimeout(function(){try{$('xo-md-x').focus();}catch(e){}},0);}
+function closeModal(){$('xo-modal').hidden=true;}
+function doRemove(uid){
+  var nm=nameOf(uid)||((S().queue.get(uid)||{}).nickname);
+  var ok=core.removePlayer(uid);
+  if(ok){addLog('k-bad',['أُزيل ',{b:nm||uid}]);renderDock();}
+  renderModal();
+}
+
+/* ---------- المحاكي (الملف المستقل فقط) ---------- */
+var SIM=(function(){
+  var NAMES=['سلطان','نورة','فهد','ريم','خالد','لجين','ماجد','هيا','تركي','جوري','بدر','سارة','عبدالله','دانة','ناصر','العنود','سعود','مها','فيصل','رهف','يزيد','شهد','وليد','لمى','أنس','غلا','طلال','بشاير','حمد','أسيل','راكان','نجلاء','عمر','ريماس','زياد','سديم','مشعل','تالا','ياسر','وعد'];
+  var accts=NAMES.map(function(n,i){return {uniqueId:'sim_'+(i+1),nickname:n,avatar:avatarUri(n,i)};});
+  function avatarUri(n,i){var h=(i*47)%360,ch=Array.from(n)[0];var svg='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="hsl('+h+',45%,38%)"/><text x="32" y="43" font-size="30" font-family="sans-serif" font-weight="700" text-anchor="middle" fill="#fff">'+ch+'</text></svg>';return 'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);}
+  var seq=0,auto=false,speed=1,idleP=0.04,think=new Map(),iv=0,rnd=Math.random;
+  function byUid(id){for(var i=0;i<accts.length;i++)if(accts[i].uniqueId===id)return accts[i];return null;}
+  function ev(a,text,id){return {type:'chat',source:'sim',uniqueId:a.uniqueId,nickname:a.nickname,avatar:a.avatar,comment:text,msgId:id==null?('sim-'+(++seq)):id};}
+  function message(a,text,id){return receiveEvent(ev(a,text,id));}
+  function addMany(n){
+    var s=S(),c=0;
+    for(var i=0;i<accts.length&&c<n;i++){var a=accts[i];if(s.players.has(a.uniqueId)||s.queue.has(a.uniqueId))continue;message(a,s.kw||'x');c++;}
+    return c;
+  }
+  function choose(m,uid){
+    var sym=uid===m.x?'X':'O',opp=sym==='X'?'O':'X',b=m.board,free=[];
+    b.forEach(function(v,i){if(!v)free.push(i+1);});
+    function finish(s){for(var k=0;k<core.LINES.length;k++){var l=core.LINES[k],cnt=0,e=0;l.forEach(function(n){if(b[n-1]===s)cnt++;else if(!b[n-1])e=n;});if(cnt===2&&e)return e;}return 0;}
+    var w=finish(sym),bl=finish(opp);
+    if(w&&rnd()<.85)return w;if(bl&&rnd()<.6)return bl;
+    if(!b[4]&&rnd()<.5)return 5;
+    return free[Math.floor(rnd()*free.length)];
+  }
+  function step(){
+    if(!auto||destroyed)return;
+    var s=S();if(s.status!=='active'||s.paused||!s.cur||s.cur.state!=='active')return;
+    var uid=s.cur.turn,a=byUid(uid);if(!a)return;
+    var key=s.cur.turnId,t=think.get(key);
+    if(!t){t={at:Date.now()+(500+rnd()*2800)/speed,idle:rnd()<idleP};think.set(key,t);if(think.size>40)think.delete(think.keys().next().value);}
+    if(t.idle||Date.now()<t.at)return;
+    think.delete(key);message(a,String(choose(s.cur,uid)));
+  }
+  function setAuto(v){auto=!!v;var c=$('xo-sim-auto');if(c)c.checked=auto;}
+  iv=setInterval(step,200);cleanups.push(function(){clearInterval(iv);});
+  return {accts:accts,byUid:byUid,message:message,addMany:addMany,setAuto:setAuto,isAuto:function(){return auto;},setSpeed:function(x){speed=Math.max(.1,+x||1);},setIdle:function(p){idleP=+p||0;},setRng:function(f){rnd=f||Math.random;},step:step};
+})();
+
+/* ---------- استقبال أحداث البث ---------- */
+function extractUser(m){
+  var u=m.user||m.data&&m.data.user||{};
+  var uid=m.uniqueId!=null?m.uniqueId:(u.uniqueId!=null?u.uniqueId:(m.userId!=null?m.userId:u.userId));
+  return {uniqueId:uid==null?null:String(uid),nickname:String(m.nickname||u.nickname||m.displayName||uid||'').slice(0,40),avatar:m.avatar||m.profilePictureUrl||u.profilePictureUrl||u.avatar||'',
+    isFollower:!!(m.isFollower||u.isFollower),followKnown:(m.followKnown!=null?m.followKnown:u.followKnown)};
+}
+function receiveEvent(ev){
+  var out=[];if(!ev||destroyed)return out;
+  if(Array.isArray(ev)){ev.forEach(function(e){out=out.concat(receiveEvent(e));});return out;}
+  if(ev.messages&&Array.isArray(ev.messages)){ev.messages.forEach(function(e){out=out.concat(receiveEvent(e));});return out;}
+  var m=ev.data&&ev.data.type?ev.data:ev,type=m.type||m.event;
+  if(m.source!=='sim'&&mode==='link'&&!S().linkLive&&!EMBED)core.setLink(true);
+  if(type==='WebcastChatMessage'||type==='chat'||type==='comment'){
+    var u=extractUser(m),text=m.comment||m.content||m.text||(m.data&&m.data.comment)||'';
+    var id=m.msgId||m.eventId||m.id||(m.data&&(m.data.msgId||m.data.eventId))||null;
+    if(u.uniqueId==null)out.push('ignored');else out.push(core.handleChat(u,text,id));
+  }else if(type==='WebcastSocialMessage'||type==='follow'||type==='social'){
+    var f=extractUser(m);if(f.uniqueId!=null){out.push(core.handleFollow(f)?'join':'ignored');}else out.push('ignored');
+  }else out.push('ignored');
+  return out;
+}
+
+/* ---------- الإعداد (الملف المستقل) ---------- */
+function setMode(m){
+  mode=m==='link'?'link':'demo';core.setMode(mode);
+  $('xo-m-demo').setAttribute('aria-pressed',mode==='demo');$('xo-m-link').setAttribute('aria-pressed',mode==='link');
+  if(mode==='demo'){core.setLink(true);linkLabel='';}
+  var sl=$('xo-s-link');sl.className='xo-chip '+(mode==='demo'?'sim':(S().linkLive?'live':'off'));
+  $('xo-s-link-t').textContent=mode==='demo'?'وضع المحاكاة (لا يوجد بث حقيقي)':(S().linkLive?(linkLabel||'الشات متصل'):'غير متصل بأي بث داخل هذا الملف');
+  linkChip();
+}
+function setupErr(msg){$('xo-setup-err').textContent=msg||'';}
+function openRoom(){
+  setupErr('');
+  var kw=$('xo-kw').value,turn=$('xo-turn').value,lot=$('xo-lot').checked;
+  var err=core.configure({kw:kw,turnSec:turn,lotAfter3:lot,requireFollow:false});
+  if(err){setupErr(err);api.lastError=err;return false;}
+  if(mode==='link'&&!S().linkLive){err='اربط البث أولاً، ثم ادخل شاشة الانتظار';setupErr(err);api.lastError=err;return false;}
+  api.lastError=null;core.setMode(mode);
+  if(S().status==='setup'||S().status==='finished'||S().status==='waiting')core.openWaiting();
+  post('open');return true;
+}
+function backToSetup(){core.toSetup();setupErr('');post('setup');}
+
+/* ---------- الأزرار ---------- */
+function togglePane(btn){var ex=btn.getAttribute('aria-expanded')==='true';btn.setAttribute('aria-expanded',ex?'false':'true');}
+function sheet(name){
+  var p=$('xo-panes'),cur=p.getAttribute('data-open');
+  if(cur===name)p.removeAttribute('data-open');else p.setAttribute('data-open',name);
+  var btn=$('xo-p-'+name).querySelector('button');btn.setAttribute('aria-expanded','true');
+}
+function bindUI(){
+  on($('xo-m-demo'),'click',function(){setMode('demo');});on($('xo-m-link'),'click',function(){setMode('link');});
+  on($('xo-turn'),'input',function(){$('xo-turn-o').textContent=$('xo-turn').value;});
+  on($('xo-go'),'click',function(){AUD.unlock();openRoom();});
+  on($('xo-kw'),'keydown',function(e){if(e.key==='Enter'){AUD.unlock();openRoom();}});
+  on($('xo-back'),'click',function(){post('home');});
+  on($('xo-start'),'click',function(){AUD.unlock();core.start();});
+  on($('xo-pause'),'click',function(){core.pause('manual');});
+  on($('xo-resume'),'click',function(){AUD.unlock();core.resume();});
+  on($('xo-pausebar-b'),'click',function(){AUD.unlock();core.resume();});
+  on($('xo-plist'),'click',openModal);on($('xo-md-x'),'click',closeModal);
+  on($('xo-modal'),'click',function(e){if(e.target===$('xo-modal'))closeModal();});
+  on($('xo-reset'),'click',function(){$('xo-confirm').hidden=false;setTimeout(function(){try{$('xo-cf-no').focus();}catch(e){}},0);});
+  on($('xo-cf-no'),'click',function(){$('xo-confirm').hidden=true;});
+  on($('xo-cf-yes'),'click',function(){$('xo-confirm').hidden=true;core.openWaiting();toast('أُعيد ضبط البطولة');});
+  on($('xo-mute'),'click',function(){var m=!AUD.isMuted();AUD.setMuted(m);$('xo-mute').setAttribute('aria-pressed',m);$('xo-mute').textContent=m?'تشغيل الصوت':'كتم الصوت';if(!m)AUD.unlock();});
+  on($('xo-motion'),'click',function(){manualReduced=!manualReduced;$('xo-motion').setAttribute('aria-pressed',manualReduced);root.classList.toggle('xo-reduced',reduced());});
+  on($('xo-tosetup'),'click',function(){backToSetup();});
+  on($('xo-home'),'click',function(){if(EMBED)post('home');else{backToSetup();}});
+  on($('xo-champ-new'),'click',function(){core.openWaiting();});
+  on($('xo-champ-home'),'click',function(){if(EMBED)post('home');else{core.openWaiting();backToSetup();}});
+  document.querySelectorAll('.xo-pane>button').forEach(function(b){on(b,'click',function(){togglePane(b);});});
+  on($('xo-open-chat'),'click',function(){sheet('chat');});on($('xo-open-hist'),'click',function(){sheet('hist');});on($('xo-open-sim'),'click',function(){sheet('sim');});
+  on(document,'keydown',function(e){
+    if(e.key==='Escape'){if(!$('xo-confirm').hidden)$('xo-confirm').hidden=true;else if(!$('xo-modal').hidden)closeModal();}
+    if(e.key==='Tab'){
+      var scope=!$('xo-confirm').hidden?$('xo-confirm'):(!$('xo-modal').hidden?$('xo-modal'):($('xo-champ').classList.contains('on')?$('xo-champ'):null));
+      if(scope){var f=Array.prototype.slice.call(scope.querySelectorAll('button:not([disabled])'));if(!f.length)return;var i=f.indexOf(document.activeElement);
+        if(e.shiftKey&&i<=0){e.preventDefault();f[f.length-1].focus();}else if(!e.shiftKey&&(i===f.length-1||i<0)){e.preventDefault();f[0].focus();}}
+    }
+  });
+  on(window,'pointerdown',function(){AUD.unlock();},{passive:true});on(window,'keydown',function(){AUD.unlock();});
+  var rm=function(){root.classList.toggle('xo-reduced',reduced());};
+  if(reducedMq.addEventListener){reducedMq.addEventListener('change',rm);cleanups.push(function(){reducedMq.removeEventListener('change',rm);});}
+  rm();
+  /* المحاكي */
+  var sel=$('xo-sim-acct');SIM.accts.forEach(function(a){var o=document.createElement('option');o.value=a.uniqueId;o.textContent=a.nickname;sel.appendChild(o);});
+  function send(){var a=SIM.byUid(sel.value),tx=$('xo-sim-txt').value;if(!a||!tx.trim())return;var r=SIM.message(a,tx);$('xo-sim-out').textContent='النتيجة: '+({join:'انضم للبطولة',queued:'ينتظر البطولة التالية',move:'حركة مقبولة',ignored:'تم تجاهل الرسالة',admin:'أمر إدارة',dup:'رسالة مكررة'}[r[0]]||r[0]);$('xo-sim-txt').value='';}
+  on($('xo-sim-send'),'click',function(){AUD.unlock();send();});on($('xo-sim-txt'),'keydown',function(e){if(e.key==='Enter'){AUD.unlock();send();}});
+  on($('xo-sim-add'),'click',function(){AUD.unlock();var n=+$('xo-sim-n').value;var c=SIM.addMany(n);$('xo-sim-out').textContent='أُرسلت كلمة الانضمام من '+c+' حساب';});
+  on($('xo-sim-auto'),'change',function(){AUD.unlock();SIM.setAuto($('xo-sim-auto').checked);});
+}
+
+/* ---------- الحلقة ---------- */
+function loop(){if(destroyed)return;rafId=requestAnimationFrame(loop);core.tick();frame();}
+
+/* ---------- الواجهة البرمجية العامة window.EhsemhaXO ---------- */
+function destroy(){
+  if(destroyed)return;destroyed=true;if(rafId)cancelAnimationFrame(rafId);clearInterval(tickInt);clearLater();cancelFlights();AUD.close();
+  cleanups.forEach(function(f){try{f();}catch(e){}});cleanups=[];
+}
+var api={
+  version:'1.0.0',
+  receiveEvent:receiveEvent,
+  setHooks:function(h){Object.assign(hooks,h||{});},
+  setLinkStatus:function(live,label){linkLabel=label||'';core.setLink(!!live);linkChip();var sl=$('xo-s-link');if(sl&&mode==='link'){sl.className='xo-chip '+(live?'live':'off');$('xo-s-link-t').textContent=live?(label||'الشات متصل'):'غير متصل';}},
+  configure:function(cfg){return core.configure(cfg);},
+  open:function(cfg){
+    cfg=cfg||{};if(cfg.mode)setMode(cfg.mode);
+    if(cfg.kw!=null)$('xo-kw').value=cfg.kw;
+    if(cfg.turnSec!=null){$('xo-turn').value=core.clampTurn(cfg.turnSec);$('xo-turn-o').textContent=$('xo-turn').value;}
+    if(cfg.lotAfter3!=null)$('xo-lot').checked=!!cfg.lotAfter3;
+    core.S().requireFollow=!!cfg.requireFollow;
+    var ok=openRoom();if(ok&&cfg.requireFollow)core.S().requireFollow=true;return ok;
+  },
+  start:function(){return core.start();},
+  pause:function(){return core.pause('manual');},
+  resume:function(){return core.resume();},
+  reset:function(){return core.openWaiting();},
+  newTournament:function(){return core.openWaiting();},
+  toSetup:backToSetup,
+  join:function(user){var u=extractUser(user||{});if(u.uniqueId==null)return false;return core.join(u);},
+  removePlayer:function(uid){return core.removePlayer(uid);},
+  forceWin:function(uid){return core.forceWin(uid);},
+  has:function(uid){uid=String(uid);var s=S();return s.players.has(uid)?(s.eliminated.has(uid)?'eliminated':'player'):(s.queue.has(uid)?'queued':null);},
+  members:function(){var s=S();return Array.from(s.players.keys()).concat(Array.from(s.queue.keys()));},
+  setMuted:function(m){AUD.setMuted(m);$('xo-mute').setAttribute('aria-pressed',!!m);$('xo-mute').textContent=m?'تشغيل الصوت':'كتم الصوت';},
+  getState:function(){var g=core.getState();g.uiMode=mode;g.embed=EMBED;return g;},
+  destroy:destroy,
+  sim:SIM,
+  _t:{core:core,audio:AUD,setClock:core.setClock,setRng:core.setRng,K:K,setReduced:function(v){manualReduced=!!v;root.classList.toggle('xo-reduced',reduced());},flights:function(){return flights.size;},timers:function(){return timers.size;},cleanups:function(){return cleanups.length;},ui:ui,hist:renderHist,tmpIds:function(){return Array.from(ui.tmpEls.keys());}}
+};
+
+/* ---------- الإقلاع ---------- */
+bindUI();setMode('demo');renderPhase();renderTmp();
+if(EMBED){root.classList.add('xo-embed');setMode('link');}
+window.EhsemhaXO=api;
+tickInt=setInterval(function(){if(!destroyed)core.tick();},250);
+rafId=requestAnimationFrame(loop);
+if(/[?&]auto=1/.test(location.search)&&!EMBED){setTimeout(function(){$('xo-kw').value='العب';if(openRoom()){SIM.addMany(8);SIM.setAuto(true);setTimeout(function(){core.start();},700);}},300);}
+})();
+</script>
+</body></html>
