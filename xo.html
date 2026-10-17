@@ -320,7 +320,7 @@ html,body{margin:0;height:100%;background:var(--xo-bg);color:var(--xo-ink);font-
         <div class="xo-field">
           <label for="xo-kw">الكلمة المفتاحية للانضمام (إلزامية)</label>
           <input class="xo-in" id="xo-kw" type="text" maxlength="30" placeholder="مثال: العب" autocomplete="off">
-          <div class="xo-hint">يكتبها المشاهد مرة واحدة بالشات ليدخل البطولة. لا تكن رقماً من 1 إلى 9.</div>
+          <div class="xo-hint">يكتبها المشاهد مرة واحدة بالشات ليدخل البطولة. يمكن أن تكون رقماً (مثل 1): بعد الدخول يُحسب رقم اللاعب في دوره حركةً على اللوحة.</div>
         </div>
         <div class="xo-field">
           <span class="xo-lbl">حالة اتصال البث</span>
@@ -510,7 +510,7 @@ function createCore(env){
     kw=String(kw==null?'':kw).trim();
     if(!kw)return 'أدخل الكلمة المفتاحية للانضمام';
     if(!kwNorm(kw)||!joinNorm(kw))return 'الكلمة المفتاحية لا يمكن أن تكون رموزاً فقط';
-    if(parseMove(kw))return 'الكلمة المفتاحية لا يجب أن تكون رقماً من 1 إلى 9 لأنها تتعارض مع أرقام المربعات';
+    /* الرقم 1..9 مسموح ككلمة انضمام: داخل البطولة رقم اللاعب في دوره حركة دائمًا، وغير اللاعب يُسجَّل انتظارًا للبطولة التالية */
     return null;
   }
   function clampTurn(v){v=Math.round(+v);if(!isFinite(v))v=K.TURN_DEF;return Math.max(K.TURN_MIN,Math.min(K.TURN_MAX,v));}

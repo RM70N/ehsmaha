@@ -60,12 +60,12 @@ async function playCells(page, cells) {
 
   // ===== 2) الإعداد والتحقق =====
   const bad = [];
-  for (const [label, kw, turn, re] of [['كلمة فارغة', '', 20, /الكلمة المفتاحية/], ['رموز فقط', '!!!', 20, /رموز/], ['رقم 5', '5', 20, /رقماً/], ['رقم هندي ٣', '٣', 20, /رقماً/]]) {
+  for (const [label, kw, turn, re] of [['كلمة فارغة', '', 20, /الكلمة المفتاحية/], ['رموز فقط', '!!!', 20, /رموز/]]) {
     await page.evaluate(([kw, turn]) => { goSetupXo(); document.getElementById('xo-join-kw').value = kw; document.getElementById('xo-turn-sec').value = turn; launchXo(); }, [kw, turn]);
     const r = await page.evaluate(() => ({ t: document.getElementById('xo-status').textContent, a: document.querySelector('.page.active').id, src: document.getElementById('xo-frame').getAttribute('src') }));
     if (!(re.test(r.t) && r.a === 'pg-setup-xo' && (!r.src || /about:blank/.test(r.src)))) bad.push([label, r]);
   }
-  check('التحقق: كلمة فارغة/رموز/رقم 1–9 تُرفض برسالة ولا تفتح اللعبة', bad.length === 0, bad);
+  check('التحقق: كلمة فارغة/رموز فقط تُرفض برسالة ولا تفتح اللعبة', bad.length === 0, bad);
   await page.evaluate(() => { document.getElementById('xo-turn-sec').value = 5; document.getElementById('xo-join-kw').value = 'العب'; });
   const clampA = await page.evaluate(() => { localStorage.removeItem(STREAMER_USER_STORAGE_KEY); launchXo(); return { t: document.getElementById('xo-status').textContent, v: document.getElementById('xo-turn-sec').value, a: document.querySelector('.page.active').id }; });
   check('بث غير مربوط: رسالة «اربط بثك» وبقاء الإعداد، ومدة الدور تُقيَّد (5 → 10)', /اربط بثك/.test(clampA.t) && clampA.a === 'pg-setup-xo' && clampA.v === '10', clampA);
@@ -233,6 +233,29 @@ async function playCells(page, cells) {
   // تنقّل بغير الأزرار
   await page.evaluate(() => show('home')); await sleep(300);
   check('التنقّل بـshow() يفرّغ الإطار تلقائياً', (await page.evaluate(() => xoApi())) === null);
+
+  // ===== 9.5) كلمة انضمام رقمية (مثل 1): الانضمام قبل البدء، وبعده الرقم حركة للاعب وانتظار لغير اللاعب =====
+  await page.evaluate(() => { try { xoGoHome(); } catch (e) {} }); await sleep(300);
+  check('إطلاق بكلمة انضمام رقمية 1 مقبول (لا رسالة تعارض)', await launch(page, '1', 20, true));
+  await say('n1', '1', 'ن1'); await say('n2', '1', 'ن2'); await say('n3', '1', 'ن3'); await say('n4', '١', 'ن4'); await say('n1', '1', 'ن1');
+  await waitFor(page, () => xoApi().getState().players.length === 4, null, 5000);
+  s = await S(page);
+  check('الكلمة الرقمية: 1 و١ تُدخلان والتكرار لا يضيف', s.players.length === 4 && ['n1', 'n2', 'n3', 'n4'].every((n) => s.players.includes('tiktok:' + n)), s.players);
+  await say('n5', '2', 'ن5'); await sleep(250);
+  check('رقم آخر غير الكلمة (2) لا يُدخل', !(await S(page)).players.includes('tiktok:n5'));
+  check('بدء بطولة بكلمة رقمية', await page.evaluate(() => startXo()) && await waitFor(page, () => xoApi().getState().phase === 'active', null, 6000));
+  s = await S(page);
+  const nxs = s.cur.x, nos = s.cur.o, nother = s.players.find((p) => p !== s.cur.a && p !== s.cur.b);
+  await say(viewerOf(nxs), '1', 'x'); await waitFor(page, () => xoApi().getState().cur.board[0] === 'X', null, 3000);
+  s = await S(page);
+  check('الكلمة الرقمية 1: من كان لاعباً في دوره تُحسب حركة (المربع 1) لا انضمامًا', s.cur.board[0] === 'X' && s.players.length === 4 && !s.queued.includes(nxs) && s.cur.turn === nos, s.cur);
+  await say(viewerOf(nother), '1', 'ليس دوره'); await sleep(300);
+  s = await S(page);
+  check('لاعب من مواجهة أخرى يكتب 1: لا حركة ولا يُسجَّل متأخراً', s.cur.board.filter(Boolean).length === 1 && !s.queued.includes(nother), s);
+  await say('zlate', '1', 'متأخر'); await sleep(300);
+  s = await S(page);
+  check('مشاهد جديد يكتب 1 أثناء البطولة: يُسجَّل للبطولة التالية ولا يغيّر اللوحة', s.queued.includes('tiktok:zlate') && s.cur.board.filter(Boolean).length === 1, s);
+  await page.evaluate(() => { try { xoGoHome(); } catch (e) {} }); await sleep(300);
 
   // ===== 10) الجوال =====
   await page.setViewportSize({ width: 390, height: 844 });

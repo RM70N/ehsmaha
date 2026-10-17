@@ -80822,7 +80822,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="setup-title">إعداد إكس أو</div>
     <div class="setup-sub">اكتب رقم المربع بدورك، وافز بمواجهتك عشان تتأهل للمرحلة التالية. يدخل الجمهور بالكلمة المفتاحية، تُخلط الأسماء عشوائياً، وتتواجه الأزواج مرحلة بعد مرحلة حتى يتبقى بطل واحد.</div>
     <div class="xo-set-grid">
-      <div class="field"><label for="xo-join-kw">الكلمة المفتاحية للانضمام (إلزامية)</label><input type="text" id="xo-join-kw" value="العب" maxlength="30" autocomplete="off"><div class="field-hint">يكتبها المتابع مرة واحدة بالشات ليدخل البطولة. لا تكن رقماً من 1 إلى 9.</div></div>
+      <div class="field"><label for="xo-join-kw">الكلمة المفتاحية للانضمام (إلزامية)</label><input type="text" id="xo-join-kw" value="العب" maxlength="30" autocomplete="off"><div class="field-hint">يكتبها المتابع مرة واحدة بالشات ليدخل البطولة. يمكن أن تكون رقماً (مثل 1): بعد الدخول يُحسب رقم اللاعب في دوره حركةً على اللوحة.</div></div>
       <div class="field"><label for="xo-turn-sec">مدة الدور (ثانية)</label><input type="number" id="xo-turn-sec" value="20" min="10" max="60"><div class="field-hint">من 10 إلى 60. إذا انتهى وقت اللاعب دون رقم صحيح يخسر المواجهة.</div></div>
     </div>
     <div class="field"><label>حالة اتصال البث</label><div><span class="xo-link-state" id="xo-link-state"><i></i><span id="xo-link-state-t">—</span></span></div></div>
@@ -80863,13 +80863,12 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
   function toXo(u) { return { uniqueId: u.uniqueId, nickname: u.nickname || u.rawUniqueId || u.uniqueId, avatar: proxied(u.avatar), isFollower: !!u.isFollower, followKnown: u.followKnown }; }
   function connState() { try { var o = (typeof homeConnOverall === 'function') ? homeConnOverall() : 'connected'; if (o === 'connected') return 'connected'; if (o === 'connecting' || o === 'reconnecting') return 'reconnecting'; return 'disconnected'; } catch (e) { return 'connected'; } }
   function foldDigits(s) { return String(s == null ? '' : s).replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); }).replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06F0); }).trim(); }
-  /* نفس تحقق الإطار: الكلمة إلزامية وليست رمزاً فقط وليست رقماً 1–9 */
+  /* نفس تحقق الإطار: الكلمة إلزامية وليست رمزاً فقط (الرقم مسموح) */
   function validateKeyword(kw) {
     kw = String(kw || '').trim();
     if (!kw) return '⚠️ أدخل الكلمة المفتاحية للانضمام';
     var stripped = kw.replace(/[\s\-_.,،!؟?]/g, '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '');
     if (!stripped) return '⚠️ الكلمة المفتاحية لا يمكن أن تكون رموزاً فقط';
-    if (/^[1-9]$/.test(foldDigits(kw))) return '⚠️ الكلمة المفتاحية لا يجب أن تكون رقماً من 1 إلى 9 لأنها تتعارض مع أرقام المربعات';
     return null;
   }
   function linkStateRender() {
