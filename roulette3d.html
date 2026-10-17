@@ -317,23 +317,19 @@ var SCHEMA=[
   ['timeoutRule','sel','عند انتهاء المهلة',[['pass','امتناع تلقائي إن توفّر، وإلا «أطلق»'],['fire','«أطلق» تلقائيًا'],['out','إقصاء مباشر']]],
   ['elimMode','sel','احتمالية الإقصاء (محاكاة خيالية)',[['cyl6','أسطوانة ٦ خانات (الخطر يتصاعد)'],['cyl4','أسطوانة ٤ خانات (أسرع)'],['f6','ثابتة ١ من ٦ في كل مرة'],['f3','ثابتة ١ من ٣ في كل مرة']],'في الأسطوانة: خانة واحدة مشحونة بموضع عشوائي، وكل «أطلق» يتقدّم خانة، فيرتفع الخطر حتى تُفرغ ثم يُعاد الشحن.'],
   ['sec','الصوت'],
-  ['music','chk','موسيقى الخلفية'],
-  ['musicVol','range','مستوى الموسيقى',0,100],
   ['sfxVol','range','مستوى المؤثرات',0,100],
   ['mute.amb','chk','كتم أصوات الغرفة (المصباح والخشب)'],
   ['mute.spin','chk','كتم صوت دوران الأداة'],
   ['mute.clock','chk','كتم صوت الساعة والعد'],
   ['mute.result','chk','كتم مؤثرات النتيجة'],
   ['sec','العرض والأداء'],
-  ['quality','sel','جودة الرسومات',[['auto','تلقائية حسب الجهاز'],['high','عالية'],['medium','متوسطة'],['low','منخفضة']]],
-  ['lowEnd','chk','عرض مختصر للأجهزة الضعيفة','','','يلغي العمق الضبابي والظلال الناعمة ويقلل الجسيمات.'],
   ['frame','sel','إطار البث',[['auto','تلقائي حسب الشاشة'],['169','أفقي 16:9'],['916','عمودي 9:16 (تيك توك)']]],
   ['spinSpeed','sel','سرعة أنيميشن الدوران',[['slow','بطيئة ودرامية'],['normal','عادية'],['fast','سريعة']]],
   ['shake','chk','اهتزاز الكاميرا'],
   ['longElim','chk','مشاهد الإقصاء المطوّلة'],
   ['winReplay','chk','إعادة سينمائية للحظة الفوز']
 ];
-var CFG=Object.assign({},DEF,store(SET_KEY)||{}); CFG.mute=Object.assign({},DEF.mute,CFG.mute||{});
+var CFG=Object.assign({},DEF,store(SET_KEY)||{}); CFG.mute=Object.assign({},DEF.mute,CFG.mute||{}); CFG.music=false; CFG.quality='low'; CFG.lowEnd=true;
 if(EMBED&&store(SET_KEY)==null) CFG.demo=false;
 function cfgGet(k){ var p=k.split('.'); return p.length>1?CFG[p[0]][p[1]]:CFG[k]; }
 function cfgSet(k,v){ var p=k.split('.'); if(p.length>1) CFG[p[0]][p[1]]=v; else CFG[k]=v; }
@@ -381,6 +377,7 @@ var AUD=(function(){
   function wire(){ if(!on||muted('amb')) return; tone(ambBus,rnd(1800,2400),rnd(1500,2000),0.35,'sine',0.006); }
   /* ---------- الموسيقى الإجرائية ---------- */
   function startMusic(){
+    return; /* لا موسيقى خلفية */
     var d=A.createGain(); d.gain.value=0.0001; d.connect(musicBus); var lp=A.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=320; lp.Q.value=2; lp.connect(d);
     [55,55*1.007,82.4].forEach(function(f){ var o=A.createOscillator(); o.type='sawtooth'; o.frequency.value=f; o.connect(lp); o.start(); });
     var lfo=A.createOscillator(), lg=A.createGain(); lfo.frequency.value=0.07; lg.gain.value=120; lfo.connect(lg); lg.connect(lp.frequency); lfo.start();
@@ -429,7 +426,7 @@ var AUD=(function(){
     join:function(pan){ tone(sfxBus,523,null,0.3,'sine',0.1,0,pan); tone(sfxBus,784,null,0.4,'sine',0.08,0.08,pan); },
     whoosh:function(){ nz(sfxBus,300,1,0.8,0.12,0,'bandpass',0,2400); },
     boom:function(){ tone(sfxBus,60,30,1.8,'sine',0.6); nz(sfxBus,200,1,1.5,0.2,0,'lowpass'); },
-    victory:function(){ if(!on) return; silence(0); var base=[261.6,329.6,392,523.3], t0=0.2; [0,1,2,3].forEach(function(k){ base.forEach(function(f,i){ tone(musicBus,f*(k===3?1.5:1)*(k===2?1.335:1),null,1.6,'triangle',0.09,t0+k*0.9+i*0.08); }); }); tone(musicBus,130.8,null,4,'sine',0.25,t0); [1046,1318,1568,2093].forEach(function(f,i){ tone(musicBus,f,null,1.2,'sine',0.05,t0+3+i*0.15); }); }
+    victory:function(){ if(!on) return; silence(0); var base=[261.6,329.6,392,523.3], t0=0.2; [0,1,2,3].forEach(function(k){ base.forEach(function(f,i){ tone(sfxBus,f*(k===3?1.5:1)*(k===2?1.335:1),null,1.6,'triangle',0.09,t0+k*0.9+i*0.08); }); }); tone(musicBus,130.8,null,4,'sine',0.25,t0); [1046,1318,1568,2093].forEach(function(f,i){ tone(musicBus,f,null,1.2,'sine',0.05,t0+3+i*0.15); }); }
   };
   function unlock(){
     try{
@@ -446,10 +443,10 @@ window.AUD=AUD;
 
 /* ===================== المشهد: الغرفة السينمائية ===================== */
 var app=$('#app'), canvas=$('#gl'), renderer;
-try{ renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'}); if(!renderer.getContext()) throw 0; }
+try{ renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,powerPreference:'high-performance'}); if(!renderer.getContext()) throw 0; }
 catch(e){ $('#nogl').hidden=false; throw new Error('no webgl'); }
 var DEV_WEAK=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<4||Math.min(screen.width,screen.height)<500;
-function qualityTier(){ if(CFG.lowEnd) return 'low'; if(CFG.quality!=='auto') return CFG.quality; return DEV_WEAK?'medium':'high'; }
+function qualityTier(){ return 'low'; }
 var Q={}; function applyQualityConsts(){ var t=qualityTier(); Q={tier:t,shadow:t==='high'?2048:(t==='medium'?1024:512),bokeh:t==='high',bloom:t!=='low',prMax:t==='high'?1.75:(t==='medium'?1.35:1),dust:t==='high'?420:(t==='medium'?220:90),soft:t!=='low'}; }
 applyQualityConsts();
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=Q.soft?THREE.PCFSoftShadowMap:THREE.PCFShadowMap;

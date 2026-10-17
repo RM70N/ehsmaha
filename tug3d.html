@@ -252,7 +252,6 @@ html,body{margin:0;height:100%;background:var(--eht-bg);color:var(--eht-ink);fon
       <button type="button" class="eht-btn gh" id="eht-simt" aria-pressed="true">المحاكي</button>
       <button type="button" class="eht-btn gh" id="eht-mute" aria-pressed="false">كتم الصوت</button>
       <button type="button" class="eht-btn gh" id="eht-shake" aria-pressed="true">اهتزاز الكاميرا</button>
-      <button type="button" class="eht-btn gh" id="eht-qual">الجودة: تلقائي</button>
       <button type="button" class="eht-btn gh" id="eht-fs">ملء الشاشة</button>
       <button type="button" class="eht-btn gh" id="eht-late" aria-pressed="false" hidden>لاعب متأخر: مغلق</button>
       <button type="button" class="eht-btn gh" id="eht-back">العودة للإعداد</button>
@@ -481,7 +480,7 @@ var AUD=(function(){
     setMuted:function(m){muted=!!m;if(master&&ac)master.gain.setTargetAtTime(muted?0:vol,ac.currentTime,0.02);if(muted)api.stopLoop();},
     isMuted:function(){return muted;},
     setVolume:function(v){vol=Math.max(0,Math.min(1,v));if(master&&!muted)master.gain.value=vol;},
-    startLoop:function(){ if(!ok()||loop)return; try{ var s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain(); s.buffer=noise();s.loop=true;f.type='bandpass';f.frequency.value=520;f.Q.value=2.2;g.gain.value=0; s.connect(f);f.connect(g);g.connect(master);s.start(); loop={s:s,f:f,g:g}; }catch(e){loop=null;} },
+    startLoop:function(){ return; if(!ok()||loop)return; try{ var s=ac.createBufferSource(),f=ac.createBiquadFilter(),g=ac.createGain(); s.buffer=noise();s.loop=true;f.type='bandpass';f.frequency.value=520;f.Q.value=2.2;g.gain.value=0; s.connect(f);f.connect(g);g.connect(master);s.start(); loop={s:s,f:f,g:g}; }catch(e){loop=null;} },
     stopLoop:function(){ if(!loop)return; try{loop.g.gain.setTargetAtTime(0,ac.currentTime,0.05);loop.s.stop(ac.currentTime+0.3);}catch(e){} loop=null; },
     activity:function(a,b){ if(!loop||!ac)return; var act=Math.min(1,(a+b)/14),diff=Math.min(1,Math.abs(a-b)/10); try{ loop.g.gain.setTargetAtTime(0.012+0.1*act,ac.currentTime,0.12); loop.f.frequency.setTargetAtTime(380+520*act+180*diff,ac.currentTime,0.15);}catch(e){} },
     pull:function(n){ pend+=n||1; if(!ok())return; var t=ac.currentTime; if(t-lastPullT<0.09)return; lastPullT=t; var k=Math.min(1,Math.sqrt(pend)/3); pend=0; try{ tone(95+Math.random()*25,t,0.16,'triangle',0.05+0.08*k,60); burst(t,0.1,0.03+0.05*k,700,1.4);}catch(e){} },
@@ -890,7 +889,7 @@ var EMBED=/[?&]embed=1/.test(location.search)||(function(){try{return window.sel
 function post(type,data){if(!EMBED)return;try{window.parent.postMessage({source:'ehsemha-tug3d',type:type,data:data||null},'*');}catch(e){}}
 var QN={auto:'تلقائي',high:'عالية',med:'متوسطة',low:'منخفضة'},QORDER=['auto','high','med','low'];
 function isMobile(){return Math.min(window.innerWidth,window.innerHeight)<700||(window.matchMedia&&window.matchMedia('(pointer:coarse)').matches);}
-function effQuality(){return quality==='auto'?(isMobile()?'low':'high'):quality;}
+function effQuality(){return 'low';}
 function on(el,ev,fn,opt){el.addEventListener(ev,fn,opt);cleanups.push(function(){el.removeEventListener(ev,fn,opt);});}
 function toast(msg,ms){var t=$('eht-toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('on');},ms||2200);}
 function announce(msg){var s=$('eht-sr');s.textContent='';setTimeout(function(){s.textContent=msg;},30);}
@@ -1038,7 +1037,7 @@ function bindUI(){
   on($('eht-simt'),'click',function(){simOpen=!simOpen;refreshSim();});
   on($('eht-mute'),'click',function(){var m=!AUD.isMuted();AUD.setMuted(m);$('eht-mute').setAttribute('aria-pressed',m);$('eht-mute').textContent=m?'تشغيل الصوت':'كتم الصوت';if(!m)AUD.unlock();});
   on($('eht-shake'),'click',function(){shakeOn=!shakeOn;view.setShake(shakeOn);$('eht-shake').setAttribute('aria-pressed',shakeOn);});
-  on($('eht-qual'),'click',function(){quality=QORDER[(QORDER.indexOf(quality)+1)%QORDER.length];$('eht-qual').textContent='الجودة: '+QN[quality];var q=effQuality();view.setQuality(q);});
+  if($('eht-qual'))on($('eht-qual'),'click',function(){quality=QORDER[(QORDER.indexOf(quality)+1)%QORDER.length];$('eht-qual').textContent='الجودة: '+QN[quality];var q=effQuality();view.setQuality(q);});
   on($('eht-fs'),'click',function(){try{if(document.fullscreenElement)document.exitFullscreen();else if(root.requestFullscreen)root.requestFullscreen().catch(function(){toast('الشاشة الكاملة غير متاحة هنا');});else toast('الشاشة الكاملة غير متاحة هنا');}catch(e){toast('الشاشة الكاملة غير متاحة هنا');}});
   on($('eht-back'),'click',backToSetup);on($('eht-late'),'click',function(){post('late-open');});on($('eht-home'),'click',function(){post('home');});
   /* المحاكي */
@@ -1069,7 +1068,7 @@ var api={
   start:function(){return core.start();},reset:function(){$('eht-reset').click();},rematch:function(){resultAction('same');},toSetup:backToSetup,
   removePlayer:removePlayer,
   setMuted:function(m){AUD.setMuted(m);$('eht-mute').setAttribute('aria-pressed',!!m);$('eht-mute').textContent=m?'تشغيل الصوت':'كتم الصوت';},
-  setQuality:function(q){quality=q;$('eht-qual').textContent='الجودة: '+QN[q];view.setQuality(effQuality());},
+  setQuality:function(q){view.setQuality(effQuality());},
   /* ===== إضافات الربط مع احسمها ===== */
   join:function(user,team){var u=core.extractUser(user||{});if(u.uniqueId==null||(team!=='a'&&team!=='b'))return false;return core.join(u,team);},
   setLateMode:function(on){core.S().opts.latejoin=!!on;lateLabel();return !!on;},
