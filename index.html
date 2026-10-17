@@ -81144,6 +81144,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     function remember(u) { if (u && u.uniqueId) { users.set(String(u.uniqueId), u); if (users.size > 3000) users.delete(users.keys().next().value); } }
     function siteUser(u) { var uid = String((u && u.uniqueId) || ''), s = users.get(uid) || {}; return Object.assign({}, s, { uniqueId: uid, nickname: (u && u.nickname) || s.nickname || uid, avatar: s.avatar || (u && u.avatar) || '' }); }
     function deliver(u, txt) { var a = api(); if (a) { try { a.chat(u, txt); } catch (e) { console.error('[' + TAG + ']', e); } } else if (queue.length < 300) queue.push([u, txt]); }
+    function lobbyPhase() { try { var a = api(), st = a && a.state(); return !st || st.phase === 'lobby'; } catch (e) { return true; } }
     function handleEvent(d) {
       if (!active) return;
       var msgs = (d && d.messages) || (d && d.type ? [d] : []);
@@ -81153,6 +81154,11 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
         var u = extractUser(m), txt = String(m.comment || m.content || (m.data && m.data.comment) || '').trim();
         if (!txt || !u || !u.uniqueId) continue;
         remember(u);
+        if (typeof followGateAllows === 'function' && lobbyPhase()) {
+          var gateOk = true;
+          try { gateOk = followGateAllows(TAG, { uniqueId: String(u.uniqueId), nickname: u.nickname || u.rawUniqueId || u.uniqueId, avatar: u.avatar || '', isFollower: !!u.isFollower, followKnown: u.followKnown, rawUniqueId: u.rawUniqueId }); } catch (e) {}
+          if (!gateOk) continue;
+        }
         deliver({ uniqueId: String(u.uniqueId), nickname: u.nickname || u.rawUniqueId || u.uniqueId, avatar: proxied(u.avatar) }, txt);
       }
     }

@@ -1637,6 +1637,7 @@ const WT = (function () {
   
   api=window.WeshTaghayarGame;
   var M=api._M, started=false;
+  if(!api.getState) api.getState=function(){ return { phase: M.G.phase }; };
   try{ M.cfg.quality='low'; M.cfg.reduced=false; }catch(e){}
   M.on(function(ev){
     var G=M.G;

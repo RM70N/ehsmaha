@@ -67,6 +67,7 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   check('بث غير مربوط: رسالة «اربط بثك» ولا تفتح اللعبة (الثلاث)', unl.length === 0, unl);
   await page.evaluate((u) => localStorage.setItem(STREAMER_USER_STORAGE_KEY, u), STREAMER);
 
+  await page.evaluate(() => followGateSetRequired(false));
   // ===== 3) الميزان =====
   console.log('--- الميزان');
   check('الميزان: الإطلاق يفتح الصفحة والإطار', await launch(page, 'almeezan'));
@@ -138,7 +139,7 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   const epl = await K(() => window.EkthebAlayGame._G.order.slice());
   check('اكذب عليّ: انضمام المشاهدين بالكلمة (5 لاعبين، بلا تكرار، الدردشة تُتجاهل)', epl.length === 5 && viewers.every((v) => epl.some((id) => id.endsWith(v))), epl);
   await K(() => { const G = window.EkthebAlayGame._G; G.startMatch(); });
-  const ek0 = Date.now(); let ekGuard = 0, sawVote = false, ekPhases = new Set();
+  const ek0 = Date.now(); let tieSeen = 0, ekGuard = 0, sawVote = false, ekPhases = new Set();
   while (Date.now() - ek0 < 180000 && ekGuard++ < 2000) {
     const ph = await K(() => window.EkthebAlayGame._G.phase);
     ekPhases.add(ph);
@@ -149,7 +150,7 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
       if (ekPhases.size && !ekPhases.has('voted-count-ok') && voted === 5) ekPhases.add('voted-count-ok');
       await K(() => window.EkthebAlayGame._advance(20000));
     } else if (ph === 'final') break;
-    else if (ph === 'tieHold') { await K(() => { const G = window.EkthebAlayGame._G; const o = G.nextAction ? G.nextAction() : null; if (o && o.ok && o.run) o.run(); else G.doNext(); }); }
+    else if (ph === 'tieHold') { tieSeen++; await K((n) => { const G = window.EkthebAlayGame._G; if (n < 2 && G.next().ok) G.startTiebreak(); else G.declareShared(); }, tieSeen); }
     else { await K(() => { const A = window.EkthebAlayGame; const G = A._G; A._advance(3000); try { const o = G.nextAction && G.nextAction(); if (o && o.ok && o.run) o.run(); else A.next(); } catch (e) { try { A.next(); } catch (x) {} } }); }
     await sleep(40);
   }
@@ -172,6 +173,17 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   check('وش تغيّر: وضع التضمين', await W(() => document.documentElement.classList.contains('embed')));
   await W(() => { window.WeshTaghayarGame._M.cfg.rounds = 2; window.WeshTaghayarGame.openLobby(); });
   check('وش تغيّر: القاعة مفتوحة', await fwait(page, DEFS.wesh.re, () => window.WeshTaghayarGame._M.G.phase === 'lobby'));
+  // شرط الفولو: مفعّل → غير المتابع المؤكَّد لا ينضم، المتابع ينضم؛ مطفي → ينضم
+  const wjw0 = await W(() => window.WeshTaghayarGame._M.G.cfg.joinWord);
+  await page.evaluate(() => followGateSetRequired(true));
+  await say('g1', wjw0, 'غير متابع', false); await say('g2', wjw0, 'متابع', true); await sleep(500);
+  let gp = await W(() => Object.keys(window.WeshTaghayarGame._M.G.players));
+  check('شرط الفولو مفعّل: غير المتابع لا ينضم والمتابع ينضم', gp.length === 1 && gp[0].endsWith('g2'), gp);
+  await page.evaluate(() => followGateSetRequired(false));
+  await say('g1', wjw0, 'غير متابع', false); await sleep(500);
+  gp = await W(() => Object.keys(window.WeshTaghayarGame._M.G.players));
+  check('شرط الفولو مطفي: غير المتابع ينضم', gp.length === 2, gp);
+  await W(() => window.WeshTaghayarGame._M.restartMatch(false));
   const wjw = await W(() => window.WeshTaghayarGame._M.G.cfg.joinWord);
   for (const v of viewers) await say(v, wjw, 'و' + v, v !== 'v5');
   await say('v3', wjw);
@@ -205,9 +217,12 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   const wfin = await W(() => { const M = window.WeshTaghayarGame._M; const G = M.G; return { ph: G.phase, leaders: M.leaders().map((p) => p.id), scores: M.plist().map((p) => p.score) }; });
   check('وش تغيّر: اللعب يصل للنتيجة النهائية', wfin && wfin.ph === 'final', wfin);
   check('وش تغيّر: على الأقل بعض الإجابات حُسبت (نقاط > 0)', wfin && wfin.scores.some((s) => s > 0), { wfin, sawAnswer });
+  // تعادل: الفوز لا يُسجَّل إلا بقرار المضيف (فوز مشترك) — نتأكد أنه لا يُسجَّل قبل القرار ثم يُسجَّل بعده
+  const wTie = wfin && wfin.leaders.length > 1;
   await sleep(600);
+  if (wTie) { check('وش تغيّر: عند التعادل لا يُسجَّل فوز قبل قرار المضيف', (await wins(page)).length === 0); await W(() => window.WeshTaghayarGame._M.sharedWin()); await sleep(600); }
   const ww = await wins(page);
-  check('وش تغيّر: الفوز سُجّل رسمياً باسم اللعبة', ww.length >= 1 && ww.every((x) => x.g === 'وش تغيّر؟'), { ww, wfin });
+  check('وش تغيّر: الفوز سُجّل رسمياً باسم اللعبة', ww.length >= 1 && ww.length === wfin.leaders.length && ww.every((x) => x.g === 'وش تغيّر؟'), { ww, wfin });
   check('وش تغيّر: لا أخطاء JS', page._errors.length === 0, page._errors);
   await home(page, 'wesh');
   const wx = await page.evaluate(() => ({ a: document.querySelector('.page.active').id, src: document.getElementById('wesh-frame').getAttribute('src') }));
