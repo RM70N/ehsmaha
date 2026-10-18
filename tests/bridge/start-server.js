@@ -60,7 +60,7 @@ http.createServer((req, res) => {
       case 'defaultMode': ctl.defaultMode = b.mode; return send(200, { ok: true });
       case 'blackhole': blackholeStart = Date.now(); blackholeUntil = blackholeStart + (Number(b.ms) || 0); return send(200, { until: blackholeUntil });
       case 'connectDelay': ctl.connectDelayMs = Number(b.ms) || 0; return send(200, { ok: true });
-      case 'chat': return send(200, { delivered: ctl.chat(u, b) });
+      case 'chat': return send(200, { delivered: global.__routeChat ? global.__routeChat(u, b) : ctl.chat(u, b) });
       case 'follow': return send(200, { delivered: ctl.follow(u, b.viewer) });
       case 'gift': return send(200, { delivered: ctl.gift(u, b) });
       case 'retryAfter': ctl.retryAfterSec = Number(b.sec) || 0; return send(200, { ok: true });
@@ -75,7 +75,7 @@ http.createServer((req, res) => {
       case 'burst': {
         const count = Number(b.count) || 1, perMs = Number(b.perMs) || 0;
         let i = 0;
-        const one = () => ctl.chat(u, { viewer: (b.prefix || 'v') + i, nickname: (b.prefix || 'v') + i, text: b.text, identity: b.identity, followStatus: b.followStatus });
+        const one = () => (global.__routeChat || ctl.chat)(u, { viewer: (b.prefix || 'v') + i, nickname: (b.prefix || 'v') + i, text: b.text, identity: b.identity, followStatus: b.followStatus });
         if (!perMs) { for (; i < count; i++) one(); return send(200, { sent: count }); }
         const t = setInterval(() => { if (i >= count) { clearInterval(t); return; } one(); i++; }, perMs);
         return send(200, { scheduled: count });

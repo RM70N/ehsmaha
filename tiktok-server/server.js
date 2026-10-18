@@ -61,6 +61,11 @@ const tiktokSdk = require('tiktok-live-api-sdk');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { LiveChat: YoutubeLiveChat } = require('youtube-chat');
 const { KickConnection, Events: KickEvents } = require('kick-live-connector');
+// kichat.js (Pusher مباشر، بلا متصفح) = الناقل الأول لكيك؛ kick-live-connector (Playwright) يبقى احتياطاً.
+const { KickChatSession } = require('./lib/kichat-session');
+const kickAdapter = require('./lib/kick-adapter');
+// KICK_TRANSPORT: auto (الافتراضي: kichat ثم رجوع للقديم لو كيك حجب الطلبات) | kichat (فقط) | connector (القديم فقط — مفتاح إيقاف طوارئ)
+const KICK_TRANSPORT = ['auto', 'kichat', 'connector'].includes(String(process.env.KICK_TRANSPORT || 'auto').toLowerCase()) ? String(process.env.KICK_TRANSPORT || 'auto').toLowerCase() : 'auto';
 
 const { classifyTikTokError, errText, isProviderFault } = require('./lib/error-classifier');
 const { backoffDelay } = require('./lib/backoff');
@@ -429,17 +434,8 @@ function youtubeIdentifierLabel(ytId) {
 // بحروف صغيرة — kick-live-connector تحتاج الاسم وحده، وتحل بيانات القناة
 // وغرفة الشات منه داخلياً (بدل إدخال chatroomId يدوياً كما كان سابقاً).
 function parseKickIdentifier(raw) {
-  const input = (raw || '').trim();
-  if (!input) return null;
-  if (input.indexOf('http') === 0 || input.toLowerCase().indexOf('kick.com') !== -1) {
-    try {
-      const withProto = input.indexOf('http') === 0 ? input : 'https://' + input;
-      const url = new URL(withProto);
-      const parts = url.pathname.split('/').filter(Boolean);
-      if (parts.length) return parts[0].toLowerCase();
-    } catch (e) { /* يكمل للمسار العادي تحت */ }
-  }
-  return input.replace(/^@/, '').toLowerCase();
+  const r = kickAdapter.normalizeSlug(raw);
+  return r.ok ? r.slug : null;
 }
 
 // المعرّف الموحَّد لكيك — نقطة الحقيقة الوحيدة المستخدمة لمفتاح الغرفة
@@ -1241,6 +1237,55 @@ class KickRoom extends BaseRoom {
     // رمز المحاولة الحالية — يبطل مستمعي أي عميل قديم فوراً، فما يقدر عميل
     // ميت يغيّر حالة الغرفة أو يبث رسائل بعد ما استبدلناه بمحاولة جديدة.
     this.connectToken = 0;
+    this.useKichat = KICK_TRANSPORT !== 'connector';
+    this.gaveUp = false;
+  }
+
+  // kichat.js: جلسة واحدة لكل قناة تخدم كل عملاء الغرفة (بوابة مشتركة، لا اتصال مكرر). راجع lib/kichat-session.js.
+  startKichat() {
+    const session = new KickChatSession(this.channelName, {});
+    this.connection = session;
+    this.gaveUp = false;
+    session.on('state', (st) => {
+      if (st.state === 'connected') { log('info', 'kick:' + this.channelName + ' — متصل (kichat)'); this.setState('connected'); }
+      else if (st.state === 'not_live') this.setState('not_live');
+      else if (st.state === 'reconnecting') { log('info', 'kick:' + this.channelName + ' — انقطع/فشل (' + (st.detail || '?') + ') — محاولة ' + st.attempt + ' بعد ' + st.delayMs + 'ms'); this.setState('reconnecting'); }
+      else if (st.state === 'connecting') this.setState('connecting');
+    });
+    session.on('messages', (batch) => {
+      const events = [];
+      for (const u of batch) events.push(kickAdapter.toBridgeEvent(u));
+      if (events.length) this.broadcastEvents(events);
+    });
+    session.on('fatal', () => {
+      log('info', 'kick:' + this.channelName + ' — يوزرنيم/قناة غير موجودة');
+      this.setState('error', { code: 'user_not_found' });
+      this.disconnect();
+      this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
+    });
+    session.on('blocked', (b) => {
+      if (KICK_TRANSPORT === 'auto') {
+        log('warn', 'kick:' + this.channelName + ' — kichat محجوب (' + b.detail + ') — تحويل للناقل الاحتياطي kick-live-connector');
+        this.useKichat = false;
+        this.disconnect();
+        this.start();
+        return;
+      }
+      log('warn', 'kick:' + this.channelName + ' — محجوب من كيك (' + b.detail + ')');
+      this.setState('error', { code: 'connect_failed' });
+      this.disconnect();
+      this.scheduleReconnect(withJitter(RECONNECT_DELAY_MS * 6));
+    });
+    session.on('gaveup', (g) => {
+      log('warn', 'kick:' + this.channelName + ' — استسلمت المحاولات التلقائية (' + g.attempts + ') — ننتظر عميلاً جديداً');
+      this.gaveUp = true; // الحالة 'error/connect_failed' أُرسلت من حدث state؛ عميل جديد يوقظ الغرفة
+      this.setState('error', { code: 'connect_failed' });
+    });
+    return session.start();
+  }
+
+  onClientAdded() {
+    if (this.gaveUp && !this.stopped && this.useKichat) { this.gaveUp = false; this.disconnect(); this.start(); }
   }
 
   async start() {
@@ -1254,6 +1299,8 @@ class KickRoom extends BaseRoom {
       this.scheduleReconnect(withJitter(NOT_LIVE_RETRY_DELAY_MS));
       return;
     }
+
+    if (this.useKichat) { await this.startKichat(); return; }
 
     const token = ++this.connectToken;
     const fresh = () => !this.stopped && token === this.connectToken;
@@ -1354,6 +1401,7 @@ class KickRoom extends BaseRoom {
   disconnect() {
     const client = this.connection;
     this.connection = null;
+    if (client instanceof KickChatSession) { this.connectToken++; try { client.stop(); } catch (e) { /* ignore */ } return; }
     // إبطال مستمعي العميل القديم قبل إغلاقه، حتى لا يرتد حدث disconnected
     // الناتج عن إغلاقنا نحن فيُطلق دورة إعادة اتصال ثانية بالتوازي.
     this.connectToken++;
