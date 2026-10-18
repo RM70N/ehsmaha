@@ -40,3 +40,5 @@ node live-kick-probe.js <قناة> 5        # اختبار حي لخمس دقا�
 ```
 
 الألعاب الثلاثون عبر مسار كيك: شغّل `PORT=18081 CTL_PORT=19081 node tests/bridge/start-server-kick.js` و`PORT=18082 CTL_PORT=19082 node tests/bridge/start-server.js` ثم `node tests/bridge/all-games-kick.js 100 6000`.
+
+واجهة الستريمر + الأعطال (قناة غير موجودة، غير مباشرة، قطع/عودة الإنترنت): شغّل `KICK_CHANNELS=streamer1,sleepyone:offline PORT=18081 CTL_PORT=19081 node tests/bridge/start-server-kick.js` والاحتياطي كما فوق ثم `node tests/bridge/kick-connect.test.js`.

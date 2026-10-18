@@ -25977,6 +25977,7 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   slot.username = (creds && creds.username) || '';
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
+  slot.notFound = false;
   const cs = homeConnGet(platform);
   cs.pingSeen = false;
   homeConnSetState(platform, slot.attempts > 0 ? 'reconnecting' : 'connecting');
@@ -25991,6 +25992,15 @@ function platformConnect(platform, creds, onEvent, onStatus) {
     // نبض السيرفر: يثبت إن الاتصال حي حتى لو الشات هادي — ما يوصل للألعاب
     if (rawData.type === 'bridge_ping') { cs.pingSeen = true; return; }
     if (rawData.type === 'bridge_status') homeConnFromBridgeStatus(platform, rawData, slot);
+    // قناة/يوزر غير موجود (كيك/يوتيوب): فشل دائم برسالة السيرفر العربية — لا إعادة محاولة أبدية صامتة.
+    // (تيك توك له مراقبه الخاص tiktokConnectWatcher.)
+    if (platform !== 'tiktok' && rawData.type === 'bridge_status' && rawData.state === 'error' && rawData.code === 'user_not_found' && !slot.notFound) {
+      slot.notFound = true;
+      homeConnSetState(platform, 'failed');
+      { const sock = slot.ws; slot.ws = null; try { if (sock) sock.close(1000); } catch (e) {} }
+      if (onStatus) onStatus(platform, 'failed', rawData);
+      return;
+    }
     let messages = rawData.messages || (rawData.type ? [rawData] : []);
     // أحداث الإعادة (replay) بعد رجوع الاتصال قد تتكرر مع ما وصل — نزيلها بالـid
     messages = messages.filter(m => {
@@ -26058,6 +26068,7 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   function onClose(e) {
     if (isStale()) return;
     slot.ws = null;
+    if (slot.notFound) return; // فشل دائم أُبلغ به المستخدم — لا retry
     if (e && e.code === 4403) { homeConnSetState(platform, 'disabled'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'disabled'); return; }
     // 4404 = روم ديسكورد مرفوض (رقم غلط/روم خاص/البوت ما يشوفه) — رفض دائم
     if (e && e.code === 4404) { homeConnSetState(platform, 'failed'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'failed'); return; }
@@ -26605,7 +26616,7 @@ function homeStartQuickConnect() {
         }
       : homeDispatchToGameListeners;
     platformConnect(t.platform, { username: t.username }, onEvent,
-      function homeQcOnStatus(p, status) {
+      function homeQcOnStatus(p, status, info) {
         statusByPlatform[p] = status;
         platformStatusBarRender(statusByPlatform);
 
@@ -26633,7 +26644,9 @@ function homeStartQuickConnect() {
           refreshBadge();
           toast(p === 'discord'
             ? '⚠️ تعذّر ربط روم الديسكورد — ' + ((discordRelayLastError && discordRelayLastError.message) || 'تأكد من ID الروم وإن بوت احسمها بالسيرفر')
-            : '⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية');
+            : (info && info.code === 'user_not_found'
+              ? '⚠️ ' + (info.message || 'يوزر/قناة غير موجودة') + ' — اكتب اسم قناتك بالضبط (نفس اللي بعد kick.com/)'
+              : '⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية'));
           if (!platformConnectedList().length) { clearTimeout(overlayTimer); hideOverlay(); }
         }
       });

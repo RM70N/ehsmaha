@@ -68,6 +68,7 @@ const PMAP_VL = "({ size: (document.getElementById('volcanic-lands-lobby-grid') 
     const kw = g.kw != null ? g.kw : (g.kwExpr ? await evalG('step3', (e) => (0, eval)(e), g.kwExpr) : (tag === 'volcanic-lands' ? 'بركان' : 'مرحبا'));
     // draw: الانضمام يصير بأي تعليق أثناء الراوند (قاعدة اللعبة)
     if (tag === 'draw') { await evalG('step4', () => { try { startDrawRound(); } catch (e) {} }); await sleep(300); }
+    await sleep(Number(process.env.PRE_WAIT || 0)); // الألعاب ذات سوكيت كيك الخاص تحتاج لحظة لفتحه قبل أول رسالة
     // صيغ متعددة للكلمة
     const forms = [kw + '😍', '‏' + kw, kw + '!!'];
     for (let k = 0; k < forms.length; k++) await H.ctl(H.PRIMARY, { cmd: 'chat', user: STREAMER, viewer: tag + '_form' + k, text: forms[k], identity: { isFollowerOfAnchor: true } });
