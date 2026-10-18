@@ -69,7 +69,8 @@ input,textarea,select{font:inherit;color:var(--ink)}
 .fld{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
 .fld>label,.fld>.lb{font-weight:600;font-size:.95em}
 .fld small{color:var(--mute);font-size:.82em}
-.fld input[type=text],.fld input[type=number],.fld select,.rc textarea,.search{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.5em .7em;width:100%}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea,.rc textarea,.search{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.5em .7em;width:100%}
+.fld textarea{min-height:84px;resize:vertical;color:var(--text);font:inherit}
 .fld input[type=range]{width:100%;accent-color:var(--v)}
 .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .sw{display:flex;align-items:center;gap:10px}
@@ -318,7 +319,8 @@ body:not(.aud) .snd{display:none}
   </div>
   <div class="su-body">
     <div class="tabs" id="suTabs">
-      <button class="tab on" data-t="cfg" type="button">الإعدادات</button>
+      <button class="tab on" data-t="write" type="button">اكتب قصصك</button>
+      <button class="tab" data-t="cfg" type="button">الإعدادات</button>
       <button class="tab" data-t="rounds" type="button">الجولات</button>
       <button class="tab" data-t="reserve" type="button">الاحتياطية</button>
       <button class="tab" data-t="bank" type="button">بنك القصص</button>
@@ -1180,7 +1182,7 @@ const EK = (function () {
     const use = Math.min(rd, cfg.rounds);
     const el = $('#suSum'); el.replaceChildren(h('b', { text: use + ' جولة ستُلعب' }), ' من ' + store.rounds.length + ' مُدخلة', bad ? ' · ' + bad + ' تحتاج تعديلًا' : '', ' · احتياطية جاهزة: ' + rs, rd < cfg.rounds ? ' · عدد الجولات المطلوب ' + cfg.rounds + ' أكبر من الجاهز' : '');
   }
-  let tab = 'cfg', bankQ = '';
+  let tab = 'write', bankQ = '', wDraft = { t1: '', t2: '', lie: '', ex: '' };
   function field(label, node, hint) { return h('div', { class: 'fld' }, h('label', { text: label }), node, hint ? h('small', { text: hint }) : null); }
   function sw(label, key, hint) {
     const i = h('input', { type: 'checkbox', id: 'sw_' + key }); i.checked = !!cfg[key]; i.onchange = () => { cfg[key] = i.checked; changed(); };
@@ -1265,19 +1267,65 @@ const EK = (function () {
     }
     fill();
   }
+  /* ───── كتابة الجولة: قصتان صادقتان + كذبة يكتبها الستريمر، تُحفظ في البنك وتدخل المباراة ───── */
+  function renderWrite(p) {
+    p.append(h('div', { class: 'fld', style: 'margin-bottom:14px' }, h('b', { text: 'اكتب جولتك' }),
+      h('small', { text: 'اكتب قصتين صادقتين وكذبة واحدة من تأليفك. تُحفظ تلقائيًا في بنك القصص عندك، وتُضاف للمباراة. كرّر لإضافة جولات أخرى ثم افتح قاعة الانضمام.' })));
+    const mk = (key, label, ph) => {
+      const ta = h('textarea', { maxlength: 180, placeholder: ph, 'aria-label': label, id: 'w_' + key }); ta.value = wDraft[key];
+      const cnt = h('span', { text: wDraft[key].length + '/180' });
+      ta.oninput = () => { wDraft[key] = ta.value; cnt.textContent = ta.value.length + '/180'; err.textContent = ''; };
+      return h('div', { class: 'fld' + (key === 'lie' ? ' lie-fld' : '') }, h('label', { for: 'w_' + key, text: label }), ta, h('small', { text: '' }, cnt));
+    };
+    const err = h('div', { class: 'badge err', style: 'display:none;margin:8px 0', role: 'alert' });
+    const showErr = m => { err.textContent = m; err.style.display = m ? 'inline-block' : 'none'; };
+    const f1 = mk('t1', 'القصة الصادقة ١', 'اكتب قصة حقيقية حصلت لك…');
+    const f2 = mk('t2', 'القصة الصادقة ٢', 'اكتب قصة حقيقية ثانية…');
+    const f3 = mk('lie', 'الكذبة', 'اكتب كذبة تبدو حقيقية…');
+    const ex = h('textarea', { maxlength: 220, placeholder: 'اختياري: شرح الحقيقة بعد الكشف', 'aria-label': 'شرح الحقيقة', id: 'w_ex' }); ex.value = wDraft.ex; ex.oninput = () => { wDraft.ex = ex.value; };
+    const roundFrom = () => {
+      const t1 = wDraft.t1.trim(), t2 = wDraft.t2.trim(), lie = wDraft.lie.trim();
+      if (!t1 || !t2 || !lie) return { m: 'اكتب القصتين الصادقتين والكذبة كلها' };
+      const pos = Math.floor(Math.random() * 3), st = [t1, t2]; st.splice(pos, 0, lie);
+      const r = newRound({ stories: st, target: pos, explain: wDraft.ex.trim(), inverted: false });
+      const v = L.validateRound({ stories: r.stories, target: r.target, inverted: false });
+      if (v.err.length) return { m: v.err[0] };
+      if (v.warn.length) return { m: 'القصص متطابقة — اكتب قصصًا مختلفة' };
+      return { r };
+    };
+    const reset = () => { wDraft = { t1: '', t2: '', lie: '', ex: '' }; renderPane(); const f = $('#w_t1'); if (f) f.focus(); };
+    const save = (toRounds) => {
+      const o = roundFrom(); if (o.m) { showErr(o.m); return; }
+      store.bank.unshift(newRound({ stories: o.r.stories.slice(), target: o.r.target, explain: o.r.explain, inverted: false }));
+      if (toRounds) { o.r.used = false; store.rounds.push(o.r); }
+      saveDraft(); toast(toRounds ? 'حُفظت في البنك وأُضيفت للمباراة' : 'حُفظت في بنك القصص'); reset();
+    };
+    p.append(h('div', { class: 'form' }, f1, f2, f3), h('div', { class: 'fld', style: 'margin-top:14px' }, h('label', { for: 'w_ex', text: 'شرح الحقيقة (اختياري)' }), ex), err,
+      h('div', { class: 'row', style: 'margin:12px 0' },
+        h('button', { class: 'btn pri', type: 'button', id: 'wSave', text: 'احفظ في البنك وأضفها للمباراة', onclick: () => save(true) }),
+        h('button', { class: 'btn', type: 'button', id: 'wSaveBank', text: 'احفظ في البنك فقط', onclick: () => save(false) })));
+    const ready = readyList(store.rounds);
+    p.append(h('div', { class: 'fld', style: 'margin-top:8px' }, h('b', { id: 'wCount', text: 'جولات المباراة الجاهزة: ' + ready.length }),
+      ready.length ? null : h('small', { text: 'لم تضف جولة بعد.' })));
+    store.rounds.forEach((r, i) => {
+      p.append(h('div', { class: 'bank-i' }, h('ol', null, r.stories.map((s, k) => h('li', { class: k === r.target ? 'lie' : '' }, s + (k === r.target ? (r.inverted ? '  [صدق]' : '  [كذبة]') : '')))),
+        h('button', { class: 'btn sm warn', type: 'button', text: 'إزالة من المباراة', onclick: () => { store.rounds.splice(i, 1); saveDraft(); renderPane(); } })));
+    });
+    p.append(h('div', { class: 'row', style: 'margin-top:16px' }, h('button', { class: 'btn pri big', type: 'button', id: 'wGo', text: 'ابدأ — افتح قاعة الانضمام', onclick: () => $('#suGo').click() })));
+  }
   function renderPane() {
     const p = $('#suPane'); p.replaceChildren(); $$('#suTabs .tab').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
-    if (tab === 'cfg') renderCfg(p); else if (tab === 'rounds') renderRounds(p, store.rounds, false); else if (tab === 'reserve') renderRounds(p, store.reserve, true); else renderBank(p);
+    if (tab === 'write') renderWrite(p); else if (tab === 'cfg') renderCfg(p); else if (tab === 'rounds') renderRounds(p, store.rounds, false); else if (tab === 'reserve') renderRounds(p, store.reserve, true); else renderBank(p);
     summary();
   }
   function openSetup() {
     if (G.phase !== 'idle' && G.phase !== 'lobby' && G.phase !== 'final') { /* مباراة جارية */ }
-    show('setup'); renderPane();
+    tab = 'write'; show('setup'); renderPane();
   }
 
   /* ───── بدء اللوبي / اللعب ───── */
   function prepare() {
-    const ok = readyList(store.rounds); if (!ok.length) { toast('لا توجد جولة جاهزة — أكمل القصص الثلاث وحدّد الكذبة'); return false; }
+    const ok = readyList(store.rounds); if (!ok.length) { toast('اكتب جولة أولًا: قصتان صادقتان وكذبة ثم احفظها'); if (screen === 'setup' && tab !== 'write') { tab = 'write'; renderPane(); } return false; }
     G.configure(cfg); G.setRounds(ok.slice(0, cfg.rounds).map(toDef)); G.setReserve(readyList(store.reserve).map(toDef));
     ok.slice(0, cfg.rounds).forEach(r => { r.used = true; }); saveDraft(); return true;
   }
