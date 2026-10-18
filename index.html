@@ -25560,9 +25560,26 @@ function tiktokAutoReconnectOnLoad() {
   tiktokQuickReconnect(saved.username, { silent: true });
 }
 
+// جلسة «أكثر من منصة»: بعد تحديث الصفحة تيك توك يعود تلقائياً (أعلاه) — نعيد باقي منصات نفس الجلسة معه
+// (كيك/يوتيوب/تويتش/ديسكورد) بصمت، وإلا يظن الستريمر إنها ما زالت موصولة وهي مفصولة.
+function homeAutoReconnectOthersOnLoad() {
+  let targets = null;
+  try { targets = JSON.parse(localStorage.getItem(HOME_CONNECTED_TARGETS_KEY) || 'null'); } catch (e) {}
+  if (!Array.isArray(targets) || targets.length < 2) return;
+  targets.forEach(t => {
+    if (!t || t.platform === 'tiktok' || !PLATFORMS[t.platform] || !t.username || homeConnections[t.platform]) return;
+    platformConnect(t.platform, { username: t.username }, homeDispatchToGameListeners, function (p, status) {
+      if (status !== 'connected') return;
+      const live = platformConnectedList();
+      homeUpdateConnectionBadge(true, live.length === 1 ? PLATFORMS[live[0]].label : live.map(x => PLATFORMS[x].icon).join(' ') + ' ' + live.length + ' منصات');
+    });
+  });
+}
+
 window.addEventListener('load', () => {
   try { homeQuickReconnectButtonRefresh(); } catch (e) {}
   try { tiktokAutoReconnectOnLoad(); } catch (e) {}
+  try { homeAutoReconnectOthersOnLoad(); } catch (e) {}
 });
 
 function profileTiktokStatusRefresh() {
@@ -25977,6 +25994,7 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   slot.username = (creds && creds.username) || '';
   if (slot.timer) { clearTimeout(slot.timer); slot.timer = null; }
   if (slot.ws) { try { slot.ws.close(1000); } catch (e) {} slot.ws = null; }
+  slot.notFound = false;
   const cs = homeConnGet(platform);
   cs.pingSeen = false;
   homeConnSetState(platform, slot.attempts > 0 ? 'reconnecting' : 'connecting');
@@ -25991,6 +26009,15 @@ function platformConnect(platform, creds, onEvent, onStatus) {
     // نبض السيرفر: يثبت إن الاتصال حي حتى لو الشات هادي — ما يوصل للألعاب
     if (rawData.type === 'bridge_ping') { cs.pingSeen = true; return; }
     if (rawData.type === 'bridge_status') homeConnFromBridgeStatus(platform, rawData, slot);
+    // قناة/يوزر غير موجود (كيك/يوتيوب): فشل دائم برسالة السيرفر العربية — لا إعادة محاولة أبدية صامتة.
+    // (تيك توك له مراقبه الخاص tiktokConnectWatcher.)
+    if (platform !== 'tiktok' && rawData.type === 'bridge_status' && rawData.state === 'error' && rawData.code === 'user_not_found' && !slot.notFound) {
+      slot.notFound = true;
+      homeConnSetState(platform, 'failed');
+      { const sock = slot.ws; slot.ws = null; try { if (sock) sock.close(1000); } catch (e) {} }
+      if (onStatus) onStatus(platform, 'failed', rawData);
+      return;
+    }
     let messages = rawData.messages || (rawData.type ? [rawData] : []);
     // أحداث الإعادة (replay) بعد رجوع الاتصال قد تتكرر مع ما وصل — نزيلها بالـid
     messages = messages.filter(m => {
@@ -26058,6 +26085,7 @@ function platformConnect(platform, creds, onEvent, onStatus) {
   function onClose(e) {
     if (isStale()) return;
     slot.ws = null;
+    if (slot.notFound) return; // فشل دائم أُبلغ به المستخدم — لا retry
     if (e && e.code === 4403) { homeConnSetState(platform, 'disabled'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'disabled'); return; }
     // 4404 = روم ديسكورد مرفوض (رقم غلط/روم خاص/البوت ما يشوفه) — رفض دائم
     if (e && e.code === 4404) { homeConnSetState(platform, 'failed'); delete homeConnections[platform]; homeConnStatusRender(); if (onStatus) onStatus(platform, 'failed'); return; }
@@ -26391,6 +26419,12 @@ function homeQcSetStatus(msg) {
 }
 
 function homeUpdateConnectionBadge(connected, platformLabel) {
+  // أكثر من منصة موصولة: الشارة تذكرها كلها دائماً — مسارات تيك توك الخاصة (الربط التلقائي/النافذة) كانت تكتب
+  // «تيك توك» وحدها فوق شارة الجلسة المتعددة.
+  if (connected) {
+    const live = (typeof platformConnectedList === 'function') ? platformConnectedList() : [];
+    if (live.length > 1) platformLabel = live.map(x => PLATFORMS[x].icon).join(' ') + ' ' + live.length + ' منصات';
+  }
   const badge = document.getElementById('home-conn-badge');
   const text = document.getElementById('home-conn-badge-text');
   if (badge && text) {
@@ -26543,6 +26577,8 @@ function homeStartQuickConnect() {
     // المنصة الأولى هي "الأساسية"، والقائمة الكاملة بمفتاح منفصل.
     localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, targets[0].platform);
     localStorage.setItem(HOME_CONNECTED_PLATFORMS_KEY, targets.map(t => t.platform).join(','));
+    // يوزر كل منصة (للاستعادة بعد تحديث الصفحة) — بدونه كانت تعود تيك توك وحدها وتضيع بقية منصات الجلسة بصمت.
+    localStorage.setItem(HOME_CONNECTED_TARGETS_KEY, JSON.stringify(targets.map(t => ({ platform: t.platform, username: t.username }))));
   } catch (e) {}
 
   homeCloseQuickConnect();
@@ -26605,7 +26641,7 @@ function homeStartQuickConnect() {
         }
       : homeDispatchToGameListeners;
     platformConnect(t.platform, { username: t.username }, onEvent,
-      function homeQcOnStatus(p, status) {
+      function homeQcOnStatus(p, status, info) {
         statusByPlatform[p] = status;
         platformStatusBarRender(statusByPlatform);
 
@@ -26633,7 +26669,9 @@ function homeStartQuickConnect() {
           refreshBadge();
           toast(p === 'discord'
             ? '⚠️ تعذّر ربط روم الديسكورد — ' + ((discordRelayLastError && discordRelayLastError.message) || 'تأكد من ID الروم وإن بوت احسمها بالسيرفر')
-            : '⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية');
+            : (info && info.code === 'user_not_found'
+              ? '⚠️ ' + (info.message || 'يوزر/قناة غير موجودة') + ' — اكتب اسم قناتك بالضبط (نفس اللي بعد kick.com/)'
+              : '⚠️ تعذّر الاتصال بـ' + PLATFORMS[p].label + ' — تأكد إنك لايف فعلاً وحاول مرة ثانية'));
           if (!platformConnectedList().length) { clearTimeout(overlayTimer); hideOverlay(); }
         }
       });
@@ -26650,6 +26688,7 @@ const HOME_CONNECTED_PLATFORM_KEY = 'homeConnectedPlatform';
 // قائمة كل المنصات الموصولة (للعرض/التشخيص فقط) — منفصلة عن المفتاح أعلاه
 // الذي يجب أن يبقى اسم منصة مفرداً لأن كل لعبة تسنده لـgamePlatform[tag].
 const HOME_CONNECTED_PLATFORMS_KEY = 'homeConnectedPlatforms';
+const HOME_CONNECTED_TARGETS_KEY = 'homeConnectedTargets';
 let homeGameListeners = {};
 
 // دالة اختيارية تُنفَّذ تلقائياً بعد أول اتصال ناجح عبر نافذة الربط السريع —

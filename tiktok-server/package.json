@@ -11,12 +11,14 @@
   "scripts": {
     "start": "node server.js",
     "postinstall": "playwright install chromium || true",
-    "test:kick": "node test_kick_contract.js",
-    "test": "node --test \"test/*.test.js\""
+    "test:kick": "KICK_TRANSPORT=connector node test_kick_contract.js",
+    "test": "node --test \"test/*.test.js\"",
+    "test:kichat": "node test_kichat_contract.js"
   },
   "dependencies": {
     "firebase-admin": "^13.6.0",
     "https-proxy-agent": "^7.0.6",
+    "kichat.js": "^1.0.4",
     "kick-live-connector": "^1.0.0",
     "tiktok-live-api-sdk": "0.4.0-beta1",
     "tiktok-live-connector": "^2.5.0",
