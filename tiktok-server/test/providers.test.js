@@ -178,3 +178,70 @@ test('daily limit silences the key for a long time (not the usual 5-minute probe
   assert.equal(p.providers[1].breaker.waitMs(), 3600000, 'retry-after honoured but bounded to 1h');
   assert.ok(p.earliestReadyMs() > 5 * 60 * 1000, 'nothing ready within 5 minutes');
 });
+
+// ---- ٦ مفاتيح Euler بأي صيغة: كلها تُقرأ (كان لصقها بمتغير واحد يُقرأ مفتاحاً واحداً عملاقاً فيبقى السيرفر على مفتاح واحد) ----
+const SIX = ['ka1', 'kb2', 'kc3', 'kd4', 'ke5', 'kf6'];
+const names = (r) => r.defs.map((d) => d.name).join(',');
+const EXPECT_SIX = 'key1/direct,key2/direct,key3/direct,key4/direct,key5/direct,key6/direct,free/direct';
+
+test('٦ مفاتيح مفصولة بفواصل داخل EULER_SIGN_API_KEY (أو EULER_API_KEY) = ٦ مزودات', () => {
+  for (const name of ['EULER_SIGN_API_KEY', 'EULER_API_KEY', 'SIGN_API_KEY']) {
+    const r = mk({ [name]: SIX.join(',') });
+    assert.equal(r.keyCount, 6, name);
+    assert.equal(names(r), EXPECT_SIX, name);
+    assert.deepEqual(r.defs.slice(0, 6).map((d) => d.apiKey), SIX);
+    assert.deepEqual(r.defs.slice(0, 6).map((d) => d.tier), [0, 1, 2, 3, 4, 5]);
+  }
+});
+
+test('٦ مفاتيح بفواصل منقوطة/أسطر/مسافات/CRLF مع مسافات زائدة', () => {
+  for (const sep of [';', '\n', ' ', '\r\n', ' , ', ',\n']) {
+    const r = mk({ EULER_SIGN_API_KEY: '  ' + SIX.join(sep) + '  ' });
+    assert.equal(r.keyCount, 6, JSON.stringify(sep));
+    assert.deepEqual(r.defs.slice(0, 6).map((d) => d.apiKey), SIX);
+  }
+});
+
+test('٦ مفاتيح بقائمة EULER_API_KEYS أو EULER_SIGN_API_KEYS', () => {
+  assert.equal(names(mk({ EULER_API_KEYS: SIX.join(',') })), EXPECT_SIX);
+  assert.equal(names(mk({ EULER_SIGN_API_KEYS: SIX.join('\n') })), EXPECT_SIX);
+});
+
+test('٦ مفاتيح بمتغيّرات مرقّمة بأي بادئة (…_1 أو …_2…_6)', () => {
+  const numbered = (pre, from) => Object.fromEntries(SIX.map((k, i) => [pre + (i + from), k]));
+  assert.equal(names(mk(numbered('EULER_API_KEY_', 1))), EXPECT_SIX);
+  assert.equal(names(mk(numbered('EULER_SIGN_API_KEY_', 1))), EXPECT_SIX);
+  assert.equal(names(mk(Object.assign({ EULER_SIGN_API_KEY: SIX[0] }, Object.fromEntries(SIX.slice(1).map((k, i) => ['EULER_SIGN_API_KEY_' + (i + 2), k]))))), EXPECT_SIX);
+  assert.equal(names(mk(Object.assign({ EULER_API_KEY: SIX[0] }, Object.fromEntries(SIX.slice(1).map((k, i) => ['EULER_API_KEY_' + (i + 2), k]))))), EXPECT_SIX);
+});
+
+test('خلط الصيغ: بلا تكرار والترتيب ثابت، وkeyTails تعرض آخر ٤ خانات فقط', () => {
+  const r = mk({ EULER_API_KEY: 'AAAA1111', EULER_API_KEYS: 'AAAA1111,BBBB2222', EULER_API_KEY_2: 'BBBB2222', EULER_API_KEY_3: 'CCCC3333' });
+  assert.equal(r.keyCount, 3);
+  assert.deepEqual(r.defs.slice(0, 3).map((d) => d.apiKey), ['AAAA1111', 'BBBB2222', 'CCCC3333']);
+  assert.deepEqual(r.keyTails, ['…1111', '…2222', '…3333']);
+  assert.ok(!JSON.stringify(r.keyTails).includes('AAAA'));
+});
+
+test('٦ مفاتيح + بروكسيات: الأولوية للمفتاح الأول وكل مفتاح مساره، والسقف ١٦ مزوداً', () => {
+  const r = mk({ EULER_API_KEYS: SIX.join(','), TIKTOK_PROXIES: 'http://p1,http://p2' });
+  assert.ok(r.defs.length <= 16);
+  assert.equal(r.defs[0].name, 'key1/direct');
+  assert.ok(r.defs.every((d) => d.name !== undefined));
+});
+
+test('الاستراتيجية المتسلسلة: المفتاح ٢ يُستخدم فقط بعد تعطّل المفتاح ١ وهكذا حتى ٦ ثم الطبقة المجانية', () => {
+  const r = mk({ EULER_API_KEYS: SIX.join(',') });
+  let t = 1000000;
+  const pool = new ProviderPool(r.defs, { now: () => t });
+  const used = [];
+  for (let i = 0; i < 7; i++) {
+    const pick = pool.pick(new Set());
+    assert.ok(pick.provider, 'pick ' + i);
+    used.push(pick.provider.name);
+    // نفتح قاطع المزوّد المختار (محاكاة: المفتاح «خلص» بـ429 يومي) لننتقل للتالي
+    pool.begin(pick.provider);
+    pool.end(pick.provider, { kind: 'rate_limited', daily: true, retryAfterMs: 3600000 });
+  }
+  assert.deepEqual(used, ['key1/direct', 'key2/direct', 'key3/direct', 'key4/direct', 'key5/direct', 'key6/direct', 'free/direct']);
+});

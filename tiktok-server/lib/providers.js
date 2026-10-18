@@ -25,13 +25,17 @@ function splitList(raw) {
 function loadProviderDefs(env, defaults) {
   const d = Object.assign({ signUrl: 'https://api.eulerstream.com' }, defaults || {});
   const e = env || process.env;
-  const legacy = ['EULER_API_KEY', 'EULER_SIGN_API_KEY', 'SIGN_API_KEY'];
   const keys = [];
-  const addKey = (k) => { k = String(k || '').trim(); if (k && !keys.includes(k)) keys.push(k); };
-  const firstLegacy = legacy.find((n) => String(e[n] || '').trim());
-  if (firstLegacy) addKey(e[firstLegacy]);
-  splitList(e.EULER_API_KEYS).forEach(addKey);
-  for (let i = 2; i <= 9; i++) addKey(e['EULER_API_KEY_' + i]);
+  const sources = [];
+  // يقبل مفتاحاً واحداً أو عدة مفاتيح بفواصل/فواصل منقوطة/أسطر/مسافات بأي متغيّر من الأسماء أدناه — لصق ٦ مفاتيح داخل
+  // EULER_SIGN_API_KEY كان يُقرأ «مفتاحاً واحداً» عملاقاً (فيرفضه Euler ويبقى السيرفر على الطبقة المجانية).
+  const addKeys = (raw, src) => {
+    String(raw || '').split(/[,;\s]+/).map((k) => k.trim()).filter(Boolean).forEach((k) => { if (!keys.includes(k)) { keys.push(k); if (src && !sources.includes(src)) sources.push(src); } });
+  };
+  // ترتيب الأولوية: المفتاح الأول من الأسماء القديمة ← قوائم ← المرقّمة (EULER_API_KEY_2…، EULER_SIGN_API_KEY_2…، …)
+  ['EULER_API_KEY', 'EULER_SIGN_API_KEY', 'SIGN_API_KEY'].forEach((n) => addKeys(e[n], n));
+  ['EULER_API_KEYS', 'EULER_SIGN_API_KEYS', 'SIGN_API_KEYS'].forEach((n) => addKeys(e[n], n));
+  ['EULER_API_KEY_', 'EULER_SIGN_API_KEY_', 'SIGN_API_KEY_'].forEach((pre) => { for (let i = 1; i <= 16; i++) addKeys(e[pre + i], pre + 'N'); });
 
   const primaryUrl = String(e.SIGN_API_URL || d.signUrl).trim();
   const fallbackUrls = splitList(e.TIKTOK_SIGN_FALLBACK_URLS);
@@ -52,7 +56,7 @@ function loadProviderDefs(env, defaults) {
   const fbTier = sequential ? Math.max(1, keys.length) : 1;
   fallbackUrls.forEach((url, i) => push({ name: 'fallback' + (i + 1) + '/direct', tier: fbTier, apiKey: keys[0] || '', signUrl: url, route: 'direct', proxyUrl: '', free: !keys[0] }));
   if (keys.length && freeFallback) push({ name: 'free/direct', tier: fbTier + (fallbackUrls.length ? 1 : 0), apiKey: '', signUrl: primaryUrl, route: 'direct', proxyUrl: '', free: true });
-  return { defs, keyCount: keys.length, proxyCount: proxies.length, fallbackCount: fallbackUrls.length, sequential, keySource: firstLegacy || (keys.length ? 'EULER_API_KEYS' : '') };
+  return { defs, keyCount: keys.length, proxyCount: proxies.length, fallbackCount: fallbackUrls.length, sequential, keySource: sources.join('+'), keyTails: keys.map((k) => '…' + k.slice(-4)) };
 }
 
 class ProviderPool {
