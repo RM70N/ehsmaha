@@ -641,7 +641,7 @@
     getAuth, setPersistence, browserLocalPersistence, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
-    deleteUser
+    deleteUser, sendPasswordResetEmail
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
@@ -693,7 +693,7 @@
     setPersistence, browserLocalPersistence, onAuthStateChanged,
     createUserWithEmailAndPassword, signInWithEmailAndPassword,
     signInWithPopup, signInWithRedirect, getRedirectResult, signOut, updateProfile,
-    deleteUser,
+    deleteUser, sendPasswordResetEmail,
     doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
@@ -1987,6 +1987,8 @@ body{padding-top:64px;}
 .auth-field input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:13px 16px;color:var(--text);font-family:var(--font);font-size:15px;outline:none;transition:border-color .2s;direction:ltr;text-align:right;}
 .auth-field input:focus{border-color:var(--accent2);}
 .auth-field input::placeholder{color:var(--muted);}
+.auth-forgot{display:block;margin:-6px 0 14px;background:none;border:none;padding:4px 2px;color:var(--accent2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;text-align:start;}
+.auth-forgot:hover{text-decoration:underline;}
 .auth-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:15px;font-family:var(--font);font-size:16px;font-weight:800;cursor:pointer;transition:all .2s;margin-top:4px;}
 .auth-btn:hover{background:var(--accent2);transform:translateY(-1px);}
 .auth-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
@@ -5049,8 +5051,20 @@ if (location.hostname === 'streamgame1.netlify.app') {
 <!-- ====== AUTH LOADER (shown while checking session) ====== -->
 <div class="auth-loader" id="auth-loader">
   <div class="auth-spinner"></div>
-  <div style="color:var(--muted);font-size:14px;font-weight:700;">جارِ التحقق من الجلسة...</div>
+  <div style="color:var(--muted);font-size:14px;font-weight:700;" id="auth-loader-text">جارِ التحقق من الجلسة...</div>
+  <button type="button" id="auth-loader-retry" onclick="location.reload()" style="display:none;margin-top:6px;padding:10px 22px;border-radius:999px;border:1px solid var(--border-strong,rgba(167,139,255,.3));background:transparent;color:var(--text);font-family:inherit;font-weight:800;cursor:pointer">إعادة المحاولة</button>
 </div>
+<script>
+// لو مكتبة Firebase ما وصلت (شبكة ضعيفة/محجوبة) تبقى شاشة «جارِ التحقق» للأبد —
+// بعد 20 ثانية نشرح السبب ونعطي زر إعادة المحاولة بدل الدوران بلا نهاية.
+setTimeout(function () {
+  var l = document.getElementById('auth-loader');
+  if (!l || l.classList.contains('hidden')) return;
+  var t = document.getElementById('auth-loader-text'), b = document.getElementById('auth-loader-retry');
+  if (t) t.textContent = 'الاتصال بالخادم بطيء أو مقطوع — تأكد من الإنترنت ثم اضغط إعادة المحاولة';
+  if (b) b.style.display = '';
+}, 20000);
+</script>
 
 <!-- ====== EVENT100: SITE-WIDE TAKEOVER OVERLAY ====== -->
 <div class="event100-overlay" id="event100-overlay">
@@ -6788,6 +6802,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
         <label>كلمة المرور</label>
         <input type="password" id="auth-login-pass" placeholder="••••••••" autocomplete="current-password" required />
       </div>
+      <button type="button" class="auth-forgot" id="auth-forgot-btn" onclick="authForgotPassword()">نسيت كلمة المرور؟</button>
       <button type="submit" class="auth-btn" id="auth-login-btn">تسجيل الدخول</button>
     </form>
 
@@ -7203,6 +7218,8 @@ if (location.hostname === 'streamgame1.netlify.app') {
 function landingCtaClick(){
   const loggedIn = typeof currentUser !== 'undefined' && currentUser
     && typeof currentUsername !== 'undefined' && currentUsername;
+  // مسجّل دخوله لكن بلا يوزر بعد (أول دخول Google/تسجيل انقطع) → يكمل اختيار اليوزر.
+  if (!loggedIn && typeof currentUser !== 'undefined' && currentUser) { show('choose-username'); return; }
   show(loggedIn ? 'home' : 'auth');
 }
 
@@ -13502,6 +13519,17 @@ let currentUsername = null;  // resolved username from Firestore
 // before Firestore has the username saved) from racing us to the
 // choose-username screen meant only for first-time Google sign-ins.
 let authSignupInProgress = false;
+// آخر uid شُغّلت له سلسلة الإقلاع بعد الدخول — تمنع تشغيلها مرتين لنفس الحساب
+// (onAuthStateChanged + authHandleLogin قد يوجّهان نفس الدخول).
+let authBootChainUid = null;
+// كاش محلي لليوزرنيم لكل uid: لو تعذّرت قراءة Firestore لحظة فتح الموقع (حصة
+// منتهية/شبكة ضعيفة) يدخل صاحب الحساب بيوزره المعروف بدل ما يُطرد أو يُحذف حسابه.
+function authCacheUsername(uid, username) {
+  try { if (uid && username) localStorage.setItem('ehsAuthUname:' + uid, username); } catch (e) {}
+}
+function authCachedUsername(uid) {
+  try { return (uid && localStorage.getItem('ehsAuthUname:' + uid)) || null; } catch (e) { return null; }
+}
 
 function authSwitchTab(tab) {
   document.getElementById('auth-tab-login').classList.toggle('active', tab === 'login');
@@ -13550,14 +13578,37 @@ function authErrorMessage(err) {
     'auth/too-many-requests': 'محاولات كثيرة، حاول لاحقاً',
     'auth/popup-closed-by-user': 'تم إغلاق نافذة Google قبل إكمال الدخول',
     'auth/network-request-failed': 'مشكلة بالاتصال بالإنترنت',
+    'auth/invalid-login-credentials': 'بيانات الدخول غير صحيحة',
+    'auth/missing-password': 'اكتب كلمة المرور',
+    'auth/missing-email': 'اكتب الإيميل',
+    'auth/user-disabled': 'هذا الحساب موقوف — تواصل مع الإدارة',
+    'auth/operation-not-allowed': 'طريقة الدخول هذي غير مفعّلة حالياً',
+    'auth/account-exists-with-different-credential': 'هذا الإيميل مسجّل بطريقة دخول ثانية — جرّب الدخول بالإيميل وكلمة المرور',
+    'auth/credential-already-in-use': 'هذا الحساب مربوط بحساب ثاني',
+    'auth/popup-blocked': 'المتصفح منع نافذة Google — اسمح بالنوافذ المنبثقة وحاول مرة ثانية',
+    'auth/cancelled-popup-request': 'تم إلغاء نافذة Google',
+    'auth/web-storage-unsupported': 'المتصفح يمنع التخزين — افتح الموقع بمتصفح عادي (Safari/Chrome)',
+    'auth/internal-error': 'صار خطأ بالخادم، حاول مرة ثانية',
+    'auth/timeout': 'انتهت مهلة الاتصال، حاول مرة ثانية',
+    'auth/user-token-expired': 'انتهت الجلسة — سجّل دخولك مرة ثانية',
+    'auth/requires-recent-login': 'لأمان حسابك سجّل دخولك مرة ثانية ثم أعد المحاولة',
+    'auth/missing-or-invalid-nonce': 'صار خطأ بالدخول عبر Google، حاول مرة ثانية',
+    'auth/invalid-continue-uri': 'صار خطأ بإرسال الرابط، حاول مرة ثانية',
+    'auth/unauthorized-domain': 'هذا الموقع غير مصرّح له بالدخول عبر Google',
+    'permission-denied': 'ما عندك صلاحية لهذي العملية — حدّث الصفحة وحاول مرة ثانية',
+    'unavailable': 'تعذّر الاتصال بالخادم، تأكد من الإنترنت وحاول مرة ثانية',
+    'deadline-exceeded': 'تعذّر الاتصال بالخادم، تأكد من الإنترنت وحاول مرة ثانية',
     'resource-exhausted': 'الخادم مزدحم حالياً، حاول بعد شوي'
   };
   if (map[code]) return map[code];
+  if (err && err.message === 'AUTH_TIMEOUT') return 'تعذّر الاتصال بالخادم، تأكد من الإنترنت وحاول مرة ثانية';
   // Firestore's raw SDK error for RESOURCE_EXHAUSTED comes through without an
   // 'auth/' code (message is literally "Quota exceeded.") — catch it by text
   // too so the raw English string never leaks to the status box.
   const rawMsg = (err && err.message) || '';
   if (/quota exceeded/i.test(rawMsg)) return 'الخادم مزدحم حالياً، حاول بعد شوي';
+  // رسائل Firebase الخام بالإنجليزي ما تُعرض للاعب — رسالة عربية مع رمز الخطأ للمتابعة.
+  if (/^Firebase:|^[A-Za-z]/.test(rawMsg)) return 'صار خطأ غير متوقع، حاول مرة ثانية' + (code ? ' (' + code + ')' : '');
   return rawMsg || 'صار خطأ غير متوقع، حاول مرة ثانية';
 }
 
@@ -13577,10 +13628,10 @@ function authIsQuotaError(err) {
   return /quota exceeded/i.test((err && err.message) || '');
 }
 
-async function authIsUsernameTaken(usernameLower) {
+async function authIsUsernameTaken(usernameLower, selfUid) {
   try {
     const snap = await fb.getDoc(fb.doc(fb.db, 'usernames', usernameLower));
-    if (snap.exists()) return true;
+    if (snap.exists()) return !(selfUid && snap.data().uid === selfUid);
   } catch (err) {
     if (!authIsQuotaError(err)) throw err;
     // Firestore غير متاح الآن — نكمل ونتحقق من المخزن الاحتياطي بالأسفل فقط.
@@ -13588,7 +13639,7 @@ async function authIsUsernameTaken(usernameLower) {
   if (fb.rtdb) {
     try {
       const rsnap = await fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingUsernames/' + usernameLower));
-      if (rsnap.exists()) return true;
+      if (rsnap.exists()) return !(selfUid && rsnap.val() && rsnap.val().uid === selfUid);
     } catch (e2) { /* best-effort — لا نفشل التسجيل بسبب خطأ بالفحص الاحتياطي */ }
   }
   return false;
@@ -13603,7 +13654,9 @@ async function authReserveUsername(uid, username, email, provider) {
       if (unameSnap.exists() && unameSnap.data().uid !== uid) {
         throw new Error('USERNAME_TAKEN');
       }
-      tx.set(unameRef, { uid });
+      // محجوز له أصلاً (إعادة محاولة بعد انقطاع) — قواعد الأمان تمنع تعديل
+      // مستند usernames، فلا نعيد كتابته ونكتفي بإكمال مستند المستخدم.
+      if (!unameSnap.exists()) tx.set(unameRef, { uid });
       tx.set(fb.doc(fb.db, 'users', uid), {
         username, usernameLower, email: email || null, provider: provider || 'password',
         createdAt: fb.serverTimestamp()
@@ -13624,7 +13677,7 @@ async function authReserveUsernameFallback(uid, username, usernameLower, email, 
   if (existing.exists() && existing.val().uid !== uid) {
     throw new Error('USERNAME_TAKEN');
   }
-  await fb.rtdbSet(unameRef, { uid, reservedAt: Date.now() });
+  if (!existing.exists()) await fb.rtdbSet(unameRef, { uid, reservedAt: Date.now() });
   await fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'pendingUsers/' + uid), {
     username, usernameLower, email: email || null, provider: provider || 'password',
     createdAt: Date.now()
@@ -13647,14 +13700,44 @@ async function authGetUserDoc(uid) {
   return null;
 }
 
+// مثل authGetUserDoc لكن يفرّق بين «ما له يوزر فعلاً» و«تعذّرت القراءة»:
+//   { state: 'found', data } | { state: 'missing', data? } | { state: 'unknown', err }
+// 'unknown' لا يعني أبداً أن الحساب ناقص — فقط أن الخادم ما ردّ الآن.
+async function authFetchUserDocState(uid) {
+  let fsMissing = false, fsErr = null, partial = null;
+  try {
+    const snap = await authWithTimeout(fb.getDoc(fb.doc(fb.db, 'users', uid)), 12000);
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d && d.username) return { state: 'found', data: d };
+      partial = d;
+    }
+    fsMissing = true;
+  } catch (err) { fsErr = err; }
+  if (fb.rtdb) {
+    try {
+      const rsnap = await authWithTimeout(fb.rtdbGet(fb.rtdbRef(fb.rtdb, 'pendingUsers/' + uid)), 8000);
+      if (rsnap.exists() && rsnap.val() && rsnap.val().username) return { state: 'found', data: rsnap.val() };
+    } catch (e2) {
+      // الاحتياطي ما ردّ: لو Firestore قال «غير موجود» ممكن الحساب محفوظ
+      // بالاحتياطي (تسجّل وقت انتهاء الحصة) — ما نقدر نجزم إنه ناقص.
+      if (fsMissing) return { state: 'unknown', err: e2 };
+    }
+  }
+  if (fsMissing) return { state: 'missing', data: partial };
+  return { state: 'unknown', err: fsErr };
+}
+
 // يحل يوزرنيم -> uid، مع تجربة المخزن الاحتياطي لو Firestore غير متاح أو ما
 // لقى الاسم فيه (يحصل لو الحساب انحفظ وقت انقطاع الحصة وما زامن بعد).
 async function authResolveUidByUsername(usernameLower) {
+  let fsErr = null;
   try {
     const snap = await fb.getDoc(fb.doc(fb.db, 'usernames', usernameLower));
     if (snap.exists()) return snap.data().uid;
   } catch (err) {
     if (!authIsQuotaError(err)) throw err;
+    fsErr = err;
   }
   if (fb.rtdb) {
     try {
@@ -13662,6 +13745,8 @@ async function authResolveUidByUsername(usernameLower) {
       if (rsnap.exists()) return rsnap.val().uid;
     } catch (e2) { /* best-effort */ }
   }
+  // Firestore ما ردّ والاحتياطي ما لقاه: لا نقول «ما فيه حساب» — نبلّغ عن الخادم.
+  if (fsErr) throw fsErr;
   return null;
 }
 
@@ -13690,7 +13775,8 @@ async function authSyncPendingUserIfAny(uid) {
         // الانقطاع. نسيب حساب هذا المستخدم بالاحتياطي بدون حذف حتى يُحل يدوياً.
         throw new Error('USERNAME_TAKEN_ON_SYNC');
       }
-      tx.set(unameRef, { uid });
+      if (!unameSnap.exists()) tx.set(unameRef, { uid }); // تعديل usernames ممنوع بالقواعد
+
       tx.set(fb.doc(fb.db, 'users', uid), {
         username: pending.username, usernameLower: pending.usernameLower,
         email: pending.email || null, provider: pending.provider || 'password',
@@ -14726,7 +14812,14 @@ async function authHandleSignup(e) {
     }
     const cred = await authWithTimeout(fb.createUserWithEmailAndPassword(fb.auth, email, pass));
     createdCred = cred;
-    await authWithTimeout(authReserveUsername(cred.user.uid, username, email, 'password'));
+    try {
+      await authWithTimeout(authReserveUsername(cred.user.uid, username, email, 'password'), 25000);
+    } catch (errR) {
+      // انتهت المهلة لكن الحجز ممكن نجح فعلاً (شبكة بطيئة) — نتأكد قبل ما نعتبره فشل.
+      const st = await authFetchUserDocState(cred.user.uid);
+      if (!(st.state === 'found' && st.data && st.data.usernameLower === usernameLower)) throw errR;
+    }
+    authCacheUsername(cred.user.uid, username);
     // حساب جديد فعلياً (لا إعادة دخول) — زد عداد الصفحة الرئيسية الحي. best-effort،
     // ما يوقف تدفق التسجيل لو فشل.
     fb.updateDoc(fb.doc(fb.db, 'config', 'homeStats'), { registeredCount: fb.increment(1) }).catch(() => {});
@@ -14739,19 +14832,23 @@ async function authHandleSignup(e) {
     show('home');
     await authRunPostAuthBootChain(null);
   } catch (err) {
-    // The Auth account was already created (createdCred) but username
-    // reservation (or the profile update right after it) failed — e.g. lost
-    // connection or Firestore quota. Left as-is, this orphans an Auth account
-    // with no username doc: retrying signup would fail with "email already
-    // in use", and logging in later would incorrectly land on the
-    // Google-only choose-username screen. Roll it back so the person can
-    // just retry signup cleanly.
+    // الحساب انشأ (createdCred) لكن حفظ اليوزر فشل — ما نحذف الحساب (الحذف
+    // كان يضيّع حسابات نجح حفظها فعلاً بعد انتهاء المهلة). نكمل بشاشة اختيار
+    // اليوزر بنفس اليوزر معبّأ، والشخص يضغط «متابعة» ليعيد المحاولة. ولو طلع
+    // ودخل لاحقاً يرجع لنفس الشاشة تلقائياً (حساب بلا يوزر = اختيار يوزر).
     if (createdCred) {
-      try { await authWithTimeout(fb.deleteUser(createdCred.user), 8000); } catch (e3) { /* best-effort */ }
       authSignupInProgress = false;
-      currentUser = null;
+      currentUser = createdCred.user;
       currentUsername = null;
       authUpdateChip();
+      authClearStatus('auth-status');
+      const cu = document.getElementById('cu-username'); if (cu) cu.value = username;
+      show('choose-username');
+      const msg = (err && err.message === 'USERNAME_TAKEN') ? 'هذا اليوزر مستخدم من شخص ثاني، جرّب يوزر غير'
+        : (err && err.message === 'AUTH_TIMEOUT') ? 'انشأ حسابك لكن تعذّر حفظ اليوزر (الاتصال بطيء) — اضغط متابعة لإعادة المحاولة'
+        : 'انشأ حسابك لكن تعذّر حفظ اليوزر: ' + authErrorMessage(err) + ' — اضغط متابعة لإعادة المحاولة';
+      authSetStatus('cu-status', 'err', msg);
+      return false;
     }
     if (err && err.message === 'USERNAME_TAKEN') {
       authSetStatus('auth-status', 'err', 'هذا اليوزر مستخدم من شخص ثاني، جرّب يوزر غير');
@@ -14776,7 +14873,7 @@ async function authHandleLogin(e) {
   authSetButtonsDisabled(true);
   authSetStatus('auth-status', 'load', 'جارِ تسجيل الدخول...');
   try {
-    let email = idRaw;
+    let email = idRaw, viaGoogle = false;
     if (!idRaw.includes('@')) {
       // treat as username -> resolve to email (يتحقق من Firestore ثم الاحتياطي)
       const uid = await authWithTimeout(authResolveUidByUsername(idRaw.toLowerCase()));
@@ -14784,16 +14881,31 @@ async function authHandleLogin(e) {
         authSetStatus('auth-status', 'err', 'ما فيه حساب بهذا اليوزر');
         return false;
       }
-      const userDoc = await authWithTimeout(authGetUserDoc(uid));
+      const st = await authFetchUserDocState(uid);
+      if (st.state === 'unknown') throw (st.err || new Error('AUTH_TIMEOUT'));
+      const userDoc = st.data;
       if (!userDoc || !userDoc.email) {
-        authSetStatus('auth-status', 'err', 'هذا الحساب لا يدعم الدخول بكلمة مرور، جرّب الدخول عبر Google');
+        authSetStatus('auth-status', 'err', 'هذا الحساب لا يدعم الدخول بكلمة مرور، جرّب الدخول عبر Google أو بالإيميل');
         return false;
       }
       email = userDoc.email;
+      viaGoogle = userDoc.provider === 'google';
     }
-    await authWithTimeout(fb.signInWithEmailAndPassword(fb.auth, email, pass));
+    let cred;
+    try {
+      cred = await authWithTimeout(fb.signInWithEmailAndPassword(fb.auth, email, pass));
+    } catch (errL) {
+      // حساب مسجّل عبر Google ما له كلمة مرور — نوضح له الطريق الصحيح بدل «بيانات غير صحيحة».
+      if (viaGoogle && errL && /invalid-credential|wrong-password|user-not-found|invalid-login-credentials/.test(errL.code || '')) {
+        authSetStatus('auth-status', 'err', 'هذا الحساب مسجّل عبر Google — اضغط «الدخول عبر Google»');
+        return false;
+      }
+      throw errL;
+    }
     authSetStatus('auth-status', 'ok', '✅ تم تسجيل الدخول!');
-    // onAuthStateChanged will route to home automatically
+    // onAuthStateChanged يوجّه عادةً — لكنه ما يُعاد إطلاقه لو نفس الحساب كان
+    // مسجّلاً أصلاً (بقي على صفحة الدخول بعد خطأ قراءة)، فنوجّه هنا أيضاً.
+    if (cred && cred.user) authRouteSignedInUser(cred.user);
   } catch (err) {
     if (err && err.message === 'AUTH_TIMEOUT') {
       authSetStatus('auth-status', 'err', 'تعذّر الاتصال بالخادم، تأكد من الإنترنت وحاول مرة ثانية');
@@ -14806,15 +14918,48 @@ async function authHandleLogin(e) {
   return false;
 }
 
-async function authProcessGoogleUser(user) {
-  const userDoc = await authGetUserDoc(user.uid);
-  if (!userDoc || !userDoc.username) {
-    // First time via Google -> must pick a unique username before entering the site
-    authClearStatus('auth-status');
-    show('choose-username');
-  } else {
-    authSetStatus('auth-status', 'ok', '✅ تم تسجيل الدخول!');
+// «نسيت كلمة المرور؟» — يرسل رابط تعيين كلمة مرور جديدة للإيميل. يقبل الإيميل أو
+// اليوزر بنفس خانة الدخول (اليوزر يُحوَّل لإيميله المسجّل).
+async function authForgotPassword() {
+  authClearStatus('auth-status');
+  const idRaw = (document.getElementById('auth-login-id').value || '').trim();
+  if (!idRaw) {
+    authSetStatus('auth-status', 'err', 'اكتب إيميلك أو اليوزر بالخانة الأولى ثم اضغط «نسيت كلمة المرور؟»');
+    try { document.getElementById('auth-login-id').focus(); } catch (e) {}
+    return;
   }
+  const btn = document.getElementById('auth-forgot-btn');
+  if (btn) btn.disabled = true;
+  authSetStatus('auth-status', 'load', 'جارِ إرسال رابط تعيين كلمة المرور...');
+  try {
+    let email = idRaw;
+    if (!idRaw.includes('@')) {
+      const uid = await authWithTimeout(authResolveUidByUsername(idRaw.toLowerCase()));
+      if (!uid) { authSetStatus('auth-status', 'err', 'ما فيه حساب بهذا اليوزر'); return; }
+      const st = await authFetchUserDocState(uid);
+      if (st.state === 'unknown') throw (st.err || new Error('AUTH_TIMEOUT'));
+      if (!st.data || !st.data.email) { authSetStatus('auth-status', 'err', 'هذا الحساب ما له إيميل — ادخل عبر Google'); return; }
+      if (st.data.provider === 'google') { authSetStatus('auth-status', 'err', 'هذا الحساب مسجّل عبر Google وما له كلمة مرور — اضغط «الدخول عبر Google»'); return; }
+      email = st.data.email;
+    }
+    await authWithTimeout(fb.sendPasswordResetEmail(fb.auth, email));
+    // نفس الرسالة سواء الإيميل مسجّل أو لا (Firebase ما يكشف وجود الحسابات).
+    authSetStatus('auth-status', 'ok', '✅ لو الإيميل مسجّل عندنا بيوصلك رابط تعيين كلمة مرور جديدة خلال دقائق — شيّك على البريد المهمل (Spam) أيضاً');
+  } catch (err) {
+    if (err && err.code === 'auth/user-not-found') {
+      authSetStatus('auth-status', 'ok', '✅ لو الإيميل مسجّل عندنا بيوصلك رابط تعيين كلمة مرور جديدة خلال دقائق — شيّك على البريد المهمل (Spam) أيضاً');
+    } else {
+      authSetStatus('auth-status', 'err', authErrorMessage(err));
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function authProcessGoogleUser(user) {
+  // نفس توجيه onAuthStateChanged (موجود → يدخل، بلا يوزر → اختيار يوزر،
+  // تعذّرت القراءة → يدخل بيوزره المحفوظ أو يُعاد المحاولة — بلا طرد).
+  await authRouteSignedInUser(user);
 }
 
 // Popups can be blocked/closed silently by the browser (common on some hosts
@@ -14828,8 +14973,19 @@ const AUTH_POPUP_FALLBACK_CODES = new Set([
   'auth/web-storage-unsupported'
 ]);
 
+// متصفحات التطبيقات الداخلية (تيك توك/إنستقرام/سناب/فيسبوك) — Google يمنع الدخول
+// منها (disallowed_useragent) فتعلق صفحة الدخول. نوضح للاعب يفتح متصفح عادي.
+function authIsInAppBrowser() {
+  const ua = navigator.userAgent || '';
+  return /musical_ly|TikTok|BytedanceWebview|trill|Instagram|FBAN|FBAV|FB_IAB|Snapchat|Line\/|Twitter/i.test(ua);
+}
+
 async function authGoogleSignIn() {
   authClearStatus('auth-status');
+  if (authIsInAppBrowser()) {
+    authSetStatus('auth-status', 'err', 'الدخول عبر Google ما يشتغل داخل متصفح التطبيق (تيك توك/إنستقرام…). افتح الموقع في Safari أو Chrome (⋯ ← فتح في المتصفح)، أو سجّل بالإيميل وكلمة المرور.');
+    return;
+  }
   authSetButtonsDisabled(true);
   authSetStatus('auth-status', 'load', 'جارِ الدخول عبر Google...');
   try {
@@ -14863,21 +15019,34 @@ async function authHandleChooseUsername(e) {
     authSetStatus('cu-status', 'err', 'اليوزر لازم يكون بين 3 و20 حرف (إنجليزي/أرقام/_) بدون مسافات');
     return false;
   }
+  const user = currentUser || (fb && fb.auth && fb.auth.currentUser) || null;
+  if (!user) {
+    authSetStatus('cu-status', 'err', 'انتهت جلسة الدخول — ارجع وسجّل دخولك مرة ثانية');
+    return false;
+  }
+  currentUser = user;
   const btn = document.getElementById('cu-btn');
   btn.disabled = true;
   authSetStatus('cu-status', 'load', 'جارِ الحفظ...');
   let navigated = false;
   try {
     const usernameLower = username.toLowerCase();
-    if (await authWithTimeout(authIsUsernameTaken(usernameLower))) {
+    if (await authWithTimeout(authIsUsernameTaken(usernameLower, user.uid))) {
       authSetStatus('cu-status', 'err', 'هذا اليوزر مستخدم من شخص ثاني، جرّب يوزر غير');
       return false;
     }
-    await authWithTimeout(authReserveUsername(currentUser.uid, username, currentUser.email, 'google'));
+    const provider = (user.providerData && user.providerData.some(p => p.providerId === 'google.com')) ? 'google' : 'password';
+    try {
+      await authWithTimeout(authReserveUsername(user.uid, username, user.email, provider), 25000);
+    } catch (errR) {
+      const st = await authFetchUserDocState(user.uid);
+      if (!(st.state === 'found' && st.data && st.data.usernameLower === usernameLower)) throw errR;
+    }
+    authCacheUsername(user.uid, username);
     // أول ظهور فعلي لهذا الحساب (اختيار يوزرنيم لأول مرة بعد Google) — زد عداد
     // الصفحة الرئيسية الحي. best-effort، ما يوقف تدفق التسجيل لو فشل.
     fb.updateDoc(fb.doc(fb.db, 'config', 'homeStats'), { registeredCount: fb.increment(1) }).catch(() => {});
-    try { await fb.updateProfile(currentUser, { displayName: username }); } catch (e2) {}
+    try { await fb.updateProfile(user, { displayName: username }); } catch (e2) {}
     currentUsername = username;
     authUpdateChip();
     navigated = true;
@@ -14898,7 +15067,9 @@ async function authHandleChooseUsername(e) {
 }
 
 function chooseUsernameBack() {
-  try { if (window.fb && fb.auth) fb.signOut(fb.auth); } catch (e) {}
+  // fb متغيّر let عام (مو خاصية على window) — window.fb كان دائماً undefined
+  // فالرجوع ما كان يسجّل خروج أبداً ويبقى الحساب معلّقاً بلا يوزر.
+  try { if (fb && fb.auth) fb.signOut(fb.auth); } catch (e) {}
   authClearStatus('cu-status');
   authClearStatus('auth-status');
   show('auth');
@@ -20156,6 +20327,8 @@ function authBoot() {
       currentUser = user;
       document.getElementById('auth-loader').classList.add('hidden');
       if (!user) {
+        authRouteSeq++;
+        authBootChainUid = null;
         currentUsername = null;
         authUpdateChip();
         // زائر غير مسجّل دخول: يشوف صفحة الهبوط التعريفية أولاً (بدل نموذج
@@ -20165,49 +20338,59 @@ function authBoot() {
         presenceStop();
         return;
       }
-      try {
-        const userDoc = await authGetUserDoc(user.uid);
-        if (userDoc && userDoc.username) {
-          currentUsername = userDoc.username;
-          authUpdateChip();
-          // حساب مسجّل دخوله يشوف نفس صفحة الهبوط التعريفية أول ما يفتح
-          // الموقع (بدل الذهاب مباشرة لصفحة الألعاب) — زر "ابدأ اللعب
-          // مجاناً" بداخلها يتعرف تلقائياً إنه مسجّل دخول (landingCtaClick)
-          // ويوديه لصفحته الرئيسية الفعلية (home) بدل نموذج تسجيل الدخول.
-          show('landing');
-          await authRunPostAuthBootChain(userDoc.lastSeenUpdateAt || null);
-          ghMilestoneCheckAndShow();
-        } else {
-          // No username doc yet. This screen is meant only for a first-time
-          // Google sign-in (Google never asks for a username up front) — so
-          // gate it on the actual sign-in provider instead of just "no
-          // username", which used to also catch password accounts whose
-          // signup got interrupted after the Auth account was created but
-          // before the username was saved (e.g. dropped connection/quota).
-          const isGoogleUser = !!(user.providerData && user.providerData.some(p => p.providerId === 'google.com'));
-          if (isGoogleUser) {
-            show('choose-username');
-          } else {
-            // Orphaned/incomplete password account — don't strand them on the
-            // Google-only screen. We're authenticated as this exact user
-            // right now (they just logged in), so we can safely delete the
-            // broken Auth record outright instead of merely signing out —
-            // that frees up the email so signup can be retried cleanly,
-            // and also self-heals any accounts left broken before this fix.
-            try { await fb.deleteUser(user); } catch (e2) { try { await fb.signOut(fb.auth); } catch (e3) {} }
-            currentUser = null;
-            currentUsername = null;
-            authUpdateChip();
-            authSetStatus('auth-status', 'err', 'حساباك السابقة ما اكتمل إنشاؤه فحذفناه — سوّ إنشاء حساب من جديد بنفس الإيميل');
-            show('auth');
-          }
-        }
-      } catch (err) {
-        authSetStatus('auth-status', 'err', authErrorMessage(err));
-        show('auth');
-      }
+      await authRouteSignedInUser(user);
     });
   });
+}
+
+// توجيه حساب مسجّل دخوله: موجود → الصفحة الرئيسية، بلا يوزر → اختيار يوزر.
+// لا يحذف ولا يطرد أي حساب بسبب خطأ قراءة (حصة Firestore/شبكة): يدخل بيوزره
+// المحفوظ محلياً، أو يعرض رسالة ويعيد المحاولة تلقائياً وهو ما زال مسجّلاً.
+let authRouteSeq = 0;
+async function authRouteSignedInUser(user, attempt) {
+  if (!user) return;
+  const seq = ++authRouteSeq;
+  currentUser = user;
+  const loader = document.getElementById('auth-loader'); if (loader) loader.classList.add('hidden');
+  let st;
+  try { st = await authFetchUserDocState(user.uid); } catch (err) { st = { state: 'unknown', err }; }
+  // جلسة أحدث (خروج/دخول بحساب آخر) أخذت مكان هذي — نتجاهل النتيجة.
+  if (seq !== authRouteSeq || !fb.auth.currentUser || fb.auth.currentUser.uid !== user.uid) return;
+  if (st.state === 'found') {
+    currentUsername = st.data.username;
+    authCacheUsername(user.uid, currentUsername);
+    authUpdateChip();
+    // حساب مسجّل دخوله يشوف صفحة الهبوط التعريفية أول ما يفتح الموقع —
+    // زر "ابدأ اللعب مجاناً" بداخلها يوديه لصفحته الرئيسية (landingCtaClick).
+    show('landing');
+    await authRunPostAuthBootChain(st.data.lastSeenUpdateAt || null);
+    ghMilestoneCheckAndShow();
+    return;
+  }
+  if (st.state === 'missing') {
+    // حساب بلا يوزر: أول دخول عبر Google، أو تسجيل بالإيميل انقطع قبل حفظ
+    // اليوزر. الحل واحد: يختار يوزر — لا نحذف الحساب أبداً.
+    currentUsername = null;
+    authUpdateChip();
+    authClearStatus('auth-status');
+    show('choose-username');
+    return;
+  }
+  // تعذّرت القراءة الآن — ليس دليلاً على أن الحساب ناقص.
+  const cached = authCachedUsername(user.uid) || (user.displayName && authValidateUsernameFormat(user.displayName) ? user.displayName : null);
+  if (cached) {
+    currentUsername = cached;
+    authUpdateChip();
+    show('landing');
+    await authRunPostAuthBootChain(null);
+    return;
+  }
+  const n = (attempt || 0) + 1;
+  authSetStatus('auth-status', 'load', 'تعذّر الاتصال بالخادم — نعيد المحاولة تلقائياً (حسابك سليم ولن تحتاج تسجيل الدخول مرة ثانية)');
+  show('auth');
+  setTimeout(() => {
+    if (seq === authRouteSeq && fb.auth.currentUser && fb.auth.currentUser.uid === user.uid) authRouteSignedInUser(user, n);
+  }, Math.min(30000, 3000 * n));
 }
 
 // نفس سلسلة التشغيل (presence/friends/notifications/personal-messages/...) اللي
@@ -20216,6 +20399,9 @@ function authBoot() {
 // اللي كانت تتجاوز onAuthStateChanged (عبر authSignupInProgress أو لأنه ما
 // يُعاد إطلاقه) فتترك هذي الأنظمة كلها معطّلة لحد ما المستخدم يعيد تحميل الصفحة.
 async function authRunPostAuthBootChain(lastSeenUpdateAt) {
+  const bootUid = currentUser && currentUser.uid;
+  if (bootUid && authBootChainUid === bootUid) return;
+  authBootChainUid = bootUid || null;
   if (currentUser) authSyncPendingUserIfAny(currentUser.uid); // best-effort، ما ننتظره
   if (currentUser) framesOpenPendingShareIfAny(); // رابط مشاركة إطار (?frame=ID) معلّق (لو فيه) — best-effort
   publicBadgesBoot();
@@ -26001,6 +26187,10 @@ function show(page) {
   if (page === 'online-friends') frnFriendsPageBoot();
   if (page === 'wordle-mode-select' && typeof wdlModeSelectRefresh === 'function') wdlModeSelectRefresh();
   if (page === 'landing' && typeof landingBoot === 'function') landingBoot();
+  // أزرار الدخول/اختيار اليوزر تبقى معطّلة بعد نجاح سابق (منعاً للضغط المزدوج أثناء
+  // الانتقال) — ترجع تشتغل كل ما رجعت الصفحة تظهر (خروج ثم دخول بحساب ثاني).
+  if (page === 'choose-username') { const b = document.getElementById('cu-btn'); if (b) b.disabled = false; }
+  if (page === 'auth' && typeof authSignupInProgress !== 'undefined' && !authSignupInProgress && typeof authSetButtonsDisabled === 'function') authSetButtonsDisabled(false);
   if (page === 'ahsemha-home') {
     const card = document.querySelector('.ahsemha-start-card');
     if (card) card.style.background = ahsemhaGetSetting('startCardColor') || '';
