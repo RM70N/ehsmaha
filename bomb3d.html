@@ -613,19 +613,16 @@ var SCHEMA=[
   ['revivalEnabled','chk','تفعيل الإنعاش بالهدايا'],
   ['revivalMaxUses','num','أقصى عدد إنعاشات لكل لاعب',0,9],
   ['sec','الصوت'],
-  ['music','chk','أجواء الخلفية الخافتة'],
   ['sfxVol','range','مستوى المؤثرات',0,100],
   ['ambVol','range','مستوى الأجواء',0,100],
   ['mute.fuse','chk','كتم صوت الفتيل والعد'],
   ['mute.sfx','chk','كتم مؤثرات التمرير والانفجار'],
   ['sec','العرض والأداء'],
-  ['quality','sel','جودة الرسومات',[['auto','تلقائية حسب الجهاز'],['high','عالية'],['medium','متوسطة'],['low','منخفضة']]],
-  ['lowEnd','chk','عرض مختصر للأجهزة الضعيفة','','','يلغي الظلال والتوهج ويقلل الجسيمات.'],
   ['shake','chk','اهتزاز الكاميرا عند الانفجار'],
   ['reduceMotion','chk','تقليل الحركة','','','يلغي الاهتزاز ويقصّر حركات الكاميرا.'],
   ['frame','sel','إطار البث',[['auto','تلقائي حسب الشاشة'],['169','أفقي 16:9'],['916','عمودي 9:16 (تيك توك)']]]
 ];
-var CFG=Object.assign({},DEF,store(SET_KEY)||{}); CFG.mute=Object.assign({},DEF.mute,CFG.mute||{});
+var CFG=Object.assign({},DEF,store(SET_KEY)||{}); CFG.mute=Object.assign({},DEF.mute,CFG.mute||{}); CFG.music=false; CFG.quality='low'; CFG.lowEnd=true;
 function cfgGet(k){ var p=k.split('.'); return p.length>1?CFG[p[0]][p[1]]:CFG[k]; }
 function cfgSet(k,v){ var p=k.split('.'); if(p.length>1) CFG[p[0]][p[1]]=v; else CFG[k]=v; }
 function parseTimes(s){
@@ -672,6 +669,7 @@ var AUD=(function(){
   function mutedFuse(){ return !!(CFG.mute&&CFG.mute.fuse)||(bridge&&bridge.muted&&bridge.muted()); }
   function applyVolumes(){ if(!A) return; var t=now(); sfxBus.gain.setTargetAtTime(CFG.sfxVol/100,t,0.05); fuseBus.gain.setTargetAtTime(mutedFuse()?0:CFG.sfxVol/100*0.8,t,0.05); ambBus.gain.setTargetAtTime((CFG.music&&!(bridge&&bridge.muted&&bridge.muted()))?CFG.ambVol/100*0.5:0,t,0.4); }
   function startAmbient(){
+    return; /* لا موسيقى/أجواء خلفية */
     var r=nsrc(true), lp=A.createBiquadFilter(), g=A.createGain(); lp.type='lowpass'; lp.frequency.value=180; g.gain.value=0.05; r.connect(lp); lp.connect(g); g.connect(ambBus); r.start();
     var d=A.createGain(); d.gain.value=0.012; d.connect(ambBus); var os=[]; [55,82.4,110.3].forEach(function(f,i){ var o=A.createOscillator(); o.type=i?'sine':'triangle'; o.frequency.value=f; var gg=A.createGain(); gg.gain.value=[1,.5,.2][i]; o.connect(gg); gg.connect(d); o.start(); os.push(o); });
     ambNodes={r:r,os:os};
@@ -724,9 +722,9 @@ window.AUD=AUD;
 var View3D=(function(){
 if(typeof THREE==='undefined') return null;
 var app=$('#b3d-app'), canvas=$('#b3d-gl'), renderer;
-try{ renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:true,powerPreference:'high-performance'}); if(!renderer.getContext()) throw 0; }catch(e){ return null; }
+try{ renderer=new THREE.WebGLRenderer({canvas:canvas,antialias:false,powerPreference:'high-performance'}); if(!renderer.getContext()) throw 0; }catch(e){ return null; }
 var DEV_WEAK=(navigator.hardwareConcurrency||8)<=4||(navigator.deviceMemory||8)<4||Math.min(screen.width,screen.height)<500;
-function qualityTier(){ if(CFG.lowEnd) return 'low'; if(CFG.quality!=='auto') return CFG.quality; return DEV_WEAK?'medium':'high'; }
+function qualityTier(){ return 'low'; }
 var Q={};
 function applyQ(){ var t=qualityTier(); Q={tier:t,shadow:t==='high'?2048:(t==='medium'?1024:0),bloom:t!=='low',prMax:t==='high'?1.75:(t==='medium'?1.35:1),maxParts:t==='high'?260:(t==='medium'?150:70),shadowChars:t!=='low',smooth:t!=='low'}; }
 applyQ();
