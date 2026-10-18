@@ -75,7 +75,7 @@ http.createServer((req, res) => {
       case 'burst': {
         const count = Number(b.count) || 1, perMs = Number(b.perMs) || 0;
         let i = 0;
-        const one = () => (global.__routeChat || ctl.chat)(u, { viewer: (b.prefix || 'v') + i, nickname: (b.prefix || 'v') + i, text: b.text, identity: b.identity, followStatus: b.followStatus });
+        const one = () => (global.__routeChat || ctl.chat)(u, { viewer: (b.prefix || 'v') + i, nickname: (b.prefix || 'v') + i, text: b.text, identity: b.identity, followStatus: b.followStatus, platform: b.platform === 'alt' ? (i % 2 ? 'kick' : 'tiktok') : b.platform });
         if (!perMs) { for (; i < count; i++) one(); return send(200, { sent: count }); }
         const t = setInterval(() => { if (i >= count) { clearInterval(t); return; } one(); i++; }, perMs);
         return send(200, { scheduled: count });

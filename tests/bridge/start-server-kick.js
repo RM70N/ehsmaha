@@ -10,7 +10,10 @@ const { startKickMock } = require(path.join(__dirname, '../../tiktok-server/test
   global.__kickMock = M;
   for (const c of String(process.env.KICK_CHANNELS || 'streamer1').split(',')) { const [n, flag] = c.trim().split(':'); M.setChannel(n, { live: flag !== 'offline' }); } // القنوات الموجودة بكيك (غيرها = 404)
   const hash = (s) => { let h = 7; for (const c of String(s)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+  const fake = require('./fake-connector');
   global.__routeChat = (user, b) => {
+    // platform:'tiktok' (أو بلا تحديد مع KICK_ONLY=0) ← موصل تيك توك المزيّف؛ غيره (كيك) ← محاكي كيك
+    if (b.platform === 'tiktok' || (process.env.KICK_DEFAULT === 'tiktok' && !b.platform)) return fake.__ctl.chat(user, b);
     if (!M.channels.has(user)) M.setChannel(user);
     return M.chat(user, { content: b.text, sender: { id: hash(b.viewer), username: String(b.viewer), slug: String(b.viewer).toLowerCase(), identity: { badges: [] } } });
   };

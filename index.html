@@ -25560,9 +25560,26 @@ function tiktokAutoReconnectOnLoad() {
   tiktokQuickReconnect(saved.username, { silent: true });
 }
 
+// جلسة «أكثر من منصة»: بعد تحديث الصفحة تيك توك يعود تلقائياً (أعلاه) — نعيد باقي منصات نفس الجلسة معه
+// (كيك/يوتيوب/تويتش/ديسكورد) بصمت، وإلا يظن الستريمر إنها ما زالت موصولة وهي مفصولة.
+function homeAutoReconnectOthersOnLoad() {
+  let targets = null;
+  try { targets = JSON.parse(localStorage.getItem(HOME_CONNECTED_TARGETS_KEY) || 'null'); } catch (e) {}
+  if (!Array.isArray(targets) || targets.length < 2) return;
+  targets.forEach(t => {
+    if (!t || t.platform === 'tiktok' || !PLATFORMS[t.platform] || !t.username || homeConnections[t.platform]) return;
+    platformConnect(t.platform, { username: t.username }, homeDispatchToGameListeners, function (p, status) {
+      if (status !== 'connected') return;
+      const live = platformConnectedList();
+      homeUpdateConnectionBadge(true, live.length === 1 ? PLATFORMS[live[0]].label : live.map(x => PLATFORMS[x].icon).join(' ') + ' ' + live.length + ' منصات');
+    });
+  });
+}
+
 window.addEventListener('load', () => {
   try { homeQuickReconnectButtonRefresh(); } catch (e) {}
   try { tiktokAutoReconnectOnLoad(); } catch (e) {}
+  try { homeAutoReconnectOthersOnLoad(); } catch (e) {}
 });
 
 function profileTiktokStatusRefresh() {
@@ -26402,6 +26419,12 @@ function homeQcSetStatus(msg) {
 }
 
 function homeUpdateConnectionBadge(connected, platformLabel) {
+  // أكثر من منصة موصولة: الشارة تذكرها كلها دائماً — مسارات تيك توك الخاصة (الربط التلقائي/النافذة) كانت تكتب
+  // «تيك توك» وحدها فوق شارة الجلسة المتعددة.
+  if (connected) {
+    const live = (typeof platformConnectedList === 'function') ? platformConnectedList() : [];
+    if (live.length > 1) platformLabel = live.map(x => PLATFORMS[x].icon).join(' ') + ' ' + live.length + ' منصات';
+  }
   const badge = document.getElementById('home-conn-badge');
   const text = document.getElementById('home-conn-badge-text');
   if (badge && text) {
@@ -26554,6 +26577,8 @@ function homeStartQuickConnect() {
     // المنصة الأولى هي "الأساسية"، والقائمة الكاملة بمفتاح منفصل.
     localStorage.setItem(HOME_CONNECTED_PLATFORM_KEY, targets[0].platform);
     localStorage.setItem(HOME_CONNECTED_PLATFORMS_KEY, targets.map(t => t.platform).join(','));
+    // يوزر كل منصة (للاستعادة بعد تحديث الصفحة) — بدونه كانت تعود تيك توك وحدها وتضيع بقية منصات الجلسة بصمت.
+    localStorage.setItem(HOME_CONNECTED_TARGETS_KEY, JSON.stringify(targets.map(t => ({ platform: t.platform, username: t.username }))));
   } catch (e) {}
 
   homeCloseQuickConnect();
@@ -26663,6 +26688,7 @@ const HOME_CONNECTED_PLATFORM_KEY = 'homeConnectedPlatform';
 // قائمة كل المنصات الموصولة (للعرض/التشخيص فقط) — منفصلة عن المفتاح أعلاه
 // الذي يجب أن يبقى اسم منصة مفرداً لأن كل لعبة تسنده لـgamePlatform[tag].
 const HOME_CONNECTED_PLATFORMS_KEY = 'homeConnectedPlatforms';
+const HOME_CONNECTED_TARGETS_KEY = 'homeConnectedTargets';
 let homeGameListeners = {};
 
 // دالة اختيارية تُنفَّذ تلقائياً بعد أول اتصال ناجح عبر نافذة الربط السريع —
