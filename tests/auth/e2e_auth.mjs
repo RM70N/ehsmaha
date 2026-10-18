@@ -1,5 +1,5 @@
 // اختبار حي لتسجيل الدخول/إنشاء الحساب في index.html ضد محاكي Firebase (Auth + Firestore + RTDB) بقواعد المستودع.
-// التشغيل: من مجلد فيه firebase و firebase-tools (npm i firebase firebase-tools @firebase/rules-unit-testing) ونسخة من firestore.rules و database.rules.json:
+// التشغيل: من مجلد فيه firebase و firebase-tools (npm i firebase firebase-tools) ونسخة من firestore.rules و database.rules.json:
 //   firebase emulators:start --only auth,firestore,database --project streamgame-180b8   (بدون HTTP(S)_PROXY)
 //   python3 -m http.server 8790 (من جذر المستودع)  ثم  node e2e_auth.mjs
 import { createRequire } from 'node:module';
@@ -273,7 +273,85 @@ await A.page.fill('#cu-username', 'popup_user'); await A.page.click('#cu-btn');
 st = await until(async () => { const s = await S(A.page); return s.active === 'pg-home' && s.uname === 'popup_user' ? s : null; }, 15000);
 ok(st, 'ويكمل للرئيسية', await S(A.page));
 
+console.log('== 11) نسيت كلمة المرور');
+await logout(A.page);
+await gotoAuth(A.page); await A.page.evaluate(() => authSwitchTab('login')); await A.page.fill('#auth-login-id', '');
+await A.page.click('#auth-forgot-btn'); await sleep(200);
+ok(/اكتب إيميلك أو اليوزر/.test((await S(A.page)).status), 'بدون إيميل/يوزر: يطلب كتابته');
+await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PID}/oobCodes`, { method: 'DELETE' }).catch(() => {});
+await A.page.fill('#auth-login-id', 'user_one'); await A.page.click('#auth-forgot-btn');
+await until(async () => /✅.*رابط تعيين/.test((await S(A.page)).status), 10000);
+ok(/✅.*رابط تعيين/.test((await S(A.page)).status), 'باليوزر: رسالة إرسال الرابط', (await S(A.page)).status);
+const oob = await (await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PID}/oobCodes`)).json();
+const rc = (oob.oobCodes || []).find(o => o.requestType === 'PASSWORD_RESET' && o.email === 'one@test.com');
+ok(rc, 'رابط التعيين أُرسل لإيميل الحساب الصحيح', oob);
+if (rc) {
+  const r = await fetch(`http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:resetPassword?key=fake`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ oobCode: rc.oobCode, newPassword: 'newpass99' }) });
+  ok(r.ok, 'تعيين كلمة مرور جديدة عبر الرابط');
+  await login(A.page, 'user_one', 'newpass99');
+  st = await until(async () => { const s = await S(A.page); return s.user && s.uname === 'user_one' && s.active !== 'pg-auth' ? s : null; }, 15000);
+  ok(st, 'الدخول بكلمة المرور الجديدة ينجح', await S(A.page));
+  await logout(A.page);
+}
+await gotoAuth(A.page); await A.page.fill('#auth-login-id', 'nobody@test.com'); await A.page.click('#auth-forgot-btn');
+await until(async () => /✅|خطأ|ما فيه/.test((await S(A.page)).status), 10000);
+ok(/✅.*رابط تعيين/.test((await S(A.page)).status), 'إيميل غير مسجّل: نفس الرسالة (بدون كشف الحسابات)', (await S(A.page)).status);
+await A.page.fill('#auth-login-id', 'google_guy'); await A.page.click('#auth-forgot-btn');
+await until(async () => /Google/.test((await S(A.page)).status), 10000);
+ok(/Google/.test((await S(A.page)).status), 'يوزر حساب Google: يوجّهه لزر Google', (await S(A.page)).status);
+await A.page.fill('#auth-login-id', 'nouser_zz'); await A.page.click('#auth-forgot-btn');
+await until(async () => /ما فيه حساب/.test((await S(A.page)).status), 10000);
+ok(/ما فيه حساب/.test((await S(A.page)).status), 'يوزر غير موجود: رسالة');
+
+console.log('== 12) رسائل أخطاء إضافية');
+await login(A.page, 'GOOGLE_guy', 'whatever1');
+await until(async () => /مسجّل عبر Google/.test((await S(A.page)).status), 10000);
+ok(/مسجّل عبر Google/.test((await S(A.page)).status), 'دخول بيوزر حساب Google + كلمة مرور: يوجّهه لزر Google', (await S(A.page)).status);
+const msgs = await A.page.evaluate(() => [authErrorMessage({ code: 'auth/user-disabled' }), authErrorMessage({ code: 'auth/some-new-code', message: 'Firebase: Error (auth/some-new-code).' }), authErrorMessage(new Error('AUTH_TIMEOUT')), authErrorMessage({ code: 'unavailable', message: 'offline' })]);
+ok(/موقوف/.test(msgs[0]) && /غير متوقع/.test(msgs[1]) && !/Firebase/.test(msgs[1]) && /الاتصال/.test(msgs[2]) && /الاتصال/.test(msgs[3]), 'لا رسائل إنجليزية خام — كل الأخطاء بالعربي', msgs);
+
+console.log('== 13) مزامنة حساب الاحتياطي (RTDB) لـ Firestore بعد رجوع الحصة');
+await login(A.page, 'quota_user', '123456');
+st = await until(async () => { const s = await S(A.page); return s.user && s.uname === 'quota_user' ? s : null; }, 15000);
+ok(st, 'يدخل حساب الاحتياطي');
+const synced = await until(async () => (await fsGet('usernames/quota_user')) && !(await rget('pendingUsers/' + uidQ)), 15000);
+ok(synced, 'انتقل لـ Firestore وانمسح من الاحتياطي');
+await logout(A.page);
+
+console.log('== 14) تبويب جديد + الخروج من القائمة');
+await login(A.page, 'one@test.com', 'newpass99');
+await until(async () => (await S(A.page)).uname === 'user_one', 15000);
+const p2 = await A.ctx.newPage(); p2.on('dialog', d => d.accept()); await p2.goto(URL0); await p2.waitForFunction(() => document.getElementById('auth-loader').classList.contains('hidden'), null, { timeout: 25000 }); await sleep(800);
+st = await S(p2);
+ok(st.user && st.uname === 'user_one', 'تبويب جديد: نفس الجلسة بدون تسجيل دخول', st);
+ok(await p2.evaluate(() => document.getElementById('auth-user-chip').classList.contains('visible') && document.getElementById('auth-user-name').textContent === 'user_one'), 'اسم اليوزر ظاهر بالأعلى');
+await p2.evaluate(() => authLogout()); await sleep(1500);
+st = await S(p2);
+ok(!st.user && !(await p2.evaluate(() => document.getElementById('auth-user-chip').classList.contains('visible'))), 'تسجيل الخروج (زر الموقع) يخرجه ويخفي اليوزر', st);
+await p2.close();
+
+console.log('== 15) متصفح تيك توك الداخلي + Google');
+{
+  const ctx = await browser.newContext({ userAgent: 'Mozilla/5.0 (iPhone) AppleWebKit/605.1.15 Mobile/15E148 musical_ly_33.0 BytedanceWebview/d8a21c6', viewport: { width: 390, height: 800 } });
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|www\.gstatic\.com\/firebasejs)/, r => r.abort());
+  await ctx.route(FB + '**', async (r) => { const u = r.request().url().slice(FB.length); const H = { 'content-type': 'application/javascript', 'access-control-allow-origin': '*' }; if (u === 'firebase-firestore.js') return r.fulfill({ status: 200, headers: H, body: wrapFs }); if (u === 'firebase-auth.js') return r.fulfill({ status: 200, headers: H, body: wrapAuth }); if (u === 'firebase-database.js') return r.fulfill({ status: 200, headers: H, body: wrapDb }); const f = path.join(NM, u.replace(/^__real\//, '')); return fs.existsSync(f) ? r.fulfill({ status: 200, headers: H, body: fs.readFileSync(f) }) : r.fulfill({ status: 404, body: '' }); });
+  const pg = await ctx.newPage(); await open(pg); await gotoAuth(pg); await pg.click('#auth-google-btn'); await sleep(300);
+  ok(/متصفح التطبيق/.test((await S(pg)).status), 'داخل تيك توك: رسالة «افتح في Safari/Chrome» بدل التعليق', (await S(pg)).status);
+  await ctx.close();
+}
+
+console.log('== 16) مكتبة Firebase ما وصلت');
+{
+  const ctx = await browser.newContext();
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1)/, r => r.abort());
+  const pg = await ctx.newPage(); await pg.goto(URL0); await sleep(21500);
+  const w = await pg.evaluate(() => ({ t: document.getElementById('auth-loader-text').textContent, b: getComputedStyle(document.getElementById('auth-loader-retry')).display }));
+  ok(/الاتصال بالخادم بطيء/.test(w.t) && w.b !== 'none', 'بعد 20 ثانية: رسالة واضحة + زر إعادة المحاولة (بدل دوران للأبد)', w);
+  await ctx.close();
+}
+
 console.log('== 9) تجديد التوكن (جلسة طويلة) لا يطرد');
+await google(A.page, 'g-300', 'g300@gmail.com'); await until(async () => (await S(A.page)).uname === 'popup_user', 10000);
 await A.page.evaluate(async () => { await window.__auth.currentUser.getIdToken(true); }); await sleep(800);
 st = await S(A.page);
 ok(st.user && st.uname === 'popup_user', 'بعد تجديد التوكن: باقي مسجّل', st);
