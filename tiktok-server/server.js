@@ -1727,7 +1727,7 @@ server.listen(PORT, () => {
   slog('info', 'connect_policy', { ratePerMinPerProvider: envNum('TIKTOK_CONNECT_RATE_PER_MIN', 120), burst: envNum('TIKTOK_CONNECT_BURST', 6), inFlightPerProvider: envNum('TIKTOK_CONNECT_INFLIGHT', 4), maxAttempts: TIKTOK_MAX_ATTEMPTS, giveUpSec: Math.round(TIKTOK_GIVE_UP_MS / 1000) });
   // تشخيص مباشر لأشيع سبب لـ429: المفتاح غير مضبوط أصلاً على المستضيف.
   if (providerConfig.keyCount > 0) {
-    log('info', 'مفتاح EulerStream مضبوط (' + providerConfig.keyCount + ' مفتاح، من ' + providerConfig.keySource + ') — حد طلبات التوقيع المرفوع فعّال');
+    log('info', 'مفاتيح EulerStream: ' + providerConfig.keyCount + ' مفتاح مقروء من ' + providerConfig.keySource + ' — بالترتيب: ' + providerConfig.keyTails.join(' ، ') + ' (آخر ٤ خانات فقط) — حد طلبات التوقيع المرفوع فعّال');
   } else {
     log('warn', '⚠️ EULER_API_KEY غير مضبوط — تيك توك يعمل على الطبقة المجانية من EulerStream (حد طلبات لكل IP، وIP خدمات Render مشترك) ومعرّض لـ429. أضف EULER_API_KEY في Environment Variables على Render.');
   }
