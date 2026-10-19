@@ -90432,6 +90432,22 @@ window.__lateJoin = {
 .eh-connect-paused .eh-connect-pk,.eh-connect-paused .eh-connect-ring,.eh-connect-paused .eh-connect-indet::after,.eh-connect-paused .eh-connect-hub::before{animation-play-state:paused!important}
 /* الواجهة القديمة تبقى بالـDOM (للمستدعين البرمجيين) لكن مخفية — التصميم الجديد وحده يظهر */
 #qc-overlay,#qc-connecting-overlay,#qc-overlay.visible,#qc-connecting-overlay.visible{display:none!important}
+/* شعار احسمها بدل الحرف */
+.eh-connect-mark{background:transparent!important;overflow:hidden}
+.eh-connect-lane{align-items:flex-start}
+.eh-connect-slotL{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;max-width:110px}
+.eh-connect-avname{font-size:12.5px;font-weight:600;color:var(--c-tx);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:center}
+.eh-connect-lane .eh-connect-track{transform:scaleX(-1)}
+.eh-connect-mark svg,.eh-connect-hub svg{display:block;width:100%;height:100%}
+.eh-connect-hub{background:transparent!important;overflow:hidden}
+.eh-connect-lane[data-s="failed"] .eh-connect-mark,.eh-connect-scene[data-s="failed"] .eh-connect-hub{filter:grayscale(1);opacity:.55}
+/* أفتار الستريمر مع شارة المنصة */
+.eh-connect-av{position:relative;overflow:visible!important;background:var(--c-s3)!important}
+.eh-connect-av img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}
+.eh-connect-avbadge{position:absolute;inset-inline-end:-5px;bottom:-5px;width:42%;height:42%;min-width:16px;min-height:16px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--c-s1);background:var(--tile-bg,#222);color:var(--tile-fg,#fff);overflow:hidden}
+.eh-connect-avbadge[data-p="tiktok"]{--tile-bg:#000}.eh-connect-avbadge[data-p="twitch"]{--tile-bg:#9146ff}
+.eh-connect-avbadge svg{width:62%;height:62%}
+
 .eh-connect-root{font-family:'IBM Plex Sans Arabic','Tajawal','Cairo','Segoe UI',Tahoma,sans-serif}
 .eh-connect-root button{margin:0}
 
@@ -90440,7 +90456,7 @@ window.__lateJoin = {
   <div class="eh-connect-overlay" id="eh-connect-overlay" data-open="false">
     <div class="eh-connect-panel" id="eh-connect-panel" role="dialog" aria-modal="true" aria-labelledby="eh-connect-title" tabindex="-1">
       <div class="eh-connect-head">
-        <div class="eh-connect-brand"><span class="eh-connect-mark" aria-hidden="true">ح</span><span id="eh-connect-label">مركز ربط البث</span></div>
+        <div class="eh-connect-brand"><span class="eh-connect-mark" aria-hidden="true"><svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ehcLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#ehcLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg></span><span id="eh-connect-label">مركز ربط البث</span></div>
         <button class="eh-connect-icon-btn" id="eh-connect-close" type="button" aria-label="إغلاق"></button>
       </div>
       <div class="eh-connect-body" id="eh-connect-body"></div>
@@ -90474,6 +90490,41 @@ function logoSVG(p) {
   return `<svg viewBox="0 0 24 24" role="img" aria-label="${PLATFORMS_UI[p].label}" xmlns="${LOGO_NS}">${extra}<path fill="currentColor" d="${d}"/></svg>`;
 }
 const tile = p => `<span class="eh-connect-tile" data-p="${p}">${logoSVG(p)}</span>`;
+const EH_LOGO = `<svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ehcLogoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#ehcLogoGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>`;
+
+/* أفتار الستريمر بعد الربط: تيك توك من نقطة /profile الموجودة أصلاً (قراءة فقط)، تويتش من decapi؛
+   كيك/يوتيوب/ديسكورد ما لها مصدر أفتار من المتصفح فتبقى بشعار المنصة. */
+const avatars = {};            // 'platform:user' → url | '' (فشل/غير متاح) | undefined (لم يُطلب)
+const avKey = (p, u) => p + ':' + String(u || '').toLowerCase();
+const AV_STORE = 'ehcConnectAvatars';       // يُحفظ دائماً بالمتصفح: يظهر فوراً بكل مرة ولو قبل اكتمال الربط
+function avStoreGet(k) { try { return (JSON.parse(localStorage.getItem(AV_STORE) || '{}'))[k] || ''; } catch (e) { return ''; } }
+function avStoreSet(k, url) { try { const o = JSON.parse(localStorage.getItem(AV_STORE) || '{}'); if (url) o[k] = url; else delete o[k]; const ks = Object.keys(o); if (ks.length > 20) delete o[ks[0]]; localStorage.setItem(AV_STORE, JSON.stringify(o)); } catch (e) {} }
+const avOf = c => (c && c.user && c.status !== 'failed' && c.status !== 'rejected' && (avatars[avKey(c.p, c.user)] || avStoreGet(avKey(c.p, c.user)))) || '';
+async function fetchAvatar(p, user) {
+  const u = String(user || '').replace(/^@/, '');
+  if (p === 'tiktok') {
+    const base = G('TIKTOK_PROFILE_API_URL');
+    if (!base || !u) return '';
+    const r = await fetch(base + '?u=' + encodeURIComponent(u), { cache: 'force-cache' });
+    const j = await r.json();
+    return j && j.ok && /^https:\/\//.test(j.avatar || '') ? j.avatar : '';
+  }
+  if (p === 'twitch') {
+    if (!/^\w{3,25}$/.test(u)) return '';
+    const r = await fetch('https://decapi.me/twitch/avatar/' + encodeURIComponent(u));
+    const s = (await r.text()).trim();
+    return /^https:\/\//.test(s) ? s : '';
+  }
+  return '';
+}
+function wantAvatar(c) {
+  const k = avKey(c.p, c.user);
+  if (c.status !== 'connected' || !c.user || avatars[k] !== undefined) return;   // يُجلب (ويُجدَّد) مرة بكل جلسة صفحة عند أول اتصال
+  avatars[k] = '';             // يمنع التكرار أثناء الجلب
+  const done = url => { avatars[k] = url || ''; if (url) { avStoreSet(k, url); paintProgress(true); renderDock(); } };
+  fetchAvatar(c.p, c.user).then(done, () => {});
+}
+const avTile = (c, badge) => `<span class="eh-connect-tile eh-connect-av" data-p="${c.p}"><img src="${esc(avOf(c))}" alt="" referrerpolicy="no-referrer" decoding="async">${badge ? `<i class="eh-connect-avbadge" data-p="${c.p}">${logoSVG(c.p)}</i>` : ''}</span>`;
 
 const IC = {
   close:'M6 6l12 12M18 6L6 18', fwd:'M15 5l-7 7 7 7', back:'M9 5l7 7-7 7',
@@ -90595,7 +90646,7 @@ function derive(p) {
   c.stage = cs && (cs.pingSeen || cs.lastEventAt) ? 3 : (slot && slot.ws ? 2 : 1);
   return c;
 }
-const sigOf = c => [c.status, c.stage, c.queue, c.attempt, c.err, c.msg, c.user, c.nextAt ? 1 : 0].join('|');
+const sigOf = c => [c.status, c.stage, c.queue, c.attempt, c.err, c.msg, c.user, c.nextAt ? 1 : 0, avOf(c) ? 1 : 0].join('|');
 
 function describe(c) {
   const k = c.status;
@@ -90633,6 +90684,7 @@ function sync() {
     const nc = derive(p), old = conn[p];
     if (!nc) { delete targets[p]; delete rawSt[p]; delete failInfo[p]; delete conn[p]; if (old) changed.push(p); return; }
     conn[p] = nc;
+    wantAvatar(nc);
     if (!old || sigOf(old) !== sigOf(nc)) changed.push(p);
   });
   if (changed.length) {
@@ -90680,7 +90732,7 @@ const sceneHTML = p => {
     kick: i => [(i - 3.5) * 11, -50], youtube: i => [-50, (i - 3.5) * 8], discord: i => [(i - 3.5) * 10, 50],
   };
   const pk = Array.from({ length:8 }, (_, i) => { const [x, y] = PAT[currentP](i); return `<i class="eh-connect-pk" style="--i:${i};--fx:${x};--fy:${y}"></i>`; }).join('');
-  return `<div class="eh-connect-scene" data-s="idle" aria-hidden="true"><i class="eh-connect-ring" style="--i:0"></i><i class="eh-connect-ring" style="--i:1"></i><i class="eh-connect-ring" style="--i:2"></i>${pk}<span class="eh-connect-hub">ح</span></div>`;
+  return `<div class="eh-connect-scene" data-s="idle" aria-hidden="true"><i class="eh-connect-ring" style="--i:0"></i><i class="eh-connect-ring" style="--i:1"></i><i class="eh-connect-ring" style="--i:2"></i>${pk}<span class="eh-connect-hub">${EH_LOGO}</span></div>`;
 };
 
 function renderPick(el) {
@@ -90852,8 +90904,8 @@ function rowHTML(c) {
   else act.push(`<button class="eh-connect-btn" data-quiet data-act="remove" data-p="${p}" type="button">إلغاء هذه المنصة</button>`);
   const cd = d.cd ? ` <span data-cd="${p}"></span>` : '';
   return `<div class="eh-connect-row" data-p="${p}" data-key="${p}" data-tone="${d.tone}">
-    <div class="eh-connect-lane" data-s="${laneState(c)}"><span class="eh-connect-tile" data-p="${p}">${logoSVG(p)}</span>
-      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div><span class="eh-connect-mark" aria-hidden="true">ح</span></div>
+    <div class="eh-connect-lane" data-s="${laneState(c)}"><div class="eh-connect-slotL">${avOf(c) ? avTile(c, false) + `<bdi class="eh-connect-avname">@${esc(String(c.user).replace(/^@/, ''))}</bdi>` : `<span class="eh-connect-mark" aria-hidden="true">${EH_LOGO}</span>`}</div>
+      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div>${tile(p)}</div>
     <div class="eh-connect-rowinfo"><div class="eh-connect-rowtxt">
       <div class="who"><b>${PLATFORMS_UI[p].label}</b><bdi>${esc(c.user)}</bdi></div>
       <div class="eh-connect-status">${d.icon ? ico(d.icon) : ''}<span>${d.t}</span></div>
@@ -91065,6 +91117,8 @@ if (oldBusy && window.MutationObserver) {
     if (isOpen()) setScreen('progress', 'fwd'); else openHub(null);
   }).observe(oldBusy, { attributes:true, attributeFilter:['class'] });
 }
+
+document.addEventListener('error', e => { const i = e.target; if (i && i.tagName === 'IMG' && i.closest && i.closest('.eh-connect-av')) { Object.keys(avatars).forEach(k => { if (avatars[k] === i.getAttribute('src') || avStoreGet(k) === i.getAttribute('src')) { avatars[k] = ''; avStoreSet(k, ''); } }); paintProgress(true); renderDock(); } }, true);
 
 window.EhConnect = { open:openHub, close:closeHub, hooks, state:conn };
 })();
