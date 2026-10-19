@@ -90162,5 +90162,912 @@ window.__lateJoin = {
   }, 500);
 })();
 </script>
+
+<!-- ====== مركز ربط البث (تصميم «ابدأ بثاً سريعاً» الجديد): واجهة فقط فوق مسار الربط الحالي بلا أي تعديل عليه ====== -->
+<style id="eh-connect-css">
+/* =====================================================================
+   مركز ربط البث - ملف مستقل. كل التنسيقات بنطاق eh-connect- فقط.
+   ===================================================================== */
+.eh-connect-root button,.eh-connect-root input,.eh-connect-root select,.eh-connect-root summary{font:inherit;color:inherit}
+.eh-connect-root *,.eh-connect-root *::before,.eh-connect-root *::after{box-sizing:border-box}
+
+
+/* ---------- الجذر ---------- */
+.eh-connect-root{
+  --c-bg:#0e0f12;--c-s1:#15171c;--c-s2:#1c1f26;--c-s3:#252933;--c-line:#2c313c;
+  --c-tx:#eceef3;--c-mu:#a3a9b8;--c-ok:#4ade80;--c-warn:#fbbf24;--c-bad:#ff7a7a;
+  --c-violet:#8b5cf6;
+  --p:#8b5cf6;--p-tint:rgba(139,92,246,.14);--p-btn:#7c3aed;--p-btn-tx:#fff;
+  --r-panel:16px;--r-ctl:10px;
+  --ease:cubic-bezier(.16,1,.3,1);
+  color:var(--c-tx);font-family:inherit;line-height:1.6;
+}
+.eh-connect-root *{scrollbar-width:thin;scrollbar-color:var(--c-line) transparent}
+.eh-connect-root [data-p="tiktok"]{--p:#25f4ee;--p2:#fe2c55;--p-tint:rgba(37,244,238,.1);--p-btn:#fff;--p-btn-tx:#000;--p-bg:#000}
+.eh-connect-root [data-p="twitch"]{--p:#a970ff;--p-tint:rgba(145,70,255,.16);--p-btn:#772ce8;--p-btn-tx:#fff;--p-bg:#120d1f}
+.eh-connect-root [data-p="kick"]{--p:#53fc18;--p-tint:rgba(83,252,24,.1);--p-btn:#53fc18;--p-btn-tx:#07120a;--p-bg:#080d06}
+.eh-connect-root [data-p="youtube"]{--p:#ff4d5e;--p-tint:rgba(255,0,51,.12);--p-btn:#e5002d;--p-btn-tx:#fff;--p-bg:#120a0b}
+.eh-connect-root [data-p="discord"]{--p:#8f9bff;--p-tint:rgba(88,101,242,.16);--p-btn:#4752c4;--p-btn-tx:#fff;--p-bg:#0d1022}
+
+.eh-connect-overlay{position:fixed;inset:0;z-index:10060;display:grid;place-items:center;background:rgba(5,6,8,.78);opacity:0;visibility:hidden;transition:opacity .28s var(--ease),visibility 0s .28s;padding:24px}
+.eh-connect-overlay[data-open="true"]{opacity:1;visibility:visible;transition:opacity .28s var(--ease)}
+.eh-connect-panel{position:relative;width:min(1060px,100%);height:min(700px,calc(100dvh - 48px));background:var(--c-bg);border:1px solid var(--c-line);border-radius:var(--r-panel);display:flex;flex-direction:column;overflow:hidden;transform:translateY(14px) scale(.985);transition:transform .38s var(--ease)}
+.eh-connect-overlay[data-open="true"] .eh-connect-panel{transform:none}
+
+.eh-connect-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--c-line);min-height:60px}
+.eh-connect-brand{display:flex;align-items:center;gap:10px;font-weight:600;color:var(--c-mu);font-size:14px}
+.eh-connect-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--c-violet);color:#fff;font-weight:700;font-size:18px;line-height:1;flex:none}
+.eh-connect-icon-btn{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--r-ctl);border:1px solid transparent;background:transparent;cursor:pointer;color:var(--c-mu);transition:background .15s,color .15s,transform .15s}
+.eh-connect-icon-btn:hover{background:var(--c-s2);color:var(--c-tx)}.eh-connect-icon-btn:active{transform:scale(.94)}
+.eh-connect-root :focus-visible{outline:3px solid #c4b0ff;outline-offset:2px}
+.eh-connect-ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.eh-connect-body{position:relative;flex:1;min-height:0;overflow:hidden}
+.eh-connect-screen{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;animation:eh-connect-in .38s var(--ease) both}
+.eh-connect-screen[data-dir="back"]{animation-name:eh-connect-in-back}
+@keyframes eh-connect-in{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+@keyframes eh-connect-in-back{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.eh-connect-h{margin:0;font-weight:700;line-height:1.2;letter-spacing:0}
+.eh-connect-h:focus{outline:none}
+
+/* ---------- الأزرار ---------- */
+.eh-connect-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 22px;border-radius:var(--r-ctl);border:1px solid var(--c-line);background:var(--c-s2);color:var(--c-tx);font-weight:600;cursor:pointer;white-space:nowrap;transition:transform .15s var(--ease),background .15s,border-color .15s}
+.eh-connect-btn:hover{background:var(--c-s3);border-color:#3a4050}.eh-connect-btn:active{transform:translateY(1px) scale(.98)}
+.eh-connect-btn[data-primary]{background:var(--p-btn);color:var(--p-btn-tx);border-color:transparent;font-weight:700}
+.eh-connect-btn[data-primary]:hover{filter:brightness(1.08)}
+.eh-connect-btn[data-quiet]{background:transparent;border-color:transparent;color:var(--c-mu);padding:0 12px;min-height:44px}
+.eh-connect-btn[data-quiet]:hover{color:var(--c-tx);background:var(--c-s2)}
+.eh-connect-btn[data-danger]{color:var(--c-bad)}
+.eh-connect-btn[aria-disabled="true"]{opacity:.55}
+
+/* ---------- شاشة الاختيار ---------- */
+.eh-connect-pick{display:grid;grid-template-columns:5fr 7fr;min-height:100%}
+.eh-connect-pick-intro{padding:44px 40px;display:flex;flex-direction:column;gap:20px;border-inline-end:1px solid var(--c-line)}
+.eh-connect-pick-intro .eh-connect-h{font-size:clamp(30px,3.6vw,46px)}
+.eh-connect-pick-intro p{margin:0;color:var(--c-mu);max-width:34ch;font-size:16px}
+.eh-connect-multi-entry{margin-top:auto;display:flex;align-items:center;gap:14px;padding:16px;border-radius:var(--r-panel);border:1px solid var(--c-line);background:var(--c-s1);cursor:pointer;text-align:start;width:100%;transition:border-color .2s,background .2s,transform .15s}
+.eh-connect-multi-entry:hover{border-color:var(--c-violet);background:var(--c-s2)}.eh-connect-multi-entry:active{transform:scale(.99)}
+.eh-connect-stack{display:flex;flex:none;direction:ltr}
+.eh-connect-stack .eh-connect-tile{width:34px;height:34px;border-radius:9px;margin-inline-start:-8px;border:2px solid var(--c-s1)}
+.eh-connect-stack .eh-connect-tile:first-child{margin-inline-start:0}
+.eh-connect-multi-entry b{display:block;font-size:16px}
+.eh-connect-multi-entry span.t{color:var(--c-mu);font-size:13.5px}
+.eh-connect-pick-list{list-style:none;margin:0;padding:12px;display:flex;flex-direction:column;justify-content:center}
+.eh-connect-pick-row{display:flex;align-items:center;gap:18px;width:100%;padding:16px 18px;min-height:84px;border:0;border-radius:12px;background:transparent;cursor:pointer;text-align:start;position:relative;opacity:0;animation:eh-connect-rise .5s var(--ease) forwards;animation-delay:calc(var(--n) * 55ms + 120ms);transition:background .2s}
+.eh-connect-pick-row+.eh-connect-pick-row::before{content:"";position:absolute;inset-inline:18px;top:0;height:1px;background:var(--c-line)}
+.eh-connect-pick-row:hover,.eh-connect-pick-row:focus-visible{background:var(--p-tint)}
+.eh-connect-pick-row:active{transform:scale(.99)}
+.eh-connect-pick-row .eh-connect-tile{width:52px;height:52px;border-radius:14px;transition:transform .3s var(--ease)}
+.eh-connect-pick-row:hover .eh-connect-tile{transform:rotate(-4deg) scale(1.06)}
+.eh-connect-pick-row .nm{font-size:19px;font-weight:700;display:block}
+.eh-connect-pick-row .ds{color:var(--c-mu);font-size:14px}
+.eh-connect-pick-row .go{margin-inline-start:auto;color:var(--c-mu);transition:transform .25s var(--ease),color .2s}
+.eh-connect-pick-row:hover .go{color:var(--p);transform:translateX(-5px)}
+@keyframes eh-connect-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+.eh-connect-tile{display:grid;place-items:center;flex:none;background:var(--tile-bg,#222);color:var(--tile-fg,#fff);overflow:hidden}
+.eh-connect-tile svg{width:56%;height:56%;display:block}
+.eh-connect-root [data-p="tiktok"] .eh-connect-tile,.eh-connect-tile[data-p="tiktok"]{--tile-bg:#000;--tile-fg:#fff}
+.eh-connect-tile[data-p="twitch"]{--tile-bg:#9146ff}
+.eh-connect-tile[data-p="kick"]{--tile-bg:#53fc18;--tile-fg:#000}
+.eh-connect-tile[data-p="youtube"]{--tile-bg:#f03}
+.eh-connect-tile[data-p="discord"]{--tile-bg:#5865f2}
+.eh-connect-tile .ch1{fill:#25f4ee;transform:translate(-.55px,-.4px)}.eh-connect-tile .ch2{fill:#fe2c55;transform:translate(.55px,.4px)}
+
+/* ---------- شاشة المنصة ---------- */
+.eh-connect-split{display:grid;grid-template-columns:5fr 6fr;min-height:100%}
+.eh-connect-stage{position:relative;background:var(--p-bg);border-inline-end:1px solid var(--c-line);min-height:100%;display:flex;flex-direction:column;justify-content:flex-end;padding:28px;overflow:hidden}
+.eh-connect-scene{position:absolute;inset:0;container-type:size;overflow:hidden}
+.eh-connect-hub{position:absolute;inset:0;margin:auto;width:64px;height:64px;border-radius:18px;background:var(--c-violet);display:grid;place-items:center;color:#fff;font-size:34px;font-weight:700;z-index:2}
+.eh-connect-hub::before{content:"";position:absolute;inset:-14px;border-radius:28px;border:2px solid var(--p);opacity:.0;transform:scale(.7)}
+.eh-connect-scene[data-s="idle"] .eh-connect-hub::before{animation:eh-connect-breathe 3.2s ease-in-out infinite}
+@keyframes eh-connect-breathe{0%,100%{opacity:0;transform:scale(.8)}50%{opacity:.5;transform:scale(1)}}
+.eh-connect-pk{position:absolute;inset:0;margin:auto;width:34px;height:10px;background:var(--p);z-index:1;opacity:0;animation:eh-connect-fly 3.4s var(--ease) infinite;animation-delay:calc(var(--i) * -.42s)}
+@keyframes eh-connect-fly{0%{opacity:0;transform:translate(calc(var(--fx) * 1cqw),calc(var(--fy) * 1cqh)) scale(1)}12%{opacity:.95}88%{opacity:.9}100%{opacity:0;transform:translate(0,0) scale(.3)}}
+.eh-connect-root [data-p="tiktok"] .eh-connect-pk{width:40px;height:9px;border-radius:2px;box-shadow:-3px 0 0 #fe2c55,3px 0 0 #25f4ee}
+.eh-connect-root [data-p="twitch"] .eh-connect-pk{width:30px;height:22px;clip-path:polygon(0 0,100% 0,100% 70%,70% 100%,0 100%);border-radius:0}
+.eh-connect-root [data-p="kick"] .eh-connect-pk{width:14px;height:14px;border-radius:0;transform-origin:center}
+.eh-connect-root [data-p="youtube"] .eh-connect-pk{width:44px;height:6px;border-radius:99px}
+.eh-connect-root [data-p="discord"] .eh-connect-pk{width:calc(30px + var(--i) * 3px);height:9px;border-radius:5px}
+.eh-connect-ring{position:absolute;inset:0;margin:auto;width:60%;aspect-ratio:1;border:2px solid var(--p);border-radius:50%;opacity:0;animation:eh-connect-ring 4s ease-out infinite;animation-delay:calc(var(--i) * -1.33s);display:none}
+.eh-connect-root [data-p="youtube"] .eh-connect-ring{display:block}
+@keyframes eh-connect-ring{0%{opacity:0;transform:scale(1.9)}20%{opacity:.5}100%{opacity:0;transform:scale(.4)}}
+.eh-connect-scene[data-s="idle"] .eh-connect-pk{animation-duration:5.5s;filter:saturate(.7)}
+.eh-connect-scene[data-s="connecting"] .eh-connect-pk{animation-duration:2.2s}
+.eh-connect-scene[data-s="waiting"] .eh-connect-pk{animation-play-state:paused;opacity:.3}
+.eh-connect-scene[data-s="connected"] .eh-connect-pk,.eh-connect-scene[data-s="connected"] .eh-connect-ring{animation:none;opacity:0}
+.eh-connect-scene[data-s="failed"] .eh-connect-pk{animation-play-state:paused;opacity:.15}
+.eh-connect-scene[data-s="failed"] .eh-connect-hub{background:#3a3f4c;color:#9aa0ad}
+.eh-connect-stage-id{position:relative;z-index:3;display:flex;align-items:center;gap:14px}
+.eh-connect-stage-id .eh-connect-tile{width:64px;height:64px;border-radius:16px}
+.eh-connect-stage-id b{font-size:22px;display:block;line-height:1.2}.eh-connect-stage-id span.t{color:var(--c-mu);font-size:14px}
+
+.eh-connect-formcol{padding:32px 40px 36px;display:flex;flex-direction:column;gap:18px;max-width:560px}
+.eh-connect-back{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px 0 14px;margin-inline-start:-12px;border:0;border-radius:var(--r-ctl);background:transparent;color:var(--c-mu);cursor:pointer;font-weight:500}
+.eh-connect-back:hover{color:var(--c-tx);background:var(--c-s2)}
+.eh-connect-formcol .eh-connect-h{font-size:clamp(26px,3vw,34px)}
+.eh-connect-field{display:flex;flex-direction:column;gap:8px}
+.eh-connect-field label{font-weight:600;font-size:15px}
+.eh-connect-input{width:100%;min-height:52px;padding:0 14px;border-radius:var(--r-ctl);border:1px solid #3a4050;background:var(--c-s1);font-size:17px;direction:ltr;text-align:left;transition:border-color .15s,box-shadow .15s}
+.eh-connect-input::placeholder{color:#6f7686}
+.eh-connect-input:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px var(--p-tint)}
+.eh-connect-input[aria-invalid="true"]{border-color:var(--c-bad)}
+.eh-connect-hint{margin:0;color:var(--c-mu);font-size:14px}
+.eh-connect-err{margin:0;display:none;align-items:flex-start;gap:8px;color:var(--c-bad);font-size:14px;font-weight:500}
+.eh-connect-err[data-show="true"]{display:flex;animation:eh-connect-nudge .3s var(--ease)}
+@keyframes eh-connect-nudge{0%{transform:translateX(6px)}50%{transform:translateX(-5px)}100%{transform:none}}
+.eh-connect-err .eh-connect-ico{margin-top:2px;width:18px;height:18px}
+.eh-connect-saved{display:flex;flex-direction:column;gap:8px}
+.eh-connect-saved h3{margin:0;font-size:14px;font-weight:600;color:var(--c-mu)}
+.eh-connect-chips{display:flex;flex-wrap:wrap;gap:8px}
+.eh-connect-chip{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 6px 0 14px;border-radius:var(--r-ctl);border:1px solid var(--c-line);background:var(--c-s1)}
+.eh-connect-chip button.use{border:0;background:none;cursor:pointer;direction:ltr;font-weight:600;min-height:44px;padding:0}
+.eh-connect-chip .st{font-size:12.5px;color:var(--c-mu);padding:2px 8px;border-radius:6px;background:var(--c-s3)}
+.eh-connect-chip[data-off="true"] button.use{color:var(--c-mu);text-decoration:line-through}
+.eh-connect-chip[data-off="true"] .st{color:var(--c-warn)}
+.eh-connect-chip .tg{min-height:36px;padding:0 10px;border-radius:8px;border:0;background:var(--c-s3);cursor:pointer;font-size:13px;font-weight:600}
+.eh-connect-chip .tg:hover{background:#31364a}
+.eh-connect-how{border:1px solid var(--c-line);border-radius:var(--r-ctl);background:var(--c-s1)}
+.eh-connect-how summary{cursor:pointer;min-height:48px;display:flex;align-items:center;padding:0 14px;font-weight:600;list-style:none;gap:8px}
+.eh-connect-how summary::-webkit-details-marker{display:none}
+.eh-connect-how ol{margin:0;padding:0 34px 14px 14px;color:var(--c-mu);font-size:14.5px;display:grid;gap:6px}
+.eh-connect-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:var(--r-ctl);background:var(--p-tint);font-size:14px;color:var(--c-tx)}
+.eh-connect-note .eh-connect-ico{margin-top:2px;color:var(--p)}
+
+/* ---------- الربط المتعدد ---------- */
+.eh-connect-multi{max-width:760px;margin:0 auto;padding:28px 32px 36px;display:flex;flex-direction:column;gap:16px}
+.eh-connect-multi .eh-connect-h{font-size:clamp(26px,3vw,34px)}
+.eh-connect-multi>p{margin:0;color:var(--c-mu)}
+.eh-connect-slots{display:flex;flex-direction:column;border:1px solid var(--c-line);border-radius:var(--r-panel);background:var(--c-s1);overflow:hidden}
+.eh-connect-slot{padding:0 18px;border-top:1px solid var(--c-line);transition:background .25s}
+.eh-connect-slot:first-child{border-top:0}
+.eh-connect-slot[data-on="true"]{background:var(--p-tint)}
+.eh-connect-slot-top{display:flex;align-items:center;gap:14px;min-height:72px}
+.eh-connect-slot-top .eh-connect-tile{width:42px;height:42px;border-radius:11px}
+.eh-connect-slot-top b{font-size:17px}
+.eh-connect-slot-top .st{margin-inline-start:auto;font-size:13.5px;color:var(--c-mu);display:flex;align-items:center;gap:6px}
+.eh-connect-slot[data-v="ok"] .st{color:var(--c-ok)}.eh-connect-slot[data-v="bad"] .st{color:var(--c-bad)}
+.eh-connect-sw{position:relative;width:52px;height:32px;border-radius:99px;border:1px solid #3a4050;background:var(--c-s3);cursor:pointer;flex:none;padding:0;transition:background .2s;margin-block:6px}
+.eh-connect-sw::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:24px;height:24px;border-radius:50%;background:#c9cedb;transition:transform .25s var(--ease),background .2s}
+.eh-connect-sw[aria-checked="true"]{background:var(--p-btn);border-color:transparent}
+.eh-connect-sw[aria-checked="true"]::after{transform:translateX(-20px);background:var(--p-btn-tx)}
+.eh-connect-sw[aria-disabled="true"]{opacity:.5}
+.eh-connect-slot-fold{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s var(--ease)}
+.eh-connect-slot[data-on="true"] .eh-connect-slot-fold{grid-template-rows:1fr}
+.eh-connect-slot-fold>div{overflow:hidden}
+.eh-connect-slot-fold .eh-connect-field{padding:2px 0 18px}
+.eh-connect-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.eh-connect-foot .cnt{color:var(--c-mu);font-size:14.5px}
+
+/* ---------- شاشة التقدم ---------- */
+.eh-connect-prog{max-width:820px;margin:0 auto;padding:30px 32px 36px;display:flex;flex-direction:column;gap:22px}
+.eh-connect-prog-head .eh-connect-h{font-size:clamp(26px,3.2vw,36px)}
+.eh-connect-prog-head p{margin:6px 0 0;color:var(--c-mu)}
+.eh-connect-lanes{display:flex;flex-direction:column;gap:12px}
+.eh-connect-row{border:1px solid var(--c-line);border-radius:var(--r-panel);background:var(--c-s1);padding:16px 18px;display:flex;flex-direction:column;gap:14px;transition:border-color .3s,background .3s}
+.eh-connect-row[data-tone="ok"]{border-color:rgba(74,222,128,.45)}
+.eh-connect-row[data-tone="bad"]{border-color:rgba(255,122,122,.5)}
+.eh-connect-row[data-tone="warn"]{border-color:rgba(251,191,36,.5)}
+.eh-connect-lane{display:flex;align-items:center;gap:0;direction:ltr}
+.eh-connect-lane .eh-connect-tile{width:var(--ls,44px);height:var(--ls,44px);border-radius:12px}
+.eh-connect-prog[data-single="true"] .eh-connect-lane{--ls:72px}
+.eh-connect-track{position:relative;flex:1;height:var(--ls,44px);container-type:inline-size;overflow:hidden}
+.eh-connect-track::before{content:"";position:absolute;inset-inline:0;top:50%;height:2px;background:var(--c-line);transform:translateY(-50%)}
+.eh-connect-track .eh-connect-pk{inset:auto;left:0;top:50%;margin:-5px 0 0;animation-name:eh-connect-lane;animation-duration:2.2s;animation-delay:calc(var(--i) * -.44s)}
+@keyframes eh-connect-lane{0%{opacity:0;transform:translateX(-10%)}12%{opacity:1}88%{opacity:1}100%{opacity:0;transform:translateX(100cqw)}}
+.eh-connect-lane[data-s="waiting"] .eh-connect-pk{animation-play-state:paused;opacity:.25}
+.eh-connect-lane[data-s="connected"] .eh-connect-pk,.eh-connect-lane[data-s="failed"] .eh-connect-pk{animation:none;opacity:0}
+.eh-connect-lane[data-s="connected"] .eh-connect-track::before{background:var(--c-ok);animation:eh-connect-lock .5s var(--ease)}
+.eh-connect-lane[data-s="failed"] .eh-connect-track::before{background:repeating-linear-gradient(90deg,var(--c-bad) 0 8px,transparent 8px 16px)}
+@keyframes eh-connect-lock{from{transform:translateY(-50%) scaleX(0);transform-origin:left}to{transform:translateY(-50%) scaleX(1)}}
+.eh-connect-lane .eh-connect-mark{width:var(--ls,44px);height:var(--ls,44px);border-radius:12px;font-size:calc(var(--ls,44px) * .56);position:relative}
+.eh-connect-lane[data-s="connected"] .eh-connect-mark::after{content:"";position:absolute;inset:-5px;border-radius:16px;border:2px solid var(--c-ok);animation:eh-connect-snap .6s var(--ease) both}
+@keyframes eh-connect-snap{from{opacity:0;transform:scale(1.5)}to{opacity:1;transform:scale(1)}}
+.eh-connect-lane[data-s="failed"] .eh-connect-mark{background:#3a3f4c;color:#9aa0ad}
+.eh-connect-rowinfo{display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.eh-connect-rowtxt{flex:1;min-width:200px}
+.eh-connect-rowtxt .who{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.eh-connect-rowtxt .who b{font-size:17px}.eh-connect-rowtxt .who bdi{color:var(--c-mu);direction:ltr;unicode-bidi:isolate}
+.eh-connect-status{display:flex;align-items:center;gap:8px;margin-top:2px;font-weight:600}
+.eh-connect-row[data-tone="ok"] .eh-connect-status{color:var(--c-ok)}
+.eh-connect-row[data-tone="bad"] .eh-connect-status{color:var(--c-bad)}
+.eh-connect-row[data-tone="warn"] .eh-connect-status{color:var(--c-warn)}
+.eh-connect-row[data-tone="live"] .eh-connect-status{color:var(--c-tx)}
+.eh-connect-detail{margin:2px 0 0;color:var(--c-mu);font-size:14px}
+.eh-connect-indet{height:3px;border-radius:2px;background:var(--c-s3);overflow:hidden;position:relative;margin-top:8px}
+.eh-connect-indet::after{content:"";position:absolute;inset:0;width:38%;background:var(--p);animation:eh-connect-indet 1.5s var(--ease) infinite}
+@keyframes eh-connect-indet{from{transform:translateX(-120%)}to{transform:translateX(280%)}}
+.eh-connect-steps{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.eh-connect-step{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--c-s2);color:var(--c-mu);font-size:13.5px;font-weight:500;transition:background .3s,color .3s}
+.eh-connect-step[data-st="active"]{background:var(--p-tint);color:var(--c-tx)}
+.eh-connect-step[data-st="done"]{color:var(--c-ok)}
+.eh-connect-step .eh-connect-ico{width:16px;height:16px}
+.eh-connect-rowact{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.eh-connect-prog-foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.eh-connect-prog-foot .sp{flex:1}
+.eh-connect-explain{margin:0;color:var(--c-mu);font-size:13.5px}
+
+/* ---------- المؤشر الخلفي ---------- */
+.eh-connect-dock{position:fixed;inset-inline:0;bottom:max(84px,calc(env(safe-area-inset-bottom) + 72px));margin-inline:auto;width:max-content;max-width:calc(100vw - 32px);z-index:10050;transform:translateY(120px);opacity:0;visibility:hidden;transition:transform .4s var(--ease),opacity .3s,visibility 0s .4s}
+.eh-connect-dock[data-show="true"]{transform:none;opacity:1;visibility:visible;transition:transform .4s var(--ease),opacity .3s}
+.eh-connect-dock button{display:flex;align-items:center;gap:12px;min-height:52px;padding:6px 18px 6px 8px;border-radius:14px;border:1px solid var(--c-line);background:var(--c-s1);color:var(--c-tx);cursor:pointer;box-shadow:0 12px 40px rgba(0,0,0,.5);transition:border-color .2s,transform .15s}
+.eh-connect-dock button:hover{border-color:var(--c-violet)}.eh-connect-dock button:active{transform:scale(.98)}
+.eh-connect-dock .eh-connect-stack .eh-connect-tile{width:32px;height:32px;border-color:var(--c-s1)}
+.eh-connect-dock .tx{display:flex;flex-direction:column;text-align:start;line-height:1.35}
+.eh-connect-dock .tx b{font-size:14.5px}.eh-connect-dock .tx span{font-size:12.5px;color:var(--c-mu)}
+.eh-connect-dock[data-tone="ok"] .tx b{color:var(--c-ok)}.eh-connect-dock[data-tone="bad"] .tx b{color:var(--c-bad)}.eh-connect-dock[data-tone="warn"] .tx b{color:var(--c-warn)}
+.eh-connect-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+
+/* ---------- جوال ---------- */
+@media (max-width:820px){
+  .eh-connect-overlay{padding:0;place-items:stretch}
+  .eh-connect-panel{width:100%;height:100dvh;border-radius:0;border:0;padding-bottom:env(safe-area-inset-bottom)}
+  .eh-connect-head{padding:8px 12px 8px 12px;padding-top:max(8px,env(safe-area-inset-top))}
+  .eh-connect-pick{grid-template-columns:1fr}
+  .eh-connect-pick-intro{padding:22px 20px 8px;border-inline-end:0;gap:10px}
+  .eh-connect-pick-intro .eh-connect-multi-entry{margin-top:6px;order:3}
+  .eh-connect-pick-list{padding:4px 8px 24px}
+  .eh-connect-pick-row{min-height:76px;padding:12px}
+  .eh-connect-split{grid-template-columns:1fr;grid-template-rows:150px auto}
+  .eh-connect-stage{border-inline-end:0;border-bottom:1px solid var(--c-line);padding:16px 20px;min-height:0}
+  .eh-connect-stage-id .eh-connect-tile{width:48px;height:48px;border-radius:12px}
+  .eh-connect-stage-id b{font-size:18px}
+  .eh-connect-hub{width:48px;height:48px;font-size:26px;border-radius:14px}
+  .eh-connect-formcol{padding:20px 20px 40px;max-width:none}
+  .eh-connect-multi,.eh-connect-prog{padding:18px 16px 32px}
+  .eh-connect-slot{padding:0 12px}
+  .eh-connect-row{padding:14px}
+  .eh-connect-prog[data-single="true"] .eh-connect-lane{--ls:56px}
+  .eh-connect-pk{transform:none}
+}
+@media (max-width:420px){.eh-connect-btn{padding:0 16px}.eh-connect-prog-foot .eh-connect-btn{flex:1 1 auto}}
+
+/* ---------- تقليل الحركة ---------- */
+@media (prefers-reduced-motion:reduce){
+  .eh-connect-root *,.eh-connect-root *::before,.eh-connect-root *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+  .eh-connect-pk{animation:none!important;opacity:.55;transform:translate(calc(var(--fx) * .45cqw),calc(var(--fy) * .45cqh))}
+  .eh-connect-track .eh-connect-pk{transform:translateX(calc(var(--i) * 12cqw))}
+  .eh-connect-pick-row{opacity:1}
+}
+.eh-connect-paused .eh-connect-pk,.eh-connect-paused .eh-connect-ring,.eh-connect-paused .eh-connect-indet::after,.eh-connect-paused .eh-connect-hub::before{animation-play-state:paused!important}
+/* الواجهة القديمة تبقى بالـDOM (للمستدعين البرمجيين) لكن مخفية — التصميم الجديد وحده يظهر */
+#qc-overlay,#qc-connecting-overlay,#qc-overlay.visible,#qc-connecting-overlay.visible{display:none!important}
+.eh-connect-root{font-family:'IBM Plex Sans Arabic','Tajawal','Cairo','Segoe UI',Tahoma,sans-serif}
+.eh-connect-root button{margin:0}
+
+</style>
+<div class="eh-connect-root" id="eh-connect-root">
+  <div class="eh-connect-overlay" id="eh-connect-overlay" data-open="false">
+    <div class="eh-connect-panel" id="eh-connect-panel" role="dialog" aria-modal="true" aria-labelledby="eh-connect-title" tabindex="-1">
+      <div class="eh-connect-head">
+        <div class="eh-connect-brand"><span class="eh-connect-mark" aria-hidden="true">ح</span><span id="eh-connect-label">مركز ربط البث</span></div>
+        <button class="eh-connect-icon-btn" id="eh-connect-close" type="button" aria-label="إغلاق"></button>
+      </div>
+      <div class="eh-connect-body" id="eh-connect-body"></div>
+    </div>
+  </div>
+  <div class="eh-connect-dock" id="eh-connect-dock" data-show="false"></div>
+  <div class="eh-connect-live" id="eh-connect-live" aria-live="polite" role="status"></div>
+</div>
+<script id="eh-connect-js">
+(() => {
+'use strict';
+/* =====================================================================
+   مركز ربط البث — واجهة فقط. كل الاتصال يمر عبر الدوال الحالية كما هي
+   (homeStartQuickConnect → platformConnect …) والحالة تُقرأ قراءةً فقط
+   من homeConnState / homeConnections. لا منطق ربط هنا.
+   ===================================================================== */
+const LOGO_PATHS = {"tiktok":"M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z","twitch":"M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z","kick":"M1.333 0h8v5.333H12V2.667h2.667V0h8v8H20v2.667h-2.667v2.666H20V16h2.667v8h-8v-2.667H12v-2.666H9.333V24h-8Z","youtube":"M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z","discord":"M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"};
+
+const PLATFORMS_UI = {
+  tiktok:  { label:'TikTok',  ar:'تيك توك' },
+  twitch:  { label:'Twitch',  ar:'تويتش'   },
+  kick:    { label:'Kick',    ar:'كيك'     },
+  youtube: { label:'YouTube', ar:'يوتيوب'  },
+  discord: { label:'Discord', ar:'ديسكورد' },
+};
+const KEYS = Object.keys(PLATFORMS_UI);
+const LOGO_NS = 'http://www.w3.org/2000/svg';
+function logoSVG(p) {
+  const d = LOGO_PATHS[p];
+  const extra = p === 'tiktok' ? `<path class="ch1" d="${d}"/><path class="ch2" d="${d}"/>` : '';
+  return `<svg viewBox="0 0 24 24" role="img" aria-label="${PLATFORMS_UI[p].label}" xmlns="${LOGO_NS}">${extra}<path fill="currentColor" d="${d}"/></svg>`;
+}
+const tile = p => `<span class="eh-connect-tile" data-p="${p}">${logoSVG(p)}</span>`;
+
+const IC = {
+  close:'M6 6l12 12M18 6L6 18', fwd:'M15 5l-7 7 7 7', back:'M9 5l7 7-7 7',
+  retry:'M20 11a8 8 0 10-2.3 5.7M20 4v7h-7', check:'M5 12.5l4.5 4.5L19 7',
+  warn:'M12 4l9 16H3zM12 10v4M12 17.5v.01', info:'M12 21a9 9 0 100-18 9 9 0 000 18zM12 11v5M12 8v.01',
+  hide:'M5 15l7 6 7-6M12 21V9M5 4h14', plug:'M9 3v5M15 3v5M7 8h10v3a5 5 0 01-10 0zM12 16v5',
+  edit:'M4 20h4L19 9l-4-4L4 16z', clock:'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
+  queue:'M4 7h16M4 12h16M4 17h10', x:'M6 6l12 12M18 6L6 18',
+  play:'M8 5l11 7-11 7z', layers:'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5'
+};
+const ico = (n, cls = '') => `<svg class="eh-connect-ico ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[n]}"/></svg>`;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const G = (name) => { try { return (0, eval)(name); } catch (e) { return undefined; } };   // قراءة متغيرات الصفحة العامة (let) بأمان
+
+/* =====================================================================
+   التحقق من الإدخال (تنظيف ودّي فقط — القرار النهائي للمنطق الأصلي)
+   ===================================================================== */
+const FIELD = {
+  tiktok:  { title:'اربط بثك على TikTok', label:'يوزر تيك توك', ph:'username', btn:'ربط بث تيك توك',
+             hint:'اكتب اليوزر بدون @. هذا المسار لا يتطلب مفتاح API.', mode:'text' },
+  twitch:  { title:'اربط قناة Twitch', label:'اسم القناة', ph:'channel_name', btn:'ربط قناة تويتش',
+             hint:'اكتب اسم القناة كما يظهر في الرابط twitch.tv/اسم_القناة.', mode:'text' },
+  kick:    { title:'اربط بثك على Kick', label:'يوزر القناة أو رابطها', ph:'kick.com/username', btn:'ربط قناة كيك',
+             hint:'مثال: kick.com/username. الربط الحالي لا يتطلب توكن أو تسجيل دخول.', mode:'text' },
+  youtube: { title:'اربط بثك على YouTube', label:'يوزر القناة أو رابط البث', ph:'@handle', btn:'ربط بث يوتيوب',
+             hint:'اكتب الهاندل مثل @handle، أو الصق رابط البث المباشر إن كان أسرع لك. لا يظهر هنا حقل مفتاح Google API.', mode:'text' },
+  discord: { title:'اربط روم Discord', label:'ID الروم أو رابطه', ph:'123456789012345678', btn:'ربط الروم',
+             hint:'رقم من 17 إلى 20 خانة، أو رابط الروم كاملا.', mode:'numeric' },
+};
+function discordId(input) {
+  const f = G('discordRelayChannelId');
+  if (typeof f === 'function') return f(input);
+  const s = String(input == null ? '' : input).trim();
+  const link = s.match(/channels\/(?:\d{17,20}|@me)\/(\d{17,20})/);
+  if (link) return link[1];
+  return /^\d{17,20}$/.test(s) ? s : '';
+}
+function normalize(p, raw) {
+  let v = String(raw || '').trim();
+  if (!v) return { ok:false, err:'اكتب البيانات في الحقل أولا.' };
+  if (p === 'discord') {
+    const id = discordId(v);
+    return id ? { ok:true, value:id } : { ok:false, err:'ID الروم غير صحيح. لازم يكون رقما من 17 إلى 20 خانة، أو رابط الروم.' };
+  }
+  v = v.replace(/^@/, '');
+  if (p === 'tiktok') {
+    const m = v.match(/tiktok\.com\/@?([\w.]+)/i); if (m) v = m[1];
+    return /^[\w.]{2,24}$/.test(v) ? { ok:true, value:v } : { ok:false, err:'يوزر تيك توك غير صحيح. اكتبه بدون @ ودون مسافات.' };
+  }
+  if (p === 'twitch') {
+    const m = v.match(/twitch\.tv\/([\w]+)/i); if (m) v = m[1];
+    return /^\w{3,25}$/.test(v) ? { ok:true, value:v } : { ok:false, err:'اسم قناة تويتش غير صحيح. استخدم حروفا إنجليزية وأرقاما فقط.' };
+  }
+  if (p === 'kick') {
+    return /^(https?:\/\/)?([\w.]*kick\.com\/|[\w-]+$)/i.test(v) ? { ok:true, value:v } : { ok:false, err:'يوزر كيك غير صحيح. اكتب اليوزر أو رابط القناة مثل kick.com/username.' };
+  }
+  if (p === 'youtube') {
+    if (/(youtube\.com|youtu\.be)\//i.test(v)) return { ok:true, value:v };
+    return /^[\w.-]{3,30}$/.test(v) ? { ok:true, value:v } : { ok:false, err:'هاندل يوتيوب غير صحيح. اكتب @handle أو الصق رابط البث.' };
+  }
+  return { ok:false, err:'بيانات غير صالحة.' };
+}
+
+/* =====================================================================
+   الحالة: targets = ما أطلقه الستريمر من هنا، conn = حالة مشتقة من الاتصال الحقيقي
+   ===================================================================== */
+const form = { tiktok:'', twitch:'', kick:'', youtube:'', discord:'' };
+const conn = {};
+const targets = {};            // p → { user, startedAt }
+const rawSt = {};              // آخر bridge_status خام لكل منصة (طابور/محاولة)
+const failInfo = {};           // فشل نهائي معلن من الواجهة القديمة (تيك توك)
+const hooks = { onContinue: () => { const f = G('lobbyGoLibrary'); if (typeof f === 'function') f(); }, onAllConnected: null };
+let screen = 'pick', multiOn = {}, lastFocus = null, bgT = null, autoDelay = 1500, launching = false, armed = false, autoT = null, okUntil = 0, prevOverflow = '';
+let lastStatusMsg = '';
+
+const overlay = $('#eh-connect-overlay'), panel = $('#eh-connect-panel'), body = $('#eh-connect-body');
+const rootEl = $('#eh-connect-root'), dock = $('#eh-connect-dock'), live = $('#eh-connect-live');
+$('#eh-connect-close').innerHTML = ico('close');
+const isOpen = () => overlay.dataset.open === 'true';
+const curMode = () => Object.keys(conn).length > 1 ? 'multi' : 'single';
+
+const ERR = {
+  network:'تعذر الوصول إلى خدمة الربط. تحقق من الاتصال ثم أعد المحاولة.',
+  notfound:'ما لقينا هذا الحساب أو القناة. تأكد من الاسم ثم عدّل البيانات.',
+  rejected:'الروم مرفوض. تأكد أن الرقم صحيح، وأن الروم عام، وأن بوت احسمها يقدر يشوفه.',
+  disabled:'هذا الحساب معطّل من إدارة المنصة.',
+};
+
+/* ---------- قراءة الحالة الحقيقية (قراءة فقط) ---------- */
+function derive(p) {
+  const t = targets[p] || {}, slot = (G('homeConnections') || {})[p], cs = (G('homeConnState') || {})[p];
+  const raw = rawSt[p] && (!t.startedAt || rawSt[p].at >= t.startedAt) ? rawSt[p] : null;
+  const c = { p, user: t.user || (slot && slot.username) || '', status:'connecting', stage:1, attempt:0, max:0, nextAt:0, queue:0, queueSize:0, eta:0, err:'', msg:'' };
+  const st = cs && cs.state, fi = failInfo[p];
+  const age = Date.now() - (t.startedAt || Date.now());
+  if (!st && !slot && age > 1500) return null;       // فُصل عمداً (platformDisconnect/All): تختفي المنصة مع أي فشل قديم لها
+  if (st === 'connected') { c.status = 'connected'; c.stage = 3; return c; }
+  if (fi) { c.status = 'failed'; c.err = (fi.notfound || /غير موجود/.test(fi.message || '')) ? 'notfound' : 'network'; c.msg = fi.message || ''; return c; }
+  if (st === 'disabled') { c.status = 'failed'; c.err = 'disabled'; return c; }
+  if (st === 'failed' || (slot && slot.notFound)) {
+    if (p === 'discord') { c.status = 'rejected'; c.err = 'rejected'; const e = G('discordRelayLastError'); c.msg = (e && e.message) || ''; return c; }
+    c.status = 'failed';
+    c.err = (slot && slot.notFound) ? 'notfound' : 'network';
+    c.msg = (slot && slot.notFound && raw && raw.message) || '';
+    return c;
+  }
+  if (st === 'not_live') { c.status = 'offline'; return c; }
+  if (st === 'reconnecting') {
+    c.status = 'retrying'; c.attempt = (raw && raw.attempt) || (slot && slot.attempts) || 0;
+    if (raw && raw.retryInSec) c.nextAt = raw.at + raw.retryInSec * 1000;
+    return c;
+  }
+  if (!st) return c;                                  // لحظة الإطلاق: الاتصال لم يُسجَّل بعد
+  if (!slot && st === 'connecting' && age > 3500) { c.status = 'failed'; c.err = 'network'; return c; }   // تعذّر فتح الاتصال أصلاً
+  if (raw && raw.code === 'queued' && raw.queuePosition) { c.status = 'queued'; c.queue = raw.queuePosition; c.queueSize = raw.queueSize || raw.queuePosition; c.eta = raw.etaSec || 0; return c; }
+  if (raw && raw.attempt > 1) c.attempt = raw.attempt;
+  c.stage = cs && (cs.pingSeen || cs.lastEventAt) ? 3 : (slot && slot.ws ? 2 : 1);
+  return c;
+}
+const sigOf = c => [c.status, c.stage, c.queue, c.attempt, c.err, c.msg, c.user, c.nextAt ? 1 : 0].join('|');
+
+function describe(c) {
+  const k = c.status;
+  if (k === 'connected') return { tone:'ok', icon:'check', t:'متصل', d:'تم ربط الشات' };
+  if (k === 'failed') return { tone:'bad', icon:'warn', t:c.err === 'disabled' ? 'الحساب معطّل' : 'تعذر الربط', d:c.msg || ERR[c.err] || ERR.network };
+  if (k === 'rejected') return { tone:'bad', icon:'warn', t:'الروم مرفوض', d:c.msg || ERR.rejected };
+  if (k === 'stopped') return { tone:'warn', icon:'warn', t:'توقفت المحاولة وتحتاج إجراء', d:'ما بدأ البث بعد عدة محاولات. ابدأ البث ثم أعد المحاولة.' };
+  if (k === 'offline') return { tone:'warn', icon:'clock', t:'البث غير مباشر', d:'ننتظر بدء البث ونربطك تلقائيا أول ما يفتح' };
+  if (k === 'retrying') return { tone:'warn', icon:'retry', t:'إعادة اتصال تلقائية', d:c.attempt ? `المحاولة رقم ${c.attempt}` : 'نعيد الاتصال تلقائيا', cd:true };
+  if (k === 'queued') return { tone:'live', icon:'queue', t:'في الطابور', d:`ترتيبك ${c.queue} من ${c.queueSize}${c.eta ? ` — حوالي ${c.eta} ثانية` : ''}. يبدأ الربط تلقائيا عند وصول دورك`, bar:true };
+  const stages = ['جارٍ تجهيز الاتصال', 'جارٍ التحقق من الاتصال', 'جارٍ ربط الشات'];
+  return { tone:'live', icon:null, t:stages[Math.max(0, c.stage - 1)] || stages[0], d:c.attempt > 1 ? `المحاولة رقم ${c.attempt}` : '', bar:true };
+}
+const laneState = c => ({ connected:'connected', failed:'failed', rejected:'failed', stopped:'failed', offline:'waiting', queued:'waiting' }[c.status] || 'connecting');
+const isActive = c => ['connecting', 'queued', 'retrying', 'offline'].includes(c.status);
+const needsAction = c => ['failed', 'rejected', 'stopped'].includes(c.status);
+
+let lastAnn = '';
+function announce(t) { if (t !== lastAnn) { lastAnn = t; live.textContent = t; } }
+
+/* ---------- المزامنة الدورية مع الاتصال الحقيقي ---------- */
+// بعد الإطلاق: لو طال الانتظار (بث غير مفتوح مثلاً) ننزل للمؤشر الخلفي كما كانت الشاشة القديمة تُخفى بعد مهلة
+function armBackground(okDelay) {
+  armed = true; autoDelay = okDelay == null ? 1500 : okDelay;
+  if (bgT) clearTimeout(bgT);
+  bgT = setTimeout(() => { bgT = null; if (isOpen() && screen === 'progress' && armed && !Object.values(conn).some(needsAction)) { armed = false; closeHub(false); } }, 25000);
+}
+function sync() {
+  const real = G('homeConnections') || {};
+  const keys = new Set([...Object.keys(targets), ...Object.keys(real)]);
+  Object.keys(conn).forEach(p => { if (!keys.has(p)) delete conn[p]; });
+  const changed = [];
+  keys.forEach(p => {
+    if (!PLATFORMS_UI[p]) return;
+    const nc = derive(p), old = conn[p];
+    if (!nc) { delete targets[p]; delete rawSt[p]; delete failInfo[p]; delete conn[p]; if (old) changed.push(p); return; }
+    conn[p] = nc;
+    if (!old || sigOf(old) !== sigOf(nc)) changed.push(p);
+  });
+  if (changed.length) {
+    changed.forEach(p => { if (!conn[p]) return; const d = describe(conn[p]); announce(`${PLATFORMS_UI[p].label}: ${d.t}`); });
+    paintProgress(); renderDock();
+    const cs = Object.values(conn);
+    if (cs.length && cs.every(x => x.status === 'connected')) {
+      okUntil = Date.now() + 6000;
+      if (hooks.onAllConnected) try { hooks.onAllConnected(); } catch (e) {}
+    }
+  }
+  const cs = Object.values(conn);
+  if (isOpen() && screen === 'progress' && !cs.length) setScreen('pick', 'back');   // كل المنصات اختفت (فُصلت من مكان آخر): لا نترك شاشة تقدّم فارغة
+  if (isOpen() && screen === 'progress' && armed && cs.length && cs.every(x => x.status === 'connected')) {
+    if (!autoT) autoT = setTimeout(() => { autoT = null; if (isOpen() && screen === 'progress' && armed && Object.values(conn).every(x => x.status === 'connected')) { armed = false; closeHub(false); } }, Object.keys(G('homeGameListeners') || {}).length ? 0 : autoDelay);   // لعبة مفتوحة = لا نحجبها
+  } else if (autoT && !(cs.length && cs.every(x => x.status === 'connected'))) { clearTimeout(autoT); autoT = null; }
+  if (!isOpen()) renderDock();
+}
+setInterval(sync, 400);
+
+/* =====================================================================
+   العرض
+   ===================================================================== */
+function setScreen(name, dir = 'fwd', focus = 'heading') {
+  screen = name;
+  const el = document.createElement('div');
+  el.className = 'eh-connect-screen'; el.dataset.dir = dir; el.dataset.screen = name;
+  body.replaceChildren(el);
+  if (name === 'pick') renderPick(el);
+  if (name === 'form') renderForm(el);
+  if (name === 'multi') renderMulti(el);
+  if (name === 'progress') renderProgress(el);
+  $('#eh-connect-close').setAttribute('aria-label', name === 'progress' ? 'إخفاء والمتابعة في الخلفية' : 'إغلاق');
+  $('#eh-connect-close').innerHTML = ico(name === 'progress' ? 'hide' : 'close');
+  requestAnimationFrame(() => {
+    const t = focus === 'field' ? $('.eh-connect-input', el) : $('.eh-connect-h', el);
+    t && t.focus({ preventScroll:true });
+  });
+  renderDock();
+}
+let currentP = 'tiktok';
+const sceneHTML = p => {
+  const PAT = {
+    tiktok: i => [46, (i - 3.5) * 9], twitch: i => [[-46,-44],[46,-44],[-46,44],[46,44]][i % 4].map((v, k) => v + (k ? (i % 3 - 1) * 4 : 0)),
+    kick: i => [(i - 3.5) * 11, -50], youtube: i => [-50, (i - 3.5) * 8], discord: i => [(i - 3.5) * 10, 50],
+  };
+  const pk = Array.from({ length:8 }, (_, i) => { const [x, y] = PAT[currentP](i); return `<i class="eh-connect-pk" style="--i:${i};--fx:${x};--fy:${y}"></i>`; }).join('');
+  return `<div class="eh-connect-scene" data-s="idle" aria-hidden="true"><i class="eh-connect-ring" style="--i:0"></i><i class="eh-connect-ring" style="--i:1"></i><i class="eh-connect-ring" style="--i:2"></i>${pk}<span class="eh-connect-hub">ح</span></div>`;
+};
+
+function renderPick(el) {
+  const descs = { tiktok:'اربط حساب البث المباشر', twitch:'وصل شات قناتك بالألعاب', kick:'ابدأ بيوزر القناة أو رابطها', youtube:'اربط قناتك أو رابط بثك', discord:'حوّل رسائل الروم إلى مشاركة' };
+  el.innerHTML = `<div class="eh-connect-pick">
+    <div class="eh-connect-pick-intro">
+      <h2 class="eh-connect-h" id="eh-connect-title" tabindex="-1">اربط بثك وابدأ اللعب</h2>
+      <p>اختر منصتك. جمهورك يدخل التحدي من الشات.</p>
+      <button class="eh-connect-multi-entry" type="button" data-act="multi">
+        <span class="eh-connect-stack" aria-hidden="true">${KEYS.slice(0, 4).map(tile).join('')}</span>
+        <span style="flex:1"><b>ربط عدة منصات</b><span class="t">اختر منصتين أو أكثر وابدأ دفعة واحدة</span></span>
+        ${ico('fwd')}
+      </button>
+    </div>
+    <ul class="eh-connect-pick-list">${KEYS.map((p, n) => `<li><button class="eh-connect-pick-row" data-p="${p}" data-act="pick" style="--n:${n}" type="button">
+      ${tile(p)}<span><span class="nm">${PLATFORMS_UI[p].label}</span><span class="ds">${descs[p]}</span></span><span class="go">${ico('fwd')}</span></button></li>`).join('')}</ul>
+  </div>`;
+}
+
+function savedList() { const f = G('tiktokSavedUsersLoad'); try { return typeof f === 'function' ? f().map(s => ({ u: s.username, on: s.enabled !== false })) : []; } catch (e) { return []; } }
+function savedChips() {
+  const list = savedList();
+  if (!list.length) return '';
+  return `<div class="eh-connect-saved"><h3>حسابات محفوظة</h3><div class="eh-connect-chips">${list.map((s, i) =>
+    `<div class="eh-connect-chip" data-off="${!s.on}"><button type="button" class="use" data-act="use" data-i="${i}" aria-label="استخدام الحساب ${esc(s.u)}">${esc(s.u)}</button>
+     <span class="st">${s.on ? 'محفوظ' : 'معطل'}</span><button type="button" class="tg" data-act="toggle-saved" data-i="${i}">${s.on ? 'تعطيل' : 'تفعيل'}</button></div>`).join('')}</div></div>`;
+}
+function discordHow() {
+  return `<details class="eh-connect-how"><summary>${ico('info')}كيف أجيب ID الروم؟</summary><ol>
+    <li>افتح إعدادات ديسكورد، ثم المظهر، وفعّل وضع المطور.</li><li>اضغط بالزر الأيمن على الروم المطلوب.</li><li>اختر نسخ ID الروم والصقه هنا.</li></ol></details>
+    <div class="eh-connect-note">${ico('info')}<span>لازم يكون بوت احسمها داخل السيرفر ويقدر يشوف الروم العام. إن رفض الروم، راجع صلاحيات البوت.</span></div>`;
+}
+function renderForm(el) {
+  const p = currentP, f = FIELD[p], v = form[p];
+  el.innerHTML = `<div class="eh-connect-split" data-p="${p}">
+    <aside class="eh-connect-stage">${sceneHTML()}<div class="eh-connect-stage-id">${tile(p)}<div><b>${PLATFORMS_UI[p].label}</b><span class="t">${PLATFORMS_UI[p].ar}</span></div></div></aside>
+    <form class="eh-connect-formcol" novalidate>
+      <button class="eh-connect-back" type="button" data-act="to-pick">${ico('back')}رجوع لاختيار المنصة</button>
+      <h2 class="eh-connect-h" id="eh-connect-title" tabindex="-1">${f.title}</h2>
+      <div class="eh-connect-field">
+        <label for="eh-f">${f.label}</label>
+        <input class="eh-connect-input" id="eh-f" name="${p}" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="${f.mode}" placeholder="${f.ph}" aria-describedby="eh-f-h eh-f-e" value="${esc(v)}">
+        <p class="eh-connect-hint" id="eh-f-h">${f.hint}</p>
+        <p class="eh-connect-err" id="eh-f-e" role="alert"></p>
+      </div>
+      ${p === 'tiktok' ? savedChips() : ''}
+      ${p === 'discord' ? discordHow() : ''}
+      <div><button class="eh-connect-btn" data-primary type="submit">${f.btn}</button></div>
+    </form>
+  </div>`;
+}
+function showErr(msg) {
+  const e = $('#eh-f-e'), i = $('#eh-f');
+  if (!e) return;
+  e.dataset.show = msg ? 'true' : 'false';
+  e.innerHTML = msg ? ico('warn') + `<span>${esc(msg)}</span>` : '';
+  i && (i.setAttribute('aria-invalid', msg ? 'true' : 'false'));
+  if (msg && e.animate) e.animate([{ transform:'translateX(6px)' }, { transform:'translateX(-5px)' }, { transform:'none' }], { duration:260 });
+}
+
+/* ---------- الإطلاق: يعبّي الحقول القديمة المخفية ويستدعي homeStartQuickConnect الأصلية ---------- */
+// items = [{platform, username}] — يرجع { ok:true } أو { ok:false, msg } برسالة رفض المنطق الأصلي.
+function drive(items) {
+  const startFn = G('homeStartQuickConnect');
+  if (typeof startFn !== 'function') return { ok:false, msg:'خدمة الربط غير جاهزة بعد. حدّث الصفحة وحاول مرة ثانية.' };
+  const input = document.getElementById('qc-main-input');
+  lastStatusMsg = '';
+  launching = true;
+  try {
+    if (items.length === 1) {
+      window.homeQcToggleMulti(false);
+      window.homeQcPickPlatform(items[0].platform);
+      input.value = items[0].username;
+    } else {
+      window.homeQcToggleMulti(true);
+      KEYS.forEach(k => {
+        const cb = document.getElementById('qc-multi-check-' + k), it = items.find(x => x.platform === k);
+        if (cb) cb.checked = !!it;
+        window.homeQcToggleCheck(k, !!it);
+        const u = document.getElementById('qc-multi-user-' + k); if (u) u.value = it ? it.username : '';
+      });
+    }
+    startFn();
+  } finally { launching = false; }
+  if (lastStatusMsg) return { ok:false, msg:lastStatusMsg };
+  const now = Date.now();
+  Object.keys(targets).forEach(k => delete targets[k]);
+  Object.keys(rawSt).forEach(k => delete rawSt[k]);
+  Object.keys(failInfo).forEach(k => delete failInfo[k]);
+  items.forEach(it => { targets[it.platform] = { user: it.username, startedAt: now }; });
+  armBackground();
+  sync();
+  return { ok:true };
+}
+const cleanMsg = m => String(m || '').replace(/^[\s⚠️⛔✅🔁]+/u, '').trim();
+// المتصلة/الجارية حالياً (غير الفاشلة) — تُعاد مع المنصة الجديدة لأن الربط الأصلي يغلق الاتصالات السابقة عند كل إطلاق
+function keepers(exceptP) {
+  return Object.values(conn).filter(c => c.p !== exceptP && (c.status === 'connected' || isActive(c)) && c.user).map(c => ({ platform:c.p, username:c.user }));
+}
+
+function submitForm() {
+  const p = currentP, input = $('#eh-f');
+  form[p] = input.value;
+  const r = normalize(p, input.value);
+  if (!r.ok) { showErr(r.err); input.focus(); return; }
+  const savedFn = G('tiktokSavedUsersIsEnabled');
+  if (p === 'tiktok' && typeof savedFn === 'function' && !savedFn(r.value)) { showErr('هذا الحساب معطل. فعّله أولا ثم أعد المحاولة.'); return; }
+  showErr('');
+  const items = keepers(p).concat([{ platform:p, username:r.value }]);
+  const res = drive(items);
+  if (!res.ok) { showErr(cleanMsg(res.msg)); input.focus(); return; }
+  setScreen('progress');
+}
+
+function renderMulti(el) {
+  el.innerHTML = `<div class="eh-connect-multi">
+    <button class="eh-connect-back" type="button" data-act="to-pick">${ico('back')}رجوع لاختيار المنصة</button>
+    <h2 class="eh-connect-h" id="eh-connect-title" tabindex="-1">ربط عدة منصات</h2>
+    <p>فعّل منصتين على الأقل. كل منصة تُربط وتُتابع على حدة، فلا يقطع فشل إحداها اتصال الأخرى.</p>
+    <form id="eh-multi-form" novalidate><div class="eh-connect-slots">${KEYS.map(p => {
+      const c = conn[p], locked = !!(c && c.status === 'connected'), on = !!multiOn[p] || locked, f = FIELD[p];
+      return `<section class="eh-connect-slot" data-p="${p}" data-on="${on}" data-v="">
+      <div class="eh-connect-slot-top">${tile(p)}<b id="eh-m-n-${p}">${PLATFORMS_UI[p].label}</b>
+        <span class="st" id="eh-m-s-${p}" aria-live="polite">${locked ? ico('check') + 'متصلة' : ''}</span>
+        <button type="button" class="eh-connect-sw" role="switch" aria-checked="${on}" aria-labelledby="eh-m-n-${p}" aria-disabled="${locked}" data-act="sw" data-p="${p}"></button></div>
+      <div class="eh-connect-slot-fold"><div><div class="eh-connect-field">
+        <label for="eh-m-${p}">${f.label}</label>
+        <input class="eh-connect-input" id="eh-m-${p}" data-p="${p}" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="${f.mode}" placeholder="${f.ph}" value="${esc(locked ? c.user : form[p])}" ${on ? '' : 'tabindex="-1"'} ${locked ? 'disabled' : ''} aria-describedby="eh-m-e-${p}">
+        <p class="eh-connect-err" id="eh-m-e-${p}" role="alert"></p>
+      </div></div></div></section>`;
+    }).join('')}</div>
+    <div class="eh-connect-foot" style="margin-top:16px"><span class="cnt" id="eh-m-cnt" aria-live="polite"></span><button class="eh-connect-btn" data-primary type="submit" style="--p-btn:#8b5cf6;--p-btn-tx:#fff">${ico('layers')}ابدأ الربط</button></div></form>
+  </div>`;
+  updateMultiCount();
+}
+function updateMultiCount() {
+  const n = KEYS.filter(p => multiOn[p] || (conn[p] && conn[p].status === 'connected')).length;
+  const c = $('#eh-m-cnt'); if (c) c.textContent = n < 2 ? `اخترت ${n} من 2 على الأقل` : `اخترت ${n} منصات`;
+}
+function submitMulti() {
+  const items = []; let bad = null;
+  KEYS.forEach(p => {
+    const input = $('#eh-m-' + p), slot = $(`.eh-connect-slot[data-p="${p}"]`), st = $('#eh-m-s-' + p), er = $('#eh-m-e-' + p);
+    if (!multiOn[p]) { er.dataset.show = 'false'; return; }
+    if (conn[p] && conn[p].status === 'connected') { items.push({ platform:p, username:conn[p].user }); return; }
+    form[p] = input.value;
+    const r = normalize(p, input.value);
+    if (!r.ok) { slot.dataset.v = 'bad'; st.innerHTML = ico('warn') + 'تحتاج تعديل'; er.dataset.show = 'true'; er.innerHTML = ico('warn') + `<span>${esc(r.err)}</span>`; input.setAttribute('aria-invalid', 'true'); bad = bad || input; return; }
+    slot.dataset.v = 'ok'; st.innerHTML = ico('check') + 'جاهزة'; er.dataset.show = 'false'; input.setAttribute('aria-invalid', 'false');
+    items.push({ platform:p, username:r.value });
+  });
+  KEYS.forEach(p => { if (!multiOn[p] && conn[p] && conn[p].status === 'connected' && !items.some(i => i.platform === p)) items.push({ platform:p, username:conn[p].user }); });
+  if (items.length < 2) { const c = $('#eh-m-cnt'); c.textContent = 'فعّل منصتين على الأقل للمتابعة'; c.style.color = 'var(--c-bad)'; return; }
+  if (bad) { bad.focus(); return; }
+  const res = drive(items);
+  if (!res.ok) { const c = $('#eh-m-cnt'); c.textContent = cleanMsg(res.msg); c.style.color = 'var(--c-bad)'; return; }
+  setScreen('progress');
+}
+
+function rowHTML(c) {
+  const d = describe(c), p = c.p, single = curMode() === 'single';
+  const stepNames = ['تجهيز الاتصال', 'التحقق', 'ربط الشات'];
+  const steps = single ? `<div class="eh-connect-steps" aria-hidden="true">${stepNames.map((n, i) => {
+    const st = c.status === 'connected' || c.stage > i + 1 ? 'done' : (c.stage === i + 1 && c.status === 'connecting' ? 'active' : 'pending');
+    return `<span class="eh-connect-step" data-st="${st}">${st === 'done' ? ico('check') : ''}${n}</span>`; }).join('')}</div>` : '';
+  const act = [];
+  if (needsAction(c)) act.push(`<button class="eh-connect-btn" data-primary data-act="retry" data-p="${p}" type="button">${ico('retry')}إعادة المحاولة</button><button class="eh-connect-btn" data-act="edit" data-p="${p}" type="button">${ico('edit')}تعديل البيانات</button><button class="eh-connect-btn" data-quiet data-act="remove" data-p="${p}" type="button">إزالة</button>`);
+  else if (c.status === 'connected') act.push(`<button class="eh-connect-btn" data-quiet data-danger data-act="disconnect" data-p="${p}" type="button">${ico('plug')}فصل الاتصال</button>`);
+  else act.push(`<button class="eh-connect-btn" data-quiet data-act="remove" data-p="${p}" type="button">إلغاء هذه المنصة</button>`);
+  const cd = d.cd ? ` <span data-cd="${p}"></span>` : '';
+  return `<div class="eh-connect-row" data-p="${p}" data-key="${p}" data-tone="${d.tone}">
+    <div class="eh-connect-lane" data-s="${laneState(c)}"><span class="eh-connect-tile" data-p="${p}">${logoSVG(p)}</span>
+      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div><span class="eh-connect-mark" aria-hidden="true">ح</span></div>
+    <div class="eh-connect-rowinfo"><div class="eh-connect-rowtxt">
+      <div class="who"><b>${PLATFORMS_UI[p].label}</b><bdi>${esc(c.user)}</bdi></div>
+      <div class="eh-connect-status">${d.icon ? ico(d.icon) : ''}<span>${d.t}</span></div>
+      ${d.d || cd ? `<p class="eh-connect-detail">${esc(d.d)}${cd}</p>` : ''}
+      ${d.bar ? '<div class="eh-connect-indet" aria-hidden="true"></div>' : ''}${steps}</div>
+      <div class="eh-connect-rowact">${act.join('')}</div></div></div>`;
+}
+function summary() {
+  const cs = Object.values(conn), n = cs.length, ok = cs.filter(c => c.status === 'connected').length;
+  const act = cs.filter(isActive).length, bad = cs.filter(needsAction).length;
+  if (!n) return { t:'لا توجد منصات', s:'' };
+  if (n === 1) {
+    const c = cs[0];
+    if (ok) return { t:'تم ربط الشات', s:`${PLATFORMS_UI[c.p].label} : ${c.user}`, done:true };
+    if (bad) return { t:c.status === 'rejected' ? 'الروم مرفوض' : 'تعذر الربط', s:`${PLATFORMS_UI[c.p].label} : ${c.user}` };
+    if (c.status === 'offline') return { t:'ننتظر بدء البث', s:`${PLATFORMS_UI[c.p].label} : ${c.user}` };
+    return { t:`جارٍ ربط ${PLATFORMS_UI[c.p].label}`, s:c.user };
+  }
+  if (ok === n) return { t:'تم ربط كل المنصات', s:`${ok} من ${n} متصلة`, done:true };
+  if (act) return { t:'جارٍ ربط المنصات', s:`${ok} من ${n} متصلة حتى الآن` };
+  if (ok) return { t:'نجاح جزئي', s:`${ok} من ${n} متصلة. المنصات الأخرى تحتاج إجراء منك`, done:true };
+  return { t:'تعذر ربط المنصات', s:`لم تتصل أي منصة من ${n}` };
+}
+function renderProgress(el) {
+  el.innerHTML = `<div class="eh-connect-prog" data-single="${curMode() === 'single'}">
+    <div class="eh-connect-prog-head"><h2 class="eh-connect-h" id="eh-connect-title" tabindex="-1"></h2><p id="eh-prog-sub"></p></div>
+    <div class="eh-connect-lanes" id="eh-lanes"></div>
+    <div class="eh-connect-prog-foot" id="eh-prog-foot"></div>
+    <p class="eh-connect-explain" id="eh-prog-ex"></p></div>`;
+  paintProgress(true);
+}
+function paintProgress(force) {
+  if (screen !== 'progress') return;
+  const lanes = $('#eh-lanes'); if (!lanes) return;
+  const cs = Object.values(conn), sm = summary();
+  $('#eh-connect-title').textContent = sm.t; $('#eh-prog-sub').textContent = sm.s;
+  const keep = new Set();
+  cs.forEach(c => {
+    keep.add(c.p);
+    const sig = sigOf(c) + '|' + curMode();
+    let row = $(`.eh-connect-row[data-key="${c.p}"]`, lanes);
+    if (!row || row.dataset.sig !== sig || force) {
+      const html = document.createElement('div'); html.innerHTML = rowHTML(c);
+      const nr = html.firstElementChild; nr.dataset.sig = sig;
+      const hadFocus = row && row.contains(document.activeElement);
+      row ? row.replaceWith(nr) : lanes.appendChild(nr);
+      if (hadFocus) { const b = $('button', nr); b && b.focus(); }
+    }
+  });
+  $$('.eh-connect-row', lanes).forEach(r => { if (!keep.has(r.dataset.key)) r.remove(); });
+  const connected = cs.filter(c => c.status === 'connected').length, active = cs.some(isActive);
+  const foot = $('#eh-prog-foot'), fsig = [active, connected, cs.length, curMode()].join();
+  if (foot.dataset.sig !== fsig) {
+    foot.dataset.sig = fsig;
+    foot.innerHTML = (active ? `<button class="eh-connect-btn" data-primary data-act="bg" type="button" style="--p-btn:#8b5cf6;--p-btn-tx:#fff">${ico('hide')}متابعة في الخلفية</button>` : '')
+      + (connected && !active ? `<button class="eh-connect-btn" data-primary data-act="go" type="button" style="--p-btn:#8b5cf6;--p-btn-tx:#fff">${ico('play')}ابدأ اللعب</button>` : '')
+      + (active ? `<button class="eh-connect-btn" data-quiet data-act="cancel" type="button">إلغاء الإعداد</button>` : '')
+      + (!active ? `<button class="eh-connect-btn" data-quiet data-act="to-pick" type="button">${curMode() === 'multi' ? 'تغيير المنصات' : 'ربط منصة أخرى'}</button>` : '');
+  }
+  $('#eh-prog-ex').textContent = active ? 'الإخفاء لا يوقف الربط. الإلغاء يوقف المنصات الجارية فقط، ولا يقطع المنصات المتصلة.' : '';
+  tickCd();
+}
+function tickCd() {
+  $$('[data-cd]').forEach(s => { const c = conn[s.dataset.cd]; if (!c) return; const sec = Math.max(0, Math.ceil((c.nextAt - Date.now()) / 1000)); s.textContent = sec ? `. المحاولة التالية بعد ${sec} ث` : ''; });
+}
+setInterval(tickCd, 500);
+
+function renderDock() {
+  const cs = Object.values(conn);
+  if (!cs.length || isOpen()) { dock.dataset.show = 'false'; return; }
+  const ok = cs.filter(c => c.status === 'connected').length, bad = cs.filter(needsAction).length, act = cs.filter(isActive).length;
+  if (!act && !bad && Date.now() > okUntil) { dock.dataset.show = 'false'; return; }   // الاتصال مستقر: المؤشر يختفي بعد لحظات
+  const tone = bad ? 'bad' : (act ? 'warn' : 'ok');
+  const t = act ? 'جارٍ الربط في الخلفية' : (bad && !ok ? 'تعذر الربط' : (bad ? 'نجاح جزئي' : 'الشات متصل'));
+  dock.dataset.tone = tone; dock.dataset.show = 'true';
+  dock.innerHTML = `<button type="button" data-act="reopen" aria-label="فتح تفاصيل الاتصال"><span class="eh-connect-stack">${cs.map(c => tile(c.p)).join('')}</span>
+    <span class="tx"><b>${t}</b><span>${ok} من ${cs.length} متصلة</span></span>${ico('fwd')}</button>`;
+}
+
+/* =====================================================================
+   التفاعل
+   ===================================================================== */
+function openHub(from) {
+  lastFocus = from || document.activeElement;
+  if (!isOpen()) { prevOverflow = document.body.style.overflow; }
+  overlay.dataset.open = 'true'; rootEl.classList.remove('eh-connect-paused');
+  document.body.style.overflow = 'hidden';
+  sync();
+  Object.keys(conn).length ? setScreen('progress', 'fwd') : setScreen('pick');
+  renderDock();
+}
+function closeHub(restore = true) {
+  const wasForm = isOpen() && screen !== 'progress';
+  overlay.dataset.open = 'false'; rootEl.classList.add('eh-connect-paused');
+  document.body.style.overflow = prevOverflow;
+  if (autoT) { clearTimeout(autoT); autoT = null; }
+  if (bgT) { clearTimeout(bgT); bgT = null; }
+  if (wasForm && !Object.keys(conn).length) { try { window.homeQcCancel && window.homeQcCancel(); } catch (e) {} }   // نفس إلغاء النافذة القديمة (يمسح الاستئناف المعلّق)
+  renderDock();
+  if (restore && lastFocus && lastFocus.focus) try { lastFocus.focus(); } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => rootEl.classList.toggle('eh-connect-paused', document.hidden || !isOpen()));
+$('#eh-connect-close').addEventListener('click', () => closeHub());
+overlay.addEventListener('mousedown', e => { if (e.target === overlay && screen !== 'progress') closeHub(); });
+
+document.addEventListener('keydown', e => {
+  if (!isOpen()) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeHub(); return; }
+  if (e.key !== 'Tab') return;
+  const f = $$('button:not([disabled]):not([tabindex="-1"]),input:not([disabled]):not([tabindex="-1"]),summary,[href]', panel).filter(x => x.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!panel.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
+
+dock.addEventListener('click', e => { if (e.target.closest('[data-act="reopen"]')) { armed = false; openHub(e.target.closest('button')); } });
+
+function removeLane(p) {
+  try { if (typeof window.platformDisconnect === 'function') window.platformDisconnect(p); } catch (e) {}
+  delete targets[p]; delete rawSt[p]; delete failInfo[p]; delete conn[p];
+}
+function afterLaneChange() { sync(); Object.keys(conn).length ? paintProgress(true) : setScreen('pick', 'back'); renderDock(); }
+
+body.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, p = b.dataset.p;
+  if (a === 'pick') { currentP = p; setScreen('form', 'fwd', 'field'); }
+  else if (a === 'multi') setScreen('multi', 'fwd');
+  else if (a === 'to-pick') { armed = false; setScreen('pick', 'back'); }
+  else if (a === 'use') { const s = savedList()[+b.dataset.i]; if (!s) return; $('#eh-f').value = s.u; form.tiktok = s.u; showErr(s.on ? '' : 'هذا الحساب معطل. فعّله أولا ثم أعد المحاولة.'); $('#eh-f').focus(); }
+  else if (a === 'toggle-saved') {
+    const s = savedList()[+b.dataset.i]; if (!s) return;
+    form.tiktok = $('#eh-f').value;
+    const f = G('tiktokSavedUserToggle'); if (typeof f === 'function') f(s.u, !s.on);   // نفس دالة قائمة «حسابات تيك توك» الحالية
+    $('.eh-connect-saved') && ($('.eh-connect-saved').outerHTML = savedChips()); showErr('');
+    announce(!s.on ? 'تم تفعيل الحساب' : 'تم تعطيل الحساب');
+  }
+  else if (a === 'sw') {
+    if (b.getAttribute('aria-disabled') === 'true') return;
+    multiOn[p] = !multiOn[p]; const slot = b.closest('.eh-connect-slot'); slot.dataset.on = !!multiOn[p]; b.setAttribute('aria-checked', !!multiOn[p]);
+    const inp = $('input', slot); multiOn[p] ? inp.removeAttribute('tabindex') : inp.setAttribute('tabindex', '-1');
+    if (multiOn[p]) setTimeout(() => inp.focus({ preventScroll:true }), 120);
+    const c = $('#eh-m-cnt'); c && (c.style.color = ''); updateMultiCount();
+  }
+  else if (a === 'bg') { armed = false; closeHub(); }
+  else if (a === 'cancel') { Object.values(conn).filter(c => c.status !== 'connected').forEach(c => removeLane(c.p)); afterLaneChange(); }
+  else if (a === 'remove') { removeLane(p); afterLaneChange(); }
+  else if (a === 'disconnect') { removeLane(p); announce(`تم فصل ${PLATFORMS_UI[p].label}`); afterLaneChange(); }
+  else if (a === 'retry') {
+    const items = Object.values(conn).filter(c => c.user && (c.p === p || c.status === 'connected' || isActive(c))).map(c => ({ platform:c.p, username:c.user }));
+    const res = drive(items);
+    if (res.ok) { sync(); paintProgress(true); }
+    else { currentP = p; form[p] = conn[p] ? conn[p].user : ''; removeLane(p); setScreen('form', 'back', 'field'); showErr(cleanMsg(res.msg)); }
+  }
+  else if (a === 'edit') { const u = conn[p] ? conn[p].user : ''; form[p] = u; removeLane(p); if (curMode() === 'multi') { multiOn[p] = true; setScreen('multi', 'back'); } else { currentP = p; setScreen('form', 'back', 'field'); } }
+  else if (a === 'go') { armed = false; closeHub(false); try { hooks.onContinue(); } catch (e) {} }
+});
+body.addEventListener('submit', e => { e.preventDefault(); if (e.target.id === 'eh-multi-form') submitMulti(); else submitForm(); });
+body.addEventListener('input', e => {
+  const t = e.target; if (!t.classList.contains('eh-connect-input')) return;
+  const p = t.dataset.p || currentP; form[p] = t.value;
+  if (p === 'discord') t.setAttribute('inputmode', /^\d*$/.test(t.value) ? 'numeric' : 'text');
+  if (t.id === 'eh-f') showErr('');
+  else { const er = $('#eh-m-e-' + p); er && (er.dataset.show = 'false'); t.setAttribute('aria-invalid', 'false'); }
+});
+
+/* =====================================================================
+   وصل الواجهة بالنظام الحالي (أغلفة تمرّر كل استدعاء للأصل كما هو)
+   ===================================================================== */
+function wrap(name, fn) {
+  const orig = window[name];
+  if (typeof orig !== 'function') return;
+  window[name] = function () { try { fn.apply(this, arguments); } catch (e) {} return orig.apply(this, arguments); };
+}
+// فتح «ابدأ بثاً سريعاً» → المركز الجديد (الأصل يعمل أيضاً: يبقي الحقول القديمة المخفية متسقة)
+wrap('homeOpenQuickConnect', () => { if (!launching) { armed = false; openHub(); } });
+// رفض المنطق الأصلي (حقل فارغ/معطّل/ID خاطئ) → نعرض رسالته داخل التصميم الجديد
+wrap('homeQcSetStatus', (msg) => { lastStatusMsg = msg || ''; });
+// حالة الجسر الخام (طابور / رقم المحاولة / رسالة «غير موجود») — قراءة فقط
+wrap('homeConnFromBridgeStatus', (p, st) => {
+  if (!st) return;
+  rawSt[p] = Object.assign({}, st, { at: Date.now() });
+  // «يوزر غير موجود» نهائي بكل المنصات (تيك توك مثلاً: السيرفر يرسله لكن شاشة الربط القديمة كانت تبقى تدور)
+  if (st.state === 'error' && st.code === 'user_not_found') failInfo[p] = { message: cleanMsg(st.message), notfound: true };
+});
+// فشل تيك توك النهائي (بعد استنفاد المحاولات التلقائية) — كان يظهر بالشاشة القديمة
+wrap('tiktokQcShowFailure', (message) => { failInfo.tiktok = { message: cleanMsg(message) }; if (!targets.tiktok) targets.tiktok = { user: '', startedAt: Date.now() }; sync(); if (!isOpen()) openHub(null); });
+// زر «أعد الربط» لتيك توك (غير الصامت) كان يفتح شاشة التحميل القديمة
+wrap('tiktokQuickReconnect', (username, opts) => {
+  if (opts && opts.silent) return;
+  delete failInfo.tiktok; delete rawSt.tiktok;
+  targets.tiktok = { user: String(username || '').replace(/^@/, ''), startedAt: Date.now() };
+  armBackground(250); sync(); if (!isOpen()) openHub(null);
+});
+// نجاح الاتصال يمسح أي فشل قديم
+setInterval(() => { Object.keys(failInfo).forEach(p => { const cs = (G('homeConnState') || {})[p]; if (cs && cs.state === 'connected') delete failInfo[p]; }); }, 800);
+
+// شاشة التحميل القديمة صارت مخفية؛ لو ظهرت (مسار قديم) نعرض الجديدة بدلها
+const oldBusy = document.getElementById('qc-connecting-overlay');
+if (oldBusy && window.MutationObserver) {
+  new MutationObserver(() => {
+    if (!oldBusy.classList.contains('visible') || launching) return;
+    if (isOpen() && screen === 'progress') return;
+    sync();
+    if (!Object.keys(conn).length) return;
+    armBackground(250);                                       // ربط أُطلق برمجياً (لعبة/زر «أعد الربط»): نعرض التقدم ثم ننزل فور النجاح كما كانت الشاشة القديمة
+    if (isOpen()) setScreen('progress', 'fwd'); else openHub(null);
+  }).observe(oldBusy, { attributes:true, attributeFilter:['class'] });
+}
+
+window.EhConnect = { open:openHub, close:closeHub, hooks, state:conn };
+})();
+</script>
 </body>
 </html>
