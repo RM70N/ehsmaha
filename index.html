@@ -90434,6 +90434,9 @@ window.__lateJoin = {
 #qc-overlay,#qc-connecting-overlay,#qc-overlay.visible,#qc-connecting-overlay.visible{display:none!important}
 /* شعار احسمها بدل الحرف */
 .eh-connect-mark{background:transparent!important;overflow:hidden}
+.eh-connect-lane{align-items:flex-start}
+.eh-connect-slotL{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;max-width:110px}
+.eh-connect-avname{font-size:12.5px;font-weight:600;color:var(--c-tx);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;unicode-bidi:isolate;text-align:center}
 .eh-connect-lane .eh-connect-track{transform:scaleX(-1)}
 .eh-connect-mark svg,.eh-connect-hub svg{display:block;width:100%;height:100%}
 .eh-connect-hub{background:transparent!important;overflow:hidden}
@@ -90521,8 +90524,7 @@ function wantAvatar(c) {
   const done = url => { avatars[k] = url || ''; if (url) { avStoreSet(k, url); paintProgress(true); renderDock(); } };
   fetchAvatar(c.p, c.user).then(done, () => {});
 }
-const avTile = c => `<span class="eh-connect-tile eh-connect-av" data-p="${c.p}"><img src="${esc(avOf(c))}" alt="" referrerpolicy="no-referrer" decoding="async"><i class="eh-connect-avbadge" data-p="${c.p}">${logoSVG(c.p)}</i></span>`;
-const connTile = c => avOf(c) ? avTile(c) : tile(c.p);
+const avTile = (c, badge) => `<span class="eh-connect-tile eh-connect-av" data-p="${c.p}"><img src="${esc(avOf(c))}" alt="" referrerpolicy="no-referrer" decoding="async">${badge ? `<i class="eh-connect-avbadge" data-p="${c.p}">${logoSVG(c.p)}</i>` : ''}</span>`;
 
 const IC = {
   close:'M6 6l12 12M18 6L6 18', fwd:'M15 5l-7 7 7 7', back:'M9 5l7 7-7 7',
@@ -90902,8 +90904,8 @@ function rowHTML(c) {
   else act.push(`<button class="eh-connect-btn" data-quiet data-act="remove" data-p="${p}" type="button">إلغاء هذه المنصة</button>`);
   const cd = d.cd ? ` <span data-cd="${p}"></span>` : '';
   return `<div class="eh-connect-row" data-p="${p}" data-key="${p}" data-tone="${d.tone}">
-    <div class="eh-connect-lane" data-s="${laneState(c)}"><span class="eh-connect-mark" aria-hidden="true">${EH_LOGO}</span>
-      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div>${connTile(c)}</div>
+    <div class="eh-connect-lane" data-s="${laneState(c)}"><div class="eh-connect-slotL">${avOf(c) ? avTile(c, false) + `<bdi class="eh-connect-avname">@${esc(String(c.user).replace(/^@/, ''))}</bdi>` : `<span class="eh-connect-mark" aria-hidden="true">${EH_LOGO}</span>`}</div>
+      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div>${tile(p)}</div>
     <div class="eh-connect-rowinfo"><div class="eh-connect-rowtxt">
       <div class="who"><b>${PLATFORMS_UI[p].label}</b><bdi>${esc(c.user)}</bdi></div>
       <div class="eh-connect-status">${d.icon ? ico(d.icon) : ''}<span>${d.t}</span></div>
@@ -90979,7 +90981,7 @@ function renderDock() {
   const tone = bad ? 'bad' : (act ? 'warn' : 'ok');
   const t = act ? 'جارٍ الربط في الخلفية' : (bad && !ok ? 'تعذر الربط' : (bad ? 'نجاح جزئي' : 'الشات متصل'));
   dock.dataset.tone = tone; dock.dataset.show = 'true';
-  dock.innerHTML = `<button type="button" data-act="reopen" aria-label="فتح تفاصيل الاتصال"><span class="eh-connect-stack">${cs.map(connTile).join('')}</span>
+  dock.innerHTML = `<button type="button" data-act="reopen" aria-label="فتح تفاصيل الاتصال"><span class="eh-connect-stack">${cs.map(c => tile(c.p)).join('')}</span>
     <span class="tx"><b>${t}</b><span>${ok} من ${cs.length} متصلة</span></span>${ico('fwd')}</button>`;
 }
 
