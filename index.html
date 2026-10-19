@@ -90434,6 +90434,7 @@ window.__lateJoin = {
 #qc-overlay,#qc-connecting-overlay,#qc-overlay.visible,#qc-connecting-overlay.visible{display:none!important}
 /* شعار احسمها بدل الحرف */
 .eh-connect-mark{background:transparent!important;overflow:hidden}
+.eh-connect-lane .eh-connect-track{transform:scaleX(-1)}
 .eh-connect-mark svg,.eh-connect-hub svg{display:block;width:100%;height:100%}
 .eh-connect-hub{background:transparent!important;overflow:hidden}
 .eh-connect-lane[data-s="failed"] .eh-connect-mark,.eh-connect-scene[data-s="failed"] .eh-connect-hub{filter:grayscale(1);opacity:.55}
@@ -90492,7 +90493,10 @@ const EH_LOGO = `<svg viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg"
    كيك/يوتيوب/ديسكورد ما لها مصدر أفتار من المتصفح فتبقى بشعار المنصة. */
 const avatars = {};            // 'platform:user' → url | '' (فشل/غير متاح) | undefined (لم يُطلب)
 const avKey = (p, u) => p + ':' + String(u || '').toLowerCase();
-const avOf = c => (c && c.status === 'connected' && avatars[avKey(c.p, c.user)]) || '';
+const AV_STORE = 'ehcConnectAvatars';       // يُحفظ دائماً بالمتصفح: يظهر فوراً بكل مرة ولو قبل اكتمال الربط
+function avStoreGet(k) { try { return (JSON.parse(localStorage.getItem(AV_STORE) || '{}'))[k] || ''; } catch (e) { return ''; } }
+function avStoreSet(k, url) { try { const o = JSON.parse(localStorage.getItem(AV_STORE) || '{}'); if (url) o[k] = url; else delete o[k]; const ks = Object.keys(o); if (ks.length > 20) delete o[ks[0]]; localStorage.setItem(AV_STORE, JSON.stringify(o)); } catch (e) {} }
+const avOf = c => (c && c.user && c.status !== 'failed' && c.status !== 'rejected' && (avatars[avKey(c.p, c.user)] || avStoreGet(avKey(c.p, c.user)))) || '';
 async function fetchAvatar(p, user) {
   const u = String(user || '').replace(/^@/, '');
   if (p === 'tiktok') {
@@ -90512,12 +90516,9 @@ async function fetchAvatar(p, user) {
 }
 function wantAvatar(c) {
   const k = avKey(c.p, c.user);
-  if (c.status !== 'connected' || !c.user || avatars[k] !== undefined) return;
+  if (c.status !== 'connected' || !c.user || avatars[k] !== undefined) return;   // يُجلب (ويُجدَّد) مرة بكل جلسة صفحة عند أول اتصال
   avatars[k] = '';             // يمنع التكرار أثناء الجلب
-  let cached = '';
-  try { cached = sessionStorage.getItem('ehc-av:' + k) || ''; } catch (e) {}
-  const done = url => { avatars[k] = url || ''; try { if (url) sessionStorage.setItem('ehc-av:' + k, url); } catch (e) {} if (url) { paintProgress(true); renderDock(); } };
-  if (cached) return done(cached);
+  const done = url => { avatars[k] = url || ''; if (url) { avStoreSet(k, url); paintProgress(true); renderDock(); } };
   fetchAvatar(c.p, c.user).then(done, () => {});
 }
 const avTile = c => `<span class="eh-connect-tile eh-connect-av" data-p="${c.p}"><img src="${esc(avOf(c))}" alt="" referrerpolicy="no-referrer" decoding="async"><i class="eh-connect-avbadge" data-p="${c.p}">${logoSVG(c.p)}</i></span>`;
@@ -90901,8 +90902,8 @@ function rowHTML(c) {
   else act.push(`<button class="eh-connect-btn" data-quiet data-act="remove" data-p="${p}" type="button">إلغاء هذه المنصة</button>`);
   const cd = d.cd ? ` <span data-cd="${p}"></span>` : '';
   return `<div class="eh-connect-row" data-p="${p}" data-key="${p}" data-tone="${d.tone}">
-    <div class="eh-connect-lane" data-s="${laneState(c)}">${connTile(c)}
-      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div><span class="eh-connect-mark" aria-hidden="true">${EH_LOGO}</span></div>
+    <div class="eh-connect-lane" data-s="${laneState(c)}"><span class="eh-connect-mark" aria-hidden="true">${EH_LOGO}</span>
+      <div class="eh-connect-track" aria-hidden="true">${Array.from({ length:5 }, (_, i) => `<i class="eh-connect-pk" style="--i:${i}"></i>`).join('')}</div>${connTile(c)}</div>
     <div class="eh-connect-rowinfo"><div class="eh-connect-rowtxt">
       <div class="who"><b>${PLATFORMS_UI[p].label}</b><bdi>${esc(c.user)}</bdi></div>
       <div class="eh-connect-status">${d.icon ? ico(d.icon) : ''}<span>${d.t}</span></div>
@@ -91115,7 +91116,7 @@ if (oldBusy && window.MutationObserver) {
   }).observe(oldBusy, { attributes:true, attributeFilter:['class'] });
 }
 
-document.addEventListener('error', e => { const i = e.target; if (i && i.tagName === 'IMG' && i.closest && i.closest('.eh-connect-av')) { Object.keys(avatars).forEach(k => { if (avatars[k] === i.getAttribute('src')) { avatars[k] = ''; try { sessionStorage.removeItem('ehc-av:' + k); } catch (x) {} } }); paintProgress(true); renderDock(); } }, true);
+document.addEventListener('error', e => { const i = e.target; if (i && i.tagName === 'IMG' && i.closest && i.closest('.eh-connect-av')) { Object.keys(avatars).forEach(k => { if (avatars[k] === i.getAttribute('src') || avStoreGet(k) === i.getAttribute('src')) { avatars[k] = ''; avStoreSet(k, ''); } }); paintProgress(true); renderDock(); } }, true);
 
 window.EhConnect = { open:openHub, close:closeHub, hooks, state:conn };
 })();
