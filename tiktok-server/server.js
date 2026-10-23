@@ -1591,7 +1591,12 @@ const geminiRouter = new GeminiRouter();
 geminiRouter.onEvent = (ev, info) => slog('error', 'gemini_' + ev, { key: info && info.id, hint: 'Gemini رفض المفتاح: تأكد من نسخه كاملاً وأن Generative Language API مفعّل لمشروعه' });
 const ccApi = createCCApi({ router: geminiRouter, log, verifyToken: verifyFirebaseToken });
 if (geminiRouter.hasKeys) slog('info', 'gemini', { keys: geminiRouter.keys.length, tails: geminiRouter.keys.map((k) => k.id.split('…')[1]).join(','), from: geminiRouter.sources.join('+'), chat: geminiRouter.models.chat.join('|'), stt: geminiRouter.models.stt.join('|'), tts: geminiRouter.models.tts.join('|') });
-else log('warn', '⚠️ GEMINI_API_KEY غير مضبوط — لعبة «انصب علي» تعمل بوضع التدريب المحلي فقط (المحادثة الحية معطلة). أضفه في Environment Variables على Render.');
+else {
+  const seenNames = Object.keys(process.env).filter((n) => /GEMINI|GOOGLE_API|GOOGLE_GENERATIVE/i.test(n));
+  if (seenNames.length) slog('warn', 'gemini_env_rejected', { vars: seenNames.map((n) => { const v = String(process.env[n] || ''); return n + '(len=' + v.length + ',starts=' + v.trim().slice(0, 4) + ',spaces=' + /\s/.test(v.trim()) + ')'; }).join(' | '), hint: 'المتغير موجود لكن قيمته لا تشبه مفتاحاً (٢٠+ حرف بلا مسافات). انسخ المفتاح من Google AI Studio كاملاً وألصقه بقيمة المتغير فقط.' });
+  else slog('warn', 'gemini_env_missing', { hint: 'لا يوجد متغير باسم GEMINI_API_KEY بهذه الخدمة (تأكد أنه بنفس الخدمة اللي رابطها ehsmaha.onrender.com لا بخدمة ثانية، واحفظ ثم Deploy).' });
+  log('warn', '⚠️ GEMINI_API_KEY غير مضبوط — لعبة «انصب علي» تعمل بوضع التدريب المحلي فقط (المحادثة الحية معطلة). أضفه في Environment Variables على Render.');
+}
 
 const server = http.createServer(async (req, res) => {
   const path = (req.url || '').split('?')[0];
