@@ -4,10 +4,11 @@
 //   GEMINI_API_KEY | GEMINI_API_KEY_2.._N | GEMINI_API_KEYS=k1,k2 | GOOGLE_API_KEY | GOOGLE_GENERATIVE_AI_API_KEY (وأي تركيبة بفواصل/أسطر)
 //   GEMINI_CHAT_MODELS / GEMINI_STT_MODELS / GEMINI_TTS_MODELS (قوائم بفواصل) — GEMINI_API_BASE لاختبار محلي فقط.
 
-const KEY_RE = /^AIza[0-9A-Za-z_-]{20,}$/;
+// يقبل صيغة AIza… وأي صيغة مفاتيح Google الأحدث (حروف/أرقام/نقطة/شرطات، ٢٠+ خانة)؛ ونتجاوز بادئة NAME= لو انلصقت مع القيمة
+const KEY_RE = /^[0-9A-Za-z][0-9A-Za-z._-]{19,}$/;
 const NAME_RE = /^(GEMINI_API_KEY|GEMINI_KEY|GOOGLE_API_KEY|GOOGLE_GENERATIVE_AI_API_KEY)(S|_?\d+)?$/;
 
-function cleanKey(s) { return String(s || '').trim().replace(/^["'`]+|["'`]+$/g, '').trim(); }
+function cleanKey(s) { return String(s || '').trim().replace(/^["'`]+|["'`]+$/g, '').trim().replace(/^[A-Z_0-9]*KEY[A-Z_0-9]*\s*[:=]\s*/i, '').replace(/^["'`]+|["'`]+$/g, ''); }
 
 // يرجع { keys:[{id,key}], names:[...] } — كل متغير يقبل قائمة (فواصل/أسطر/مسافات)، والتكرار يُحذف.
 function loadGeminiKeys(env) {
