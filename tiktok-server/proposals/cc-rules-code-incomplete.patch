@@ -1,0 +1,11 @@
+--- a/tiktok-server/lib/cc/cc-rules.js
++++ b/tiktok-server/lib/cc/cc-rules.js
+@@ -673,7 +673,7 @@
+     if (op.method === 'combo' && op.stage === 1) missing = missing.filter(function (pc) { return pc.key !== 'ref'; });
+     if (missing.length) return no('not_disclosed', 'المتصل ما أعطاك ' + missing.map(function (x) { return '«' + x.label + '»'; }).join(' و') + ' للحين.');
+     var d = op.data, ok = false, why = 'البيانات ما طابقت العملية.', mainDigits = null;
+-    if (op.method === 'code') { var c = onlyDigits(input.code); mainDigits = c; ok = c === d.code; if (!ok && c === d.fake) { op.fakeEntered = true; why = 'الرمز ما طابق. يمكن المتصل قراه غلط؟ اطلب منه يتأكد.'; } else if (!ok) why = 'رمز الاسترداد ما طابق الرمز المسجل.'; if (!c) return no('incomplete', 'اكتب الرمز.'); }
++    if (op.method === 'code') { var c = onlyDigits(input.code); if (c.length !== 5) return no('incomplete', 'الرمز خمس خانات. اكتب الباقي.'); mainDigits = c; ok = c === d.code; if (!ok && c === d.fake) { op.fakeEntered = true; why = 'الرمز ما طابق. يمكن المتصل قراه غلط؟ اطلب منه يتأكد.'; } else if (!ok) why = 'رمز الاسترداد ما طابق الرمز المسجل.'; if (!c) return no('incomplete', 'اكتب الرمز.'); }
+     else if (op.method === 'card') {
+       if (!String(input.holder || '').trim() || !onlyDigits(input.cardId) || !onlyDigits(input.verify)) return no('incomplete', 'البيانات ناقصة: لازم الاسم والمعرف ورمز التحقق.');
+       mainDigits = onlyDigits(input.cardId);
