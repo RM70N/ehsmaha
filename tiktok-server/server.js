@@ -65,6 +65,9 @@ const { KickConnection, Events: KickEvents } = require('kick-live-connector');
 const { KickChatSession } = require('./lib/kichat-session');
 const kickAdapter = require('./lib/kick-adapter');
 const { normalizeTikTokId } = require('./lib/tiktok-id');
+// «انصب علي» (مركز الاتصالات 3D): واجهة /cc/v1/* + Gemini (المفاتيح من متغيرات Render فقط)
+const { GeminiRouter } = require('./lib/cc/gemini');
+const { createCCApi } = require('./lib/cc/api');
 // KICK_TRANSPORT: auto (الافتراضي: kichat ثم رجوع للقديم لو كيك حجب الطلبات) | kichat (فقط) | connector (القديم فقط — مفتاح إيقاف طوارئ)
 const KICK_TRANSPORT = ['auto', 'kichat', 'connector'].includes(String(process.env.KICK_TRANSPORT || 'auto').toLowerCase()) ? String(process.env.KICK_TRANSPORT || 'auto').toLowerCase() : 'auto';
 
@@ -1562,8 +1565,39 @@ function healthSnapshot() {
   };
 }
 
+// تحقق توكن فايربيس للاعب (يحدد صاحب الحفظ والمالك): admin SDK لو مفعّل، وإلا استعلام Google REST بمفتاح الويب العام.
+const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE';
+const tokenCache = new Map();
+async function verifyFirebaseToken(token) {
+  if (!token || token.length > 4096) return null;
+  const hit = tokenCache.get(token);
+  if (hit && hit.exp > Date.now()) return hit.user;
+  let user = null;
+  try {
+    if (db) {
+      const d = await require('firebase-admin').auth().verifyIdToken(token);
+      user = { uid: d.uid, email: d.email || '', emailVerified: !!d.email_verified };
+    } else {
+      const r = await withTimeout(fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + encodeURIComponent(FIREBASE_WEB_API_KEY), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) }), 6000, 'timeout');
+      const j = await r.json();
+      const u = r.ok && j && Array.isArray(j.users) && j.users[0];
+      if (u && u.localId) user = { uid: u.localId, email: u.email || '', emailVerified: !!u.emailVerified };
+    }
+  } catch (e) { user = null; }
+  if (user) { tokenCache.set(token, { user, exp: Date.now() + 5 * 60 * 1000 }); if (tokenCache.size > 500) tokenCache.delete(tokenCache.keys().next().value); }
+  return user;
+}
+const geminiRouter = new GeminiRouter();
+geminiRouter.onEvent = (ev, info) => slog('error', 'gemini_' + ev, { key: info && info.id, hint: 'Gemini رفض المفتاح: تأكد من نسخه كاملاً وأن Generative Language API مفعّل لمشروعه' });
+const ccApi = createCCApi({ router: geminiRouter, log, verifyToken: verifyFirebaseToken });
+if (geminiRouter.hasKeys) slog('info', 'gemini', { keys: geminiRouter.keys.length, tails: geminiRouter.keys.map((k) => k.id.split('…')[1]).join(','), from: geminiRouter.sources.join('+'), chat: geminiRouter.models.chat.join('|'), stt: geminiRouter.models.stt.join('|'), tts: geminiRouter.models.tts.join('|') });
+else log('warn', '⚠️ GEMINI_API_KEY غير مضبوط — لعبة «انصب علي» تعمل بوضع التدريب المحلي فقط (المحادثة الحية معطلة). أضفه في Environment Variables على Render.');
+
 const server = http.createServer(async (req, res) => {
   const path = (req.url || '').split('?')[0];
+
+  // لعبة «انصب علي»: تُعالج OPTIONS/POST بنفسها (CORS بـAuthorization)، قبل مسار OPTIONS العام أدناه
+  if (path.indexOf('/cc/v1') === 0 && await ccApi.handle(req, res)) return;
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, profileCorsHeaders());
