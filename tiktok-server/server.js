@@ -64,6 +64,7 @@ const { KickConnection, Events: KickEvents } = require('kick-live-connector');
 // kichat.js (Pusher مباشر، بلا متصفح) = الناقل الأول لكيك؛ kick-live-connector (Playwright) يبقى احتياطاً.
 const { KickChatSession } = require('./lib/kichat-session');
 const kickAdapter = require('./lib/kick-adapter');
+const { normalizeTikTokId } = require('./lib/tiktok-id');
 // KICK_TRANSPORT: auto (الافتراضي: kichat ثم رجوع للقديم لو كيك حجب الطلبات) | kichat (فقط) | connector (القديم فقط — مفتاح إيقاف طوارئ)
 const KICK_TRANSPORT = ['auto', 'kichat', 'connector'].includes(String(process.env.KICK_TRANSPORT || 'auto').toLowerCase()) ? String(process.env.KICK_TRANSPORT || 'auto').toLowerCase() : 'auto';
 
@@ -442,6 +443,13 @@ function parseKickIdentifier(raw) {
 // ولفحص التفعيل/التعطيل بـ Firestore، حتى لا يختلف الاثنان أبداً.
 function canonicalKickId(rawIdentifier) {
   return parseKickIdentifier(rawIdentifier) || (rawIdentifier || '').trim().toLowerCase();
+}
+
+// المعرّف الموحَّد لتيك توك (نفس فكرة كيك): مفتاح الغرفة وفحص التعطيل والاتصال كلها من نقطة واحدة، فكل صيغ
+// نفس اليوزر (رابط/@/حروف كبيرة/رموز خفية) = غرفة واحدة واتصال واحد. null = صيغة لا يمكن أن تكون يوزر تيك توك.
+function canonicalTikTokId(rawIdentifier) {
+  const r = normalizeTikTokId(rawIdentifier);
+  return r.ok ? r.id : null;
 }
 
 // ==================================================================
@@ -1425,7 +1433,7 @@ function getOrCreateRoom(platform, rawIdentifier) {
   // كيك: نوحّد المعرّف قبل أي شيء (يوزر مجرّد أو رابط kick.com/يوزر ينتهيان
   // لنفس الاسم). بدون هذا التوحيد يفتح "xqc" و"https://kick.com/xqc" غرفتين
   // منفصلتين ومعهما اتصالان كاملان لنفس القناة — وكل اتصال يشغّل Chromium.
-  const canonical = platform === 'kick' ? canonicalKickId(rawIdentifier) : rawIdentifier.toLowerCase();
+  const canonical = platform === 'kick' ? canonicalKickId(rawIdentifier) : platform === 'tiktok' ? (canonicalTikTokId(rawIdentifier) || rawIdentifier.toLowerCase()) : rawIdentifier.toLowerCase();
   const key = platform + ':' + canonical;
   let room = rooms.get(key);
   if (room) return room;
@@ -1624,6 +1632,7 @@ const server = http.createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 const VALID_PLATFORMS = new Set(['tiktok', 'youtube', 'kick']);
+const clipForMessage = (s) => String(s || '').replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '').slice(0, 30);
 
 wss.on('connection', async (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
@@ -1643,7 +1652,18 @@ wss.on('connection', async (ws, req) => {
   // لازم يطابق تماماً المعرّف الذي تُسجَّل به الغرفة (canonicalKickId لكيك).
   // لو فحصنا النص الخام هنا، كان أي حساب معطّل يتخطّى الحظر بلصق رابط قناته
   // (kick.com/user) بدل يوزره المجرّد، لأن مستند bridgeStreamers مخزّن باليوزر.
-  const checkId = platform === 'kick' ? canonicalKickId(rawUser) : rawUser.toLowerCase();
+  let checkId = platform === 'kick' ? canonicalKickId(rawUser) : rawUser.toLowerCase();
+  if (platform === 'tiktok') {
+    const tk = canonicalTikTokId(rawUser);
+    if (!tk) {
+      // صيغة مستحيلة كيوزر تيك توك (عربي/مسافات/رابط غير بروفايل…): رد فوري بالسبب بدل فتح غرفة واتصال يحرقان حصة التوقيع.
+      log('info', 'tiktok — يوزر بصيغة غير صالحة ("' + rawUser.slice(0, 40) + '")');
+      try { ws.send(JSON.stringify(buildStatus('error', '@' + clipForMessage(rawUser) + ' — يوزرنيم/قناة غير موجودة، تأكد من كتابته صح', { code: 'user_not_found' }))); } catch (e) { /* ignore */ }
+      ws.close(4404, 'يوزر تيك توك غير صالح');
+      return;
+    }
+    checkId = tk;
+  }
   const enabled = await isStreamerEnabled(checkId);
   if (!enabled) {
     log('info', platform + ':' + checkId + ' — الاتصال مرفوض (الحساب معطّل من المالك)');

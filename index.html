@@ -24909,8 +24909,24 @@ let tiktokActiveBridgeIndex = 0;
 // في منطق التبديل إطلاقاً.
 const TIKTOK_BRIDGE_SERVER_URL = TIKTOK_BRIDGE_SERVERS[0];
 
+// توحيد يوزر تيك توك (نفس منطق tiktok-server/lib/tiktok-id.js): رابط البروفايل/@/حروف كبيرة/رموز الاتجاه الخفية
+// (تظهر بكيبورد الجوال العربي واللصق) كلها تنتهي لنفس اليوزر. يرجّع '' لو الصيغة مستحيلة كيوزر تيك توك.
+function tiktokCleanUsername(raw) {
+  let s = String(raw == null ? '' : raw).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, '').trim().replace(/\/+$/, '');
+  if (!s) return '';
+  if (/tiktok\.com/i.test(s)) {
+    let path = '';
+    try { path = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s).pathname; } catch (e) { const m = s.match(/tiktok\.com(\/[^?#\s]*)/i); path = m ? m[1] : ''; }
+    const seg = path.split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+    s = seg.find(x => x.charAt(0) === '@') || '';
+  } else if (/^https?:\/\//i.test(s) || s.indexOf('/') !== -1) return '';
+  s = s.replace(/^@+/, '').trim().toLowerCase();
+  return /^[a-z0-9._]{2,24}$/.test(s) ? s : '';
+}
+
 function tiktokBridgeWsUrlAt(index, username) {
-  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+  const raw = (username || '').trim().replace(/^@/, '');
+  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent(tiktokCleanUsername(raw) || raw)}`;
 }
 
 function tiktokBridgeWsUrl(username) {
@@ -25412,8 +25428,10 @@ function tiktokBadgeConnecting(evt) {
 // يفتح اتصال حقيقي بالسيرفر المستضاف ويستنى فعلياً bridge_status:connected
 // (اتصال ببث حقيقي، مو مجرد فتح WebSocket) قبل ما يُعتبر الربط ناجحاً.
 function tiktokConnectModalStart() {
-  const uname = document.getElementById('tiktok-connect-username').value.trim().replace(/^@/, '');
-  if (!uname) { tiktokConnectSetStatus('error', '⚠️ اكتب يوزرنيمك بتيك توك أولاً'); return; }
+  const rawUname = document.getElementById('tiktok-connect-username').value.trim().replace(/^@/, '');
+  if (!rawUname) { tiktokConnectSetStatus('error', '⚠️ اكتب يوزرنيمك بتيك توك أولاً'); return; }
+  const uname = tiktokCleanUsername(rawUname);
+  if (!uname) { tiktokConnectSetStatus('error', '⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return; }
   if (!tiktokSavedUsersIsEnabled(uname)) {
     tiktokConnectSetStatus('error', '⛔ هذا الحساب معطّل — فعّله من القائمة تحت أولاً');
     return;
@@ -26797,11 +26815,16 @@ function homeQcSelectedPlatforms() {
 // يرجّع مصفوفة [{platform, username}] أو null مع عرض سبب الرفض.
 function homeQcCollectTargets() {
   if (!homeQcMulti) {
-    const username = (document.getElementById('qc-main-input').value || '').trim().replace(/^@/, '');
+    let username = (document.getElementById('qc-main-input').value || '').trim().replace(/^@/, '');
     if (!username) { homeQcSetStatus('⚠️ عبّي الحقل أولاً'); return null; }
     if (homeQcPlatform === 'discord' && !discordRelayChannelId(username)) {
       homeQcSetStatus('⚠️ ID الروم غير صحيح — لازم رقم (17-20 خانة) أو رابط الروم');
       return null;
+    }
+    if (homeQcPlatform === 'tiktok') {
+      const clean = tiktokCleanUsername(username);
+      if (!clean) { homeQcSetStatus('⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return null; }
+      username = clean;
     }
     if (homeQcPlatform === 'tiktok' && !tiktokSavedUsersIsEnabled(username)) {
       homeQcSetStatus('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
@@ -26815,8 +26838,13 @@ function homeQcCollectTargets() {
   const targets = [];
   for (const p of chosen) {
     const el = document.getElementById('qc-multi-user-' + p);
-    const username = ((el && el.value) || '').trim().replace(/^@/, '');
+    let username = ((el && el.value) || '').trim().replace(/^@/, '');
     if (!username) { homeQcSetStatus('⚠️ عبّي يوزر ' + PLATFORMS[p].label); return null; }
+    if (p === 'tiktok') {
+      const clean = tiktokCleanUsername(username);
+      if (!clean) { homeQcSetStatus('⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return null; }
+      username = clean;
+    }
     if (p === 'discord' && !discordRelayChannelId(username)) {
       homeQcSetStatus('⚠️ ID روم الديسكورد غير صحيح — لازم رقم (17-20 خانة) أو رابط الروم');
       return null;
