@@ -132,6 +132,24 @@ async function waitFrame(page, fn, arg, ms) { const t0 = Date.now(); while (Date
   check('بلا أخطاء JS بالصفحة المضيفة', page._errors.length === 0, page._errors);
   await page.close();
 
+  // ================= 9) الإنتاج بلا ملف اللعبة (الموقع يرد بـindex.html بدل 404): رسالة واضحة + إعادة محاولة، بلا تحميل الموقع داخل الإطار =================
+  page = await newGamePage(browser);
+  let broken = true;
+  await page.route(/\/callcenter3d\.html/, async (route) => {
+    if (!broken) return route.continue();
+    await route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: fs.readFileSync(__dirname + '/../../index.html', 'utf8') });
+  });
+  await page.evaluate(() => goCallCenter());
+  await sleep(3000);
+  const bs = await page.evaluate(() => ({ src: document.getElementById('callcenter-frame').getAttribute('src'), loaderHidden: document.getElementById('callcenter-loader').hidden, retryShown: !document.getElementById('callcenter-retry').hidden, msg: document.getElementById('callcenter-loader-msg').textContent, active: document.getElementById('pg-callcenter').classList.contains('active') }));
+  check('ملف اللعبة مفقود: لا يُحمَّل الموقع داخل الإطار (بلا src)', !bs.src && bs.active, bs);
+  check('تظهر رسالة خطأ واضحة + زر «إعادة المحاولة» بدل دوران بلا نهاية', !bs.loaderHidden && bs.retryShown && /تعذر تحميل ملف اللعبة/.test(bs.msg), bs);
+  check('لا تحويل لصفحة «من نحن» ولا تسجيل خروج', await page.evaluate(() => document.getElementById('pg-callcenter').classList.contains('active') && !document.getElementById('pg-landing').classList.contains('active')));
+  broken = false;
+  await page.evaluate(() => document.getElementById('callcenter-retry').click());
+  check('بعد توفّر الملف «إعادة المحاولة» تشغّل اللعبة', await waitPhase(page, 'menu', 90000));
+  await page.close();
+
   await browser.close();
   const bad = results.filter((x) => !x).length;
   console.log('\n' + (results.length - bad) + '/' + results.length + ' passed');

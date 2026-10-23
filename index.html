@@ -2254,6 +2254,8 @@ body{padding-top:64px;}
 .cc-host-loader b{font-family:var(--font-brand);font-size:26px}
 .cc-host-loader span{color:#9A8BC2;font-size:14px;max-width:34ch}
 .cc-host-loader button{margin-top:6px;min-height:44px;padding:0 22px;border-radius:12px;border:1px solid rgba(167,139,255,.3);background:transparent;color:#C4B0FF;font:inherit;font-weight:700;cursor:pointer}
+.cc-host-loader.cc-err .cc-host-spin{display:none}
+.cc-host-loader #callcenter-retry{background:#7C3AED;border-color:transparent;color:#fff}
 .cc-host-spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(167,139,255,.25);border-top-color:#A78BFF;animation:ccHostSpin .9s linear infinite}
 @keyframes ccHostSpin{to{transform:rotate(360deg)}}
 
@@ -90515,28 +90517,50 @@ window.__lateJoin = {
     if (my !== runId) return null;
     return results.find((r) => r.cfg && r.cfg.caps && r.cfg.caps.chat) || results.find((r) => r.cfg) || null;
   }
-  function setLoader(msg, show) { const l = $('callcenter-loader'); if (!l) return; l.hidden = !show; if (msg) $('callcenter-loader-msg').textContent = msg; }
+  function setLoader(msg, show, retry) {
+    const l = $('callcenter-loader'); if (!l) return; l.hidden = !show; if (msg) $('callcenter-loader-msg').textContent = msg;
+    l.classList.toggle('cc-err', !!retry);
+    let r = $('callcenter-retry');
+    if (!r) { r = document.createElement('button'); r.type = 'button'; r.id = 'callcenter-retry'; r.textContent = 'إعادة المحاولة'; r.onclick = () => window.goCallCenter(); l.insertBefore(r, l.querySelector('button')); }
+    r.hidden = !retry;
+  }
+  // نتأكد أن الملف المخدوم فعلاً هو اللعبة، لا صفحة الموقع (404.html/index.html) — وإلا يُحمَّل الموقع داخل الإطار ويتصرف كأنه تسجيل خروج
+  async function gameReachable() {
+    const ctl = new AbortController(); const t = setTimeout(() => { try { ctl.abort(); } catch (e) {} }, 15000);
+    try {
+      const r = await fetch('/callcenter3d.html?v=1', { signal: ctl.signal, credentials: 'omit' });
+      if (!r.ok) return false;
+      const txt = await r.text();
+      return txt.indexOf('ehsemha-callcenter') >= 0 && txt.indexOf('id="auth-loader"') < 0;
+    } catch (e) { return false; } finally { clearTimeout(t); }
+  }
+  let helloTimer = 0;
 
   window.goCallCenter = async function () {
-    const my = ++runId; active = true;
+    const my = ++runId; active = true; clearTimeout(helloTimer);
     show('callcenter');
     const f = $('callcenter-frame'); f.removeAttribute('src');
     setLoader('جاري تجهيز مركز الاتصالات…', true);
-    let pick = null;
-    try { pick = await pickServer(my); } catch (e) { pick = null; }
+    // التحقق من ملف اللعبة والسيرفر بالتوازي؛ السيرفر ما يوقف اللعبة (فشله = وضع التدريب)
+    const okP = gameReachable();
+    const pickP = Promise.race([pickServer(my).catch(() => null), new Promise((res) => setTimeout(() => res(null), 8000))]);
+    const ok = await okP;
+    if (my !== runId || !active) return;
+    if (!ok) { setLoader('تعذر تحميل ملف اللعبة من الموقع. تأكد من اتصالك وأعد المحاولة.', true, true); return; }
+    const pick = await pickP;
     if (my !== runId || !active) return;
     apiBase = pick ? pick.origin : ''; caps = pick && pick.cfg ? pick.cfg.caps : null;
-    // أول مرة بدون إعدادات محفوظة: المحادثة الحية (Gemini) هي الافتراضية لو الخادم جاهز؛ اختيار اللاعب المحفوظ لا نغيّره أبداً.
+    // أول مرة بدون إعدادات محفوظة: المحادثة الحية (Gemini) هي الافتراضية لو الخادم جاهز؛ اختيار اللاعب المحفوظ لا نغيّره أبداً
     try { if (caps && caps.chat && !localStorage.getItem(SETTINGS_KEY)) localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, mode: 'live' })); } catch (e) {}
     setLoader('جاري تحميل اللعبة…', true);
     f.src = SRC;
-    // سقف: لو ما أرسلت اللعبة «ready» (تحميل three.js/الإنترنت) نخفي الشاشة ونترك رسائل اللعبة نفسها تشرح
-    setTimeout(() => { if (my === runId && active) setLoader('', false); }, 25000);
+    // اللعبة ترسل «hello» أول ما تبدأ؛ لو ما وصل خلال ٣٠ ثانية فالتحميل عالق (إنترنت/CDN) فنعرض زر إعادة المحاولة بدل دوران بلا نهاية
+    helloTimer = setTimeout(() => { if (my === runId && active) setLoader('اللعبة تأخرت بالتحميل. تأكد من اتصالك ثم أعد المحاولة.', true, true); }, 30000);
   };
   window.ccHostExit = function () { if (typeof show === 'function') show('solo-home'); };
   window.ccHostOnShow = function (page) {
     if (page === 'callcenter') return;
-    active = false; runId++;
+    active = false; runId++; clearTimeout(helloTimer);
     const f = $('callcenter-frame');
     if (f && f.getAttribute('src') && f.getAttribute('src') !== 'about:blank') f.src = 'about:blank'; // يفرّغ اللعبة (صوت/WebGL/مؤقّتات) عند مغادرة الصفحة
     setLoader('', false);
@@ -90554,8 +90578,8 @@ window.__lateJoin = {
     const d = e.data;
     if (!d || d.source !== 'ehsemha-callcenter') return;
     const reply = (m) => { try { f.contentWindow.postMessage(m, location.origin); } catch (x) {} };
-    if (d.type === 'hello') reply(hostConfig());
-    else if (d.type === 'ready') setLoader('', false);
+    if (d.type === 'hello') { clearTimeout(helloTimer); reply(hostConfig()); }
+    else if (d.type === 'ready') { clearTimeout(helloTimer); setLoader('', false); }
     else if (d.type === 'home') window.ccHostExit();
     else if (d.type === 'need-token') {
       let token = null;
