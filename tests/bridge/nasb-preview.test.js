@@ -11,7 +11,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const check = (name, ok, detail) => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (!ok && detail !== undefined ? '  ' + JSON.stringify(detail).slice(0, 600) : '')); };
 const SHOTS = process.env.SHOTS; if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
-const PREVIEW = fs.readFileSync(path.join(ROOT, 'callcenter3d-nasb-preview.html'));
+const PREVIEW = fs.readFileSync(path.join(ROOT, 'callcenter3d.html')); // الملف الرئيسي للعبة (فيه واجهة «نصب» الجديدة)
 const REWARD = { code: 100, card: 300, parcel: 350, invoice: 450, vault: 550, contract: 650, wallet: 750, combo: 900 };
 const NAMES = { code: 'استرداد الرمز', card: 'بطاقة العميل', parcel: 'قسيمة الطرد', invoice: 'فاتورة الشركة', vault: 'خزنة المكتب', contract: 'عقد الخدمة', wallet: 'محفظة الرموز', combo: 'الصفقة المركبة' };
 const METHODS = Object.keys(REWARD);
@@ -135,12 +135,9 @@ async function fillCorrect(page, m, d, opts) {
   let page = await newPreviewPage(browser);
   await boot(page);
 
-  // ===== 0) ملف اللعبة الأصلي والموقع كما هم =====
-  const orig = fs.readFileSync(path.join(ROOT, 'callcenter3d.html'));
-  const upl = '/root/.claude/uploads/0eda4367-904b-5886-afae-e6c80c541c1a/91edbff8-call-center3d.html';
-  check('الملف الأصلي callcenter3d.html بلا أي تعديل', !fs.existsSync(upl) || orig.equals(fs.readFileSync(upl)));
-  const gitDiff = require('child_process').execSync('git diff --stat HEAD -- callcenter3d.html index.html', { cwd: ROOT }).toString().trim();
-  check('index.html والملف الأصلي بلا تغييرات (مقابل HEAD)', gitDiff === '', gitDiff);
+  // ===== 0) الملف الرئيسي فيه الواجهة الجديدة، والنسخة التجريبية مطابقة له =====
+  check('الملف الرئيسي callcenter3d.html فيه واجهة «نصب» الجديدة', PREVIEW.toString('utf8').includes('drawMethodPage'));
+  check('النسخة التجريبية مطابقة للملف الرئيسي', fs.readFileSync(path.join(ROOT, 'callcenter3d-nasb-preview.html')).equals(PREVIEW));
   const embedded = (src) => { const m = src.match(/\(function \(root, factory\) \{[\s\S]*?root\.CCRules = factory\(root\.CCContent\);\s*\}\(/); return m && m[0]; };
   const rulesSrv = fs.readFileSync(path.join(ROOT, 'tiktok-server/lib/cc/cc-rules.js'), 'utf8').trim();
   check('قواعد اللعبة المدمجة مطابقة حرفياً لقواعد الخادم (نفس منطق op/collect)', PREVIEW.toString('utf8').includes(rulesSrv.slice(0, 4000)) && PREVIEW.toString('utf8').includes(rulesSrv.slice(-4000)));
