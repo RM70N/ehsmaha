@@ -50,7 +50,7 @@ async function waitFrame(page, fn, arg, ms) { const t0 = Date.now(); while (Date
   const card = await page.evaluate(() => { const c = document.querySelector('#pg-solo-home .gcard[data-tag="callcenter"]'); return c && { name: c.querySelector('.gcard-name').textContent.trim(), desc: c.querySelector('.gcard-desc').textContent.length, svg: !!c.querySelector('.gcard-icon svg'), onclick: c.getAttribute('onclick'), firstOfGrid: c.parentElement.querySelector('.gcard') === c }; });
   check('بطاقة «انصب علي» ضمن الألعاب الفردية بأيقونة ووصف', card && card.name === 'انصب علي' && card.svg && card.desc > 20 && card.onclick === 'goCallCenter()', card);
   check('اللعبة ليست بمكتبة ألعاب الستريمر (فردية فقط)', await page.evaluate(() => !document.querySelector('#pg-home .gcard[data-tag="callcenter"]')));
-  check('ملف اللعبة مطابق حرفياً للأصل المرسل (بلا أي تعديل)', fs.readFileSync(__dirname + '/../../callcenter3d.html').equals(fs.readFileSync('/root/.claude/uploads/0eda4367-904b-5886-afae-e6c80c541c1a/811ba1cf-call-center3d.html')));
+  check('ملف اللعبة الرئيسي فيه واجهة «نصب» الجديدة (صفحة لكل طريقة) وربط reqId', (() => { const g = fs.readFileSync(__dirname + '/../../callcenter3d.html', 'utf8'); return g.includes('data-card=') && g.includes('K.collect = function (input, reqIdIn)') && g.includes('drawMethodPage'); })());
 
   // ================= 2) الفتح بالضغط ← إطار ← خادم Render ← محادثة حية =================
   await page.evaluate(() => document.querySelector('#pg-solo-home .gcard[data-tag="callcenter"]').click());

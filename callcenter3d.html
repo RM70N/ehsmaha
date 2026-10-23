@@ -636,6 +636,74 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
 .nb-cardviz small{font-size:.62em;color:#7d8696}
 @media (max-width:640px){.nb{grid-template-columns:1fr;grid-template-rows:auto 1fr}.nb-nav{flex-direction:row;overflow-x:auto;padding:6px;border-inline-end:0;border-bottom:1px solid rgba(214,168,79,.14)}.nb-nav button{flex:none}.nb-nav button span{font-size:.85em}.nb-foot{display:none}.nb-kpis{grid-template-columns:1fr 1fr}.nb-tokens{grid-template-columns:repeat(2,1fr)}.nb-rows .r{grid-template-columns:1fr auto}.nb-rows .r span:nth-child(2),.nb-rows .r span:nth-child(3){display:none}}
 
+
+/* ===== «نصب»: صفحات تشغيل الطرق ===== */
+.nb-m{cursor:pointer;transition:border-color .15s,transform .15s,background .15s}
+.nb-m:hover{border-color:rgba(214,168,79,.5);background:#181e25}
+.nb-m:active{transform:scale(.99)}
+.nb-m:has(.nb-open:focus-visible){outline:2px solid var(--rn-brass);outline-offset:2px}
+.nb-m footer .nb-open{margin-inline-start:auto}
+.nb-chip{display:inline-flex;align-items:center;gap:5px;min-height:24px;padding:0 9px;border-radius:999px;font-size:.74em;font-weight:800;border:1px solid var(--rn-line2);color:var(--rn-muted);background:rgba(255,255,255,.03)}
+.nb-chip.open{color:#cfd5de}.nb-chip.ready{color:#86efac;border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.nb-chip.wait{color:#f3dca9;border-color:rgba(214,168,79,.4);background:rgba(214,168,79,.08)}
+.nb-chip.ok{color:#bbf7d0;border-color:rgba(52,211,153,.5);background:rgba(52,211,153,.14)}
+.nb-chip.bad{color:#fecaca;border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.1)}
+.nb-chip.lock{color:#9aa3b2}
+.nb-mp{--acc:var(--rn-brass);display:flex;flex-direction:column;gap:10px}
+.nb-mp.tone-card{--acc:#7aa2f7}.nb-mp.tone-parcel{--acc:#e0a44a}.nb-mp.tone-invoice{--acc:#9ece6a}.nb-mp.tone-vault{--acc:#c0a060}.nb-mp.tone-contract{--acc:#bb9af7}.nb-mp.tone-wallet{--acc:#2ac3de}.nb-mp.tone-combo{--acc:#f7768e}
+.nb-mp .nb-ophead{box-shadow:inset 3px 0 0 var(--acc)}
+.nb-mp .nb-ophead .ph{color:var(--acc)}
+.nb-mp-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.nb-how{margin:0;padding-inline-start:20px;display:flex;flex-direction:column;gap:4px;font-size:.86em;line-height:1.7;color:#cfd5de}
+.nb-chk{display:flex;flex-wrap:wrap;gap:6px 12px}.nb-chk:empty{display:none}
+.nb-cardviz .id{letter-spacing:0;word-spacing:.15em;unicode-bidi:plaintext}
+.pc{display:inline-flex;align-items:center;gap:4px;font-size:.78em;color:#7d8696}.pc.got{color:#86efac}
+.nb-f .lb{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.nb-f .hint{font-weight:500;color:#7d8696;font-size:.86em}
+.nb-f .in em.sf{border-inline-end:0;border-inline-start:1px solid var(--rn-line)}
+.mx{display:flex;flex-direction:column;gap:10px}
+.mx-bar,.inv-top{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(214,168,79,.08);border:1px solid rgba(214,168,79,.2)}
+.mx-bar span,.inv-top span{margin-inline-start:auto;color:var(--rn-muted);font-size:.82em}
+.nb-permits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.nb-permits .pm{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:start;padding:10px;border-radius:10px;border:1px solid var(--rn-line2);background:#0b0d10;color:var(--rn-text);font:inherit;min-height:44px}
+.nb-permits .pm:hover{border-color:rgba(224,164,74,.6)}
+.nb-permits .pm.on{border-color:var(--acc);background:rgba(224,164,74,.1);box-shadow:inset 0 0 0 1px var(--acc)}
+.nb-permits .pm-h{display:flex;align-items:center;gap:6px;color:var(--acc)}.nb-permits .pm-h b{color:var(--rn-text);font-family:var(--mono);letter-spacing:.04em}
+.nb-permits .pm-n{font-weight:800}.nb-permits small{color:#7d8696}.nb-permits .pm-s{margin-top:auto;font-size:.74em;color:#9aa3b2;display:flex;align-items:center;gap:4px}
+.nb-permits .pm.on .pm-s{color:#f3dca9}
+.inv-doc{display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;background:#f6f1e4;color:#1c1917;border:1px solid #d9cfb4}
+.inv-doc .inv-top{background:rgba(120,90,30,.1);border-color:rgba(120,90,30,.25);color:#3b2f12}
+.inv-doc .nb-opts legend{color:#57502f}
+.inv-doc .nb-opts .opt{background:#fffdf6;border-color:#d9cfb4;color:#1c1917;grid-template-columns:auto 1fr auto auto}
+.inv-doc .nb-opts .opt small{color:#8a7a4a}
+.inv-doc .nb-opts .opt:has(input:checked){border-color:#b45309;background:#fff1d6}
+.vlt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;background:linear-gradient(135deg,#1c2026,#111418);border:1px solid rgba(192,160,96,.4)}
+.vlt .ph{font-size:34px;color:var(--acc)}
+.vlt .cells{display:flex;align-items:center;gap:5px;direction:ltr}
+.vlt .cells i{width:30px;height:40px;display:grid;place-items:center;border-radius:6px;background:#0b0d10;border:1px solid var(--rn-line2);font:800 1.1em var(--mono);font-style:normal;color:#6b7280}
+.vlt .cells i.on{color:#f3dca9;border-color:var(--acc)}
+.vlt .sep{width:10px}
+.nb-order li{touch-action:manipulation}
+.nb-order li:focus-visible{outline:2px solid var(--rn-brass);outline-offset:1px}
+.nb-order li.drag{border-color:var(--acc);background:rgba(187,154,247,.12);box-shadow:0 8px 20px -10px #000}
+.nb-order .grip{display:grid;place-items:center;width:28px;height:32px;cursor:grab;color:#7d8696;touch-action:none}
+.nb-order li.drag .grip{cursor:grabbing}
+.nb-order.pv li{opacity:.7}
+.wl-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.wl-cnt{font-family:var(--font-brand);color:#f3dca9}
+.nb-tokens .tok{cursor:pointer;color:var(--rn-text);font:inherit;display:grid;place-items:center}
+.nb-tokens .tok.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.nb-tokens.pv .tok{opacity:.55}
+.cb-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cb-steps li{display:grid;grid-template-columns:auto 1fr;gap:0 8px;align-items:center;padding:8px 10px;border-radius:10px;border:1px solid var(--rn-line);background:#0b0d10;opacity:.6}
+.cb-steps li span{grid-row:1/3;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.06);font-weight:800}
+.cb-steps li small{color:#7d8696}
+.cb-steps li.cur{opacity:1;border-color:var(--acc)}.cb-steps li.cur span{background:var(--acc);color:#111}
+.cb-steps li.done{opacity:1;border-color:rgba(52,211,153,.4)}.cb-steps li.done span{background:rgba(52,211,153,.2);color:#86efac}
+.nb-actions .spin,.nb-form .spin{display:inline-block}
+@media (max-width:640px){.nb-permits{grid-template-columns:1fr}.vlt .cells i{width:26px;height:36px}.nb-m footer .nb-open{margin-inline-start:0}.cb-steps{grid-template-columns:1fr}.nb-f input{font-size:16px}}
+@media (prefers-reduced-motion:reduce){.nb-m,.nb-m:active{transition:none;transform:none}}
+
 /* تمييز بقية التطبيقات حسب وظيفتها */
 .os-win.app-mail .os-wt{background:#16233a}.os-win.app-mail{border-color:rgba(47,111,208,.3)}
 .os-win.app-mail .li.sel{background:rgba(47,111,208,.18);border-color:rgba(47,111,208,.5)}
@@ -5483,7 +5551,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
      التطبيق ما يحل المكالمة: يبين وش استلمت من المتصل (بدون القيم)، واللاعب يكتب البيانات بنفسه. */
   var DIFF = ['', 'سهلة', 'متوسطة', 'صعبة', 'صعبة جداً', 'خبير'];
   A.tx = { w: 640, h: 520, np: true, render: function (body, ctx) {
-    var tab = null, form = {}, msg = null, key = '', raf = 0, t0 = 0, lastMs = 0, pick = null, toolKey = '';
+    var tab = null, selId = null, drafts = {}, results = {}, busy = false, pendReq = null, switchMsg = null, lastDone = null, lastSig = '', key = '', raf = 0, t0 = 0, lastMs = 0, pick = null, toolKey = '';
     function prof() { return G.state.snap && G.state.snap.profile; }
     function day() { return G.state.snap && G.state.snap.day; }
     function op() { var c = cur(); return c && c.op; }
@@ -5491,7 +5559,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     function nav() {
       var o = op(), t = toolFor(['tx_confirm', 'code_match', 'settle_timing']);
       var items = [['ov', 'نظرة عامة', 'squares-four'], ['methods', 'الطرق', 'stack'], ['op', 'العملية الحالية', 'crosshair'], ['log', 'السجل', 'list-bullets']];
-      return '<nav class="nb-nav" role="tablist">' + items.map(function (it) { var live = it[0] === 'op' && (o || t) && G.calls.state === 'active'; return '<button role="tab" data-t="' + it[0] + '" aria-selected="' + (tab === it[0]) + '">' + U.ic(it[2]) + '<span>' + it[1] + '</span>' + (live ? '<em class="live" aria-label="شغالة"></em>' : '') + '</button>'; }).join('') + '<div class="nb-foot">كل الأرصدة عملة لعب فقط</div></nav>';
+      return '<nav class="nb-nav" role="tablist">' + items.map(function (it) { var live = it[0] === 'op' && (o || t) && G.calls.state === 'active'; return '<button role="tab" data-t="' + it[0] + '" aria-selected="' + (tab === it[0] || (tab === 'method' && it[0] === 'methods')) + '">' + U.ic(it[2]) + '<span>' + it[1] + '</span>' + (live ? '<em class="live" aria-label="شغالة"></em>' : '') + '</button>'; }).join('') + '<div class="nb-foot">كل الأرصدة عملة لعب فقط</div></nav>';
     }
     function kpis() {
       var p = prof(), d = day(); if (!p) return '';
@@ -5510,72 +5578,6 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       return h;
     }
     function row(hh) { var m = G.R.method(hh.method); return '<div class="r ' + (hh.ok ? 'ok' : 'bad') + '"><span>' + U.ic(m ? m.icon : 'circle') + U.esc(m ? m.name : hh.method) + '</span><span>' + U.esc(hh.caller) + '</span><span class="cc-num">اليوم ' + U.ar(hh.day) + '</span><b>' + (hh.ok ? '+' + U.money(hh.reward) : U.esc(hh.reason || 'فشلت')) + '</b></div>'; }
-    function drawMethods() {
-      var p = prof(); if (!p) return '';
-      var o = op(), canSwitch = o && !o.locked && !o.used && G.calls.state === 'active';
-      return '<p class="muted">عملية تحصيل وحدة لكل مكالمة. تقدر تغيّر طريقة العملية الحالية قبل ما يبدأ المتصل يفصح عن بياناتها.</p><div class="nb-methods">' + (p.methods || []).map(function (m) {
-        var isCur = o && o.method === m.id, pr = Math.min(1, (p.lifetimeEarned || 0) / Math.max(1, m.unlock));
-        return '<article class="nb-m' + (m.unlocked ? '' : ' locked') + (isCur ? ' cur' : '') + '"><header>' + U.ic(m.icon) + '<b>' + U.esc(m.name) + '</b><span class="rw">' + U.money(m.reward) + '</span></header>' +
-          '<p>' + U.esc(m.desc) + '</p><dl><dt>المدخلات</dt><dd>' + U.esc(m.inputs) + '</dd><dt>الصعوبة</dt><dd>' + dots(m.difficulty) + ' ' + DIFF[m.difficulty] + '</dd><dt>المحاولات</dt><dd>' + U.ar(m.attempts) + '</dd><dt>شرط الفتح</dt><dd>' + (m.unlock ? 'إجمالي أرباح ' + U.money(m.unlock) : 'مفتوحة من البداية') + '</dd></dl>' +
-          '<footer>' + (m.unlocked ? (isCur ? '<span class="st cur">' + U.ic('crosshair') + ' العملية الحالية</span>' : '<span class="st ok">' + U.ic('lock-open') + ' مفتوحة</span>') : '<span class="st">' + U.ic('lock-simple') + ' مقفلة</span><span class="pb"><i style="width:' + Math.round(pr * 100) + '%"></i></span>') +
-          (m.won ? '<small class="muted">نجحت ' + U.ar(m.won) + '</small>' : '') + (m.unlocked && canSwitch && !isCur ? '<button class="cc-btn sm" data-use="' + m.id + '">استخدمها بهالمكالمة</button>' : '') + '</footer></article>';
-      }).join('') + '</div>';
-    }
-    function field(id, label, pre, opt) { opt = opt || {}; return '<label class="nb-f"><span>' + U.esc(label) + '</span><span class="in">' + (pre ? '<em>' + U.esc(pre) + '</em>' : '') + '<input id="' + id + '" type="text" autocomplete="off" spellcheck="false" ' + (opt.num ? 'inputmode="numeric" dir="ltr"' : 'dir="auto"') + ' value="' + U.esc(form[id] || '') + '" ' + (opt.max ? 'maxlength="' + opt.max + '"' : '') + '></span></label>'; }
-    function drawOp() {
-      var c = cur(), o = op(), h = '';
-      var t = toolFor(['tx_confirm', 'code_match', 'settle_timing']);
-      if (t) h += drawTool(t);
-      if (!c) return h + noToolHtml('ما فيه مكالمة شغالة. العملية تبدأ مع أول مكالمة عميل.');
-      if (!o) return h + '<div class="nb-card"><b>هالمكالمة بدون عملية تحصيل</b><p class="muted">' + U.esc(c.scenario.timeWaster ? 'متصل غلط: أنهِ المكالمة بأدب.' : 'مكالمة خاصة (تدقيق أو حماية الجهاز). مكافأتها ثابتة لو نجحت.') + '</p></div>';
-      var ready = c.current && c.current.kind === 'op';
-      var got = o.pieces.filter(function (x) { return x.disclosed; }).length;
-      h += '<div class="nb-ophead"><div>' + U.ic(o.icon) + '<b>' + U.esc(o.name) + '</b><small>مع ' + U.esc(c.caller.name) + ' · ' + U.esc(c.scenario.company) + '</small></div><div class="rw">' + U.money(o.reward) + '</div></div>';
-      h += '<div class="nb-rule">' + U.ic('info') + ' عملية وحدة لهالمكالمة · المحاولات المتبقية <b class="cc-num">' + U.ar(o.attemptsLeft) + ' من ' + U.ar(o.maxAttempts) + '</b>' + (o.locked ? '' : ' · <button class="linkb" data-go="methods">غيّر الطريقة</button>') + '</div>';
-      h += '<ol class="nb-pieces" aria-label="البيانات المطلوبة من المتصل">' + o.pieces.map(function (pc) { return '<li class="' + (pc.disclosed ? 'got' : '') + (pc.stage > o.stage ? ' later' : '') + '">' + U.ic(pc.disclosed ? 'check-circle' : 'circle-dashed') + '<span>' + U.esc(pc.label) + '</span><small>' + (pc.disclosed ? 'قالها المتصل (شوف المحادثة)' : pc.stage > o.stage ? 'بعد المرحلة الأولى' : 'ما قالها للحين') + '</small></li>'; }).join('') + '</ol>';
-      if (o.used) return h + '<div class="nb-result ok">' + U.ic('seal-check') + '<b>العملية مسجلة. +' + U.money(o.reward) + '</b><small>ما تنحسب مرة ثانية.</small></div>';
-      if (o.failed) return h + '<div class="nb-result bad">' + U.ic('x-circle') + '<b>العملية انقفلت</b><small>' + U.esc(o.lastReason || 'استنفدت المحاولات.') + '</small></div>';
-      h += '<form class="nb-form" id="nb-form" autocomplete="off">' + formFor(o) + '<div class="nb-actions"><button class="cc-btn primary" id="nb-go" type="submit">' + U.ic('seal-check') + '<span>' + (o.method === 'combo' && o.stage === 1 ? 'تحقق من المرحلة الأولى' : 'تحقق وسجّل العملية') + '</span></button>' +
-        '<span class="nb-msg ' + (msg ? msg.k : '') + '" id="nb-msg" role="status">' + U.esc(msg ? msg.t : !ready ? 'كمّل خطوات المكالمة قبل التحصيل: ' + ((c.steps.filter(function (s) { return s.current; })[0] || {}).title || '') : got < o.pieces.filter(function (x) { return x.stage <= o.stage; }).length ? 'اجمع البيانات من المتصل بكلامك.' : '') + '</span></div></form>';
-      return h;
-    }
-    function formFor(o) {
-      var m = o.method, h = '';
-      if (m === 'code') h += field('f_code', 'رمز الاسترداد', 'لعبة-', { num: 1, max: 12 });
-      if (m === 'card') {
-        h += '<div class="nb-cardviz" aria-hidden="true"><div class="top"><span>بطاقة عضوية</span><b>' + U.esc(o.issuer || '') + '</b></div><div class="emb"></div><div class="id cc-num" id="cv-id">' + U.esc(form.f_cid ? 'بطاقة-' + form.f_cid : 'بطاقة-••••-••') + '</div><div class="nm" id="cv-nm">' + U.esc(form.f_holder || 'اسم صاحب البطاقة') + '</div><small>بطاقة خيالية داخل اللعبة · ما تصلح لأي استخدام حقيقي</small></div>';
-        h += field('f_holder', 'اسم صاحب البطاقة') + field('f_cid', 'معرف البطاقة', 'بطاقة-', { num: 1, max: 14 }) + field('f_ver', 'رمز التحقق', 'تحقق-', { num: 1, max: 8 });
-      }
-      if (m === 'parcel') h += '<fieldset class="nb-opts"><legend>تصاريح الاستلام اليوم: اختر اللي يطابق رقم الطرد واسم المستلم معاً</legend>' + (o.permits || []).map(function (pm) { return '<label class="opt"><input type="radio" name="permit" value="' + pm.id + '"' + (form.permit === pm.id ? ' checked' : '') + '><span class="cc-code" dir="rtl">' + U.esc(pm.parcel) + '</span><span>' + U.esc(pm.name) + '</span><small>' + U.esc(pm.slot) + '</small></label>'; }).join('') + '</fieldset>';
-      if (m === 'invoice') {
-        var dr = o.draft || {};
-        h += '<fieldset class="nb-opts inv"><legend>مسودة النظام للعميل ' + U.esc(dr.customer || '') + ': حدد الحقل اللي يختلف عن كلام المتصل</legend>' + [['number', 'رقم الفاتورة', dr.number], ['amount', 'المبلغ', dr.amount + ' د'], ['item', 'الصنف', dr.item]].map(function (r) { return '<label class="opt"><input type="radio" name="ifield" value="' + r[0] + '"' + (form.ifield === r[0] ? ' checked' : '') + '><span>' + r[1] + '</span><bdi class="cc-code" dir="rtl">' + U.esc(r[2]) + '</bdi></label>'; }).join('') + '</fieldset>' + field('f_ival', 'القيمة الصحيحة حسب المتصل');
-      }
-      if (m === 'vault') h += '<p class="muted">الجزء الأول من المتصل، والثاني من ملفه في «الملفات ← الأرشيف».</p><button class="cc-btn sm" type="button" id="nb-arch">' + U.ic('archive') + ' افتح الأرشيف</button>' + field('f_vault', 'رمز الخزنة (ست خانات)', 'خزنة-', { num: 1, max: 8 });
-      if (m === 'contract') {
-        var order = form.order || (o.clauses || []).map(function (x) { return x.id; }); form.order = order;
-        h += '<p class="muted">رتّب الشروط من الأهم للأقل حسب كلام المتصل.</p><ol class="nb-order">' + order.map(function (id, i) { var cl = (o.clauses || []).filter(function (x) { return x.id === id; })[0]; return '<li><span class="n">' + U.ar(i + 1) + '</span><b>' + U.esc(cl ? cl.label : id) + '</b><button type="button" class="cc-btn sm" data-up="' + i + '" aria-label="لفوق"' + (i ? '' : ' disabled') + '>' + U.ic('arrow-up') + '</button><button type="button" class="cc-btn sm" data-dn="' + i + '" aria-label="لتحت"' + (i < order.length - 1 ? '' : ' disabled') + '>' + U.ic('arrow-down') + '</button></li>'; }).join('') + '</ol>';
-      }
-      if (m === 'wallet') { var sel = form.tokens || []; h += '<p class="muted">اختر الرموز الثلاثة اللي قالها المتصل بالضبط (' + U.ar(sel.length) + ' من ٣).</p><div class="nb-tokens">' + (o.tokens || []).map(function (tk) { var on = sel.indexOf(tk.id) >= 0; return '<button type="button" class="tok' + (on ? ' on' : '') + '" data-tk="' + tk.id + '" aria-pressed="' + on + '"><bdi dir="rtl" class="cc-code">' + U.esc(tk.t) + '</bdi></button>'; }).join('') + '</div>'; }
-      if (m === 'combo') {
-        if (o.stage === 1) h += field('f_key', 'مفتاح المرحلة الأولى', 'مرحلة-', { num: 1, max: 8 });
-        else h += '<div class="nb-result ok sm">' + U.ic('check') + ' المرحلة الأولى انقبلت</div>' + field('f_ref', 'رقم المرجع (قاله المتصل بأول المكالمة)', 'مرجع-', { num: 1, max: 8 }) + field('f_seal', 'الختم النهائي', 'ختم-', { num: 1, max: 8 });
-      }
-      return h;
-    }
-    function gather(o) {
-      var v = function (id) { var e = U.$('#' + id, body); return e ? e.value : ''; };
-      var m = o.method;
-      if (m === 'code') return { code: v('f_code') };
-      if (m === 'card') return { holder: v('f_holder'), cardId: v('f_cid'), verify: v('f_ver') };
-      if (m === 'parcel') { var r = U.$('input[name=permit]:checked', body); return { permit: r ? r.value : null }; }
-      if (m === 'invoice') { var f = U.$('input[name=ifield]:checked', body); return { field: f ? f.value : null, value: v('f_ival') }; }
-      if (m === 'vault') return { code: v('f_vault') };
-      if (m === 'contract') return { order: (form.order || []).slice() };
-      if (m === 'wallet') return { tokens: (form.tokens || []).slice() };
-      if (m === 'combo') return o.stage === 1 ? { key: v('f_key') } : { ref: v('f_ref'), seal: v('f_seal') };
-      return {};
-    }
     function drawLog() {
       var p = prof(); if (!p) return '';
       var hist = (p.opsHistory || []).slice().reverse();
@@ -5614,37 +5616,361 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
         sb.onclick = function () { var ms = Math.round(lastMs); submit(sb, U.$('#tx-msg', body), t.step.id, { t: ms }).then(function (r) { if (!r.ok) { toolKey = ''; setTimeout(draw, 700); } }); };
       }
     }
+    /* ---------- صفحات الطرق: كل كرت يفتح صفحة تشغيل خاصة ---------- */
+    var MP = {
+      code: { tone: 'redeem', how: ['اكسب ثقة المتصل بالحوار.', 'اطلب منه رمز الاسترداد المسجل باسمه.', 'اكتب الخمس خانات هنا بالضبط.'], verify: 'يتطابق الرمز مع رمز نفس المكالمة. الغلط المكتمل ينحسب محاولة.' },
+      card: { tone: 'card', how: ['خذ اسم صاحب البطاقة من المتصل.', 'وضّح له سبب الاتصال عشان يعطيك المعرف.', 'جاوب سؤاله عشان يقرأ رمز التحقق.'], verify: 'الاسم والمعرف ورمز التحقق لازم تطابق بطاقة المتصل كلها.' },
+      parcel: { tone: 'parcel', how: ['خذ رقم الطرد من المتصل.', 'خذ اسم المستلم.', 'اختر التصريح اللي يطابق الرقم والاسم معاً.'], verify: 'تصريح واحد بس يطابق الاثنين. الباقي يغلط بالرقم أو بالاسم.' },
+      invoice: { tone: 'invoice', how: ['خذ رقم الفاتورة من المتصل.', 'خذ المبلغ والصنف بعد ما توضح سبب الاتصال.', 'قارنها بالمسودة وحدد الحقل المختلف ثم صححه.'], verify: 'لازم تحدد الحقل المختلف صح وتكتب قيمته الصحيحة كما قالها المتصل.' },
+      vault: { tone: 'vault', how: ['خذ الجزء الأول (٣ خانات) من المتصل.', 'افتح الأرشيف واختر ملف نفس المتصل.', 'اكتب الجزء الأول ثم الثاني بنفس الترتيب.'], verify: 'الرمز ست خانات: الأول من المتصل والثاني من ملفه.' },
+      contract: { tone: 'contract', how: ['اسمع أولويات المتصل بالمكالمة.', 'رتّب الشروط من الأهم للأقل.', 'اعتمد الترتيب كامل.'], verify: 'الترتيب كله لازم يطابق أولويات المتصل.' },
+      wallet: { tone: 'wallet', how: ['خذ أول رمزين من المتصل.', 'جاوب سؤاله عشان يعطيك الرمز الثالث.', 'اختر الرموز الثلاثة بالضبط من التسعة.'], verify: 'المجموعة الصحيحة هي المطلوبة، وترتيب اختيارك ما يهم.' },
+      combo: { tone: 'combo', how: ['رقم المرجع يجي بأول المكالمة، احتفظ فيه.', 'المرحلة ١: اكتب مفتاح «مرحلة-» وتحقق.', 'المرحلة ٢: اكتب المرجع والختم النهائي.'], verify: 'المكافأة تنضاف مرة وحدة بعد المرحلة الثانية. المحاولات تتبع العملية كلها.' }
+    };
+    var PREFIX = { code: 'لعبة-', cardId: 'بطاقة-', verify: 'تحقق-', number: 'فاتورة-', key: 'مرحلة-', ref: 'مرجع-', seal: 'ختم-' };
+    function latin(s) { return String(s == null ? '' : s).replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 1632); }).replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 1776); }); }
+    function digitsOf(s) { return latin(s).replace(/\D+/g, ''); }
+    function methodOf(id) { var p = prof(); return p && (p.methods || []).filter(function (m) { return m.id === id; })[0] || null; }
+    function dkey() { var c = cur(), o = op(); return c && o ? c.id + '|' + o.id : ''; }
+    function draftFor() {
+      var k = dkey(); if (!k) return null;
+      if (!drafts[k]) drafts[k] = { code: '', holder: '', cardId: '', verify: '', permit: null, ifield: null, ivals: {}, vault: '', order: null, tokens: [], key: '', ref: '', seal: '' };
+      return drafts[k];
+    }
+    function stateOf(m) {
+      var c = cur(), o = op(), p = prof(), life = (p && p.lifetimeEarned) || 0;
+      var s = { c: c, o: o, locked: !m.unlocked, isCur: !!(c && o && o.method === m.id), canSwitch: false, why: '', label: '', cls: '' };
+      s.canSwitch = !!(c && o && !s.locked && !s.isCur && !o.locked && !o.used && !o.failed && o.attemptsLeft === o.maxAttempts && !G.calls.pending);
+      if (s.locked) { s.label = 'مقفلة'; s.cls = 'lock'; }
+      else if (s.isCur) {
+        if (o.used) { s.label = 'نجحت'; s.cls = 'ok'; }
+        else if (o.failed) { s.label = 'فشلت'; s.cls = 'bad'; }
+        else if (c.current && c.current.kind === 'op') { s.label = 'جاهزة'; s.cls = 'ready'; }
+        else { s.label = 'تنتظر بيانات'; s.cls = 'wait'; }
+      } else { s.label = 'مفتوحة'; s.cls = 'open'; }
+      if (!s.locked && !s.isCur) {
+        if (!c) s.why = 'ابدأ مكالمة عميل عشان تستخدم هالطريقة.';
+        else if (!o) s.why = 'هالمكالمة بدون عملية تحصيل (مكالمة خاصة أو متصل غلط).';
+        else if (o.used) s.why = 'العملية الحالية انسجلت، وما تنحسب مرتين.';
+        else if (o.failed) s.why = 'العملية الحالية انقفلت بعد ما خلصت محاولاتها.';
+        else if (o.locked || o.attemptsLeft < o.maxAttempts) s.why = 'ما تقدر تغيّر الطريقة بعد ما بدأت العملية: المتصل بدأ يفصح عن بياناتها.';
+        else if (G.calls.pending) s.why = 'انتظر رد المتصل قبل ما تغيّر الطريقة.';
+      }
+      s.life = life;
+      return s;
+    }
+    function chip(s) { return '<span class="nb-chip ' + s.cls + '">' + s.label + '</span>'; }
+    function pieceChip(o, key, inline) {
+      if (inline !== true) return '';
+      var pc = o && o.pieces.filter(function (x) { return x.key === key; })[0];
+      if (!pc) return '';
+      return pc.disclosed ? '<small class="pc got">' + U.ic('check-circle') + ' قالها المتصل</small>' : '<small class="pc">' + U.ic('circle-dashed') + ' بانتظار المتصل</small>';
+    }
+    /* ---- كروت الطرق: المساحة كلها قابلة للضغط + زر «افتح الطريقة» للوحة المفاتيح ---- */
+    function drawMethods() {
+      var p = prof(); if (!p) return '';
+      var o = op();
+      return '<p class="muted">اختر طريقة تفتح صفحتها: تعرف المطلوب وتجرب التفاعل. التصفح وحده ما يغيّر عملية المكالمة.</p><div class="nb-methods">' + (p.methods || []).map(function (m) {
+        var st = stateOf(m), pr = Math.min(1, (p.lifetimeEarned || 0) / Math.max(1, m.unlock));
+        return '<article class="nb-m' + (m.unlocked ? '' : ' locked') + (st.isCur ? ' cur' : '') + '" data-card="' + m.id + '"><header>' + U.ic(m.icon) + '<b>' + U.esc(m.name) + '</b><span class="rw">' + U.money(m.reward) + '</span></header>' +
+          '<p>' + U.esc(m.desc) + '</p><dl><dt>المدخلات</dt><dd>' + U.esc(m.inputs) + '</dd><dt>الصعوبة</dt><dd>' + dots(m.difficulty) + ' ' + DIFF[m.difficulty] + '</dd><dt>المحاولات</dt><dd>' + U.ar(m.attempts) + '</dd><dt>شرط الفتح</dt><dd>' + (m.unlock ? 'إجمالي أرباح ' + U.money(m.unlock) : 'مفتوحة من البداية') + '</dd></dl>' +
+          '<footer>' + chip(st) + (m.unlocked ? '' : '<span class="pb"><i style="width:' + Math.round(pr * 100) + '%"></i></span>') + (m.won ? '<small class="muted">نجحت ' + U.ar(m.won) + '</small>' : '') +
+          '<button type="button" class="cc-btn sm primary nb-open" data-open="' + m.id + '" aria-label="افتح طريقة ' + U.esc(m.name) + '">' + U.ic('arrow-left') + '<span>افتح الطريقة</span></button></footer></article>';
+      }).join('') + '</div>';
+    }
+    /* ---- نماذج التفاعل لكل طريقة (العملية الحالية فقط) ---- */
+    function fld(id, label, key, opt) {
+      opt = opt || {}; var d = draftFor() || {}, v = opt.val != null ? opt.val : (d[id] || '');
+      return '<label class="nb-f"><span class="lb">' + U.esc(label) + (opt.piece || '') + '</span><span class="in">' + (opt.pre ? '<em>' + U.esc(opt.pre) + '</em>' : '') + '<input id="f_' + id + '" data-d="' + id + '" type="text" autocomplete="off" spellcheck="false" ' + (opt.num ? 'inputmode="numeric" dir="ltr"' : 'dir="auto"') + ' value="' + U.esc(v) + '"' + (opt.max ? ' maxlength="' + opt.max + '"' : '') + (opt.ph ? ' placeholder="' + U.esc(opt.ph) + '"' : '') + '>' + (opt.suf ? '<em class="sf">' + U.esc(opt.suf) + '</em>' : '') + '</span>' + (opt.hint ? '<small class="hint">' + U.esc(opt.hint) + '</small>' : '') + '</label>';
+    }
+    function formCode(o, d) {
+      return '<div class="mx mx-redeem"><div class="mx-bar">' + U.ic('key') + '<b>نظام الاسترداد</b><span>' + U.esc(o.issuer || '') + '</span></div>' +
+        fld('code', 'رمز الاسترداد', 'code', { pre: PREFIX.code, num: 1, max: 12, ph: '•••••', hint: 'اكتب الخمس خانات اللي قالها المتصل.', piece: pieceChip(o, 'code', true) }) + '</div>';
+    }
+    function formCard(o, d) {
+      return '<div class="mx mx-card"><div class="nb-cardviz" aria-hidden="true"><div class="top"><span>بطاقة عضوية</span><b>' + U.esc(o.issuer || '') + '</b></div><div class="emb"></div><div class="id cc-num" id="cv-id">' + U.esc(d.cardId ? PREFIX.cardId + digitsOf(d.cardId) : 'بطاقة-••••-••') + '</div><div class="nm" id="cv-nm">' + U.esc(d.holder || 'اسم صاحب البطاقة') + '</div><small id="cv-vf">' + U.esc(d.verify ? PREFIX.verify + digitsOf(d.verify) : 'تحقق-•••') + '</small></div>' +
+        fld('holder', 'اسم صاحب البطاقة', 'holder', { piece: pieceChip(o, 'holder', true), hint: 'الاسم كما قاله المتصل.' }) +
+        fld('cardId', 'معرف البطاقة', 'cardId', { pre: PREFIX.cardId, num: 1, max: 14, piece: pieceChip(o, 'cardId', true) }) +
+        fld('verify', 'رمز التحقق', 'verify', { pre: PREFIX.verify, num: 1, max: 8, piece: pieceChip(o, 'verify', true) }) + '</div>';
+    }
+    function formParcel(o, d) {
+      return '<div class="mx mx-parcel"><p class="muted">قارن كلام المتصل بالتصاريح الأربعة. تصريح واحد بس يطابق رقم الطرد واسم المستلم معاً.</p><div class="nb-chk">' + pieceChip(o, 'parcelId') + pieceChip(o, 'recipient') + '</div>' +
+        '<div class="nb-permits" role="radiogroup" aria-label="تصاريح الاستلام">' + (o.permits || []).map(function (pm) {
+          var on = d.permit === pm.id;
+          return '<button type="button" class="pm' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-permit="' + pm.id + '"><span class="pm-h">' + U.ic('package') + '<b dir="ltr">' + U.esc(pm.parcel) + '</b></span><span class="pm-n">' + U.esc(pm.name) + '</span><small>' + U.esc(pm.slot) + '</small><span class="pm-s">' + (on ? U.ic('check-circle') + ' مختار' : 'اضغط للاختيار') + '</span></button>';
+        }).join('') + '</div></div>';
+    }
+    function formInvoice(o, d) {
+      var dr = o.draft || {}, rows = [['number', 'رقم الفاتورة', dr.number], ['amount', 'المبلغ', dr.amount + ' د'], ['item', 'الصنف', dr.item]];
+      var f = d.ifield, h = '<div class="mx mx-invoice"><div class="inv-doc"><div class="inv-top">' + U.ic('receipt') + '<b>مسودة فاتورة النظام</b><span>' + U.esc(dr.customer || '') + '</span></div><fieldset class="nb-opts inv"><legend>حدد الحقل اللي يختلف عن كلام المتصل</legend>' + rows.map(function (r) {
+        return '<label class="opt"><input type="radio" name="ifield" value="' + r[0] + '"' + (f === r[0] ? ' checked' : '') + '><span>' + r[1] + '</span><b dir="auto">' + U.esc(r[2]) + '</b><small>هذا المختلف</small></label>';
+      }).join('') + '</fieldset></div><div class="nb-chk">' + pieceChip(o, 'number') + pieceChip(o, 'details') + '</div>';
+      if (f) {
+        var cfg = f === 'number' ? { pre: PREFIX.number, num: 1, max: 10 } : f === 'amount' ? { num: 1, max: 6, suf: 'د' } : {};
+        d.ivals = d.ivals || {};
+        h += fld('ival', 'القيمة الصحيحة (' + ({ number: 'رقم الفاتورة', amount: 'المبلغ', item: 'الصنف' })[f] + ')', 'ival', Object.assign({ val: d.ivals[f] || '', hint: 'اكتب القيمة اللي قالها المتصل بدل اللي بالمسودة.' }, cfg));
+      } else h += '<p class="muted">اختر الحقل المختلف أول، وبعدها اكتب قيمته الصحيحة.</p>';
+      return h + '</div>';
+    }
+    function formVault(o, d) {
+      var v = digitsOf(d.vault).slice(0, 6), cells = '';
+      for (var i = 0; i < 6; i++) cells += (i === 3 ? '<span class="sep"></span>' : '') + '<i class="' + (v[i] ? 'on' : '') + '">' + (v[i] ? U.ar(v[i]) : '•') + '</i>';
+      return '<div class="mx mx-vault"><div class="vlt" aria-hidden="true">' + U.ic('vault') + '<div class="cells" id="vl-cells">' + cells + '</div></div><p class="muted">الجزء الأول (٣ خانات) من المتصل، والثاني من ملفه في «الملفات ← الأرشيف». اكتبهم بنفس الترتيب.</p><div class="nb-chk">' + pieceChip(o, 'partA') + '</div>' +
+        '<div class="nb-actions"><button class="cc-btn sm" type="button" id="nb-arch">' + U.ic('archive') + ' افتح الأرشيف</button></div>' +
+        fld('vault', 'رمز الخزنة (ست خانات)', 'vault', { num: 1, max: 6, ph: '••••••' }) + '</div>';
+    }
+    function ensureOrder(o, d) {
+      var ids = (o.clauses || []).map(function (x) { return x.id; });
+      var ok = d.order && d.order.length === ids.length && ids.every(function (i) { return d.order.indexOf(i) >= 0; });
+      if (!ok) d.order = ids.slice();
+      return d.order;
+    }
+    function formContract(o, d) {
+      var order = ensureOrder(o, d);
+      return '<div class="mx mx-contract"><p class="muted">رتّب الشروط من الأهم للأقل حسب كلام المتصل. اسحب البند أو استخدم الأسهم (أو Alt مع الأسهم على البند).</p><div class="nb-chk">' + pieceChip(o, 'order1') + pieceChip(o, 'order2') + '</div>' +
+        '<ol class="nb-order" id="nb-order" aria-label="ترتيب بنود العقد">' + order.map(function (id, i) {
+          var cl = (o.clauses || []).filter(function (x) { return x.id === id; })[0];
+          return '<li data-id="' + id + '" tabindex="0" aria-label="' + U.esc(cl ? cl.label : id) + '، المركز ' + U.ar(i + 1) + '"><span class="grip" data-grip aria-hidden="true">' + U.ic('dots-six-vertical') + '</span><span class="n">' + U.ar(i + 1) + '</span><b>' + U.esc(cl ? cl.label : id) + '</b><button type="button" class="cc-btn sm" data-up="' + i + '" aria-label="لفوق"' + (i ? '' : ' disabled') + '>' + U.ic('arrow-up') + '</button><button type="button" class="cc-btn sm" data-dn="' + i + '" aria-label="لتحت"' + (i < order.length - 1 ? '' : ' disabled') + '>' + U.ic('arrow-down') + '</button></li>';
+        }).join('') + '</ol></div>';
+    }
+    function formWallet(o, d) {
+      var sel = d.tokens = (d.tokens || []).filter(function (id) { return (o.tokens || []).some(function (t) { return t.id === id; }); });
+      return '<div class="mx mx-wallet"><div class="wl-top"><p class="muted">اختر الرموز الثلاثة اللي قالها المتصل بالضبط.</p><b class="wl-cnt" id="wl-cnt" aria-live="polite">اخترت ' + U.ar(sel.length) + ' من ٣</b></div><div class="nb-chk">' + pieceChip(o, 'tokens1') + pieceChip(o, 'tokens2') + '</div>' +
+        '<div class="nb-tokens" role="group" aria-label="الرموز">' + (o.tokens || []).map(function (tk) { var on = sel.indexOf(tk.id) >= 0; return '<button type="button" class="tok' + (on ? ' on' : '') + '" data-tk="' + tk.id + '" aria-pressed="' + on + '"><bdi dir="rtl" class="cc-code">' + U.esc(tk.t) + '</bdi></button>'; }).join('') + '</div>' +
+        '<div class="nb-actions"><button type="button" class="cc-btn sm" data-tkclear' + (sel.length ? '' : ' disabled') + '>' + U.ic('arrow-counter-clockwise') + ' امسح الاختيار</button></div></div>';
+    }
+    function formCombo(o, d) {
+      var s1 = o.stage === 1, h = '<div class="mx mx-combo"><ol class="cb-steps" aria-label="مراحل الصفقة"><li class="' + (s1 ? 'cur' : 'done') + '"><span>' + (s1 ? '١' : U.ic('check')) + '</span><b>المرحلة الأولى</b><small>المفتاح</small></li><li class="' + (s1 ? '' : 'cur') + '"><span>٢</span><b>المرحلة الثانية</b><small>المرجع والختم</small></li></ol><div class="nb-chk">' + pieceChip(o, 'ref') + pieceChip(o, 'key1') + (s1 ? '' : pieceChip(o, 'seal')) + '</div>';
+      if (s1) h += '<p class="muted">رقم المرجع يقوله المتصل بأول المكالمة. احتفظ فيه للمرحلة الثانية.</p>' + fld('key', 'مفتاح المرحلة الأولى', 'key', { pre: PREFIX.key, num: 1, max: 8, piece: '' });
+      else h += '<div class="nb-result ok sm">' + U.ic('check') + ' المرحلة الأولى انقبلت</div>' + fld('ref', 'رقم المرجع (قاله المتصل بأول المكالمة)', 'ref', { pre: PREFIX.ref, num: 1, max: 8 }) + fld('seal', 'الختم النهائي', 'seal', { pre: PREFIX.seal, num: 1, max: 8 });
+      return h + '</div>';
+    }
+    var FORMS = { code: formCode, card: formCard, parcel: formParcel, invoice: formInvoice, vault: formVault, contract: formContract, wallet: formWallet, combo: formCombo };
+    var GOLABEL = { code: 'استرد الرمز', card: 'تحقق وسجّل العملية', parcel: 'اعتمد تصريح الاستلام', invoice: 'تحقق وسجّل العملية', vault: 'افتح الخزنة', contract: 'اعتمد ترتيب العقد', wallet: 'اعتمد الرموز', combo: 'تحقق وسجّل العملية' };
+    /* يجمع المدخلات للإرسال + يتحقق محلياً من اكتمالها (الناقص ما يروح للمرجع وما ينحسب محاولة) */
+    function gather(o) {
+      var d = draftFor(), m = o.method;
+      if (m === 'code') { var c = digitsOf(d.code); return c.length === 5 ? { input: { code: c } } : { err: 'الرمز خمس خانات. اكتب الباقي.' }; }
+      if (m === 'card') {
+        if (!String(d.holder).trim()) return { err: 'اكتب اسم صاحب البطاقة.' };
+        if (digitsOf(d.cardId).length !== 6) return { err: 'معرف البطاقة ست خانات.' };
+        if (digitsOf(d.verify).length !== 3) return { err: 'رمز التحقق ثلاث خانات.' };
+        return { input: { holder: d.holder, cardId: digitsOf(d.cardId), verify: digitsOf(d.verify) } };
+      }
+      if (m === 'parcel') return d.permit ? { input: { permit: d.permit } } : { err: 'اختر تصريح قبل ما تعتمد.' };
+      if (m === 'invoice') {
+        if (!d.ifield) return { err: 'حدد الحقل المختلف أول.' };
+        var v = (d.ivals || {})[d.ifield] || '';
+        if (!String(v).trim()) return { err: 'اكتب القيمة الصحيحة للحقل المختلف.' };
+        return { input: { field: d.ifield, value: v } };
+      }
+      if (m === 'vault') { var vc = digitsOf(d.vault); return vc.length === 6 ? { input: { code: vc } } : { err: 'رمز الخزنة ست خانات.' }; }
+      if (m === 'contract') { var ord = ensureOrder(o, d); return ord.length === 5 && ord.every(function (id, i) { return ord.indexOf(id) === i; }) ? { input: { order: ord.slice() } } : { err: 'رتّب الشروط الخمسة كلها.' }; }
+      if (m === 'wallet') { var tk = (d.tokens || []).slice(); return tk.length === 3 && tk.every(function (id, i) { return tk.indexOf(id) === i; }) ? { input: { tokens: tk } } : { err: 'اختر ثلاثة رموز بالضبط (اخترت ' + U.ar(tk.length) + ').' }; }
+      if (m === 'combo') {
+        if (o.stage === 1) { var k1 = digitsOf(d.key); return k1.length === 4 ? { input: { key: k1 } } : { err: 'مفتاح المرحلة الأولى أربع خانات.' }; }
+        var rf = digitsOf(d.ref), sl = digitsOf(d.seal);
+        if (rf.length !== 4) return { err: 'رقم المرجع أربع خانات.' };
+        if (sl.length !== 4) return { err: 'الختم أربع خانات.' };
+        return { input: { ref: rf, seal: sl } };
+      }
+      return { err: 'طريقة غير معروفة.' };
+    }
+    /* ---- صفحة الطريقة ---- */
+    function unlockPanel(m, st) {
+      var left = Math.max(0, m.unlock - st.life), pr = Math.min(1, st.life / Math.max(1, m.unlock));
+      return '<div class="nb-card unlock"><b>' + U.ic('lock-simple') + ' الطريقة مقفلة</b><small>تنفتح عند إجمالي أرباح ' + U.money(m.unlock) + ' (إجمالي أرباحك الحين ' + U.money(st.life) + ')</small><span class="pb"><i style="width:' + Math.round(pr * 100) + '%"></i></span><small>باقي لك ' + U.money(left) + ' عشان تنفتح. الرصيد المصروف ما يأثر، المهم إجمالي ما كسبته.</small></div>';
+    }
+    function previewViz(id) {
+      var CL = (G.C && G.C.CLAUSES) || [];
+      if (id === 'card') return '<div class="nb-cardviz" aria-hidden="true"><div class="top"><span>بطاقة عضوية</span><b>شركة خيالية</b></div><div class="emb"></div><div class="id cc-num">بطاقة-••••-••</div><div class="nm">اسم صاحب البطاقة</div><small>تحقق-•••</small></div>';
+      if (id === 'wallet') return '<div class="nb-tokens pv" aria-hidden="true">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(function () { return '<span class="tok"><bdi class="cc-code">رمز-•••</bdi></span>'; }).join('') + '</div>';
+      if (id === 'contract') return '<ol class="nb-order pv" aria-hidden="true">' + CL.map(function (x, i) { return '<li><span class="n">' + U.ar(i + 1) + '</span><b>' + U.esc(x[1]) + '</b></li>'; }).join('') + '</ol>';
+      if (id === 'vault') return '<div class="vlt pv" aria-hidden="true">' + U.ic('vault') + '<div class="cells"><i>•</i><i>•</i><i>•</i><span class="sep"></span><i>•</i><i>•</i><i>•</i></div></div>';
+      if (id === 'parcel') return '<div class="nb-permits pv" aria-hidden="true">' + [1, 2, 3, 4].map(function () { return '<span class="pm"><span class="pm-h">' + U.ic('package') + '<b>طرد-•••••</b></span><span class="pm-n">اسم المستلم</span></span>'; }).join('') + '</div>';
+      if (id === 'invoice') return '<div class="inv-doc pv" aria-hidden="true"><div class="inv-top">' + U.ic('receipt') + '<b>مسودة فاتورة النظام</b></div><div class="opt"><span>رقم الفاتورة</span><b>فاتورة-•••••</b></div><div class="opt"><span>المبلغ</span><b>••• د</b></div><div class="opt"><span>الصنف</span><b>••••</b></div></div>';
+      if (id === 'combo') return '<ol class="cb-steps pv" aria-hidden="true"><li class="cur"><span>١</span><b>المرحلة الأولى</b><small>المفتاح</small></li><li><span>٢</span><b>المرحلة الثانية</b><small>المرجع والختم</small></li></ol>';
+      return '<div class="mx-redeem pv" aria-hidden="true"><div class="nb-f"><span class="in"><em>لعبة-</em><input disabled placeholder="•••••"></span></div></div>';
+    }
+    function drawMethodPage(id, embedded) {
+      var m = methodOf(id), p = prof(); if (!m || !p) return '<p class="muted">الطريقة غير متاحة.</p>';
+      var st = stateOf(m), c = st.c, o = st.o, meta = MP[id] || { how: [], verify: '' };
+      var h = '<div class="nb-mp tone-' + (meta.tone || id) + '" data-method="' + id + '">';
+      h += '<div class="nb-mp-top">' + (embedded ? '<button type="button" class="cc-btn sm" data-t="methods">' + U.ic('arrow-right') + ' كل الطرق</button>' : '<button type="button" class="cc-btn sm" data-t="methods" id="nb-back">' + U.ic('arrow-right') + ' رجوع للطرق</button>') + chip(st) + '</div>';
+      var att = st.isCur ? o.attemptsLeft + ' من ' + o.maxAttempts : U.ar(m.attempts) + ' محاولات';
+      h += '<div class="nb-ophead"><div>' + U.ic(m.icon) + '<b>' + U.esc(m.name) + '</b><small>' + (st.isCur ? 'مع ' + U.esc(c.caller.name) + ' · ' + U.esc(c.scenario.company) : U.esc(m.desc)) + '</small></div><div class="rw">' + U.money(m.reward) + '</div></div>';
+      h += '<div class="nb-rule">' + U.ic('info') + ' عملية وحدة لهالمكالمة · المحاولات ' + (st.isCur ? 'المتبقية <b class="cc-num">' + U.ar(o.attemptsLeft) + ' من ' + U.ar(o.maxAttempts) + '</b>' : '<b class="cc-num">' + att + '</b>') + ' · الصعوبة ' + dots(m.difficulty) + ' ' + DIFF[m.difficulty] + '</div>';
+      if (switchMsg && switchMsg.id === id) h += '<div class="nb-msg err" role="alert">' + U.esc(switchMsg.t) + '</div>';
+      if (st.locked) {
+        h += unlockPanel(m, st) + '<div class="nb-card"><b>' + U.ic('info') + ' كيف تشتغل</b><ol class="nb-how">' + meta.how.map(function (x) { return '<li>' + U.esc(x) + '</li>'; }).join('') + '</ol><small class="muted">' + U.esc(meta.verify) + '</small></div>' + previewViz(id);
+        return h + '</div>';
+      }
+      if (!st.isCur) {
+        h += '<div class="nb-card"><b>' + U.ic('info') + ' كيف تشتغل</b><ol class="nb-how">' + meta.how.map(function (x) { return '<li>' + U.esc(x) + '</li>'; }).join('') + '</ol><small class="muted">' + U.esc(meta.verify) + '</small></div>' + previewViz(id);
+        h += '<div class="nb-actions">' + (st.canSwitch ? '<button type="button" class="cc-btn primary" data-use="' + id + '">' + U.ic('crosshair') + '<span>استخدمها بهالمكالمة</span></button>' : '<button type="button" class="cc-btn primary" disabled aria-disabled="true">' + U.ic('lock-simple') + '<span>التنفيذ مقفل</span></button>') + (o && !st.canSwitch ? '<button type="button" class="cc-btn" data-go="op">' + U.ic('arrow-left') + '<span>ارجع للعملية الحالية</span></button>' : '') + '</div>';
+        if (st.why) h += '<div class="nb-msg" role="status">' + U.esc(st.why) + '</div>';
+        return h + '</div>';
+      }
+      // الطريقة هي العملية الحالية: نموذجها الحقيقي
+      var d = draftFor(), ready = c.current && c.current.kind === 'op';
+      var got = o.pieces.filter(function (x) { return x.disclosed; }).length, need = o.pieces.filter(function (x) { return x.stage <= o.stage; }).length;
+      h += '<ol class="nb-pieces" aria-label="البيانات المطلوبة من المتصل">' + o.pieces.map(function (pc) { return '<li class="' + (pc.disclosed ? 'got' : '') + (pc.stage > o.stage ? ' later' : '') + '">' + U.ic(pc.disclosed ? 'check-circle' : 'circle-dashed') + '<span>' + U.esc(pc.label) + '</span><small>' + (pc.disclosed ? 'قالها المتصل' : pc.stage > o.stage ? 'بالمرحلة الثانية' : 'بانتظار المتصل') + '</small></li>'; }).join('') + '</ol>';
+      if (!o.locked && o.attemptsLeft === o.maxAttempts && !o.used && !o.failed) h += '<div class="nb-rule">' + U.ic('crosshair') + ' ما بدأ المتصل يفصح: تقدر <button class="linkb" data-t="methods" type="button">تغيّر الطريقة</button> من الطرق.</div>';
+      if (o.used) return h + '<div class="nb-result ok" role="status">' + U.ic('seal-check') + '<b>العملية مسجلة. +' + U.money(o.reward) + '</b><small>ما تنحسب مرة ثانية.</small></div></div>';
+      if (o.failed) return h + '<div class="nb-result bad" role="status">' + U.ic('x-circle') + '<b>خلصت محاولات هالعملية</b><small>' + U.esc(o.lastReason || 'استنفدت المحاولات.') + '</small></div></div>';
+      var rs = results[dkey()];
+      h += '<form class="nb-form" id="nb-form" autocomplete="off" novalidate>' + FORMS[id](o, d) + '<div class="nb-actions"><button class="cc-btn primary" id="nb-go" type="submit"' + (busy ? ' disabled' : '') + '>' + (busy ? '<span class="spin"></span><span>يتحقق...</span>' : U.ic('seal-check') + '<span>' + (id === 'combo' && o.stage === 1 ? 'تحقق من المرحلة الأولى' : GOLABEL[id]) + '</span>') + '</button></div>' +
+        '<span class="nb-msg ' + (rs ? rs.k : '') + '" id="nb-msg" role="status" aria-live="polite">' + U.esc(rs ? rs.t : !ready ? 'كمّل خطوات المكالمة قبل التحصيل: ' + ((c.steps.filter(function (s) { return s.current; })[0] || {}).title || '') : got < need ? 'باقي معلومة ما عطاك إياها المتصل.' : 'البيانات جاهزة. اكتبها وتحقق.') + '</span></form>';
+      return h + '</div>';
+    }
+    function drawOpTab() {
+      var c = cur(), o = op(), t = toolFor(['tx_confirm', 'code_match', 'settle_timing']), h = '';
+      if (t) h += drawTool(t);
+      if (!c) {
+        if (lastDone && lastDone.fail) h += '<div class="nb-result bad" role="status">' + U.ic('x-circle') + '<b>خلصت محاولات هالعملية</b><small>' + U.esc(lastDone.name) + ' · ' + U.esc(lastDone.caller) + (lastDone.reason ? ' · ' + U.esc(lastDone.reason) : '') + '</small></div>';
+        else if (lastDone) h += '<div class="nb-result ok" role="status">' + U.ic('seal-check') + '<b>انقبلت العملية: +' + U.money(lastDone.reward) + '</b><small>' + U.esc(lastDone.name) + ' · ' + U.esc(lastDone.caller) + '</small></div>';
+        return h + noToolHtml('ما فيه مكالمة شغالة. العملية تبدأ مع أول مكالمة عميل.');
+      }
+      if (!o) return h + '<div class="nb-card"><b>هالمكالمة بدون عملية تحصيل</b><p class="muted">' + U.esc(c.scenario.timeWaster ? 'متصل غلط: أنهِ المكالمة بأدب.' : 'مكالمة خاصة (تدقيق أو حماية الجهاز). مكافأتها ثابتة لو نجحت.') + '</p></div>';
+      return h + drawMethodPage(o.method, true);
+    }
+    function ckNow() { var c = cur(), o = op(); return c && o ? c.id + '|' + o.id + '|' + o.stage : ''; }
+    function sig() {
+      var c = cur(), o = op(), p = prof(), d = day();
+      return JSON.stringify([tab, selId, G.calls.state, !!G.calls.pending, c && c.id, c && c.current && [c.current.kind, c.current.id], o && [o.id, o.method, o.stage, o.used, o.failed, o.attemptsLeft, o.locked, o.pieces.map(function (x) { return x.disclosed ? 1 : 0; })], p && [p.wallet, p.lifetimeEarned, (p.methods || []).map(function (m) { return m.unlocked ? 1 : 0; }), (p.opsHistory || []).length], d && d.earned, busy, !!lastDone]);
+    }
+    function saveFocus() {
+      var a = document.activeElement; if (!a || !body.contains(a)) return null;
+      var f = { id: a.id || null, tk: a.dataset && a.dataset.tk, perm: a.dataset && a.dataset.permit, up: a.dataset && a.dataset.up, dn: a.dataset && a.dataset.dn, open: a.dataset && a.dataset.open, oid: a.dataset && a.dataset.id, ss: null, se: null };
+      try { f.ss = a.selectionStart; f.se = a.selectionEnd; } catch (e) { /* */ }
+      return f;
+    }
+    function restoreFocus(f) {
+      if (!f) return;
+      var q = f.id ? '#' + f.id : f.tk ? '[data-tk="' + f.tk + '"]' : f.perm ? '[data-permit="' + f.perm + '"]' : f.up ? '[data-up="' + f.up + '"]' : f.dn ? '[data-dn="' + f.dn + '"]' : f.open ? '[data-open="' + f.open + '"]' : f.oid ? '.nb-order li[data-id="' + f.oid + '"]' : null;
+      var e = q && U.$(q, body); if (!e || e.disabled) return;
+      try { e.focus({ preventScroll: true }); if (f.ss != null && e.setSelectionRange) e.setSelectionRange(f.ss, f.se); } catch (x) { /* */ }
+    }
+    function setMsg(k, t) { results[dkey()] = { k: k, t: t }; }
+    function submitOp(o) {
+      if (busy) return;
+      var g = gather(o);
+      if (g.err) { setMsg('err', g.err + ' (ما انحسبت محاولة)'); draw(); return; }
+      var ck = ckNow(), input = g.input, sg = ck + JSON.stringify(input), callerName = (cur() && cur().caller.name) || '';
+      var rid = pendReq && pendReq.sig === sg ? pendReq.id : U.uid('op');
+      busy = true; draw();
+      G.calls.collect(input, rid).then(function (r) {
+        busy = false;
+        var nc = cur(), no = op(), kk = ck.split('|');
+        if ((nc && nc.id !== kk[0]) || (no && no.id !== kk[1])) { draw(); return r; } // رد متأخر لمكالمة/عملية سابقة: لا يمسّ الصفحة الحالية
+        var net = !r.ok && (r.error === 'network' || r.error === 'timeout' || r.error === 'no_session' || r.error === 'session_restored');
+        var soft = !r.ok && (net || r.reason === 'not_disclosed' || r.reason === 'not_ready' || r.reason === 'incomplete' || /انتظر رد المتصل/.test(r.msg || ''));
+        pendReq = net ? { sig: sg, id: rid } : null;
+        var k = ck.split('|');
+        if (r.ok) {
+          G.audio.fx('ok');
+          if (r.stage === 2) setMsg('okk', 'المرحلة الأولى انقبلت. كمّل الثانية.');
+          else { setMsg('okk', 'انقبلت العملية: +' + U.money(r.reward)); lastDone = { callId: k[0], opId: k[1], reward: r.reward, name: o.name, caller: (cur() && cur().caller.name) || callerName }; }
+        } else {
+          G.audio.fx('bad');
+          setMsg('err', (r.msg || 'انرفضت.') + (soft ? ' (ما انحسبت محاولة)' : ''));
+          if (r.ended && !soft) lastDone = { fail: true, callId: k[0], opId: k[1], name: o.name, caller: (cur() && cur().caller.name) || callerName, reason: r.msg || '' };
+        }
+        draw(); return r;
+      });
+    }
+    function bindContract(o) {
+      var ol = U.$('#nb-order', body); if (!ol) return;
+      var d = draftFor();
+      function commit(ids, focusId) { d.order = ids; var f = focusId; draw(); var e = f && U.$('.nb-order li[data-id="' + f + '"]', body); if (e) try { e.focus({ preventScroll: true }); } catch (x) { /* */ } }
+      U.$$('[data-up]', body).forEach(function (b) { b.onclick = function () { var i = +b.dataset.up, a = d.order.slice(), x = a[i]; a[i] = a[i - 1]; a[i - 1] = x; commit(a, x); }; });
+      U.$$('[data-dn]', body).forEach(function (b) { b.onclick = function () { var i = +b.dataset.dn, a = d.order.slice(), x = a[i]; a[i] = a[i + 1]; a[i + 1] = x; commit(a, x); }; });
+      U.$$('li', ol).forEach(function (li) {
+        li.addEventListener('keydown', function (e) {
+          if (!(e.altKey || e.shiftKey) || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+          e.preventDefault(); var i = d.order.indexOf(li.dataset.id), j = e.key === 'ArrowUp' ? i - 1 : i + 1; if (j < 0 || j >= d.order.length) return;
+          var a = d.order.slice(), x = a[i]; a[i] = a[j]; a[j] = x; commit(a, li.dataset.id);
+        });
+        var g = U.$('[data-grip]', li);
+        g.addEventListener('pointerdown', function (e) {
+          if (e.button != null && e.button > 0) return; e.preventDefault();
+          var lis = function () { return Array.prototype.slice.call(ol.children); };
+          li.classList.add('drag'); try { g.setPointerCapture(e.pointerId); } catch (x) { /* */ }
+          var move = function (ev) {
+            var items = lis(), y = ev.clientY, tgt = null;
+            for (var i = 0; i < items.length; i++) { if (items[i] === li) continue; var r = items[i].getBoundingClientRect(); if (y >= r.top && y <= r.bottom) { tgt = items[i]; break; } }
+            if (!tgt) return;
+            var ri = items.indexOf(li), ti = items.indexOf(tgt);
+            // نحرّك البند المجاور (مو البند المسحوب) عشان ما ينفك التقاط المؤشر
+            if (ri < ti) ol.insertBefore(tgt, li); else ol.insertBefore(tgt, li.nextSibling);
+            lis().forEach(function (n, i) { U.$('.n', n).textContent = U.ar(i + 1); });
+          };
+          var up = function () { g.removeEventListener('pointermove', move); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up); li.classList.remove('drag'); var ids = lis().map(function (n) { return n.dataset.id; }); commit(ids, li.dataset.id); };
+          g.addEventListener('pointermove', move); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+        });
+      });
+    }
     function draw() {
-      var c = cur(), o = op(), k = (c ? c.id : '') + (o ? o.id + o.stage : '');
-      if (k !== key) { key = k; form = {}; msg = null; if (tab === null || (o && G.calls.state === 'active')) tab = o || toolFor(['tx_confirm', 'code_match', 'settle_timing']) ? 'op' : 'ov'; }
+      var sv = saveFocus(), mainEl = U.$('.nb-main', body), sc = mainEl ? mainEl.scrollTop : 0;
+      var c = cur(), o = op(), k = (c ? c.id : '') + (o ? '|' + o.id : '');
+      if (k !== key) {
+        var prevCall = key.split('|')[0]; key = k;
+        var dk = dkey(); Object.keys(drafts).forEach(function (x) { if (x !== dk) delete drafts[x]; });
+        pendReq = null; switchMsg = null;
+        if (tab === null || ((c && c.id) !== prevCall && c && (tab === 'op' || tab === 'ov'))) tab = o || toolFor(['tx_confirm', 'code_match', 'settle_timing']) ? 'op' : 'ov';
+        if (c && (c.id) !== prevCall) lastDone = null;
+      }
       if (!tab) tab = 'ov';
-      var main = tab === 'ov' ? drawOv() : tab === 'methods' ? drawMethods() : tab === 'op' ? drawOp() : drawLog();
+      var main = tab === 'ov' ? drawOv() : tab === 'methods' ? drawMethods() : tab === 'method' ? drawMethodPage(selId, false) : tab === 'op' ? drawOpTab() : drawLog();
       body.innerHTML = '<div class="nb">' + nav() + '<main class="nb-main ap">' + main + '</main></div>';
+      var m2 = U.$('.nb-main', body); if (m2) m2.scrollTop = sc;
+      lastSig = sig();
       U.$$('[data-t]', body).forEach(function (b) { b.onclick = function () { tab = b.dataset.t; draw(); }; });
       U.$$('[data-go]', body).forEach(function (b) { b.onclick = function () { tab = b.dataset.go; draw(); }; });
-      U.$$('[data-use]', body).forEach(function (b) { b.onclick = function () { busyBtn(b, true, 'يغيّر...'); G.calls.setMethod(b.dataset.use).then(function (r) { if (!r.ok) G.os.note('«نصب»', r.msg || 'تعذر التغيير.', 'warning', 'warn'); tab = 'op'; key = ''; draw(); }); }; });
-      var o2 = op();
-      U.$$('.nb-form input[type=text]', body).forEach(function (inp) { inp.addEventListener('input', function () { form[inp.id] = inp.value; if (inp.id === 'f_holder') { var n = U.$('#cv-nm', body); if (n) n.textContent = inp.value || 'اسم صاحب البطاقة'; } if (inp.id === 'f_cid') { var d2 = U.$('#cv-id', body); if (d2) d2.textContent = 'بطاقة-' + (inp.value || '••••-••'); } }); });
-      U.$$('input[name=permit]', body).forEach(function (r) { r.onchange = function () { form.permit = r.value; }; });
-      U.$$('input[name=ifield]', body).forEach(function (r) { r.onchange = function () { form.ifield = r.value; }; });
-      U.$$('[data-up]', body).forEach(function (b) { b.onclick = function () { var i = +b.dataset.up, a = form.order, x = a[i]; a[i] = a[i - 1]; a[i - 1] = x; draw(); }; });
-      U.$$('[data-dn]', body).forEach(function (b) { b.onclick = function () { var i = +b.dataset.dn, a = form.order, x = a[i]; a[i] = a[i + 1]; a[i + 1] = x; draw(); }; });
-      U.$$('[data-tk]', body).forEach(function (b) { b.onclick = function () { var s2 = form.tokens = form.tokens || [], id = b.dataset.tk, i = s2.indexOf(id); if (i >= 0) s2.splice(i, 1); else if (s2.length < 3) s2.push(id); draw(); }; });
-      var ar = U.$('#nb-arch', body); if (ar) ar.onclick = function () { G.os.open('files', { tab: 'archive' }); };
-      var fm = U.$('#nb-form', body);
-      if (fm && o2) fm.onsubmit = function (e) {
-        e.preventDefault();
-        var go = U.$('#nb-go', body); busyBtn(go, true, 'يتحقق...');
-        G.calls.collect(gather(o2)).then(function (r) {
-          msg = r.ok ? { k: 'okk', t: r.stage === 2 ? 'المرحلة الأولى انقبلت. كمّل الثانية.' : 'انقبلت العملية: +' + U.money(r.reward) } : { k: 'err', t: r.msg || 'انرفضت.' };
-          if (r.ok) { G.audio.fx('ok'); if (r.stage === 2) { key = op() ? (cur().id + op().id + op().stage) : key; } } else G.audio.fx('bad');
-          draw();
+      U.$$('[data-card]', body).forEach(function (card) { card.onclick = function () { selId = card.dataset.card; tab = 'method'; switchMsg = null; draw(); var t = U.$('#nb-back', body); if (t) try { t.focus({ preventScroll: true }); } catch (x) { /* */ } }; });
+      U.$$('[data-use]', body).forEach(function (b) {
+        b.onclick = function () {
+          var id = b.dataset.use; busyBtn(b, true, 'يغيّر...');
+          G.calls.setMethod(id).then(function (r) {
+            if (r && r.ok) { selId = id; tab = 'op'; key = ''; switchMsg = null; delete results[dkey()]; }
+            else { switchMsg = { id: id, t: (r && r.msg) || 'تعذر تغيير الطريقة.' }; G.os.note('«نصب»', switchMsg.t, 'warning', 'warn'); }
+            draw();
+          });
+        };
+      });
+      var o2 = op(), d = draftFor();
+      U.$$('input[data-d]', body).forEach(function (inp) {
+        inp.addEventListener('input', function () {
+          var id = inp.dataset.d, v = inp.value;
+          if (id === 'ival') { d.ivals = d.ivals || {}; d.ivals[d.ifield] = v; } else d[id] = v;
+          if (id === 'holder') { var n = U.$('#cv-nm', body); if (n) n.textContent = v || 'اسم صاحب البطاقة'; }
+          if (id === 'cardId') { var i2 = U.$('#cv-id', body); if (i2) i2.textContent = digitsOf(v) ? PREFIX.cardId + digitsOf(v) : 'بطاقة-••••-••'; }
+          if (id === 'verify') { var vf = U.$('#cv-vf', body); if (vf) vf.textContent = digitsOf(v) ? PREFIX.verify + digitsOf(v) : 'تحقق-•••'; }
+          if (id === 'vault') { var cs = U.$$('#vl-cells i', body), dg = digitsOf(v).slice(0, 6); cs.forEach(function (x, i) { x.textContent = dg[i] ? U.ar(dg[i]) : '•'; x.classList.toggle('on', !!dg[i]); }); }
         });
-      };
+      });
+      U.$$('[data-permit]', body).forEach(function (b) { b.onclick = function () { d.permit = b.dataset.permit; draw(); }; });
+      U.$$('input[name=ifield]', body).forEach(function (r) { r.onchange = function () { d.ifield = r.value; draw(); var e = U.$('#f_ival', body); if (e) try { e.focus({ preventScroll: true }); } catch (x) { /* */ } }; });
+      U.$$('[data-tk]', body).forEach(function (b) {
+        b.onclick = function () {
+          var s2 = d.tokens = d.tokens || [], id = b.dataset.tk, i = s2.indexOf(id), rs0 = results[dkey()];
+          if (rs0 && /اخترت ثلاثة/.test(rs0.t)) delete results[dkey()];
+          if (i >= 0) s2.splice(i, 1);
+          else if (s2.length < 3) s2.push(id);
+          else setMsg('err', 'اخترت ثلاثة. الغِ واحد قبل ما تختار غيره.');
+          draw();
+        };
+      });
+      var tc = U.$('[data-tkclear]', body); if (tc) tc.onclick = function () { d.tokens = []; delete results[dkey()]; draw(); };
+      var ar = U.$('#nb-arch', body); if (ar) ar.onclick = function () { G.os.open('files', { tab: 'archive' }); };
+      if (o2 && d && o2.method === 'contract') bindContract(o2);
+      var fm = U.$('#nb-form', body);
+      if (fm && o2) fm.onsubmit = function (e) { e.preventDefault(); submitOp(o2); };
       bindTool();
+      restoreFocus(sv);
     }
     draw();
-    return { update: function () { var t = toolFor(['settle_timing']); if (t && tab === 'op' && U.$('#tx-ch', body)) return; var a = document.activeElement; if (a && body.contains(a) && a.tagName === 'INPUT') { var c = cur(), o = op(), k = (c ? c.id : '') + (o ? o.id + o.stage : ''); if (k === key) { var nb = U.$('.nb-pieces', body), tmp = U.h('<div>' + drawOp() + '</div>'); var np = U.$('.nb-pieces', tmp); if (nb && np) nb.replaceWith(np); return; } } draw(); }, reopen: function (o) { if (o && o.tab) { tab = o.tab; draw(); } }, destroy: function () { cancelAnimationFrame(raf); } };
+    return { update: function () { var t = toolFor(['settle_timing']); if (t && tab === 'op' && U.$('#tx-ch', body)) return; if (sig() === lastSig) return; draw(); }, reopen: function (o) { if (o && o.tab) { tab = o.tab; draw(); } }, destroy: function () { cancelAnimationFrame(raf); } };
   } };
 
   /* ================= المتجر ================= */
@@ -6150,10 +6476,10 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (!K.call || K.state !== 'active') return Promise.resolve({ ok: false, msg: 'ما فيه مكالمة شغالة.' });
     return G.auth.call('op/method', { callId: K.call.id, method: methodId }).then(function (r) { if (r.state) G.game.applySnap(r.state); if (r.call && K.call && r.call.id === K.call.id) K.call = r.call; K.render(); return r; });
   };
-  K.collect = function (input) {
+  K.collect = function (input, reqIdIn) {
     if (!K.call || K.state !== 'active' || !K.call.op) return Promise.resolve({ ok: false, msg: 'ما فيه عملية شغالة.' });
     if (K.pending) return Promise.resolve({ ok: false, msg: 'انتظر رد المتصل قبل.' });
-    var reqId = U.uid('op');
+    var reqId = reqIdIn || U.uid('op');
     input = Object.assign({ opId: K.call.op.id }, input || {});
     return G.auth.call('op/collect', { callId: K.call.id, input: input, reqId: reqId }).then(function (r) {
       if (r.state) G.game.applySnap(r.state);
