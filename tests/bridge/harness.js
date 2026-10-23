@@ -52,7 +52,7 @@ async function routeThree(ctxOrPage) {
 }
 
 async function newPage(browser, opts = {}) {
-  const ctx = await browser.newContext();
+  const ctx = await browser.newContext(opts.context || {});
   const page = await ctx.newPage();
   page._errors = [];
   page._wsLog = [];
