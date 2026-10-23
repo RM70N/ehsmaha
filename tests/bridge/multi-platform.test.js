@@ -74,7 +74,7 @@ async function multiConnect(page, spec) {
     badge: (document.getElementById('home-conn-badge-text') || document.querySelector('[id*="conn-badge"]') || {}).textContent, chips: document.querySelectorAll('.home-plat-chip').length,
     overlay: document.getElementById('qc-connecting-overlay').classList.contains('visible'), active: homeHasActiveConnection()
   }));
-  check('حفظ المنصات: القائمة «tiktok,kick» والأساسية tiktok ويوزر الستريمر نظيف', s2.plats === 'tiktok,kick' && s2.main === 'tiktok' && s2.user === 'Streamer1', s2);
+  check('حفظ المنصات: القائمة «tiktok,kick» والأساسية tiktok ويوزر الستريمر نظيف', s2.plats === 'tiktok,kick' && s2.main === 'tiktok' && s2.user === 'streamer1', s2);
   check('شريط الحالة: نقطتان (واحدة لكل منصة) والشارة تذكر منصتين، ونافذة الربط أُغلقت', s2.chips === 2 && /2|منصت/.test(s2.badge || '') && !s2.overlay && s2.active, s2);
 
   // ===== 3) راوند واحد: لاعبون من المنصتين، وكل لعبة ترى الاثنين =====

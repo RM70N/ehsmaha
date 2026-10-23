@@ -64,6 +64,10 @@ const { KickConnection, Events: KickEvents } = require('kick-live-connector');
 // kichat.js (Pusher مباشر، بلا متصفح) = الناقل الأول لكيك؛ kick-live-connector (Playwright) يبقى احتياطاً.
 const { KickChatSession } = require('./lib/kichat-session');
 const kickAdapter = require('./lib/kick-adapter');
+const { normalizeTikTokId } = require('./lib/tiktok-id');
+// «انصب علي» (مركز الاتصالات 3D): واجهة /cc/v1/* + Gemini (المفاتيح من متغيرات Render فقط)
+const { GeminiRouter } = require('./lib/cc/gemini');
+const { createCCApi } = require('./lib/cc/api');
 // KICK_TRANSPORT: auto (الافتراضي: kichat ثم رجوع للقديم لو كيك حجب الطلبات) | kichat (فقط) | connector (القديم فقط — مفتاح إيقاف طوارئ)
 const KICK_TRANSPORT = ['auto', 'kichat', 'connector'].includes(String(process.env.KICK_TRANSPORT || 'auto').toLowerCase()) ? String(process.env.KICK_TRANSPORT || 'auto').toLowerCase() : 'auto';
 
@@ -442,6 +446,13 @@ function parseKickIdentifier(raw) {
 // ولفحص التفعيل/التعطيل بـ Firestore، حتى لا يختلف الاثنان أبداً.
 function canonicalKickId(rawIdentifier) {
   return parseKickIdentifier(rawIdentifier) || (rawIdentifier || '').trim().toLowerCase();
+}
+
+// المعرّف الموحَّد لتيك توك (نفس فكرة كيك): مفتاح الغرفة وفحص التعطيل والاتصال كلها من نقطة واحدة، فكل صيغ
+// نفس اليوزر (رابط/@/حروف كبيرة/رموز خفية) = غرفة واحدة واتصال واحد. null = صيغة لا يمكن أن تكون يوزر تيك توك.
+function canonicalTikTokId(rawIdentifier) {
+  const r = normalizeTikTokId(rawIdentifier);
+  return r.ok ? r.id : null;
 }
 
 // ==================================================================
@@ -1425,7 +1436,7 @@ function getOrCreateRoom(platform, rawIdentifier) {
   // كيك: نوحّد المعرّف قبل أي شيء (يوزر مجرّد أو رابط kick.com/يوزر ينتهيان
   // لنفس الاسم). بدون هذا التوحيد يفتح "xqc" و"https://kick.com/xqc" غرفتين
   // منفصلتين ومعهما اتصالان كاملان لنفس القناة — وكل اتصال يشغّل Chromium.
-  const canonical = platform === 'kick' ? canonicalKickId(rawIdentifier) : rawIdentifier.toLowerCase();
+  const canonical = platform === 'kick' ? canonicalKickId(rawIdentifier) : platform === 'tiktok' ? (canonicalTikTokId(rawIdentifier) || rawIdentifier.toLowerCase()) : rawIdentifier.toLowerCase();
   const key = platform + ':' + canonical;
   let room = rooms.get(key);
   if (room) return room;
@@ -1554,8 +1565,39 @@ function healthSnapshot() {
   };
 }
 
+// تحقق توكن فايربيس للاعب (يحدد صاحب الحفظ والمالك): admin SDK لو مفعّل، وإلا استعلام Google REST بمفتاح الويب العام.
+const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || 'AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE';
+const tokenCache = new Map();
+async function verifyFirebaseToken(token) {
+  if (!token || token.length > 4096) return null;
+  const hit = tokenCache.get(token);
+  if (hit && hit.exp > Date.now()) return hit.user;
+  let user = null;
+  try {
+    if (db) {
+      const d = await require('firebase-admin').auth().verifyIdToken(token);
+      user = { uid: d.uid, email: d.email || '', emailVerified: !!d.email_verified };
+    } else {
+      const r = await withTimeout(fetch('https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=' + encodeURIComponent(FIREBASE_WEB_API_KEY), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: token }) }), 6000, 'timeout');
+      const j = await r.json();
+      const u = r.ok && j && Array.isArray(j.users) && j.users[0];
+      if (u && u.localId) user = { uid: u.localId, email: u.email || '', emailVerified: !!u.emailVerified };
+    }
+  } catch (e) { user = null; }
+  if (user) { tokenCache.set(token, { user, exp: Date.now() + 5 * 60 * 1000 }); if (tokenCache.size > 500) tokenCache.delete(tokenCache.keys().next().value); }
+  return user;
+}
+const geminiRouter = new GeminiRouter();
+geminiRouter.onEvent = (ev, info) => slog('error', 'gemini_' + ev, { key: info && info.id, hint: 'Gemini رفض المفتاح: تأكد من نسخه كاملاً وأن Generative Language API مفعّل لمشروعه' });
+const ccApi = createCCApi({ router: geminiRouter, log, verifyToken: verifyFirebaseToken });
+if (geminiRouter.hasKeys) slog('info', 'gemini', { keys: geminiRouter.keys.length, tails: geminiRouter.keys.map((k) => k.id.split('…')[1]).join(','), from: geminiRouter.sources.join('+'), chat: geminiRouter.models.chat.join('|'), stt: geminiRouter.models.stt.join('|'), tts: geminiRouter.models.tts.join('|') });
+else log('warn', '⚠️ GEMINI_API_KEY غير مضبوط — لعبة «انصب علي» تعمل بوضع التدريب المحلي فقط (المحادثة الحية معطلة). أضفه في Environment Variables على Render.');
+
 const server = http.createServer(async (req, res) => {
   const path = (req.url || '').split('?')[0];
+
+  // لعبة «انصب علي»: تُعالج OPTIONS/POST بنفسها (CORS بـAuthorization)، قبل مسار OPTIONS العام أدناه
+  if (path.indexOf('/cc/v1') === 0 && await ccApi.handle(req, res)) return;
 
   if (req.method === 'OPTIONS') {
     res.writeHead(204, profileCorsHeaders());
@@ -1624,6 +1666,7 @@ const server = http.createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server, path: '/ws' });
 const VALID_PLATFORMS = new Set(['tiktok', 'youtube', 'kick']);
+const clipForMessage = (s) => String(s || '').replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2069\uFEFF]/g, '').slice(0, 30);
 
 wss.on('connection', async (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
@@ -1643,7 +1686,18 @@ wss.on('connection', async (ws, req) => {
   // لازم يطابق تماماً المعرّف الذي تُسجَّل به الغرفة (canonicalKickId لكيك).
   // لو فحصنا النص الخام هنا، كان أي حساب معطّل يتخطّى الحظر بلصق رابط قناته
   // (kick.com/user) بدل يوزره المجرّد، لأن مستند bridgeStreamers مخزّن باليوزر.
-  const checkId = platform === 'kick' ? canonicalKickId(rawUser) : rawUser.toLowerCase();
+  let checkId = platform === 'kick' ? canonicalKickId(rawUser) : rawUser.toLowerCase();
+  if (platform === 'tiktok') {
+    const tk = canonicalTikTokId(rawUser);
+    if (!tk) {
+      // صيغة مستحيلة كيوزر تيك توك (عربي/مسافات/رابط غير بروفايل…): رد فوري بالسبب بدل فتح غرفة واتصال يحرقان حصة التوقيع.
+      log('info', 'tiktok — يوزر بصيغة غير صالحة ("' + rawUser.slice(0, 40) + '")');
+      try { ws.send(JSON.stringify(buildStatus('error', '@' + clipForMessage(rawUser) + ' — يوزرنيم/قناة غير موجودة، تأكد من كتابته صح', { code: 'user_not_found' }))); } catch (e) { /* ignore */ }
+      ws.close(4404, 'يوزر تيك توك غير صالح');
+      return;
+    }
+    checkId = tk;
+  }
   const enabled = await isStreamerEnabled(checkId);
   if (!enabled) {
     log('info', platform + ':' + checkId + ' — الاتصال مرفوض (الحساب معطّل من المالك)');

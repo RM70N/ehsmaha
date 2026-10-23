@@ -2246,6 +2246,17 @@ body{padding-top:64px;}
 }
 
 .drawer-avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+/* ===== انصب علي: صفحة اللعبة (إطار بملء الشاشة فوق كل واجهة الموقع) ===== */
+#pg-callcenter.active{position:fixed !important;inset:0;z-index:2147483000;background:#0b0518;padding:0 !important;margin:0 !important;display:block;overflow:hidden}
+#pg-callcenter iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#0b0518}
+.cc-host-loader{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:#0b0518;color:#EDE9FF;text-align:center;padding:24px;font-family:var(--font)}
+.cc-host-loader[hidden]{display:none}
+.cc-host-loader b{font-family:var(--font-brand);font-size:26px}
+.cc-host-loader span{color:#9A8BC2;font-size:14px;max-width:34ch}
+.cc-host-loader button{margin-top:6px;min-height:44px;padding:0 22px;border-radius:12px;border:1px solid rgba(167,139,255,.3);background:transparent;color:#C4B0FF;font:inherit;font-weight:700;cursor:pointer}
+.cc-host-spin{width:44px;height:44px;border-radius:50%;border:4px solid rgba(167,139,255,.25);border-top-color:#A78BFF;animation:ccHostSpin .9s linear infinite}
+@keyframes ccHostSpin{to{transform:rotate(360deg)}}
+
 /* ===== PROFILE PAGE (تصميم البروفايل الجديد — كل التنسيقات بنطاق .pfx فلا تؤثر على بقية الموقع) ===== */
 .pfx{--bg:#0b0518; --bg-2:#0d0620; --bg-3:#130a25; --surface:#1a1030; --surface-2:#211540;  --line:rgba(167,139,255,.15); --line-2:rgba(167,139,255,.3);  --text:#EDE9FF; --muted:#9A8BC2;  --accent:#7C3AED; --accent-2:#A78BFF; --accent-3:#C4B0FF; --on-accent:#14071f;  --ok:#34D399; --err:#F87171; --rose:#F2B5D4;  --r-panel:16px; --r-ctl:12px;  --ease:cubic-bezier(.2,.7,.2,1);  --font:'Tajawal',system-ui,'Segoe UI',Tahoma,sans-serif;  --font-brand:'Cairo','Tajawal',system-ui,sans-serif;font-family:var(--font);color:var(--text);direction:rtl;line-height:1.5;-webkit-text-size-adjust:100%}
 .pfx *,.pfx *::before,.pfx *::after{box-sizing:border-box;margin:0;padding:0}
@@ -5797,6 +5808,12 @@ setTimeout(function () {
   </div>
 </div>
 
+<!-- ====== انصب علي (مركز الاتصالات 3D) — لعبة فردية: ملف مستقل callcenter3d.html داخل إطار، المحادثة عبر سيرفر Render + Gemini ====== -->
+<div id="pg-callcenter" class="page">
+  <iframe id="callcenter-frame" title="انصب علي — مركز الاتصالات 3D" allow="autoplay; fullscreen; microphone; clipboard-write" referrerpolicy="no-referrer-when-downgrade"></iframe>
+  <div id="callcenter-loader" class="cc-host-loader" hidden role="status" aria-live="polite"><div class="cc-host-spin"></div><b>انصب علي</b><span id="callcenter-loader-msg">جاري تجهيز مركز الاتصالات…</span><button type="button" onclick="ccHostExit()">رجوع</button></div>
+</div>
+
 <!-- ====== LEADERBOARD PAGE (صفحة لوحة الفائزين المستقلة — تصميم جديد) ======
      نفس مصدر البيانات تماماً (leaderboards بفايرستور عبر scoreLoad/
      scoreMergeBoards/onSnapshot) — الواجهة فقط أُعيد بناؤها. -->
@@ -8955,6 +8972,13 @@ syncCluster();
       <div class="section-hero-sub">لعبة واحدة، أنت والتحدي — اختر لعبتك وابدأ</div>
     </div>
     <div class="games-grid">
+
+    <div class="gcard" data-tag="callcenter" onclick="goCallCenter()">
+      <span class="badge" data-badge-slot></span>
+      <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h3.2l1.6 4-2 1.3a11 11 0 0 0 5 5l1.3-2 4 1.6V17a2 2 0 0 1-2.2 2A14.5 14.5 0 0 1 3 6.2 2 2 0 0 1 5 4z"/><path d="M15 4.5a5 5 0 0 1 4.5 4.5M15 8a2 2 0 0 1 1.5 1.5"/></svg></div>
+      <div class="gcard-name">انصب علي</div>
+      <div class="gcard-desc">ألعب موظف مركز اتصالات ثلاثي الأبعاد — متصلون أذكياء يردون عليك بحرية، وأنت تقنعهم وتجمع هدف اليوم من غير ما تنصب عليك المكالمة!</div>
+    </div>
 
     <div class="gcard" data-tag="oneletter" onclick="goSetupOneLetter()">
       <span class="badge" data-badge-slot></span>
@@ -24909,8 +24933,24 @@ let tiktokActiveBridgeIndex = 0;
 // في منطق التبديل إطلاقاً.
 const TIKTOK_BRIDGE_SERVER_URL = TIKTOK_BRIDGE_SERVERS[0];
 
+// توحيد يوزر تيك توك (نفس منطق tiktok-server/lib/tiktok-id.js): رابط البروفايل/@/حروف كبيرة/رموز الاتجاه الخفية
+// (تظهر بكيبورد الجوال العربي واللصق) كلها تنتهي لنفس اليوزر. يرجّع '' لو الصيغة مستحيلة كيوزر تيك توك.
+function tiktokCleanUsername(raw) {
+  let s = String(raw == null ? '' : raw).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, '').trim().replace(/\/+$/, '');
+  if (!s) return '';
+  if (/tiktok\.com/i.test(s)) {
+    let path = '';
+    try { path = new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s).pathname; } catch (e) { const m = s.match(/tiktok\.com(\/[^?#\s]*)/i); path = m ? m[1] : ''; }
+    const seg = path.split('/').filter(Boolean).map(x => { try { return decodeURIComponent(x); } catch (e) { return x; } });
+    s = seg.find(x => x.charAt(0) === '@') || '';
+  } else if (/^https?:\/\//i.test(s) || s.indexOf('/') !== -1) return '';
+  s = s.replace(/^@+/, '').trim().toLowerCase();
+  return /^[a-z0-9._]{2,24}$/.test(s) ? s : '';
+}
+
 function tiktokBridgeWsUrlAt(index, username) {
-  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent((username || '').trim().replace(/^@/, ''))}`;
+  const raw = (username || '').trim().replace(/^@/, '');
+  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent(tiktokCleanUsername(raw) || raw)}`;
 }
 
 function tiktokBridgeWsUrl(username) {
@@ -25412,8 +25452,10 @@ function tiktokBadgeConnecting(evt) {
 // يفتح اتصال حقيقي بالسيرفر المستضاف ويستنى فعلياً bridge_status:connected
 // (اتصال ببث حقيقي، مو مجرد فتح WebSocket) قبل ما يُعتبر الربط ناجحاً.
 function tiktokConnectModalStart() {
-  const uname = document.getElementById('tiktok-connect-username').value.trim().replace(/^@/, '');
-  if (!uname) { tiktokConnectSetStatus('error', '⚠️ اكتب يوزرنيمك بتيك توك أولاً'); return; }
+  const rawUname = document.getElementById('tiktok-connect-username').value.trim().replace(/^@/, '');
+  if (!rawUname) { tiktokConnectSetStatus('error', '⚠️ اكتب يوزرنيمك بتيك توك أولاً'); return; }
+  const uname = tiktokCleanUsername(rawUname);
+  if (!uname) { tiktokConnectSetStatus('error', '⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return; }
   if (!tiktokSavedUsersIsEnabled(uname)) {
     tiktokConnectSetStatus('error', '⛔ هذا الحساب معطّل — فعّله من القائمة تحت أولاً');
     return;
@@ -26513,6 +26555,7 @@ function show(page) {
   if (typeof winScreenOnShow === 'function') winScreenOnShow(page); // شاشة الفوز الجديدة (EhsemhaWin) لألعاب الستريمر
   if (typeof drawOnShow === 'function') drawOnShow(page); // خمن الرسمة: تركيب/تفكيك محرك الرسم (مستمعات/مؤقّتات)
   if (typeof cannonOnShow === 'function') cannonOnShow(page); // المدفع البشري: إنهاء الجولة عند مغادرة صفحتها
+  if (typeof ccHostOnShow === 'function') ccHostOnShow(page); // انصب علي: إيقاف الإطار (صوت/WebGL) عند مغادرة صفحته
   if (typeof lateJoinOnShow === 'function') lateJoinOnShow(page); // «لاعب متأخر»: زر اللعبة النشطة وتصفير الجولة عند المغادرة
   if (page === 'home' && typeof homeClearGameListeners === 'function') { homeClearGameListeners(null); if (typeof homeConnPillRender === 'function') homeConnPillRender(); }
   // جسر المصير — تهيئة صفحاته الثلاث
@@ -26797,11 +26840,16 @@ function homeQcSelectedPlatforms() {
 // يرجّع مصفوفة [{platform, username}] أو null مع عرض سبب الرفض.
 function homeQcCollectTargets() {
   if (!homeQcMulti) {
-    const username = (document.getElementById('qc-main-input').value || '').trim().replace(/^@/, '');
+    let username = (document.getElementById('qc-main-input').value || '').trim().replace(/^@/, '');
     if (!username) { homeQcSetStatus('⚠️ عبّي الحقل أولاً'); return null; }
     if (homeQcPlatform === 'discord' && !discordRelayChannelId(username)) {
       homeQcSetStatus('⚠️ ID الروم غير صحيح — لازم رقم (17-20 خانة) أو رابط الروم');
       return null;
+    }
+    if (homeQcPlatform === 'tiktok') {
+      const clean = tiktokCleanUsername(username);
+      if (!clean) { homeQcSetStatus('⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return null; }
+      username = clean;
     }
     if (homeQcPlatform === 'tiktok' && !tiktokSavedUsersIsEnabled(username)) {
       homeQcSetStatus('⛔ هذا الحساب معطّل — فعّله أولاً من "ربط حساب تيك توك"');
@@ -26815,8 +26863,13 @@ function homeQcCollectTargets() {
   const targets = [];
   for (const p of chosen) {
     const el = document.getElementById('qc-multi-user-' + p);
-    const username = ((el && el.value) || '').trim().replace(/^@/, '');
+    let username = ((el && el.value) || '').trim().replace(/^@/, '');
     if (!username) { homeQcSetStatus('⚠️ عبّي يوزر ' + PLATFORMS[p].label); return null; }
+    if (p === 'tiktok') {
+      const clean = tiktokCleanUsername(username);
+      if (!clean) { homeQcSetStatus('⚠️ يوزر تيك توك غير صحيح — اكتبه بدون مسافات (أحرف إنجليزية وأرقام و . _ فقط) أو الصق رابط بروفايلك'); return null; }
+      username = clean;
+    }
     if (p === 'discord' && !discordRelayChannelId(username)) {
       homeQcSetStatus('⚠️ ID روم الديسكورد غير صحيح — لازم رقم (17-20 خانة) أو رابط الروم');
       return null;
@@ -90436,6 +90489,82 @@ window.__lateJoin = {
 </script>
 
 <!-- ====== مركز ربط البث (تصميم «ابدأ بثاً سريعاً» الجديد): واجهة فقط فوق مسار الربط الحالي بلا أي تعديل عليه ====== -->
+<script id="callcenter-host">
+/* ===== انصب علي — جسر الموقع للّعبة (callcenter3d.html تبقى كما هي بلا أي تعديل) =====
+   اللعبة تُحمَّل داخل إطار وتتحدث مع الموقع برسائل postMessage (hello/ready/home/need-token ↔ config/token).
+   المحادثة الحية عبر سيرفر Render (/cc/v1/*، Gemini بمفاتيح الخادم): نختار السيرفر الصحي من السيرفرين (الأساسي ثم الاحتياطي)
+   ونفضّل الذي مفاتيح Gemini عنده منضبطة؛ ولو ما رد أي منهما تشتغل اللعبة بوضع التدريب المحلي تلقائياً (من داخلها). */
+(function () {
+  'use strict';
+  const SRC = '/callcenter3d.html?embed=1&v=1';
+  const SETTINGS_KEY = 'cc3d.settings.v1';
+  let apiBase = '', caps = null, runId = 0, active = false;
+  const $ = (id) => document.getElementById(id);
+
+  function fetchJson(url, ms) {
+    const ctl = new AbortController(); const t = setTimeout(() => { try { ctl.abort(); } catch (e) {} }, ms);
+    return fetch(url, { signal: ctl.signal, cache: 'no-store', credentials: 'omit' }).then((r) => r.json()).catch(() => null).finally(() => clearTimeout(t));
+  }
+  // يوقظ السيرفرين (Cold Start على Render) ويختار الأنسب: الأول اللي مفاتيح Gemini عنده شغالة، وإلا أول سيرفر يرد.
+  async function pickServer(my) {
+    const servers = (typeof TIKTOK_BRIDGE_SERVERS !== 'undefined' ? TIKTOK_BRIDGE_SERVERS : []).map((_, i) => tiktokBridgeHttpOrigin(i));
+    if (!servers.length) return null;
+    const start = (typeof tiktokActiveBridgeIndex === 'number' ? tiktokActiveBridgeIndex : 0) % servers.length;
+    const order = servers.map((_, k) => servers[(start + k) % servers.length]);
+    const results = await Promise.all(order.map((o) => fetchJson(o + '/cc/v1/config', 22000).then((c) => ({ origin: o, cfg: c && c.ok ? c : null }))));
+    if (my !== runId) return null;
+    return results.find((r) => r.cfg && r.cfg.caps && r.cfg.caps.chat) || results.find((r) => r.cfg) || null;
+  }
+  function setLoader(msg, show) { const l = $('callcenter-loader'); if (!l) return; l.hidden = !show; if (msg) $('callcenter-loader-msg').textContent = msg; }
+
+  window.goCallCenter = async function () {
+    const my = ++runId; active = true;
+    show('callcenter');
+    const f = $('callcenter-frame'); f.removeAttribute('src');
+    setLoader('جاري تجهيز مركز الاتصالات…', true);
+    let pick = null;
+    try { pick = await pickServer(my); } catch (e) { pick = null; }
+    if (my !== runId || !active) return;
+    apiBase = pick ? pick.origin : ''; caps = pick && pick.cfg ? pick.cfg.caps : null;
+    // أول مرة بدون إعدادات محفوظة: المحادثة الحية (Gemini) هي الافتراضية لو الخادم جاهز؛ اختيار اللاعب المحفوظ لا نغيّره أبداً.
+    try { if (caps && caps.chat && !localStorage.getItem(SETTINGS_KEY)) localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, mode: 'live' })); } catch (e) {}
+    setLoader('جاري تحميل اللعبة…', true);
+    f.src = SRC;
+    // سقف: لو ما أرسلت اللعبة «ready» (تحميل three.js/الإنترنت) نخفي الشاشة ونترك رسائل اللعبة نفسها تشرح
+    setTimeout(() => { if (my === runId && active) setLoader('', false); }, 25000);
+  };
+  window.ccHostExit = function () { if (typeof show === 'function') show('solo-home'); };
+  window.ccHostOnShow = function (page) {
+    if (page === 'callcenter') return;
+    active = false; runId++;
+    const f = $('callcenter-frame');
+    if (f && f.getAttribute('src') && f.getAttribute('src') !== 'about:blank') f.src = 'about:blank'; // يفرّغ اللعبة (صوت/WebGL/مؤقّتات) عند مغادرة الصفحة
+    setLoader('', false);
+  };
+
+  function hostConfig() {
+    let owner = false, user = null;
+    try { owner = typeof isOwnerAccount === 'function' && !!isOwnerAccount(); } catch (e) {}
+    try { if (typeof currentUser !== 'undefined' && currentUser) user = { username: (typeof currentUsername !== 'undefined' && currentUsername) || '' }; } catch (e) {}
+    return { source: 'ehsemha-host', type: 'config', apiBase, owner, stage: 'public', user };
+  }
+  window.addEventListener('message', async (e) => {
+    const f = $('callcenter-frame');
+    if (!f || !f.contentWindow || e.source !== f.contentWindow || e.origin !== location.origin) return;
+    const d = e.data;
+    if (!d || d.source !== 'ehsemha-callcenter') return;
+    const reply = (m) => { try { f.contentWindow.postMessage(m, location.origin); } catch (x) {} };
+    if (d.type === 'hello') reply(hostConfig());
+    else if (d.type === 'ready') setLoader('', false);
+    else if (d.type === 'home') window.ccHostExit();
+    else if (d.type === 'need-token') {
+      let token = null;
+      try { if (typeof currentUser !== 'undefined' && currentUser && currentUser.getIdToken) token = await currentUser.getIdToken(); } catch (x) { token = null; }
+      reply({ source: 'ehsemha-host', type: 'token', token });
+    }
+  });
+})();
+</script>
 <style id="eh-connect-css">
 /* =====================================================================
    مركز ربط البث - ملف مستقل. كل التنسيقات بنطاق eh-connect- فقط.
