@@ -61,6 +61,14 @@ function buildPrompt(ctx) {
 }
 
 function mapError(e) {
+  const m = mapErrorBase(e);
+  const kind = e && e.kind ? String(e.kind) : 'unknown';
+  if (kind !== 'aborted') { try { console.warn('[cc/brain] gemini ' + kind + (e && e.message ? ': ' + String(e.message).slice(0, 160) : '')); } catch (x) { /* */ } }
+  m.detail = kind;
+  return m;
+}
+
+function mapErrorBase(e) {
   if (e && e.kind === 'rate_limited') return { code: 'busy', retryable: true, retryAfter: Math.ceil((e.retryAfterMs || 5000) / 1000), userMsg: 'خدمة المحادثة مزدحمة الحين. محاولتك محفوظة، جرب بعد لحظات.' };
   if (e && e.kind === 'aborted') return { code: 'aborted', retryable: true };
   if (e && (e.kind === 'invalid_key' || e.kind === 'no_keys')) return { code: 'chat_unavailable', retryable: false, userMsg: 'خدمة المحادثة غير مفعّلة بالخادم الحين. تقدر تكمل بوضع التدريب.' };
@@ -79,7 +87,7 @@ class GeminiBrain {
     };
     let r;
     try {
-      r = await this.router.generate('chat', body, { signal: ctx.signal, thinking: false });
+      r = await this.router.generate('chat', body, { signal: ctx.signal, thinking: false, timeoutMs: 9000, budgetMs: 17000 });
     } catch (e) { throw mapError(e); }
     const cand = r.data && r.data.candidates && r.data.candidates[0];
     const um = (r.data && r.data.usageMetadata) || {};
