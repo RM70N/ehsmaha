@@ -15,6 +15,7 @@ function startMock(behavior) {
     let b = ''; req.on('data', (c) => { b += c; });
     req.on('end', () => {
       const key = req.headers['x-goog-api-key'], m = /models\/([^:]+):generateContent/.exec(req.url), model = m && decodeURIComponent(m[1]);
+      if (!model) { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ models: [] })); } // ListModels: لا يدخل بسجل الطلبات
       let body = {}; try { body = JSON.parse(b); } catch (e) { /* */ }
       calls.push({ key, model, body });
       const out = (status, obj, hdr) => { res.writeHead(status, Object.assign({ 'Content-Type': 'application/json' }, hdr || {})); res.end(JSON.stringify(obj)); };
@@ -78,7 +79,7 @@ test('تدفق كامل: جلسة ← يوم ← مكالمة ← دور بـGem
   const chatCall = mock.calls.find((c) => c.body.systemInstruction);
   assert.ok(/<player>السلام عليكم/.test(chatCall.body.contents[0].parts[0].text), 'رسالة اللاعب تصل داخل <player>');
   assert.equal(chatCall.body.generationConfig.responseMimeType, 'application/json');
-  assert.equal(chatCall.body.generationConfig.thinkingConfig.thinkingBudget, 0);
+  assert.ok(chatCall.body.generationConfig.thinkingConfig.thinkingBudget === 0 || chatCall.body.generationConfig.thinkingConfig.thinkingLevel === 'minimal', 'التفكير مطفأ');
   assert.equal(chatCall.key, K1);
   // msgId مكرر = نفس الرد بلا طلب Gemini جديد
   const before = mock.calls.length; const r2 = await api.post('call/turn', { sessionId: sid, callId, msgId: 'm1', text: 'السلام عليكم معك سعد من شركة الاتصالات' });

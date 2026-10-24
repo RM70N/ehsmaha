@@ -3616,7 +3616,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     var self = this;
     return new Promise(function (resolve) {
       var fr = new FileReader();
-      fr.onload = function () { var b64 = String(fr.result).split(',')[1] || ''; self.fetchJson('/cc/v1/stt', { sessionId: self.sessionId, audio: b64, mime: mime, durationMs: durationMs }, { timeout: 16000 }).then(resolve); };
+      fr.onload = function () { var b64 = String(fr.result).split(',')[1] || ''; self.fetchJson('/cc/v1/stt', { sessionId: self.sessionId, audio: b64, mime: mime, durationMs: durationMs }, { timeout: 28000 }).then(resolve); };
       fr.onerror = function () { resolve({ ok: false, error: 'read' }); };
       fr.readAsDataURL(blob);
     });
@@ -6831,7 +6831,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   G.MIC_MAX_MS = 25000;       // أقل بكثير من حد الخادم (٢ ميجا base64) بترميز ٣٢ كيلوبت
   G.MIC_SILENCE_MS = 1700;    // وقفة وسط الجملة أقصر من هذا ما تقص كلام اللاعب
   G.MIC_NOSPEECH_MS = 9000;
-  G.MIC_STT_TIMEOUT_MS = 24000; // مهلة تحويل الصوت لنص قبل ما نعرض خطأ ونفك الحالة
+  G.MIC_STT_TIMEOUT_MS = 32000; // مهلة تحويل الصوت لنص قبل ما نعرض خطأ ونفك الحالة
   mic.supported = function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); };
   mic.available = function () {
     if (G.auth && G.auth.kind === 'remote') return mic.supported() && !!(G.auth.caps && G.auth.caps.stt);
@@ -7035,7 +7035,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       if (finished) return; finished = true; clearTimeout(wd);
       if (run !== mic.run) return;
       if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; }
-      if (!r || !r.ok) { failMic((r && r.msg) || C.STRINGS.sttFail); return; }
+      if (!r || !r.ok) { failMic(((r && r.msg) || C.STRINGS.sttFail) + (r && (r.detail || r.error) ? ' [' + (r.detail || r.error) + ']' : '')); return; }
       if (!r.text || r.noSpeech) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
       gotTranscript(r.text, run);
     }, function () { if (finished) return; finished = true; clearTimeout(wd); if (run !== mic.run) return; failMic('فشل تحويل الصوت لنص. اكتب رسالتك أو أعد المحاولة.'); });

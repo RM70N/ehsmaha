@@ -203,7 +203,7 @@ function createCCApi(opts) {
       const r = await router.generate('stt', {
         contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: 'فرّغ الكلام العربي (لهجة سعودية غالباً) في هذا المقطع حرفياً كما قيل، بدون أي إضافة أو تشكيل أو ترجمة. لو ما فيه كلام واضح اجعل noSpeech=true. أرجع JSON: {"text": "...", "noSpeech": false}.' }] }],
         generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', properties: { text: { type: 'STRING' }, noSpeech: { type: 'BOOLEAN' } }, required: ['text'] } },
-      });
+      }, { timeoutMs: 12000, budgetMs: 21000 });
       const cand = r.data && r.data.candidates && r.data.candidates[0];
       const txt = cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('');
       let j = null; try { j = JSON.parse(txt || ''); } catch (e) { /* */ }
@@ -211,7 +211,8 @@ function createCCApi(opts) {
       if (!text || (j && j.noSpeech)) return send(res, 200, { ok: true, text: '', noSpeech: true });
       return send(res, 200, { ok: true, text });
     } catch (e) {
-      return send(res, 200, { ok: false, error: e.kind || 'stt_error', msg: e.kind === 'rate_limited' ? 'الخدمة مزدحمة، جرب بعد لحظات أو اكتب رسالتك.' : C.STRINGS.sttFail });
+      log('warn', 'cc stt فشل: ' + (e && e.kind) + ' ' + String((e && e.message) || '').slice(0, 120));
+      return send(res, 200, { ok: false, error: e.kind || 'stt_error', detail: e.kind || 'stt_error', msg: e.kind === 'rate_limited' ? 'الخدمة مزدحمة، جرب بعد لحظات أو اكتب رسالتك.' : C.STRINGS.sttFail });
     }
   }
 

@@ -75,3 +75,35 @@ test('كل النماذج مسحوبة ثم يظهر نموذج جديد: يعي
   const out = await r.generate('chat', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
   assert.equal(out.model, 'gemini-9-flash-lite');
 });
+
+test('القياس: يقدّم النموذج الأسرع ويؤخر البطيء/الفاشل', async () => {
+  const names = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash'];
+  const delay = { 'gemini-3.5-flash-lite': 120, 'gemini-3.1-flash-lite': 10, 'gemini-3.5-flash': 60 };
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY }, fetch: async (url) => {
+    if (/\/v1beta\/models\?/.test(url)) return list(names);
+    const m = decodeURIComponent(url.match(/models\/([^:]+):/)[1]);
+    if (m === 'gemini-2.5-flash-lite') return gone;
+    await new Promise((x) => setTimeout(x, delay[m] || 0));
+    return ok();
+  } });
+  await r.generate('chat', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(r.models.chat[0], 'gemini-3.1-flash-lite');
+  assert.ok(r.models.chat.indexOf('gemini-2.5-flash-lite') > r.models.chat.indexOf('gemini-3.5-flash-lite'));
+});
+
+test('التفكير: يُطفأ لنماذج 3.x، ويُعاد الطلب بدونه لو رفضه النموذج', async () => {
+  const seen = [];
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY, GEMINI_CHAT_MODELS: 'gemini-3.5-flash-lite' }, fetch: async (url, init) => {
+    const b = JSON.parse(init.body); seen.push(b.generationConfig.thinkingConfig || null);
+    return seen.length === 1 ? { ok: false, status: 400, json: async () => ({ error: { message: 'thinking level not supported' } }), headers: { get: () => null } } : ok();
+  } });
+  await r.generate('chat', { contents: [], generationConfig: { maxOutputTokens: 8 } }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.deepEqual(seen[0], { thinkingLevel: 'minimal' });
+  assert.equal(seen[1], null);
+});
+
+test('STT: نموذج يرفض الصوت (400) ← ينتقل للنموذج التالي بدل الفشل', async () => {
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY, GEMINI_API_KEY_2: KEYS.GEMINI_API_KEY_2, GEMINI_STT_MODELS: 'm1,m2' }, fetch: async (url) => (/models\/m1:/.test(url) ? { ok: false, status: 400, json: async () => ({ error: { message: 'audio unsupported' } }), headers: { get: () => null } } : ok()) });
+  const out = await r.generate('stt', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(out.model, 'm2');
+});

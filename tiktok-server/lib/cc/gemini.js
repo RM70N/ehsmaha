@@ -86,6 +86,19 @@ class GeminiRouter {
     return lite.concat(flash);
   }
 
+  // قياس سرعة أول المرشحين فعلياً (طلب صغير بالتوازي): الأسرع الشغّال أولاً، والفاشل/البطيء يتأخر. بعض النماذج المعاينة بطيئة جداً.
+  async probe(k, list) {
+    const cand = list.filter((n) => /flash-lite/.test(n)).slice(0, 3).concat(list.filter((n) => !/flash-lite/.test(n)).slice(0, 1));
+    const body = { contents: [{ role: 'user', parts: [{ text: 'قل: تمام' }] }], generationConfig: { maxOutputTokens: 16 } };
+    const rows = await Promise.all(cand.map(async (m) => {
+      const t = Date.now();
+      try { await this._call(k, m, body, null, 9000); return { model: m, ok: true, ms: Date.now() - t }; }
+      catch (e) { return { model: m, ok: false, ms: Date.now() - t, kind: e && e.kind }; }
+    }));
+    const good = rows.filter((r) => r.ok && r.ms < 8000).sort((a, b) => a.ms - b.ms).map((r) => r.model);
+    return { rows, order: good };
+  }
+
   async discover(force) {
     if (!this.hasKeys) return null;
     const now = this.now();
@@ -100,6 +113,8 @@ class GeminiRouter {
           const j = await r.json().catch(() => null);
           if (r.ok && j && Array.isArray(j.models)) {
             const found = { chat: this.rank(j.models, 'chat'), tts: this.rank(j.models, 'tts'), total: j.models.length };
+            found.probe = await this.probe(k, found.chat);
+            if (found.probe.order.length) found.chat = found.probe.order.concat(found.chat.filter((x) => found.probe.order.indexOf(x) < 0));
             this.disc.found = found; this.disc.error = null; this.disc.at = this.now();
             const merge = (kind, fb) => { const list = found[kind === 'tts' ? 'tts' : 'chat']; if (!this.pinned[kind] && list.length) this.models[kind] = list.concat(fb.filter((x) => list.indexOf(x) < 0)); };
             merge('chat', this.models.chat); merge('stt', this.models.stt); merge('tts', this.models.tts);
@@ -142,7 +157,7 @@ class GeminiRouter {
   async _generate(kind, body, opts) {
     const models = this.models[kind] || this.models.chat;
     const t0 = this.now();
-    let last = null, tried = 0, rateLimited = 0, invalid = 0;
+    let last = null, tried = 0, rateLimited = 0, invalid = 0, badReq = null;
     const n = this.keys.length;
     for (const model of models) {
       for (let i = 0; i < n; i++) {
@@ -165,11 +180,12 @@ class GeminiRouter {
           if (e.kind === 'rate_limited') { k.cooldown[model] = { until: this.now() + (e.retryAfterMs || 30000), reason: e.daily ? 'الحد اليومي' : 'حد الطلبات' }; rateLimited++; }
           else if (e.kind === 'invalid_key') { k.disabled = { until: this.now() + 6 * 3600e3, reason: 'invalid_key' }; invalid++; slogHook(this, 'invalid_key', k); }
           else if (e.kind === 'model_missing') { k.cooldown[model] = { until: this.now() + 600e3, reason: 'النموذج غير متاح' }; }
-          else if (e.kind === 'bad_request') throw e; // الطلب نفسه غلط: لا فائدة من مفتاح ثانٍ
+          else if (e.kind === 'bad_request') { this.keys.forEach((kk) => { kk.cooldown[model] = { until: this.now() + 600e3, reason: 'النموذج غير متاح' }; }); badReq = e; break; } // قد يرفضه هذا النموذج فقط (مثل الصوت): نجرّب التالي
         }
       }
     }
-    if (last && !tried) last = null;
+    if (badReq && !tried) last = badReq;
+    if (last && !tried && !badReq) last = null;
     if (!tried) {
       if (invalid && invalid >= n) throw new GeminiError('invalid_key', 'كل مفاتيح Gemini مرفوضة');
       throw new GeminiError('rate_limited', 'كل مفاتيح Gemini بحالة تهدئة', { retryAfterMs: this._soonestReady(models) });
@@ -183,13 +199,17 @@ class GeminiRouter {
     return best ? Math.max(1000, best - this.now()) : 5000;
   }
 
-  async _call(k, model, body, outerSignal, timeoutMs) {
+  async _call(k, model, body, outerSignal, timeoutMs, noRetry) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs || this.timeoutMs);
     const onAbort = () => ctl.abort();
     if (outerSignal) outerSignal.addEventListener('abort', onAbort);
     // 2.5-flash «يفكّر» افتراضياً (بطيء/مكلف): الحوار القصير لا يحتاجه. (TTS لا يقبل الإعداد)
-    if (/gemini-2\.5-flash(?!.*tts)/.test(model) && body.generationConfig && !body.generationConfig.thinkingConfig) body = Object.assign({}, body, { generationConfig: Object.assign({}, body.generationConfig, { thinkingConfig: { thinkingBudget: 0 } }) });
+    // النماذج «المفكّرة» بطيئة بدون داعي للحوار القصير: 2.5 بميزانية صفر، و3.x+ بأقل مستوى تفكير.
+    const noThink = noRetry || !body.generationConfig || body.generationConfig.thinkingConfig || /tts/.test(model) ? null
+      : /gemini-2\.5-flash/.test(model) ? { thinkingBudget: 0 }
+        : /gemini-(?:[3-9]|\d{2})/.test(model) || /-latest$/.test(model) ? { thinkingLevel: 'minimal' } : null;
+    if (noThink) body = Object.assign({}, body, { generationConfig: Object.assign({}, body.generationConfig, { thinkingConfig: noThink }) });
     let res;
     try {
       res = await this.fetch(this.base + '/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
@@ -213,6 +233,10 @@ class GeminiRouter {
     }
     if (res.status === 401 || res.status === 403 || /api key (not valid|expired)|API_KEY_INVALID|PERMISSION_DENIED/i.test(msg + status)) throw new GeminiError('invalid_key', msg);
     if (res.status === 404) throw new GeminiError('model_missing', msg);
+    if (res.status === 400 && noThink && !noRetry) {
+      const g = Object.assign({}, body.generationConfig); delete g.thinkingConfig;
+      return this._call(k, model, Object.assign({}, body, { generationConfig: g }), outerSignal, timeoutMs, true);
+    }
     if (res.status === 400) throw new GeminiError('bad_request', msg);
     throw new GeminiError('unavailable', msg, { status: res.status });
   }
