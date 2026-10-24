@@ -9,7 +9,7 @@ const hang = (init) => new Promise((_, rej) => init.signal.addEventListener('abo
 
 test('مفتاح معلّق: يتجاوز المهلة وينجح بالمفتاح التالي', async () => {
   const used = [];
-  const r = new GeminiRouter({ env: KEYS, fetch: (url, init) => { used.push(init.headers['x-goog-api-key'].slice(-2)); return used.length === 1 ? hang(init) : Promise.resolve(ok()); } });
+  const r = new GeminiRouter({ env: Object.assign({ GEMINI_CHAT_MODELS: 'm1' }, KEYS), fetch: (url, init) => { used.push(init.headers['x-goog-api-key'].slice(-2)); return used.length === 1 ? hang(init) : Promise.resolve(ok()); } });
   const t = Date.now();
   const out = await r.generate('chat', { contents: [] }, { timeoutMs: 300, budgetMs: 5000 });
   assert.ok(out.data.candidates);
@@ -18,7 +18,7 @@ test('مفتاح معلّق: يتجاوز المهلة وينجح بالمفتا
 });
 
 test('كل المفاتيح تعلّق: يفشل بنوع timeout ضمن الميزانية', async () => {
-  const r = new GeminiRouter({ env: KEYS, fetch: (u, init) => hang(init) });
+  const r = new GeminiRouter({ env: Object.assign({ GEMINI_CHAT_MODELS: 'm1' }, KEYS), fetch: (u, init) => hang(init) });
   const t = Date.now();
   await assert.rejects(r.generate('chat', { contents: [] }, { timeoutMs: 200, budgetMs: 450 }), (e) => e.kind === 'timeout');
   assert.ok(Date.now() - t < 1500);
@@ -26,7 +26,7 @@ test('كل المفاتيح تعلّق: يفشل بنوع timeout ضمن الم�
 
 test('429 على نموذج: ينتقل لنموذج/مفتاح آخر', async () => {
   let n = 0;
-  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY }, fetch: async () => (++n === 1 ? { ok: false, status: 429, json: async () => ({ error: { status: 'RESOURCE_EXHAUSTED', message: 'quota' } }), headers: { get: () => null } } : ok()) });
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY, GEMINI_CHAT_MODELS: 'm1,m2' }, fetch: async () => (++n === 1 ? { ok: false, status: 429, json: async () => ({ error: { status: 'RESOURCE_EXHAUSTED', message: 'quota' } }), headers: { get: () => null } } : ok()) });
   const out = await r.generate('chat', { contents: [] }, { timeoutMs: 300, budgetMs: 5000 });
   assert.ok(out.model !== r.models.chat[0]);
 });
@@ -37,4 +37,41 @@ test('diagnose: يرجع تقرير بدون كشف المفاتيح', async () 
   assert.equal(d.keys.length, 3);
   assert.equal(d.okKeys, 3);
   assert.ok(!JSON.stringify(d).includes('AAAAAAAAAA'));
+});
+
+const list = (names) => ({ ok: true, status: 200, json: async () => ({ models: names.map((n) => ({ name: 'models/' + n, supportedGenerationMethods: ['generateContent'] })) }), headers: { get: () => null } });
+const gone = { ok: false, status: 404, json: async () => ({ error: { status: 'NOT_FOUND', message: 'This model is no longer available to new users.' } }), headers: { get: () => null } };
+
+test('اكتشاف النماذج: يختار الأرخص المتاح ويتجاوز الممنوع للحسابات الجديدة', async () => {
+  const called = [];
+  const names = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-3-flash-lite', 'gemini-3-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-preview-tts', 'text-embedding-004', 'gemini-3-flash-image'];
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY }, fetch: async (url, init) => {
+    if (/\/v1beta\/models\?/.test(url)) return list(names);
+    const m = decodeURIComponent(url.match(/models\/([^:]+):/)[1]); called.push(m);
+    return m === 'gemini-3-flash-lite' ? ok() : gone;
+  } });
+  const out = await r.generate('chat', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(r.models.chat[0], 'gemini-3-flash-lite');
+  assert.equal(out.model, 'gemini-3-flash-lite');
+  assert.ok(!r.models.chat.some((n) => /embed|image|pro|tts/.test(n)));
+  assert.equal(r.models.tts[0], 'gemini-2.5-flash-preview-tts');
+});
+
+test('النموذج الأول مسحوب (404): ينتقل للتالي ولا يفشل الدور', async () => {
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY }, fetch: async (url) => {
+    if (/\/v1beta\/models\?/.test(url)) return { ok: false, status: 500, json: async () => ({}), headers: { get: () => null } };
+    return /flash-lite-latest/.test(url) ? gone : ok();
+  } });
+  const out = await r.generate('chat', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(out.model, 'gemini-flash-latest');
+});
+
+test('كل النماذج مسحوبة ثم يظهر نموذج جديد: يعيد الاكتشاف تلقائياً', async () => {
+  let phase = 0;
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY }, fetch: async (url) => {
+    if (/\/v1beta\/models\?/.test(url)) return phase === 0 ? { ok: false, status: 500, json: async () => ({}), headers: { get: () => null } } : list(['gemini-9-flash-lite']);
+    return /gemini-9-flash-lite/.test(url) ? ok() : (phase = 1, gone);
+  } });
+  const out = await r.generate('chat', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(out.model, 'gemini-9-flash-lite');
 });
