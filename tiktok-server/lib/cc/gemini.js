@@ -49,13 +49,18 @@ class GeminiRouter {
     const l = loadGeminiKeys(env);
     this.keys = l.keys.map((k) => Object.assign(k, { ok: 0, fail: 0, disabled: null, cooldown: {} }));
     this.sources = l.names;
+    // الأسماء تتبدل عند Google وبعض النماذج تُسحب من الحسابات الجديدة (404 «no longer available to new users»):
+    // 1) متغيرات البيئة تغلب دائماً. 2) وإلا نكتشف المتاح فعلاً من ListModels (الأرخص أولاً). 3) وإلا هذي الأسماء المستعارة (-latest) اللي تتبع النموذج الحالي عند Google.
+    const cheap = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+    this.pinned = {
+      chat: !!(env.GEMINI_CHAT_MODELS || env.GEMINI_MODEL), stt: !!env.GEMINI_STT_MODELS, tts: !!env.GEMINI_TTS_MODELS,
+    };
     this.models = {
-      // أسماء النماذج تتغير عند Google: لو الأول غير متاح (404) ينتقل تلقائياً للتالي، وتُبدَّل كلها بمتغيرات البيئة دون تعديل كود.
-      // الافتراضي: الأرخص (flash-lite: أرخص سعراً وأعلى حصة طلبات)، وبعده الأقوى كاحتياط لو انتهت حصته أو ما توفّر
-      chat: listEnv(env.GEMINI_CHAT_MODELS || env.GEMINI_MODEL, ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']),
-      stt: listEnv(env.GEMINI_STT_MODELS, ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']),
+      chat: listEnv(env.GEMINI_CHAT_MODELS || env.GEMINI_MODEL, cheap),
+      stt: listEnv(env.GEMINI_STT_MODELS, cheap),
       tts: listEnv(env.GEMINI_TTS_MODELS, ['gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts']),
     };
+    this.disc = { at: 0, inflight: null, found: null, error: null };
     this.rr = 0;
     this.stats = { requests: 0, ok: 0, switches: 0, waits: [] };
     this.timeoutMs = Number(env.GEMINI_TIMEOUT_MS) || 14000;
@@ -66,10 +71,75 @@ class GeminiRouter {
 
   cooling(k, model) { const c = k.cooldown[model]; return !!c && c.until > this.now(); }
 
+  // اكتشاف النماذج المتاحة لمفاتيحك فعلاً (ListModels) وترتيبها: الأرخص أولاً (lite ثم flash)، الأحدث المستقر قبل التجريبي.
+  rank(list, kind) {
+    const bad = /embed|aqa|imagen|veo|image|live|robotics|computer-use|learnlm|gemma|exp(?!ress)|customtools/i;
+    const rows = (list || []).filter((m) => m && /generateContent/.test((m.supportedGenerationMethods || []).join(',')) || (m && !m.supportedGenerationMethods))
+      .map((m) => String(m.name || '').replace(/^models\//, '')).filter((n) => /^gemini-/.test(n));
+    const ver = (n) => { const m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+    const stable = (n) => (/preview|exp|-\d{2}-\d{2}$/.test(n) ? 0 : 1);
+    const sorter = (a, b) => (ver(b) - ver(a)) || (stable(b) - stable(a)) || a.length - b.length;
+    if (kind === 'tts') return rows.filter((n) => /tts/.test(n)).sort(sorter);
+    const ok = rows.filter((n) => !/tts/.test(n) && !bad.test(n) && !/-latest$/.test(n));
+    const lite = ok.filter((n) => /flash-lite/.test(n)).sort(sorter);
+    const flash = ok.filter((n) => /flash/.test(n) && !/flash-lite/.test(n)).sort(sorter);
+    return lite.concat(flash);
+  }
+
+  async discover(force) {
+    if (!this.hasKeys) return null;
+    const now = this.now();
+    if (!force && this.disc.at && now - this.disc.at < 6 * 3600e3) return this.disc.found;
+    if (this.disc.inflight) return this.disc.inflight;
+    this.disc.inflight = (async () => {
+      const live = this.liveKeys();
+      for (const k of live.slice(0, 2)) {
+        const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 6000);
+        try {
+          const r = await this.fetch(this.base + '/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': k.key }, signal: ctl.signal });
+          const j = await r.json().catch(() => null);
+          if (r.ok && j && Array.isArray(j.models)) {
+            const found = { chat: this.rank(j.models, 'chat'), tts: this.rank(j.models, 'tts'), total: j.models.length };
+            this.disc.found = found; this.disc.error = null; this.disc.at = this.now();
+            const merge = (kind, fb) => { const list = found[kind === 'tts' ? 'tts' : 'chat']; if (!this.pinned[kind] && list.length) this.models[kind] = list.concat(fb.filter((x) => list.indexOf(x) < 0)); };
+            merge('chat', this.models.chat); merge('stt', this.models.stt); merge('tts', this.models.tts);
+            return found;
+          }
+          this.disc.error = 'HTTP ' + r.status;
+        } catch (e) { this.disc.error = ctl.signal.aborted ? 'timeout' : 'network'; }
+        finally { clearTimeout(tm); }
+      }
+      this.disc.at = this.now() - 5.5 * 3600e3; // فشل الاكتشاف: نعيد المحاولة بعد نصف ساعة تقريباً
+      return null;
+    })().finally(() => { this.disc.inflight = null; });
+    return this.disc.inflight;
+  }
+
   // يجرّب المفاتيح بالتناوب × النماذج بالترتيب. ينتهي بـGeminiError(kind) لو فشل الكل.
   async generate(kind, body, opts) {
     opts = opts || {};
     if (!this.hasKeys) throw new GeminiError('no_keys', 'مفاتيح Gemini غير مضبوطة');
+    if (!this.pinned[kind]) { try { await this.discover(false); } catch (e) { /* نكمل بالأسماء الافتراضية */ } }
+    try { return await this._generate(kind, body, opts); }
+    catch (e) {
+      // كل النماذج «غير متاحة»: نعيد الاكتشاف مرة وحدة ونجرّب القائمة الجديدة
+      if (e && (e.kind === 'model_missing' || (e.kind === 'rate_limited' && this.onlyMissingCooldowns())) && !this.pinned[kind] && this.now() - (this.disc.forcedAt || 0) > 60e3) {
+        this.disc.forcedAt = this.now();
+        this.keys.forEach((k) => { k.cooldown = {}; });
+        const f = await this.discover(true).catch(() => null);
+        if (f) return this._generate(kind, body, opts);
+      }
+      throw e;
+    }
+  }
+
+  onlyMissingCooldowns() {
+    const t = this.now(); let any = false;
+    for (const k of this.keys) for (const m of Object.keys(k.cooldown)) { const c = k.cooldown[m]; if (c.until > t) { any = true; if (c.reason !== 'النموذج غير متاح') return false; } }
+    return any;
+  }
+
+  async _generate(kind, body, opts) {
     const models = this.models[kind] || this.models.chat;
     const t0 = this.now();
     let last = null, tried = 0, rateLimited = 0, invalid = 0;
@@ -94,7 +164,7 @@ class GeminiRouter {
           this.stats.switches++;
           if (e.kind === 'rate_limited') { k.cooldown[model] = { until: this.now() + (e.retryAfterMs || 30000), reason: e.daily ? 'الحد اليومي' : 'حد الطلبات' }; rateLimited++; }
           else if (e.kind === 'invalid_key') { k.disabled = { until: this.now() + 6 * 3600e3, reason: 'invalid_key' }; invalid++; slogHook(this, 'invalid_key', k); }
-          else if (e.kind === 'model_missing') { k.cooldown[model] = { until: this.now() + 3600e3, reason: 'النموذج غير متاح' }; }
+          else if (e.kind === 'model_missing') { k.cooldown[model] = { until: this.now() + 600e3, reason: 'النموذج غير متاح' }; }
           else if (e.kind === 'bad_request') throw e; // الطلب نفسه غلط: لا فائدة من مفتاح ثانٍ
         }
       }
@@ -166,12 +236,13 @@ class GeminiRouter {
       try { const r = await this.fetch(this.base + '/v1beta/models', { signal: ctl.signal }); return { ok: true, status: r.status }; }
       catch (e) { throw new GeminiError(ctl.signal.aborted ? 'timeout' : 'network', e && e.message); } finally { clearTimeout(tm); }
     });
+    await this.discover(true).catch(() => null);
     const model = this.models.chat[0];
     const keys = await Promise.all(this.keys.map((k) => timed(async () => {
       await this._call(k, model, { contents: [{ role: 'user', parts: [{ text: 'قل: تمام' }] }], generationConfig: { maxOutputTokens: 8 } }, null, 8000);
       return { ok: true };
     }).then((r) => Object.assign({ id: k.id, model }, r))));
-    return { node: process.version, base: this.base, models: this.models, net, keys, okKeys: keys.filter((x) => x.ok).length };
+    return { node: process.version, base: this.base, models: this.models, pinned: this.pinned, discovered: this.disc.found, discoveryError: this.disc.error, net, keys, okKeys: keys.filter((x) => x.ok).length };
   }
 
   // اختبار محدود: طلب صغير لكل مفتاح (بدون كشفه)
