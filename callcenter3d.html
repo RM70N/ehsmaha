@@ -3602,7 +3602,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     var self = this;
     if (!this.sessionId) return Promise.resolve({ ok: false, error: 'no_session', msg: 'ما فيه جلسة مع الخادم.' });
     var payload = Object.assign({ sessionId: this.sessionId }, body || {});
-    return this.fetchJson('/cc/v1/' + op, payload, { timeout: op === 'call/turn' ? 22000 : 12000 }).then(function (r) {
+    return this.fetchJson('/cc/v1/' + op, payload, { timeout: op === 'call/turn' ? 30000 : 12000 }).then(function (r) {
       if (r.checkpoint) G.store.set(CP_KEY, r.checkpoint);
       if (r.httpStatus === 410 && !self._reviving) {
         // الجلسة انتهت عند الخادم: نسوي جلسة جديدة من آخر نقطة حفظ موقعة ونعيد الطلب مرة وحدة (إلا الأدوار: ما نعيدها تلقائياً)

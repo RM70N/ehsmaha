@@ -87,7 +87,7 @@ class GeminiBrain {
     };
     let r;
     try {
-      r = await this.router.generate('chat', body, { signal: ctx.signal, thinking: false, timeoutMs: 9000, budgetMs: 17000 });
+      r = await this.router.generate('chat', body, { signal: ctx.signal, thinking: false, timeoutMs: 8000, budgetMs: 20000 });
     } catch (e) { throw mapError(e); }
     const cand = r.data && r.data.candidates && r.data.candidates[0];
     const um = (r.data && r.data.usageMetadata) || {};

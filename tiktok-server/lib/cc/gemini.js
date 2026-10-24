@@ -158,6 +158,22 @@ class GeminiRouter {
     };
   }
 
+  // تشخيص عام بلا أسرار: زمن الوصول للشبكة (بدون مفتاح) + طلب صغير لكل مفتاح على أول نموذج دردشة، بالتوازي.
+  async diagnose() {
+    const timed = async (fn) => { const t = Date.now(); try { const v = await fn(); return Object.assign({ ms: Date.now() - t }, v); } catch (e) { return { ms: Date.now() - t, ok: false, kind: e && e.kind ? e.kind : 'error', msg: String((e && e.message) || '').slice(0, 120) }; } };
+    const net = await timed(async () => {
+      const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 8000);
+      try { const r = await this.fetch(this.base + '/v1beta/models', { signal: ctl.signal }); return { ok: true, status: r.status }; }
+      catch (e) { throw new GeminiError(ctl.signal.aborted ? 'timeout' : 'network', e && e.message); } finally { clearTimeout(tm); }
+    });
+    const model = this.models.chat[0];
+    const keys = await Promise.all(this.keys.map((k) => timed(async () => {
+      await this._call(k, model, { contents: [{ role: 'user', parts: [{ text: 'قل: تمام' }] }], generationConfig: { maxOutputTokens: 8 } }, null, 8000);
+      return { ok: true };
+    }).then((r) => Object.assign({ id: k.id, model }, r))));
+    return { node: process.version, base: this.base, models: this.models, net, keys, okKeys: keys.filter((x) => x.ok).length };
+  }
+
   // اختبار محدود: طلب صغير لكل مفتاح (بدون كشفه)
   async testKeys() {
     const results = [];
