@@ -6,7 +6,7 @@
 | المتغير | الوظيفة |
 |---|---|
 | `GEMINI_API_KEY` | مفتاح Gemini. يقبل أيضاً `GEMINI_API_KEY_2…`، `GEMINI_API_KEYS=k1,k2`، `GOOGLE_API_KEY` (أي صيغة قائمة بفواصل/أسطر). المفاتيح تُستعمل بالتناوب مع تهدئة عند 429 وتعطيل المرفوض |
-| `GEMINI_CHAT_MODELS` / `GEMINI_STT_MODELS` / `GEMINI_TTS_MODELS` | اختياري: قوائم نماذج بفواصل (الافتراضي gemini-2.5-flash ثم 2.0-flash؛ TTS: gemini-2.5-flash-preview-tts) — لو الأول غير متاح ينتقل للتالي |
+| `GEMINI_CHAT_MODELS` / `GEMINI_STT_MODELS` / `GEMINI_TTS_MODELS` | اختياري: قوائم نماذج بفواصل (الافتراضي الأرخص gemini-2.5-flash-lite ثم 2.0-flash-lite ثم 2.5-flash احتياطاً؛ TTS: gemini-2.5-flash-preview-tts) — لو الأول غير متاح ينتقل للتالي |
 | `CC_SECRET` | اختياري لكن موصى به: سر توقيع نقاط الحفظ (ثابت عبر إعادة التشغيل). الافتراضي مشتق من المفاتيح |
 | `CC_DAILY_TURNS` | سقف رسائل Gemini باليوم (الافتراضي 20000) |
 | `CC_STT=0` / `CC_TTS=0` | تعطيل الصوت→نص / النص→صوت |

@@ -51,8 +51,9 @@ class GeminiRouter {
     this.sources = l.names;
     this.models = {
       // أسماء النماذج تتغير عند Google: لو الأول غير متاح (404) ينتقل تلقائياً للتالي، وتُبدَّل كلها بمتغيرات البيئة دون تعديل كود.
-      chat: listEnv(env.GEMINI_CHAT_MODELS || env.GEMINI_MODEL, ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']),
-      stt: listEnv(env.GEMINI_STT_MODELS, ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest']),
+      // الافتراضي: الأرخص (flash-lite: أرخص سعراً وأعلى حصة طلبات)، وبعده الأقوى كاحتياط لو انتهت حصته أو ما توفّر
+      chat: listEnv(env.GEMINI_CHAT_MODELS || env.GEMINI_MODEL, ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']),
+      stt: listEnv(env.GEMINI_STT_MODELS, ['gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-2.5-flash', 'gemini-flash-latest']),
       tts: listEnv(env.GEMINI_TTS_MODELS, ['gemini-2.5-flash-preview-tts', 'gemini-2.5-flash-tts']),
     };
     this.rr = 0;
@@ -79,10 +80,11 @@ class GeminiRouter {
         if (k.disabled && k.disabled.until > this.now()) { if (k.disabled.reason === 'invalid_key') invalid++; continue; }
         if (this.cooling(k, model)) { rateLimited++; continue; }
         if (opts.signal && opts.signal.aborted) throw new GeminiError('aborted', 'أُلغي الطلب');
+        if (opts.budgetMs && tried && this.now() - t0 >= opts.budgetMs) throw last || new GeminiError('timeout', 'انتهت ميزانية الوقت');
         tried++;
         this.stats.requests++;
         try {
-          const data = await this._call(k, model, body, opts.signal);
+          const data = await this._call(k, model, body, opts.signal, opts.timeoutMs);
           k.ok++; this.stats.ok++; this.rr = (this.rr + i + 1) % n;
           this.stats.waits.push(this.now() - t0); if (this.stats.waits.length > 200) this.stats.waits.shift();
           return { data, model, keyId: k.id };
@@ -111,9 +113,9 @@ class GeminiRouter {
     return best ? Math.max(1000, best - this.now()) : 5000;
   }
 
-  async _call(k, model, body, outerSignal) {
+  async _call(k, model, body, outerSignal, timeoutMs) {
     const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), this.timeoutMs);
+    const timer = setTimeout(() => ctl.abort(), timeoutMs || this.timeoutMs);
     const onAbort = () => ctl.abort();
     if (outerSignal) outerSignal.addEventListener('abort', onAbort);
     // 2.5-flash «يفكّر» افتراضياً (بطيء/مكلف): الحوار القصير لا يحتاجه. (TTS لا يقبل الإعداد)

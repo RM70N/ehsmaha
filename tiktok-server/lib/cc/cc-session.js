@@ -306,7 +306,7 @@
         self.usage.failures++;
         // ما نخترع رد على لسان المتصل لتغطية خطأ اتصال: الرسالة ما تنحسب ويقدر يعيد
         var e = r.err || {};
-        return { error: e.code || 'brain_error', retryable: e.retryable !== false, callId: call.id, msgId: req.msgId, msg: e.userMsg || C.STRINGS.callError, retryAfter: e.retryAfter || null, call: R.publicCall(call) };
+        return { error: e.code || 'brain_error', retryable: e.retryable !== false, callId: call.id, msgId: req.msgId, msg: e.userMsg || C.STRINGS.callError, retryAfter: e.retryAfter || null, detail: e.detail || null, call: R.publicCall(call) };
       }
       self.usage.turns++;
       var analysis = r.out.analysis || {}, draft = r.out.say != null ? sanitizeSay(r.out.say, call) : null;
