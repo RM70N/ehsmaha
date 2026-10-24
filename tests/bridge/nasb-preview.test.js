@@ -137,7 +137,7 @@ async function fillCorrect(page, m, d, opts) {
 
   // ===== 0) الملف الرئيسي فيه الواجهة الجديدة، والنسخة التجريبية مطابقة له =====
   check('الملف الرئيسي callcenter3d.html فيه واجهة «نصب» الجديدة', PREVIEW.toString('utf8').includes('drawMethodPage'));
-  check('النسخة التجريبية مطابقة للملف الرئيسي', fs.readFileSync(path.join(ROOT, 'callcenter3d-nasb-preview.html')).equals(PREVIEW));
+  check('وحدات اللعبة المدمجة (محتوى/قواعد/جلسة/تدريب) مطابقة حرفياً لملفات الخادم', (() => { try { require('child_process').execSync('node tools/sync-cc-modules.js', { cwd: ROOT, stdio: 'pipe' }); return true; } catch (e) { return false; } })());
   const embedded = (src) => { const m = src.match(/\(function \(root, factory\) \{[\s\S]*?root\.CCRules = factory\(root\.CCContent\);\s*\}\(/); return m && m[0]; };
   const rulesSrv = fs.readFileSync(path.join(ROOT, 'tiktok-server/lib/cc/cc-rules.js'), 'utf8').trim();
   check('قواعد اللعبة المدمجة مطابقة حرفياً لقواعد الخادم (نفس منطق op/collect)', PREVIEW.toString('utf8').includes(rulesSrv.slice(0, 4000)) && PREVIEW.toString('utf8').includes(rulesSrv.slice(-4000)));

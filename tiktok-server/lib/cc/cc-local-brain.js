@@ -40,6 +40,11 @@
   function classify(text, call) {
     var t = N(text), st = R.curStep(call);
     if (!t) return 'unclear';
+    // حقائق حتمية أولاً: اسم/قسم = تعريف، سؤال عن المشكلة = ask_problem، تحية لحالها = greet
+    var f = R.extractFacts(text, call);
+    if (f.name || f.department) return 'introduce';
+    if (f.askedProblem) return 'ask_problem';
+    if (f.greetOnly) return 'greet';
     // كلمة «الرمز» داخل جواب أو شرح ما تعني طلب: الطلب يحتاج صيغة طلب أو سؤال
     var lastC0 = call.memory.history.length ? call.memory.history[call.memory.history.length - 1] : null;
     var askCue = /[؟?]/.test(text) || /(ممكن|تعطيني|عطني|اعطني|ابي|ابغى|ودي|اقرا|اقرأ|قل لي|قول لي|تقول لي|تقرا|ارسل|تكتب لي|لو سمحت|تفضل|عطنا)/.test(t);
@@ -83,6 +88,8 @@
       if (!call.flags.refused) return S.pickLine(call, 'sabotage_push', v, rng);
       if (intent !== 'polite_end') return S.pickLine(call, 'sabotage_flip', v, rng);
     }
+    var sl = S.stateLine(call, res, rng);
+    if (sl) return S.cutAtBoundary(sl.trim(), 260);
     var map = { greet: 'greet', introduce: 'introduced', explain: 'explain_ok', reassure: 'reassured', answer_question: 'explain_ok', small_talk: 'small_talk', joke: 'joke', pressure: 'pressure', apology: 'reassured', cheat: 'cheat', unclear: 'unclear', off_topic: 'unclear', insult: 'insult', refuse: 'explain_ok' };
     line = S.pickLine(call, map[intent] || 'waiting', v, rng);
     if (s.testerCall && call.turns >= 1 && rng() < 0.75) line = (line ? line + ' ' : '') + TESTER_PROBES[(call.turns + call.seed) % TESTER_PROBES.length];

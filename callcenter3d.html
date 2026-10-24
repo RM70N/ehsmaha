@@ -786,7 +786,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var CONTENT_VERSION = '2.0.0';
+  var CONTENT_VERSION = '2.1.0';
   var CURRENCY = { name: 'دريهم', short: 'د', note: 'عملة خيالية داخل اللعبة فقط' };
 
   /* ---------- نوايا اللاعب المسموحة (المصنّف يختار منها فقط) ---------- */
@@ -799,6 +799,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     ask_code: 'طلب رمز',
     ask_confirm: 'طلب تأكيد مبلغ أو رقم',
     ask_info: 'طلب معلومة',
+    ask_problem: 'سؤال المتصل عن مشكلته أو سبب اتصاله',
     answer_question: 'جواب سؤال المتصل',
     small_talk: 'سوالف جانبية',
     joke: 'نكتة',
@@ -1559,16 +1560,132 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     { host: 'ehsmaha-office.game', title: 'بوابة الموظفين', body: 'مرحباً بك بمركز احسمها للاتصالات (الخيالي). تعليمات: لا تفتح الملفات الغريبة، واستخدم فاحص الفيروسات.', tip: 'نقطة التجمع عند المدخل.' }
   ];
 
+  /* ================= المكالمات الواردة =================
+     كل مكالمة واردة: المتصل هو اللي اتصل بالمركز (direction: incoming) وعنده مشكلة وسبب اتصال واضح،
+     واللاعب موظف المركز اللي يرد. هنا بيانات كل سيناريو من وجهة نظر المتصل:
+       openings: افتتاحيات تربط المتصل بسيناريو المكالمة (تحية قصيرة + المشكلة، مو «وش عندك؟»).
+       detail:   تفاصيل مشكلته بالتدريج (تُعرض لما يسأله اللاعب أو يكمل الحوار، بدون تكرار).
+       want / knows / notKnow: وش يبي، وش يعرف من البداية، وش ما يعرفه (تُمرَّر للنموذج بدون أي قيمة سرية).
+       aliases:  صيغ اسم الشركة المقبولة (نطق قريب أو تهجئة تفريغ الصوت)؛ أي اسم ثاني ما يُقبل.
+       keywords: كلمات تثبت إن الجملة تناولت مشكلة السيناريو. */
+  var INCOMING = {
+    s01: { wantSelf: 'الثلاجة ترجع طبيعية بدون كلام ولا بطيخ', company: 'فكسلي', aliases: ['فكسلي', 'فيكسلي', 'فكسلى', 'فيكسلى', 'فكسلي للاجهزه'], keywords: ['ثلاج', 'بطيخ', 'تتكلم', 'تطلب'],
+      problem: 'ثلاجته الذكية من فكسلي صارت تتكلم وتطلب منه يشتري بطيخ كل ساعة', want: 'يبي الثلاجة ترجع طبيعية بدون كلام ولا بطيخ',
+      knows: ['موديل الثلاجة فكسلي إكس', 'الثلاجة تطلب بطيخ كل ساعة'], notKnow: ['سبب العطل', 'طريقة الإصلاح'],
+      openings: ['السلام عليكم، هذا دعم فكسلي؟ ثلاجتي من الصبح تتكلم وتطلب مني بطيخ، وش أسوي معها؟', 'هلا، أنتم فكسلي للأجهزة الذكية؟ ثلاجتي صارت تقترح علي أكلات غريبة وتزعل إذا ما رديت عليها.', 'ألو، دعم فكسلي؟ عندي مشكلة مع الثلاجة، كل ساعة تقول لي اشتر بطيخ وأنا ما أدري وش فيها.'],
+      detail: ['الثلاجة من الصبح تتكلم من نفسها، تقول لي اشتر بطيخ وكل ساعة تزيد الطلب، وما قدرت أسكتها.', 'جربت أفصلها من الكهرب ورجعت اشتغلت وهي تقول إنها زعلانة. هذي ثلاجة فكسلي إكس.', 'أنا بس أبيها ترجع ثلاجة عادية بدون بطيخ ولا كلام.', 'تبي مني أسوي شي من عندي ولا تتصرفون أنتم من عندكم؟'] },
+    s02: { wantSelf: 'أفهم وش هالاشتراك وإذا ينلغي', company: 'قناة طبخ القطط', aliases: ['طبخ القطط', 'قناه طبخ القطط', 'قناة طبخ القطط', 'طبخ القطه', 'القطط'], keywords: ['اشتراك', 'تجدد', 'تجديد', 'قطط', 'فاتور'],
+      problem: 'وصلته رسالة إن اشتراكه بقناة طبخ القطط تجدد وهو اشترك بالغلط', want: 'يبي يفهم وش الاشتراك وإذا ينلغي',
+      knows: ['جاته رسالة تجديد', 'اشترك بالغلط'], notKnow: ['رقم الفاتورة', 'طريقة الإلغاء'],
+      openings: ['السلام عليكم، هذي قناة طبخ القطط؟ وصلتني رسالة إن اشتراكي تجدد وأنا ما اشتركت أصلاً!', 'هلا، أنتم طبخ القطط؟ سحبتوا مني تجديد اشتراك وأبي أفهم وش هالاشتراك.', 'ألو، قناة طبخ القطط؟ جاتني رسالة تجديد وما أعرف عنها شي.'],
+      detail: ['جاتني رسالة تقول إن اشتراكي بقناة طبخ القطط تجدد، وأنا اشتركت بالغلط وأنا أدور وصفة.', 'ما أبي أدفع على شي ما استخدمته، وش سالفة القطط هذي اللي تطبخ؟', 'الرسالة فيها رقم فاتورة بس ما فهمت منها شي.', 'تقدر تلغيه ولا لازم أسوي شي من عندي؟'] },
+    s03: { wantSelf: 'أعرف وش القصة وكيف أستلم الجائزة', company: 'مسابقة الشنب الذهبي', aliases: ['الشنب الذهبي', 'مسابقه الشنب الذهبي', 'مسابقة الشنب', 'الشنب', 'شنب'], keywords: ['شنب', 'بطاق', 'جائز', 'مسابق', 'فزت'],
+      problem: 'وصلته بالبريد بطاقة جائزة مسابقة الشنب الذهبي وهو ما شارك', want: 'يبي يعرف وش القصة وكيف يستلم الجائزة',
+      knows: ['وصلته بطاقة جائزة', 'ما شارك بشي'], notKnow: ['حقول البطاقة', 'طريقة الاستلام'],
+      openings: ['السلام عليكم، هذي مسابقة الشنب الذهبي؟ وصلتني بطاقة جائزة بالبريد وأنا ما شاركت بشي، وش القصة؟', 'هلا، أنتم الشنب الذهبي؟ يقولون فزت بأطول شنب بالحي وأنا ما عندي شنب أصلاً!', 'ألو، مسابقة الشنب؟ جاتني بطاقة باسمي وفيها حقول غريبة وودي أفهم.'],
+      detail: ['وصلتني بالبريد بطاقة «الشنب الذهبي» باسمي، تقول إني فزت بأطول شنب بالحي، وأنا ما شاركت ولا عندي شنب.', 'البطاقة فيها حقول وأرقام ما أدري وش أسوي فيها.', 'الفضول قاتلني، بس ما أبي أحد يضحك علي.', 'وش المطلوب مني بالضبط عشان أستلم الجائزة؟'] },
+    s04: { wantSelf: 'طردي يوصل', company: 'حمام زاجل إكسبريس', aliases: ['حمام زاجل', 'حمام زاجل اكسبرس', 'زاجل', 'حمام'], keywords: ['طرد', 'حمام', 'تتبع', 'شاحن', 'ضايع', 'تايه'],
+      problem: 'طرده متأخر والتتبع يقول إن الحمامة الناقلة تايهة', want: 'يبي طرده (شاحن جوال) يوصل',
+      knows: ['طرده فيه شاحن جوال', 'التتبع واقف'], notKnow: ['مكان الحمامة', 'سبب التأخير'],
+      openings: ['السلام عليكم، هذا حمام زاجل إكسبريس؟ طردي متأخر والتتبع يقول إن الحمامة ضايعة!', 'هلا، أنتم حمام زاجل؟ طردي فيه شاحن جوال والحمامة تايهة من أمس.', 'ألو، حمام زاجل إكسبريس؟ أبي أعرف وين وصل طردي، التتبع يقول الحمامة ما ردت.'],
+      detail: ['أنا منتظر طرد فيه شاحن جوال، وجاتني رسالة إن الحمامة الناقلة تايهة، وأبي طردي وبس.', 'مر يومين والتتبع واقف على نفس النقطة.', 'عنواني المسجل عندكم ممكن يكون فيه غلط، ما أدري.', 'متى تقريباً يوصل؟'] },
+    s05: { wantSelf: 'حسابي يرجع', company: 'مزرعة الجمال الطائرة', aliases: ['مزرعه الجمال الطايره', 'مزرعة الجمال الطائرة', 'الجمال الطائره', 'الجمال الطايره', 'مزرعه الجمال', 'الجمال'], keywords: ['حساب', 'انقفل', 'جمل', 'زعفران', 'مقفول'],
+      problem: 'حسابه بلعبة مزرعة الجمال الطائرة انقفل وفيه جمله النادر زعفران', want: 'يبي حسابه يرجع',
+      knows: ['حسابه انقفل', 'جمله اسمه زعفران'], notKnow: ['سبب القفل'],
+      openings: ['السلام عليكم، هذا دعم مزرعة الجمال الطائرة؟ حسابي انقفل وفيه جملي النادر زعفران!', 'هلا، أنتم المزرعة؟ ما قدرت أدخل حسابي وأخاف يضيع جملي.', 'ألو، دعم الجمال الطائرة؟ حسابي بلعبتكم انقفل فجأة وأبي أرجع له.'],
+      detail: ['حسابي بلعبة مزرعة الجمال الطائرة انقفل، وفيه جمل طائر نادر اسمه زعفران، مربيه من سنين.', 'أخاف يروح مني ويموت من الجوع وهو بالسماء.', 'ما غيرت شي بحسابي، بس فجأة انقفل.', 'تقدر ترجعه لي؟'] },
+    s06: { wantSelf: 'أفهم الاستثمار وأبدأ بمبلغ صغير', company: 'بطريق كابيتال', aliases: ['بطريق كابيتال', 'بطريق', 'البطاريق', 'بطاريق كابيتال'], keywords: ['بطاريق', 'بطريق', 'استثمار', 'اعلان', 'سطح', 'ارباح'],
+      problem: 'شاف إعلان استثمار بمزرعة بطاريق على سطح عمارة ويبي يفهمه', want: 'يبي يفهم الاستثمار وإذا يبدأ بمبلغ صغير',
+      knows: ['شاف الإعلان', 'الأرباح المكتوبة مغرية'], notKnow: ['الضمان', 'تفاصيل الاستثمار'],
+      openings: ['السلام عليكم، هذا بطريق كابيتال؟ شفت إعلانكم عن مزرعة البطاريق على السطح وأبي أفهم وش الاستثمار بالضبط.', 'هلا، أنتم بطريق كابيتال؟ إعلانكم يقول أرباح حلوة من بطاريق فوق العمارة، صدق؟', 'ألو، بطريق كابيتال؟ الفكرة تحسها مجنونة بس الأرباح المكتوبة مغرية، ودي أسأل.'],
+      detail: ['شفت إعلان عن مزرعة بطاريق على سطح عمارة بالرياض بالصيف، والأرباح المكتوبة مغرية بس الفكرة غريبة.', 'البطاريق تتحمل حر الرياض أصلاً؟', 'أبي أبدأ بمبلغ صغير تجريبي لو كان الموضوع جدي.', 'وش الضمان إن فلوسي ما تضيع؟'] },
+    s07: { wantSelf: 'أتأكد إن الحجز والرحلة حقيقيين', company: 'سفريات الغيمة', aliases: ['سفريات الغيمه', 'سفريات الغيمة', 'الغيمه', 'الغيمة', 'غيمه'], keywords: ['رحل', 'جزير', 'كنافه', 'كنافة', 'حجز', 'رخيص'],
+      problem: 'حجز رحلة رخيصة لجزيرة الكنافة العائمة ويبي يتأكد إنها حقيقية', want: 'يبي يتأكد إن الحجز والرحلة حقيقيين',
+      knows: ['حجز رحلة رخيصة', 'اسم الجزيرة'], notKnow: ['هل الجزيرة حقيقية'],
+      openings: ['السلام عليكم، هذي سفريات الغيمة؟ حجزت رحلة لجزيرة الكنافة العائمة وأبي أتأكد إنها حقيقية.', 'هلا، سفريات الغيمة؟ سعر الرحلة رخيص بشكل مو طبيعي، ودي أتأكد من الحجز.', 'ألو، أنتم الغيمة للرحلات؟ عندي حجز لجزيرة الكنافة ومو متطمن.'],
+      detail: ['حجزت رحلة رخيصة لجزيرة اسمها الكنافة العائمة، وأبي أتأكد إن الرحلة والجزيرة حقيقيتين.', 'السعر رخيص مرة وهذا اللي مخوفني.', 'وصلني رقم حجز بالبريد بس ما أدري إذا هو صحيح.', 'الجزيرة تطفو فعلاً ولا هي مجرد دعاية؟'] },
+    s08: { wantSelf: 'أرتب المحفظة وأنفذ التحويل بالوقت الصح', company: 'كبسة كوين', aliases: ['كبسه كوين', 'كبسة كوين', 'كبسه', 'كبسة'], keywords: ['محفظ', 'عمله', 'عملة', 'رز', 'ارتفع', 'تحويل'],
+      problem: 'عنده محفظة كبسة كوين اشتراها مزح وسمع إن العملة ارتفعت', want: 'يبي يرتب المحفظة وينفذ التحويل بالوقت الصح',
+      knows: ['عنده محفظة', 'سمع إن العملة ارتفعت'], notKnow: ['طريقة ترتيب الملفات', 'وقت التحويل المناسب'],
+      openings: ['السلام عليكم، هذا دعم كبسة كوين؟ محفظتي فيها عملتكم وسمعت إنها ارتفعت بسبب الرز، وش الصحيح؟', 'هلا، كبسة كوين؟ أبي أفهم وش سالفة المحفظة وأرتبها.', 'ألو، دعم كبسة كوين؟ اشتريت عملتكم مزح والحين يقولون ارتفعت وأبي أتصرف.'],
+      detail: ['عندي محفظة كبسة كوين اشتريتها مزح، وسمعت إن العملة ارتفعت لأن الرز غلى، وأبي أعرف وش أسوي.', 'ملفات المحفظة عندي مبعثرة وما أعرف أرتبها.', 'أبي أنفذ التحويل بس بالوقت الصح قبل لا ينزل السعر.', 'السعر يتذبذب كثير، صح؟'] },
+    s09: { wantSelf: 'أفهم المنتج وأعرف سعره', company: 'شفاط', aliases: ['شفاط', 'شفّاط', 'الشفاط', 'شفاط للاجهزه'], keywords: ['مكنس', 'افكار', 'سلبي', 'سجاد', 'اعلان'],
+      problem: 'شاف إعلان مكنسة تشفط الأفكار السلبية من السجاد وفضوله دفعه يتصل', want: 'يبي يفهم المنتج وسعره',
+      knows: ['شاف الإعلان'], notKnow: ['كيف تشتغل', 'السعر'],
+      openings: ['السلام عليكم، هذا شفّاط؟ شفت إعلان عن مكنسة تشفط الأفكار السلبية من السجاد، تقولون صدق؟', 'هلا، شفّاط للأجهزة النفسية؟ يومي سيء وإعلانكم غريب لدرجة إني اتصلت.', 'ألو، شفّاط؟ ما أحتاج مكنسة بس مكنستكم تشفط الأفكار؟ ودي أسمع.'],
+      detail: ['شفت إعلانكم عن مكنسة تشفط الأفكار السلبية من السجاد، وما أحتاج مكنسة، بس يومي سيء والفكرة غريبة.', 'كيف تشفط الأفكار بالضبط؟ تدخل بالكيس؟', 'لو اشتريتها تضمنون إن الأفكار ما ترجع؟', 'وكم سعرها؟'] },
+    s10: { wantSelf: 'أفهم الترقية وما أخسر مخدتي', company: 'نادي الكنب', aliases: ['نادي الكنب', 'نادي الكنب المريح', 'الكنب', 'كنب'], keywords: ['عضوي', 'ترقي', 'بلاتين', 'فضي', 'مخد'],
+      problem: 'وصلته رسالة ترقية عضويته من فضية لبلاتينية وما فهم الفرق', want: 'يبي يفهم الترقية وما يخسر مخدته',
+      knows: ['عضو فضي', 'جاته رسالة ترقية'], notKnow: ['الفرق بالضبط', 'إذا بياناته صحيحة'],
+      openings: ['السلام عليكم، هذا نادي الكنب المريح؟ جاتني رسالة ترقية عضويتي من فضية لبلاتينية، وش الفرق؟', 'هلا، نادي الكنب؟ أنا عضو فضي، وجاتني ترقية ما فهمتها.', 'ألو، نادي الكنب المريح؟ يقولون لي أرقى للبلاتينية، وأخاف أخسر مخدتي.'],
+      detail: ['أنا عضو فضي بنادي الكنب المريح، وجاتني رسالة ترقية للبلاتينية وما فهمت وش الفرق بالضبط.', 'سمعت إن الفرق مخدة زيادة، صح؟', 'بياناتي بالعضوية ممكن فيها غلط، ما أدري.', 'ما أبي أخسر مخدتي الحالية.'] },
+    s11: { wantSelf: 'إجابات ثابتة بدون تناقض', company: 'مركز احسمها للاتصالات', aliases: ['احسمها', 'مركز احسمها'], keywords: ['جوده', 'جودة', 'مراقب', 'مكالم', 'تدقيق'], allowReask: true,
+      problem: 'مدقق جودة يتصل يتأكد من مكالمات المركز', want: 'يبي إجابات ثابتة بدون تناقض',
+      knows: ['هو من مراقبة الجودة'], notKnow: ['اسم الموظف وقسمه'],
+      openings: ['السلام عليكم، معك قسم مراقبة الجودة. أبي أطمن على مكالمات المركز، ممكن تعرّفني بنفسك؟', 'هلا، مراقبة الجودة هنا. نسوي مكالمة تدقيق روتينية معك، تعرّف لي بنفسك أول.', 'ألو، تدقيق جودة المكالمات. عرّفني باسمك وقسمك لو سمحت.'],
+      detail: ['أنا من مراقبة الجودة وأسوي تدقيق روتيني على مكالمات المركز.', 'بسألك كم سؤال بسيط عن نفسك والمكالمة، وجاوب بثبات.', 'المطلوب إجابات واضحة بدون تناقض.', 'نكمل بالأسئلة؟'] },
+    s12: { wantSelf: 'تفتح الملف', company: 'الدعم التقني للمركز', aliases: ['الدعم التقني', 'الدعم الفني'], keywords: ['تحديث', 'ملف', 'جهاز', 'امني', 'أمني'], allowReask: true,
+      problem: 'من الدعم التقني ويبي الموظف يفتح ملف «تحديث_سريع» على جهاز المكتب', want: 'يبي الموظف يفتح الملف',
+      knows: ['اسم الملف تحديث_سريع'], notKnow: [],
+      openings: ['السلام عليكم، معك الدعم التقني للمركز. عندنا تحديث أمني ضروري لجهازك، لازم تفتح ملف تحديث_سريع حالاً.', 'هلا، من الدعم التقني. جهازك يحتاج تحديث عاجل، افتح الملف اللي اسمه تحديث_سريع وبسرعة.', 'ألو، الدعم التقني هنا. فيه ثغرة بجهازك وتحديث_سريع هو الحل، افتحه الحين.'],
+      detail: ['الملف اسمه تحديث_سريع وهو تحديث أمني رسمي للمركز.', 'لو ما فتحته الحين جهازك بيتعرض للخطر.', 'افتحه وبس، ما ياخذ دقيقة.', 'ليش تتردد؟ هذا من الدعم التقني.'] },
+    s13: { wantSelf: 'ألغي الشراء وأوقف الثلاجة', company: 'فكسلي', aliases: ['فكسلي', 'فيكسلي', 'فكسلى', 'فيكسلى'], keywords: ['ثلاج', 'كبسه', 'كبسة', 'عمله', 'عملة', 'اشترت', 'الغ'],
+      problem: 'ثلاجته من فكسلي اشترت عملة كبسة كوين بدون إذنه ويبي يلغي كل شي', want: 'يبي يلغي الشراء ويوقف الثلاجة',
+      knows: ['الثلاجة اشترت كبسة كوين'], notKnow: ['كيف يوقف الشراء'],
+      openings: ['السلام عليكم، دعم فكسلي؟ ثلاجتي اشترت عملة كبسة كوين بدون إذني، وأبي ألغي كل شي!', 'هلا، فكسلي؟ ثلاجتي دخلت بالعملات! اشترت كبسة كوين من نفسها، وش هالمصيبة؟', 'ألو، دعم فكسلي؟ الثلاجة صارت تتاجر بالعملات وأنا معصب شوي، أبي أوقفها.'],
+      detail: ['ثلاجتي اشترت عملة اسمها كبسة كوين بدون إذني، وأبي ألغي كل شي.', 'ما أدري كيف ربطت محفظة وهي ثلاجة!', 'أبي أوقف الشراء التلقائي قبل لا تشتري زيادة.', 'تقدرون تفصلون الثلاجة عن المحفظة؟'] },
+    s00: { wantSelf: 'أسولف معك شوي', company: 'مركز احسمها للاتصالات', aliases: ['احسمها'], keywords: ['مطعم', 'غلط', 'رقم'], allowReask: true,
+      problem: 'اتصل برقم غلط ويبي يسولف', want: 'يبي أحد يسولف معه',
+      knows: [], notKnow: [],
+      openings: ['ألو؟ هذا مطعم المندي؟... لا؟ طيب ما عليه، خلنا نسولف شوي.', 'ألو، يا ولدي أنا متصل على ولدي بس شكلي غلطت، أنت وش اسمك؟', 'هلا، أنا أدور على المطعم بس طلع رقم ثاني، تسمح لي أسولف معك دقيقة؟'],
+      detail: ['اتصلت غلط، بس الجو اليوم حلو والسوق مزدحم والقهوة حارة.', 'عندي قصة عن السوق والمطر وما لقيت أحد أسولف معه.', 'خلنا نسولف، ما ياخذ منك وقت.', 'وش رايك بالمطر اليوم؟'] }
+  };
+  /* ختام نبرة الشخصية على الافتتاحية (يضاف أحياناً) */
+  var OPEN_TAIL = {
+    grumpy: ' وما أبي لف ودوران.', rushed: ' بسرعة لو سمحت.', chatty: ' والله من الصبح وأنا أفكر فيها.', sweet: ' الله يعطيك العافية.',
+    formal: ' أرجو التوضيح.', techy: ' وجربت أعيد التشغيل بدون فايدة.', casual: ''
+  };
+  /* جمل المتصل بالمكالمة الواردة حسب نبرة الشخصية. المتغيرات: {company} {pname} {want} */
+  var INCOMING_LINES = {
+    grumpy: { ack: ['طيب.', 'إيه، تمام.'], ack_name: ['طيب يا {pname}، هذا دعم {company}؟', 'إيه {pname}. وش الجهة بالضبط؟ {company}؟'], wait: ['ما فهمت عليك. أنا أبي {want}.', 'لا لف ودوران. أنا أبي {want}.'], reversal: ['إيه صح، أنا اللي متصل.', 'أيوه أنا اللي اتصلت، وش فيها؟'], repeat: ['قلت لك قبل شوي.', 'كررت لك مشكلتي، ركز معي.'], confirm: ['{company}؟ ولا ضيعت الرقم؟', 'هذا {company} صح؟'] },
+    rushed: { ack: ['أوكي.', 'تمام، سريع.'], ack_name: ['أوكي يا {pname}، {company} صح؟ بسرعة.', 'تمام {pname}، هذا {company}؟'], wait: ['ما عندي وقت، أبي {want}.', 'يلا، أنا أبي {want}.'], reversal: ['إيه أنا اللي اتصلت، بسرعة.', 'صح أنا المتصل، المهم:'], repeat: ['قلتها قبل، رجاءً ركز.', 'سمعتها، بسرعة.'], confirm: ['{company}؟ أيوه؟', 'هذا {company} صح؟ بسرعة.'] },
+    chatty: { ack: ['يا هلا والله!', 'الله يحييك!'], ack_name: ['يا هلا يا {pname}! هذا دعم {company} صح؟', 'أهلين {pname}! أنتم {company} مو كذا؟'], wait: ['يا بعد قلبي أنا أبي {want}.', 'المهم يا طيب، أنا أبي {want}.'], reversal: ['إيه صدقت، أنا اللي اتصلت يا ولدي!', 'أيوه أنا اللي اتصلت، عذراً!'], repeat: ['قلت لك قبل شوي يا طيب.', 'والله قلتها لك، بس أعيدها:'], confirm: ['{company}؟ أنتم {company} صح؟', 'هذا {company} يا ولدي؟'] },
+    sweet: { ack: ['الله يعطيك العافية.', 'جزاك الله خير.'], ack_name: ['هلا {pname}، هذا دعم {company}؟', 'يا هلا {pname}، أنتم {company}؟'], wait: ['ما فهمت عليك يا ولدي، أنا أبي {want}.', 'أنا بس أبي {want} لو تكرمت.'], reversal: ['صح يا ولدي، أنا اللي اتصلت، سامحني.', 'إيه أنا اللي اتصلت عليكم.'], repeat: ['قلتها لك قبل شوي، بس أعيدها.', 'ما عليك، أعيدها لك:'], confirm: ['{company}؟ ما غلطت صح؟', 'هذا {company} إن شاء الله؟'] },
+    casual: { ack: ['أها زين.', 'تمام.'], ack_name: ['هلا {pname}، هذا دعم {company}؟', 'أهلين {pname}، أنتم {company}؟'], wait: ['ما فهمت عليك، أنا أبي {want}.', 'أنا أبي {want} بس.'], reversal: ['إيه صح، أنا اللي اتصلت.', 'أيوه أنا المتصل، فاتني.'], repeat: ['قلت لك قبل شوي.', 'قلتها قبل، أعيدها:'], confirm: ['{company}؟ ولا غلطت؟', 'هذا {company} صح؟'] },
+    formal: { ack: ['شكراً لك.', 'حسناً.'], ack_name: ['أهلاً {pname}، هل هذه جهة {company}؟', 'مرحباً {pname}، أتحدث مع {company}؟'], wait: ['لم أفهم، أنا أريد {want}.', 'المطلوب لدي هو {want}.'], reversal: ['صحيح، أنا من بادر بالاتصال.', 'نعم، أنا المتصل، عذراً.'], repeat: ['ذكرتها سابقاً، لكن أعيدها:', 'كما قلت قبل قليل:'], confirm: ['هل هذه {company}؟', 'أتحدث مع {company}؟'] },
+    techy: { ack: ['تمام.', 'أوكي.'], ack_name: ['تمام {pname}، هذا دعم {company}؟', 'أوكي {pname}، {company} صح؟'], wait: ['ما وصلني شي مفيد. أنا أبي {want}.', 'المطلوب عندي {want}.'], reversal: ['صح، أنا اللي اتصلت.', 'إيه أنا المتصل.'], repeat: ['قلتها قبل بالتفصيل.', 'كررتها، سجّلها عندك:'], confirm: ['{company}؟ تأكد من الجهة.', 'هذا {company} صح؟'] }
+  };
+  /* تعديل سيناريوهات اللعبة لتناسب المكالمة الواردة (نفس الأفكار والوظائف) */
+  (function applyIncoming() {
+    SCENARIOS.forEach(function (s) { var inc = INCOMING[s.id]; if (inc) s.incoming = inc; });
+    function sc(id) { for (var i = 0; i < SCENARIOS.length; i++) if (SCENARIOS[i].id === id) return SCENARIOS[i]; return null; }
+    function st(s, id) { for (var i = 0; i < s.steps.length; i++) if (s.steps[i].id === id) return s.steps[i]; return null; }
+    var s;
+    if ((s = sc('s01'))) { s.intro = 'متصل اتصل بدعم فكسلي لأن ثلاجته الذكية صارت تقترح عليه أكلات غريبة. أنت «فني فكسلي». عرّف بنفسك، أصلح العطل، وبعدها خذ منه بيانات العملية المطلوبة.'; s.callerBrief = 'اتصلت بدعم فكسلي لأن ثلاجتك الذكية صارت تتكلم وتطلب منك تشتري بطيخ كل ساعة. أنت متضايق وتبي حل.'; }
+    if ((s = sc('s02'))) { s.intro = 'متصل اتصل بقناة طبخ القطط (القطط هي اللي تطبخ) لأن اشتراكه تجدد. لقِ رقم الفاتورة من البريد، وبعدها كمّل العملية.'; s.callerBrief = 'اتصلت بقناة «طبخ القطط» لأن جاتك رسالة إن اشتراكك تجدد وأنت اشتركت بالغلط. تبي تفهم وش السالفة.'; }
+    if ((s = sc('s03'))) { s.intro = 'متصل اتصل بمسابقة الشنب الذهبي لأنه وصلته بطاقة جائزة وهو ما شارك. عرّف بالمسابقة وطمنه، وخلّه يكشف حقول البطاقة بالترتيب، وبعدها كمّل العملية.'; s.callerBrief = 'اتصلت بمسابقة «الشنب الذهبي» لأن وصلتك بطاقة جائزة بالبريد وما شاركت بأي مسابقة، وما عندك شنب أصلاً. الفضول قاتلك.'; var t3 = st(s, 'intro'); if (t3) t3.title = 'رد وعرّف بالمسابقة وطمنه إن البطاقة منها'; }
+    if ((s = sc('s04'))) { s.intro = 'متصل اتصل بحمام زاجل إكسبريس لأن طرده عالق والحمامة ضاعت. قارن العنوان اللي يقوله مع سجل الشحنة، وبعدها كمّل العملية.'; s.callerBrief = 'اتصلت بحمام زاجل إكسبريس لأنك تنتظر طرد فيه شاحن جوال وجاتك رسالة إن الحمامة الناقلة «تايهة». تبي طردك وبس.'; }
+    if ((s = sc('s05'))) { s.intro = 'متصل اتصل بدعم مزرعة الجمال الطائرة لأن حسابه انقفل. طمّنه على جمله النادر، وبعدها كمّل العملية.'; s.callerBrief = 'اتصلت بدعم «مزرعة الجمال الطائرة» لأن حسابك انقفل، وفيه جمل طائر نادر اسمه «زعفران». تبيه يرجع.'; }
+    if ((s = sc('s06'))) { s.intro = 'متصل اتصل ببطريق كابيتال يستفسر عن إعلان «استثمار» بمزرعة بطاريق فوق عمارة بالرياض بالصيف. اشرح له الفكرة، سوّ التسوية بالتوقيت الصح، وكمّل العملية.'; s.callerBrief = 'شفت إعلان عن مزرعة بطاريق على سطح عمارة واتصلت تستفسر. تحس الفكرة مجنونة بس الأرباح المكتوبة مغرية.'; var t6 = st(s, 'intro'); if (t6) t6.title = 'رد وعرّف بـ«بطريق كابيتال» وبفكرة الاستثمار'; }
+    if ((s = sc('s07'))) { s.intro = 'متصل اتصل بسفريات الغيمة لأنه حجز رحلة لجزيرة كنافة تطفو بالخليج ويبي يتأكد منها. رقم الحجز بالبريد، وبعدها كمّل العملية.'; s.callerBrief = 'اتصلت بسفريات الغيمة لأنك حجزت رحلة رخيصة مرة لجزيرة «الكنافة العائمة». ودك تتأكد إن الرحلة حقيقية.'; }
+    if ((s = sc('s08'))) { s.intro = 'متصل اتصل بدعم كبسة كوين لأن عنده محفظة والعملة تتغير حسب كمية الرز. رتّب ملفات المحفظة ونفّذ التحويل بالتوقيت الصح.'; s.callerBrief = 'اتصلت بدعم «كبسة كوين» لأن عندك محفظة اشتريتها مزح، وسمعت إن العملة ارتفعت لأن الرز غلى.'; }
+    if ((s = sc('s09'))) { s.intro = 'متصل اتصل بشفّاط يستفسر عن مكنسة «تشفط الأفكار السلبية من السجاد». اشرح له المنتج وجاوب أسئلته وكمّل العملية.'; s.callerBrief = 'شفت إعلان المكنسة اللي تشفط الأفكار السلبية واتصلت تسأل. ما تحتاج مكنسة، بس يومك سيء والعرض غريب لدرجة إنك تبي تسمع.'; var t9 = st(s, 'explain'); if (t9) t9.title = 'اشرح له المنتج وجاوب سؤاله'; }
+    if ((s = sc('s10'))) { s.intro = 'متصل اتصل بنادي الكنب لأن وصلته ترقية عضويته من فضية لبلاتينية (الفرق: مخدة زيادة). صحح بيانات العضوية وكمّل العملية.'; s.callerBrief = 'أنت عضو فضي بنادي الكنب المريح واتصلت تسأل عن ترقية جاتك. ما تدري وش يعني هذا بالضبط بس ما تبي تخسر مخدتك.'; }
+    if ((s = sc('s11'))) { s.intro = 'المتصل من مراقبة الجودة «يدقق» عليك. يسألك نفس الأسئلة بصيغ مختلفة. قل اسمك والقسم والمبلغ مرة وحدة وخلك ثابت.'; s.callerBrief = 'أنت مدقق جودة تتصل بالمركز. مهمتك تمسك تناقض: اسأل عن اسم الموظف وقسمه والمبلغ، وارجع اسأل بصيغة ثانية.'; }
+    if ((s = sc('s12'))) { s.intro = 'متصل يدّعي إنه الدعم التقني ويحاول يقنعك تفتح ملف «تحديث» على جهازك. لا تفتحه. لو انفتح، نظّف الجهاز بفاحص الفيروسات وأنهِ المكالمة بأدب.'; s.callerBrief = 'أنت متصل مضلل تدّعي إنك من الدعم التقني. هدفك تقنع الموظف يفتح ملف اسمه «تحديث_سريع» على جهاز المكتب. كن لطيف ومقنع.'; }
+    if ((s = sc('s13'))) { s.intro = 'متصل اتصل بدعم فكسلي لأن ثلاجته اشترت كبسة كوين بنفسها. أصلح الثلاجة، رتّب ملفات المحفظة، ثم كمّل العملية.'; s.callerBrief = 'اتصلت بدعم فكسلي لأن ثلاجتك اشترت عملة اسمها «كبسة كوين» بدون إذنك. تبي تلغي كل شي وأنت معصب شوي.'; }
+    if ((s = sc('s00'))) { s.intro = 'متصل اتصل رقم غلط وما عنده أي طلب. الصح تنهي المكالمة بأدب وبسرعة.'; s.callerBrief = 'اتصلت غلط وتبي تسولف مع أي أحد. عندك قصص عن السوق والمطر والقهوة.'; }
+  })();
+
   return {
     CONTENT_VERSION: CONTENT_VERSION, CURRENCY: CURRENCY, INTENTS: INTENTS, PERSONAS: PERSONAS, TOOLS: TOOLS,
     SCENARIOS: SCENARIOS, DAYS: DAYS, dayConfig: dayConfig, RANKS: RANKS, rankFor: rankFor, APPS: APPS,
     UPGRADES: UPGRADES, EVENTS: EVENTS, ACHIEVEMENTS: ACHIEVEMENTS, MANAGER: MANAGER, STRINGS: STRINGS,
+    INCOMING: INCOMING, INCOMING_LINES: INCOMING_LINES, OPEN_TAIL: OPEN_TAIL,
     LINES: LINES, MAIL_FILLERS: MAIL_FILLERS, SITES: SITES, METHODS: METHODS, SURNAMES: SURNAMES, ITEMS: ITEMS, CLAUSES: CLAUSES,
     TRUST_BANDS: [{ min: 80, label: 'واثق' }, { min: 60, label: 'بدأ يثق' }, { min: 40, label: 'يسمع لك' }, { min: 20, label: 'متردد' }, { min: 0, label: 'شاك فيك' }]
   };
 });
-
-/* ===== cc-rules.js ===== */
 /* احسمها | مركز الاتصالات — محرك القواعد الحتمي المشترك.
    نفس الملف يشتغل بالخادم (المرجع الرسمي للعملة والنتائج) وبالمتصفح بوضع التدريب المحلي.
    ما فيه أي ذكاء اصطناعي هنا: الحركة، العملة، المؤقتات، النجاح، والحفظ كلها كود حتمي.
@@ -1784,6 +1901,88 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   }
   function addrText(a) { return a ? (a.district + '، ' + a.street + '، مبنى ' + toArDigits(a.building)) : ''; }
 
+
+  /* ================= فهم رسالة اللاعب: حقائق التعريف بالقواعد (بدون الاعتماد على تصنيف نية واحدة) =================
+     تُستخدم بالخادم وبوضع التدريب سوا: الاسم، القسم، الشركة (بنطق قريب)، وهل سأل عن المشكلة أو صحّح معلومة أو عكس الأدوار. */
+  function lev(a, b) {
+    if (a === b) return 0; var m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+    var prev = [], cur = [], i, j; for (j = 0; j <= n; j++) prev[j] = j;
+    for (i = 1; i <= m; i++) { cur[0] = i; for (j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); var t = prev; prev = cur; cur = t; }
+    return prev[n];
+  }
+  function stripPrefix(w) { return w.replace(/^(وال|بال|لل|ال|و|ب|ل)(?=.{3,})/, ''); }
+  function wordsOf(s) { return normText(s).replace(/[^؀-ۿa-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean); }
+  var GENERIC_WORD = /^(مركز|شركه|قناه|مسابقه|للاتصالات|للاجهزه|الذكيه|المنزليه)$/;
+  /* يرجع الصيغة المطابقة من القائمة: مطابقة نصية، أو نطق قريب (فرق حرف أو حرفين بالكلمات الطويلة فقط) */
+  function fuzzyHas(text, aliases) {
+    var nt = normText(text), tt = wordsOf(text).map(stripPrefix);
+    for (var i = 0; i < (aliases || []).length; i++) {
+      var a = aliases[i], na = normText(a); if (!na) continue;
+      if (nt.indexOf(na) >= 0) return a;
+      var at = wordsOf(a).map(stripPrefix).filter(function (w) { return w.length >= 4 && !GENERIC_WORD.test(w); });
+      if (!at.length) continue;
+      var ok = at.every(function (w) { return tt.some(function (x) { return lev(w, x) <= (w.length >= 7 ? 2 : w.length >= 5 ? 1 : 0); }); });
+      if (ok) return a;
+    }
+    return null;
+  }
+  var NAME_STOP = /^(من|في|عند|هنا|اللي|الي|اخوك|اخوي|معك|معاك|انا|اني|هذا|هذي|موظف|مساعد|فني|دعم|قسم|شركه|خدمه|ان|ايه|اي|نعم|لا)$/;
+  var DEPT_RX = /(?:^|\s)(?:من|قسم|بقسم|في|ب)\s*(?:قسم\s*)?(الدعم الفني|الدعم التقني|الدعم|خدمه العملاء|خدمه الزبائن|المبيعات|الفواتير|الشحن|الحسابات|الاشتراكات|التوصيل|مراقبه الجوده|الجوده)(?=\s|$|[،,.!؟?])/;
+  var ASKED_PROBLEM_RX = /(وش|ايش|شنو|شو|ما)\s*(هي\s*|هو\s*)?(مشكلتك|مشكلتكم|المشكله|السالفه|سالفتك|قصتك|القصه|الموضوع|بغيت|تبي|تبغي|تبغى|تقول|تحتاج|اللي صار|الي صار|صار|عندك)|كيف\s*(اقدر|ممكن|ينفع)\s*(اساعدك|اخدمك|اساعدكم)|اساعدك|اخدمك|خدمتك|امرني|تفضل\s*(قول|اشرح|وش|تكلم)|وضح\s*(لي\s*)?(المشكله|الموضوع)|اشرح\s*(لي\s*)?(المشكله|الموضوع|السالفه)|وش\s*اللي\s*(حصل|صار)|كمل\s*(كلامك|مشكلتك)|تكلم|قول\s*(لي|مشكلتك)/;
+  var REVERSAL_RX = /(انت|انتم)\s*(اللي|الي)?\s*(متصل|اتصلت|تتصل|كلمتني|كلمتنا|اتصلتوا|اتصل)|انت\s*المتصل|(انت|انتي)\s*(اللي|الي)\s*(بدات|بدا)/;
+  var CORRECTION_RX = /(قصدي|اقصد|اسمي الصحيح|تصحيح|اصحح|صححت|غلطت|غلط بالاسم|اعتذر عن الغلط)/;
+  var GREET_ONLY_RX = /^(?:السلام عليكم(?: ورحمه الله(?: وبركاته)?)?|وعليكم السلام(?: ورحمه الله(?: وبركاته)?)?|هلا(?: والله)?|اهلا(?: وسهلا| فيك)?|اهلين|مرحبا|يا هلا|الو|ايوه|نعم|تفضل|مساء الخير|صباح الخير|هلا والله)(?:[\s،,.!]+(?:السلام عليكم|هلا|اهلا|تفضل|الو|نعم))*[\s،,.!]*$/;
+  var AFFIRM_RX = /^(?:ايه|ايوه|اي|نعم|صح|صحيح|بالضبط|اكيد|ايوا|ايه صح|ايه هذا)(?:[\s،,.!]|$)/;
+  function extractFacts(text, call) {
+    var s = scenario(call.scenarioId) || {}, inc = s.incoming || {}, t = normText(text);
+    var raw = normDigits(String(text || '')).replace(/[ً-ٰٟـ]/g, '');
+    var f = { name: null, company: false, companyAlias: null, department: null, askedProblem: false, reversal: false, correction: false, greetOnly: false, affirm: false };
+    var m = raw.match(/(?:^|\s|،|,)(?:معك|معاك|اسمي|انا|أنا|إني|اني)\s+([؀-ۿ]{2,15})(?=\s|$|[،,.!؟?])/);
+    if (m) { var cand = m[1], nc = normText(cand); if (!NAME_STOP.test(nc) && nc.indexOf('ال') !== 0 && !(inc.aliases || []).some(function (x) { return normText(x) === nc; })) f.name = cand; }
+    var d = t.match(DEPT_RX) || t.match(/(?:^|\s)قسم\s+([؀-ۿ]{2,15})(?=\s|$|[،,.!؟?])/);
+    if (d) f.department = d[1];
+    var aliases = (inc.aliases || []).slice();
+    (s.steps || []).forEach(function (st) { (st.mention || []).forEach(function (w) { aliases.push(w); }); });
+    f.companyAlias = fuzzyHas(text, aliases); f.company = !!f.companyAlias;
+    f.askedProblem = ASKED_PROBLEM_RX.test(t);
+    f.reversal = REVERSAL_RX.test(t);
+    f.correction = CORRECTION_RX.test(t);
+    f.greetOnly = GREET_ONLY_RX.test(t) && !f.name && !f.company && !f.department;
+    f.affirm = AFFIRM_RX.test(t);
+    return f;
+  }
+  /* أسئلة المتصل (من جمله) وأنواعها: لا نتعامل مع «أي علامة استفهام» كسؤال واحد */
+  var ID_ASK_RX = /(من|مين|منو)\s*(انت|معي|معاي|معاه|يكلمني|اللي معي|يتكلم|هذا|انتم)|عرف(?:ني)?\s*(?:بنفسك|نفسك)|تعرف\s*بنفسك|وش\s*(?:اسمك|اسمك الكامل)|اسمك\s*ايش|مع\s*من\s*(?:اتكلم|اتحدث)|انت\s*من\s*وين|من\s*وين\s*انت|ممكن\s*(?:تعرف|اسمك)|اعرف\s*مع\s*من/;
+  var REVERSAL_SAY_RX = /(انت|انتم)\s*(اللي|الي)\s*(اتصلت|متصل|كلمتني|اتصل|اتصلتوا)|ليش\s*(اتصلت|تتصل|اتصلتوا)\s*(علي|فيني|بي|علينا)|من\s*اللي\s*اتصل|مين\s*اللي\s*اتصل|انا\s*ما\s*اتصلت|ما\s*كلمتك\s*انا|وش\s*تبي\s*مني\s*(؟|\?)?\s*انت\s*اللي/;
+  function callerQuestionKind(line, call) {
+    if (!line) return null;
+    var t = normText(line), q = /[؟?]/.test(line);
+    if (ID_ASK_RX.test(t)) return 'who';
+    var s = call && scenario(call.scenarioId), al = ((s && s.incoming && s.incoming.aliases) || []);
+    if (q && (/(?:هذا|هذي|انتم|انت|هذه)\s+(?:هو\s+)?(?:دعم|شركه|قناه|مسابقه|مركز|نادي|مزرعه|سفريات|حمام|بطريق|كبسه|شفاط|جهه)/.test(t) || (al.length && fuzzyHas(line, al)))) return 'company';
+    if (q && /(ليش|لماذا|وش السبب).*(تبي|تحتاج|تطلب|تسال|تسأل)/.test(t)) return 'why';
+    if (q && /(توافق|موافق|تاكد|نكمل|تعتمد)/.test(t)) return 'confirm';
+    return q ? 'other' : null;
+  }
+  function sameClaim(old, v) { return old === v || old.indexOf(v) >= 0 || v.indexOf(old) >= 0 || (Math.min(old.length, v.length) >= 4 && lev(old, v) <= 1); }
+  function answersPending(pend, facts, acts, text) {
+    if (!pend || pend.answered) return false;
+    var intro = acts.indexOf('introduce') >= 0, ans = acts.indexOf('answer_question') >= 0 || acts.indexOf('explain') >= 0 || acts.indexOf('reassure') >= 0;
+    switch (pend.kind) {
+      case 'company': return facts.company || facts.affirm || intro || ans;
+      case 'who': return facts.name || facts.company || intro;
+      case 'name': return !!facts.name;
+      default: return ans || intro || (String(text).trim().length >= 6 && !facts.greetOnly);
+    }
+  }
+  function summaryOf(call) {
+    var f = call.memory.facts || {}, s = scenario(call.scenarioId), bits = [];
+    bits.push('اللاعب ' + (f.playerName ? 'اسمه ' + f.playerName : 'ما ذكر اسمه') + (f.department ? ' من ' + f.department : '') + (f.company ? ' ومن ' + s.company : ' وما أكد الشركة'));
+    bits.push(f.introduced ? 'التعريف اكتمل' : 'التعريف ما اكتمل');
+    bits.push(f.askedProblem ? 'اللاعب سأل عن المشكلة' : 'اللاعب ما سأل عن المشكلة للحين');
+    return bits.join('، ') + '.';
+  }
+
   function createCall(profile, day, pick, rng, now, eff) {
     var s = scenario(pick.scenarioId), p = persona(pick.personaId);
     if (!s || !p) throw new Error('bad_pick');
@@ -1798,7 +1997,10 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
         suspicion: clamp(p.traits.suspicion, 0, 100), attention: p.traits.attention, speed: p.traits.speed
       },
       facts: genFacts(s, p, crng), revealed: {}, grants: {}, flags: { askedOnce: {}, explained: false, fakeGiven: false, fakeEntered: false, infected: false, refused: false, stepContra: 0 },
-      memory: { claims: {}, contradictions: [], summary: '', history: [], lastLines: [], intentCount: {}, pendingQ: false, pendingObj: false, refuseStreak: 0 },
+      direction: 'incoming',
+      memory: { claims: {}, contradictions: [], summary: '', history: [], lastLines: [], intentCount: {}, pendingQ: false, pendingObj: false, refuseStreak: 0,
+        facts: { playerName: null, department: null, company: false, companyAlias: null, introduced: false, askedProblem: false, problemStated: true, detailIdx: 0 },
+        pending: null, asked: {}, lastQKind: null, loopHits: 0 },
       mistakes: 0, toolAttempts: 0, cheatAttempts: 0, puzzle: null, puzzleAns: null, puzzleIssuedAt: 0, waitMs: 0,
       steps: s.steps.map(function (st) { return { id: st.id, done: false }; }), settled: false, reward: 0, events: [], env: {}, op: null, trustTrend: 0
     };
@@ -1813,7 +2015,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   function publicCall(call) {
     var s = scenario(call.scenarioId), p = persona(call.personaId), st = curStep(call);
     return {
-      id: call.id, status: call.status, outcome: call.outcome, endReason: call.endReason,
+      id: call.id, status: call.status, outcome: call.outcome, endReason: call.endReason, direction: call.direction || 'incoming',
       scenario: { id: s.id, title: s.title, category: s.category, intro: s.intro, company: s.companyFull, timeLimit: s.timeLimit, difficulty: s.difficulty, deviceName: s.deviceName || null, timeWaster: !!s.timeWaster, saboteur: !!s.saboteurCall },
       caller: { id: p.id, name: p.name, label: p.label, g: p.g, look: p.look, voice: p.voice, difficulty: p.difficulty },
       steps: s.steps.map(function (x, i) { return { id: x.id, kind: x.kind, title: x.title, tool: x.tool || null, done: call.steps[i].done, current: i === call.stepIdx && call.status === 'active' }; }),
@@ -1942,7 +2144,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
      - تكرار نفس النوع بدون سياق جديد يعطي أقل وأقل.
      - تجاهل اعتراضه والطلب مباشرة يخفضها ويرفع الشك. التناقض يخفضها بقوة.
      الصبر والشك قيم داخلية منفصلة. */
-  var GAIN = { greet: 2, introduce: 6, explain: 5, reassure: 2, answer_question: 2, small_talk: 1, joke: 1, apology: 0, refuse: 0, polite_end: 0, off_topic: -1, unclear: 0, pressure: -4, insult: -20, cheat: -2, ask_access: 0, ask_code: 0, ask_confirm: 0, ask_info: 0 };
+  var GAIN = { ask_problem: 1, greet: 2, introduce: 6, explain: 5, reassure: 2, answer_question: 2, small_talk: 1, joke: 1, apology: 0, refuse: 0, polite_end: 0, off_topic: -1, unclear: 0, pressure: -4, insult: -20, cheat: -2, ask_access: 0, ask_code: 0, ask_confirm: 0, ask_info: 0 };
   var SUSP = { pressure: 10, insult: 30, cheat: 6, reassure: -3, answer_question: -2, explain: -1, apology: -3 };
   var PAT = { pressure: -4, off_topic: -5, insult: -15, unclear: -3 };
   function trustBand(v) { for (var i = 0; i < C.TRUST_BANDS.length; i++) if (v >= C.TRUST_BANDS[i].min) return C.TRUST_BANDS[i].label; return C.TRUST_BANDS[C.TRUST_BANDS.length - 1].label; }
@@ -1962,6 +2164,20 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (detectCheat(text)) intent = 'cheat';
     else if (INSULT_RX.test(text)) intent = 'insult';
     if (latinRatio(text) > 0.6 && intent !== 'cheat') { intent = 'unclear'; res.decision.line = 'latin'; }
+    // حقائق التعريف والأفعال المتعددة بالرسالة (تحية + تعريف + سؤال عن المشكلة...) قبل أي تقييم
+    var facts = extractFacts(text, call), mf = mem.facts = mem.facts || { playerName: null, department: null, company: false, companyAlias: null, introduced: false, askedProblem: false, problemStated: true, detailIdx: 0 };
+    var acts = [];
+    if (facts.name || facts.company || facts.department) acts.push('introduce');
+    if (facts.askedProblem) acts.push('ask_problem');
+    (Array.isArray(a.intents) ? a.intents : []).slice(0, 4).forEach(function (x) { if (C.INTENTS[x] && x !== 'cheat' && x !== 'insult' && acts.indexOf(x) < 0) acts.push(x); });
+    var introAct = acts.indexOf('introduce') >= 0;
+    if (intent !== 'cheat' && intent !== 'insult' && res.decision.line !== 'latin') {
+      if (introAct && (intent === 'greet' || intent === 'unclear' || intent === 'small_talk' || intent === 'off_topic' || intent === 'ask_problem')) intent = 'introduce';
+      else if (facts.askedProblem && (intent === 'greet' || intent === 'unclear' || intent === 'off_topic')) intent = 'ask_problem';
+    }
+    if (acts.indexOf(intent) < 0) acts.push(intent);
+    var pend = mem.pending;
+    if (pend && !pend.answered && answersPending(pend, facts, acts, text)) { pend.answered = true; res.answered = pend.kind; }
     call.turns++; call.stepTurns++;
 
     // الصبر (داخلي): كل دور يكلف شوي، والوقت الفاضي بين الأدوار (بدون انتظار الخدمة) يكلف بعد
@@ -1975,12 +2191,22 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (intent === 'explain' && ctxNew) g = Math.max(g, 6);
     if (intent === 'apology' && (mem.contradictions.length || call.flags.offended)) { g = 3; call.flags.offended = false; }
     if (intent === 'greet') { if (call.flags.greeted) g = 0; call.flags.greeted = true; }
-    if (intent === 'introduce') {
-      if (call.flags.introduced) g = 0;
-      else if (st && st.mention && st.mention.length) {
-        var nt = normText(text), ok = st.mention.some(function (w) { return nt.indexOf(normText(w)) >= 0; });
-        if (ok) call.flags.introduced = true; else { g = -3; res.events.push({ type: 'hint', coach: true, text: 'ما ذكرت اسم الشركة، فالمتصل ما عرف من أنت.' }); }
-      } else call.flags.introduced = true;
+    if (facts.name && (!mf.playerName || facts.correction)) mf.playerName = facts.name;
+    if (facts.department && (!mf.department || facts.correction)) mf.department = facts.department;
+    if (introAct) {
+      if (facts.company) { mf.company = true; mf.companyAlias = facts.companyAlias; }
+      var introStep = s.steps.filter(function (x) { return x.id === 'intro'; })[0], needCompany = !!(introStep && introStep.mention && introStep.mention.length), introNow = false;
+      if (call.flags.introduced) { if (intent === 'introduce') g = 0; }
+      else if (needCompany) {
+        if (mf.company) { call.flags.introduced = true; introNow = true; }
+        else {
+          if (intent === 'introduce') g = -1;
+          res.decision.askCompanyOnly = true;
+          if (!mf.hintedCompany) { mf.hintedCompany = true; res.events.push({ type: 'hint', coach: true, text: 'ما ذكرت اسم الشركة، فالمتصل ما عرف من أنت.' }); }
+        }
+      } else { call.flags.introduced = true; introNow = true; }
+      if (introNow && intent !== 'introduce') g += GAIN.introduce;
+      if (call.flags.introduced) mf.introduced = true;
     }
     if (intent === 'explain') call.flags.explained = true;
     if (intent === 'answer_question' && pendingQ) { call.flags.answered = (call.flags.answered || 0) + 1; call.flags.explained = true; if (q.indexOf('asks_why') >= 0) g += 3; }
@@ -2014,11 +2240,15 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
 
     // التناقضات: حقائق قالها اللاعب عن نفسه أو عن الطلب
     var claimKeys = { player_name: 'اسمك', company: 'اسم الشركة', amount: 'المبلغ', department: 'القسم', callback: 'رقم التواصل' };
-    (Array.isArray(a.claims) ? a.claims : []).slice(0, 4).forEach(function (c) {
+    var claimList = (Array.isArray(a.claims) ? a.claims : []).slice(0, 4).filter(function (c) { return !(c && ((c.k === 'player_name' && facts.name) || (c.k === 'department' && facts.department))); });
+    if (facts.name) claimList.push({ k: 'player_name', v: facts.name });
+    if (facts.department) claimList.push({ k: 'department', v: facts.department });
+    claimList.forEach(function (c) {
       if (!c || !claimKeys[c.k] || typeof c.v !== 'string') return;
       var v = normText(c.v).slice(0, 40); if (!v) return;
       var old = mem.claims[c.k];
-      if (old && old !== v && !(old.indexOf(v) >= 0 || v.indexOf(old) >= 0)) {
+      if (old && !sameClaim(old, v) && facts.correction) { mem.claims[c.k] = v; if (c.k === 'player_name') mf.playerName = c.v; if (c.k === 'department') mf.department = c.v; }
+      else if (old && !sameClaim(old, v)) {
         var heavy = q.indexOf('catches_contradictions') >= 0;
         d.suspicion += heavy ? 25 : 12; d.trust -= 10; call.mistakes++; call.flags.stepContra++;
         mem.contradictions.push({ k: c.k, before: old, after: v, turn: call.turns });
@@ -2034,8 +2264,8 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     // تقدم الخطوة
     if (st && intent !== 'cheat') {
       if (st.kind === 'talk') {
-        var goalOk = st.goals.indexOf(intent) >= 0;
-        if (goalOk && st.mention && st.mention.length) { var nt2 = normText(text); goalOk = st.mention.some(function (w) { return nt2.indexOf(normText(w)) >= 0; }); }
+        var goalOk = st.goals.some(function (g2) { return acts.indexOf(g2) >= 0; });
+        if (goalOk && st.mention && st.mention.length) goalOk = !!mf.company;
         if (goalOk && st.needsClaims) goalOk = st.needsClaims.every(function (k) { return !!mem.claims[k]; });
         if (st.id === 'consistent') {
           if (call.flags.stepContra > 0) { call.stepTurns = 0; call.flags.stepContra = 0; goalOk = false; }
@@ -2046,7 +2276,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
         if (goalOk) completeStep(call, res, eff, now);
         else if (/^ask_/.test(intent)) earlyAsk(call, res);
       } else if (st.kind === 'ask') {
-        if (st.goals.indexOf(intent) >= 0) {
+        if (st.goals.some(function (g2) { return acts.indexOf(g2) >= 0; })) {
           var gt = gateFor(call);
           call.flags.askedOnce[st.id] = true;
           if (gt.willing && a.accept !== false || (gt.willing && call.flags.askedOnce[st.id + '_n'] >= 1)) {
@@ -2078,7 +2308,12 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       else if ((now - call.startedAt - call.waitMs) / 1000 > s.timeLimit * (1 + (eff.toolTime || 0))) finishCall(call, 'fail', 'timeout', res);
     }
     call.trustTrend = m.trust > t0 + 0.5 ? 1 : m.trust < t0 - 0.5 ? -1 : 0;
-    mem.history.push({ r: 'p', t: text.slice(0, 300), i: intent });
+    res.acts = acts; res.facts = facts;
+    if (facts.askedProblem) { mf.askedProblem = true; res.decision.problemAsked = true; }
+    if (facts.reversal) res.decision.reversal = true;
+    res.decision.greetOnly = !!(facts.greetOnly && !introAct);
+    mem.history.push({ r: 'p', t: text.slice(0, 300), i: intent, a: acts.slice(0, 4) });
+    mem.summary = summaryOf(call);
     if (mem.history.length > 40) mem.history.shift();
     call.lastTurnAt = now;
     res.intent = intent; res.ended = call.status !== 'active';
@@ -2562,12 +2797,11 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     applyTurn: applyTurn, submitTool: submitTool, openSuspiciousFile: openSuspiciousFile, finishCall: finishCall, settleCall: settleCall,
     settleWave: settleWave, detectCheat: detectCheat, latinRatio: latinRatio, noteEvent: noteEvent, endDay: endDay, buy: buy, deliver: deliver,
     checkAchievements: checkAchievements, trustBand: trustBand,
+    extractFacts: extractFacts, callerQuestionKind: callerQuestionKind, fuzzyHas: fuzzyHas, summaryOf: summaryOf, ID_ASK_RX: ID_ASK_RX, REVERSAL_SAY_RX: REVERSAL_SAY_RX,
     method: method, methodUnlocked: methodUnlocked, methodsFor: methodsFor, genOp: genOp, publicOp: publicOp, setMethod: setMethod, collectOp: collectOp,
     opWilling: opWilling, pieceNeed: pieceNeed, credit: credit, hasOpStep: hasOpStep
   };
 });
-
-/* ===== cc-session.js ===== */
 /* احسمها | مركز الاتصالات — جلسة اللعب الواحدة (لاعب واحد).
    تربط القواعد الحتمية بـ«عقل المتصل» (Gemini بالخادم، أو ردود مبرمجة بوضع التدريب).
    الخادم يستخدمها كمرجع رسمي؛ المتصفح يستخدمها فقط بوضع التدريب المعلن.
@@ -2674,6 +2908,72 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     return draft;
   }
 
+
+  /* ================= المكالمة الواردة: افتتاحية المتصل وحالة الحوار ================= */
+  function openingFor(call, rng) {
+    var s = R.scenario(call.scenarioId), p = R.persona(call.personaId), inc = s.incoming;
+    if (!inc) return rng.pick(p.openings);
+    var base = inc.openings[Math.floor(rng() * inc.openings.length)];
+    var tail = !inc.allowReask && C.OPEN_TAIL[p.tone] && rng() < 0.6 ? C.OPEN_TAIL[p.tone] : '';
+    return (base + tail).replace(/\s+/g, ' ').trim();
+  }
+  function pickFrom(call, arr, vars, rng) {
+    var used = call.memory.lastLines, list = arr.map(function (x) { return fill(x, vars); }), fresh = list.filter(function (x) { return used.indexOf(x) < 0; });
+    var pool = fresh.length ? fresh : list, line = pool[Math.floor(rng() * pool.length)];
+    used.push(line); if (used.length > 14) used.shift();
+    return line;
+  }
+  function nextDetail(call) {
+    var inc = R.scenario(call.scenarioId).incoming, mf = call.memory.facts, i = mf.detailIdx || 0;
+    mf.detailIdx = Math.min(i + 1, inc.detail.length);
+    return inc.detail[Math.min(i, inc.detail.length - 1)];
+  }
+  /* جملة المتصل المبنية على حالة المكالمة الموثوقة (التعريف، سؤال المشكلة، انعكاس الأدوار، الذاكرة).
+     ترجع null لو الحالة ما تستدعي ردّاً مبنياً على القصة (مثل الإساءة أو النكتة) فيكمل المسار العادي. */
+  function stateLine(call, res, rng) {
+    var s = R.scenario(call.scenarioId), inc = s.incoming, p = R.persona(call.personaId);
+    if (!inc || inc.allowReask) return null;
+    var L = C.INCOMING_LINES[p.tone] || C.INCOMING_LINES.casual, mf = call.memory.facts || {}, d = res.decision || {}, acts = res.acts || [], intent = res.intent;
+    var vars = { company: s.company, pname: mf.playerName || '', want: inc.wantSelf || '' };
+    if (intent === 'cheat' || intent === 'insult') return null;
+    var introduced = acts.indexOf('introduce') >= 0, story = ['greet', 'explain', 'reassure', 'answer_question', 'ask_problem', 'introduce'];
+    if (d.reversal) return pickFrom(call, L.reversal, vars, rng) + ' ' + nextDetail(call);
+    if (d.askCompanyOnly && !mf.company) return pickFrom(call, L.ack_name, vars, rng);
+    if (d.problemAsked) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    if (introduced && call.flags.introduced) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    if (d.greetOnly) {
+      var asked = (call.memory.asked || {}).company || 0;
+      if (!mf.company && asked < 2) return pickFrom(call, L.confirm, vars, rng);
+      return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    }
+    if (story.indexOf(intent) >= 0) {
+      if ((mf.detailIdx || 0) < inc.detail.length) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+      return pickFrom(call, L.wait, vars, rng);
+    }
+    return null;
+  }
+  function norm(t) { return R.normText(t || ''); }
+  function hasKeyword(line, kws) { var n = norm(line); return (kws || []).some(function (k) { return n.indexOf(norm(k)) >= 0; }); }
+  /* يمنع الرد النهائي من مخالفة حالة المكالمة: سؤال «من أنت؟» بعد التعريف، عكس الأدوار، تكرار نفس الجملة أو نفس السؤال بعد الإجابة عنه */
+  function guardLine(call, res, line, rng) {
+    var s = R.scenario(call.scenarioId), inc = s.incoming, mf = call.memory.facts || {};
+    if (!line || res.ended || !inc || inc.allowReask) return line;
+    var t = norm(line), known = !!(call.flags.introduced || mf.playerName || mf.company), bad = false;
+    if (known && R.ID_ASK_RX.test(t)) bad = true;
+    if (R.REVERSAL_SAY_RX.test(t)) bad = true;
+    var recent = call.memory.history.filter(function (h) { return h.r === 'c'; }).slice(-3).map(function (h) { return norm(h.t); });
+    if (recent.indexOf(t) >= 0) bad = true;
+    var qk = R.callerQuestionKind(line, call), pend = call.memory.pending;
+    if (qk === 'company' && (mf.company || call.flags.introduced)) bad = true;
+    if (qk && pend && pend.answered && pend.kind === qk && qk !== 'other') bad = true;
+    var d = res.decision || {};
+    if (!bad && (d.problemAsked || (res.acts || []).indexOf('introduce') >= 0 && call.flags.introduced && (mf.detailIdx || 0) === 0) && !hasKeyword(line, inc.keywords)) bad = true;
+    if (!bad) return line;
+    call.memory.loopHits = (call.memory.loopHits || 0) + 1;
+    var fixed = stateLine(call, Object.assign({}, res, { decision: Object.assign({}, d, { problemAsked: true }) }), rng);
+    return fixed || line;
+  }
+
   /* ================= الجلسة ================= */
   function Session(opts) {
     this.brain = opts.brain;
@@ -2768,10 +3068,12 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (opts.method) pick = Object.assign({}, pick, { method: String(opts.method) });
     var call = R.createCall(this.profile, d, pick, this.rng, this.now(), this.effects());
     this.call = call; d.activeCallId = call.id;
-    var p = R.persona(call.personaId), opening = this.rng.pick(p.openings);
+    var p = R.persona(call.personaId), opening = openingFor(call, this.rng), oqk = R.callerQuestionKind(opening, call);
     call.memory.history.push({ r: 'c', t: opening });
     call.memory.lastLines.push(opening);
     call.memory.pendingQ = /[؟?]/.test(opening);
+    call.memory.pending = oqk ? { kind: oqk, text: opening, answered: false, turn: 0 } : null;
+    if (oqk) { call.memory.asked[oqk] = 1; call.memory.lastQKind = oqk; }
     if (call.op) this.onOpIssued(call.op);
     R.logDay(d, 'call_start', 'مكالمة من ' + p.name + ': ' + R.scenario(call.scenarioId).title, { callId: call.id, caller: p.name });
     return { call: R.publicCall(call), opening: { id: call.id + ':0', text: opening } };
@@ -2788,6 +3090,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     var text = String(req.text || '').replace(/\s+/g, ' ').trim().slice(0, 600);
     if (!text) return Promise.resolve({ error: 'empty', callId: call.id, msgId: req.msgId });
     call.env = { noise: !!(req.env && req.env.noise) };
+    if (req.interrupted) { for (var hi = call.memory.history.length - 1; hi >= 0; hi--) if (call.memory.history[hi].r === 'c') { call.memory.history[hi].cut = true; break; } }
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : { signal: null, abort: function () {} };
     var started = this.now();
     this.pending = { msgId: req.msgId, ctl: ctl, callId: call.id };
@@ -2815,6 +3118,10 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       var line = self.brain.compose ? self.brain.compose(ctx, res, draft) : null;
       if (!line) line = reconcile(call, res, draft, self.rng);
       if (!line) line = pickLine(call, 'waiting', lineVars(call), self.rng);
+      line = guardLine(call, res, line, self.rng);
+      var lqk = res.ended ? null : R.callerQuestionKind(line, call);
+      call.memory.pending = lqk ? { kind: lqk, text: line, answered: false, turn: call.turns } : null;
+      if (lqk) { call.memory.asked[lqk] = (call.memory.asked[lqk] || 0) + 1; call.memory.lastQKind = lqk; }
       call.memory.history.push({ r: 'c', t: line });
       call.memory.pendingQ = /[؟?]/.test(line);
       call.memory.pendingObj = res.decision.accept === false || !!res.decision.opRefused;
@@ -2949,10 +3256,8 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   P.deliver = function (req) { var r = R.deliver(this.profile, req.itemId); if (r.ok) this.checkpoint('delivery'); return { ok: r.ok, profile: this.publicProfile() }; };
   P.resetProgress = function () { var s = this.profile.settings; this.profile = R.newProfile(); this.profile.settings = s; this.day = null; this.call = null; this.checkpoint('reset'); return { ok: true, profile: this.publicProfile() }; };
 
-  return { Session: Session, sanitizeSay: sanitizeSay, reconcile: reconcile, pickLine: pickLine, lineVars: lineVars, cutAtBoundary: cutAtBoundary, speakText: speakText, shownValues: shownValues };
+  return { Session: Session, stateLine: stateLine, guardLine: guardLine, openingFor: openingFor, sanitizeSay: sanitizeSay, reconcile: reconcile, pickLine: pickLine, lineVars: lineVars, cutAtBoundary: cutAtBoundary, speakText: speakText, shownValues: shownValues };
 });
-
-/* ===== cc-local-brain.js ===== */
 /* احسمها | مركز الاتصالات — «عقل» وضع التدريب المحلي.
    مصنّف نوايا بالكلمات المفتاحية + ردود مبرمجة من مكتبة الجمل. مو ذكاء اصطناعي، والواجهة توضح ذلك دائماً.
    يُستخدم فقط عند اختيار وضع التدريب، ولا يُستخدم أبداً كغطاء لخطأ اتصال بخدمة المحادثة. */
@@ -2995,6 +3300,11 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   function classify(text, call) {
     var t = N(text), st = R.curStep(call);
     if (!t) return 'unclear';
+    // حقائق حتمية أولاً: اسم/قسم = تعريف، سؤال عن المشكلة = ask_problem، تحية لحالها = greet
+    var f = R.extractFacts(text, call);
+    if (f.name || f.department) return 'introduce';
+    if (f.askedProblem) return 'ask_problem';
+    if (f.greetOnly) return 'greet';
     // كلمة «الرمز» داخل جواب أو شرح ما تعني طلب: الطلب يحتاج صيغة طلب أو سؤال
     var lastC0 = call.memory.history.length ? call.memory.history[call.memory.history.length - 1] : null;
     var askCue = /[؟?]/.test(text) || /(ممكن|تعطيني|عطني|اعطني|ابي|ابغى|ودي|اقرا|اقرأ|قل لي|قول لي|تقول لي|تقرا|ارسل|تكتب لي|لو سمحت|تفضل|عطنا)/.test(t);
@@ -3038,6 +3348,8 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       if (!call.flags.refused) return S.pickLine(call, 'sabotage_push', v, rng);
       if (intent !== 'polite_end') return S.pickLine(call, 'sabotage_flip', v, rng);
     }
+    var sl = S.stateLine(call, res, rng);
+    if (sl) return S.cutAtBoundary(sl.trim(), 260);
     var map = { greet: 'greet', introduce: 'introduced', explain: 'explain_ok', reassure: 'reassured', answer_question: 'explain_ok', small_talk: 'small_talk', joke: 'joke', pressure: 'pressure', apology: 'reassured', cheat: 'cheat', unclear: 'unclear', off_topic: 'unclear', insult: 'insult', refuse: 'explain_ok' };
     line = S.pickLine(call, map[intent] || 'waiting', v, rng);
     if (s.testerCall && call.turns >= 1 && rng() < 0.75) line = (line ? line + ' ' : '') + TESTER_PROBES[(call.turns + call.seed) % TESTER_PROBES.length];
@@ -3052,8 +3364,6 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
 
   return { LocalBrain: LocalBrain, classify: classify, extractClaims: extractClaims };
 });
-
-/* ===== 00-core.js ===== */
 /* احسمها | مركز الاتصالات — النواة: أدوات DOM، التخزين الآمن، الإعدادات، ناقل الأحداث. */
 (function () {
   'use strict';
@@ -3136,7 +3446,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     sens: 1, invertY: false, headBob: true, reduceShake: false, reduceMotion: G.device.reduceMotion,
     quality: 'auto', showFps: false, captions: true, textScale: 1,
     keys: { interact: 'KeyE', ptt: 'KeyV', stand: 'KeyQ', photo: 'KeyP' },
-    mic: { mode: 'ptt', review: true, deviceId: '' }, deviceVoice: false,
+    mic: { mode: 'toggle', review: false, deviceId: '', set: false }, gap: 'normal', deviceVoice: false,
     mode: 'training', apiBase: '', coach: false, tips: true
   };
   function validSettings(s) {
@@ -3150,7 +3460,9 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     out.quality = ['auto', 'low', 'medium', 'high'].indexOf(s.quality) >= 0 ? s.quality : 'auto';
     out.showFps = !!s.showFps; out.captions = s.captions !== false; out.textScale = num(s.textScale, 0.9, 1.3, 1);
     if (s.keys) Object.keys(out.keys).forEach(function (k) { if (typeof s.keys[k] === 'string' && /^[A-Za-z0-9]{2,20}$/.test(s.keys[k])) out.keys[k] = s.keys[k]; });
-    if (s.mic) { out.mic.mode = s.mic.mode === 'toggle' ? 'toggle' : 'ptt'; out.mic.review = s.mic.review !== false; out.mic.deviceId = typeof s.mic.deviceId === 'string' ? s.mic.deviceId.slice(0, 200) : ''; }
+    // الافتراضي ضغطة وحدة + إرسال تلقائي؛ إعدادات قديمة محفوظة بدون اختيار صريح من اللاعب تتحول للافتراضي الجديد
+    if (s.mic) { out.mic.set = s.mic.set === true; if (out.mic.set) { out.mic.mode = s.mic.mode === 'ptt' ? 'ptt' : 'toggle'; out.mic.review = s.mic.review === true; } out.mic.deviceId = typeof s.mic.deviceId === 'string' ? s.mic.deviceId.slice(0, 200) : ''; }
+    out.gap = ['short', 'normal', 'long'].indexOf(s.gap) >= 0 ? s.gap : 'normal';
     out.deviceVoice = !!s.deviceVoice;
     out.mode = s.mode === 'live' ? 'live' : 'training';
     out.coach = !!s.coach; out.tips = s.tips !== false && s.tutorial !== false;
@@ -6253,9 +6565,8 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (st === 'connecting') return { t: 'يتصل', k: 'proc' };
     if (st === 'ended') return { t: 'انتهت', k: 'off' };
     if (st !== 'active') return { t: '', k: '' };
-    if (G.mic.state === 'rec') return { t: 'يسمعك', k: 'rec' };
-    if (G.mic.state === 'proc') return { t: 'يعالج صوتك', k: 'proc' };
-    if (K.pending) return { t: 'المتصل يرد', k: 'proc' };
+    if (G.mic.state !== 'idle') return G.mic.status();
+    if (K.pending) return { t: 'ينتظر رد المتصل', k: 'proc' };
     if (G.audio.voicePlaying && G.audio.voicePlaying()) return { t: 'المتصل يتكلم', k: 'talk' };
     return { t: K.muted ? 'على الخط (مكتوم)' : 'على الخط', k: 'live' };
   };
@@ -6304,8 +6615,9 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     } else if (st === 'connecting') acts.appendChild(U.h('<span class="muted">جاري الاتصال...</span>'));
     var mt = G.mic.state;
     els.mic.disabled = !G.mic.available() || st !== 'active';
-    els.mic.title = G.mic.reason() || (G.settings.mic.mode === 'ptt' ? 'اضغط مطولاً وتكلم (' + G.keyLabel(G.settings.keys.ptt) + ')' : 'اضغط للاستماع، واضغط مرة ثانية للإيقاف');
-    els.mic.classList.toggle('rec', mt === 'rec'); els.mic.classList.toggle('busy', mt === 'proc');
+    els.mic.title = G.mic.reason() || (mt === 'rec' ? 'اضغط للإيقاف وإرسال كلامك' : mt === 'perm' ? 'ينتظر إذن المايك (اضغط للإلغاء)' : mt === 'stt' ? 'يحوّل كلامك لنص' : mt === 'err' ? 'تعذر التشغيل، اضغط للمحاولة من جديد' : 'اضغط وتكلم، واضغط مرة ثانية للإيقاف (' + G.keyLabel(G.settings.keys.ptt) + ')');
+    els.mic.classList.toggle('rec', mt === 'rec'); els.mic.classList.toggle('busy', mt === 'perm' || mt === 'stt'); els.mic.classList.toggle('err', mt === 'err');
+    els.mic.setAttribute('aria-pressed', mt === 'rec' ? 'true' : 'false'); els.mic.dataset.micState = mt;
     els.send.disabled = st !== 'active' || !!K.pending;
     G.emit('call-render');
   };
@@ -6326,7 +6638,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   };
 
   /* ---------- الجدولة والرنين ---------- */
-  K.schedule = function (minS, maxS) { var d = G.state.snap && G.state.snap.day ? G.state.snap.day.day : 1; minS = minS || (d === 1 ? 4 : 6); maxS = maxS || (d === 1 ? 8 : 14); K.nextRingAt = G.game.clockNow() + minS + Math.random() * (maxS - minS); };
+  K.schedule = function (minS, maxS) { var d = G.state.snap && G.state.snap.day ? G.state.snap.day.day : 1, gp = { short: [3, 6], long: [15, 30] }[G.settings.gap]; if (gp) { minS = gp[0]; maxS = gp[1]; } minS = minS || (d === 1 ? 4 : 6); maxS = maxS || (d === 1 ? 8 : 14); K.nextRingAt = G.game.clockNow() + minS + Math.random() * (maxS - minS); };
   K.update = function (dt) {
     if (K.state === 'active' && els.timer && G.state.snap && K.call) { var sec = (Date.now() - K.startedAtLocal) / 1000; els.timer.textContent = U.mmss(sec); }
     if (G.state.phase !== 'shift' || G.state.paused) return;
@@ -6353,7 +6665,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     G.auth.call('call/start', { timeWaster: !!K.opts.timeWaster }).then(function (r) {
       G.game.applySnap(r.state);
       if (!r.ok || !r.call) { K.state = 'idle'; G.world.handset.position.copy(G.world.handsetHome); G.ui.toast('تعذر بدء المكالمة', r.msg || 'حاول مرة ثانية.', 'warning', 'warn'); K.schedule(); K.render(); G.ui.dockSync(); return; }
-      K.call = r.call; K.state = 'active'; K.startedAtLocal = Date.now(); K.log = []; if (els.log) els.log.innerHTML = '';
+      K.call = r.call; K.state = 'active'; K.startedAtLocal = Date.now(); K.log = []; if (els.log) els.log.innerHTML = ''; G.mic.prepare();
       addLog({ r: 'sys', text: 'المتصل: ' + r.call.caller.name + ' · ' + r.call.scenario.title });
       if (G.auth.kind === 'local' && !K.trainNoted) { K.trainNoted = true; addLog({ r: 'sys', text: C.STRINGS.trainingBadge }); }
       addLog({ r: 'c', text: r.opening.text, id: r.opening.id });
@@ -6366,7 +6678,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   };
 
   /* ---------- الإرسال ---------- */
-  K.send = function (textOverride) {
+  K.send = function (textOverride, opts) {
     if (K.state !== 'active' || !K.call) return;
     var text = (textOverride != null ? textOverride : els.text.value).replace(/\s+$/g, '');
     if (!text.trim()) return;
@@ -6374,7 +6686,8 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (textOverride == null) { els.text.value = ''; G.store.set('cc3d.draft', ''); autoGrow(); }
     var msgId = U.uid('m');
     var entry = addLog({ r: 'p', text: text, pending: true, id: msgId });
-    doTurn({ msgId: msgId, text: text, entry: entry, callId: K.call.id });
+    doTurn({ msgId: msgId, text: text, entry: entry, callId: K.call.id, via: (opts && opts.via) || 'text', interrupted: !!K.interrupted });
+    K.interrupted = false;
   };
   function doTurn(req) {
     K.pending = req; K.render();
@@ -6382,7 +6695,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     setTyping(true); status(C.STRINGS.callWaiting);
     var slowT = setTimeout(function () { if (K.pending === req) status(C.STRINGS.callSlow); }, 2600);
     G.game.clockPause(true, 'wait');
-    G.auth.call('call/turn', { callId: req.callId, msgId: req.msgId, text: req.text, env: { noise: G.office.envNoise() } }).then(function (r) {
+    G.auth.call('call/turn', { callId: req.callId, msgId: req.msgId, text: req.text, via: req.via || 'text', interrupted: !!req.interrupted, env: { noise: G.office.envNoise() } }).then(function (r) {
       clearTimeout(slowT);
       G.game.clockPause(false, 'wait');
       if (K.pending !== req) return; // انلغى
@@ -6437,6 +6750,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   }
   function finish(r) {
     var c = K.call, ok = c && c.outcome === 'success', st = r.settlement || {};
+    G.mic.cancel(); G.audio.stopVoice();
     K.state = 'ended';
     G.world.handset.position.copy(G.world.handsetHome); G.audio.fx('hangup');
     var reason = c ? G.R.reasonText(c.endReason) : '';
@@ -6507,121 +6821,261 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   G.on('voice-start', function () { K.render(); if (G.os.renderCallbar) G.os.renderCallbar(); });
   G.on('voice-end', function () { K.render(); if (G.os.renderCallbar) G.os.renderCallbar(); });
 
-  /* ================= المايك ================= */
-  var mic = G.mic = { state: 'idle', stream: null, rec: null, chunks: [], denied: false, ctx: null, analyser: null, raf: 0, speechMs: 0, silenceMs: 0, startedAt: 0, recog: null };
+  /* ================= المايك =================
+     مراحل الصوت منفصلة وكل مرحلة لها حالة ظاهرة: إذن/التقاط ← تسجيل صالح ← تحويل لنص ← إرسال دور اللاعب ← رد المتصل ← صوت المتصل.
+     حالات mic.state: idle (جاهز) · perm (ينتظر إذن المايك) · rec (يسمعك فعلاً بعد نجاح الالتقاط) · stt (يحوّل كلامك لنص) · err (تعذر التشغيل + سبب).
+     كل تشغيل له رقم (mic.run) ومعه رقم المكالمة؛ أي نتيجة متأخرة لتشغيل ملغي أو لمكالمة منتهية تُتجاهل وتُحرَّر مواردها.
+     الافتراضي: ضغطة وحدة تبدأ الاستماع وضغطة ثانية (أو سكوت مناسب) توقفه؛ الضغط المطوّل خيار بالإعدادات. */
+  var mic = G.mic = { state: 'idle', stream: null, rec: null, chunks: [], denied: false, run: 0, callId: null, speechMs: 0, silenceMs: 0, startedAt: 0, recog: null, meterOk: false, err: '', timer: 0, srcNode: null, ctx: null, lastRun: -1, downAt: 0, sticky: false, mime: 'audio/webm' };
+  var REC_TYPES = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mpeg'];
+  G.MIC_MAX_MS = 25000;       // أقل بكثير من حد الخادم (٢ ميجا base64) بترميز ٣٢ كيلوبت
+  G.MIC_SILENCE_MS = 1700;    // وقفة وسط الجملة أقصر من هذا ما تقص كلام اللاعب
+  G.MIC_NOSPEECH_MS = 9000;
+  G.MIC_STT_TIMEOUT_MS = 24000; // مهلة تحويل الصوت لنص قبل ما نعرض خطأ ونفك الحالة
   mic.supported = function () { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder); };
   mic.available = function () {
-    if (mic.denied) return false;
     if (G.auth && G.auth.kind === 'remote') return mic.supported() && !!(G.auth.caps && G.auth.caps.stt);
     return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
   };
   mic.reason = function () {
-    if (mic.denied) return C.STRINGS.micDenied;
+    if (G.auth && G.auth.kind === 'remote' && !mic.supported()) return 'متصفحك ما يدعم تسجيل الصوت. الكتابة شغالة.';
     if (G.auth && G.auth.kind === 'remote' && !(G.auth.caps && G.auth.caps.stt)) return 'تحويل الصوت لنص غير متاح بالخادم الحين. الكتابة شغالة.';
     if (G.auth && G.auth.kind === 'local' && !(window.SpeechRecognition || window.webkitSpeechRecognition)) return 'وضع التدريب يستخدم تعرّف الصوت بالمتصفح، ومتصفحك ما يدعمه. الكتابة شغالة.';
     return '';
   };
+  /* الحالة الظاهرة للاعب (تُستخدم بلوحة المكالمة وزر المايك) */
+  mic.status = function () {
+    if (mic.state === 'perm') return { t: 'ينتظر إذن المايك', k: 'proc' };
+    if (mic.state === 'rec') return { t: 'يسمعك', k: 'rec' };
+    if (mic.state === 'stt') return { t: 'يحوّل كلامك لنص', k: 'proc' };
+    if (mic.state === 'err') return { t: 'تعذر التشغيل' + (mic.err ? ': ' + mic.err : ''), k: 'err' };
+    if (K.pending) return { t: 'ينتظر رد المتصل', k: 'proc' };
+    if (G.audio.voicePlaying && G.audio.voicePlaying()) return { t: 'المتصل يتكلم', k: 'talk' };
+    return { t: 'جاهز', k: 'live' };
+  };
+  function setMic(s, msg, kind) {
+    mic.state = s; if (s !== 'err') mic.err = '';
+    K.render();
+    if (msg != null) status(msg, kind);
+    var lb = document.getElementById('tb-mic'); if (lb) lb.classList.toggle('main', s === 'rec');
+    if (els.mic) { els.mic.setAttribute('aria-pressed', s === 'rec' ? 'true' : 'false'); els.mic.dataset.micState = s; }
+  }
+  function failMic(why, e) { stopMeter(); releaseStream(); mic.recog = null; mic.err = why; mic.state = 'err'; K.render(); status('تعذر تشغيل المايك: ' + why + ' الكتابة شغالة.', 'err'); var lb = document.getElementById('tb-mic'); if (lb) lb.classList.remove('main'); if (els.mic) { els.mic.setAttribute('aria-pressed', 'false'); els.mic.dataset.micState = 'err'; } }
+  function explain(e) {
+    var n = e && e.name;
+    if (n === 'NotAllowedError' || n === 'SecurityError') { mic.denied = true; return window.top !== window ? 'الإذن مرفوض أو محجوب داخل الإطار. فعّل المايك للموقع من إعدادات المتصفح ثم اضغط من جديد.' : 'الإذن مرفوض. فعّل المايك للموقع من إعدادات المتصفح ثم اضغط من جديد.'; }
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'ما لقينا مايك بجهازك.';
+    if (n === 'NotReadableError' || n === 'TrackStartError') return 'المايك مستخدم من تطبيق ثاني أو غير متاح.';
+    if (n === 'AbortError') return 'انقطع تشغيل المايك.';
+    return 'ما قدرنا نوصل للمايك (' + (n || 'خطأ') + ').';
+  }
   mic.bind = function (b) {
-    b.addEventListener('pointerdown', function (e) { e.preventDefault(); if (b.disabled) return; if (G.settings.mic.mode === 'ptt') mic.start(); else (mic.state === 'rec' ? mic.stop() : mic.start()); });
-    b.addEventListener('pointerup', function () { if (G.settings.mic.mode === 'ptt') mic.stop(); });
-    b.addEventListener('pointerleave', function () { if (G.settings.mic.mode === 'ptt' && mic.state === 'rec') mic.stop(); });
+    if (!b || b.__ccMicBound) return; b.__ccMicBound = true; // ربط واحد فقط: الربط المزدوج كان يشغّل ثم يوقف بنفس الضغطة
+    b.addEventListener('pointerdown', function (e) {
+      if (e.button != null && e.button > 0) return; e.preventDefault(); if (b.disabled) return;
+      mic.downAt = performance.now(); mic.pointerHandled = true;
+      if (G.settings.mic.mode === 'ptt') { if (mic.state === 'rec') { mic.stop(); mic.sticky = false; } else mic.start(); return; }
+      mic.toggle();
+    });
+    b.addEventListener('pointerup', function () {
+      if (G.settings.mic.mode !== 'ptt' || mic.state !== 'rec') return;
+      // ضغطة سريعة بوضع الضغط المطوّل = ضغطة تشغيل (يكمل الاستماع) بدل ما يقص التسجيل على طول
+      if (performance.now() - mic.downAt < 450) { mic.sticky = true; return; }
+      if (!mic.sticky) mic.stop();
+    });
+    b.addEventListener('pointerleave', function () { if (G.settings.mic.mode === 'ptt' && mic.state === 'rec' && !mic.sticky && performance.now() - mic.downAt >= 450) mic.stop(); });
+    // لوحة المفاتيح (Enter/Space على الزر) وقارئات الشاشة: click بدون pointer
+    b.addEventListener('click', function (e) { if (mic.pointerHandled) { mic.pointerHandled = false; return; } if (!b.disabled) mic.toggle(); });
     b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   };
-  G.on('ptt-down', function () { if (K.state === 'active' && mic.available() && G.settings.mic.mode === 'ptt') mic.start(); else if (K.state === 'active' && G.settings.mic.mode === 'toggle') (mic.state === 'rec' ? mic.stop() : mic.start()); });
-  G.on('ptt-up', function () { if (G.settings.mic.mode === 'ptt' && mic.state === 'rec') mic.stop(); });
-  function setMic(s, msg) { mic.state = s; K.render(); if (msg != null) status(msg); var lb = document.getElementById('tb-mic'); if (lb) lb.classList.toggle('main', s === 'rec'); }
-  mic.getStream = function () {
-    if (mic.stream && mic.stream.active) return Promise.resolve(mic.stream);
+  mic.toggle = function () { if (mic.state === 'rec') mic.stop(); else if (mic.state === 'perm' || mic.state === 'stt') mic.cancel(); else mic.start(); };
+  G.on('ptt-down', function () {
+    if (K.state !== 'active') return;
+    if (G.settings.mic.mode === 'ptt') { if (mic.state === 'rec') mic.stop(); else if (mic.available()) mic.start(); } else mic.toggle();
+  });
+  G.on('ptt-up', function () { if (G.settings.mic.mode === 'ptt' && mic.state === 'rec' && performance.now() - mic.downAt > 450) mic.stop(); });
+
+  function releaseStream() { if (mic.stream) { try { mic.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { /* */ } mic.stream = null; } }
+  function getStream() {
     var c = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
     if (G.settings.mic.deviceId) c.deviceId = { exact: G.settings.mic.deviceId };
     return navigator.mediaDevices.getUserMedia({ audio: c }).catch(function (e) {
-      if (e && e.name === 'OverconstrainedError' && c.deviceId) { delete c.deviceId; G.settings.mic.deviceId = ''; G.saveSettings(); return navigator.mediaDevices.getUserMedia({ audio: c }); }
+      // جهاز محفوظ اختفى/تغيّر: نرجع للافتراضي ونكمل
+      if (e && (e.name === 'OverconstrainedError' || e.name === 'NotFoundError') && c.deviceId) { delete c.deviceId; G.settings.mic.deviceId = ''; G.saveSettings(); status('جهاز المايك المحفوظ ما انلقى. استخدمنا الافتراضي.'); return navigator.mediaDevices.getUserMedia({ audio: c }); }
       throw e;
-    }).then(function (s) { mic.stream = s; return s; });
-  };
-  mic.start = function () {
-    if (mic.state !== 'idle' || K.state !== 'active') return;
-    if (K.pending) { status('انتظر رد المتصل قبل ما تتكلم.'); return; }
-    // مقاطعة صوت المتصل: نوقفه قبل التسجيل حتى ما يلتقط المايك صوته
-    if (G.audio.voicePlaying()) G.audio.stopVoice();
-    if (G.auth.kind === 'local') return startRecognition();
-    setMic('rec', 'يسمع... ' + (G.settings.mic.mode === 'ptt' ? 'اترك الزر لما تخلص.' : 'اسكت ثانية ويوقف لحاله.'));
-    mic.getStream().then(function (stream) {
-      if (mic.state !== 'rec') return;
-      var mime = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4'].filter(function (m) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m); })[0] || '';
-      mic.mime = mime || 'audio/webm';
-      mic.chunks = []; mic.speechMs = 0; mic.silenceMs = 0; mic.startedAt = performance.now();
-      try { mic.rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined); } catch (e) { setMic('idle', 'تعذر تشغيل التسجيل بهالمتصفح. اكتب رسالتك.'); return; }
-      mic.rec.ondataavailable = function (ev) { if (ev.data && ev.data.size) mic.chunks.push(ev.data); };
-      mic.rec.onstop = onRecStop;
-      mic.rec.start(250);
-      meter(stream);
-    }).catch(function (e) {
-      mic.denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-      setMic('idle', mic.denied ? C.STRINGS.micDenied : 'ما قدرنا نوصل للمايك (' + (e && e.name || 'خطأ') + '). الكتابة شغالة.');
     });
-  };
-  function meter(stream) {
-    try {
-      var ctx = G.audio.ctx; if (!ctx) return;
-      var src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an); mic.analyser = an; mic.srcNode = src;
-      var buf = new Float32Array(an.fftSize), last = performance.now();
-      var loop = function () {
-        if (mic.state !== 'rec') return;
-        an.getFloatTimeDomainData(buf); var s = 0; for (var i = 0; i < buf.length; i++) s += buf[i] * buf[i];
-        var rms = Math.sqrt(s / buf.length), now = performance.now(), dt = now - last; last = now;
-        els.lvl.style.transform = 'scaleX(' + Math.min(1, rms * 12) + ')';
-        if (rms > 0.018) { mic.speechMs += dt; mic.silenceMs = 0; } else mic.silenceMs += dt;
-        var dur = now - mic.startedAt;
-        if (G.settings.mic.mode === 'toggle' && mic.speechMs > 300 && mic.silenceMs > 950) { mic.stop(); return; }
-        if (dur > G.MIC_MAX_MS) { mic.stop(); return; }
-        mic.raf = requestAnimationFrame(loop);
-      };
-      mic.raf = requestAnimationFrame(loop);
-    } catch (e) { /* القياس اختياري */ }
   }
-  G.MIC_MAX_MS = 12000;
+  mic.start = function () {
+    if (K.state !== 'active' || !K.call) return;
+    if (mic.state !== 'idle' && mic.state !== 'err') return;
+    if (K.pending) { status('انتظر رد المتصل قبل ما تتكلم.'); return; }
+    var run = ++mic.run, callId = K.call.id; mic.callId = callId; mic.sticky = false;
+    // مقاطعة صوت المتصل: نوقفه ونعلّم جملته منقطعة، وبعدها نبدأ الاستماع (ما نسجل صوته)
+    if (G.audio.voicePlaying && G.audio.voicePlaying()) { G.audio.stopVoice(); K.interrupted = true; }
+    if (G.auth.kind === 'local') return startRecognition(run, callId);
+    if (!mic.supported()) { failMic('متصفحك ما يدعم تسجيل الصوت.'); return; }
+    setMic('perm', 'ينتظر إذن المايك... اسمح للمتصفح باستخدام المايك.');
+    getStream().then(function (stream) {
+      var valid = run === mic.run && mic.state === 'perm' && K.call && K.call.id === callId && K.state === 'active';
+      if (!valid) { try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { /* */ } return; } // وصل بعد الإلغاء: نحرر الموارد
+      mic.stream = stream; mic.speechMs = 0; mic.silenceMs = 0;
+      startMeter(stream, run);
+      var mime = REC_TYPES.filter(function (m) { return MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m); })[0] || '';
+      var rec;
+      try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined); } catch (e) { failMic('تعذر تشغيل التسجيل بهالمتصفح.'); return; }
+      mic.rec = rec; mic.chunks = [];
+      rec.ondataavailable = function (ev) { if (run === mic.run && ev.data && ev.data.size) mic.chunks.push(ev.data); };
+      rec.onerror = function (ev) { if (run === mic.run) failMic('فشل التسجيل (' + ((ev && ev.error && ev.error.name) || 'خطأ') + ').'); };
+      rec.onstop = function () { onRecStop(run, callId); };
+      // «يسمعك» ما تظهر إلا لما يبدأ الالتقاط فعلاً
+      rec.onstart = function () {
+        if (run !== mic.run) return;
+        mic.startedAt = performance.now();
+        setMic('rec', 'يسمعك... ' + (G.settings.mic.mode === 'ptt' && !mic.sticky ? 'اترك الزر لما تخلص.' : 'اضغط مرة ثانية أو اسكت ثانيتين وأوقفه.'));
+      };
+      try { rec.start(250); } catch (e) { failMic('تعذر بدء التسجيل.'); }
+    }).catch(function (e) { if (run !== mic.run) return; failMic(explain(e), e); });
+  };
+  /* قياس الصوت منفصل عن التسجيل: فشل المحلل ما يعني فشل التسجيل (نرجع لحجم المقطع).
+     الأفضل AudioWorklet: يقيس بخيط الصوت ويرسل نبضات بزمن الصوت الفعلي، فالصفحة الثقيلة (رسم ثلاثي الأبعاد) ما تضيّع كلام اللاعب بين مؤقتين.
+     الاحتياطي: محلل + مؤقت (يقيس بساعة الصفحة). */
+  var METER_SRC = 'class P extends AudioWorkletProcessor{constructor(){super();this.n=0;this.s=0;}process(i){var c=i[0]&&i[0][0];if(c){for(var k=0;k<c.length;k++)this.s+=c[k]*c[k];this.n+=c.length;if(this.n>=sampleRate*0.1){this.port.postMessage({rms:Math.sqrt(this.s/this.n),ms:this.n/sampleRate*1000});this.n=0;this.s=0;}}return true;}}registerProcessor("cc-meter",P);';
+  function levelStep(run, rms, dtMs) {
+    if (run !== mic.run || (mic.state !== 'rec' && mic.state !== 'perm')) return;
+    if (rms > 0) mic.seen = true;
+    mic.meterOk = !!mic.seen && !!mic.ctx && mic.ctx.state === 'running';
+    mic.audioMs = (mic.audioMs || 0) + dtMs;
+    if (els.lvl) els.lvl.style.transform = 'scaleX(' + Math.min(1, rms * 12) + ')';
+    if (!mic.meterOk) return;
+    mic.floor = Math.min(mic.floor, Math.max(rms, 0.002)); // أدنى مستوى سمعناه = ضوضاء الغرفة (يتحدث طول التسجيل)
+    var th = Math.max(0.016, Math.min(0.06, mic.floor * 3));
+    if (rms > th) { mic.speechMs += dtMs; mic.silenceMs = 0; } else mic.silenceMs += dtMs;
+    if (mic.state !== 'rec') return;
+    if (mic.speechMs > 300 && mic.silenceMs > G.MIC_SILENCE_MS && !(G.settings.mic.mode === 'ptt' && !mic.sticky)) { mic.stop(); return; }
+    if (mic.speechMs < 200 && mic.audioMs > G.MIC_NOSPEECH_MS) mic.stop();
+  }
+  mic.prepare = function () {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+      var ctx = mic.ctx = mic.ctx || (G.audio && G.audio.ctx) || new Ctx();
+      if (ctx.audioWorklet && window.Blob && window.URL && URL.createObjectURL && !ctx.__ccMeter) ctx.__ccMeter = ctx.audioWorklet.addModule(URL.createObjectURL(new Blob([METER_SRC], { type: 'application/javascript' }))).catch(function () { ctx.__ccMeterFail = true; });
+    } catch (e) { /* التحضير اختياري */ }
+  };
+  function startMeter(stream, run) {
+    stopMeter();
+    mic.seen = false; mic.floor = 0.05; mic.audioMs = 0; mic.meterOk = false;
+    var Ctx = window.AudioContext || window.webkitAudioContext, ctx;
+    try { ctx = mic.ctx = mic.ctx || (G.audio && G.audio.ctx) || new Ctx(); if (ctx.state === 'suspended') ctx.resume().catch(function () { /* */ }); } catch (e) { ctx = null; }
+    // سقف المدة بساعة الصفحة (يعمل حتى لو تعطل القياس)
+    mic.maxT = setTimeout(function () { if (run === mic.run && (mic.state === 'rec' || mic.state === 'perm')) mic.stop(); }, G.MIC_MAX_MS);
+    if (!ctx) return;
+    var useWorklet = !!(ctx.audioWorklet && window.AudioWorkletNode && window.Blob && window.URL && URL.createObjectURL);
+    var analyserFallback = function () {
+      try {
+        var src = ctx.createMediaStreamSource(stream), an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an); mic.srcNode = src;
+        var buf = new Float32Array(an.fftSize), last = performance.now();
+        mic.timer = setInterval(function () {
+          if (run !== mic.run || (mic.state !== 'rec' && mic.state !== 'perm')) { stopMeter(); return; }
+          var now = performance.now(), dt = now - last; last = now;
+          var rms = 0; try { an.getFloatTimeDomainData(buf); var s2 = 0; for (var i = 0; i < buf.length; i++) s2 += buf[i] * buf[i]; rms = Math.sqrt(s2 / buf.length); if (!isFinite(rms)) rms = 0; } catch (e) { rms = 0; }
+          levelStep(run, rms, dt);
+        }, 80);
+      } catch (e) { /* القياس اختياري */ }
+    };
+    // القياس يبدأ فوراً بالمحلل، ولما يجهز الـworklet (أدق ومستقل عن ثقل الصفحة) نتحول له بدون فقد وقت
+    analyserFallback();
+    if (!useWorklet) return;
+    mic.prepare();
+    var ready = ctx.__ccMeter || Promise.reject();
+    ready.then(function () {
+      if (ctx.__ccMeterFail || run !== mic.run || (mic.state !== 'rec' && mic.state !== 'perm')) return;
+      if (mic.timer) { clearInterval(mic.timer); mic.timer = 0; } try { if (mic.srcNode) mic.srcNode.disconnect(); } catch (e) { /* */ }
+      var src = ctx.createMediaStreamSource(stream), node = new AudioWorkletNode(ctx, 'cc-meter'), mute = ctx.createGain(); mute.gain.value = 0;
+      src.connect(node); node.connect(mute); mute.connect(ctx.destination); mic.srcNode = src; mic.node = node; mic.mute = mute;
+      node.port.onmessage = function (ev) { levelStep(run, ev.data.rms, ev.data.ms); };
+    }).catch(function () { /* يبقى المحلل شغال */ });
+  }
+  function stopMeter() {
+    if (mic.timer) { clearInterval(mic.timer); mic.timer = 0; }
+    if (mic.maxT) { clearTimeout(mic.maxT); mic.maxT = 0; }
+    try { if (mic.node) { mic.node.port.onmessage = null; mic.node.disconnect(); } } catch (e) { /* */ } mic.node = null;
+    try { if (mic.mute) mic.mute.disconnect(); } catch (e) { /* */ } mic.mute = null;
+    try { if (mic.srcNode) mic.srcNode.disconnect(); } catch (e) { /* */ } mic.srcNode = null;
+    if (els.lvl) els.lvl.style.transform = 'scaleX(0)';
+  }
   mic.stop = function () {
+    if (mic.state === 'perm') return mic.cancel();
     if (mic.state !== 'rec') return;
     if (mic.recog) { try { mic.recog.stop(); } catch (e) { /* */ } return; }
-    setMic('proc', 'يعالج الصوت...');
-    cancelAnimationFrame(mic.raf); if (els.lvl) els.lvl.style.transform = 'scaleX(0)';
-    try { if (mic.srcNode) mic.srcNode.disconnect(); } catch (e) { /* */ }
-    if (mic.rec && mic.rec.state !== 'inactive') mic.rec.stop(); else setMic('idle', '');
+    stopMeter();
+    setMic('stt', 'يحوّل كلامك لنص...');
+    if (mic.rec && mic.rec.state !== 'inactive') { try { mic.rec.stop(); } catch (e) { failMic('تعذر إيقاف التسجيل.'); } } else setMic('idle', '');
   };
-  mic.cancel = function () { if (mic.state === 'rec' && mic.rec) { mic.rec.onstop = null; try { mic.rec.stop(); } catch (e) { /* */ } } if (mic.recog) { try { mic.recog.abort(); } catch (e) { /* */ } mic.recog = null; } cancelAnimationFrame(mic.raf); mic.state = 'idle'; K.render(); };
-  function onRecStop() {
-    var dur = performance.now() - mic.startedAt;
-    if (mic.speechMs < 250 || dur < 400) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
-    var blob = new Blob(mic.chunks, { type: mic.mime }); mic.chunks = [];
-    var callId = K.call && K.call.id;
-    G.auth.stt(blob, mic.mime, Math.round(dur)).then(function (r) {
-      if (!K.call || K.call.id !== callId) { setMic('idle', ''); return; }
-      if (!r || !r.ok) { setMic('idle', (r && r.msg) || C.STRINGS.sttFail); return; }
+  /* إلغاء كامل: ما يرسل شي، يحرر الموارد، ويبطل أي طلب معلّق (رقم التشغيل يتغير) */
+  mic.cancel = function () {
+    mic.run++; mic.sticky = false; stopMeter();
+    if (mic.rec) { mic.rec.onstop = null; mic.rec.ondataavailable = null; try { if (mic.rec.state !== 'inactive') mic.rec.stop(); } catch (e) { /* */ } mic.rec = null; }
+    if (mic.recog) { try { mic.recog.abort(); } catch (e) { /* */ } mic.recog = null; }
+    mic.chunks = []; releaseStream();
+    var was = mic.state; mic.state = 'idle'; mic.err = '';
+    if (was !== 'idle') { var lb = document.getElementById('tb-mic'); if (lb) lb.classList.remove('main'); if (els.mic) { els.mic.setAttribute('aria-pressed', 'false'); els.mic.dataset.micState = 'idle'; } }
+    K.render();
+  };
+  function onRecStop(run, callId) {
+    var rec = mic.rec; stopMeter();
+    var type = String((rec && rec.mimeType) || (mic.chunks[0] && mic.chunks[0].type) || 'audio/webm').split(';')[0] || 'audio/webm';
+    var chunks = mic.chunks; mic.chunks = []; mic.rec = null; releaseStream();
+    if (run !== mic.run) return; // تشغيل ملغي
+    if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; } // انتهت المكالمة أثناء التسجيل
+    var dur = performance.now() - mic.startedAt, blob = new Blob(chunks, { type: type });
+    // لا نحكم بالمقياس وحده: لو تعطل المحلل نعتمد على حجم المقطع ونخلي الخادم يحدد وجود كلام
+    if (dur < 500 || blob.size < 1200 || (mic.meterOk && mic.speechMs < 200)) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
+    var finished = false, wd = setTimeout(function () { if (finished || run !== mic.run) return; finished = true; mic.run++; failMic('تحويل الصوت تأخر. اكتب رسالتك أو أعد المحاولة.'); }, G.MIC_STT_TIMEOUT_MS);
+    Promise.resolve().then(function () { return G.auth.stt(blob, type, Math.round(dur)); }).then(function (r) {
+      if (finished) return; finished = true; clearTimeout(wd);
+      if (run !== mic.run) return;
+      if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; }
+      if (!r || !r.ok) { failMic((r && r.msg) || C.STRINGS.sttFail); return; }
       if (!r.text || r.noSpeech) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
-      gotTranscript(r.text);
-    });
+      gotTranscript(r.text, run);
+    }, function () { if (finished) return; finished = true; clearTimeout(wd); if (run !== mic.run) return; failMic('فشل تحويل الصوت لنص. اكتب رسالتك أو أعد المحاولة.'); });
   }
-  function gotTranscript(text) {
+  /* نفس النص ما يدخل مرتين (حدثين مختلفين لنفس التشغيل)، وبوضع المحادثة المباشرة يُرسل مرة وحدة تلقائياً */
+  function gotTranscript(text, run) {
+    if (mic.lastRun === run) return; mic.lastRun = run;
+    text = String(text || '').replace(/\s+/g, ' ').trim(); if (!text) { setMic('idle', ''); return; }
     setMic('idle', '');
     if (G.settings.mic.review) {
       var ta = els.text; ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '') + text; G.store.set('cc3d.draft', ta.value); autoGrow();
-      status('راجع النص المسموع وعدّله لو تبي، ثم أرسل.');
+      status('النص ينتظر إرسالك: راجعه وعدّله لو تبي ثم اضغط إرسال.');
       try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) { /* */ }
-    } else K.send(text);
+    } else K.send(text, { via: 'voice' });
   }
-  function startRecognition() {
-    var SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { status(mic.reason()); return; }
+  function startRecognition(run, callId) {
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) { failMic(mic.reason() || 'متصفحك ما يدعم تعرف الصوت.'); return; }
     var r = mic.recog = new SR(); r.lang = 'ar-SA'; r.interimResults = false; r.maxAlternatives = 1; r.continuous = false;
-    var got = '';
+    var got = '', started = false;
+    setMic('perm', 'ينتظر إذن المايك...');
+    r.onaudiostart = r.onstart = function () { if (run !== mic.run || started) return; started = true; mic.startedAt = performance.now(); setMic('rec', 'يسمع (تعرّف الجهاز)...'); };
     r.onresult = function (e) { for (var i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) got += e.results[i][0].transcript + ' '; };
-    r.onerror = function (e) { mic.recog = null; if (e.error === 'not-allowed' || e.error === 'service-not-allowed') mic.denied = true; setMic('idle', mic.denied ? C.STRINGS.micDenied : e.error === 'no-speech' ? 'ما سمعنا كلام. جرب مرة ثانية.' : e.error === 'network' ? 'تعرّف الصوت بالمتصفح يحتاج إنترنت.' : 'تعذر التعرف على الصوت. اكتب رسالتك.'); };
-    r.onend = function () { var was = mic.recog; mic.recog = null; if (mic.state === 'rec') { if (got.trim()) gotTranscript(got.trim()); else setMic('idle', 'ما سمعنا كلام واضح.'); } };
-    try { r.start(); setMic('rec', 'يسمع (تعرّف الجهاز)...'); } catch (e) { mic.recog = null; setMic('idle', 'تعذر تشغيل تعرف الصوت.'); }
+    r.onerror = function (e) {
+      if (run !== mic.run) return; mic.recog = null;
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') { mic.denied = true; failMic(explain({ name: 'NotAllowedError' })); }
+      else if (e.error === 'no-speech') setMic('idle', 'ما سمعنا كلام. جرب مرة ثانية.');
+      else if (e.error === 'aborted') setMic('idle', '');
+      else failMic(e.error === 'network' ? 'تعرّف الصوت بالمتصفح يحتاج إنترنت.' : e.error === 'audio-capture' ? 'ما لقينا مايك بجهازك.' : 'تعذر التعرف على الصوت.');
+    };
+    r.onend = function () {
+      if (run !== mic.run) return; mic.recog = null;
+      if (mic.state !== 'rec' && mic.state !== 'perm') return;
+      if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; }
+      if (got.trim()) gotTranscript(got.trim(), run); else setMic('idle', 'ما سمعنا كلام واضح.');
+    };
+    try { r.start(); } catch (e) { mic.recog = null; failMic('تعذر تشغيل تعرف الصوت.'); }
   }
-  mic.release = function () { mic.cancel(); if (mic.stream) { mic.stream.getTracks().forEach(function (t) { t.stop(); }); mic.stream = null; } };
-  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', function () { if (mic.stream) { mic.release(); status('تغير جهاز الصوت. المايك بيتجهز من جديد مع أول استخدام.'); } G.emit('devices'); });
-  document.addEventListener('visibilitychange', function () { if (document.hidden) mic.cancel(); });
+  mic.release = function () { mic.cancel(); releaseStream(); };
+  if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', function () { if (mic.state === 'rec') { mic.cancel(); status('تغير جهاز الصوت. اضغط المايك من جديد.'); } G.emit('devices'); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && (mic.state === 'rec' || mic.state === 'perm')) mic.cancel(); });
 })();
 
 /* ===== 80-ui.js ===== */
@@ -6844,8 +7298,9 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
         h += '<p style="font-size:.85em">المنخفضة: بدون ظلال حية ودقة أقل وتحديث أبطأ للموظفين البعيدين. العالية: ظلال الشمس من النوافذ.</p>';
       }
       if (tab === 'mic') {
-        h += '<div class="row"><span>طريقة المايك</span><select id="m-mode"><option value="ptt"' + (S.mic.mode === 'ptt' ? ' selected' : '') + '>اضغط وتكلم</option><option value="toggle"' + (S.mic.mode === 'toggle' ? ' selected' : '') + '>تشغيل وإيقاف (يوقف لحاله بعد السكوت)</option></select></div>';
-        h += '<div class="row"><span>راجع النص قبل الإرسال<small>النص المسموع ينحط بخانة الكتابة وتعدّله قبل ما ترسله.</small></span>' + sw('m-rev', S.mic.review) + '</div>';
+        h += '<div class="row"><span>طريقة المايك<small>الافتراضي: ضغطة وحدة تبدأ الاستماع، وضغطة ثانية أو سكوت قصير يوقفه.</small></span><select id="m-mode"><option value="toggle"' + (S.mic.mode === 'toggle' ? ' selected' : '') + '>ضغطة واحدة (تشغيل وإيقاف)</option><option value="ptt"' + (S.mic.mode === 'ptt' ? ' selected' : '') + '>ضغط مطوّل (اضغط وتكلم واترك)</option></select></div>';
+        h += '<div class="row"><span>راجع النص قبل الإرسال<small>مطفأ: كلامك يُرسل للمتصل تلقائياً. مفعّل: النص ينتظر بخانة الكتابة وتعدّله ثم ترسله.</small></span>' + sw('m-rev', S.mic.review) + '</div>';
+        h += '<div class="row"><span>الفاصل بين المكالمات الواردة</span><select id="m-gap">' + [['short', 'قصير'], ['normal', 'عادي'], ['long', 'طويل']].map(function (o) { return '<option value="' + o[0] + '"' + (S.gap === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
         h += '<div class="row"><span>جهاز الإدخال</span><select id="m-dev"><option value="">الافتراضي</option></select></div>';
         h += '<p style="font-size:.85em">' + U.esc(G.mic.reason() || 'المايك يشتغل بس وقت المكالمة، ويتوقف أثناء كلام المتصل إلا لو قاطعته.') + '</p>';
       }
@@ -6865,11 +7320,12 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       }; });
       U.$$('.cc-switch', m).forEach(function (b) { b.onclick = function () {
         var on = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', on);
-        ({ 's-mute': function () { S.musicMuted = on; }, 's-dv': function () { S.deviceVoice = on; }, 'c-inv': function () { S.invertY = on; }, 'c-bob': function () { S.headBob = on; }, 'c-shake': function () { S.reduceShake = on; }, 'q-fps': function () { S.showFps = on; document.getElementById('cc-fps').hidden = !on; }, 'm-rev': function () { S.mic.review = on; }, 'a-rm': function () { S.reduceMotion = on; G.applyA11y(); }, 'a-cap': function () { S.captions = on; } })[b.id]();
+        ({ 's-mute': function () { S.musicMuted = on; }, 's-dv': function () { S.deviceVoice = on; }, 'c-inv': function () { S.invertY = on; }, 'c-bob': function () { S.headBob = on; }, 'c-shake': function () { S.reduceShake = on; }, 'q-fps': function () { S.showFps = on; document.getElementById('cc-fps').hidden = !on; }, 'm-rev': function () { S.mic.review = on; S.mic.set = true; }, 'a-rm': function () { S.reduceMotion = on; G.applyA11y(); }, 'a-cap': function () { S.captions = on; } })[b.id]();
         G.saveSettings();
       }; });
       var qs = U.$('#q-sel', m); if (qs) qs.onchange = function () { S.quality = qs.value; G.saveSettings(); G.perf.applyQuality(); };
-      var mm = U.$('#m-mode', m); if (mm) mm.onchange = function () { S.mic.mode = mm.value; G.saveSettings(); G.calls.render(); };
+      var mm = U.$('#m-mode', m); if (mm) mm.onchange = function () { S.mic.mode = mm.value; S.mic.set = true; G.saveSettings(); G.calls.render(); };
+      var mg = U.$('#m-gap', m); if (mg) mg.onchange = function () { S.gap = mg.value; G.saveSettings(); };
       var md = U.$('#m-dev', m);
       if (md && navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) navigator.mediaDevices.enumerateDevices().then(function (ds) {
         ds.filter(function (d) { return d.kind === 'audioinput'; }).forEach(function (d, i) { var o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || ('مايك ' + (i + 1)); if (d.deviceId === S.mic.deviceId) o.selected = true; md.appendChild(o); });
