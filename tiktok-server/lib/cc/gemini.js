@@ -157,7 +157,7 @@ class GeminiRouter {
   async _generate(kind, body, opts) {
     const models = this.models[kind] || this.models.chat;
     const t0 = this.now();
-    let last = null, tried = 0, rateLimited = 0, invalid = 0;
+    let last = null, tried = 0, rateLimited = 0, invalid = 0, badReq = null;
     const n = this.keys.length;
     for (const model of models) {
       for (let i = 0; i < n; i++) {
@@ -180,11 +180,12 @@ class GeminiRouter {
           if (e.kind === 'rate_limited') { k.cooldown[model] = { until: this.now() + (e.retryAfterMs || 30000), reason: e.daily ? 'الحد اليومي' : 'حد الطلبات' }; rateLimited++; }
           else if (e.kind === 'invalid_key') { k.disabled = { until: this.now() + 6 * 3600e3, reason: 'invalid_key' }; invalid++; slogHook(this, 'invalid_key', k); }
           else if (e.kind === 'model_missing') { k.cooldown[model] = { until: this.now() + 600e3, reason: 'النموذج غير متاح' }; }
-          else if (e.kind === 'bad_request') throw e; // الطلب نفسه غلط: لا فائدة من مفتاح ثانٍ
+          else if (e.kind === 'bad_request') { this.keys.forEach((kk) => { kk.cooldown[model] = { until: this.now() + 600e3, reason: 'النموذج غير متاح' }; }); badReq = e; break; } // قد يرفضه هذا النموذج فقط (مثل الصوت): نجرّب التالي
         }
       }
     }
-    if (last && !tried) last = null;
+    if (badReq && !tried) last = badReq;
+    if (last && !tried && !badReq) last = null;
     if (!tried) {
       if (invalid && invalid >= n) throw new GeminiError('invalid_key', 'كل مفاتيح Gemini مرفوضة');
       throw new GeminiError('rate_limited', 'كل مفاتيح Gemini بحالة تهدئة', { retryAfterMs: this._soonestReady(models) });
@@ -232,7 +233,7 @@ class GeminiRouter {
     }
     if (res.status === 401 || res.status === 403 || /api key (not valid|expired)|API_KEY_INVALID|PERMISSION_DENIED/i.test(msg + status)) throw new GeminiError('invalid_key', msg);
     if (res.status === 404) throw new GeminiError('model_missing', msg);
-    if (res.status === 400 && noThink && !noRetry && /think/i.test(msg)) {
+    if (res.status === 400 && noThink && !noRetry) {
       const g = Object.assign({}, body.generationConfig); delete g.thinkingConfig;
       return this._call(k, model, Object.assign({}, body, { generationConfig: g }), outerSignal, timeoutMs, true);
     }

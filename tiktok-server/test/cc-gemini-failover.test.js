@@ -101,3 +101,9 @@ test('التفكير: يُطفأ لنماذج 3.x، ويُعاد الطلب بد
   assert.deepEqual(seen[0], { thinkingLevel: 'minimal' });
   assert.equal(seen[1], null);
 });
+
+test('STT: نموذج يرفض الصوت (400) ← ينتقل للنموذج التالي بدل الفشل', async () => {
+  const r = new GeminiRouter({ env: { GEMINI_API_KEY: KEYS.GEMINI_API_KEY, GEMINI_API_KEY_2: KEYS.GEMINI_API_KEY_2, GEMINI_STT_MODELS: 'm1,m2' }, fetch: async (url) => (/models\/m1:/.test(url) ? { ok: false, status: 400, json: async () => ({ error: { message: 'audio unsupported' } }), headers: { get: () => null } } : ok()) });
+  const out = await r.generate('stt', { contents: [] }, { timeoutMs: 500, budgetMs: 5000 });
+  assert.equal(out.model, 'm2');
+});
