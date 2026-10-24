@@ -201,24 +201,32 @@ function createCCApi(opts) {
     if (!ipAllow(clientIp(req), 'stt', 40, 60000)) return send(res, 429, { ok: false, error: 'rate_limited' });
     const durMs = Math.max(0, Number(body.durationMs) || 0);
     const PROMPT = 'اكتب حرفياً الكلام العربي المنطوق في هذا المقطع الصوتي (لهجة سعودية غالباً) كما قيل بدون أي إضافة أو تشكيل أو ترجمة أو شرح. أرجع النص فقط. لو ما فيه كلام بشري مفهوم أرجع بالضبط: [[NOSPEECH]]';
-    // يحاول نموذجاً ثم (لو رجع فاضي والمقطع طويل كفاية) نموذجاً آخر قبل ما نحكم إنه «ما فيه كلام»
-    const tried = []; let empty = '';
+    // يرسل المقطع لنموذجين بالتوازي (الأسرع يفوز) بدل الانتظار على نموذج بطيء؛ لو فشلوا ننتقل لأزواج التالية.
+    // فاضي من الجميع = «ما فيه كلام». أخطاء/مهل من الجميع = خطأ واضح بالرمز.
+    const ask = async (model) => {
+      const r = await router.generate('stt', {
+        contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: PROMPT }] }],
+        generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+      }, { timeoutMs: 10000, budgetMs: 10500, only: [model] });
+      const cand = r.data && r.data.candidates && r.data.candidates[0];
+      const raw = (cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('')) || '';
+      return { model: r.model, text: parseStt(raw), finish: String((cand && cand.finishReason) || (r.data && r.data.promptFeedback && r.data.promptFeedback.blockReason) || 'none'), raw };
+    };
+    const first = (ps) => new Promise((resolve) => {
+      const out = []; let left = ps.length; let done = false;
+      ps.forEach((p, i) => p.then((v) => { out[i] = { v }; if (!done && v.text) { done = true; resolve({ win: v, out }); } }, (e) => { out[i] = { e }; }).finally(() => { if (--left === 0 && !done) resolve({ win: null, out }); }));
+    });
+    const list = (router.models.stt || []).slice(); let lastErr = null, anyEmpty = '', t0 = Date.now();
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const r = await router.generate('stt', {
-          contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: PROMPT }] }],
-          generationConfig: { temperature: 0, maxOutputTokens: 1024 },
-        }, { timeoutMs: 12000, budgetMs: 21000, exclude: tried });
-        tried.push(r.model);
-        const cand = r.data && r.data.candidates && r.data.candidates[0];
-        const raw = (cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('')) || '';
-        const text = parseStt(raw);
-        if (text) return send(res, 200, { ok: true, text, model: r.model });
-        empty = 'empty:' + String((cand && cand.finishReason) || (r.data && r.data.promptFeedback && r.data.promptFeedback.blockReason) || 'none');
-        log('warn', 'cc stt فاضي من ' + r.model + ' (' + empty + ') مقطع=' + Math.round(audio.length * 0.75 / 1024) + 'KB ' + durMs + 'ms ' + mime + ' خام=' + JSON.stringify(raw.slice(0, 60)));
-        if (durMs < 1200 || attempt === 1) break;
+      for (let i = 0; i < list.length && i < 4 && Date.now() - t0 < 14000; i += 2) {
+        const r = await first(list.slice(i, i + 2).map(ask));
+        if (r.win) return send(res, 200, { ok: true, text: r.win.text, model: r.win.model });
+        r.out.forEach((o) => { if (o && o.e) lastErr = o.e; else if (o && o.v) { anyEmpty = 'empty:' + o.v.finish; log('warn', 'cc stt فاضي من ' + o.v.model + ' (' + o.v.finish + ') مقطع=' + Math.round(audio.length * 0.75 / 1024) + 'KB ' + durMs + 'ms ' + mime + ' خام=' + JSON.stringify(String(o.v.raw).slice(0, 60))); } });
+        if (anyEmpty && durMs < 1200) break;
+        if (anyEmpty && !lastErr) { if (i >= 2 || list.length <= 2) break; }
       }
-      return send(res, 200, { ok: true, text: '', noSpeech: true, detail: empty });
+      if (anyEmpty) return send(res, 200, { ok: true, text: '', noSpeech: true, detail: anyEmpty });
+      throw lastErr || new Error('stt_failed');
     } catch (e) {
       log('warn', 'cc stt فشل: ' + (e && e.kind) + ' ' + String((e && e.message) || '').slice(0, 120));
       return send(res, 200, { ok: false, error: e.kind || 'stt_error', detail: e.kind || 'stt_error', msg: e.kind === 'rate_limited' ? 'الخدمة مزدحمة، جرب بعد لحظات أو اكتب رسالتك.' : C.STRINGS.sttFail });

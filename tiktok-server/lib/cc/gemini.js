@@ -156,7 +156,7 @@ class GeminiRouter {
   }
 
   async _generate(kind, body, opts) {
-    const models = (this.models[kind] || this.models.chat).filter((m) => !(opts.exclude && opts.exclude.indexOf(m) >= 0));
+    const models = (this.models[kind] || this.models.chat).filter((m) => !(opts.exclude && opts.exclude.indexOf(m) >= 0) && (!opts.only || opts.only.indexOf(m) >= 0));
     const t0 = this.now();
     let last = null, tried = 0, rateLimited = 0, invalid = 0, badReq = null;
     const n = this.keys.length;
@@ -267,7 +267,15 @@ class GeminiRouter {
       await this._call(k, model, { contents: [{ role: 'user', parts: [{ text: 'قل: تمام' }] }], generationConfig: { maxOutputTokens: 8 } }, null, 8000);
       return { ok: true };
     }).then((r) => Object.assign({ id: k.id, model }, r))));
-    return { node: process.version, base: this.base, models: this.models, pinned: this.pinned, discovered: this.disc.found, discoveryError: this.disc.error, net, keys, okKeys: keys.filter((x) => x.ok).length };
+    // اختبار صوت حقيقي: ثانية نغمة WAV لأول ٣ نماذج صوت بالتوازي (زمن + ماذا رجّع) لتشخيص بطء/فراغ التفريغ
+    const rate = 16000, n = rate, pcm = Buffer.alloc(n * 2); for (let i = 0; i < n; i++) pcm.writeInt16LE(Math.round(6000 * Math.sin(2 * Math.PI * 440 * i / rate)), i * 2);
+    const wav = pcmToWav(pcm, rate).toString('base64'), k0 = this.liveKeys()[0];
+    const stt = k0 ? await Promise.all(this.models.stt.slice(0, 3).map((m) => timed(async () => {
+      const d = await this._call(k0, m, { contents: [{ role: 'user', parts: [{ inlineData: { mimeType: 'audio/wav', data: wav } }, { text: 'اكتب الكلام المنطوق. لو ما فيه كلام بشري أرجع: [[NOSPEECH]]' }] }], generationConfig: { temperature: 0, maxOutputTokens: 64 } }, null, 12000);
+      const c = d && d.candidates && d.candidates[0];
+      return { ok: true, finish: c && c.finishReason, out: String((c && c.content && c.content.parts && c.content.parts.map((x) => x.text || '').join('')) || '').slice(0, 40) };
+    }).then((r) => Object.assign({ model: m }, r)))) : [];
+    return { node: process.version, base: this.base, models: this.models, stt, pinned: this.pinned, discovered: this.disc.found, discoveryError: this.disc.error, net, keys, okKeys: keys.filter((x) => x.ok).length };
   }
 
   // اختبار محدود: طلب صغير لكل مفتاح (بدون كشفه)
