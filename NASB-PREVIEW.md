@@ -1,6 +1,6 @@
 # «نصب»: صفحة تشغيل لكل طريقة
 
-> **تحديث:** هذي الواجهة صارت داخل الملف الرئيسي `callcenter3d.html` (المربوط بالموقع وسيرفري Render). `callcenter3d-nasb-preview.html` نسخة مطابقة له تبقى للتجربة المستقلة.
+> **تحديث:** هذي الواجهة داخل الملف الرئيسي `callcenter3d.html` (المربوط بالموقع وسيرفري Render). النسخة التجريبية المستقلة انحذفت.
 
 الملف: `callcenter3d-nasb-preview.html` (نسخة من `callcenter3d.html` بعد تعديل تطبيق «نصب» فقط).
 `callcenter3d.html` و`index.html` و`tiktok-server/` ما انلمسوا. ما انحذف ولا انعاد تسمية أي ملف.

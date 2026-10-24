@@ -127,6 +127,6 @@ async function launch(page, g) {
   }, g);
 }
 
-async function launchBrowser() { return chromium.launch({ args: ['--no-proxy-server'] }); }
+async function launchBrowser(extra) { return chromium.launch({ args: ['--no-proxy-server'].concat(extra || []) }); }
 
 module.exports = { serveSite, ctl, stats, newPage, linkAccount, launch, launchBrowser, routeThree, PRIMARY, FALLBACK, ROOT };

@@ -213,6 +213,88 @@
   }
   function addrText(a) { return a ? (a.district + '، ' + a.street + '، مبنى ' + toArDigits(a.building)) : ''; }
 
+
+  /* ================= فهم رسالة اللاعب: حقائق التعريف بالقواعد (بدون الاعتماد على تصنيف نية واحدة) =================
+     تُستخدم بالخادم وبوضع التدريب سوا: الاسم، القسم، الشركة (بنطق قريب)، وهل سأل عن المشكلة أو صحّح معلومة أو عكس الأدوار. */
+  function lev(a, b) {
+    if (a === b) return 0; var m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+    var prev = [], cur = [], i, j; for (j = 0; j <= n; j++) prev[j] = j;
+    for (i = 1; i <= m; i++) { cur[0] = i; for (j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); var t = prev; prev = cur; cur = t; }
+    return prev[n];
+  }
+  function stripPrefix(w) { return w.replace(/^(وال|بال|لل|ال|و|ب|ل)(?=.{3,})/, ''); }
+  function wordsOf(s) { return normText(s).replace(/[^؀-ۿa-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean); }
+  var GENERIC_WORD = /^(مركز|شركه|قناه|مسابقه|للاتصالات|للاجهزه|الذكيه|المنزليه)$/;
+  /* يرجع الصيغة المطابقة من القائمة: مطابقة نصية، أو نطق قريب (فرق حرف أو حرفين بالكلمات الطويلة فقط) */
+  function fuzzyHas(text, aliases) {
+    var nt = normText(text), tt = wordsOf(text).map(stripPrefix);
+    for (var i = 0; i < (aliases || []).length; i++) {
+      var a = aliases[i], na = normText(a); if (!na) continue;
+      if (nt.indexOf(na) >= 0) return a;
+      var at = wordsOf(a).map(stripPrefix).filter(function (w) { return w.length >= 4 && !GENERIC_WORD.test(w); });
+      if (!at.length) continue;
+      var ok = at.every(function (w) { return tt.some(function (x) { return lev(w, x) <= (w.length >= 7 ? 2 : w.length >= 5 ? 1 : 0); }); });
+      if (ok) return a;
+    }
+    return null;
+  }
+  var NAME_STOP = /^(من|في|عند|هنا|اللي|الي|اخوك|اخوي|معك|معاك|انا|اني|هذا|هذي|موظف|مساعد|فني|دعم|قسم|شركه|خدمه|ان|ايه|اي|نعم|لا)$/;
+  var DEPT_RX = /(?:^|\s)(?:من|قسم|بقسم|في|ب)\s*(?:قسم\s*)?(الدعم الفني|الدعم التقني|الدعم|خدمه العملاء|خدمه الزبائن|المبيعات|الفواتير|الشحن|الحسابات|الاشتراكات|التوصيل|مراقبه الجوده|الجوده)(?=\s|$|[،,.!؟?])/;
+  var ASKED_PROBLEM_RX = /(وش|ايش|شنو|شو|ما)\s*(هي\s*|هو\s*)?(مشكلتك|مشكلتكم|المشكله|السالفه|سالفتك|قصتك|القصه|الموضوع|بغيت|تبي|تبغي|تبغى|تقول|تحتاج|اللي صار|الي صار|صار|عندك)|كيف\s*(اقدر|ممكن|ينفع)\s*(اساعدك|اخدمك|اساعدكم)|اساعدك|اخدمك|خدمتك|امرني|تفضل\s*(قول|اشرح|وش|تكلم)|وضح\s*(لي\s*)?(المشكله|الموضوع)|اشرح\s*(لي\s*)?(المشكله|الموضوع|السالفه)|وش\s*اللي\s*(حصل|صار)|كمل\s*(كلامك|مشكلتك)|تكلم|قول\s*(لي|مشكلتك)/;
+  var REVERSAL_RX = /(انت|انتم)\s*(اللي|الي)?\s*(متصل|اتصلت|تتصل|كلمتني|كلمتنا|اتصلتوا|اتصل)|انت\s*المتصل|(انت|انتي)\s*(اللي|الي)\s*(بدات|بدا)/;
+  var CORRECTION_RX = /(قصدي|اقصد|اسمي الصحيح|تصحيح|اصحح|صححت|غلطت|غلط بالاسم|اعتذر عن الغلط)/;
+  var GREET_ONLY_RX = /^(?:السلام عليكم(?: ورحمه الله(?: وبركاته)?)?|وعليكم السلام(?: ورحمه الله(?: وبركاته)?)?|هلا(?: والله)?|اهلا(?: وسهلا| فيك)?|اهلين|مرحبا|يا هلا|الو|ايوه|نعم|تفضل|مساء الخير|صباح الخير|هلا والله)(?:[\s،,.!]+(?:السلام عليكم|هلا|اهلا|تفضل|الو|نعم))*[\s،,.!]*$/;
+  var AFFIRM_RX = /^(?:ايه|ايوه|اي|نعم|صح|صحيح|بالضبط|اكيد|ايوا|ايه صح|ايه هذا)(?:[\s،,.!]|$)/;
+  function extractFacts(text, call) {
+    var s = scenario(call.scenarioId) || {}, inc = s.incoming || {}, t = normText(text);
+    var raw = normDigits(String(text || '')).replace(/[ً-ٰٟـ]/g, '');
+    var f = { name: null, company: false, companyAlias: null, department: null, askedProblem: false, reversal: false, correction: false, greetOnly: false, affirm: false };
+    var m = raw.match(/(?:^|\s|،|,)(?:معك|معاك|اسمي|انا|أنا|إني|اني)\s+([؀-ۿ]{2,15})(?=\s|$|[،,.!؟?])/);
+    if (m) { var cand = m[1], nc = normText(cand); if (!NAME_STOP.test(nc) && nc.indexOf('ال') !== 0 && !(inc.aliases || []).some(function (x) { return normText(x) === nc; })) f.name = cand; }
+    var d = t.match(DEPT_RX) || t.match(/(?:^|\s)قسم\s+([؀-ۿ]{2,15})(?=\s|$|[،,.!؟?])/);
+    if (d) f.department = d[1];
+    var aliases = (inc.aliases || []).slice();
+    (s.steps || []).forEach(function (st) { (st.mention || []).forEach(function (w) { aliases.push(w); }); });
+    f.companyAlias = fuzzyHas(text, aliases); f.company = !!f.companyAlias;
+    f.askedProblem = ASKED_PROBLEM_RX.test(t);
+    f.reversal = REVERSAL_RX.test(t);
+    f.correction = CORRECTION_RX.test(t);
+    f.greetOnly = GREET_ONLY_RX.test(t) && !f.name && !f.company && !f.department;
+    f.affirm = AFFIRM_RX.test(t);
+    return f;
+  }
+  /* أسئلة المتصل (من جمله) وأنواعها: لا نتعامل مع «أي علامة استفهام» كسؤال واحد */
+  var ID_ASK_RX = /(من|مين|منو)\s*(انت|معي|معاي|معاه|يكلمني|اللي معي|يتكلم|هذا|انتم)|عرف(?:ني)?\s*(?:بنفسك|نفسك)|تعرف\s*بنفسك|وش\s*(?:اسمك|اسمك الكامل)|اسمك\s*ايش|مع\s*من\s*(?:اتكلم|اتحدث)|انت\s*من\s*وين|من\s*وين\s*انت|ممكن\s*(?:تعرف|اسمك)|اعرف\s*مع\s*من/;
+  var REVERSAL_SAY_RX = /(انت|انتم)\s*(اللي|الي)\s*(اتصلت|متصل|كلمتني|اتصل|اتصلتوا)|ليش\s*(اتصلت|تتصل|اتصلتوا)\s*(علي|فيني|بي|علينا)|من\s*اللي\s*اتصل|مين\s*اللي\s*اتصل|انا\s*ما\s*اتصلت|ما\s*كلمتك\s*انا|وش\s*تبي\s*مني\s*(؟|\?)?\s*انت\s*اللي/;
+  function callerQuestionKind(line, call) {
+    if (!line) return null;
+    var t = normText(line), q = /[؟?]/.test(line);
+    if (ID_ASK_RX.test(t)) return 'who';
+    var s = call && scenario(call.scenarioId), al = ((s && s.incoming && s.incoming.aliases) || []);
+    if (q && (/(?:هذا|هذي|انتم|انت|هذه)\s+(?:هو\s+)?(?:دعم|شركه|قناه|مسابقه|مركز|نادي|مزرعه|سفريات|حمام|بطريق|كبسه|شفاط|جهه)/.test(t) || (al.length && fuzzyHas(line, al)))) return 'company';
+    if (q && /(ليش|لماذا|وش السبب).*(تبي|تحتاج|تطلب|تسال|تسأل)/.test(t)) return 'why';
+    if (q && /(توافق|موافق|تاكد|نكمل|تعتمد)/.test(t)) return 'confirm';
+    return q ? 'other' : null;
+  }
+  function sameClaim(old, v) { return old === v || old.indexOf(v) >= 0 || v.indexOf(old) >= 0 || (Math.min(old.length, v.length) >= 4 && lev(old, v) <= 1); }
+  function answersPending(pend, facts, acts, text) {
+    if (!pend || pend.answered) return false;
+    var intro = acts.indexOf('introduce') >= 0, ans = acts.indexOf('answer_question') >= 0 || acts.indexOf('explain') >= 0 || acts.indexOf('reassure') >= 0;
+    switch (pend.kind) {
+      case 'company': return facts.company || facts.affirm || intro || ans;
+      case 'who': return facts.name || facts.company || intro;
+      case 'name': return !!facts.name;
+      default: return ans || intro || (String(text).trim().length >= 6 && !facts.greetOnly);
+    }
+  }
+  function summaryOf(call) {
+    var f = call.memory.facts || {}, s = scenario(call.scenarioId), bits = [];
+    bits.push('اللاعب ' + (f.playerName ? 'اسمه ' + f.playerName : 'ما ذكر اسمه') + (f.department ? ' من ' + f.department : '') + (f.company ? ' ومن ' + s.company : ' وما أكد الشركة'));
+    bits.push(f.introduced ? 'التعريف اكتمل' : 'التعريف ما اكتمل');
+    bits.push(f.askedProblem ? 'اللاعب سأل عن المشكلة' : 'اللاعب ما سأل عن المشكلة للحين');
+    return bits.join('، ') + '.';
+  }
+
   function createCall(profile, day, pick, rng, now, eff) {
     var s = scenario(pick.scenarioId), p = persona(pick.personaId);
     if (!s || !p) throw new Error('bad_pick');
@@ -227,7 +309,10 @@
         suspicion: clamp(p.traits.suspicion, 0, 100), attention: p.traits.attention, speed: p.traits.speed
       },
       facts: genFacts(s, p, crng), revealed: {}, grants: {}, flags: { askedOnce: {}, explained: false, fakeGiven: false, fakeEntered: false, infected: false, refused: false, stepContra: 0 },
-      memory: { claims: {}, contradictions: [], summary: '', history: [], lastLines: [], intentCount: {}, pendingQ: false, pendingObj: false, refuseStreak: 0 },
+      direction: 'incoming',
+      memory: { claims: {}, contradictions: [], summary: '', history: [], lastLines: [], intentCount: {}, pendingQ: false, pendingObj: false, refuseStreak: 0,
+        facts: { playerName: null, department: null, company: false, companyAlias: null, introduced: false, askedProblem: false, problemStated: true, detailIdx: 0 },
+        pending: null, asked: {}, lastQKind: null, loopHits: 0 },
       mistakes: 0, toolAttempts: 0, cheatAttempts: 0, puzzle: null, puzzleAns: null, puzzleIssuedAt: 0, waitMs: 0,
       steps: s.steps.map(function (st) { return { id: st.id, done: false }; }), settled: false, reward: 0, events: [], env: {}, op: null, trustTrend: 0
     };
@@ -242,7 +327,7 @@
   function publicCall(call) {
     var s = scenario(call.scenarioId), p = persona(call.personaId), st = curStep(call);
     return {
-      id: call.id, status: call.status, outcome: call.outcome, endReason: call.endReason,
+      id: call.id, status: call.status, outcome: call.outcome, endReason: call.endReason, direction: call.direction || 'incoming',
       scenario: { id: s.id, title: s.title, category: s.category, intro: s.intro, company: s.companyFull, timeLimit: s.timeLimit, difficulty: s.difficulty, deviceName: s.deviceName || null, timeWaster: !!s.timeWaster, saboteur: !!s.saboteurCall },
       caller: { id: p.id, name: p.name, label: p.label, g: p.g, look: p.look, voice: p.voice, difficulty: p.difficulty },
       steps: s.steps.map(function (x, i) { return { id: x.id, kind: x.kind, title: x.title, tool: x.tool || null, done: call.steps[i].done, current: i === call.stepIdx && call.status === 'active' }; }),
@@ -371,7 +456,7 @@
      - تكرار نفس النوع بدون سياق جديد يعطي أقل وأقل.
      - تجاهل اعتراضه والطلب مباشرة يخفضها ويرفع الشك. التناقض يخفضها بقوة.
      الصبر والشك قيم داخلية منفصلة. */
-  var GAIN = { greet: 2, introduce: 6, explain: 5, reassure: 2, answer_question: 2, small_talk: 1, joke: 1, apology: 0, refuse: 0, polite_end: 0, off_topic: -1, unclear: 0, pressure: -4, insult: -20, cheat: -2, ask_access: 0, ask_code: 0, ask_confirm: 0, ask_info: 0 };
+  var GAIN = { ask_problem: 1, greet: 2, introduce: 6, explain: 5, reassure: 2, answer_question: 2, small_talk: 1, joke: 1, apology: 0, refuse: 0, polite_end: 0, off_topic: -1, unclear: 0, pressure: -4, insult: -20, cheat: -2, ask_access: 0, ask_code: 0, ask_confirm: 0, ask_info: 0 };
   var SUSP = { pressure: 10, insult: 30, cheat: 6, reassure: -3, answer_question: -2, explain: -1, apology: -3 };
   var PAT = { pressure: -4, off_topic: -5, insult: -15, unclear: -3 };
   function trustBand(v) { for (var i = 0; i < C.TRUST_BANDS.length; i++) if (v >= C.TRUST_BANDS[i].min) return C.TRUST_BANDS[i].label; return C.TRUST_BANDS[C.TRUST_BANDS.length - 1].label; }
@@ -391,6 +476,20 @@
     if (detectCheat(text)) intent = 'cheat';
     else if (INSULT_RX.test(text)) intent = 'insult';
     if (latinRatio(text) > 0.6 && intent !== 'cheat') { intent = 'unclear'; res.decision.line = 'latin'; }
+    // حقائق التعريف والأفعال المتعددة بالرسالة (تحية + تعريف + سؤال عن المشكلة...) قبل أي تقييم
+    var facts = extractFacts(text, call), mf = mem.facts = mem.facts || { playerName: null, department: null, company: false, companyAlias: null, introduced: false, askedProblem: false, problemStated: true, detailIdx: 0 };
+    var acts = [];
+    if (facts.name || facts.company || facts.department) acts.push('introduce');
+    if (facts.askedProblem) acts.push('ask_problem');
+    (Array.isArray(a.intents) ? a.intents : []).slice(0, 4).forEach(function (x) { if (C.INTENTS[x] && x !== 'cheat' && x !== 'insult' && acts.indexOf(x) < 0) acts.push(x); });
+    var introAct = acts.indexOf('introduce') >= 0;
+    if (intent !== 'cheat' && intent !== 'insult' && res.decision.line !== 'latin') {
+      if (introAct && (intent === 'greet' || intent === 'unclear' || intent === 'small_talk' || intent === 'off_topic' || intent === 'ask_problem')) intent = 'introduce';
+      else if (facts.askedProblem && (intent === 'greet' || intent === 'unclear' || intent === 'off_topic')) intent = 'ask_problem';
+    }
+    if (acts.indexOf(intent) < 0) acts.push(intent);
+    var pend = mem.pending;
+    if (pend && !pend.answered && answersPending(pend, facts, acts, text)) { pend.answered = true; res.answered = pend.kind; }
     call.turns++; call.stepTurns++;
 
     // الصبر (داخلي): كل دور يكلف شوي، والوقت الفاضي بين الأدوار (بدون انتظار الخدمة) يكلف بعد
@@ -404,12 +503,22 @@
     if (intent === 'explain' && ctxNew) g = Math.max(g, 6);
     if (intent === 'apology' && (mem.contradictions.length || call.flags.offended)) { g = 3; call.flags.offended = false; }
     if (intent === 'greet') { if (call.flags.greeted) g = 0; call.flags.greeted = true; }
-    if (intent === 'introduce') {
-      if (call.flags.introduced) g = 0;
-      else if (st && st.mention && st.mention.length) {
-        var nt = normText(text), ok = st.mention.some(function (w) { return nt.indexOf(normText(w)) >= 0; });
-        if (ok) call.flags.introduced = true; else { g = -3; res.events.push({ type: 'hint', coach: true, text: 'ما ذكرت اسم الشركة، فالمتصل ما عرف من أنت.' }); }
-      } else call.flags.introduced = true;
+    if (facts.name && (!mf.playerName || facts.correction)) mf.playerName = facts.name;
+    if (facts.department && (!mf.department || facts.correction)) mf.department = facts.department;
+    if (introAct) {
+      if (facts.company) { mf.company = true; mf.companyAlias = facts.companyAlias; }
+      var introStep = s.steps.filter(function (x) { return x.id === 'intro'; })[0], needCompany = !!(introStep && introStep.mention && introStep.mention.length), introNow = false;
+      if (call.flags.introduced) { if (intent === 'introduce') g = 0; }
+      else if (needCompany) {
+        if (mf.company) { call.flags.introduced = true; introNow = true; }
+        else {
+          if (intent === 'introduce') g = -1;
+          res.decision.askCompanyOnly = true;
+          if (!mf.hintedCompany) { mf.hintedCompany = true; res.events.push({ type: 'hint', coach: true, text: 'ما ذكرت اسم الشركة، فالمتصل ما عرف من أنت.' }); }
+        }
+      } else { call.flags.introduced = true; introNow = true; }
+      if (introNow && intent !== 'introduce') g += GAIN.introduce;
+      if (call.flags.introduced) mf.introduced = true;
     }
     if (intent === 'explain') call.flags.explained = true;
     if (intent === 'answer_question' && pendingQ) { call.flags.answered = (call.flags.answered || 0) + 1; call.flags.explained = true; if (q.indexOf('asks_why') >= 0) g += 3; }
@@ -443,11 +552,15 @@
 
     // التناقضات: حقائق قالها اللاعب عن نفسه أو عن الطلب
     var claimKeys = { player_name: 'اسمك', company: 'اسم الشركة', amount: 'المبلغ', department: 'القسم', callback: 'رقم التواصل' };
-    (Array.isArray(a.claims) ? a.claims : []).slice(0, 4).forEach(function (c) {
+    var claimList = (Array.isArray(a.claims) ? a.claims : []).slice(0, 4).filter(function (c) { return !(c && ((c.k === 'player_name' && facts.name) || (c.k === 'department' && facts.department))); });
+    if (facts.name) claimList.push({ k: 'player_name', v: facts.name });
+    if (facts.department) claimList.push({ k: 'department', v: facts.department });
+    claimList.forEach(function (c) {
       if (!c || !claimKeys[c.k] || typeof c.v !== 'string') return;
       var v = normText(c.v).slice(0, 40); if (!v) return;
       var old = mem.claims[c.k];
-      if (old && old !== v && !(old.indexOf(v) >= 0 || v.indexOf(old) >= 0)) {
+      if (old && !sameClaim(old, v) && facts.correction) { mem.claims[c.k] = v; if (c.k === 'player_name') mf.playerName = c.v; if (c.k === 'department') mf.department = c.v; }
+      else if (old && !sameClaim(old, v)) {
         var heavy = q.indexOf('catches_contradictions') >= 0;
         d.suspicion += heavy ? 25 : 12; d.trust -= 10; call.mistakes++; call.flags.stepContra++;
         mem.contradictions.push({ k: c.k, before: old, after: v, turn: call.turns });
@@ -463,8 +576,8 @@
     // تقدم الخطوة
     if (st && intent !== 'cheat') {
       if (st.kind === 'talk') {
-        var goalOk = st.goals.indexOf(intent) >= 0;
-        if (goalOk && st.mention && st.mention.length) { var nt2 = normText(text); goalOk = st.mention.some(function (w) { return nt2.indexOf(normText(w)) >= 0; }); }
+        var goalOk = st.goals.some(function (g2) { return acts.indexOf(g2) >= 0; });
+        if (goalOk && st.mention && st.mention.length) goalOk = !!mf.company;
         if (goalOk && st.needsClaims) goalOk = st.needsClaims.every(function (k) { return !!mem.claims[k]; });
         if (st.id === 'consistent') {
           if (call.flags.stepContra > 0) { call.stepTurns = 0; call.flags.stepContra = 0; goalOk = false; }
@@ -475,7 +588,7 @@
         if (goalOk) completeStep(call, res, eff, now);
         else if (/^ask_/.test(intent)) earlyAsk(call, res);
       } else if (st.kind === 'ask') {
-        if (st.goals.indexOf(intent) >= 0) {
+        if (st.goals.some(function (g2) { return acts.indexOf(g2) >= 0; })) {
           var gt = gateFor(call);
           call.flags.askedOnce[st.id] = true;
           if (gt.willing && a.accept !== false || (gt.willing && call.flags.askedOnce[st.id + '_n'] >= 1)) {
@@ -507,7 +620,12 @@
       else if ((now - call.startedAt - call.waitMs) / 1000 > s.timeLimit * (1 + (eff.toolTime || 0))) finishCall(call, 'fail', 'timeout', res);
     }
     call.trustTrend = m.trust > t0 + 0.5 ? 1 : m.trust < t0 - 0.5 ? -1 : 0;
-    mem.history.push({ r: 'p', t: text.slice(0, 300), i: intent });
+    res.acts = acts; res.facts = facts;
+    if (facts.askedProblem) { mf.askedProblem = true; res.decision.problemAsked = true; }
+    if (facts.reversal) res.decision.reversal = true;
+    res.decision.greetOnly = !!(facts.greetOnly && !introAct);
+    mem.history.push({ r: 'p', t: text.slice(0, 300), i: intent, a: acts.slice(0, 4) });
+    mem.summary = summaryOf(call);
     if (mem.history.length > 40) mem.history.shift();
     call.lastTurnAt = now;
     res.intent = intent; res.ended = call.status !== 'active';
@@ -991,6 +1109,7 @@
     applyTurn: applyTurn, submitTool: submitTool, openSuspiciousFile: openSuspiciousFile, finishCall: finishCall, settleCall: settleCall,
     settleWave: settleWave, detectCheat: detectCheat, latinRatio: latinRatio, noteEvent: noteEvent, endDay: endDay, buy: buy, deliver: deliver,
     checkAchievements: checkAchievements, trustBand: trustBand,
+    extractFacts: extractFacts, callerQuestionKind: callerQuestionKind, fuzzyHas: fuzzyHas, summaryOf: summaryOf, ID_ASK_RX: ID_ASK_RX, REVERSAL_SAY_RX: REVERSAL_SAY_RX,
     method: method, methodUnlocked: methodUnlocked, methodsFor: methodsFor, genOp: genOp, publicOp: publicOp, setMethod: setMethod, collectOp: collectOp,
     opWilling: opWilling, pieceNeed: pieceNeed, credit: credit, hasOpStep: hasOpStep
   };

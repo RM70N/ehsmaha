@@ -104,6 +104,72 @@
     return draft;
   }
 
+
+  /* ================= المكالمة الواردة: افتتاحية المتصل وحالة الحوار ================= */
+  function openingFor(call, rng) {
+    var s = R.scenario(call.scenarioId), p = R.persona(call.personaId), inc = s.incoming;
+    if (!inc) return rng.pick(p.openings);
+    var base = inc.openings[Math.floor(rng() * inc.openings.length)];
+    var tail = !inc.allowReask && C.OPEN_TAIL[p.tone] && rng() < 0.6 ? C.OPEN_TAIL[p.tone] : '';
+    return (base + tail).replace(/\s+/g, ' ').trim();
+  }
+  function pickFrom(call, arr, vars, rng) {
+    var used = call.memory.lastLines, list = arr.map(function (x) { return fill(x, vars); }), fresh = list.filter(function (x) { return used.indexOf(x) < 0; });
+    var pool = fresh.length ? fresh : list, line = pool[Math.floor(rng() * pool.length)];
+    used.push(line); if (used.length > 14) used.shift();
+    return line;
+  }
+  function nextDetail(call) {
+    var inc = R.scenario(call.scenarioId).incoming, mf = call.memory.facts, i = mf.detailIdx || 0;
+    mf.detailIdx = Math.min(i + 1, inc.detail.length);
+    return inc.detail[Math.min(i, inc.detail.length - 1)];
+  }
+  /* جملة المتصل المبنية على حالة المكالمة الموثوقة (التعريف، سؤال المشكلة، انعكاس الأدوار، الذاكرة).
+     ترجع null لو الحالة ما تستدعي ردّاً مبنياً على القصة (مثل الإساءة أو النكتة) فيكمل المسار العادي. */
+  function stateLine(call, res, rng) {
+    var s = R.scenario(call.scenarioId), inc = s.incoming, p = R.persona(call.personaId);
+    if (!inc || inc.allowReask) return null;
+    var L = C.INCOMING_LINES[p.tone] || C.INCOMING_LINES.casual, mf = call.memory.facts || {}, d = res.decision || {}, acts = res.acts || [], intent = res.intent;
+    var vars = { company: s.company, pname: mf.playerName || '', want: inc.wantSelf || '' };
+    if (intent === 'cheat' || intent === 'insult') return null;
+    var introduced = acts.indexOf('introduce') >= 0, story = ['greet', 'explain', 'reassure', 'answer_question', 'ask_problem', 'introduce'];
+    if (d.reversal) return pickFrom(call, L.reversal, vars, rng) + ' ' + nextDetail(call);
+    if (d.askCompanyOnly && !mf.company) return pickFrom(call, L.ack_name, vars, rng);
+    if (d.problemAsked) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    if (introduced && call.flags.introduced) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    if (d.greetOnly) {
+      var asked = (call.memory.asked || {}).company || 0;
+      if (!mf.company && asked < 2) return pickFrom(call, L.confirm, vars, rng);
+      return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+    }
+    if (story.indexOf(intent) >= 0) {
+      if ((mf.detailIdx || 0) < inc.detail.length) return pickFrom(call, L.ack, vars, rng) + ' ' + nextDetail(call);
+      return pickFrom(call, L.wait, vars, rng);
+    }
+    return null;
+  }
+  function norm(t) { return R.normText(t || ''); }
+  function hasKeyword(line, kws) { var n = norm(line); return (kws || []).some(function (k) { return n.indexOf(norm(k)) >= 0; }); }
+  /* يمنع الرد النهائي من مخالفة حالة المكالمة: سؤال «من أنت؟» بعد التعريف، عكس الأدوار، تكرار نفس الجملة أو نفس السؤال بعد الإجابة عنه */
+  function guardLine(call, res, line, rng) {
+    var s = R.scenario(call.scenarioId), inc = s.incoming, mf = call.memory.facts || {};
+    if (!line || res.ended || !inc || inc.allowReask) return line;
+    var t = norm(line), known = !!(call.flags.introduced || mf.playerName || mf.company), bad = false;
+    if (known && R.ID_ASK_RX.test(t)) bad = true;
+    if (R.REVERSAL_SAY_RX.test(t)) bad = true;
+    var recent = call.memory.history.filter(function (h) { return h.r === 'c'; }).slice(-3).map(function (h) { return norm(h.t); });
+    if (recent.indexOf(t) >= 0) bad = true;
+    var qk = R.callerQuestionKind(line, call), pend = call.memory.pending;
+    if (qk === 'company' && (mf.company || call.flags.introduced)) bad = true;
+    if (qk && pend && pend.answered && pend.kind === qk && qk !== 'other') bad = true;
+    var d = res.decision || {};
+    if (!bad && (d.problemAsked || (res.acts || []).indexOf('introduce') >= 0 && call.flags.introduced && (mf.detailIdx || 0) === 0) && !hasKeyword(line, inc.keywords)) bad = true;
+    if (!bad) return line;
+    call.memory.loopHits = (call.memory.loopHits || 0) + 1;
+    var fixed = stateLine(call, Object.assign({}, res, { decision: Object.assign({}, d, { problemAsked: true }) }), rng);
+    return fixed || line;
+  }
+
   /* ================= الجلسة ================= */
   function Session(opts) {
     this.brain = opts.brain;
@@ -198,10 +264,12 @@
     if (opts.method) pick = Object.assign({}, pick, { method: String(opts.method) });
     var call = R.createCall(this.profile, d, pick, this.rng, this.now(), this.effects());
     this.call = call; d.activeCallId = call.id;
-    var p = R.persona(call.personaId), opening = this.rng.pick(p.openings);
+    var p = R.persona(call.personaId), opening = openingFor(call, this.rng), oqk = R.callerQuestionKind(opening, call);
     call.memory.history.push({ r: 'c', t: opening });
     call.memory.lastLines.push(opening);
     call.memory.pendingQ = /[؟?]/.test(opening);
+    call.memory.pending = oqk ? { kind: oqk, text: opening, answered: false, turn: 0 } : null;
+    if (oqk) { call.memory.asked[oqk] = 1; call.memory.lastQKind = oqk; }
     if (call.op) this.onOpIssued(call.op);
     R.logDay(d, 'call_start', 'مكالمة من ' + p.name + ': ' + R.scenario(call.scenarioId).title, { callId: call.id, caller: p.name });
     return { call: R.publicCall(call), opening: { id: call.id + ':0', text: opening } };
@@ -218,6 +286,7 @@
     var text = String(req.text || '').replace(/\s+/g, ' ').trim().slice(0, 600);
     if (!text) return Promise.resolve({ error: 'empty', callId: call.id, msgId: req.msgId });
     call.env = { noise: !!(req.env && req.env.noise) };
+    if (req.interrupted) { for (var hi = call.memory.history.length - 1; hi >= 0; hi--) if (call.memory.history[hi].r === 'c') { call.memory.history[hi].cut = true; break; } }
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : { signal: null, abort: function () {} };
     var started = this.now();
     this.pending = { msgId: req.msgId, ctl: ctl, callId: call.id };
@@ -245,6 +314,10 @@
       var line = self.brain.compose ? self.brain.compose(ctx, res, draft) : null;
       if (!line) line = reconcile(call, res, draft, self.rng);
       if (!line) line = pickLine(call, 'waiting', lineVars(call), self.rng);
+      line = guardLine(call, res, line, self.rng);
+      var lqk = res.ended ? null : R.callerQuestionKind(line, call);
+      call.memory.pending = lqk ? { kind: lqk, text: line, answered: false, turn: call.turns } : null;
+      if (lqk) { call.memory.asked[lqk] = (call.memory.asked[lqk] || 0) + 1; call.memory.lastQKind = lqk; }
       call.memory.history.push({ r: 'c', t: line });
       call.memory.pendingQ = /[؟?]/.test(line);
       call.memory.pendingObj = res.decision.accept === false || !!res.decision.opRefused;
@@ -379,6 +452,6 @@
   P.deliver = function (req) { var r = R.deliver(this.profile, req.itemId); if (r.ok) this.checkpoint('delivery'); return { ok: r.ok, profile: this.publicProfile() }; };
   P.resetProgress = function () { var s = this.profile.settings; this.profile = R.newProfile(); this.profile.settings = s; this.day = null; this.call = null; this.checkpoint('reset'); return { ok: true, profile: this.publicProfile() }; };
 
-  return { Session: Session, sanitizeSay: sanitizeSay, reconcile: reconcile, pickLine: pickLine, lineVars: lineVars, cutAtBoundary: cutAtBoundary, speakText: speakText, shownValues: shownValues };
+  return { Session: Session, stateLine: stateLine, guardLine: guardLine, openingFor: openingFor, sanitizeSay: sanitizeSay, reconcile: reconcile, pickLine: pickLine, lineVars: lineVars, cutAtBoundary: cutAtBoundary, speakText: speakText, shownValues: shownValues };
 });
 
