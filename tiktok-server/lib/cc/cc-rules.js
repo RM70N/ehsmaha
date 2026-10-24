@@ -9,7 +9,7 @@
   'use strict';
 
   var SAVE_VERSION = 2;
-  var OVERTIME_SEC = 45;
+  var OVERTIME_SEC = 0; // نهاية الدوام تقفل المكالمة القائمة فوراً
 
   /* ================= أدوات عامة ================= */
   var AR_DIGITS = '٠١٢٣٤٥٦٧٨٩', FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
@@ -151,7 +151,7 @@
   }
   /* يحدّث مرحلة اليوم حسب الوقت. القاعدة الواضحة لنهاية الدوام:
      - عند انتهاء الوقت: ما فيه مكالمات جديدة.
-     - المكالمة القائمة تاخذ وقت إضافي ٤٥ ثانية؛ لو نجحت خلاله تنحسب، وإلا تنقفل بدون مكافأة وبدون احتسابها فشل. */
+     - المكالمة القائمة تنقفل تلقائياً فوراً (بدون مكافأة وبدون احتسابها فشل). */
   function tickDay(day, now, activeCall) {
     if (day.phase === 'shift' && dayTimeLeft(day, now) <= 0) {
       if (activeCall && activeCall.status === 'active') { day.phase = 'overtime'; day.overtimeStart = now; }
@@ -613,11 +613,11 @@
     if (call.status === 'active') {
       if (intent === 'insult' && (p.tone === 'sweet' || m.suspicion >= 60)) finishCall(call, 'fail', 'insult', res);
       else if (m.suspicion >= 90) finishCall(call, 'fail', 'suspicion', res);
+      else if (m.trust <= 0) finishCall(call, 'fail', 'trust', res); // ثقة المتصل وصلت أدنى حد: يقفل (ما فيه مهلة للمكالمة، اللاعب يبقى للدوام كله)
       else if (m.patience <= 0) finishCall(call, 'fail', 'patience', res);
       else if ((mem.refuseStreak || 0) >= 5) finishCall(call, 'fail', 'refused', res);
       else if (intent === 'polite_end' && !s.timeWaster && !(s.saboteurCall && call.status !== 'active')) finishCall(call, 'fail', 'player_end', res);
       else if (s.testerCall && mem.contradictions.length >= 2) finishCall(call, 'fail', 'contradictions', res);
-      else if ((now - call.startedAt - call.waitMs) / 1000 > s.timeLimit * (1 + (eff.toolTime || 0))) finishCall(call, 'fail', 'timeout', res);
     }
     call.trustTrend = m.trust > t0 + 0.5 ? 1 : m.trust < t0 - 0.5 ? -1 : 0;
     res.acts = acts; res.facts = facts;
@@ -945,7 +945,7 @@
     return { reward: reward, summary: summary, achievements: checkAchievements(profile, day, 'call', summary) };
   }
   function reasonText(r) {
-    return { complete: 'اكتملت', suspicion: 'شك فيك', patience: 'نفد صبره', insult: 'إساءة', player_end: 'أنهيتها قبل الإكمال', contradictions: 'تناقضات', timeout: 'انتهت مهلة المكالمة', tool_fail: 'أخطاء بالأدوات', overtime: 'انتهى الدوام', abandoned: 'انقطعت', disconnect: 'انقطع الاتصال', polite_end: 'إنهاء مهذب', hangup: 'سكّر الخط', refused: 'رفض يكمل', op_failed: 'العملية انرفضت' }[r] || r;
+    return { complete: 'اكتملت', suspicion: 'شك فيك', patience: 'نفد صبره', insult: 'إساءة', player_end: 'أنهيتها قبل الإكمال', contradictions: 'تناقضات', trust: 'فقد الثقة فيك', timeout: 'انتهت مهلة المكالمة', tool_fail: 'أخطاء بالأدوات', overtime: 'انتهى الدوام', abandoned: 'انقطعت', disconnect: 'انقطع الاتصال', polite_end: 'إنهاء مهذب', hangup: 'سكّر الخط', refused: 'رفض يكمل', op_failed: 'العملية انرفضت' }[r] || r;
   }
 
   /* ================= الإنجازات ================= */
