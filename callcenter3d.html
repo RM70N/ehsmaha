@@ -7036,7 +7036,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       if (run !== mic.run) return;
       if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; }
       if (!r || !r.ok) { failMic(((r && r.msg) || C.STRINGS.sttFail) + (r && (r.detail || r.error) ? ' [' + (r.detail || r.error) + ']' : '')); return; }
-      if (!r.text || r.noSpeech) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
+      if (!r.text || r.noSpeech) { setMic('idle', 'ما قدرنا نحوّل الصوت لنص. جرب مرة ثانية أو اكتب.' + (r.detail ? ' [' + r.detail + ']' : '')); return; }
       gotTranscript(r.text, run);
     }, function () { if (finished) return; finished = true; clearTimeout(wd); if (run !== mic.run) return; failMic('فشل تحويل الصوت لنص. اكتب رسالتك أو أعد المحاولة.'); });
   }

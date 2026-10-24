@@ -117,7 +117,8 @@ class GeminiRouter {
             if (found.probe.order.length) found.chat = found.probe.order.concat(found.chat.filter((x) => found.probe.order.indexOf(x) < 0));
             this.disc.found = found; this.disc.error = null; this.disc.at = this.now();
             const merge = (kind, fb) => { const list = found[kind === 'tts' ? 'tts' : 'chat']; if (!this.pinned[kind] && list.length) this.models[kind] = list.concat(fb.filter((x) => list.indexOf(x) < 0)); };
-            merge('chat', this.models.chat); merge('stt', this.models.stt); merge('tts', this.models.tts);
+            merge('chat', this.models.chat);
+            if (!this.pinned.stt) { const fl = found.chat.filter((n) => !/lite/.test(n)), li = found.chat.filter((n) => /lite/.test(n)); if (fl.length) this.models.stt = fl.concat(li, this.models.stt.filter((x) => found.chat.indexOf(x) < 0)); } merge('tts', this.models.tts);
             return found;
           }
           this.disc.error = 'HTTP ' + r.status;
@@ -155,7 +156,7 @@ class GeminiRouter {
   }
 
   async _generate(kind, body, opts) {
-    const models = this.models[kind] || this.models.chat;
+    const models = (this.models[kind] || this.models.chat).filter((m) => !(opts.exclude && opts.exclude.indexOf(m) >= 0));
     const t0 = this.now();
     let last = null, tried = 0, rateLimited = 0, invalid = 0, badReq = null;
     const n = this.keys.length;

@@ -199,21 +199,39 @@ function createCCApi(opts) {
     if (!audio || audio.length > 2.0 * 1024 * 1024 || !/^[A-Za-z0-9+/=]+$/.test(audio)) return send(res, 200, { ok: false, error: 'bad_audio', msg: 'المقطع غير صالح أو طويل.' });
     const t = now(); rec.turnTimes = rec.turnTimes.filter((x) => t - x < 60000);
     if (!ipAllow(clientIp(req), 'stt', 40, 60000)) return send(res, 429, { ok: false, error: 'rate_limited' });
+    const durMs = Math.max(0, Number(body.durationMs) || 0);
+    const PROMPT = 'اكتب حرفياً الكلام العربي المنطوق في هذا المقطع الصوتي (لهجة سعودية غالباً) كما قيل بدون أي إضافة أو تشكيل أو ترجمة أو شرح. أرجع النص فقط. لو ما فيه كلام بشري مفهوم أرجع بالضبط: [[NOSPEECH]]';
+    // يحاول نموذجاً ثم (لو رجع فاضي والمقطع طويل كفاية) نموذجاً آخر قبل ما نحكم إنه «ما فيه كلام»
+    const tried = []; let empty = '';
     try {
-      const r = await router.generate('stt', {
-        contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: 'فرّغ الكلام العربي (لهجة سعودية غالباً) في هذا المقطع حرفياً كما قيل، بدون أي إضافة أو تشكيل أو ترجمة. لو ما فيه كلام واضح اجعل noSpeech=true. أرجع JSON: {"text": "...", "noSpeech": false}.' }] }],
-        generationConfig: { temperature: 0, maxOutputTokens: 300, responseMimeType: 'application/json', responseSchema: { type: 'OBJECT', properties: { text: { type: 'STRING' }, noSpeech: { type: 'BOOLEAN' } }, required: ['text'] } },
-      }, { timeoutMs: 12000, budgetMs: 21000 });
-      const cand = r.data && r.data.candidates && r.data.candidates[0];
-      const txt = cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('');
-      let j = null; try { j = JSON.parse(txt || ''); } catch (e) { /* */ }
-      const text = j && typeof j.text === 'string' ? j.text.replace(/\s+/g, ' ').trim().slice(0, 600) : '';
-      if (!text || (j && j.noSpeech)) return send(res, 200, { ok: true, text: '', noSpeech: true });
-      return send(res, 200, { ok: true, text });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const r = await router.generate('stt', {
+          contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: PROMPT }] }],
+          generationConfig: { temperature: 0, maxOutputTokens: 1024 },
+        }, { timeoutMs: 12000, budgetMs: 21000, exclude: tried });
+        tried.push(r.model);
+        const cand = r.data && r.data.candidates && r.data.candidates[0];
+        const raw = (cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('')) || '';
+        const text = parseStt(raw);
+        if (text) return send(res, 200, { ok: true, text, model: r.model });
+        empty = 'empty:' + String((cand && cand.finishReason) || (r.data && r.data.promptFeedback && r.data.promptFeedback.blockReason) || 'none');
+        log('warn', 'cc stt فاضي من ' + r.model + ' (' + empty + ') مقطع=' + Math.round(audio.length * 0.75 / 1024) + 'KB ' + durMs + 'ms ' + mime + ' خام=' + JSON.stringify(raw.slice(0, 60)));
+        if (durMs < 1200 || attempt === 1) break;
+      }
+      return send(res, 200, { ok: true, text: '', noSpeech: true, detail: empty });
     } catch (e) {
       log('warn', 'cc stt فشل: ' + (e && e.kind) + ' ' + String((e && e.message) || '').slice(0, 120));
       return send(res, 200, { ok: false, error: e.kind || 'stt_error', detail: e.kind || 'stt_error', msg: e.kind === 'rate_limited' ? 'الخدمة مزدحمة، جرب بعد لحظات أو اكتب رسالتك.' : C.STRINGS.sttFail });
     }
+  }
+
+  // يقبل نصاً صرفاً أو JSON قديم {text, noSpeech}؛ يرجع '' لو ما فيه كلام
+  function parseStt(raw) {
+    let t = String(raw || '').trim();
+    if (!t || /\[\[\s*NOSPEECH\s*\]\]/i.test(t)) return '';
+    if (t[0] === '{') { try { const j = JSON.parse(t); if (j && j.noSpeech) return ''; t = j && typeof j.text === 'string' ? j.text : ''; } catch (e) { const m = /"text"\s*:\s*"([^"]*)/.exec(t); t = m ? m[1] : ''; } }
+    t = t.replace(/^```[a-z]*\s*/, '').replace(/\s*```$/, '').trim().replace(/^["'«»]+|["'«»]+$/g, '').replace(/\s+/g, ' ').trim();
+    return t.slice(0, 600);
   }
 
   async function handleTts(req, res) {
