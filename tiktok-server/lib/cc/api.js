@@ -252,6 +252,7 @@ function createCCApi(opts) {
     } catch (e) { return send(res, 200, { ok: false, error: e.kind || 'tts_error' }); }
   }
 
+  let diagCache = null;
   async function handleAdmin(req, res, what) {
     const auth = await authOf(req);
     if (!auth.owner) return send(res, 403, { ok: false, error: 'owner_only', msg: 'للمالك فقط.' });
@@ -279,6 +280,11 @@ function createCCApi(opts) {
     const sub = path.slice('/cc/v1/'.length).replace(/\/+$/, '');
     try {
       if (sub === 'config' && req.method === 'GET') { send(res, 200, { ok: true, service: 'cc', contentVersion: C.CONTENT_VERSION, stage, caps: caps() }); return true; }
+      if (sub === 'diag' && req.method === 'GET') {
+        const nowT = Date.now();
+        if (!diagCache || nowT - diagCache.t > 20000) diagCache = { t: nowT, p: router.diagnose().catch((e) => ({ ok: false, error: String(e && e.message) })) };
+        send(res, 200, Object.assign({ ok: true, contentVersion: C.CONTENT_VERSION }, await diagCache.p)); return true;
+      }
       if (req.method !== 'POST') { send(res, 405, { ok: false, error: 'method' }); return true; }
       if (sub === 'session') await handleSession(req, res);
       else if (sub === 'stt') await handleStt(req, res);
