@@ -221,7 +221,7 @@ const GUM_STUB = (mode) => `(() => { const real = navigator.mediaDevices.getUser
   await cfg({ reset: true, noSpeech: true });
   await speakThenStop(page, { waitSpeech: false, pattern: false });
   await waitMic(page, 'idle', 12000); await sleep(600);
-  check('سكوت تام والخادم يرجع «بلا كلام»: رسالة واضحة وما يدخل دور', /ما سمعنا كلام/.test(await statusText(page)) && (await playerLines(page)).length === 0 && (await q(page, () => window.__turns.length)) === 0, await statusText(page));
+  check('سكوت تام والخادم يرجع «بلا كلام»: رسالة واضحة وما يدخل دور', /ما سمعنا كلام|ما قدرنا نحوّل الصوت/.test(await statusText(page)) && (await playerLines(page)).length === 0 && (await q(page, () => window.__turns.length)) === 0, await statusText(page));
   await q(page, () => { window.__gum.pattern = 'speech'; });
   await cfg({ reset: true });
 

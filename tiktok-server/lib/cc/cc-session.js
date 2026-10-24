@@ -62,7 +62,7 @@
   function reconcile(call, res, draft, rng) {
     var v = lineVars(call), p = R.persona(call.personaId), d = res.decision;
     if (res.ended) {
-      var map = { success: 'success', suspicion: 'hangup_suspicion', contradictions: 'hangup_suspicion', patience: 'hangup_patience', timeout: 'hangup_patience', insult: 'insult', player_end: 'polite_end_ok', polite_end: 'polite_end_ok', tool_fail: 'hangup_patience', refused: 'hangup_suspicion', op_failed: 'op_fail_hangup' };
+      var map = { success: 'success', suspicion: 'hangup_suspicion', contradictions: 'hangup_suspicion', patience: 'hangup_patience', timeout: 'hangup_patience', trust: 'hangup_suspicion', insult: 'insult', player_end: 'polite_end_ok', polite_end: 'polite_end_ok', tool_fail: 'hangup_patience', refused: 'hangup_suspicion', op_failed: 'op_fail_hangup' };
       var cat = map[call.endReason] || 'polite_end_ok';
       if (draft && (call.outcome === 'success' || call.endReason === 'player_end' || call.endReason === 'polite_end')) return draft;
       return pickLine(call, cat, v, rng);

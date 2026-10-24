@@ -1369,7 +1369,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   var STRINGS = {
     dayStart: 'يومك {day}. هدفك {quota} {cur}، والوقت {time}.',
     dayOverNoCalls: 'انتهى الدوام. ما فيه مكالمات جديدة.',
-    overtime: 'انتهى الدوام. عندك {sec} ثانية تكمل المكالمة الحالية، بعدها تنقفل تلقائياً.',
+    overtime: 'انتهى الدوام. انقفلت المكالمة الحالية تلقائياً.',
     callWaiting: 'المتصل يفكر...',
     callSlow: 'الخط بطيء. ننتظر رد المتصل، والوقت متوقف لين يرد.',
     callError: 'تعذر الوصول لخدمة المحادثة. محاولتك محفوظة، جرب مرة ثانية أو أنهِ المكالمة.',
@@ -1697,7 +1697,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   'use strict';
 
   var SAVE_VERSION = 2;
-  var OVERTIME_SEC = 45;
+  var OVERTIME_SEC = 0; // نهاية الدوام تقفل المكالمة القائمة فوراً
 
   /* ================= أدوات عامة ================= */
   var AR_DIGITS = '٠١٢٣٤٥٦٧٨٩', FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
@@ -1839,7 +1839,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   }
   /* يحدّث مرحلة اليوم حسب الوقت. القاعدة الواضحة لنهاية الدوام:
      - عند انتهاء الوقت: ما فيه مكالمات جديدة.
-     - المكالمة القائمة تاخذ وقت إضافي ٤٥ ثانية؛ لو نجحت خلاله تنحسب، وإلا تنقفل بدون مكافأة وبدون احتسابها فشل. */
+     - المكالمة القائمة تنقفل تلقائياً فوراً (بدون مكافأة وبدون احتسابها فشل). */
   function tickDay(day, now, activeCall) {
     if (day.phase === 'shift' && dayTimeLeft(day, now) <= 0) {
       if (activeCall && activeCall.status === 'active') { day.phase = 'overtime'; day.overtimeStart = now; }
@@ -2301,11 +2301,11 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (call.status === 'active') {
       if (intent === 'insult' && (p.tone === 'sweet' || m.suspicion >= 60)) finishCall(call, 'fail', 'insult', res);
       else if (m.suspicion >= 90) finishCall(call, 'fail', 'suspicion', res);
+      else if (m.trust <= 0) finishCall(call, 'fail', 'trust', res); // ثقة المتصل وصلت أدنى حد: يقفل (ما فيه مهلة للمكالمة، اللاعب يبقى للدوام كله)
       else if (m.patience <= 0) finishCall(call, 'fail', 'patience', res);
       else if ((mem.refuseStreak || 0) >= 5) finishCall(call, 'fail', 'refused', res);
       else if (intent === 'polite_end' && !s.timeWaster && !(s.saboteurCall && call.status !== 'active')) finishCall(call, 'fail', 'player_end', res);
       else if (s.testerCall && mem.contradictions.length >= 2) finishCall(call, 'fail', 'contradictions', res);
-      else if ((now - call.startedAt - call.waitMs) / 1000 > s.timeLimit * (1 + (eff.toolTime || 0))) finishCall(call, 'fail', 'timeout', res);
     }
     call.trustTrend = m.trust > t0 + 0.5 ? 1 : m.trust < t0 - 0.5 ? -1 : 0;
     res.acts = acts; res.facts = facts;
@@ -2633,7 +2633,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     return { reward: reward, summary: summary, achievements: checkAchievements(profile, day, 'call', summary) };
   }
   function reasonText(r) {
-    return { complete: 'اكتملت', suspicion: 'شك فيك', patience: 'نفد صبره', insult: 'إساءة', player_end: 'أنهيتها قبل الإكمال', contradictions: 'تناقضات', timeout: 'انتهت مهلة المكالمة', tool_fail: 'أخطاء بالأدوات', overtime: 'انتهى الدوام', abandoned: 'انقطعت', disconnect: 'انقطع الاتصال', polite_end: 'إنهاء مهذب', hangup: 'سكّر الخط', refused: 'رفض يكمل', op_failed: 'العملية انرفضت' }[r] || r;
+    return { complete: 'اكتملت', suspicion: 'شك فيك', patience: 'نفد صبره', insult: 'إساءة', player_end: 'أنهيتها قبل الإكمال', contradictions: 'تناقضات', trust: 'فقد الثقة فيك', timeout: 'انتهت مهلة المكالمة', tool_fail: 'أخطاء بالأدوات', overtime: 'انتهى الدوام', abandoned: 'انقطعت', disconnect: 'انقطع الاتصال', polite_end: 'إنهاء مهذب', hangup: 'سكّر الخط', refused: 'رفض يكمل', op_failed: 'العملية انرفضت' }[r] || r;
   }
 
   /* ================= الإنجازات ================= */
@@ -2866,7 +2866,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
   function reconcile(call, res, draft, rng) {
     var v = lineVars(call), p = R.persona(call.personaId), d = res.decision;
     if (res.ended) {
-      var map = { success: 'success', suspicion: 'hangup_suspicion', contradictions: 'hangup_suspicion', patience: 'hangup_patience', timeout: 'hangup_patience', insult: 'insult', player_end: 'polite_end_ok', polite_end: 'polite_end_ok', tool_fail: 'hangup_patience', refused: 'hangup_suspicion', op_failed: 'op_fail_hangup' };
+      var map = { success: 'success', suspicion: 'hangup_suspicion', contradictions: 'hangup_suspicion', patience: 'hangup_patience', timeout: 'hangup_patience', trust: 'hangup_suspicion', insult: 'insult', player_end: 'polite_end_ok', polite_end: 'polite_end_ok', tool_fail: 'hangup_patience', refused: 'hangup_suspicion', op_failed: 'op_fail_hangup' };
       var cat = map[call.endReason] || 'polite_end_ok';
       if (draft && (call.outcome === 'success' || call.endReason === 'player_end' || call.endReason === 'polite_end')) return draft;
       return pickLine(call, cat, v, rng);
@@ -5725,7 +5725,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     function draw() {
       var c = G.calls.call, prof = G.state.snap && G.state.snap.profile, h = '<div class="ap">';
       if (c && G.calls.state !== 'idle') {
-        h += '<div class="card"><h3>' + U.esc(c.scenario.title) + '</h3><p>' + U.esc(c.scenario.intro) + '</p><div class="cc-row" style="margin-top:8px"><span class="tag acc">' + U.esc(c.scenario.category) + '</span><span class="tag">الصعوبة ' + U.ar(c.scenario.difficulty) + ' من ٥</span><span class="tag">المهلة ' + U.mmss(c.scenario.timeLimit) + '</span></div></div>';
+        h += '<div class="card"><h3>' + U.esc(c.scenario.title) + '</h3><p>' + U.esc(c.scenario.intro) + '</p><div class="cc-row" style="margin-top:8px"><span class="tag acc">' + U.esc(c.scenario.category) + '</span><span class="tag">الصعوبة ' + U.ar(c.scenario.difficulty) + ' من ٥</span></div></div>';
         var showAll = !!G.settings.coach, later = c.steps.filter(function (s) { return !s.done && !s.current; }).length;
         h += '<h3>' + (showAll ? 'الخطوات' : 'هدف المكالمة') + '</h3><ol class="steps">' + c.steps.filter(function (s) { return showAll || s.done || s.current; }).map(function (s) { return '<li class="' + (s.done ? 'done' : s.current ? 'cur' : '') + '"><i class="ph ph-' + (s.done ? 'check-circle' : s.current ? 'arrow-circle-left' : 'circle') + '" aria-hidden="true"></i><span><b>' + U.esc(s.title) + '</b>' + (s.kind === 'tool' ? '<br><small class="muted">تطبيق: ' + U.esc(C.APPS[C.TOOLS[s.tool].app].name) + '</small>' : s.kind === 'ask' ? '<br><small class="muted">اطلبها بكلامك بوضوح لما يكون مرتاح</small>' : '<br><small class="muted">قلها بكلامك</small>') + (s.done ? '<span class="cc-sr">مكتملة</span>' : s.current ? '<span class="cc-sr">الحالية</span>' : '') + '</span></li>'; }).join('') + '</ol>';
         if (!showAll && later) h += '<p class="muted">' + U.ar(later) + ' خطوات لاحقة تنكشف لما توصلها. (تلميحات المدرب من «مساعدة» بالمكالمة تعرضها كلها.)</p>';
@@ -7036,7 +7036,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
       if (run !== mic.run) return;
       if (!K.call || K.call.id !== callId || K.state !== 'active') { setMic('idle', ''); return; }
       if (!r || !r.ok) { failMic(((r && r.msg) || C.STRINGS.sttFail) + (r && (r.detail || r.error) ? ' [' + (r.detail || r.error) + ']' : '')); return; }
-      if (!r.text || r.noSpeech) { setMic('idle', 'ما سمعنا كلام واضح. جرب مرة ثانية أو اكتب.'); return; }
+      if (!r.text || r.noSpeech) { setMic('idle', 'ما قدرنا نحوّل الصوت لنص. جرب مرة ثانية أو اكتب.' + (r.detail ? ' [' + r.detail + ']' : '')); return; }
       gotTranscript(r.text, run);
     }, function () { if (finished) return; finished = true; clearTimeout(wd); if (run !== mic.run) return; failMic('فشل تحويل الصوت لنص. اكتب رسالتك أو أعد المحاولة.'); });
   }
@@ -7602,7 +7602,7 @@ html,body{margin:0;height:100%;background:var(--cc-bg);color:var(--cc-text);over
     if (G.player.mode === 'walk' && G.calls.state === 'idle' && Math.hypot(G.player.vx, G.player.vz) < 0.2) S.idleSec += dt;
     pollAcc += dt;
     var left = Gm.timeLeft(), d = S.snap.day;
-    var pollEvery = G.auth.kind === 'local' ? 2 : (left <= 0 ? 3 : 15);
+    var pollEvery = G.auth.kind === 'local' ? 2 : (left <= 0 ? (G.calls.state === 'active' ? 1 : 3) : 15);
     if (pollAcc >= pollEvery) { pollAcc = 0; G.auth.call('state').then(function (r) { if (r.state) Gm.applySnap(r.state); }); }
     if (left <= 0 && d) {
       if (G.calls.state === 'active') {

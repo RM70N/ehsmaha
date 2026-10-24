@@ -227,3 +227,31 @@ test('كل نوع شخصية: ما فيه حلقة «من أنت؟» بحوار 
     }
   }
 });
+
+// ---------- مهلة المكالمة محذوفة + إنهاء عند أدنى ثقة + إنهاء عند نهاية الدوام ----------
+test('ما فيه مهلة للمكالمة: مرور وقت أطول من الحد القديم ما يقفلها', async () => {
+  const m = mk('s01', 'p05', 3);
+  m.s.call.startedAt -= 3 * 3600e3; // المكالمة بدأت قبل ٣ ساعات (الحد القديم ٥ دقايق)، وآخر رسالة قبل لحظات
+  const r = await say(m, 'السلام عليكم');
+  assert.ok(r.reply, JSON.stringify(r));
+  assert.equal(m.s.call.status, 'active');
+  assert.notEqual(m.s.call.endReason, 'timeout');
+});
+
+test('ثقة المتصل على أدنى حد: تنقفل المكالمة بسبب «trust»', async () => {
+  const m = mk('s01', 'p05', 3);
+  m.s.call.meters.trust = 0;
+  const r = await say(m, 'ايش');
+  assert.equal(m.s.call.status !== 'active', true, JSON.stringify(r.decision || r));
+  assert.equal(m.s.call.endReason, 'trust');
+});
+
+test('نهاية الدوام وفيه مكالمة: تنقفل تلقائياً فوراً (محايدة)', () => {
+  const m = mk('s01', 'p05', 3);
+  m.s.day.duration = 600; m.s.day.startedAt = m.s.now() - 601 * 1000;
+  const out = m.s.tick();
+  assert.ok(out.forced, JSON.stringify(out));
+  assert.equal(m.s.call.status !== 'active', true);
+  assert.equal(m.s.call.endReason, 'overtime');
+  assert.equal(m.s.day.phase, 'closed');
+});

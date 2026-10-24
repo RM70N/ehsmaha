@@ -166,6 +166,36 @@ test('STT: يرجع النص، ويرفض صيغة/حجم غير مقبول، و
   await api.close(); mock.srv.close();
 });
 
+const sttOut = (text) => ({ status: 200, body: { candidates: [{ content: { parts: [{ text }] }, finishReason: 'STOP' }] } });
+const isAudio = (body) => body.contents[0].parts.some((p) => p.inlineData);
+const AUD = () => Buffer.alloc(3000, 5).toString('base64');
+
+test('STT: نص صرف يُقبل، وJSON القديم يُقبل، و[[NOSPEECH]] = ما فيه كلام', async () => {
+  let reply = 'مرحبا معك سامي';
+  const mock = await startMock((key, model, body) => (isAudio(body) ? sttOut(reply) : null)); const api = await startApi(mock);
+  const sid = (await api.post('session', {})).json.sessionId;
+  const go = () => api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 600 });
+  let r = await go(); assert.equal(r.json.text, 'مرحبا معك سامي');
+  reply = '```\n"السلام عليكم"\n```'; r = await go(); assert.equal(r.json.text, 'السلام عليكم');
+  reply = JSON.stringify({ text: 'هلا والله', noSpeech: false }); r = await go(); assert.equal(r.json.text, 'هلا والله');
+  reply = '{"text": "نص مقطوع'; r = await go(); assert.equal(r.json.text, 'نص مقطوع');
+  reply = '[[NOSPEECH]]'; r = await go(); assert.equal(r.json.ok, true); assert.equal(r.json.noSpeech, true); assert.ok(/^empty:/.test(r.json.detail));
+  await api.close(); mock.srv.close();
+});
+
+test('STT: رد فاضي من النموذج الأول والمقطع طويل ← يجرب نموذجاً ثانياً قبل «ما فيه كلام»', async () => {
+  const seen = [];
+  const mock = await startMock((key, model, body) => { if (!isAudio(body)) return null; seen.push(model); return sttOut(seen.length === 1 ? '' : 'وصلني الصوت'); });
+  const api = await startApi(mock, { GEMINI_STT_MODELS: 'm1,m2' });
+  const sid = (await api.post('session', {})).json.sessionId;
+  const r = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 3000 });
+  assert.equal(r.json.text, 'وصلني الصوت'); assert.deepEqual(seen, ['m1', 'm2']);
+  // مقطع قصير جداً: ما نكرر
+  seen.length = 0; const r2 = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 500 });
+  assert.equal(r2.json.noSpeech, true); assert.equal(seen.length, 1);
+  await api.close(); mock.srv.close();
+});
+
 test('لوحة المالك: ترفض غير المالك، وتعرض الحالة بلا مفاتيح للمالك المتحقق منه', async () => {
   const mock = await startMock(() => null);
   const verify = async (t) => (t === 'owner' ? { uid: 'u1', email: 'MALSHAIFAN1@gmail.com', emailVerified: true } : t === 'unverified' ? { uid: 'u3', email: 'malshaifan1@gmail.com', emailVerified: false } : t === 'user' ? { uid: 'u2', email: 'x@y.z', emailVerified: true } : null);
