@@ -201,8 +201,9 @@ function createCCApi(opts) {
     if (!ipAllow(clientIp(req), 'stt', 40, 60000)) return send(res, 429, { ok: false, error: 'rate_limited' });
     const durMs = Math.max(0, Number(body.durationMs) || 0);
     const PROMPT = 'اكتب حرفياً الكلام العربي المنطوق في هذا المقطع الصوتي (لهجة سعودية غالباً) كما قيل بدون أي إضافة أو تشكيل أو ترجمة أو شرح. أرجع النص فقط. لو ما فيه كلام بشري مفهوم أرجع بالضبط: [[NOSPEECH]]';
-    // يرسل المقطع لنموذجين بالتوازي (الأسرع يفوز) بدل الانتظار على نموذج بطيء؛ لو فشلوا ننتقل لأزواج التالية.
-    // فاضي من الجميع = «ما فيه كلام». أخطاء/مهل من الجميع = خطأ واضح بالرمز.
+    // طلب «مُحوَّط»: نبدأ بنموذج واحد (يعني استهلاك واحد بالحالة العادية)، ولو تأخر عن HEDGE_MS أو رجع فاضي/فشل نبدأ النموذج التالي
+    // بالتوازي والأسرع اللي يرجع نصاً يفوز. فاضي من نموذجين = «ما فيه كلام»؛ أخطاء من الجميع = خطأ واضح بالرمز.
+    const HEDGE_MS = 4000;
     const ask = async (model) => {
       const r = await router.generate('stt', {
         contents: [{ role: 'user', parts: [{ inlineData: { mimeType: mime, data: audio } }, { text: PROMPT }] }],
@@ -212,21 +213,35 @@ function createCCApi(opts) {
       const raw = (cand && cand.content && cand.content.parts && cand.content.parts.map((x) => x.text || '').join('')) || '';
       return { model: r.model, text: parseStt(raw), finish: String((cand && cand.finishReason) || (r.data && r.data.promptFeedback && r.data.promptFeedback.blockReason) || 'none'), raw };
     };
-    const first = (ps) => new Promise((resolve) => {
-      const out = []; let left = ps.length; let done = false;
-      ps.forEach((p, i) => p.then((v) => { out[i] = { v }; if (!done && v.text) { done = true; resolve({ win: v, out }); } }, (e) => { out[i] = { e }; }).finally(() => { if (--left === 0 && !done) resolve({ win: null, out }); }));
-    });
-    const list = (router.models.stt || []).slice(); let lastErr = null, anyEmpty = '', t0 = Date.now();
-    try {
-      for (let i = 0; i < list.length && i < 4 && Date.now() - t0 < 14000; i += 2) {
-        const r = await first(list.slice(i, i + 2).map(ask));
-        if (r.win) return send(res, 200, { ok: true, text: r.win.text, model: r.win.model });
-        r.out.forEach((o) => { if (o && o.e) lastErr = o.e; else if (o && o.v) { anyEmpty = 'empty:' + o.v.finish; log('warn', 'cc stt فاضي من ' + o.v.model + ' (' + o.v.finish + ') مقطع=' + Math.round(audio.length * 0.75 / 1024) + 'KB ' + durMs + 'ms ' + mime + ' خام=' + JSON.stringify(String(o.v.raw).slice(0, 60))); } });
-        if (anyEmpty && durMs < 1200) break;
-        if (anyEmpty && !lastErr) { if (i >= 2 || list.length <= 2) break; }
+    const race = (models) => new Promise((resolve) => {
+      let idx = 0, inflight = 0, empties = 0, lastErr = null, lastEmpty = '', settled = false, timer = null;
+      const finishWith = (v) => { if (settled) return; settled = true; clearTimeout(timer); resolve(v); };
+      const arm = () => { clearTimeout(timer); if (!settled && idx < models.length) timer = setTimeout(launch, HEDGE_MS); };
+      const next = () => {
+        if (settled) return;
+        const stop = empties >= 2 || (empties >= 1 && durMs < 1200);
+        if (!stop && idx < models.length) return launch();
+        if (inflight === 0) finishWith({ win: null, empties, lastErr, lastEmpty });
+      };
+      function launch() {
+        if (settled || idx >= models.length) return;
+        const m = models[idx++]; inflight++;
+        ask(m).then((v) => {
+          inflight--;
+          if (v.text) return finishWith({ win: v });
+          empties++; lastEmpty = 'empty:' + v.finish;
+          log('warn', 'cc stt فاضي من ' + v.model + ' (' + v.finish + ') مقطع=' + Math.round(audio.length * 0.75 / 1024) + 'KB ' + durMs + 'ms ' + mime + ' خام=' + JSON.stringify(String(v.raw).slice(0, 60)));
+          next();
+        }, (e) => { inflight--; lastErr = e; next(); });
+        arm();
       }
-      if (anyEmpty) return send(res, 200, { ok: true, text: '', noSpeech: true, detail: anyEmpty });
-      throw lastErr || new Error('stt_failed');
+      launch();
+    });
+    try {
+      const r = await race((router.models.stt || []).slice(0, 4));
+      if (r.win) return send(res, 200, { ok: true, text: r.win.text, model: r.win.model });
+      if (r.empties) return send(res, 200, { ok: true, text: '', noSpeech: true, detail: r.lastEmpty });
+      throw r.lastErr || new Error('stt_failed');
     } catch (e) {
       log('warn', 'cc stt فشل: ' + (e && e.kind) + ' ' + String((e && e.message) || '').slice(0, 120));
       return send(res, 200, { ok: false, error: e.kind || 'stt_error', detail: e.kind || 'stt_error', msg: e.kind === 'rate_limited' ? 'الخدمة مزدحمة، جرب بعد لحظات أو اكتب رسالتك.' : C.STRINGS.sttFail });
