@@ -183,16 +183,41 @@ test('STT: نص صرف يُقبل، وJSON القديم يُقبل، و[[NOSPEEC
   await api.close(); mock.srv.close();
 });
 
-test('STT: رد فاضي من النموذج الأول والمقطع طويل ← يجرب نموذجاً ثانياً قبل «ما فيه كلام»', async () => {
+test('STT: نموذج واحد بالحالة العادية، والفاضي يجرّب التالي، وفاضيان = «ما فيه كلام»', async () => {
   const seen = [];
-  const mock = await startMock((key, model, body) => { if (!isAudio(body)) return null; seen.push(model); return sttOut(seen.length === 1 ? '' : 'وصلني الصوت'); });
-  const api = await startApi(mock, { GEMINI_STT_MODELS: 'm1,m2' });
+  const mock = await startMock((key, model, body) => { if (!isAudio(body)) return null; seen.push(model); return sttOut(model === 'm1' ? '' : 'وصلني الصوت'); });
+  const api = await startApi(mock, { GEMINI_STT_MODELS: 'm1,m2,m3,m4' });
   const sid = (await api.post('session', {})).json.sessionId;
   const r = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 3000 });
   assert.equal(r.json.text, 'وصلني الصوت'); assert.deepEqual(seen, ['m1', 'm2']);
-  // مقطع قصير جداً: ما نكرر
-  seen.length = 0; const r2 = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 500 });
-  assert.equal(r2.json.noSpeech, true); assert.equal(seen.length, 1);
+  seen.length = 0;
+  const mock2 = await startMock((key, model, body) => { if (!isAudio(body)) return null; seen.push(model); return sttOut(''); });
+  const api2 = await startApi(mock2, { GEMINI_STT_MODELS: 'm1,m2,m3,m4' });
+  const sid2 = (await api2.post('session', {})).json.sessionId;
+  const r2 = await api2.post('stt', { sessionId: sid2, audio: AUD(), mime: 'audio/webm', durationMs: 500 });
+  assert.equal(r2.json.noSpeech, true); assert.equal(seen.length, 1); // مقطع قصير فاضي: ما نكرر
+  await api.close(); mock.srv.close(); await api2.close(); mock2.srv.close();
+});
+
+test('STT: الحالة العادية استدعاء واحد فقط (ما نضاعف الاستهلاك)، وفاضيان لمقطع طويل = استدعاءان', async () => {
+  const seen = [];
+  const mock = await startMock((key, model, body) => { if (!isAudio(body)) return null; seen.push(model); return sttOut(seen.length === 1 ? 'تمام' : ''); });
+  const api = await startApi(mock, { GEMINI_STT_MODELS: 'm1,m2,m3,m4' });
+  const sid = (await api.post('session', {})).json.sessionId;
+  let r = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 3000 });
+  assert.equal(r.json.text, 'تمام'); assert.deepEqual(seen, ['m1']);
+  seen.length = 0; seen.push('x'); // الردود التالية فاضية
+  r = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 3000 });
+  assert.equal(r.json.noSpeech, true); assert.deepEqual(seen, ['x', 'm1', 'm2']);
+  await api.close(); mock.srv.close();
+});
+
+test('STT: نموذج يفشل (500) والثاني ينجح ← يرجع النص بدون خطأ', async () => {
+  const mock = await startMock((key, model, body) => (isAudio(body) && model === 'm1' ? { status: 500, body: { error: { message: 'boom' } } } : isAudio(body) ? sttOut('تمام معك') : null));
+  const api = await startApi(mock, { GEMINI_STT_MODELS: 'm1,m2' });
+  const sid = (await api.post('session', {})).json.sessionId;
+  const r = await api.post('stt', { sessionId: sid, audio: AUD(), mime: 'audio/webm', durationMs: 2000 });
+  assert.equal(r.json.ok, true); assert.equal(r.json.text, 'تمام معك');
   await api.close(); mock.srv.close();
 });
 

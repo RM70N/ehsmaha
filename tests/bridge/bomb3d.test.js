@@ -166,7 +166,10 @@ const holderViewer = async (page) => { const s = await st(page); return s.holder
   const gone = s.eliminated[0];
   await page.evaluate(([uid]) => { bombApi().settings({}); }, [gone]);
   const giftRes = await page.evaluate(([uid]) => bombApi().gift(uid, uid.replace('tiktok:', ''), '', 'Rose', 5), [gone]);
-  await sleep(4200);
+  await sleep(900);
+  const rvScene = await (async () => { const f = page.frames().find((x) => /bomb3d\.html/.test(x.url())); if (!f) return { noFrame: true }; return f.evaluate(() => ({ scene: !!document.querySelector('[class*="rv-root"]'), name: (document.querySelector('.rv-name') || {}).textContent || '', oldBanner: !!document.getElementById('b3d-revive') })); })();
+  check('الإنعاش بالهدية: مشهد الإنعاش الجديد يظهر داخل القنبلة باسم اللاعب (والبانر القديم محذوف)', rvScene.scene && rvScene.name.length > 0 && !rvScene.oldBanner, rvScene);
+  await sleep(3300);
   s = await st(page);
   check('الإنعاش بالهدية: المُقصى يرجع برقم جديد (مرة وفق الإعداد)', ex2 && giftRes === true && s.players.some((p) => p.id === gone), { gift: giftRes, back: s.players.some((p) => p.id === gone), n: s.players.length });
   await page.evaluate(() => bombApi().reset()); await sleep(500);
