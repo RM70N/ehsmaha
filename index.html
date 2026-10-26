@@ -4984,6 +4984,7 @@ body.hlob-home #top-right-cluster{top:11px;right:16px;}
 
 </style>
 <!-- END volcanic-lands:style -->
+<link rel="stylesheet" href="/revival-system/revival-style.css">
 </head>
 <body>
 
@@ -34086,7 +34087,7 @@ function sniperHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(sniperRevivalCounts, user.uniqueId, sniperRevivalMaxUses)) return;
 
   sniperEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('sniper', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('sniper', user.nickname || user.uniqueId, giftName, null, user);
   // isFollower=true إجباري — نفس سبب findball: اللاعب اجتاز فحص الفولو أول
   // انضمام، وإرسال هدية لا يضمن isFollower=true بحمولة الحدث نفسها.
   const revivedUser = Object.assign({}, user, { isFollower: true });
@@ -34761,7 +34762,7 @@ function hzHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(hzRevivalCounts, user.uniqueId, hzRevivalMaxUses)) return;
 
   hzEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('hz', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('hz', user.nickname || user.uniqueId, giftName, null, user);
   const revivedUser = Object.assign({}, user, { isFollower: true });
   setTimeout(() => { hzJoinParticipant(revivedUser); }, 3000);
   grantRevival(hzUser, user.uniqueId, user.nickname).catch(() => {});
@@ -36141,7 +36142,7 @@ function rouHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(rouRevivalCounts, user.uniqueId, rouRevivalMaxUses)) return;
 
   rouEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('rou', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('rou', user.nickname || user.uniqueId, giftName, null, user);
   const revivedUser = Object.assign({}, user, { isFollower: true });
   setTimeout(() => {
     rouJoinParticipant(revivedUser);
@@ -38065,7 +38066,7 @@ function boxHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(boxRevivalCounts, user.uniqueId, boxRevivalMaxUses)) return;
 
   boxEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('box', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('box', user.nickname || user.uniqueId, giftName, null, user);
   const revivedUser = Object.assign({}, user, { isFollower: true });
   setTimeout(() => {
     boxJoinParticipant(revivedUser);
@@ -41136,7 +41137,7 @@ function llHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(llRevivalCounts, user.uniqueId, llRevivalMaxUses)) return;
 
   llEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('ll', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('ll', user.nickname || user.uniqueId, giftName, null, user);
   const revivedUser = Object.assign({}, user, { isFollower: true });
   setTimeout(() => {
     llJoinParticipant(revivedUser);
@@ -49513,7 +49514,7 @@ function cwHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(cwRevivalCounts, user.uniqueId, cwRevivalMaxUses)) return;
 
   cwEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('cw', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('cw', user.nickname || user.uniqueId, giftName, null, user);
   // ملاحظة: cwJoinParticipant أصلاً يتجاوز فحص الفولو تلقائياً لأي لاعب موجود
   // بـcwParticipants (isRejoinAfterElimination) — لكن نمرر isFollower:true
   // بأي حال للتناسق مع باقي الألعاب واحتياطاً لأي تعديل مستقبلي بهذا الشرط.
@@ -50930,32 +50931,7 @@ function fxSlapEliminatePlayer(user, soundId){
 .revival-flash.show{animation:findballRevivedFlash 1.4s ease forwards;}
 .revival-badge{background:var(--surface);border:2px solid var(--brand-green);border-radius:20px;padding:14px 26px;font-size:16px;font-weight:900;color:var(--brand-green);box-shadow:0 0 30px rgba(52,211,153,.55);animation:popIn .3s ease;}
 
-/* ==================== GIFT REVIVAL OVERLAY (إنعاش بهدية — التوقف الكامل) ====================
-   أنيميشن أفخم مستقل عن .revival-flash أعلاه — يُستخدم فقط عند إنعاش لاعب
-   مُقصى بهدية تيك توك، مصحوب بتوقف الجولة الفعلي 3 ثوانٍ (giftRevivalFreeze). */
-@keyframes giftBurstGlow{
-  0%{opacity:0;transform:translate(-50%,-50%) scale(.3);}
-  35%{opacity:.9;}
-  100%{opacity:0;transform:translate(-50%,-50%) scale(2.4);}
-}
-@keyframes giftRingSpin{to{transform:rotate(360deg);}}
-@keyframes giftRingSpinRev{to{transform:rotate(-360deg);}}
-@keyframes giftFloatA{0%,100%{transform:translate(0,0) rotate(0deg);}50%{transform:translate(6px,-22px) rotate(20deg);}}
-@keyframes giftFloatB{0%,100%{transform:translate(0,0) rotate(0deg);}50%{transform:translate(-10px,16px) rotate(-15deg);}}
-@keyframes giftTwinkle{0%,100%{opacity:.15;transform:scale(.7);}50%{opacity:1;transform:scale(1.15);}}
-#gift-revival-overlay{position:fixed;inset:0;z-index:99999;pointer-events:none;font-family:'Tajawal',sans-serif;}
-.gift-revival-card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.6);transform-origin:center;width:min(820px,92vw);border-radius:36px;padding:4px;opacity:0;transition:transform .65s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;}
-.gift-revival-card-inner{position:relative;width:100%;border-radius:34px;background:linear-gradient(160deg,#1a0f3d 0%,#0a0518 55%,#24124f 100%);padding:48px 32px 40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;text-align:center;box-shadow:inset 0 0 60px rgba(168,85,247,.15);overflow:hidden;}
-.gift-revival-ring{position:absolute;inset:-38%;background:conic-gradient(from 0deg,#f5d67f,#fff2c4,#c9a84c,#8b6914,#c9a84c,#f5d67f);animation:giftRingSpin 6s linear infinite;}
-.gift-revival-corner{position:absolute;width:34px;height:34px;opacity:.85;}
-.gift-revival-crown{position:absolute;top:-56px;left:50%;transform:translateX(-50%);width:104px;height:104px;}
-.gift-revival-title{margin-top:34px;font-size:clamp(24px,4vw,44px);font-weight:800;background:linear-gradient(180deg,#fff2c4,#f5d67f 55%,#c9a84c);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 24px rgba(245,214,127,.35);letter-spacing:.5px;}
-.gift-revival-giftwrap{position:relative;margin-top:34px;width:clamp(100px,20vw,168px);height:clamp(100px,20vw,168px);}
-.gift-revival-name{margin-top:38px;font-size:clamp(28px,7vw,64px);font-weight:900;color:#fffdf6;text-shadow:0 0 18px rgba(245,214,127,.75),0 0 46px rgba(168,85,247,.55);line-height:1.15;max-width:100%;word-break:break-word;}
-.gift-revival-divider{margin-top:30px;width:60%;height:3px;border-radius:2px;background:linear-gradient(90deg,transparent,#f5d67f,#fff2c4,#f5d67f,transparent);box-shadow:0 0 12px 2px rgba(245,214,127,.7);}
-.gift-revival-sub{margin-top:26px;font-size:clamp(18px,3vw,30px);font-weight:700;color:#f5d67f;text-shadow:0 0 14px rgba(245,214,127,.5);}
-.gift-revival-chip{margin-top:30px;display:inline-flex;align-items:center;gap:12px;padding:14px 32px;border-radius:999px;background:rgba(245,214,127,.08);border:1.5px solid rgba(245,214,127,.45);backdrop-filter:blur(6px);font-size:22px;font-weight:700;color:#fff2c4;}
-.gift-revival-badge{margin-top:24px;display:inline-flex;align-items:center;gap:10px;padding:12px 30px;border-radius:999px;background:linear-gradient(180deg,#fff2c4 0%,#d9b45c 40%,#8b6914 100%);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 16px rgba(201,168,76,.6),inset 0 1px 0 rgba(255,255,255,.5);font-weight:900;font-size:24px;color:#241505;}
+/* إنعاش بهدية: التصميم الجديد في revival-system/ (revival-style.css) */
 
 /* Results overlay reuses .chairs-elim-* box/list styling; only the "correct" list needs its own accent */
 .findball-correct-sub{font-size:13px;color:var(--brand-green);margin-bottom:10px;font-weight:700;}
@@ -51991,16 +51967,15 @@ function adminLogRevive(gameTag, targetUid, targetNickname, byAdmin) {
 // (توقف اللعبة 3 ثوانٍ + أنيميشن فاخر) لكن بشارة 🛠️ بدل 🎁 عشان يميّزه
 // الستريمر بصرياً عن إنعاش الهدايا العادي. هذا كله يظهر فقط بلوحة تحكم
 // الستريمر (نفس بقية الموقع) — لا يصل لشاشات مشاهدي تيك توك إطلاقاً.
-function triggerAdminReviveFreeze(gameTag, displayName) {
-  gamePausedForRevival[gameTag] = true;
+function triggerAdminReviveFreeze(gameTag, displayName, who) {
+  revivalFreezeFor(gameTag, 3000);
+  if (!revivalShouldShow(gameTag, who, displayName)) return;
   showGiftRevivalAnimation({
     senderName: displayName,
-    giftName: 'إداري',
-    giftIcon: '🛠️',
-    revivalMessage: '🛠️ إنعاش إداري — ' + displayName + ' رجع اللعبة!',
+    who: who || null,
+    source: 'admin',
     durationMs: 3000
   });
-  setTimeout(() => { gamePausedForRevival[gameTag] = false; }, 3000);
 }
 
 // يتحقق إن raw يبدأ فعلاً بالكلمة kw متبوعة بأي نوع مسافة — مو بس مسافة
@@ -52077,7 +52052,7 @@ function tryAdminReviveCommand(gameTag, text, senderUser, { eliminatedSet, isPar
   if (!adminCommandCooldownCheck(gameTag, 'revive', targetUid)) { console.debug('🛠️ [انعاش] سبام — تكرار سريع جداً لنفس الهدف.'); return true; }
 
   eliminatedSet.delete(targetUid);
-  triggerAdminReviveFreeze(gameTag, targetUser.nickname || targetUid);
+  triggerAdminReviveFreeze(gameTag, targetUser.nickname || targetUid, { uid: targetUid });
   adminLogRevive(gameTag, targetUid, targetUser.nickname, adminCleanUsername(senderUser.uniqueId));
   reviveFn(targetUser);
   return true;
@@ -53339,7 +53314,7 @@ function checkAndConsumeRevival(uniqueId, nickname, revivalMapForGame, gameTag) 
   }
   toast('🎁 ' + (nickname || uniqueId) + ' رجع للعبة بإنعاش من هدية!');
   if (gameTag) {
-    triggerGiftRevivalFreeze(gameTag, nickname || uniqueId, null, null);
+    triggerGiftRevivalFreeze(gameTag, nickname || uniqueId, null, null, { uid: uniqueId });
   } else {
     flashRevival(nickname || uniqueId); // توافق قديم — لو ما مُرر gameTag
   }
@@ -53363,95 +53338,82 @@ function flashRevival(nickname) {
 let gamePausedForRevival = {};
 function isGamePausedForRevival(gameTag) { return !!gamePausedForRevival[gameTag]; }
 
-function buildGiftSparkles() {
-  const colors = ['#f5d67f', '#c9a84c', '#a855f7', '#8b5cf6', '#fff2c4'];
-  const anims = ['giftFloatA', 'giftFloatB'];
-  let html = '';
-  for (let i = 0; i < 20; i++) {
-    const angle = (i / 20) * Math.PI * 2;
-    const radius = 140 + ((i * 17) % 90);
-    const left = 50 + Math.cos(angle) * (radius / 6.5);
-    const top = 50 + Math.sin(angle) * (radius / 6.5) * 1.15;
-    const size = 5 + (i % 5) * 2;
-    const color = colors[i % colors.length];
-    const anim = anims[i % 2];
-    const dur = 3.2 + (i % 5) * 0.4;
-    const delay = (i % 7) * 0.35;
-    html += '<div style="position:absolute;left:' + left + '%;top:' + top + '%;width:' + size + 'px;height:' + size + 'px;border-radius:50%;background:' + color + ';box-shadow:0 0 ' + (size*2) + 'px ' + size + 'px ' + color + '88;animation:' + anim + ' ' + dur + 's ease-in-out ' + delay + 's infinite, giftTwinkle ' + (dur*0.8) + 's ease-in-out ' + delay + 's infinite;pointer-events:none;"></div>';
-  }
-  return html;
+// ==================== REVIVAL PRESENTATION (إنعاش بهدية — المشهد السينمائي) ====================
+// العرض فقط، عبر revival-system/ (RevivalPresentationManager): ما يقرر نجاح الإنعاش ولا يلمس حالة اللاعبين.
+// التجميد (3000ms) وشروط الإنعاش وفرصه واستقبال الهدايا كلها بدوالها القديمة بدون تغيير.
+function revivalAvatarOf(u) {
+  if (!u) return '';
+  const x = u.user || u;
+  const a = x.avatar || x.profilePictureUrl || x.avatarUrl || '';
+  return typeof a === 'string' ? a : '';
 }
-
-// يعرض أنيميشن الهدية الفخم + شارة "تم إنعاش [الاسم]"، مدته الكلية تطابق
-// مدة تجميد الجولة (durationMs) عشان تنتهي بالضبط لما تستأنف اللعبة.
-function showGiftRevivalAnimation({ senderName, giftName, giftIcon, revivalMessage, durationMs }) {
-  const overlay = document.createElement('div');
-  overlay.id = 'gift-revival-overlay';
-  overlay.innerHTML =
-    '<div style="position:absolute;inset:0;">' +
-      buildGiftSparkles() +
-      '<div style="position:absolute;left:50%;top:50%;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle, rgba(245,214,127,0.55) 0%, rgba(168,85,247,0.3) 40%, transparent 70%);animation:giftBurstGlow .9s ease-out forwards;pointer-events:none;"></div>' +
-      '<div style="position:absolute;left:50%;top:50%;width:520px;height:520px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle, rgba(168,85,247,0.35) 0%, rgba(139,92,246,0.18) 45%, transparent 72%);pointer-events:none;filter:blur(2px);"></div>' +
-      '<div class="gift-revival-card" id="gift-revival-card">' +
-        '<div class="gift-revival-ring"></div>' +
-        '<div class="gift-revival-card-inner">' +
-          '<div class="gift-revival-corner" style="top:16px;left:16px;border-top:3px solid #f5d67f;border-right:3px solid #f5d67f;"></div>' +
-          '<div class="gift-revival-corner" style="top:16px;right:16px;border-top:3px solid #f5d67f;border-left:3px solid #f5d67f;"></div>' +
-          '<div class="gift-revival-corner" style="bottom:16px;left:16px;border-bottom:3px solid #f5d67f;border-right:3px solid #f5d67f;"></div>' +
-          '<div class="gift-revival-corner" style="bottom:16px;right:16px;border-bottom:3px solid #f5d67f;border-left:3px solid #f5d67f;"></div>' +
-          '<div class="gift-revival-crown">' +
-            '<div style="position:absolute;inset:0;border-radius:50%;border:2px dashed rgba(245,214,127,0.6);animation:giftRingSpin 8s linear infinite;"></div>' +
-            '<div style="position:absolute;inset:8px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #3a1e78, #1a0f3d);border:3px solid #f5d67f;box-shadow:0 0 22px 4px rgba(245,214,127,0.55), 0 0 40px 8px rgba(168,85,247,0.35);display:flex;align-items:center;justify-content:center;">' +
-              '<span style="font-size:44px;filter:drop-shadow(0 0 6px rgba(245,214,127,0.8));">👑</span>' +
-            '</div>' +
-          '</div>' +
-          '<div class="gift-revival-title">🎉 هدية جديدة!</div>' +
-          '<div class="gift-revival-giftwrap">' +
-            '<div style="position:absolute;inset:-14px;border-radius:50%;border:3px solid transparent;border-top-color:#f5d67f;border-left-color:#f5d67f;animation:giftRingSpinRev 3s linear infinite;filter:drop-shadow(0 0 8px rgba(245,214,127,0.6));"></div>' +
-            '<div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 32% 28%, rgba(168,85,247,0.35), rgba(26,15,61,0.9));border:3px solid #c9a84c;box-shadow:0 0 30px 6px rgba(245,214,127,0.4);display:flex;align-items:center;justify-content:center;">' +
-              '<span style="font-size:64px;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.4));">' + esc(giftIcon || '🎁') + '</span>' +
-            '</div>' +
-          '</div>' +
-          '<div class="gift-revival-name">' + esc(senderName) + '</div>' +
-          '<div class="gift-revival-divider"></div>' +
-          '<div class="gift-revival-sub">تم استلام الهدية ✅</div>' +
-          '<div class="gift-revival-chip"><span>' + esc(giftIcon || '🎁') + '</span><span>' + esc(giftName || 'هدية') + '</span></div>' +
-          '<div class="gift-revival-badge">' + esc(revivalMessage) + '</div>' +
-        '</div>' +
-      '</div>' +
-    '</div>';
-
-  document.body.appendChild(overlay);
-
-  const card = overlay.querySelector('#gift-revival-card');
-  requestAnimationFrame(() => {
-    card.style.transform = 'translate(-50%,-50%) scale(1.05)';
-    card.style.opacity = '1';
-    setTimeout(() => { card.style.transform = 'translate(-50%,-50%) scale(1)'; card.style.transition = 'transform .3s ease'; }, 650);
-  });
-
-  const total = durationMs || 3000;
-  setTimeout(() => {
-    card.style.transition = 'all .6s ease';
-    card.style.opacity = '0';
-    card.style.transform = 'translate(-50%,-50%) scale(.85)';
-    setTimeout(() => overlay.remove(), 700);
-  }, Math.max(total - 300, 0));
+function revivalNameOf(u) { const x = (u && u.user) || u || {}; return x.nickname || x.name || x.uniqueId || ''; }
+// صورة اللاعب المُنعَش فقط: من الكائن الممرَّر، ثم من خرائط المشاركين بمعرّفه، ثم بتطابق الاسم تماماً.
+// ما نعرض صورة شخص آخر أبداً — لو ما لقينا يطلع الأفاتار الاحتياطي.
+function revivalResolveAvatar(who, displayName) {
+  const direct = revivalAvatarOf(who); if (direct) return direct;
+  const maps = [];
+  const add = (f) => { try { const m = f(); if (m && typeof m.forEach === 'function') maps.push(m); } catch (e) { /* اللعبة غير معرّفة */ } };
+  add(() => findballParticipants); add(() => chairsParticipants); add(() => sniperParticipants); add(() => hzParticipants);
+  add(() => rouParticipants); add(() => boxParticipants); add(() => llParticipants); add(() => cwParticipants);
+  add(() => tmrParticipants); add(() => crParticipants); add(() => mzParticipants); add(() => evParticipants);
+  add(() => waiParticipants); add(() => igParticipants); add(() => rwParticipants); add(() => pgsParticipants);
+  add(() => lscParticipants); add(() => wrParticipants); add(() => drawParticipants); add(() => csParticipants);
+  add(() => rlglParticipants); add(() => gwParticipants); add(() => glzParticipants); add(() => bombParticipants);
+  add(() => participants);
+  const uid = who && (who.uid || who.uniqueId);
+  if (uid) for (const m of maps) { const f = m.get && m.get(uid); const a = revivalAvatarOf(f); if (a) return a; }
+  if (displayName) for (const m of maps) { let hit = ''; m.forEach((v) => { if (!hit && revivalNameOf(v) === displayName) hit = revivalAvatarOf(v); }); if (hit) return hit; }
+  return '';
+}
+function showGiftRevivalAnimation(o) {
+  o = o || {};
+  try {
+    const M = window.RevivalPresentationManager;
+    if (!M || typeof M.show !== 'function') return; // ملفات المشهد ما تحمّلت: الإنعاش نفسه (التجميد/الرجوع) يكمل بدون عرض
+    const admin = o.source === 'admin';
+    M.show({
+      playerName: o.senderName,
+      avatarUrl: revivalResolveAvatar(o.who, o.senderName),
+      giftName: admin ? '' : (o.giftName && o.giftName !== 'هدية' ? String(o.giftName) : ''), // «هدية» قيمة افتراضية مو اسم حقيقي
+      giftImage: /^https?:\/\//i.test(String(o.giftIcon || '')) ? o.giftIcon : '',
+      source: admin ? 'admin' : 'gift',
+      eventId: o.eventId || '',
+      durationMs: o.durationMs
+    });
+  } catch (e) { try { console.error('[Revival] show failed', e); } catch (_) { /* */ } }
+}
+// تجميد الجولة لمدة المشهد: مؤقت واحد لكل لعبة (إنعاش ثاني خلال 3 ثوانٍ يمدّد التجميد بدل ما يفكّه المؤقت الأول بدري).
+const revivalFreezeTimers = {};
+function revivalFreezeFor(gameTag, ms) {
+  gamePausedForRevival[gameTag] = true;
+  clearTimeout(revivalFreezeTimers[gameTag]);
+  revivalFreezeTimers[gameTag] = setTimeout(() => { gamePausedForRevival[gameTag] = false; }, ms);
+}
+// نفس اللاعب بنفس اللعبة خلال مدة المشهد = نفس الإنعاش: ما يُعرض المشهد مرتين (التجميد يبقى).
+const revivalRecentShown = {};
+function revivalShouldShow(gameTag, who, displayName) {
+  const id = String((who && (who.uid || who.uniqueId)) || displayName || '').toLowerCase();
+  const key = gameTag + '|' + id, now = Date.now();
+  const dup = revivalRecentShown[key] && now - revivalRecentShown[key] < 3200;
+  revivalRecentShown[key] = now;
+  return !dup;
 }
 
 // النقطة المركزية المشتركة: تُستدعى من كل لعبة عوض flashRevival مباشرة، عند
 // نجاح checkAndConsumeRevival. تجمّد الجولة (gamePausedForRevival[gameTag])
 // لمدة 3 ثوانٍ بالضبط، تعرض الأنيميشن الفاخر، ثم تفك التجميد.
-function triggerGiftRevivalFreeze(gameTag, displayName, giftName, giftIcon) {
-  gamePausedForRevival[gameTag] = true;
+function triggerGiftRevivalFreeze(gameTag, displayName, giftName, giftIcon, who) {
+  revivalFreezeFor(gameTag, 3000);
+  if (!revivalShouldShow(gameTag, who, displayName)) return;
   showGiftRevivalAnimation({
     senderName: displayName,
-    giftName: giftName || 'هدية',
-    giftIcon: giftIcon || '🎁',
-    revivalMessage: 'تم إنعاش ' + displayName + ' 🎉',
+    giftName: giftName || '',
+    giftIcon: giftIcon || '',
+    who: who || null,
+    source: 'gift',
     durationMs: 3000
   });
-  setTimeout(() => { gamePausedForRevival[gameTag] = false; }, 3000);
 }
 
 // Any gift received while findball is running: if the sender is currently
@@ -53474,7 +53436,7 @@ function findballHandleGift(user, giftName, diamondValue) {
   // انتظار Firestore (اللي مجرد نسخة احتياطية/مزامنة بين الجلسات، لا تتحكم
   // بتجربة المستخدم الفعلية). grantRevival تُستدعى فقط للتسجيل، بدون انتظارها.
   findballEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('findball', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('findball', user.nickname || user.uniqueId, giftName, null, user);
   // isFollower=true إجباري: اللاعب أصلاً اجتاز فحص الفولو أول ما انضم قبل
   // ما يُقصى — إرسال هدية لا يضمن أنه متابع حسب حمولة WebcastGiftMessage،
   // فلو تركناها كما هي findballJoinParticipant بترفضه بصمت وتحطه بقائمة
@@ -54566,7 +54528,7 @@ function chairsHandleGift(user, giftName, diamondValue) {
   if (!revivalCountAndCheck(chairsRevivalCounts, user.uniqueId, chairsRevivalMaxUses)) return;
 
   chairsEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('chairs', user.nickname || user.uniqueId, giftName, null);
+  triggerGiftRevivalFreeze('chairs', user.nickname || user.uniqueId, giftName, null, user);
   setTimeout(() => chairsJoinParticipant(Object.assign({}, user, { isFollower: true })), 3000);
   grantRevival(chairsUser, user.uniqueId, user.nickname).catch(() => {});
 }
@@ -91573,5 +91535,10 @@ document.addEventListener('error', e => { const i = e.target; if (i && i.tagName
 window.EhConnect = { open:openHub, close:closeHub, hooks, state:conn };
 })();
 </script>
+<script src="/revival-system/revival-config.js"></script>
+<script src="/revival-system/revival-effects.js"></script>
+<script src="/revival-system/revival-animation.js"></script>
+<script src="/revival-system/revival-presentation.js"></script>
+<script src="/revival-system/revival-controller.js"></script>
 </body>
 </html>

@@ -109,9 +109,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hid
 #b3d-banner span{display:inline-block;font:900 clamp(24px,5vw,56px)/1.25 var(--font-brand);padding:6px 22px 10px;border-radius:18px;background:rgba(10,4,22,.62);text-shadow:0 0 40px rgba(167,139,255,.6),0 3px 0 rgba(0,0,0,.7);opacity:0}
 #b3d-banner.bad span{color:#ffd3cc;text-shadow:0 0 50px rgba(239,68,68,.8),0 3px 0 rgba(0,0,0,.7)}#b3d-banner.good span{color:#d8fff0;text-shadow:0 0 50px rgba(52,211,153,.7)}
 #b3d-banner.show span{animation:b3dbn 2.8s var(--ease) forwards}@keyframes b3dbn{0%{opacity:0;transform:scale(1.12) translateY(8px)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
-#b3d-revive{position:absolute;inset:0;z-index:8;display:grid;place-items:center;pointer-events:none;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.35),rgba(10,4,22,.55) 70%);animation:b3drv 3s ease forwards}
-@keyframes b3drv{0%{opacity:0}12%{opacity:1}85%{opacity:1}100%{opacity:0}}
-#b3d-revive div{font:900 clamp(28px,6vw,64px)/1.2 var(--font-brand);color:#efe6ff;text-shadow:0 0 50px rgba(167,139,255,.9);text-align:center;padding:0 16px}#b3d-revive small{display:block;font:800 16px var(--font);color:var(--accent-light);margin-top:8px}
 .bomb3d-toasts{position:absolute;inset-inline-start:14px;top:56px;display:grid;gap:6px;z-index:6;pointer-events:none;max-width:min(340px,60vw)}
 .bomb3d-toast{font:800 13px/1.5 var(--font);padding:8px 12px;border-radius:12px;background:rgba(14,8,28,.82);border:1px solid var(--border);animation:b3dtoast 3.4s ease forwards}
 .bomb3d-toast.warn{border-color:rgba(245,158,11,.6)}@keyframes b3dtoast{0%{opacity:0;transform:translateY(-6px)}8%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
@@ -153,6 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hid
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/BokehShader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/BokehPass.js"></script>
+<link rel="stylesheet" href="/revival-system/revival-style.css">
 </head><body>
 <div id="b3d-wrap"><div id="b3d-app" class="bomb3d-app">
   <canvas id="b3d-gl"></canvas>
@@ -220,7 +218,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hid
   </section>
 
   <div id="b3d-banner" aria-live="assertive"><span></span></div>
-  <div id="b3d-revive" hidden><div><span id="b3d-rvn"></span><small>الجولة متوقفة لحظات…</small></div></div>
 
   <div class="bomb3d-tools" id="b3d-tools">
     <button class="bomb3d-ib" id="b3d-tSnd" type="button" aria-label="تشغيل الصوت" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></button>
@@ -1386,7 +1383,7 @@ function gift(user,giftName,diamonds){
   if(G.status!=='active') return false;
   var c=G.revCounts.get(user.uid)||0; if(c>=G.revMax) return false;
   G.revCounts.set(user.uid,c+1); G.elimHist.delete(user.uid);
-  G.freeze++; AUD.fuseStop(); UI.revivalBanner(user.name); emit('revival-freeze',{id:user.uid,name:user.name,uses:c+1});
+  G.freeze++; AUD.fuseStop(); UI.revivalBanner(user.name,user.avatar,giftName); emit('revival-freeze',{id:user.uid,name:user.name,uses:c+1});
   later(function(){
     G.freeze=Math.max(0,G.freeze-1); G.last=Date.now();
     if(G.status!=='active') return;
@@ -1441,12 +1438,12 @@ function getState(){
 /* ===================== الواجهة: لافتات اللاعبين، المؤقت، اللوحات، الشاشات ===================== */
 var UI=(function(){
   var app=$('#b3d-app'), labels=new Map(), tmp={}, lastScale=1, tz=null, bannerT=0, rvT=0, kickOpen=false, drawerOpen=null, appW=800, appH=600;
-  var el={}; ['n','conn','link','setup','wait','round','win','kw','wn2','wneed','wmsg','bStart','timer','rc','tn','hq','hn','hi','dock','bLate','bRun','banner','revive','rvn','toasts','wl','wn','ws','wav','edge','test','tWho','tIn','tSnd','tStream','setM','kickM','confM','lateM','kl','bLateT','nogl'].forEach(function(k){ el[k]=$('#b3d-'+k); });
+  var el={}; ['n','conn','link','setup','wait','round','win','kw','wn2','wneed','wmsg','bStart','timer','rc','tn','hq','hn','hi','dock','bLate','bRun','banner','toasts','wl','wn','ws','wav','edge','test','tWho','tIn','tSnd','tStream','setM','kickM','confM','lateM','kl','bLateT','nogl'].forEach(function(k){ el[k]=$('#b3d-'+k); });
   var DR={chat:$('#b3d-d-chat'),elim:$('#b3d-d-elim'),list:$('#b3d-d-list')};
   function num(n){ return String(n); }
   function toast(t,kind){ var d=document.createElement('div'); d.className='bomb3d-toast '+(kind||''); d.textContent=t; el.toasts.appendChild(d); while(el.toasts.children.length>4) el.toasts.removeChild(el.toasts.firstChild); setTimeout(function(){ d.remove(); },3500); }
   function banner(text,kind){ var b=el.banner; b.className=kind||'info'; var s=b.firstElementChild; s.textContent=text; void b.offsetWidth; b.classList.add('show'); clearTimeout(bannerT); bannerT=setTimeout(function(){ b.classList.remove('show'); },2900); }
-  function revivalBanner(name){ el.rvn.textContent='تم إنعاش '+name; el.revive.hidden=true; void el.revive.offsetWidth; el.revive.hidden=false; AUD.play('revive'); clearTimeout(rvT); rvT=setTimeout(function(){ el.revive.hidden=true; },3000); }
+  function revivalBanner(name,avatar,giftName){ AUD.play('revive'); try{ var M=window.RevivalPresentationManager; if(M) M.show({playerName:name,avatarUrl:avatar||'',giftName:giftName&&giftName!=='هدية'?String(giftName):'',source:'gift',durationMs:3000}); }catch(e){} }
   function labelAdd(p){
     var d=document.createElement('div'); d.className='bomb3d-lb'; d.dataset.id=p.id;
     d.innerHTML='<img alt="" hidden><span class="bomb3d-lbfa"></span><span class="bomb3d-lbn"></span><span class="bomb3d-lbname"></span><span class="bomb3d-lbtag">معه القنبلة</span>';
@@ -1514,7 +1511,7 @@ var UI=(function(){
     refresh(); timer(); holder();
   }
   function resetAll(){
-    labels.forEach(function(L){ L.el.remove(); }); labels.clear(); emptyDrawers(); el.revive.hidden=true; clearTimeout(rvT); clearTimeout(bannerT); el.banner.classList.remove('show'); el.edge.classList.remove('on'); el.toasts.textContent=''; kickOpen=false; el.kickM.hidden=true; el.confM.hidden=true; el.lateM.hidden=true; refresh(); timer(); holder();
+    labels.forEach(function(L){ L.el.remove(); }); labels.clear(); emptyDrawers(); try{ if(window.RevivalPresentationManager) RevivalPresentationManager.cancelAll(); }catch(e){} clearTimeout(bannerT); el.banner.classList.remove('show'); el.edge.classList.remove('on'); el.toasts.textContent=''; kickOpen=false; el.kickM.hidden=true; el.confM.hidden=true; el.lateM.hidden=true; refresh(); timer(); holder();
   }
   function applyFrame(){ var w=$('#b3d-wrap'); w.classList.toggle('bomb3d-lock169',CFG.frame==='169'); w.classList.toggle('bomb3d-lock916',CFG.frame==='916'); }
   function init(){
@@ -1595,4 +1592,4 @@ window.__B3D={G:G,V:V,UI:UI,AUD:AUD,HOOKS:HOOKS,GRANTS:GRANTS,state:getState,inf
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ UI.refresh(); });
 
 })();
-</script></body></html>
+</script><script src="/revival-system/revival-config.js"></script><script src="/revival-system/revival-effects.js"></script><script src="/revival-system/revival-animation.js"></script><script src="/revival-system/revival-presentation.js"></script><script src="/revival-system/revival-controller.js"></script></body></html>

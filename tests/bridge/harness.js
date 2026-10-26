@@ -21,7 +21,8 @@ function serveSite(port = 8765, file = 'index.html') {
       const u = decodeURIComponent(req.url.split('?')[0]);
       let f = path.join(ROOT, u === '/' ? file : u);
       if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join(ROOT, file);
-      res.writeHead(200, { 'content-type': f.endsWith('.html') ? 'text/html; charset=utf-8' : 'application/octet-stream', 'cache-control': 'no-store' });
+      const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.json': 'application/json' };
+      res.writeHead(200, { 'content-type': MIME[path.extname(f).toLowerCase()] || 'application/octet-stream', 'cache-control': 'no-store' });
       fs.createReadStream(f).pipe(res);
     }).listen(port, () => resolve(staticServer));
   });
