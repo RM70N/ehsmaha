@@ -1,0 +1,323 @@
+<div id="pg-landing" class="page" lang="ar" dir="rtl" data-motion="on">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="lpg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C4B0FF"/><stop offset="1" stop-color="#7C3AED"/></linearGradient>
+    <symbol id="ic-tiktok" viewBox="0 0 24 24"><path d="M14 3v10.5a3.5 3.5 0 1 1-3-3.46" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 3c.7 3 2.6 4.6 5 5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-twitch" viewBox="0 0 24 24"><path d="M5 3h15v10.5L15.5 18H12l-3 3v-3H5z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M11 7.5v4M15 7.5v4" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></symbol>
+    <symbol id="ic-kick" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M8.5 7v10M8.5 12l5.5-5M10.8 11l3.4 6" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="ic-youtube" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="4" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M10 9.4v5.2l4.6-2.6z" fill="currentColor"/></symbol>
+    <symbol id="ic-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H11l-4 3.5V16H4z" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M8 9.5h8M8 12.5h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+    <symbol id="av" viewBox="0 0 40 40"><circle cx="20" cy="15" r="7" fill="#EDE9FF"/><path d="M6 37c1-9 7-13 14-13s13 4 14 13z" fill="#EDE9FF"/></symbol>
+  </defs>
+</svg>
+<a class="lp-skip" href="#lp-story" data-lp-go="lp-story">تخطي إلى المحتوى</a>
+
+<header class="lp-header" id="lp-header">
+  <div class="lp-header-in">
+    <a class="lp-brand" href="javascript:void(0)" aria-label="احسمها" data-lp-go="lp-hero">
+      <span class="lp-brand-logo" aria-hidden="true">{{LOGO1}}</span>
+      <span class="lp-brand-name">احسمها</span>
+    </a>
+    <nav class="lp-nav" aria-label="أقسام الصفحة">
+      <a href="#lp-story" data-lp-go="lp-story">قصتنا</a>
+      <a href="#lp-flow" data-lp-go="lp-flow">كيف تلعب</a>
+      <a href="#lp-features" data-lp-go="lp-features">المزايا</a>
+      <a href="#landing-faq" data-lp-go="landing-faq">الأسئلة الشائعة</a>
+    </nav>
+    <a class="lp-cta lp-cta--sm" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
+  </div>
+</header>
+
+<main>
+<!-- ================= البداية ================= -->
+<section class="lp-hero" id="lp-hero" aria-labelledby="landing-hero-title">
+  <div class="lp-bg" aria-hidden="true">
+    <svg class="lp-arcs" viewBox="0 0 900 900" fill="none">
+      <circle cx="450" cy="450" r="250" stroke="url(#lpg)" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="2 10" stroke-linecap="round"/>
+      <circle cx="450" cy="450" r="340" stroke="#A78BFF" stroke-opacity=".16" stroke-width="1.5" stroke-dasharray="140 520 90 300" stroke-linecap="round"/>
+      <circle cx="450" cy="450" r="430" stroke="#7C3AED" stroke-opacity=".22" stroke-width="1" stroke-dasharray="40 200"/>
+    </svg>
+    <i class="lp-cube lp-cube--a"></i><i class="lp-cube lp-cube--b"></i><i class="lp-cube lp-cube--c"></i>
+    <span class="lp-orb lp-orb--a"></span><span class="lp-orb lp-orb--b"></span>
+    <svg class="lp-av lp-av--a" viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#4C1D95"/><use href="#av" opacity=".9"/></svg>
+    <svg class="lp-av lp-av--b" viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#6D28D9"/><use href="#av" opacity=".9"/></svg>
+    <svg class="lp-av lp-av--c" viewBox="0 0 40 40"><circle cx="20" cy="20" r="19" fill="#5B21B6"/><use href="#av" opacity=".9"/></svg>
+  </div>
+  <div class="lp-wrap lp-hero-grid">
+    <div class="lp-hero-copy">
+      <span class="lp-chip">منصة عربية مجانية بالكامل</span>
+      <h1 id="landing-hero-title" class="lp-h1"><span>من نحن</span> <span class="lp-dash">—</span> <em>احسمها</em></h1>
+      <p class="lp-lead">احسمها منصة عربية تحوّل شات البث المباشر إلى ملعب حقيقي — يربط الستريمر حسابه خلال ثوانٍ، ويشارك متابعوه في اللحظة نفسها من الشات.</p>
+      <div class="lp-hero-actions">
+        <a class="lp-cta" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
+      </div>
+
+      <dl class="lp-stats" aria-label="أرقام احسمها">
+        <svg class="lp-stats-path" viewBox="0 0 300 20" preserveAspectRatio="none" aria-hidden="true"><path d="M20 10H280" stroke="#A78BFF" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="3 7" fill="none"/></svg>
+        <div class="lp-st lp-st--players">
+          <svg class="lp-st-vis" viewBox="0 0 96 40" aria-hidden="true">
+            <g><circle cx="16" cy="20" r="13" fill="#4C1D95" stroke="#0b0518" stroke-width="2"/><use href="#av" x="3" y="7" width="26" height="26" opacity=".85"/></g>
+            <g><circle cx="38" cy="20" r="13" fill="#6D28D9" stroke="#0b0518" stroke-width="2"/><use href="#av" x="25" y="7" width="26" height="26" opacity=".85"/></g>
+            <g><circle cx="60" cy="20" r="13" fill="#7C3AED" stroke="#0b0518" stroke-width="2"/><use href="#av" x="47" y="7" width="26" height="26" opacity=".9"/></g>
+            <g><circle cx="82" cy="20" r="13" fill="#A78BFF" stroke="#0b0518" stroke-width="2"/><use href="#av" x="69" y="7" width="26" height="26"/></g>
+          </svg>
+          <dt>لاعب</dt><dd><span class="lp-num" data-count="660">660</span><span class="lp-plus">+</span></dd>
+        </div>
+        <div class="lp-st lp-st--streamers">
+          <svg class="lp-st-vis" viewBox="0 0 96 40" aria-hidden="true">
+            <circle class="w w1" cx="48" cy="22" r="6" fill="none" stroke="#C4B0FF" stroke-width="1.6"/>
+            <circle class="w w2" cx="48" cy="22" r="6" fill="none" stroke="#A78BFF" stroke-width="1.6"/>
+            <circle class="w w3" cx="48" cy="22" r="6" fill="none" stroke="#7C3AED" stroke-width="1.6"/>
+            <circle cx="48" cy="22" r="5" fill="#EDE9FF"/><path d="M48 27v9" stroke="#EDE9FF" stroke-width="2.4" stroke-linecap="round"/>
+          </svg>
+          <dt>ستريمر</dt><dd><span class="lp-num" data-count="150">150</span><span class="lp-plus">+</span></dd>
+        </div>
+        <div class="lp-st lp-st--games">
+          <svg class="lp-st-vis" viewBox="0 0 96 40" aria-hidden="true">
+            <rect class="t t1" x="30" y="9" width="26" height="26" rx="6" fill="#2a1259" stroke="#7C3AED" stroke-width="1.5"/>
+            <rect class="t t2" x="38" y="6" width="26" height="26" rx="6" fill="#4C1D95" stroke="#A78BFF" stroke-width="1.5"/>
+            <rect class="t t3" x="46" y="3" width="26" height="26" rx="6" fill="url(#lpg)" stroke="#EDE9FF" stroke-opacity=".6" stroke-width="1.5"/>
+            <circle cx="59" cy="16" r="4" fill="#EDE9FF"/>
+          </svg>
+          <dt>لعبة</dt><dd><span class="lp-num" data-count="65">65</span><span class="lp-plus">+</span></dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="lp-cluster-col">
+      <div class="lp-cluster" id="lp-cluster" aria-label="معاينات حية لثلاث ألعاب">
+        <span class="lp-badge"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.6 6.7 19.4l1.1-5.9L3.5 9.4l5.9-.8z" fill="currentColor"/></svg>الاكثر لعبا</span>
+        <div class="lp-tile lp-tile--hot lp-tile--countries" data-game="countrywar" data-src="/about-experience/previews-sq/countrywar.html" data-name="الدول" data-gl="0" role="img" aria-label="معاينة لعبة الدول">
+          <div class="lp-tile-in"><img class="lp-poster" alt="" width="560" height="560" src="{{POSTER:countrywar}}"><iframe class="lp-frame" title="" tabindex="-1" aria-hidden="true" sandbox="allow-scripts allow-same-origin"></iframe></div>
+          <span class="lp-tile-name">الدول</span>
+        </div>
+        <div class="lp-tile lp-tile--roulette" data-game="roulette" data-src="/about-experience/previews-sq/roulette.html" data-name="الروليت الروسي" data-gl="1" role="img" aria-label="معاينة الروليت الروسي">
+          <div class="lp-tile-in"><img class="lp-poster" alt="" width="560" height="560" src="{{POSTER:roulette}}"><iframe class="lp-frame" title="" tabindex="-1" aria-hidden="true" sandbox="allow-scripts allow-same-origin"></iframe></div>
+          <span class="lp-tile-name">الروليت الروسي</span>
+        </div>
+        <div class="lp-tile lp-tile--cannon" data-game="cannon" data-src="/about-experience/previews-sq/cannon.html" data-name="المدفع البشري" data-gl="1" role="img" aria-label="معاينة المدفع البشري">
+          <div class="lp-tile-in"><img class="lp-poster" alt="" width="560" height="560" src="{{POSTER:cannon}}"><iframe class="lp-frame" title="" tabindex="-1" aria-hidden="true" sandbox="allow-scripts allow-same-origin"></iframe></div>
+          <span class="lp-tile-name">المدفع البشري</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= أنواع الألعاب ================= -->
+<div class="lp-types" aria-label="أنواع الألعاب">
+  <div class="lp-wrap lp-types-in">
+    <span class="lp-type"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#ic-chat"/></svg>ستريمر</span>
+    <i class="lp-type-sep" aria-hidden="true"></i>
+    <span class="lp-type"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M5 20c.8-4 3.6-6 7-6s6.2 2 7 6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>فردي</span>
+    <i class="lp-type-sep" aria-hidden="true"></i>
+    <span class="lp-type"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><circle cx="16.5" cy="9" r="3" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M2.5 19c.5-3 2.5-4.5 5.5-4.5M21.5 19c-.5-3-2.5-4.5-5.5-4.5M8 19c.5-2.6 2-3.8 4-3.8s3.5 1.2 4 3.8" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>جمعات</span>
+    <i class="lp-type-sep" aria-hidden="true"></i>
+    <span class="lp-type"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>أونلاين</span>
+  </div>
+</div>
+
+<!-- ================= قصتنا ================= -->
+<section class="lp-story" id="lp-story" aria-labelledby="lp-story-h">
+  <div class="lp-wrap lp-story-grid">
+    <div class="lp-story-copy rv rv-side">
+      <h2 id="lp-story-h" class="lp-story-title">قصتنا</h2>
+      <p>احسمها منصة عربية مجانية بالكامل تشغّل ألعاباً تفاعلية تُدار مباشرة من <mark>شات البث</mark> على تيك توك وتويتش وكيك ويوتيوب. يربط الستريمر حسابه خلال ثوانٍ <mark>بدون مفتاح API ولا تطبيق</mark>، ويشارك متابعوه في اللحظة نفسها من الشات. إلى جانب ألعاب البث، توجد ألعاب فردية وألعاب جمعات وألعاب أونلاين لا تحتاج بثاً على الإطلاق.</p>
+    </div>
+    <div class="lp-net rv rv-scale" aria-hidden="true">
+      <svg viewBox="0 0 420 360" fill="none">
+        <g class="net-lines" stroke="url(#lpg)" stroke-width="1.6" stroke-linecap="round">
+          <path id="np1" d="M210 180 L70 70"/><path id="np2" d="M210 180 L350 70"/><path id="np3" d="M210 180 L70 290"/><path id="np4" d="M210 180 L350 290"/>
+        </g>
+        <circle cx="210" cy="180" r="92" stroke="#A78BFF" stroke-opacity=".18" stroke-dasharray="3 9"/>
+        <circle cx="210" cy="180" r="138" stroke="#7C3AED" stroke-opacity=".16"/>
+        <g class="net-pulse" fill="#EDE9FF">
+          <circle r="3.5"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0s"><mpath href="#np1"/></animateMotion></circle>
+          <circle r="3.5"><animateMotion dur="3.2s" repeatCount="indefinite" begin="0.8s"><mpath href="#np2"/></animateMotion></circle>
+          <circle r="3.5"><animateMotion dur="3.2s" repeatCount="indefinite" begin="1.6s"><mpath href="#np3"/></animateMotion></circle>
+          <circle r="3.5"><animateMotion dur="3.2s" repeatCount="indefinite" begin="2.4s"><mpath href="#np4"/></animateMotion></circle>
+        </g>
+        <g class="net-hub">
+          <rect x="168" y="138" width="84" height="84" rx="24" fill="#150a2e" stroke="#A78BFF" stroke-opacity=".7" stroke-width="1.5"/>
+          <svg x="184" y="154" width="52" height="52" viewBox="0 0 24 24" style="color:#C4B0FF"><use href="#ic-chat"/></svg>
+        </g>
+        <g class="net-node" style="color:#EDE9FF">
+          <rect x="34" y="34" width="72" height="72" rx="20" fill="#150a2e" stroke="#7C3AED" stroke-opacity=".8"/><svg x="52" y="52" width="36" height="36" viewBox="0 0 24 24"><use href="#ic-tiktok"/></svg>
+          <rect x="314" y="34" width="72" height="72" rx="20" fill="#150a2e" stroke="#7C3AED" stroke-opacity=".8"/><svg x="332" y="52" width="36" height="36" viewBox="0 0 24 24"><use href="#ic-twitch"/></svg>
+          <rect x="34" y="254" width="72" height="72" rx="20" fill="#150a2e" stroke="#7C3AED" stroke-opacity=".8"/><svg x="52" y="272" width="36" height="36" viewBox="0 0 24 24"><use href="#ic-kick"/></svg>
+          <rect x="314" y="254" width="72" height="72" rx="20" fill="#150a2e" stroke="#7C3AED" stroke-opacity=".8"/><svg x="332" y="272" width="36" height="36" viewBox="0 0 24 24"><use href="#ic-youtube"/></svg>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="lp-divider" aria-hidden="true"><i></i><svg viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="7" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="11" cy="11" r="2" fill="currentColor"/><circle cx="21" cy="21" r="2" fill="currentColor"/><circle cx="16" cy="16" r="2" fill="currentColor"/></svg><i></i></div>
+
+<!-- ================= تجربة الستريمر واللاعب ================= -->
+<section class="lp-flow" id="lp-flow" aria-labelledby="lp-flow-h">
+  <div class="lp-wrap">
+    <h2 id="lp-flow-h" class="lp-h2">من رسالة بالشات إلى حدث داخل اللعبة</h2>
+    <div class="lp-lanes">
+      <article class="lp-lane lp-lane--streamer rv rv-side">
+        <svg class="lp-scene" viewBox="0 0 360 120" fill="none" aria-hidden="true">
+          <rect x="8" y="14" width="104" height="76" rx="14" fill="#150a2e" stroke="#7C3AED" stroke-opacity=".7"/>
+          <rect x="18" y="24" width="84" height="8" rx="4" fill="#7C3AED" fill-opacity=".5"/>
+          <svg x="34" y="40" width="52" height="40" viewBox="0 0 24 24" style="color:#C4B0FF"><use href="#ic-twitch"/></svg>
+          <path class="sc-draw" d="M116 52H236" stroke="#A78BFF" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 8"/>
+          <circle class="sc-dot" cx="116" cy="52" r="4" fill="#EDE9FF"/>
+          <rect x="244" y="14" width="104" height="76" rx="14" fill="#150a2e" stroke="#A78BFF" stroke-opacity=".8"/>
+          <rect x="256" y="26" width="38" height="38" rx="9" fill="url(#lpg)"/><rect x="300" y="26" width="38" height="38" rx="9" fill="#4C1D95"/><rect x="256" y="68" width="38" height="14" rx="6" fill="#4C1D95"/><rect x="300" y="68" width="38" height="14" rx="6" fill="#7C3AED" fill-opacity=".6"/>
+        </svg>
+        <header class="lp-lane-head"><h3>للستريمر</h3></header>
+        <p class="lp-lane-lead">حل احترافي بلا احتكاك تقني، يرفع مستوى تفاعل بثك فوراً — بدون API ولا تطبيق.</p>
+        <ol class="lp-journey">
+          <li><b>يجهّز بثه</b><span>يفتح احسمها ويجهّز بثه على منصته.</span></li>
+          <li><b>يربطه</b><span>يربط حسابه من المسار الموجود خلال ثوانٍ.</span></li>
+          <li><b>يختار اللعبة</b><span>يختار من ألعاب الستريمر اللعبة المناسبة لجمهوره.</span></li>
+          <li><b>يبدأ الجولة</b><span>يبدأ الجولة ويشارك المتابعون من شات البث.</span></li>
+        </ol>
+      </article>
+      <article class="lp-lane lp-lane--player rv rv-up">
+        <svg class="lp-scene" viewBox="0 0 360 120" fill="none" aria-hidden="true">
+          <g><circle cx="40" cy="38" r="18" fill="#4C1D95"/><use href="#av" x="24" y="22" width="32" height="32" opacity=".9"/>
+          <circle cx="40" cy="82" r="18" fill="#6D28D9"/><use href="#av" x="24" y="66" width="32" height="32" opacity=".9"/></g>
+          <path class="sc-draw" d="M64 38C110 38 110 60 150 60M64 82C110 82 110 60 150 60" stroke="url(#lpg)" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 8"/>
+          <circle class="sc-ring" cx="180" cy="60" r="28" stroke="#A78BFF" stroke-width="2"/>
+          <circle cx="180" cy="60" r="16" fill="url(#lpg)"/>
+          <path d="M210 60H252" stroke="#A78BFF" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 8" class="sc-draw"/>
+          <rect x="262" y="52" width="26" height="46" rx="6" fill="#4C1D95"/><rect x="292" y="34" width="26" height="64" rx="6" fill="url(#lpg)"/><rect x="322" y="62" width="26" height="36" rx="6" fill="#6D28D9"/>
+        </svg>
+        <header class="lp-lane-head"><h3>للاعب</h3></header>
+        <p class="lp-lane-lead">كن جزء من اللحظة الحية — إثارة، انتماء، ومنافسة حقيقية أمام الجمهور في كل جولة.</p>
+        <ol class="lp-journey">
+          <li><b>يعرف كلمة الدخول</b><span>يحدّدها الستريمر ويعرضها على شاشة اللعبة.</span></li>
+          <li><b>ينضم من الشات</b><span>يكتب الكلمة في شات البث فيدخل الجولة.</span></li>
+          <li><b>يرسل أمره عند دوره</b><span>يكتب الأمر المناسب للعبة لما يجي دوره.</span></li>
+        </ol>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="lp-divider" aria-hidden="true"><i></i><svg viewBox="0 0 32 32"><path d="M18 3 6 18h8l-2 11 12-15h-8z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><i></i></div>
+
+<!-- ================= المزايا ================= -->
+<section class="lp-features" id="lp-features" aria-labelledby="lp-feat-h">
+  <div class="lp-wrap">
+    <h2 id="lp-feat-h" class="lp-h2">ايش تلقى في احسمها</h2>
+    <p class="lp-sub">كل ما يحتاجه بثك من تفاعل حقيقي، في مكان واحد</p>
+    <div class="lp-feats">
+      <article class="lp-feat lp-feat--link rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true">
+          <rect x="14" y="30" width="48" height="48" rx="14" fill="#150a2e" stroke="#7C3AED"/><rect x="178" y="30" width="48" height="48" rx="14" fill="#150a2e" stroke="#A78BFF"/>
+          <path class="f-draw" d="M66 54H174" stroke="#A78BFF" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="110" />
+          <circle class="f-spark" cx="120" cy="54" r="6" fill="#EDE9FF"/>
+          <path d="M30 54h16M194 54h16" stroke="#C4B0FF" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <h3>ربط فوري</h3>
+        <p>بدون مفتاح API ولا تحميل أي تطبيق — تربط حسابك وتبدأ خلال ثوانٍ.</p>
+      </article>
+      <article class="lp-feat lp-feat--games rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true">
+          <g class="f-tiles">
+            <rect class="ft ft1" x="22" y="14" width="46" height="38" rx="10" fill="#4C1D95"/><rect class="ft ft2" x="76" y="14" width="46" height="38" rx="10" fill="url(#lpg)"/><rect class="ft ft3" x="130" y="14" width="46" height="38" rx="10" fill="#6D28D9"/><rect class="ft ft4" x="184" y="14" width="40" height="38" rx="10" fill="#2a1259" stroke="#7C3AED"/>
+            <rect class="ft ft5" x="22" y="58" width="46" height="38" rx="10" fill="#2a1259" stroke="#7C3AED"/><rect class="ft ft6" x="76" y="58" width="46" height="38" rx="10" fill="#6D28D9"/><rect class="ft ft7" x="130" y="58" width="46" height="38" rx="10" fill="#4C1D95"/><rect class="ft ft8" x="184" y="58" width="40" height="38" rx="10" fill="url(#lpg)"/>
+          </g>
+        </svg>
+        <h3>+50 لعبة</h3>
+        <p>شات جماعي، حظ وإقصاء، تخمين، فرق، فردية، جمعات، وأونلاين.</p>
+      </article>
+      <article class="lp-feat lp-feat--platforms rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true" style="color:#EDE9FF">
+          <path d="M26 92Q120 -22 214 92" stroke="url(#lpg)" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="3 8"/>
+          <g class="f-plat"><circle cx="34" cy="76" r="20" fill="#150a2e" stroke="#7C3AED"/><svg x="22" y="64" width="24" height="24" viewBox="0 0 24 24"><use href="#ic-tiktok"/></svg></g>
+          <g class="f-plat"><circle cx="86" cy="36" r="20" fill="#150a2e" stroke="#7C3AED"/><svg x="74" y="24" width="24" height="24" viewBox="0 0 24 24"><use href="#ic-twitch"/></svg></g>
+          <g class="f-plat"><circle cx="154" cy="36" r="20" fill="#150a2e" stroke="#7C3AED"/><svg x="142" y="24" width="24" height="24" viewBox="0 0 24 24"><use href="#ic-kick"/></svg></g>
+          <g class="f-plat"><circle cx="206" cy="76" r="20" fill="#150a2e" stroke="#7C3AED"/><svg x="194" y="64" width="24" height="24" viewBox="0 0 24 24"><use href="#ic-youtube"/></svg></g>
+        </svg>
+        <h3>4 منصات بث</h3>
+        <p>تيك توك، تويتش، كيك، ويوتيوب — كلها مدعومة مباشرة.</p>
+      </article>
+      <article class="lp-feat lp-feat--free rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true">
+          <circle class="f-ring" cx="120" cy="55" r="40" stroke="url(#lpg)" stroke-width="3"/>
+          <circle cx="120" cy="55" r="30" fill="#150a2e" stroke="#A78BFF" stroke-opacity=".5"/>
+          <path class="f-check" d="M104 56l11 11 21-24" stroke="#EDE9FF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M40 55h28M172 55h28" stroke="#7C3AED" stroke-opacity=".6" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 8"/>
+        </svg>
+        <h3>مجاني بالكامل</h3>
+        <p>بدون اشتراكات ولا رسوم خفية — التسجيل واللعب مجانيان تماماً.</p>
+      </article>
+      <article class="lp-feat lp-feat--events rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true">
+          <rect x="40" y="62" width="48" height="40" rx="8" fill="#4C1D95"/><rect x="96" y="44" width="48" height="58" rx="8" fill="url(#lpg)"/><rect x="152" y="72" width="48" height="30" rx="8" fill="#6D28D9"/>
+          <g class="f-medal"><circle cx="120" cy="24" r="13" fill="#150a2e" stroke="#C4B0FF" stroke-width="2"/><path d="M120 16l2.6 5.2 5.8.8-4.2 4 1 5.8-5.200-2.700-5.200 2.700 1-5.800-4.200-4 5.800-.8z" fill="#EDE9FF"/></g>
+        </svg>
+        <h3>فعاليات الستريمرز</h3>
+        <p>فعاليات مثل "أفضل ستريمر" بلوحة فائزين تُحتسب تلقائياً.</p>
+      </article>
+      <article class="lp-feat lp-feat--levels rv rv-up">
+        <svg class="lp-fscene" viewBox="0 0 240 110" fill="none" aria-hidden="true">
+          <path d="M20 98h200" stroke="#7C3AED" stroke-opacity=".5" stroke-width="2" stroke-linecap="round"/>
+          <rect x="30" y="76" width="34" height="22" rx="6" fill="#2a1259" stroke="#7C3AED"/><rect x="72" y="58" width="34" height="40" rx="6" fill="#4C1D95"/><rect x="114" y="40" width="34" height="58" rx="6" fill="#6D28D9"/><rect x="156" y="22" width="34" height="76" rx="6" fill="url(#lpg)"/>
+          <g class="f-climb"><circle cx="47" cy="64" r="8" fill="#EDE9FF"/></g>
+        </svg>
+        <h3>مستويات ومتصدرين</h3>
+        <p>كل لاعب وستريمر يرتقي بمستواه ويظهر ترتيبه بلوحة المتصدرين.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<div class="lp-divider" aria-hidden="true"><i></i><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="11" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16" cy="16" r="1.6" fill="currentColor"/></svg><i></i></div>
+
+<!-- ================= الأسئلة الشائعة ================= -->
+<section class="lp-faq landing-faq" id="landing-faq" aria-labelledby="lp-faq-h">
+  <div class="lp-wrap lp-faq-grid">
+    <div class="lp-faq-side">
+      <h2 id="lp-faq-h" class="lp-h2">الأسئلة الشائعة</h2>
+      <p class="lp-sub">كل ما تحتاج معرفته عن احسمها</p>
+      <label class="lp-field" for="lp-faq-search"><span>ابحث في الأسئلة</span>
+        <input id="lp-faq-search" type="search" inputmode="search" autocomplete="off" placeholder="مثال: API، الجوال، مجانية">
+      </label>
+      <div class="lp-cats" id="lp-faq-cats" role="group" aria-label="تصنيف الأسئلة"></div>
+      <p class="lp-faq-count" id="lp-faq-count" aria-live="polite"></p>
+    </div>
+    <div class="lp-faq-list landing-faq-list" id="landing-faq-list"></div>
+  </div>
+</section>
+
+<!-- ================= الدعوة للبدء ================= -->
+<section class="lp-final" aria-labelledby="lp-final-h">
+  <svg class="lp-final-art" viewBox="0 0 900 400" fill="none" aria-hidden="true">
+    <ellipse cx="450" cy="400" rx="420" ry="250" stroke="url(#lpg)" stroke-opacity=".35" stroke-width="1.5" stroke-dasharray="2 10"/>
+    <ellipse cx="450" cy="400" rx="300" ry="170" stroke="#A78BFF" stroke-opacity=".25" stroke-width="1.5"/>
+    <circle cx="140" cy="120" r="18" fill="#4C1D95"/><use href="#av" x="124" y="104" width="32" height="32" opacity=".8"/>
+    <circle cx="770" cy="150" r="18" fill="#6D28D9"/><use href="#av" x="754" y="134" width="32" height="32" opacity=".8"/>
+    <circle cx="690" cy="60" r="12" fill="#5B21B6"/><use href="#av" x="678" y="48" width="24" height="24" opacity=".8"/>
+  </svg>
+  <div class="lp-wrap lp-final-in">
+    <h2 id="lp-final-h" class="lp-final-h">جاهز تبدأ؟</h2>
+    <p>سجّل مجاناً وخلّ متابعينك يلعبون معك مباشرة من الشات.</p>
+    <a class="lp-cta lp-cta--lg" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
+  </div>
+</section>
+</main>
+
+<footer class="lp-footer">
+  <div class="lp-wrap lp-footer-in">
+    <div class="lp-footer-brand">
+      <span class="lp-brand-logo" aria-hidden="true">{{LOGO2}}</span>
+      <span>احسمها</span>
+    </div>
+    <div class="lp-social">
+      <a class="lp-social-btn" href="https://instagram.com/ehsmaha7" target="_blank" rel="noopener" aria-label="انستقرام احسمها"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1"/></svg></a>
+      <a class="lp-social-btn" href="https://tiktok.com/@ehsmaha7" target="_blank" rel="noopener" aria-label="تيك توك احسمها"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v10.5a3.5 3.5 0 1 1-3-3.46"/><path d="M14 3c.7 3 2.6 4.6 5 5"/></svg></a>
+      <a class="lp-social-btn" href="https://x.com/ehsmaha7" target="_blank" rel="noopener" aria-label="إكس احسمها"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16M20 4 4 20"/></svg></a>
+    </div>
+    <a class="lp-cta lp-cta--sm" href="javascript:void(0)" onclick="landingCtaClick()">ابدأ اللعب مجاناً</a>
+    <p class="lp-copy">© 2026 احسمها. جميع الحقوق محفوظة.</p>
+  </div>
+</footer>
+</div>

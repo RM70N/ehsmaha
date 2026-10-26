@@ -26,5 +26,14 @@ if (!fs.existsSync(SOURCE_INDEX)) {
 fs.mkdirSync(SITE_DIR, { recursive: true });
 fs.copyFileSync(SOURCE_INDEX, TARGET_INDEX);
 
+// معاينات صفحة «من نحن» (previews-sq + posters فقط، بدون مصادر البناء)
+const AE_SRC = path.join(REPO_ROOT, 'about-experience');
+if (fs.existsSync(AE_SRC)) {
+  ['previews-sq', 'posters'].forEach(function (d) {
+    const from = path.join(AE_SRC, d);
+    if (fs.existsSync(from)) fs.cpSync(from, path.join(SITE_DIR, 'about-experience', d), { recursive: true });
+  });
+}
+
 const stat = fs.statSync(TARGET_INDEX);
 console.log('[sync-site] تم نسخ index.html إلى desktop/site/ (' + Math.round(stat.size / 1024) + ' KB)');
