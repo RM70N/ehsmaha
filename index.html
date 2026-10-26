@@ -20656,6 +20656,14 @@ function authBoot() {
 // لا يحذف ولا يطرد أي حساب بسبب خطأ قراءة (حصة Firestore/شبكة): يدخل بيوزره
 // المحفوظ محلياً، أو يعرض رسالة ويعيد المحاولة تلقائياً وهو ما زال مسجّلاً.
 let authRouteSeq = 0;
+// إعادة توجيه نفس الحساب (إعادة إطلاق onAuthStateChanged/تجديد جلسة/إعادة محاولة) ما تنقل لاعب
+// من وسط لعبة لصفحة الهبوط: ننقل فقط بأول إقلاع أو لو الصفحة الحالية صفحة دخول/هبوط.
+function authShouldShowLanding(user) {
+  if (!user || authBootChainUid !== user.uid) return true; // أول إقلاع لهذا الحساب
+  const activePage = document.querySelector('.page.active');
+  const id = activePage ? String(activePage.id || '').replace(/^pg-/, '') : '';
+  return !id || id === 'landing' || id === 'auth' || id === 'choose-username';
+}
 async function authRouteSignedInUser(user, attempt) {
   if (!user) return;
   const seq = ++authRouteSeq;
@@ -20671,7 +20679,7 @@ async function authRouteSignedInUser(user, attempt) {
     authUpdateChip();
     // حساب مسجّل دخوله يشوف صفحة الهبوط التعريفية أول ما يفتح الموقع —
     // زر "ابدأ اللعب مجاناً" بداخلها يوديه لصفحته الرئيسية (landingCtaClick).
-    show('landing');
+    if (authShouldShowLanding(user)) show('landing');
     await authRunPostAuthBootChain(st.data.lastSeenUpdateAt || null);
     ghMilestoneCheckAndShow();
     return;
@@ -20690,7 +20698,7 @@ async function authRouteSignedInUser(user, attempt) {
   if (cached) {
     currentUsername = cached;
     authUpdateChip();
-    show('landing');
+    if (authShouldShowLanding(user)) show('landing');
     await authRunPostAuthBootChain(null);
     return;
   }
@@ -64755,6 +64763,25 @@ function autoUpdateIsOnSetupScreen() {
   return !!(activePage && /^pg-setup-/.test(activePage.id));
 }
 
+// الصفحات اللي ما فيها لعبة ولا راوند ولا شاشة إعداد: بس عليها نسمح بالريفرش التلقائي.
+// أي صفحة ثانية (أي لعبة، أي مرحلة منها: إعداد/عدّ تنازلي/راوند/نتيجة/فائز/غرفة/لوبي...)
+// = ممنوع الريفرش. قائمة الحالات (AUTO_UPDATE_GAME_STATUS_VARS) وحدها ما تكفي: ألعاب جديدة
+// وحالات ما هي بالقائمة (عدّ تنازلي/نتيجة/تصويت/...) كانت تنطرد لصفحة «من نحن» بعد الريفرش.
+const AUTO_UPDATE_SAFE_PAGES = ['landing', 'auth', 'choose-username', 'home', 'profile', 'leaderboard', 'levels', 'frames', 'faq', 'contest-top20', 'solo-home', 'party-home', 'online-home', 'online-friends', 'ahsemha-home'];
+function autoUpdateIsOnGameScreen() {
+  const activePage = document.querySelector('.page.active');
+  if (!activePage) return false; // ما فيه صفحة فعّالة (مثلاً صفحة الخصوصية): ما فيه شي نخسره
+  const id = String(activePage.id || '').replace(/^pg-/, '');
+  return AUTO_UPDATE_SAFE_PAGES.indexOf(id) < 0;
+}
+// القرار الوحيد للريفرش التلقائي واليدوي-من-المالك: يرجع true بس لو مضمون ما نقطع أحد.
+function autoUpdateCanReloadNow() {
+  if (autoUpdateIsRoundActive()) return false; // راوند شغال
+  if (autoUpdateIsOnSetupScreen()) return false; // شاشة إعداد لعبة
+  if (autoUpdateIsOnGameScreen()) return false; // أي شاشة لعبة أخرى (حتى لو الحالة مو بالقائمة)
+  return true;
+}
+
 async function autoUpdateCheck() {
   try {
     const res = await fetch(location.pathname + '?_ac=' + Date.now(), { method: 'HEAD', cache: 'no-store' });
@@ -64774,8 +64801,7 @@ async function autoUpdateCheck() {
 
 function autoUpdateTryReloadNow() {
   if (!autoUpdateAvailable) return;
-  if (autoUpdateIsRoundActive()) return; // راوند شغال — نأجّل، نعيد المحاولة بالفحص الجاي
-  if (autoUpdateIsOnSetupScreen()) return; // ستريمر يعبّي شاشة إعداد (مثل مفتاح API) — نأجّل لحد ما يبدأ اللعبة أو يرجع للرئيسية
+  if (!autoUpdateCanReloadNow()) return; // راوند/إعداد/أي شاشة لعبة — نأجّل ونعيد المحاولة بالفحص الجاي
   location.reload();
 }
 
@@ -64809,8 +64835,7 @@ function forceReloadBoot() {
 
 function forceReloadTry() {
   if (!forceReloadPendingMs) return;
-  if (autoUpdateIsRoundActive()) return; // راوند شغال — نأجّل، نعيد المحاولة بالفحص الجاي
-  if (autoUpdateIsOnSetupScreen()) return; // ستريمر بشاشة إعداد — نأجّل لحد ما يبدأ اللعبة أو يرجع للرئيسية
+  if (!autoUpdateCanReloadNow()) return; // راوند/إعداد/أي شاشة لعبة — نأجّل ونعيد المحاولة بالفحص الجاي
   sessionStorage.setItem('forceReloadHandledMs', String(forceReloadPendingMs));
   location.reload();
 }
