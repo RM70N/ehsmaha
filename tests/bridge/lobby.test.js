@@ -140,7 +140,7 @@ const settle = (p) => p.waitForTimeout(120);
   const tiles = await page.$$('.hlob-tile');
   for (const t of tiles) await t.click();
   await page.click('.hlob-nav .hlob-btn-quick');
-  check('طرق اللعب: فردي/جمعات/أونلاين/وردل/الفئات + ابدأ بثاً سريعاً', JSON.stringify(await page.evaluate(() => window.__nav)) === JSON.stringify(['go:solo', 'go:party', 'go:online', 'show:wordle-mode-select', 'show:ahsemha-home', 'qc']), await page.evaluate(() => window.__nav));
+  check('طرق اللعب: فردي/جمعات/وردل/الفئات + ابدأ بثاً سريعاً', JSON.stringify(await page.evaluate(() => window.__nav)) === JSON.stringify(['go:solo', 'go:party', 'show:wordle-mode-select', 'show:ahsemha-home', 'qc']), await page.evaluate(() => window.__nav));
   await page.evaluate(() => { window.__nav = []; });
   await page.click('.hlob-hero-cta .hlob-btn-ghost');
   check('زر البطل "ابدأ بثاً سريعاً" (بدل "اختر طريقة لعبك") يفتح الربط السريع', JSON.stringify(await page.evaluate(() => window.__nav)) === '["qc"]' && (await page.evaluate(() => !document.body.textContent.includes('اختر طريقة لعبك'))), await page.evaluate(() => window.__nav));

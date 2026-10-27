@@ -33,7 +33,7 @@ const check = (name, ok, detail) => { results.push(!!ok); console.log((ok ? 'PAS
   check('الريفرش التلقائي مسموح بالصفحات الآمنة فقط (' + safe.length + ') وممنوع بكل ' + games + ' صفحة لعبة/إعداد/راوند/فائز/غرفة', wrong.length === 0 && games > 100, wrong.slice(0, 8));
 
   // 2) الصفحات اللي كانت تنطرد: ألعاب الستريمر الجديدة + مراحل «عدّ/نتيجة/فائز»
-  for (const id of ['pg-xo', 'pg-ek', 'pg-wesh', 'pg-hq', 'pg-almeezan', 'pg-cannon', 'pg-roulette3d', 'pg-volcanic-lands', 'pg-tug', 'pg-bomb', 'pg-callcenter', 'pg-ig-final', 'pg-ptop10-roundwinner', 'pg-bridge-round', 'pg-online-room']) {
+  for (const id of ['pg-xo', 'pg-ek', 'pg-wesh', 'pg-hq', 'pg-almeezan', 'pg-cannon', 'pg-roulette3d', 'pg-volcanic-lands', 'pg-tug', 'pg-bomb', 'pg-callcenter', 'pg-ig-final', 'pg-ptop10-roundwinner', 'pg-bridge-round']) {
     if (!ids.includes(id)) { check('الصفحة موجودة: ' + id, false); continue; }
     await setActive(id);
     check('ممنوع الريفرش على ' + id, (await can()) === false);

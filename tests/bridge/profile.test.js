@@ -46,10 +46,10 @@ const FRAME = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http:
   await shot(page, '01-desktop', true);
   check('الصفحة تظهر (page.active) والتنقل عبر show("profile")', await ev(() => document.getElementById('pg-profile').classList.contains('active') && getComputedStyle(document.getElementById('pg-profile')).display !== 'none') && (await calls()).includes('show(profile)'));
   const info = await ev(() => ({ name: document.getElementById('profile-username-big').textContent, handle: document.getElementById('profile-handle').textContent, lvl: document.getElementById('profile-level-num').textContent,
-    solo: document.getElementById('profile-stat-solo').textContent, online: document.getElementById('profile-stat-online').textContent, mp: document.getElementById('profile-stat-mostplayed-name').textContent, mpc: document.getElementById('profile-stat-mostplayed-count').textContent,
+    solo: document.getElementById('profile-stat-solo').textContent, mp: document.getElementById('profile-stat-mostplayed-name').textContent, mpc: document.getElementById('profile-stat-mostplayed-count').textContent,
     achv: document.getElementById('profile-achv-sub').textContent, frames: document.getElementById('profile-frames-count-badge').textContent, av: document.getElementById('profile-avatar-big').textContent }));
   check('اليوزر والهاندل والحرف الأول', info.name === 'Layl_Rider' && info.handle === '@Layl_Rider' && info.av === 'L', info);
-  check('اللفل والفوزات (فردي/أونلاين) والأكثر لعباً', info.lvl === '14' && info.solo === '7' && info.online === '22' && info.mp.length > 0 && /18/.test(info.mpc), info);
+  check('اللفل والفوزات (فردي) والأكثر لعباً', info.lvl === '14' && info.solo === '7' && info.mp.length > 0 && /18/.test(info.mpc), info);
   check('الإنجازات: عدد الأوسمة المكتسبة + الإطارات المملوكة', /^\d+\s*من 14 وسام$/.test(info.achv) && /مملوكة/.test(info.frames), info);
 
   // ---- الإطار على الأفتار

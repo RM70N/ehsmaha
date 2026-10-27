@@ -48,17 +48,15 @@ async function join(page, a, b, prefix = 'u') {
   await page.evaluate(() => { const l = document.getElementById('auth-loader'); if (l) l.remove(); });
   await page.evaluate(() => { window.__wins = []; const o = window.recordWin; window.recordWin = function (u, g) { window.__wins.push({ id: u && u.uniqueId, g }); return o.apply(this, arguments); }; });
 
-  // ===== 1) حذف شد الحبل القديم بالكامل + بقاء الأونلاين =====
+  // ===== 1) حذف شد الحبل القديم بالكامل =====
   const old = await page.evaluate(() => ({
     ids: ['pg-tug-winner', 'tug-arena', 'tug-teams-wrap', 'tug-rope-track', 'tug-knot', 'tug-timer', 'tug-balance-bar', 'tug-btn-round', 'tugw-team-name'].filter((i) => document.getElementById(i)),
     fns: ['tugPhysicsStep', 'tugFinishRound', 'tugApplyPullForce', 'tugGameLoop', 'tugRegisterPull', 'tugShowWinner', 'connectTugTikTok', 'initTugDashboard', 'tugUpdateBalanceBar'].filter((f) => typeof window[f] === 'function'),
     pv: !!document.querySelector('#pg-setup-tug .gs-pv-stage'), gs: !!document.querySelector('#pg-tug .gs-main'),
-    newFns: ['launchTug', 'goSetupTug', 'tugHandleEvent', 'startTugRound', 'resetTug', 'tugOpenKickModal', 'tugRemoveParticipant', 'tugTeamOf', 'tugGoHome'].filter((f) => typeof window[f] !== 'function'),
-    online: !!document.getElementById('pg-online-otug-play') && typeof window.otugGoFriendEntry === 'function'
+    newFns: ['launchTug', 'goSetupTug', 'tugHandleEvent', 'startTugRound', 'resetTug', 'tugOpenKickModal', 'tugRemoveParticipant', 'tugTeamOf', 'tugGoHome'].filter((f) => typeof window[f] !== 'function')
   }));
   check('شد الحبل القديم محذوف: لا عناصر ولا دوال فيزياء/فوز/ساحة قديمة ولا معاينة gs', old.ids.length === 0 && old.fns.length === 0 && !old.pv && !old.gs, old);
   check('الواجهة البرمجية الجديدة موجودة (launch/goSetup/handleEvent/start/reset/kick/…)', old.newFns.length === 0, old.newFns);
-  check('نسخة الأونلاين (otug) باقية دون مساس', old.online);
   const files = await page.evaluate(async () => { const r = await fetch('/tug3d.html', { cache: 'no-store' }); const t = await r.text(); return { st: r.status, len: t.length, api: /window\.EhsemhaTug3D=api/.test(t), three: /THREE/.test(t.slice(0, 60000)) }; });
   check('ملف tug3d.html يُخدَّم وفيه Three.js مضمّناً (بلا CDN) وواجهة EhsemhaTug3D', files.st === 200 && files.len > 500000 && files.api && files.three, files);
   const wf = fs.readFileSync(path.join(H.ROOT, '.github/workflows/pages.yml'), 'utf8');
