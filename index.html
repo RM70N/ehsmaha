@@ -1538,25 +1538,6 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .dev-vip-banner-name{font-family:var(--font-brand);font-weight:900;font-size:16px;color:#fff9ea;text-shadow:0 0 10px rgba(201,168,76,.6);white-space:nowrap;}
 .dev-vip-banner-ribbon{font-weight:900;font-size:12px;color:#241505;padding:5px 14px;border-radius:999px;background:linear-gradient(180deg,#fff2c4 0%,#d9b45c 40%,#8b6914 100%);white-space:nowrap;flex-shrink:0;}
 
-.dev-vip-victory-overlay{position:fixed;inset:0;z-index:99998;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .35s ease;background:radial-gradient(circle at 50% 38%,#3a1e78 0%,#1a0f3d 42%,#0a0518 100%);overflow:hidden;}
-.dev-vip-victory-overlay.show{opacity:1;}
-.dev-vip-victory-rays{position:absolute;top:38%;left:50%;width:1600px;height:1600px;transform:translate(-50%,-50%);background:repeating-conic-gradient(rgba(249,231,172,.13) 0deg 3.5deg,rgba(249,231,172,0) 3.5deg 16deg);animation:devVipRayRotate 46s linear infinite;mix-blend-mode:screen;}
-.dev-vip-victory-glow{position:absolute;top:38%;left:50%;width:900px;height:900px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(168,85,247,.35),rgba(168,85,247,0) 65%);filter:blur(4px);}
-.dev-vip-victory-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;padding:0 20px;max-width:640px;width:100%;}
-.dev-vip-victory-crown-wrap{width:110px;height:110px;border-radius:50%;padding:5px;background:radial-gradient(circle,rgba(168,85,247,.28),rgba(168,85,247,0) 70%);}
-.dev-vip-victory-crown{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 32% 26%,#33195f,#140a2e 72%);border:3px solid;border-image:conic-gradient(from 0deg,#fff2c4,#7a5a1e,#f5d67f,#8b6914,#fff2c4) 1;display:flex;align-items:center;justify-content:center;font-size:44px;animation:devVipCrownGlow 2.4s ease-in-out infinite;}
-.dev-vip-victory-title{margin-top:20px;font-family:var(--font-brand);font-weight:900;font-size:30px;color:#fff9ea;text-shadow:0 0 16px rgba(201,168,76,.85),0 4px 10px rgba(0,0,0,.6);text-align:center;}
-.dev-vip-victory-card{position:relative;margin-top:32px;width:100%;padding:2px;border-radius:24px;background:conic-gradient(from 120deg,#fff2c4,#8b6914 30%,#f5d67f 55%,#7a5a1e 80%,#fff2c4);}
-.dev-vip-victory-card::before{content:'';position:absolute;inset:2px;border-radius:22px;background:radial-gradient(circle at 25% 15%,rgba(255,255,255,.10),rgba(255,255,255,0) 40%),linear-gradient(160deg,rgba(58,30,120,.55),rgba(13,6,32,.75));animation:devVipCardPulse 3s ease-in-out infinite;}
-.dev-vip-victory-label,.dev-vip-victory-name,.dev-vip-victory-line,.dev-vip-victory-game{position:relative;z-index:1;text-align:center;}
-.dev-vip-victory-card{padding-top:34px;padding-bottom:28px;}
-.dev-vip-victory-label{font-weight:700;font-size:14px;color:#d9c7ff;letter-spacing:1px;}
-.dev-vip-victory-name{margin-top:10px;font-family:var(--font-brand);font-weight:900;font-size:34px;color:#fff;text-shadow:0 0 16px rgba(201,168,76,.9),0 0 30px rgba(168,85,247,.5);word-break:break-word;}
-.dev-vip-victory-line{margin:16px auto 0;width:140px;height:3px;border-radius:3px;background:linear-gradient(90deg,rgba(255,242,196,0),#f9e7ac 30%,#c9a84c 70%,rgba(201,168,76,0));box-shadow:0 0 10px 1px rgba(201,168,76,.7);}
-.dev-vip-victory-game{margin-top:14px;font-weight:700;font-size:15px;color:#f5d67f;}
-.dev-vip-victory-pill{margin-top:26px;font-weight:900;font-size:14px;color:#241505;padding:8px 22px;border-radius:999px;background:linear-gradient(180deg,#fff2c4 0%,#d9b45c 40%,#8b6914 100%);box-shadow:0 4px 12px rgba(0,0,0,.5),0 0 14px rgba(201,168,76,.6);}
-.dev-vip-victory-close{margin-top:28px;background:transparent;border:1px solid rgba(255,255,255,.3);color:#e8e8ff;padding:8px 20px;border-radius:12px;font-family:var(--font);font-size:13px;cursor:pointer;}
-.dev-vip-victory-close:hover{background:rgba(255,255,255,.08);}
 @keyframes devVipRayRotate{from{transform:translate(-50%,-50%) rotate(0deg);}to{transform:translate(-50%,-50%) rotate(360deg);}}
 @keyframes devVipCrownGlow{0%,100%{filter:drop-shadow(0 0 10px rgba(245,214,127,.9));}50%{filter:drop-shadow(0 0 18px rgba(245,214,127,1));}}
 @keyframes devVipCardPulse{0%,100%{box-shadow:0 0 24px rgba(201,168,76,.35);}50%{box-shadow:0 0 38px rgba(201,168,76,.6);}}
@@ -28891,7 +28872,7 @@ function extractUser(msg) {
 // بلوحة المالك بدون أي تعديل بالكود (تُخزَّن بكولكشن devSpecial، انظر
 // devSpecialSet/devSpecialFabBoot بأعلى الملف). isDeveloperUser يفحص اتحاد
 // الاثنين، فتبقى القائمة المبرمجة شغالة حتى لو تأخر تحميل Firestore.
-const DEVELOPER_USERNAMES = ['ic.zx8', 'ehsmaha7', 'mzx', 'i11saleh', 'mzx_787'];
+const DEVELOPER_USERNAMES = ['ehsmaha7', 'mzx', 'i11saleh', 'mzx_787'];
 function isDeveloperUser(username) {
   if (!username) return false;
   // وضع "أكثر من منصة" يسبق uniqueId باسم المنصة (tiktok:mzx مثلاً) عشان
@@ -29146,28 +29127,7 @@ function showDeveloperVictoryOverlayIfApplicable(user, gameName) {
   }
   if (user && isMotlaqUser(user.uniqueId)) return showMotlaqVictoryOverlayIfApplicable(user, gameName); // isMotlaqStreamScope مفحوصة داخلها
   if (user && isAboudUser(user.uniqueId)) return showAboudVictoryOverlayIfApplicable(user, gameName); // isAboudStreamScope مفحوصة داخلها
-  if (!user || !isDeveloperUser(user.uniqueId) || !isDeveloperVisualsEnabled()) return false;
-  const overlay = document.createElement('div');
-  overlay.className = 'dev-vip-victory-overlay';
-  overlay.innerHTML = `
-    <div class="dev-vip-victory-rays"></div>
-    <div class="dev-vip-victory-glow"></div>
-    <div class="dev-vip-victory-content">
-      <div class="dev-vip-victory-crown-wrap"><div class="dev-vip-victory-crown">👑</div></div>
-      <div class="dev-vip-victory-title">✦ مبروك للفائز! ✦</div>
-      <div class="dev-vip-victory-card">
-        <div class="dev-vip-victory-label">الفائز</div>
-        <div class="dev-vip-victory-name">${esc(user.nickname || user.uniqueId)}</div>
-        <div class="dev-vip-victory-line"></div>
-        <div class="dev-vip-victory-game">${esc(gameName || '')}</div>
-      </div>
-      <div class="dev-vip-victory-pill">👑 بطل الجولة</div>
-      <button type="button" class="dev-vip-victory-close" onclick="this.closest('.dev-vip-victory-overlay').remove()">✕ إغلاق</button>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-  setTimeout(() => overlay.classList.add('show'), 20);
-  return true;
+  return false; // المميزون بدون شاشة فوز خاصة — تظهر شاشة الفوز العادية للعبة
 }
 
 // شاشة فوز "الفوزان" المميزة — شعار بحلقتين تدوران، انفجار جزيئات ذهب/فضة/بنفسجي،
