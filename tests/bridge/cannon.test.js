@@ -49,14 +49,14 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
       barrelAnim: getComputedStyle(c.querySelector('.hcn-barrel')).animationName,
     };
   });
-  check('المدفع البشري أول بطاقة بمكتبة الستريمر (٣٦ لعبة)', lib.first === 'cannon' && lib.n === 36, { first: lib.first, n: lib.n });
+  check('المدفع البشري أول بطاقة بمكتبة الستريمر (٣٨ لعبة)', lib.first === 'cannon' && lib.n === 38, { first: lib.first, n: lib.n });
   check('الكرت بنفس ملف التصميم: شارة جديد · أمر "اكتب 45 80" · فئة ثلاثية الأبعاد · العنوان والوصف الكامل · زرّان',
     lib.tag === 'جديد' && /new/.test(lib.tagCls) && lib.cmd === 'اكتب 45 80' && lib.cat === 'ثلاثية الأبعاد' && lib.h3 === 'المدفع البشري' &&
     lib.p === 'اكتب زاوية وقوة وانطلق من المدفع. الستريمر يرمي عوائق في السماء والهدايا تحميك. الأبعد يفوز.' && lib.btns.join('|') === 'ابدأ اللعبة|التفاصيل' && lib.pin, lib);
   check('رسم الكرت (SVG المدفع) بحركته: المدفع/الارتداد/المقذوف/العلامة', lib.svg && lib.anim && lib.barrelAnim === 'hcn-aim', { svg: lib.svg, anim: lib.anim, a: lib.barrelAnim });
   check('فئة «ثلاثية الأبعاد» ضمن فلاتر المكتبة', lib.cats.includes('ثلاثية الأبعاد'), lib.cats);
   await page.evaluate(() => homeApplyFilter('3d')); await sleep(300);
-  check('فلتر ثلاثية الأبعاد يعرض المدفع أولاً (ومعه القنبلة وشد الحبل والروليت 3D والميزان ووش تغيّر)', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#hlob-grid .hlob-card')].map((c) => c.dataset.tag))) === '["cannon","bomb","tug","roulette3d","almeezan","wesh"]');
+  check('فلتر ثلاثية الأبعاد يعرض المدفع أولاً (ومعه القنبلة وشد الحبل والروليت 3D والميزان ووش تغيّر ولا تطيّحه وحرف النجاة)', JSON.stringify(await page.evaluate(() => [...document.querySelectorAll('#hlob-grid .hlob-card')].map((c) => c.dataset.tag))) === '["cannon","bomb","tug","roulette3d","almeezan","wesh","latatayeh","harfnajat"]');
   await page.evaluate(() => homeApplyFilter('all')); await sleep(200);
   await page.evaluate(() => document.querySelector('#hlob-grid .hlob-card[data-tag="cannon"] [data-hlob="open"]').click()); await sleep(300);
   const dlg = await page.evaluate(() => ({ on: document.getElementById('hlob-dlg-ov').classList.contains('on'), title: document.getElementById('dlg-title').textContent, art: !!document.querySelector('#hlob-dlg-art-in .hcn-barrel'), cmd: document.getElementById('hlob-dlg-cmd').innerText.replace(/\s+/g, ' ').trim() }));
