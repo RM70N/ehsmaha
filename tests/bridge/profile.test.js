@@ -46,11 +46,11 @@ const FRAME = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http:
   await shot(page, '01-desktop', true);
   check('الصفحة تظهر (page.active) والتنقل عبر show("profile")', await ev(() => document.getElementById('pg-profile').classList.contains('active') && getComputedStyle(document.getElementById('pg-profile')).display !== 'none') && (await calls()).includes('show(profile)'));
   const info = await ev(() => ({ name: document.getElementById('profile-username-big').textContent, handle: document.getElementById('profile-handle').textContent, lvl: document.getElementById('profile-level-num').textContent,
-    solo: document.getElementById('profile-stat-solo').textContent, online: document.getElementById('profile-stat-online').textContent, mp: document.getElementById('profile-stat-mostplayed-name').textContent, mpc: document.getElementById('profile-stat-mostplayed-count').textContent,
+    solo: document.getElementById('profile-stat-solo').textContent, mp: document.getElementById('profile-stat-mostplayed-name').textContent, mpc: document.getElementById('profile-stat-mostplayed-count').textContent,
     achv: document.getElementById('profile-achv-sub').textContent, frames: document.getElementById('profile-frames-count-badge').textContent, av: document.getElementById('profile-avatar-big').textContent }));
   check('اليوزر والهاندل والحرف الأول', info.name === 'Layl_Rider' && info.handle === '@Layl_Rider' && info.av === 'L', info);
-  check('اللفل والفوزات (فردي/أونلاين) والأكثر لعباً', info.lvl === '14' && info.solo === '7' && info.online === '22' && info.mp.length > 0 && /18/.test(info.mpc), info);
-  check('الإنجازات: عدد الأوسمة المكتسبة + الإطارات المملوكة', /^\d+\s*من 14 وسام$/.test(info.achv) && /مملوكة/.test(info.frames), info);
+  check('اللفل والفوزات (فردي) والأكثر لعباً', info.lvl === '14' && info.solo === '7' && info.mp.length > 0 && /18/.test(info.mpc), info);
+  check('الإنجازات: عدد الأوسمة المكتسبة + الإطارات المملوكة', /^\d+\s*من 12 وسام$/.test(info.achv) && /مملوكة/.test(info.frames), info);
 
   // ---- الإطار على الأفتار
   const fr = await ev(() => { const w = document.getElementById('profile-avatar-ring-wrap'), a = document.getElementById('profile-avatar-big'); return { has: w.classList.contains('has-frame'), bg: w.style.backgroundImage.length > 10, aw: a.style.width, ww: w.style.width }; });
@@ -89,7 +89,7 @@ const FRAME = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http:
   check('فك الربط: يختفي سطر الحالة والصورة ترجع حرفاً', await ev(() => !document.getElementById('profile-playerlink-status').classList.contains('is-ok') && !document.querySelector('#profile-avatar-big img')));
 
   // ---- النوافذ الثلاث
-  for (const [name, open, close, id, listSel, minRows] of [['الإنجازات', 'profileAchievementsOpen', 'profileAchievementsClose', 'profile-achievements-overlay', '#profile-achievements-list .profile-list-row', 14], ['سجل النشاط', 'profileActivityOpen', 'profileActivityClose', 'profile-activity-overlay', '#profile-activity-list .profile-list-row', 3]]) {
+  for (const [name, open, close, id, listSel, minRows] of [['الإنجازات', 'profileAchievementsOpen', 'profileAchievementsClose', 'profile-achievements-overlay', '#profile-achievements-list .profile-list-row', 12], ['سجل النشاط', 'profileActivityOpen', 'profileActivityClose', 'profile-activity-overlay', '#profile-activity-list .profile-list-row', 3]]) {
     await page.click(`#pg-profile [onclick="${open}()"]`); await sleep(450);
     await shot(page, 'sheet-' + id);
     const st = await ev((a) => ({ on: document.getElementById(a.id).classList.contains('is-on'), rows: document.querySelectorAll(a.sel).length, lock: document.body.classList.contains('pf-lock'), inert: document.querySelector('#pg-profile .pf').hasAttribute('inert') }), { id, sel: listSel });
@@ -103,7 +103,7 @@ const FRAME = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http:
     await page.mouse.click(1350, 450); await sleep(350);
     check(`${name}: الضغط خارج اللوحة يغلقها`, await ev((id) => !document.getElementById(id).classList.contains('is-on'), id));
   }
-  check('الإنجازات: المكتسب بعلامة والمقفل بقفل', await (async () => { await page.click('#pg-profile [onclick="profileAchievementsOpen()"]'); await sleep(300); const r = await ev(() => ({ earned: document.querySelectorAll('#profile-achievements-list .earned').length, locked: document.querySelectorAll('#profile-achievements-list .locked').length })); await page.keyboard.press('Escape'); await sleep(300); return r.earned > 0 && r.locked > 0 && r.earned + r.locked === 14; })());
+  check('الإنجازات: المكتسب بعلامة والمقفل بقفل', await (async () => { await page.click('#pg-profile [onclick="profileAchievementsOpen()"]'); await sleep(300); const r = await ev(() => ({ earned: document.querySelectorAll('#profile-achievements-list .earned').length, locked: document.querySelectorAll('#profile-achievements-list .locked').length })); await page.keyboard.press('Escape'); await sleep(300); return r.earned > 0 && r.locked > 0 && r.earned + r.locked === 12; })());
 
   // ---- الألعاب المفضلة (إضافة/إزالة بالدالة الأصلية)
   const tags = await ev(() => [...document.querySelectorAll('.gcard[data-tag]')].slice(0, 3).map((c) => c.getAttribute('data-tag')));

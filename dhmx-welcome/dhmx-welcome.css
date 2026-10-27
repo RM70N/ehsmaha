@@ -1,0 +1,312 @@
+/* ==========================================================================
+   EHSEMHA — DH_MX · THE LEGENDARY ARRIVAL
+   ترحيب سينمائي حصري — 4000ms بالضبط — ملف مستقل بالكامل
+   كل المحدّدات تبدأ بـ dhmx-welcome- لمنع أي تعارض مع احسمها.
+   ========================================================================== */
+
+.dhmx-welcome-root{
+  --dm-black:#07040D; --dm-dark:#170B2D; --dm-royal:#5B21B6;
+  --dm-electric:#7C3AED; --dm-soft:#A78BFA; --dm-white:#F8F7FC;
+  --dm-steel:#2B2342; --dm-steel-hi:#8C84AB;
+  --dm-out:cubic-bezier(.16,1,.3,1);
+  --dm-emb:clamp(210px,min(48vh,78vw),440px);
+  --dm-hello:clamp(27px,calc(3.4vw + 1.6vh),70px);
+  --dm-plate:clamp(19px,calc(1.9vw + 1.1vh),40px);
+  --dm-handle:clamp(17px,calc(1.3vw + 1.1vh),30px);
+  position:fixed; inset:0; z-index:2147483000;
+  pointer-events:none; overflow:hidden; direction:rtl;
+  font-family:'Cairo','Tajawal','Noto Kufi Arabic',system-ui,sans-serif;
+  contain:layout paint style; opacity:0; -webkit-font-smoothing:antialiased;
+}
+.dhmx-welcome-root.dm-play{opacity:1}
+.dhmx-welcome-root *{box-sizing:border-box}
+.dhmx-welcome-root .dm-abs{position:absolute;inset:0}
+.dhmx-welcome-root.dm-play *,.dhmx-welcome-root.dm-play *::before,.dhmx-welcome-root.dm-play *::after{animation-fill-mode:both!important}
+
+/* ------------------------------ الطبقة 1: الخلفية ------------------------------ */
+.dhmx-welcome-root .dm-dim{
+  background:
+    radial-gradient(ellipse 70% 62% at 50% 46%, rgba(23,11,45,.93) 0%, rgba(7,4,13,.965) 58%, rgba(7,4,13,.99) 100%);
+}
+.dm-play .dm-dim{animation:dm-fade-in 400ms linear 0ms, dm-fade-out 400ms linear 3600ms}
+
+.dhmx-welcome-root .dm-core{
+  position:absolute; left:50%; top:46%; width:min(150vmax,1500px); height:min(150vmax,1500px);
+  margin:calc(min(150vmax,1500px) / -2) 0 0 calc(min(150vmax,1500px) / -2);
+  background:radial-gradient(circle, rgba(124,58,237,.52) 0%, rgba(91,33,182,.20) 14%, rgba(23,11,45,.0) 34%);
+}
+.dm-play .dm-core{animation:dm-core-in 650ms var(--dm-out) 0ms, dm-pulse 1800ms ease-in-out 900ms infinite alternate, dm-fade-out 450ms linear 3550ms}
+
+.dhmx-welcome-root .dm-rays{
+  position:absolute; left:50%; top:46%; width:min(190vmax,1900px); height:min(190vmax,1900px);
+  margin:calc(min(190vmax,1900px) / -2) 0 0 calc(min(190vmax,1900px) / -2);
+  background:repeating-conic-gradient(from 0deg, rgba(167,139,250,.13) 0deg 1.4deg, transparent 1.4deg 9deg);
+  -webkit-mask-image:radial-gradient(circle, #000 0%, rgba(0,0,0,.35) 18%, transparent 36%);
+          mask-image:radial-gradient(circle, #000 0%, rgba(0,0,0,.35) 18%, transparent 36%);
+}
+.dm-play .dm-rays{animation:dm-fade-in 700ms linear 100ms, dm-spin 90s linear 0ms infinite, dm-fade-out 450ms linear 3550ms}
+
+.dhmx-welcome-root .dm-floor{
+  position:absolute; left:-40%; right:-40%; bottom:-6%; height:46%;
+  background:
+    linear-gradient(rgba(167,139,250,.30) 1px, transparent 1px) 0 0/100% 46px,
+    linear-gradient(90deg, rgba(167,139,250,.24) 1px, transparent 1px) 0 0/72px 100%;
+  transform:perspective(520px) rotateX(66deg); transform-origin:50% 0;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 38%, transparent 100%);
+          mask-image:linear-gradient(to bottom, transparent 0%, #000 38%, transparent 100%);
+}
+.dm-play .dm-floor{animation:dm-floor-in 700ms var(--dm-out) 100ms, dm-fade-out 450ms linear 3550ms}
+
+.dhmx-welcome-root .dm-shards{position:absolute; inset:0; width:100%; height:100%}
+.dm-play .dm-shards-far{animation:dm-drift-far 4000ms linear 0ms, dm-fade-in 600ms linear 0ms, dm-fade-out 450ms linear 3550ms}
+.dm-play .dm-shards-near{animation:dm-drift-near 4000ms linear 0ms, dm-fade-in 500ms linear 150ms, dm-fade-out 450ms linear 3550ms}
+
+.dhmx-welcome-root .dm-streaks{position:absolute; inset:0; width:100%; height:100%}
+.dm-streaks line{stroke:var(--dm-soft); stroke-width:1.6; stroke-linecap:round; stroke-dasharray:1 1; stroke-dashoffset:1; opacity:0}
+.dm-play .dm-streaks line{animation:dm-streak 520ms cubic-bezier(.5,0,.2,1) calc(var(--i) * 14ms)}
+
+/* HUD */
+.dhmx-welcome-root .dm-hud-c{
+  position:absolute; width:clamp(34px,6vw,76px); height:clamp(34px,6vw,76px);
+  border:0 solid rgba(167,139,250,.75); opacity:0;
+}
+.dm-hud-c::after{content:""; position:absolute; width:5px; height:5px; background:var(--dm-soft); transform:rotate(45deg)}
+.dm-hud-c.tl{top:clamp(12px,3vw,38px); left:clamp(12px,3vw,38px); border-top-width:2px; border-left-width:2px}
+.dm-hud-c.tr{top:clamp(12px,3vw,38px); right:clamp(12px,3vw,38px); border-top-width:2px; border-right-width:2px}
+.dm-hud-c.bl{bottom:clamp(12px,3vw,38px); left:clamp(12px,3vw,38px); border-bottom-width:2px; border-left-width:2px}
+.dm-hud-c.br{bottom:clamp(12px,3vw,38px); right:clamp(12px,3vw,38px); border-bottom-width:2px; border-right-width:2px}
+.dm-hud-c.tl::after{top:-3px;left:-3px} .dm-hud-c.tr::after{top:-3px;right:-3px}
+.dm-hud-c.bl::after{bottom:-3px;left:-3px} .dm-hud-c.br::after{bottom:-3px;right:-3px}
+.dm-play .dm-hud-c{animation:dm-hud-in 450ms var(--dm-out) 150ms, dm-fade-out 450ms linear 3550ms}
+
+.dhmx-welcome-root .dm-rail{
+  position:absolute; top:50%; width:10px; height:min(34vh,280px); transform:translateY(-50%);
+  background:repeating-linear-gradient(to bottom, rgba(167,139,250,.65) 0 1px, transparent 1px 9px);
+  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+          mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  opacity:0;
+}
+.dm-rail.l{left:clamp(12px,3vw,38px)} .dm-rail.r{right:clamp(12px,3vw,38px)}
+.dm-play .dm-rail{animation:dm-fade-in 500ms linear 250ms, dm-fade-out 450ms linear 3550ms}
+.dhmx-welcome-root .dm-hline{
+  position:absolute; left:8%; right:8%; height:1px; opacity:0;
+  background:linear-gradient(90deg, transparent, rgba(167,139,250,.65) 30%, rgba(248,247,252,.8) 50%, rgba(167,139,250,.65) 70%, transparent);
+}
+.dm-hline.t{top:clamp(22px,4.4vw,56px)} .dm-hline.b{bottom:clamp(22px,4.4vw,56px)}
+.dm-play .dm-hline{animation:dm-hline 600ms var(--dm-out) 200ms, dm-fade-out 450ms linear 3550ms}
+
+/* جزيئات الضوء المتجهة للمركز */
+.dhmx-welcome-root .dm-pt{
+  position:absolute; left:50%; top:46%; width:var(--len,16px); height:2px; margin:-1px 0 0 0;
+  border-radius:2px; opacity:0; transform-origin:0 50%;
+  background:linear-gradient(90deg, transparent, var(--dm-soft) 55%, var(--dm-white));
+}
+.dm-play .dm-pt{animation:dm-pt var(--dur,900ms) cubic-bezier(.45,0,.25,1) var(--del,0ms), dm-fade-out 300ms linear 3600ms}
+
+/* ------------------------------ المسرح ------------------------------ */
+.dhmx-welcome-root .dm-stage{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(6px,1.4vh,16px); padding:12px 4vw; padding-top:calc(12px + 2vh);
+}
+
+/* ------------------------------ الطبقة 2: المجسم المركزي ------------------------------ */
+.dhmx-welcome-root .dm-emblem{position:relative; width:var(--dm-emb); height:var(--dm-emb); flex:none}
+.dhmx-welcome-root .dm-emblem::before{ /* هالة خلف المجسم */
+  content:""; position:absolute; inset:-26%; border-radius:50%;
+  background:radial-gradient(circle, rgba(124,58,237,.55) 0%, rgba(91,33,182,.22) 38%, transparent 66%); opacity:0;
+}
+.dhmx-welcome-root .dm-emblem::after{ /* ظل أرضي يعطي عمقًا */
+  content:""; position:absolute; left:12%; right:12%; bottom:-7%; height:9%; border-radius:50%;
+  background:radial-gradient(ellipse, rgba(7,4,13,.9) 0%, rgba(7,4,13,0) 70%); opacity:0;
+}
+.dm-play .dm-emblem::before{animation:dm-fade-in 600ms linear 350ms, dm-pulse 1800ms ease-in-out 950ms infinite alternate, dm-fade-out 450ms linear 3450ms}
+.dm-play .dm-emblem::after{animation:dm-fade-in 600ms linear 450ms, dm-fade-out 450ms linear 3450ms}
+.dhmx-welcome-root .dm-rings{position:absolute; inset:0; width:100%; height:100%; overflow:visible}
+.dm-rings .dm-g{transform-box:view-box; transform-origin:50% 50%}
+.dm-play .dm-g-all{animation:dm-emb-in 560ms var(--dm-out) 380ms, dm-fade-out 450ms linear 3450ms; opacity:0}
+.dm-play .dm-g-tick{animation:dm-spin 52s linear 0ms infinite}
+.dm-play .dm-g-seg{animation:dm-spin-r 15s linear 0ms infinite}
+.dm-play .dm-g-fine{animation:dm-spin 26s linear 0ms infinite}
+.dm-play .dm-g-oct{animation:dm-spin-r 40s linear 0ms infinite}
+.dm-rings .dm-arc{fill:none; stroke-linecap:round}
+.dm-play .dm-arc{animation:dm-arc 3200ms linear infinite}
+.dm-play .dm-arc.a2{animation-duration:4400ms; animation-direction:reverse}
+.dm-play .dm-arc.a3{animation-duration:5600ms}
+
+.dhmx-welcome-root .dm-wave{
+  position:absolute; left:50%; top:50%; width:62%; height:62%; margin:-31% 0 0 -31%;
+  border-radius:50%; border:2px solid var(--dm-soft); opacity:0;
+  box-shadow:0 0 28px rgba(124,58,237,.7), inset 0 0 22px rgba(124,58,237,.45);
+}
+.dm-play .dm-wave{animation:dm-wave 900ms cubic-bezier(.2,.6,.3,1) 560ms}
+.dm-play .dm-wave.w2{animation-delay:800ms}
+
+/* صورة الحساب: قطر 268/600 من المجسم */
+.dhmx-welcome-root .dm-avatar{
+  position:absolute; left:50%; top:50%; width:44.67%; height:44.67%; margin:-22.33% 0 0 -22.33%;
+  border-radius:50%; overflow:hidden; background:var(--dm-dark); opacity:0;
+  box-shadow:0 0 0 1px rgba(7,4,13,.9), inset 0 0 32px rgba(7,4,13,.55);
+}
+.dm-play .dm-avatar{animation:dm-avatar-in 560ms var(--dm-out) 460ms, dm-fade-out 350ms linear 3450ms}
+.dm-avatar img{width:100%; height:100%; object-fit:cover; display:block}
+.dm-avatar .dm-fallback{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center; direction:ltr;
+  font:700 calc(var(--dm-emb) * .16)/1 'Rajdhani','Cairo',sans-serif; letter-spacing:.06em; color:var(--dm-white);
+  background:radial-gradient(circle at 50% 38%, #3a1f78 0%, var(--dm-dark) 62%, var(--dm-black) 100%);
+  text-shadow:0 0 22px rgba(124,58,237,.9);
+}
+.dm-avatar::after{ /* عمق داخلي ثلاثي الأبعاد */
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(circle at 50% 30%, rgba(248,247,252,.10), transparent 45%, rgba(7,4,13,.42) 100%);
+}
+.dhmx-welcome-root .dm-sheen{
+  position:absolute; left:50%; top:50%; width:52%; height:52%; margin:-26% 0 0 -26%; border-radius:50%;
+  background:linear-gradient(105deg, transparent 38%, rgba(248,247,252,.95) 50%, transparent 62%) 140% 0/300% 100% no-repeat;
+  -webkit-mask-image:radial-gradient(circle, transparent 0 85%, #000 86% 100%);
+          mask-image:radial-gradient(circle, transparent 0 85%, #000 86% 100%);
+  opacity:0;
+}
+.dm-play .dm-sheen{animation:dm-sheen 420ms ease-in-out 900ms, dm-sheen 420ms ease-in-out 2500ms, dm-fade-out 350ms linear 3450ms}
+
+/* اسم الحساب */
+.dhmx-welcome-root .dm-handle{
+  display:flex; align-items:center; gap:clamp(8px,1.6vw,18px); direction:ltr; opacity:0;
+  margin-top:calc(var(--dm-emb) * -.045);
+}
+.dm-handle .dm-name{
+  font:600 var(--dm-handle)/1 'Rajdhani','Cairo',sans-serif; letter-spacing:.16em; padding-left:.16em;
+  color:var(--dm-soft); text-shadow:0 0 16px rgba(124,58,237,.8), 0 2px 4px rgba(7,4,13,.9);
+}
+.dm-handle .dm-hl{
+  width:clamp(26px,6vw,78px); height:1px; position:relative;
+  background:linear-gradient(90deg, transparent, var(--dm-soft));
+}
+.dm-handle .dm-hl.r{transform:scaleX(-1)}
+.dm-handle .dm-hl::after{content:""; position:absolute; right:-4px; top:-2.5px; width:6px; height:6px; background:var(--dm-electric); transform:rotate(45deg); box-shadow:0 0 8px var(--dm-electric)}
+.dm-play .dm-handle{animation:dm-rise 450ms var(--dm-out) 640ms, dm-fade-out 300ms linear 3350ms}
+
+/* ------------------------------ النص الرئيسي ------------------------------ */
+.dhmx-welcome-root .dm-hello{
+  display:block; word-spacing:.02em;
+  max-width:94vw; text-align:center; text-wrap:balance; margin-top:clamp(4px,1.2vh,14px);
+  font-family:'Cairo','Tajawal',sans-serif; font-weight:900; font-size:var(--dm-hello); line-height:1.4;
+  color:var(--dm-white); letter-spacing:0;
+  text-shadow:0 0 .42em rgba(124,58,237,.7), 0 .05em 0 rgba(7,4,13,.85), 0 .16em .36em rgba(0,0,0,.65);
+}
+.dhmx-welcome-root .dm-w{display:inline-block; opacity:0}
+.dm-play .dm-w{animation:dm-word 340ms var(--dm-out) calc(1000ms + var(--i) * 50ms), dm-fade-out 300ms linear 3350ms}
+
+/* ------------------------------ شريط اللقب ------------------------------ */
+.dhmx-welcome-root .dm-plate-wrap{
+  position:relative; display:flex; align-items:center; gap:clamp(8px,1.4vw,16px);
+  margin-top:clamp(2px,.8vh,10px); max-width:94vw;
+}
+.dm-plate-wrap .dm-orn{
+  width:clamp(14px,5vw,64px); height:1px; position:relative; opacity:0;
+  background:linear-gradient(90deg, transparent, var(--dm-soft));
+}
+.dm-plate-wrap .dm-orn.r{transform:scaleX(-1)}
+.dm-plate-wrap .dm-orn::after{content:""; position:absolute; right:-3px; top:-3px; width:7px; height:7px; border:1px solid var(--dm-soft); transform:rotate(45deg)}
+.dm-play .dm-orn{animation:dm-fade-in 350ms linear 1750ms, dm-fade-out 300ms linear 3350ms}
+.dhmx-welcome-root .dm-reveal{clip-path:inset(0 50% 0 50%);-webkit-clip-path:inset(0 50% 0 50%)}
+.dm-play .dm-reveal{animation:dm-plate-in 420ms var(--dm-out) 1500ms, dm-fade-out 300ms linear 3350ms}
+.dhmx-welcome-root .dm-plate{
+  --cut:clamp(10px,1.6vw,18px);
+  position:relative; padding:2px;
+  background:linear-gradient(180deg, #d9d3ee 0%, var(--dm-steel-hi) 14%, #3b3157 40%, var(--dm-royal) 100%);
+  clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  -webkit-clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+}
+.dm-plate .dm-plate-in{
+  clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  -webkit-clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  position:relative; overflow:hidden; padding:.28em 2.1em .34em; text-align:center; white-space:nowrap;
+  font-weight:900; font-size:var(--dm-plate); line-height:1.35; color:var(--dm-white);
+  background:
+    linear-gradient(180deg, rgba(248,247,252,.10) 0%, rgba(248,247,252,0) 38%),
+    linear-gradient(180deg, #2a2046 0%, #170B2D 46%, #0c0717 100%);
+  text-shadow:0 0 .5em rgba(124,58,237,.85), 0 .08em .12em rgba(7,4,13,.9);
+  box-shadow:inset 0 0 18px rgba(124,58,237,.25);
+}
+.dm-plate .dm-plate-in::before{ /* حد علوي مضيء */
+  content:""; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--dm-soft) 20%, var(--dm-white) 50%, var(--dm-soft) 80%, transparent);
+}
+.dm-plate .dm-plate-in::after{ /* انعكاس ضوئي يمر على النص */
+  content:""; position:absolute; top:0; bottom:0; left:0; width:38%;
+  background:linear-gradient(105deg, transparent, rgba(248,247,252,.55), transparent);
+  transform:translateX(-140%) skewX(-18deg); opacity:0;
+}
+.dm-play .dm-plate .dm-plate-in::after{animation:dm-shine 520ms ease-in-out 1850ms}
+.dm-plate .dm-txt{display:inline-block; opacity:0}
+.dm-play .dm-plate .dm-txt{animation:dm-txt-in 320ms var(--dm-out) 1700ms}
+.dm-plate .dm-bevel{ /* زخارف صغيرة على الأطراف */
+  position:absolute; top:50%; width:6px; height:6px; margin-top:-3px; background:var(--dm-soft); transform:rotate(45deg); box-shadow:0 0 8px var(--dm-electric);
+}
+.dm-plate .dm-bevel.l{left:.85em} .dm-plate .dm-bevel.r{right:.85em}
+
+/* ------------------------------ جوال ------------------------------ */
+@media (max-width:640px){
+  .dhmx-welcome-root{--dm-emb:clamp(200px,min(40vh,76vw),340px)}
+  .dm-plate .dm-plate-in{padding:.26em 1.5em .32em}
+  .dm-hline,.dm-rail{display:none}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .dhmx-welcome-root{--dm-emb:clamp(120px,40vh,200px); --dm-hello:clamp(20px,5vh,34px); --dm-plate:clamp(14px,3.4vh,22px); --dm-handle:clamp(13px,3vh,19px)}
+  .dhmx-welcome-root .dm-stage{gap:3px; padding-top:8px}
+  .dm-rail{display:none}
+}
+
+/* ------------------------------ الحركات ------------------------------ */
+@keyframes dm-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes dm-fade-out{to{opacity:0}}
+@keyframes dm-spin{to{transform:rotate(360deg)}}
+@keyframes dm-spin-r{to{transform:rotate(-360deg)}}
+@keyframes dm-core-in{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+@keyframes dm-pulse{from{opacity:.82}to{opacity:1}}
+@keyframes dm-floor-in{from{opacity:0;transform:perspective(520px) rotateX(66deg) translateY(40px)}to{opacity:1;transform:perspective(520px) rotateX(66deg) translateY(0)}}
+@keyframes dm-drift-far{from{transform:scale(1)}to{transform:scale(1.03)}}
+@keyframes dm-drift-near{from{transform:scale(1)}to{transform:scale(1.09)}}
+@keyframes dm-streak{0%{stroke-dashoffset:1;opacity:0}15%{opacity:.9}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes dm-hud-in{from{opacity:0;transform:scale(1.35)}to{opacity:1;transform:scale(1)}}
+@keyframes dm-hline{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes dm-pt{
+  0%{opacity:0;transform:rotate(var(--a)) translateX(var(--r0))}
+  20%{opacity:.95}
+  100%{opacity:0;transform:rotate(var(--a)) translateX(var(--r1))}
+}
+@keyframes dm-emb-in{from{opacity:0;transform:scale(1.12)}to{opacity:1;transform:scale(1)}}
+@keyframes dm-arc{from{stroke-dashoffset:0}to{stroke-dashoffset:-360}}
+@keyframes dm-wave{0%{opacity:.85;transform:scale(.55)}100%{opacity:0;transform:scale(1.95)}}
+@keyframes dm-avatar-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes dm-sheen{0%{opacity:1;background-position:140% 0}100%{opacity:1;background-position:-40% 0}}
+@keyframes dm-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dm-word{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dm-plate-in{from{clip-path:inset(0 50% 0 50%);-webkit-clip-path:inset(0 50% 0 50%)}to{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0)}}
+@keyframes dm-txt-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dm-shine{0%{opacity:1;transform:translateX(-140%) skewX(-18deg)}100%{opacity:1;transform:translateX(380%) skewX(-18deg)}}
+
+
+/* ------------------------------ تقليل الحركة ------------------------------
+   يبقى الترحيب بنفس المدة والتوقيت لكن بظهور واختفاء تدريجيين فقط.      */
+@media (prefers-reduced-motion:reduce){
+  @keyframes dm-spin{from{transform:none}to{transform:none}}
+  @keyframes dm-spin-r{from{transform:none}to{transform:none}}
+  @keyframes dm-core-in{from{opacity:0}to{opacity:1}}
+  @keyframes dm-pulse{from{opacity:1}to{opacity:1}}
+  @keyframes dm-floor-in{from{opacity:0;transform:perspective(520px) rotateX(66deg)}to{opacity:1;transform:perspective(520px) rotateX(66deg)}}
+  @keyframes dm-drift-far{from{transform:none}to{transform:none}}
+  @keyframes dm-drift-near{from{transform:none}to{transform:none}}
+  @keyframes dm-hud-in{from{opacity:0}to{opacity:1}}
+  @keyframes dm-hline{from{opacity:0}to{opacity:1}}
+  @keyframes dm-emb-in{from{opacity:0}to{opacity:1}}
+  @keyframes dm-arc{from{stroke-dashoffset:0}to{stroke-dashoffset:0}}
+  @keyframes dm-avatar-in{from{opacity:0}to{opacity:1}}
+  @keyframes dm-rise{from{opacity:0}to{opacity:1}}
+  @keyframes dm-word{from{opacity:0}to{opacity:1}}
+  @keyframes dm-txt-in{from{opacity:0}to{opacity:1}}
+  @keyframes dm-plate-in{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+  .dm-play .dm-reveal{animation:dm-fade-in 420ms linear 1500ms, dm-fade-out 300ms linear 3350ms}
+  .dm-pt,.dm-streaks,.dm-wave,.dm-sheen,.dm-rays,.dm-plate .dm-plate-in::after{display:none!important}
+}
+
