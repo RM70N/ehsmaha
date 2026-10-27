@@ -41,7 +41,7 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   await H.serveSite();
   const browser = await H.launchBrowser();
   const page = await H.newPage(browser, { query: '?debug=0' });
-  await page.setViewportSize({ width: 1366, height: 800 });
+  await page.setViewportSize({ width: 480, height: 300 }); // نافذة صغيرة: الرسم البرمجي ببيئة الاختبار بطيء جداً
   // بيئة الاختبار بلا بطاقة رسوم (رسم برمجي): نطلب أخف جودة من اللعبة نفسها عبر الباراميتر q=low بدل تعديل أي ملف
   await page.addInitScript(() => { const d = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'src'); Object.defineProperty(HTMLIFrameElement.prototype, 'src', { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, /harf-alnajat3d/.test(String(v)) ? v + '&q=low' : v); } }); });
   await H.linkAccount(page, STREAMER);
