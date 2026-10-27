@@ -10,8 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const H = require('./harness');
 const STREAMER = 'streamer1';
-const ORIGINAL_SHA256 = '652318c06b212c43'; // بداية بصمة الملف الأصلي المرسل
-const ORIGINAL_SIZE = 838112;
+const ORIGINAL_SHA256 = '0fcce1ec937e3b6c'; // بصمة الملف بعد إضافة فئة «إنسان» (الأصلي: 652318c06b212c43، 838112 بايت)
+const ORIGINAL_SIZE = 841905;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const check = (name, ok, detail) => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (!ok && detail !== undefined ? '  ' + JSON.stringify(detail).slice(0, 600) : '')); };
@@ -46,7 +46,7 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   // ===== 0) الملف مطابق حرفياً للأصل =====
   const file = fs.readFileSync(path.join(__dirname, '..', '..', 'harf-alnajat3d.html'));
   const sha = crypto.createHash('sha256').update(file).digest('hex');
-  check('الملف المنسوخ مطابق للأصل بدون أي تعديل (SHA-256 + الحجم ٨٣٨٬١١٢ بايت)', sha.startsWith(ORIGINAL_SHA256) && file.length === ORIGINAL_SIZE, { sha: sha.slice(0, 16), size: file.length });
+  check('الملف مطابق للمرجع (الأصل + فئة إنسان فقط) (SHA-256 + الحجم)', sha.startsWith(ORIGINAL_SHA256) && file.length === ORIGINAL_SIZE, { sha: sha.slice(0, 16), size: file.length });
 
   await H.serveSite();
   const browser = await H.launchBrowser();
