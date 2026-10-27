@@ -82087,7 +82087,14 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     }
   }
   // حالة الاتصال تُدفع للعبة: لو انقطع البث وسط مباراة توقف المهلة وتُحفظ الحالة (سلوك اللعبة نفسها)
-  function pushLink() { var a = api(); if (!a) return; try { a.setLinkStatus(connState() === 'connected', PLAT[plat()] || ''); } catch (e) {} }
+  // مهلة سماح ٦ ثوانٍ قبل إبلاغ اللعبة بالانقطاع: ارتجاج لحظي بالاتصال ما يوقف المباراة، أما الانقطاع الحقيقي فيوقف المهلة ويحفظ الحالة
+  var downSince = 0;
+  function pushLink() {
+    var a = api(); if (!a) return;
+    var ok = connState() === 'connected', now = Date.now();
+    if (ok) downSince = 0; else if (!downSince) downSince = now;
+    try { a.setLinkStatus(ok || (now - downSince < 6000), PLAT[plat()] || ''); } catch (e) {}
+  }
   function onFrameLoad() {
     var tries = 0;
     clearInterval(readyTimer);
@@ -82124,7 +82131,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     try { ownerRegisterActiveStreamer(TAG, streamer, plat(), NAME); } catch (e) {}
     try { contestNoteActivity(); } catch (e) {}
     var lu = $(TAG + '-live-user'); if (lu) lu.textContent = '@' + streamer;
-    active = true; ready = false; queue = []; users.clear(); kwCache = ''; kwAt = 0;
+    active = true; ready = false; queue = []; users.clear(); kwCache = ''; kwAt = 0; downSince = 0;
     var f = frame(); f.onload = onFrameLoad; f.src = SRC;
     show(TAG);
     try { homeRegisterGameListener(TAG, handleEvent); } catch (e) {}
