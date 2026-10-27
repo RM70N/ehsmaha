@@ -1,6 +1,6 @@
 name: Deploy site to GitHub Pages
 
-# ينشر الموقع فقط (index.html + roulette3d.html + bomb3d.html + tug3d.html + xo.html + ektheb-alay.html + almeezan3d.html + wesh-taghayar.html + hallaha-qabli.html + code-race.html + callcenter3d.html + la-tatayeh3d.html + harf-alnajat3d.html + revival-system/ (مشهد الإنعاش) + الشعار) على GitHub Pages — لا ينشر كود البوت/السيرفر/الاختبارات.
+# ينشر الموقع فقط (index.html + roulette3d.html + bomb3d.html + tug3d.html + xo.html + ektheb-alay.html + almeezan3d.html + wesh-taghayar.html + hallaha-qabli.html + code-race.html + callcenter3d.html + la-tatayeh3d.html + harf-alnajat3d.html + revival-system/ (مشهد الإنعاش) + about-experience/ (معاينات من نحن) + الشعار) على GitHub Pages — لا ينشر كود البوت/السيرفر/الاختبارات.
 # يشتغل عند أي دفع إلى main يغيّر ملفات الموقع، أو يدوياً من تبويب Actions.
 # الإعداد لمرة وحدة: Settings → Pages → Build and deployment → Source = "GitHub Actions"، ثم Custom domain = ehsmaha.com
 on:
@@ -21,6 +21,8 @@ on:
       - la-tatayeh3d.html
       - harf-alnajat3d.html
       - revival-system/**
+      - about-experience/previews-sq/**
+      - about-experience/posters/**
       - code-race-banner.png
       - discord-logo.png
       - CNAME
@@ -50,6 +52,9 @@ jobs:
           mkdir -p _site
           cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html code-race-banner.png discord-logo.png CNAME _site/
           cp -r revival-system _site/revival-system
+          # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
+          mkdir -p _site/about-experience
+          cp -r about-experience/previews-sq about-experience/posters _site/about-experience/
           # GitHub Pages لا يدعم _redirects/netlify.toml: روابط الإحالة مثل ehsmaha.com/ahmed-2024
           # لازم تحمّل نفس index.html، فنخلّي 404.html نسخة منه (تطبيق صفحة واحدة يقرأ المسار بنفسه).
           cp index.html _site/404.html
