@@ -21,6 +21,7 @@ on:
       - la-tatayeh3d.html
       - harf-alnajat3d.html
       - revival-system/**
+      - dhmx-welcome/**
       - about-experience/previews-sq/**
       - about-experience/posters/**
       - code-race-banner.png
@@ -52,6 +53,7 @@ jobs:
           mkdir -p _site
           cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html code-race-banner.png discord-logo.png CNAME _site/
           cp -r revival-system _site/revival-system
+          cp -r dhmx-welcome _site/dhmx-welcome
           # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
           mkdir -p _site/about-experience
           cp -r about-experience/previews-sq about-experience/posters _site/about-experience/
