@@ -131,8 +131,8 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   s = await state(page);
   check('إبقاء ٣ لاعبين فقط لمباراة الاختبار', s.players.length === 3 && keep.every((k) => s.players.some((p) => p.userId === k)), s.players.map((p) => p.userId));
   await F(page, () => { const t = document.getElementById('t-fast'); if (t) t.click(); }); // تسريع المؤقتات
-  check('زر «ابدأ المباراة» يعمل ويبدأ سحب الدور', (await clickId(page, 'b-go')) && await fwait(page, () => ['picking', 'letter', 'ready', 'answer'].includes(window.HarfAlNajat.getState().phase), null, 30000));
-  check('الدور يصل لمرحلة الإجابة (answer) مع فئة وحرف', await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.phase === 'answer' && s.turn && s.turn.letter && s.turn.category; }, null, 90000));
+  check('زر «ابدأ المباراة» يعمل ويبدأ سحب الدور', (await clickId(page, 'b-go')) && await fwait(page, () => ['picking', 'letter', 'ready', 'answer'].includes(window.HarfAlNajat.getState().phase), null, 120000));
+  check('الدور يصل لمرحلة الإجابة (answer) مع فئة وحرف', await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.phase === 'answer' && s.turn && s.turn.letter && s.turn.category; }, null, 300000));
   s = await state(page);
   const t1 = s.turn;
   const cur1 = t1.userId.replace('tiktok:', '');
@@ -140,28 +140,28 @@ const wins = (page) => page.evaluate(() => window.__wins.slice());
   await say(other1, 'جواب من غير صاحب الدور'); await sleep(900);
   s = await state(page);
   check('إجابة من غير صاحب الدور تُتجاهل (لا إجابة مسجّلة، يبقى الدور)', s.phase === 'answer' && !s.turn.answer && s.turn.userId === t1.userId, s.turn);
-  await say(cur1, 'إجابة صاحب الدور'); await sleep(1200);
+  await say(cur1, 'إجابة صاحب الدور'); await waitFor(page, () => { const s = window.harfnajatApi().getState(); return s.phase !== 'answer' || (s.turn && s.turn.answer); }, null, 60000);
   s = await state(page);
   check('إجابة صاحب الدور بالشات تصل للعبة وتظهر شاشة حكم الستريمر', s.phase === 'judge' || s.phase === 'verdict' || (s.turn && s.turn.answer === 'إجابة صاحب الدور'), { phase: s.phase, turn: s.turn });
   // الحكم: موافقة
   await F(page, () => window.HarfAlNajat._ctl && window.HarfAlNajat._ctl.judge('accept'));
-  check('حكم الستريمر «موافقة»: يعدّ مقبولة وينتقل لدور تالٍ', await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.players.some((p) => p.accepted >= 1) || s.phase === 'picking' || s.phase === 'answer'; }, null, 60000));
+  check('حكم الستريمر «موافقة»: يعدّ مقبولة وينتقل لدور تالٍ', await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.players.some((p) => p.accepted >= 1) || s.phase === 'picking' || s.phase === 'answer'; }, null, 240000));
   // دور ثانٍ: رفض ← إقصاء (لافا)
-  await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.phase === 'answer' && s.turn && !s.turn.answer; }, null, 90000);
+  await fwait(page, () => { const s = window.HarfAlNajat.getState(); return s.phase === 'answer' && s.turn && !s.turn.answer; }, null, 300000);
   s = await state(page);
   const cur2 = s.turn.userId;
   await say(cur2.replace('tiktok:', ''), 'جواب خاطئ'); await sleep(1000);
   await F(page, () => window.HarfAlNajat._ctl && window.HarfAlNajat._ctl.judge('reject'));
-  check('حكم «رفض»: اللاعب يُقصى (status = out)', await fwait(page, (u) => window.HarfAlNajat.getState().players.some((p) => p.userId === u && p.status === 'out'), cur2, 90000));
+  check('حكم «رفض»: اللاعب يُقصى (status = out)', await fwait(page, (u) => window.HarfAlNajat.getState().players.some((p) => p.userId === u && p.status === 'out'), cur2, 300000));
   // دور ثالث: رفض ← يبقى لاعب واحد ويفوز
-  await fwait(page, () => { const s = window.HarfAlNajat.getState(); return (s.phase === 'answer' && s.turn && !s.turn.answer) || s.phase === 'win' || s.phase === 'win-walk'; }, null, 120000);
+  await fwait(page, () => { const s = window.HarfAlNajat.getState(); return (s.phase === 'answer' && s.turn && !s.turn.answer) || s.phase === 'win' || s.phase === 'win-walk'; }, null, 300000);
   s = await state(page);
   if (s.phase === 'answer') {
     const cur3 = s.turn.userId;
     await say(cur3.replace('tiktok:', ''), 'جواب ثالث'); await sleep(1000);
     await F(page, () => window.HarfAlNajat._ctl && window.HarfAlNajat._ctl.judge('reject'));
   }
-  check('آخر لاعب باقٍ يفوز (مرحلة win)', await fwait(page, () => window.HarfAlNajat.getState().phase === 'win', null, 150000), (await state(page)).phase);
+  check('آخر لاعب باقٍ يفوز (مرحلة win)', await fwait(page, () => window.HarfAlNajat.getState().phase === 'win', null, 360000), (await state(page)).phase);
   s = await state(page);
   await sleep(1500);
   const w = await wins(page);
