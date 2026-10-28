@@ -332,7 +332,7 @@ html,body{margin:0;height:100%;background:var(--xo-bg);color:var(--xo-ink);font-
           <div class="xo-hint">إذا انتهى وقتك دون رقم صحيح تخسر المواجهة. من 10 إلى 60 ثانية.</div>
         </div>
         <label class="xo-tog" for="xo-lot"><input type="checkbox" id="xo-lot" checked><span class="xo-sw"></span>
-          <span><b>الحسم بالقرعة بعد 3 تعادلات</b><span class="xo-hint">قاعدة إضافية للبطولة: عند التعادل الثالث في المواجهة نفسها تُجرى قرعة متساوية الاحتمال بين اللاعبَين، ويتأهل صاحب الحظ. عند تعطيلها تُعاد المواجهة (مع تبديل الرمزين) حتى فوز أحدهما أو انتهاء وقته.</span></span>
+          <span><b>الحسم بالقرعة عند التعادل</b><span class="xo-hint">قاعدة إضافية للبطولة: عند التعادل في المواجهة تُجرى قرعة متساوية الاحتمال بين اللاعبَين، ويتأهل صاحب الحظ. عند تعطيلها تُعاد المواجهة (مع تبديل الرمزين) حتى فوز أحدهما أو انتهاء وقته.</span></span>
         </label>
         <div class="xo-err" id="xo-setup-err" role="alert"></div>
         <div class="xo-actions">
@@ -484,7 +484,7 @@ function createCore(env){
   var rng=env.rng||Math.random, clock=env.now||function(){return Date.now();};
   var K={
     INTRO_MS:2800, FINAL_INTRO_MS:3800, REMATCH_MS:1500, RESULT_MS:2600, TIE_MS:2200, LOT_MS:4600, REMOVE_MS:1800, STAGE_MS:3400,
-    TURN_MIN:10, TURN_MAX:60, TURN_DEF:20, TIE_LIMIT:3, MIN_PLAYERS:2, MAX_PLAYERS:256, LINK_GRACE:4000, SEEN_MAX:6000, LOG_MAX:200
+    TURN_MIN:10, TURN_MAX:60, TURN_DEF:20, TIE_LIMIT:1, MIN_PLAYERS:2, MAX_PLAYERS:256, LINK_GRACE:4000, SEEN_MAX:6000, LOG_MAX:200
   };
   var LINES=[[1,2,3],[4,5,6],[7,8,9],[1,4,7],[2,5,8],[3,6,9],[1,5,9],[3,5,7]];
   var hooks={followGate:null,lateJoinGate:null,adminCommand:null,matchKeyword:null,onJoin:null,onRoundEnd:null,onWin:null,onStatus:null};
@@ -1292,7 +1292,7 @@ function startLot(m){
   var o=m.outcome,w=o.winner,s=S(),ep=s.epoch,c=$('xo-ov-lot-c');
   hideOverlaysExcept('xo-ov-lot');c.textContent='';c.className='xo-ovc';
   c.appendChild(el('h3',null,'القرعة'));
-  var st=el('p',null,'تعادلتما '+m.ties+' مرات، والحسم بالقرعة المتساوية الاحتمال…');c.appendChild(st);
+  var st=el('p',null,'تعادل بينكما، والحسم بالقرعة المتساوية الاحتمال…');c.appendChild(st);
   var box=el('div','xo-lotbox'),pa={};
   [m.a,m.b].forEach(function(id){var d=el('div','xo-lotp');d.appendChild(avatarEl(core.userOf(id),72));d.appendChild(el('div','nm',nameOf(id)));box.appendChild(d);pa[id]=d;});
   c.appendChild(box);overlay('xo-ov-lot',true);ui.lot=ep;

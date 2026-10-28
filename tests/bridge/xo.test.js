@@ -157,12 +157,14 @@ async function playCells(page, cells) {
   await waitFor(page, () => ['intro', 'active'].includes(xoApi().getState().phase) && xoApi().getState().stageNo === 2, null, 6000);
   s = await S(page);
   check('المرحلة 2 = النهائي: المتأهلان فقط وقائمة المتأهلين صُفّرت', s.stageNo === 2 && s.isFinal && s.stageTotal === 1 && s.qualified.length === 0 && new Set([s.cur.a, s.cur.b]).size === 2 && s.cur.a !== loser && s.cur.b !== loser, s);
-  // النهائي: تعادلات ثلاثية → قرعة → بطل
+  // النهائي: أول تعادل → قرعة فورية (أنيميشن باللاعبين) → بطل
   await page.evaluate(() => { window.__wins.length = 0; });
-  for (let k = 0; k < 3; k++) { await playCells(page, [1, 2, 3, 5, 4, 6, 8, 7, 9]); await waitFor(page, ([k]) => { const s = xoApi().getState(); return k < 2 ? (s.phase === 'result' || s.phase === 'intro') : s.phase === 'result'; }, [k], 3000); await sleep(150); }
+  await playCells(page, [1, 2, 3, 5, 4, 6, 8, 7, 9]);
+  const lotShown = await (async () => { for (let i = 0; i < 40; i++) { const r = await frameEval(page, () => { const o = document.getElementById('xo-ov-lot'); const c = document.getElementById('xo-ov-lot-c'); return o && o.classList.contains('on') ? { on: true, names: [...c.querySelectorAll('.nm')].map((x) => x.textContent), avatars: c.querySelectorAll('.xo-lotp').length } : null; }); if (r) return r; await sleep(100); } return null; })();
+  check('أول تعادل: تظهر القرعة بمنتصف الشاشة بلاعبَي المواجهة الاثنين (بلا إعادة مواجهة)', lotShown && lotShown.on && lotShown.avatars === 2 && lotShown.names.length === 2 && lotShown.names[0] !== lotShown.names[1], lotShown);
   await waitFor(page, () => xoApi().getState().phase === 'finished', null, 8000);
   s = await S(page);
-  check('3 تعادلات بالنهائي → قرعة → بطل واحد وانتهاء البطولة', s.phase === 'finished' && s.champion && s.alive.length === 1 && s.alive[0] === s.champion, s);
+  check('تعادل واحد بالنهائي → قرعة → بطل واحد وانتهاء البطولة', s.phase === 'finished' && s.champion && s.alive.length === 1 && s.alive[0] === s.champion, s);
   const wins = await page.evaluate(() => window.__wins.slice());
   check('الفوز الرسمي (recordWin) للبطل فقط ومرة واحدة وباسم اللعبة', wins.length === 1 && 'tiktok:' + wins[0].id.replace(/^tiktok:/, '') === s.champion && wins[0].g === 'إكس أو', wins);
   const champUi = await frameEval(page, () => ({ on: document.getElementById('xo-champ').classList.contains('on'), t: document.getElementById('xo-champ-t').textContent, n: document.getElementById('xo-champ-n').textContent, crown: !!document.querySelector('.xo-crown') && getComputedStyle(document.querySelector('.xo-crown')).display !== 'none', btn: [...document.querySelectorAll('#xo-champ button')].map((b) => b.textContent) }));
