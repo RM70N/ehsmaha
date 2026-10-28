@@ -56,6 +56,18 @@ body{background:var(--ink);color:var(--tx);font-family:var(--fb);overflow:hidden
 #dq{font:800 13px var(--fb);color:var(--mu);letter-spacing:.06em}
 #dName{font:700 clamp(26px,4vw,38px)/1.15 var(--fd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+#op3{grid-column:1/-1}
+#tgt{position:absolute;inset:0;margin:auto;width:min(860px,calc(100% - 28px));height:max-content;max-height:calc(100% - 40px);overflow:hidden;padding:18px 20px;z-index:6;opacity:0;pointer-events:none;transform:scale(.96);transition:opacity .3s,transform .3s var(--ease);text-align:center}
+#tgt.on{opacity:1;transform:none}
+#tgtH{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:12px}
+#tgtT{font:800 clamp(18px,3vw,26px) var(--fd)}
+#tgtN{font:800 clamp(30px,5vw,46px) var(--fd);color:var(--vio);min-width:2ch}
+#tgt.hot #tgtN{color:#FF8A9B}
+#tgtL{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.tg{display:flex;align-items:center;gap:12px;padding:8px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(8,7,13,.5)}
+.tg b{font:800 clamp(40px,6vw,60px)/1 var(--fd);color:var(--vio);min-width:1.3ch;text-align:center}
+.tg span{font:800 clamp(16px,2.2vw,22px) var(--fb);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:start;flex:1}
+.tg.pick{border-color:var(--vio);background:rgba(123,63,228,.35)}
 .op{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(8,7,13,.5);transition:all .3s var(--ease)}
 .op b{font:700 30px/1 var(--fd);color:var(--vio);min-width:1.2ch;text-align:center}
 .op span{font:800 18px var(--fb)}
@@ -167,8 +179,9 @@ details code{font:11px ui-monospace,monospace;direction:ltr;unicode-bidi:isolate
     <div id="ring"><svg viewBox="0 0 100 100"><circle class="bgc" cx="50" cy="50" r="44"/><circle class="fg" id="ringC" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div id="ringN">١٥</div></div>
     <div id="dq">توقّف المؤشر عند</div>
     <div id="dName">—</div>
-    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>أطلق</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تطلق</span><small id="passTxt">امتناعات: ٢</small></div></div></div>
+    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>أطلق</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تطلق</span><small id="passTxt">امتناعات: ٢</small></div></div><div class="op" id="op3"><b>٣</b><div><span>أطلق على شخص</span><small id="tgtTxt">مرة واحدة في اللعبة</small></div></div></div>
   </section>
+  <section id="tgt" class="glass" aria-live="polite"><div id="tgtH"><div id="tgtT">اختر رقم من تُطلق عليه</div><div id="tgtN">١٥</div></div><div id="tgtL"></div></section>
   <div id="odds"></div>
   <div id="status"></div>
   <div id="big"><div id="bigT"></div><div id="bigS"></div></div>
@@ -227,6 +240,8 @@ function norm(s){
 function parseDecision(msg){
   var n=norm(msg), c=n.replace(/\s/g,'');
   if(!c) return 0;
+  if(c==='3'||(/^3(\D|$)/.test(n)&&n.length<=12)) return 3;
+  if(c.indexOf('اطلقعلي')===0&&c.indexOf('شخص')>0&&c.length<=16) return 3;
   if(c==='2'||c==='لاتطلق') return 2;
   if(c==='1'||c==='اطلق') return 1;
   if(/^2(\D|$)/.test(n)&&n.length<=12) return 2;
@@ -853,10 +868,10 @@ function updateLayout(dt){
 }
 
 /* ===================== منطق المباراة وآلة الحالات ===================== */
-var STATES=['IDLE','SETTINGS','JOINING','COUNTDOWN','INTRO','SPINNING','PLAYER_SELECTED','WAITING_FOR_DECISION','RESOLVING','PLAYER_SAFE','PLAYER_ELIMINATED','NEXT_ROUND','FINAL_DUEL','GAME_OVER','RESULTS'];
+var STATES=['IDLE','SETTINGS','JOINING','COUNTDOWN','INTRO','SPINNING','PLAYER_SELECTED','WAITING_FOR_DECISION','TARGET_PICK','RESOLVING','PLAYER_SAFE','PLAYER_ELIMINATED','NEXT_ROUND','FINAL_DUEL','GAME_OVER','RESULTS'];
 var TRANS={IDLE:['SETTINGS','JOINING'],SETTINGS:['IDLE','JOINING'],JOINING:['INTRO','SETTINGS','IDLE'],INTRO:['COUNTDOWN'],COUNTDOWN:['NEXT_ROUND'],
   NEXT_ROUND:['SPINNING','FINAL_DUEL','GAME_OVER'],FINAL_DUEL:['SPINNING'],SPINNING:['PLAYER_SELECTED'],PLAYER_SELECTED:['WAITING_FOR_DECISION'],
-  WAITING_FOR_DECISION:['RESOLVING'],RESOLVING:['PLAYER_SAFE','PLAYER_ELIMINATED'],PLAYER_SAFE:['NEXT_ROUND'],PLAYER_ELIMINATED:['NEXT_ROUND'],
+  WAITING_FOR_DECISION:['RESOLVING','TARGET_PICK'],TARGET_PICK:['RESOLVING','WAITING_FOR_DECISION'],RESOLVING:['PLAYER_SAFE','PLAYER_ELIMINATED'],PLAYER_SAFE:['NEXT_ROUND'],PLAYER_ELIMINATED:['NEXT_ROUND'],
   GAME_OVER:['RESULTS','JOINING'],RESULTS:['GAME_OVER','JOINING']};
 var ST='IDLE', prevST='IDLE', runId=0, ABORT={abort:1}, listeners=[], players=[], M=null, chatStatus=EMBED?'connected':'demo', paused=false;
 var MATCH_KEY='rr3d_match_v1', BOT_NAMES=['أبو فهد','نورة','سلطان','ريم','Shadow_7','صقر','دانة','بندر','لولو','القناص','تركي','هيفاء','NightOwl','فيصل','غلا','مشعل','جود','ماجد','لجين','نواف','✦ميرا✦','Ghost'];
@@ -965,7 +980,13 @@ function chat(id,name,msg,avatarUrl,ts){
     if(ts&&ts<M.pending.openAt) return;
     var d=parseDecision(msg), p=byId(id); if(!d||!p) return;
     if(d===2&&p.passes<=0){ status('لا امتناعات متبقية لـ '+p.name+' — الخيار المتاح: ١ أطلق'); $('#op2').classList.add('lock'); return; }
+    if(d===3&&p.tgtUsed){ status(p.name+' استخدم «أطلق على شخص» من قبل'); $('#op3').classList.add('lock'); return; }
     M.pending.choice=d; M.pending.by='chat';
+  }
+  else if(ST==='TARGET_PICK'&&M&&M.pending&&M.pending.tgtList&&!M.pending.tgtPick&&id===M.pending.pid){
+    if(ts&&ts<M.pending.tgtOpenAt) return;
+    var c=norm(msg).replace(/\s/g,''); if(!/^\d{1,3}$/.test(c)) return;
+    var t=M.pending.tgtList[parseInt(c,10)-1]; if(t) M.pending.tgtPick=t;
   }
 }
 function setChatStatus(s){ chatStatus=s; updateConn(); }
@@ -1034,8 +1055,14 @@ async function playRound(id,presetPid){
   refreshOdds(); persist();
   await selectScene(id,p);
   go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now();
-  var dec=await waitDecision(id,p);
-  go('RESOLVING'); log('decision',{pid:pid,choice:dec.choice,by:dec.by});
+  var dec=await waitDecision(id,p), tgt=null;
+  while(dec.choice===3){
+    p.tgtUsed=true; go('TARGET_PICK'); tgt=await pickTarget(id,p);
+    if(tgt) break;
+    M.pending.choice=0; M.pending.by=''; go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now(); dec=await waitDecision(id,p);
+  }
+  go('RESOLVING'); log('decision',{pid:pid,choice:dec.choice,by:dec.by,target:tgt?tgt.id:null});
+  if(tgt){ await targetShot(id,p,tgt); return; }
   if(dec.choice==='out'){ await elimScene(id,p,'timeout'); return; }
   if(dec.choice===2){ p.passes--; p.passesUsed++; await passScene(id,p); go('PLAYER_SAFE'); M.pending=null; return; }
   p.fires++; var hit;
@@ -1049,6 +1076,41 @@ async function playRound(id,presetPid){
     if(M.mode.type==='fixed') revealFixed(false);
     go('PLAYER_SAFE'); await safeTail(id,p); M.pending=null;
   }
+}
+async function pickTarget(id,p){
+  var list=alive().filter(function(q){ return q!==p; }); M.pending.tgtList=list; M.pending.tgtPick=null; M.pending.tgtOpenAt=Date.now();
+  var L=$('#tgtL'); L.innerHTML='';
+  list.forEach(function(q,i){ var d=document.createElement('div'), b=document.createElement('b'), n=document.createElement('span'); d.className='tg'; b.textContent=ar(i+1); n.textContent=q.name; d.appendChild(b); d.appendChild(n); L.appendChild(d); });
+  $('#tgtT').textContent=p.name+' — اكتب رقم من تُطلق عليه'; $('#decide').classList.remove('on'); status('');
+  var T=15, left=T, last=performance.now(), lastSec=-1, botAt=p.isBot?performance.now()+1500:0;
+  $('#tgt').classList.remove('hot'); $('#tgt').classList.add('on');
+  try{
+    while(true){
+      check(id); var now=performance.now(), dt=(now-last)/1000; last=now;
+      if(!((chatStatus==='disconnected'||chatStatus==='reconnecting')&&!p.isBot)) left-=dt;
+      if(p.isBot&&now>=botAt&&!M.pending.tgtPick) M.pending.tgtPick=list[cryptoInt(list.length)];
+      if(M.pending.tgtPick){
+        var t=M.pending.tgtPick, k=list.indexOf(t); L.children[k].classList.add('pick'); AUD.play('lock'); await wait(900,id);
+        return t.alive?t:null;
+      }
+      var sec=Math.ceil(Math.max(0,left)); if(sec!==lastSec){ lastSec=sec; $('#tgtN').textContent=ar(sec); $('#tgt').classList.toggle('hot',sec<=5); AUD.play('clock',sec<=5); }
+      if(left<=0){ status('انتهت مهلة اختيار الشخص — عودة إلى الخيارات'); return null; }
+      await sleep(50);
+    }
+  } finally { $('#tgt').classList.remove('on'); M.pending.tgtList=null; }
+}
+async function targetShot(id,p,t){
+  p.fires++; status(p.name+' يُطلق على '+t.name); AUD.play('spinStart'); lampState.boost=0.1; devState.rayOp=0; focusSpot.intensity=0; camAz(); shot('spin');
+  var A0=devState.angle, d=normA(seatAngleOf(t)-A0+Math.PI)-Math.PI, prev=A0, last=0, dur=2.2; if(Math.abs(d)<0.3) d+=Math.PI*2; /* دوران ظاهر حتى لو كان الهدف بجانب المؤشر */
+  await anim(dur,function(u){ var a=A0+d*eio(u), dt=Math.max(1/120,(u-last)*dur); last=u; devState.vel=(a-prev)/dt; prev=a; devState.angle=a; if(Math.random()<dt*8) AUD.play('whirr',clamp(Math.abs(devState.vel)/14,0,1),0); });
+  check(id); devState.vel=0; devState.angle=A0+d;
+  await selectScene(id,t);
+  var hit;
+  try{ hit=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ hit=false; }
+  log('fire',{pid:t.id,by:p.id,target:true,hit:hit,chamber:M.cyl?M.cyl.idx:null});
+  await fireScene(id,t,hit,p.name+' أطلق على '+t.name);
+  if(hit){ await elimScene(id,t,'fire'); }
+  else { if(M.mode.type==='fixed') revealFixed(false); go('PLAYER_SAFE'); await safeTail(id,t); M.pending=null; }
 }
 function revealFixed(hit){ if(M.pending&&M.pending.commit) log('reveal',{commit:M.pending.commit,seed:M.pending.seed,r:M.pending.r.toFixed(10),hit:hit}); }
 async function eliminate(p,reason){
@@ -1085,7 +1147,7 @@ async function waitDecision(id,p){
 function snapshot(){
   if(!M) return null;
   return {st:ST,M:{id:M.id,startT:M.startT,round:M.round,initial:M.initial,elim:M.elim,log:M.log.slice(-400),mode:M.mode,cyl:M.cyl,duel:M.duel,cfg:M.cfg,pending:M.pending?{pid:M.pending.pid,r:M.pending.r,seed:M.pending.seed,commit:M.pending.commit}:null},
-    players:players.map(function(p){ return {id:p.id,name:p.name,avatarUrl:p.avatarUrl,isBot:p.isBot,alive:p.alive,survived:p.survived,passes:p.passes,passesUsed:p.passesUsed,fires:p.fires,brave:p.brave,elimRound:p.elimRound,elimNo:p.elimNo}; }),saved:Date.now()};
+    players:players.map(function(p){ return {id:p.id,name:p.name,avatarUrl:p.avatarUrl,isBot:p.isBot,alive:p.alive,survived:p.survived,passes:p.passes,passesUsed:p.passesUsed,fires:p.fires,brave:p.brave,tgtUsed:p.tgtUsed,elimRound:p.elimRound,elimNo:p.elimNo}; }),saved:Date.now()};
 }
 function persist(){ if(!M||['IDLE','JOINING','RESULTS'].indexOf(ST)>=0) return; store(MATCH_KEY,snapshot()); }
 function canResume(){ var s=store(MATCH_KEY); return s&&s.M&&['GAME_OVER','RESULTS','JOINING','IDLE'].indexOf(s.st)<0&&(Date.now()-s.saved)<6*3600*1000?s:null; }
@@ -1215,8 +1277,8 @@ async function selectScene(id,p){
   anim(1.6,function(u){ focusSpot.intensity=1.6*es(u); });
   shot('player',p); status('توقّف المؤشر عند '+p.name); CAM.shake=0.4; await wait(1500,id);
 }
-async function fireScene(id,p,hit){
-  shot('charge',p); status(p.name+' اختار: أطلق'); lampState.target=0.6; AUD.play('charge',1.6);
+async function fireScene(id,p,hit,msg){
+  shot('charge',p); status(msg||(p.name+' اختار: أطلق')); lampState.target=0.6; AUD.play('charge',1.6);
   var ci=M&&M.mode.type==='cyl'&&M.cyl?Math.max(0,M.cyl.idx-1):-1;
   await anim(1.6,function(u){ devState.charge=es(u); CAM.shake=Math.max(CAM.shake,u*0.35); if(ci>=0&&chambers[ci]) chambers[ci].pulse=u; });
   check(id); AUD.silence(1.2); await wait(380,id);
@@ -1288,13 +1350,13 @@ function onState(s){
 var RING=276.5;
 function showDecide(p,T){
   $('#dName').textContent=p.name; $('#passTxt').textContent=p.passes>0?'امتناعات متبقية: '+ar(p.passes):'لا امتناعات متبقية';
-  $('#op2').className='op'+(p.passes>0?'':' lock'); $('#op1').className='op fire'; $('#decide').classList.remove('hot'); $('#decide').classList.add('on'); tickDecide(T,T);
-  status(''); $('#dq').textContent=p.isBot?'توقّف المؤشر عند':'اكتب في الشات ١ أو ٢ · القرار بيد';
+  $('#op2').className='op'+(p.passes>0?'':' lock'); $('#op1').className='op fire'; $('#op3').className='op'+(p.tgtUsed?' lock':''); $('#tgtTxt').textContent=p.tgtUsed?'استُخدم من قبل':'مرة واحدة في اللعبة'; $('#decide').classList.remove('hot'); $('#decide').classList.add('on'); tickDecide(T,T);
+  status(''); $('#dq').textContent=p.isBot?'توقّف المؤشر عند':'اكتب في الشات ١ أو ٢ أو ٣ · القرار بيد';
 }
 function tickDecide(left,T){ var l=Math.max(0,left); $('#ringN').textContent=ar(Math.ceil(l)); $('#ringC').style.strokeDashoffset=String(RING*(1-l/T)); var hot=l<=5; $('#decide').classList.toggle('hot',hot); $('#edge').classList.toggle('on',hot); if(hot&&shotNameIs('player')) shot('playerTight',CAM.p); }
 function shotNameIs(n){ return CAM.name===n; }
-function hideDecideSoon(ch){ var a=$('#op1'), b=$('#op2'); a.classList.toggle('pick',ch===1); b.classList.toggle('pick',ch===2); a.classList.toggle('dim',ch!==1); b.classList.toggle('dim',ch!==2); $('#edge').classList.remove('on'); setTimeout(function(){ $('#decide').classList.remove('on'); },850); status(''); }
-function clearScene(keep){ $('#decide').classList.remove('on'); hideBig(); status(''); $('#edge').classList.remove('on'); $('#notice').hidden=true; devState.rayOp=0; devState.charge=0; focusSpot.intensity=0; winSpot.intensity=0; roomDim.target=0; chambers.forEach(function(c){ c.spent=false; c.pulse=0; }); buildChambers(modeOf(CFG.elimMode).n); refreshOdds(); }
+function hideDecideSoon(ch){ var a=$('#op1'), b=$('#op2'), c3=$('#op3'); a.classList.toggle('pick',ch===1); b.classList.toggle('pick',ch===2); c3.classList.toggle('pick',ch===3); a.classList.toggle('dim',ch!==1); b.classList.toggle('dim',ch!==2); c3.classList.toggle('dim',ch!==3); $('#edge').classList.remove('on'); setTimeout(function(){ $('#decide').classList.remove('on'); },850); status(''); }
+function clearScene(keep){ $('#decide').classList.remove('on'); $('#tgt').classList.remove('on'); hideBig(); status(''); $('#edge').classList.remove('on'); $('#notice').hidden=true; devState.rayOp=0; devState.charge=0; focusSpot.intensity=0; winSpot.intensity=0; roomDim.target=0; chambers.forEach(function(c){ c.spent=false; c.pulse=0; }); buildChambers(modeOf(CFG.elimMode).n); refreshOdds(); }
 function fmtDur(ms){ var s=Math.max(0,Math.round(ms/1000)); return ar(Math.floor(s/60))+':'+ar(('0'+(s%60)).slice(-2)); }
 function buildResults(){
   if(!M) return null; var w=alive().length===1?alive()[0]:null, rows=players.slice().sort(function(a,b){ if(a.alive!==b.alive) return a.alive?-1:1; return b.elimNo-a.elimNo; });
