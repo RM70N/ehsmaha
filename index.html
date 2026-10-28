@@ -7981,7 +7981,7 @@ setTimeout(function () {
             </div>
           </div>
         </div>
-        <button type="button" class="btn-primary" onclick="ownerSendPersonalMessage()">📨 إرسال</button>
+        <button type="button" class="btn-primary" id="msg-personal-send-btn" onclick="ownerSendPersonalMessage()">📨 إرسال</button>
         <div class="stats-note" id="msg-personal-note"></div>
       </div>
 
@@ -22156,6 +22156,19 @@ const MSG_PERSONAL_EXPIRY_MS = 60 * 60 * 1000;      // 1 hour
 const MSG_BROADCAST_FRESH_WINDOW_MS = 5 * 60 * 1000; // 5 minutes
 const MSG_BROADCAST_SHOW_SEC = 10;                   // مدة ظهور "رسالة للجميع" بنص الشاشة
 
+// مسار احتياطي: Realtime Database (ownerMessages/…) بجانب Firestore. عند امتلاء حصة كتابة Firestore
+// يبقى setDoc معلّقاً بلا خطأ فلا تصل الرسالة ولا يظهر شي — فنكتب بالاثنين ونستمع للاثنين.
+const MSG_WRITE_TIMEOUT_MS = 8000;
+function ownerMsgTimeout(p, ms) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('انتهت مهلة الكتابة (' + Math.round(ms / 1000) + 'ث) — قاعدة البيانات لا ترد')), ms);
+    Promise.resolve(p).then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
+function ownerMsgKey(usernameLower) { return String(usernameLower).replace(/[.#$\[\]\/%]/g, c => '%' + c.charCodeAt(0).toString(16)); }
+function ownerMsgMillis(v) { return typeof v === 'number' ? v : (v && v.toMillis ? v.toMillis() : 0); }
+function ownerMsgSameAs(textA, msA, textB, msB) { return !!msA && !!msB && textA === textB && Math.abs(msA - msB) < 15000; }
+
 let ownerMsgPosition = { personal: 'top', broadcast: 'top' };
 let ownerMsgDuration = { personal: 'timed', broadcast: 'timed' };
 
@@ -22179,30 +22192,40 @@ function ownerMsgSetDuration(kind, dur) {
 }
 
 async function ownerSendPersonalMessage() {
-  const usernameRaw = document.getElementById('msg-personal-username').value.trim();
+  const usernameRaw = document.getElementById('msg-personal-username').value.trim().replace(/^@/, '');
   const text = document.getElementById('msg-personal-text').value.trim();
+  const note = document.getElementById('msg-personal-note');
   if (!usernameRaw) { toast('⚠️ اكتب اسم المستخدم أولاً'); return; }
   if (!text) { toast('⚠️ اكتب الرسالة أولاً'); return; }
+  if (!fb || !currentUser) { toast('⚠️ سجّل دخولك بحساب المالك أولاً'); return; }
   const usernameLower = usernameRaw.toLowerCase();
-
+  const btn = document.getElementById('msg-personal-send-btn');
+  if (btn) btn.disabled = true;
+  note.textContent = '⏳ جارٍ الإرسال…';
   try {
-    const unameSnap = await fb.getDoc(fb.doc(fb.db, 'usernames', usernameLower));
-    if (!unameSnap.exists()) {
-      document.getElementById('msg-personal-note').textContent = '⚠️ ما فيه مستخدم بهذا الاسم';
+    let verified = true;
+    try {
+      const unameSnap = await ownerMsgTimeout(fb.getDoc(fb.doc(fb.db, 'usernames', usernameLower)), 2500);
+      if (!unameSnap.exists()) { note.textContent = '⚠️ ما فيه مستخدم بهذا الاسم'; return; }
+    } catch (e) { verified = false; }   // تعذّر التحقق (حصة/شبكة) — نكمل بالإرسال
+    const base = { text, position: ownerMsgPosition.personal, durationMode: ownerMsgDuration.personal, sentBy: (currentUser && currentUser.email) || null };
+    const jobs = [];
+    if (fb.rtdb) jobs.push(ownerMsgTimeout(fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'ownerMessages/personal/' + ownerMsgKey(usernameLower)), Object.assign({ sentAt: fb.rtdbServerTimestamp() }, base)), MSG_WRITE_TIMEOUT_MS));
+    jobs.push(ownerMsgTimeout(fb.setDoc(fb.doc(fb.db, 'personalMessages', usernameLower), Object.assign({ sentAt: fb.serverTimestamp() }, base)), MSG_WRITE_TIMEOUT_MS));
+    try { await Promise.any(jobs); } catch (agg) {
+      const err = agg && agg.errors ? agg.errors[0] : agg;
+      note.textContent = '⚠️ تعذّر الإرسال: ' + ((err && err.message) || err);
+      toast('⚠️ تعذّر الإرسال: ' + ((err && err.message) || err));
       return;
     }
-    await fb.setDoc(fb.doc(fb.db, 'personalMessages', usernameLower), {
-      text,
-      sentAt: fb.serverTimestamp(),
-      position: ownerMsgPosition.personal,
-      durationMode: ownerMsgDuration.personal,
-      sentBy: (currentUser && currentUser.email) || null
-    });
     document.getElementById('msg-personal-text').value = '';
-    document.getElementById('msg-personal-note').textContent = '';
+    note.textContent = verified ? '' : 'ℹ️ أُرسلت الرسالة لكن لم أستطع التحقق من وجود المستخدم';
     toast('✅ تم إرسال الرسالة إلى ' + usernameRaw);
   } catch (err) {
+    note.textContent = '⚠️ تعذّر الإرسال: ' + err.message;
     toast('⚠️ تعذّر الإرسال: ' + err.message);
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -22214,14 +22237,11 @@ async function ownerSendBroadcastMessage() {
   if (btn) btn.disabled = true;
   try {
     // ضغطة وحدة: دائماً بنص الشاشة ولمدة 10 ثوانٍ (MSG_BROADCAST_SHOW_SEC).
-    await fb.setDoc(fb.doc(fb.db, 'broadcastMessages', 'current'), {
-      text,
-      sentAt: fb.serverTimestamp(),
-      position: 'center',
-      durationMode: 'timed',
-      durationSec: MSG_BROADCAST_SHOW_SEC,
-      sentBy: (currentUser && currentUser.email) || null
-    });
+    const base = { text, position: 'center', durationMode: 'timed', durationSec: MSG_BROADCAST_SHOW_SEC, sentBy: (currentUser && currentUser.email) || null };
+    const jobs = [];
+    if (fb.rtdb) jobs.push(ownerMsgTimeout(fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'ownerMessages/broadcast'), Object.assign({ sentAt: fb.rtdbServerTimestamp() }, base)), MSG_WRITE_TIMEOUT_MS));
+    jobs.push(ownerMsgTimeout(fb.setDoc(fb.doc(fb.db, 'broadcastMessages', 'current'), Object.assign({ sentAt: fb.serverTimestamp() }, base)), MSG_WRITE_TIMEOUT_MS));
+    try { await Promise.any(jobs); } catch (agg) { throw (agg && agg.errors ? agg.errors[0] : agg); }
     document.getElementById('msg-broadcast-text').value = '';
     toast('✅ وصلت الرسالة للجميع — تظهر بنص الشاشة ' + MSG_BROADCAST_SHOW_SEC + ' ثوانٍ');
   } catch (err) {
@@ -22233,7 +22253,10 @@ async function ownerSendBroadcastMessage() {
 
 async function ownerClearBroadcastMessage() {
   try {
-    await fb.deleteDoc(fb.doc(fb.db, 'broadcastMessages', 'current'));
+    const jobs = [];
+    if (fb.rtdb) jobs.push(ownerMsgTimeout(fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'ownerMessages/broadcast')), MSG_WRITE_TIMEOUT_MS));
+    jobs.push(ownerMsgTimeout(fb.deleteDoc(fb.doc(fb.db, 'broadcastMessages', 'current')), MSG_WRITE_TIMEOUT_MS));
+    try { await Promise.any(jobs); } catch (agg) { throw (agg && agg.errors ? agg.errors[0] : agg); }
     toast('✅ تمت إزالة البانر');
   } catch (err) {
     toast('⚠️ تعذّر الإزالة: ' + err.message);
@@ -22269,17 +22292,29 @@ function msgBannerBackdropClick() {
 let personalMsgListenerStarted = false;
 let personalMsgTimeout = null;
 
+let personalMsgLast = { text: '', ms: 0 };
+function personalMessageIncoming(data) {
+  const sentMs = ownerMsgMillis(data.sentAt);
+  if (!sentMs || (Date.now() - sentMs) > MSG_PERSONAL_EXPIRY_MS) return; // منتهية الصلاحية — تجاهل بصمت
+  if (ownerMsgSameAs(data.text, sentMs, personalMsgLast.text, personalMsgLast.ms)) return; // وصلت من المصدر الثاني
+  personalMsgLast = { text: data.text, ms: sentMs };
+  personalMessageShow(data);
+}
 function personalMessageBoot() {
   if (!fb || !currentUser || !currentUsername || personalMsgListenerStarted) return;
   personalMsgListenerStarted = true;
   const usernameLower = currentUsername.toLowerCase();
   fb.onSnapshot(fb.doc(fb.db, 'personalMessages', usernameLower), (snap) => {
     if (!snap.exists()) return;
-    const data = snap.data();
-    const sentMs = data.sentAt && data.sentAt.toMillis ? data.sentAt.toMillis() : 0;
-    if (!sentMs || (Date.now() - sentMs) > MSG_PERSONAL_EXPIRY_MS) return; // منتهية الصلاحية — تجاهل بصمت
-    personalMessageShow(data);
+    personalMessageIncoming(snap.data());
   }, (err) => { /* best-effort — never block the app */ });
+  if (fb.rtdb) {
+    try {
+      fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'ownerMessages/personal/' + ownerMsgKey(usernameLower)), (snap) => {
+        if (snap.exists()) personalMessageIncoming(snap.val());
+      }, (err) => { /* best-effort */ });
+    } catch (e) {}
+  }
 }
 
 function personalMessageShow(data) {
@@ -22302,8 +22337,9 @@ async function personalMessageDismiss() {
   if (personalMsgTimeout) { clearTimeout(personalMsgTimeout); personalMsgTimeout = null; }
   if (!fb || !currentUsername) return;
   try {
-    await fb.deleteDoc(fb.doc(fb.db, 'personalMessages', currentUsername.toLowerCase()));
+    await ownerMsgTimeout(fb.deleteDoc(fb.doc(fb.db, 'personalMessages', currentUsername.toLowerCase())), 5000);
   } catch (err) { /* best-effort */ }
+  try { if (fb.rtdb) await fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'ownerMessages/personal/' + ownerMsgKey(currentUsername.toLowerCase()))); } catch (err) { /* best-effort */ }
 }
 
 // ==================== RECIPIENT SIDE: BROADCAST MESSAGE ====================
@@ -22312,16 +22348,38 @@ let broadcastMsgTimeout = null;
 let broadcastMsgDismissedSentMs = 0; // آخر sentAt قام المستخدم بإغلاقه يدوياً — لا يعيد إظهاره لنفس الرسالة
 let broadcastMsgCurrentSentMs = 0;   // sentAt للرسالة المعروضة حالياً (يستخدمه زر الإغلاق ✕)
 
+let broadcastMsgDismissedText = '';
+let broadcastMsgHas = { fs: false, rt: false };
+function broadcastMessageIncoming(src, data) {
+  if (!data) {
+    broadcastMsgHas[src] = false;
+    if (!broadcastMsgHas.fs && !broadcastMsgHas.rt) { document.getElementById('msg-broadcast-banner').classList.remove('visible'); msgBannerSyncBackdrop(); }
+    return;
+  }
+  broadcastMsgHas[src] = true;
+  const sentMs = ownerMsgMillis(data.sentAt);
+  if (sentMs === broadcastMsgDismissedSentMs) return; // المستخدم أغلقها يدوياً بالفعل
+  if (ownerMsgSameAs(data.text, sentMs, broadcastMsgDismissedText, broadcastMsgDismissedSentMs)) return;
+  if (ownerMsgSameAs(data.text, sentMs, document.getElementById('msg-broadcast-banner-text').textContent, broadcastMsgCurrentSentMs)
+      && document.getElementById('msg-broadcast-banner').classList.contains('visible')) return; // وصلت من المصدر الثاني
+  broadcastMessageShow(data, sentMs);
+}
 function broadcastMessageBoot() {
   if (!fb || broadcastMsgListenerStarted) return;
   broadcastMsgListenerStarted = true;
   fb.onSnapshot(fb.doc(fb.db, 'broadcastMessages', 'current'), (snap) => {
-    if (!snap.exists()) { document.getElementById('msg-broadcast-banner').classList.remove('visible'); msgBannerSyncBackdrop(); return; }
-    const data = snap.data();
-    const sentMs = data.sentAt && data.sentAt.toMillis ? data.sentAt.toMillis() : 0;
-    if (sentMs === broadcastMsgDismissedSentMs) return; // المستخدم أغلقها يدوياً بالفعل
-    broadcastMessageShow(data, sentMs);
+    broadcastMessageIncoming('fs', snap.exists() ? snap.data() : null);
   }, (err) => { /* best-effort — never block the app */ });
+  if (fb.rtdb) {
+    let first = true;
+    try {
+      fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'ownerMessages/broadcast'), (snap) => {
+        const d = snap.exists() ? snap.val() : null;
+        if (first) { first = false; if (d && (!ownerMsgMillis(d.sentAt) || (Date.now() - ownerMsgMillis(d.sentAt)) > MSG_BROADCAST_FRESH_WINDOW_MS)) { broadcastMsgHas.rt = true; return; } } // قديمة لداخل جديد
+        broadcastMessageIncoming('rt', d);
+      }, (err) => { /* best-effort */ });
+    } catch (e) {}
+  }
 }
 
 // Called once at page load (not live) to decide whether a FRESH page load
@@ -22375,6 +22433,7 @@ function broadcastMessageDismiss() {
   msgBannerSyncBackdrop();
   if (broadcastMsgTimeout) { clearTimeout(broadcastMsgTimeout); broadcastMsgTimeout = null; }
   broadcastMsgDismissedSentMs = broadcastMsgCurrentSentMs;
+  broadcastMsgDismissedText = document.getElementById('msg-broadcast-banner-text').textContent;
 }
 
 // ==================== STREAMER-TARGETED BROADCAST BANNER (أدوات "100 فولور") ====================
