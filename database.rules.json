@@ -1,5 +1,17 @@
 {
   "rules": {
+    "ownerMessages": {
+      "broadcast": {
+        ".read": true,
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      },
+      "personal": {
+        "$usernameKey": {
+          ".read": true,
+          ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || !newData.exists())"
+        }
+      }
+    },
     "pendingUsernames": {
       ".read": true,
       "$usernameLower": {
