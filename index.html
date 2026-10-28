@@ -84463,6 +84463,7 @@ function derive(p) {
   if (st === 'not_live') { c.status = 'offline'; return c; }
   if (st === 'reconnecting') {
     c.status = 'retrying'; c.attempt = (raw && raw.attempt) || (slot && slot.attempts) || 0;
+    if (p === 'discord') { const e = G('discordRelayLastError'); c.msg = (e && e.message) || ''; }   // سبب فشل المحاولة الأخيرة من خادم البوت
     if (raw && raw.retryInSec) c.nextAt = raw.at + raw.retryInSec * 1000;
     return c;
   }
@@ -84482,7 +84483,7 @@ function describe(c) {
   if (k === 'rejected') return { tone:'bad', icon:'warn', t:'الروم مرفوض', d:c.msg || ERR.rejected };
   if (k === 'stopped') return { tone:'warn', icon:'warn', t:'توقفت المحاولة وتحتاج إجراء', d:'ما بدأ البث بعد عدة محاولات. ابدأ البث ثم أعد المحاولة.' };
   if (k === 'offline') return { tone:'warn', icon:'clock', t:'البث غير مباشر', d:'ننتظر بدء البث ونربطك تلقائيا أول ما يفتح' };
-  if (k === 'retrying') return { tone:'warn', icon:'retry', t:'إعادة اتصال تلقائية', d:c.attempt ? `المحاولة رقم ${c.attempt}` : 'نعيد الاتصال تلقائيا', cd:true };
+  if (k === 'retrying') return { tone:'warn', icon:'retry', t:'إعادة اتصال تلقائية', d:(c.attempt ? `المحاولة رقم ${c.attempt}` : 'نعيد الاتصال تلقائيا') + (c.msg ? ` — ${c.msg}` : ''), cd:true };
   if (k === 'queued') return { tone:'live', icon:'queue', t:'في الطابور', d:`ترتيبك ${c.queue} من ${c.queueSize}${c.eta ? ` — حوالي ${c.eta} ثانية` : ''}. يبدأ الربط تلقائيا عند وصول دورك`, bar:true };
   const stages = ['جارٍ تجهيز الاتصال', 'جارٍ التحقق من الاتصال', 'جارٍ ربط الشات'];
   return { tone:'live', icon:null, t:stages[Math.max(0, c.stage - 1)] || stages[0], d:c.attempt > 1 ? `المحاولة رقم ${c.attempt}` : '', bar:true };
