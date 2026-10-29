@@ -17,7 +17,7 @@ const DESIGN_SHA = '62a0d9b5f3abe8f9fdacbd2556c4c0cd68ed00d427c6e0f54e24a5121244
 const tt = (u, mode) => H.ctl(H.PRIMARY, { cmd: 'mode', user: u, mode });
 const svgAvatar = (u) => 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#7C3AED"/><text x="100" y="120" font-size="40" text-anchor="middle" fill="#fff">' + u + '</text></svg>');
 
-async function newSitePage(browser, { viewport, noAvatar } = {}) {
+async function newSitePage(browser, { viewport, noAvatar, repeats = 1 } = {}) {
   const page = await H.newPage(browser, {
     query: '?debug=0',
     context: viewport ? { viewport } : undefined,
@@ -32,6 +32,7 @@ async function newSitePage(browser, { viewport, noAvatar } = {}) {
     },
   });
   page._profiles = [];
+  await page.evaluate((n) => { window.__SOM3H_10K_REPEATS = n; }, repeats);
   await page.addStyleTag({ content: '#auth-loader{display:none!important}' });
   await page.route(/\/profile\?u=/, async (route) => {
     const u = new URL(route.request().url()).searchParams.get('u');
@@ -240,6 +241,29 @@ const authEnter = (page, uid, username) => page.evaluate(async ([uid, username])
   check('فشل اتصال TikTok للحساب المحدد: لا احتفال ولا اتصال', !(await connectedNow(bad)) && (await shows(bad)) === 0);
   await tt(TARGET, 'live');
   await bad.context().close();
+
+  // ---- I) التكرار: كل تشغيل يُعاد 5 مرات متتالية بالضبط (الإعداد الافتراضي الحقيقي)
+  const rep = await newSitePage(browser, { repeats: 5 });
+  await authEnter(rep, 'uid-sjwj', 'Sjwj');
+  let maxRoots = 0; const t0r = Date.now();
+  while (Date.now() - t0r < 60000) { maxRoots = Math.max(maxRoots, await rootCount(rep)); if ((await shows(rep)) >= 5 && (await rootCount(rep)) === 0) break; await sleep(150); }
+  await sleep(3500);
+  const lgr = await logOf(rep), adds = lgr.filter((e) => e.ev === 'add'), rems = lgr.filter((e) => e.ev === 'remove');
+  check('تحديث الصفحة/دخول Sjwj: الاحتفال يُعرض 5 مرات بالضبط ولا سادسة', adds.length === 5 && rems.length === 5 && (await rootCount(rep)) === 0, { adds: adds.length, rems: rems.length });
+  check('المرات الخمس متتالية بلا تداخل (مشهد واحد فقط في أي لحظة، وكل مرة بعد اختفاء السابقة)', maxRoots === 1 && adds.every((a, i) => i === 0 || a.t > rems[i - 1].t), { maxRoots });
+  const totalS = (rems[4].t - adds[0].t) / 1000;
+  check('المدة الكلية ≈ 5 × 7.2ث + فواصل (' + totalS.toFixed(1) + 'ث)', totalS > 33 && totalS < 48, totalS);
+  await rep.context().close();
+  // الربط الناجح لـ som3h.4 أيضاً 5 مرات، ومع الشرطين معاً تبقى سلسلة واحدة (لا 10)
+  const rep2 = await newSitePage(browser, { repeats: 2 });
+  await authEnter(rep2, 'uid-sjwj', 'Sjwj');
+  await linkModal(rep2, TARGET);
+  await sleep(1000);
+  const t1r = Date.now();
+  while (Date.now() - t1r < 40000) { if ((await shows(rep2)) >= 2 && (await rootCount(rep2)) === 0) break; await sleep(200); }
+  await sleep(3000);
+  check('الشرطان معاً: سلسلة واحدة فقط (عدد المرات = الإعداد لا ضعفه)', (await shows(rep2)) === 2, await shows(rep2));
+  await rep2.context().close();
 
   const errs = [].concat(page._errors || []).filter((e) => !/Failed to load resource|ERR_/.test(e));
   check('لا أخطاء JS جديدة', errs.length === 0, errs);

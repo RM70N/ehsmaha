@@ -2,7 +2,7 @@
    EHSEMHA — ربط احتفال 10K (som3h-10k-integration.js)
    طبقة ربط فقط: لا تبني أي عنصر من التصميم ولا تغيّر منطق البث أو الحسابات. التصميم نفسه
    (som3h-10k-celebration.js) نسخة حرفية من الملف المرسل، وهذا الملف يستدعي واجهته الأصلية
-   Som3hCelebration._onLinked('som3h.4') (والتصميم نفسه يمنع المشهدين المتزامنين والتكرار خلال 25ث).
+   Som3hCelebration._designPreview() (والتصميم نفسه يمنع المشهدين المتزامنين). كل تشغيل يُعاد 5 مرات متتالية.
 
    شرطان مستقلان لتشغيل الاحتفال:
      1) ربط بث تيك توك ناجح فعلاً لحساب som3h.4:
@@ -32,9 +32,28 @@
      (ربط حقيقي/نية/دخول Sjwj) فنضع علامته الأصلية مسبقاً ليتخطى التصميم لفّه، دون تعديل ملف التصميم. */
   try { if (typeof w.tiktokAttachAccountToGames === 'function') w.tiktokAttachAccountToGames.__som3h = true; } catch (e) {}
 
+  /* كل تشغيل (ربط بث ناجح أو دخول Sjwj أو تحديث الصفحة) يعرض الاحتفال REPEATS مرات متتالية، كل مرة بعد
+     اختفاء السابقة تماماً (لا تداخل). أي تشغيل يصل أثناء السلسلة يُتجاهل فلا تتضاعف. المرة الأولى والإعادات
+     تستخدم دالة التصميم الأصلية _designPreview لأنها تتخطى حارس الـ25ث المخصص لمنع التكرار العفوي. */
+  var REPEATS = 5, GAP_MS = 500, running = false;
+  function repeats() { var n = Number(w.__SOM3H_10K_REPEATS); return n > 0 ? Math.floor(n) : REPEATS; }
+  function isUp() { return !!document.querySelector('.som3h-celebration'); }
+  function waitGone(timeout) {
+    return new Promise(function (res) {
+      var t0 = Date.now();
+      (function chk() { if (!isUp() || Date.now() - t0 > timeout) return res(); setTimeout(chk, 200); })();
+    });
+  }
   function play() {
     var c = w.Som3hCelebration;
-    if (c && typeof c._onLinked === 'function') { try { c._onLinked(STREAMER); } catch (e) {} }
+    if (running || isUp() || !c || typeof c._designPreview !== 'function') return;
+    running = true;
+    var left = repeats();
+    (function next() {
+      if (left-- <= 0) { running = false; return; }
+      try { c._designPreview(); } catch (e) { running = false; return; }
+      setTimeout(function () { waitGone(15000).then(function () { setTimeout(next, GAP_MS); }); }, 300);
+    })();
   }
 
   w.som3h10kNoteIntent = function () { intentAt = Date.now(); };
