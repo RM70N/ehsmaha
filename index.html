@@ -19725,6 +19725,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   presenceStart();
   whatsNewCheck(lastSeenUpdateAt || null);
   personalMessageBoot();
+  if (typeof som3h10kOnAuth === 'function') { try { som3h10kOnAuth(currentUser, currentUsername); } catch (e) {} } // احتفال 10K عند دخول Sjwj (som3h-10k/)
   await broadcastMessageCheckOnLoad();
   broadcastMessageBoot();
   storeNewAnnouncementBoot();
@@ -24374,6 +24375,7 @@ function tiktokConnectModalStart() {
   }
   tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
 
   try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
   try { if (window._tkModalWatcher) window._tkModalWatcher.stop(); } catch (e) {}
@@ -24473,6 +24475,7 @@ function tiktokQuickReconnect(username, opts) {
     return;
   }
   if (!silent && typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (!silent && typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
   const overlay = document.getElementById('qc-connecting-overlay');
   const hideOverlay = () => {
     if (silent || !overlay) return;
@@ -25119,6 +25122,8 @@ function homeConnSetState(platform, state) {
   homeConnStatusRender();
   // ترحيب dh_mx (طبقة بصرية مستقلة: dhmx-welcome/): ربط ناجح فعلي يبدأه المستخدم فقط، لا إعادة اتصال بعد انقطاع.
   if (platform === 'tiktok' && typeof dhmxWelcomeOnState === 'function') { try { dhmxWelcomeOnState(state, wasReconnect); } catch (e) {} }
+  // احتفال 10K للستريمر som3h.4 (طبقة بصرية مستقلة: som3h-10k/): نفس شرط الربط الناجح الفعلي.
+  if (platform === 'tiktok' && typeof som3h10kOnState === 'function') { try { som3h10kOnState(state, wasReconnect); } catch (e) {} }
 }
 
 // حالة واحدة تمثّل كل المنصات الموصولة (أفضلها): متصل لو أي منصة متصلة.
@@ -25829,6 +25834,7 @@ function homeStartQuickConnect() {
   // معلّقة لمنصة تراجع عنها الستريمر (أو عند إعادة الربط بمنصات مختلفة).
   platformDisconnectAll();
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
 
   const statusByPlatform = {};
   targets.forEach(t => { statusByPlatform[t.platform] = 'connecting'; });
@@ -86219,6 +86225,8 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 </script>
 <script src="/dhmx-welcome/dhmx-welcome.js"></script>
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
+<script src="/som3h-10k/som3h-10k-integration.js"></script>
+<script src="/som3h-10k/som3h-10k-celebration.js"></script>
 <script src="/revival-system/revival-config.js"></script>
 <script src="/revival-system/revival-effects.js"></script>
 <script src="/revival-system/revival-animation.js"></script>
