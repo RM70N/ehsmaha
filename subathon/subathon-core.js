@@ -101,7 +101,7 @@
     if (!/^[a-z0-9._ء-ي-]{2,40}$/.test(u)) throw new Error('يوزر غير صالح');
     if (this.map[key]) throw new Error('المتحكم مضاف مسبقاً');
     if (Object.keys(this.map).length >= 12) throw new Error('الحد الأقصى ١٢ متحكماً');
-    var level = clampLevel(o.level);
+    var level = o.level == null ? 3 : clampLevel(o.level);
     var c = { key: key, platform: key.split(':')[0], username: u, level: level, verified: !!o.verified, name: o.name || u, avatar: o.avatar || '', addedAt: o.addedAt || Date.now(), verifiedAt: o.verified ? (o.verifiedAt || Date.now()) : 0 };
     this.map[key] = c; return c;
   };
