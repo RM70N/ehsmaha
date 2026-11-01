@@ -21358,8 +21358,9 @@ function ownerBoot() {
   // ---- Users tab: live count + list of everyone who ever registered ----
   ownerUnsubUsers = fb.onSnapshot(fb.collection(fb.db, 'users'), (snap) => {
     const rows = [];
-    snap.forEach(d => rows.push(d.data()));
-    rows.sort((a, b) => (a.username || '').localeCompare(b.username || ''));
+    snap.forEach(d => rows.push(Object.assign({ _uid: d.id }, d.data())));
+    // الحسابات بلا اسم مستخدم (وثائق ناقصة) تنزل لآخر القائمة
+    rows.sort((a, b) => (!a.username - !b.username) || (a.username || '').localeCompare(b.username || ''));
     ownerUsersCache = rows;
     document.getElementById('owner-users-count').textContent = rows.length;
     ownerUsersRenderList();
