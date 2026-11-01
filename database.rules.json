@@ -89,6 +89,13 @@
       ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
       ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
     },
+    "subathon": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren(['ts'])"
+      }
+    },
     "pendingUsernames": {
       ".read": true,
       "$usernameLower": {
