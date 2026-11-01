@@ -87,6 +87,10 @@ const SECTIONS = ['home','users','streamers','games','stats','updates','moderato
   check('ستريمر: زر «الراوندات» لا يفتح البث', await fe(() => window.__opened.length === 2));
   await go('streamers');
 
+  await page.evaluate(() => { (0, eval)('ownerUsersCache.push({_uid:"abcdef123456",email:"nameless@x.com"},{_uid:"zzzzzz999"})'); });
+  await go('home'); await go('users');
+  check('المستخدمون: الحساب بلا يوزر يظهر باسم بديل لا «—»', await fe(() => { const n = [...document.querySelectorAll('.u-row .nm')].map(x => x.textContent.trim()); return n.includes('nameless') && n.includes('حساب zzzzzz') && !n.includes('—'); }));
+
   // --- ألعاب
   await spy(['ownerSetBadge', 'ownerMoveGame']);
   await go('games');

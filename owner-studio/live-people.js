@@ -7,27 +7,30 @@
   /* ---------------- المستخدمون ---------------- */
   let sel=null, q='', plat='all';
   const users=()=>G('ownerUsersCache')||[];
+  /* اسم العرض: اليوزر، وإلا يوزر تيك توك المرتبط، وإلا بداية البريد، وإلا معرّف الحساب */
+  const dn=(u)=>u.username||u.linkedTiktokUsername||(u.email?String(u.email).split('@')[0]:'')||(u._uid?'حساب '+String(u._uid).slice(0,6):'—');
+  const uk=(u)=>u.username||u._uid||dn(u);
   const kind=(u)=>u.linkedTiktokUsername?'tt':(u.email?'email':'google');
-  const filtered=()=>users().filter(u=>(plat==='all'||(plat==='tt'?!!u.linkedTiktokUsername:kind(u)===plat))&&(!q||String(u.username||'').toLowerCase().includes(q.toLowerCase())));
+  const filtered=()=>users().filter(u=>(plat==='all'||(plat==='tt'?!!u.linkedTiktokUsername:kind(u)===plat))&&(!q||(dn(u)+' '+(u.email||'')).toLowerCase().includes(q.toLowerCase())));
   const KIND_T={tt:'مرتبط بتيك توك',email:'بريد إلكتروني',google:'حساب Google'};
   function urows(){
     const A=filtered(); if(!users().length) return `<div class="state">${icon('users')}<h4>جارِ تحميل المستخدمين…</h4><p>تظهر القائمة فور وصولها من قاعدة البيانات.</p></div>`;
     if(!A.length) return `<div class="state">${icon('search')}<h4>لا نتائج مطابقة</h4><p>جرّب اسمًا آخر أو أزل الفلتر.</p></div>`;
     return `<div class="list" role="listbox" aria-label="المستخدمون">${A.slice(0,200).map((u,i)=>`
-      <button class="u-row" role="option" aria-selected="${sel===u.username}" data-u="${esc(u.username)}" style="--i:${Math.min(i,10)}">
-        ${av(u.username,hue(u.username))}
-        <span><span class="nm">${esc(u.username||'—')}</span><span class="sub">${esc(u.email||'دخول عبر Google')}${ms(u.createdAt)?' · '+esc(when(u.createdAt)):''}</span></span>
+      <button class="u-row" role="option" aria-selected="${sel===uk(u)}" data-u="${esc(uk(u))}" style="--i:${Math.min(i,10)}">
+        ${av(dn(u),hue(dn(u)))}
+        <span><span class="nm">${esc(dn(u))}</span><span class="sub">${esc(u.email||'دخول عبر Google')}${ms(u.createdAt)?' · '+esc(when(u.createdAt)):''}</span></span>
         ${icon('arrowl')}</button>`).join('')}${A.length>200?`<p class="hint" style="text-align:center">يُعرض أول 200 من ${fmt(A.length)} — ضيّق البحث لرؤية البقية.</p>`:''}</div>`;
   }
   function uprofile(){
-    const u=users().find(x=>x.username===sel); if(!u) return `<div class="state" style="min-height:420px">${icon('users')}<h4>اختر مستخدمًا</h4><p>ستظهر هنا بياناته وأدوات إدارته.</p></div>`;
-    const h=hue(u.username);
+    const u=users().find(x=>uk(x)===sel); if(!u) return `<div class="state" style="min-height:420px">${icon('users')}<h4>اختر مستخدمًا</h4><p>ستظهر هنا بياناته وأدوات إدارته.</p></div>`;
+    const h=hue(dn(u));
     return `<article class="u-profile u-enter" style="--h1:${h[0]};--h2:${h[1]}">
       <div class="u-cover"><div class="bubbles"><i style="width:220px;height:220px;inset-inline-end:-60px;top:-80px"></i><i style="width:120px;height:120px;inset-inline-start:30%;bottom:-50px"></i></div></div>
-      <div class="body">${av(u.username,h,'av-xl')}
-        <div><h2 class="h2">${esc(u.username)}</h2><p class="muted">${esc(u.email||'دخول عبر Google')}</p></div>
+      <div class="body">${av(dn(u),h,'av-xl')}
+        <div><h2 class="h2">${esc(dn(u))}</h2><p class="muted">${esc(u.email||'دخول عبر Google')}</p></div>
         <div class="u-stats"><div><b class="num" style="font-size:20px">${esc(KIND_T[kind(u)])}</b><span>نوع الحساب</span></div><div><b class="num" style="font-size:20px">${esc(fmtDate(u.createdAt))}</b><span>تاريخ التسجيل</span></div><div><b class="num" style="font-size:20px">${u.linkedTiktokUsername?'@'+esc(u.linkedTiktokUsername):'—'}</b><span>تيك توك</span></div></div>
-        <div class="cluster"><button class="btn btn-primary btn-sm" data-pre="messages" data-user="${esc(u.username)}">${icon('send')}رسالة</button><button class="btn btn-ghost btn-sm" data-pre="frames" data-user="${esc(u.username)}">${icon('gift')}منح إطار</button></div>
+        ${u.username?`<div class="cluster"><button class="btn btn-primary btn-sm" data-pre="messages" data-user="${esc(u.username)}">${icon('send')}رسالة</button><button class="btn btn-ghost btn-sm" data-pre="frames" data-user="${esc(u.username)}">${icon('gift')}منح إطار</button></div>`:'<p class="hint">حساب بلا اسم مستخدم — لم يكمل التسجيل، فلا يمكن مراسلته أو منحه إطارًا.</p>'}
       </div></article>`;
   }
   L.override('users',{
