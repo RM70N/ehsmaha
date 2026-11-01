@@ -40,7 +40,7 @@
       ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
       "current": {
         "$tag": {
-          ".validate": "newData.hasChildren(['v','values'])",
+          ".validate": "newData.hasChild('v')",
           "v": {
             ".validate": "newData.isNumber()"
           },

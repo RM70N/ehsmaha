@@ -30,7 +30,8 @@
     const yd = yesterday(); const cohort = { d1: { n: 0, r: 0, elig: 0 }, d7: { n: 0, r: 0, elig: 0 }, d30: { n: 0, r: 0, elig: 0 } };
     const active = {}; Object.keys(days).forEach((d) => { Object.keys(days[d] || {}).forEach((a) => { (active[a] = active[a] || new Set()).add(d); }); });
     const byDevRet = {};
-    Object.keys(users || {}).forEach((a) => { const f = users[a].first; if (!f || f < from || f > today) return; const set = active[a] || new Set(); const dv = users[a].dev || 'd'; byDevRet[dv] = byDevRet[dv] || { n: 0, r: 0 };
+    const cFrom = addDays(today, -60); // دفعات العودة: كل من ظهر خلال ٦٠ يوماً (ليتسنى قياس ٣٠ يوماً بغض النظر عن فترة العرض)
+    Object.keys(users || {}).forEach((a) => { const f = users[a].first; if (!f || f < cFrom || f > today) return; const set = active[a] || new Set(); const dv = users[a].dev || 'd'; byDevRet[dv] = byDevRet[dv] || { n: 0, r: 0 };
       [['d1', 1, 1], ['d7', 1, 7], ['d30', 1, 30]].forEach(([k, lo, hi]) => { if (addDays(f, hi) > yd) return; cohort[k].elig++; let back = false; for (let i = lo; i <= hi; i++) if (set.has(addDays(f, i))) { back = true; break; } if (back) cohort[k].r++; if (k === 'd1') { byDevRet[dv].n++; if (back) byDevRet[dv].r++; } }); });
     const newU = Object.keys(users || {}).filter((a) => users[a].first >= from && users[a].first <= today).length;
     const retU = ids.filter((a) => !(users && users[a] && users[a].first >= from)).length;

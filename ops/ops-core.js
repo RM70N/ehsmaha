@@ -73,7 +73,12 @@
       push: function (p, v) { var r = f.rtdbPush(R(p)); return f.rtdbSet(r, v).then(function () { return r.key; }); },
       remove: function (p) { return f.rtdbRemove(R(p)); },
       get: function (p) { return f.rtdbGet(R(p)).then(function (s) { return s.val(); }); },
-      txn: function (p, fn) { return f.rtdbRunTransaction(R(p), function (cur) { var o = fn(cur); return o === undefined ? undefined : o; }).then(function (r) { return { committed: r.committed, value: r.snapshot.val() }; }); },
+      // ملاحظة RTDB: أول استدعاء للمعالج يأتي بـnull (لا كاش محلي) ثم يُعاد بالقيمة الفعلية. الإلغاء (undefined) في الاستدعاء الأول
+      // يُنهي المعاملة بلا إعادة، فنُرجع null بدلاً منه ليعيد SDK المحاولة بالقيمة الفعلية؛ وإن لم توجد بيانات فالنتيجة «غير ملتزمة».
+      txn: function (p, fn) {
+        return f.rtdbRunTransaction(R(p), function (cur) { var o = fn(cur); if (o === undefined) return cur === null || cur === undefined ? null : undefined; return o; })
+          .then(function (r) { var v = r.snapshot.val(); return { committed: !!r.committed && v !== null, value: v }; });
+      },
       on: function (p, cb, opts) {
         var ref = R(p);
         if (opts && f.rtdbQuery) {
@@ -84,9 +89,9 @@
           if (qs.length) ref = f.rtdbQuery.apply(null, [ref].concat(qs));
         }
         var h = f.rtdbOnValue(ref, function (s) { cb(s.val()); }, function (e) { if (opts && opts.onError) opts.onError(e); });
-        return function () { try { f.rtdbOff(ref, 'value', h); } catch (e) { try { h(); } catch (e2) {} } };
+        return typeof h === 'function' ? h : function () { try { f.rtdbOff(ref, 'value'); } catch (e) {} };
       },
-      connected: function (cb) { var r = R('.info/connected'); var h = f.rtdbOnValue(r, function (s) { cb(!!s.val()); }); return function () { try { f.rtdbOff(r, 'value', h); } catch (e) {} }; },
+      connected: function (cb) { var r = R('.info/connected'); var h = f.rtdbOnValue(r, function (s) { cb(!!s.val()); }); return typeof h === 'function' ? h : function () { try { f.rtdbOff(r, 'value'); } catch (e) {} }; },
       onDisconnect: function (p) { var d = f.rtdbOnDisconnect ? f.rtdbOnDisconnect(R(p)) : null; return d || { set: function () {}, update: function () {}, remove: function () {} }; }
     };
   }
