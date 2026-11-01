@@ -243,6 +243,35 @@
     var s = O.store(); if (!s) return Promise.resolve(c ? c.values : {});
     return s.get('opsConfig/current/' + tag).then(function (v) { var vals = (v && v.values) || {}; cfgCache[tag] = { at: Date.now(), values: vals, v: v && v.v }; return vals; }, function () { return c ? c.values : {}; });
   };
+  var cfgAll = null;
+  O.configPreload = function () {
+    var s = O.store(); if (!s) return Promise.resolve(null);
+    return s.get('opsConfig/current').then(function (all) { cfgAll = all || {}; Object.keys(cfgAll).forEach(function (t) { cfgCache[t] = { at: Date.now(), values: (cfgAll[t] && cfgAll[t].values) || {}, v: cfgAll[t] && cfgAll[t].v }; }); return cfgAll; }, function () { return null; });
+  };
+  function clampField(tag, key, val) {
+    try {
+      var sc = (0, eval)('MOD_SETTINGS_SCHEMA')[tag]; var f = sc && sc.fields.filter(function (k) { return k.key === key; })[0]; if (!f) return undefined;
+      if (f.type === 'toggle') return typeof val === 'boolean' ? val : undefined;
+      if (f.type === 'numberArray') { if (!Array.isArray(val) || val.length !== f.length) return undefined; return val.map(function (n) { n = +n; return Math.min(f.max, Math.max(f.min, isFinite(n) ? n : f.min)); }); }
+      var n = +val; if (!isFinite(n)) return undefined; return Math.min(f.max, Math.max(f.min, n));
+    } catch (e) { return undefined; }
+  }
+  O.clampField = clampField;
+  /* أولوية القيم: إعداد الستريمر الشخصي > الإعداد العام للمالك (opsConfig، مُقيَّد بحدود المخطط عند القراءة) > الافتراضي المبرمج */
+  function installConfig() {
+    var fn = window.modGetSetting; if (typeof fn !== 'function' || fn.__ops) return;
+    var w = function (tag, key, fallback) {
+      var r = fn.apply(this, arguments);
+      try {
+        var live = (0, eval)('modLiveSettings'); if (live && live[tag] && live[tag][key] !== undefined) return r;
+        var g = cfgCache[tag] && cfgCache[tag].values;
+        if (g && g[key] !== undefined) { var c = clampField(tag, key, g[key]); if (c !== undefined) return c; }
+      } catch (e) {}
+      return r;
+    };
+    w.__ops = true; w.__orig = fn; window.modGetSetting = w;
+  }
+  O._installConfig = installConfig;
   O.gameConfigSync = function (tag) { var c = cfgCache[tag]; return c ? c.values : {}; };
   O._clearCfg = function () { cfgCache = {}; };
 
@@ -260,6 +289,18 @@
   }
   O._wrap = wrap;
 
+  /* ---------- بطولة جارية: اقتراح نتيجة من اللعبة (لا اعتماد تلقائي — المالك يعتمد) ---------- */
+  var activeMatch = null;
+  function hkey(h) { return String(h || '').trim().replace(/^@+/, '').replace(/^(tiktok|twitch|kick|youtube)[:_]/i, '').toLowerCase(); }
+  O.setActiveMatch = function (m) { activeMatch = m || null; };
+  O.activeMatch = function () { return activeMatch; };
+  O.suggestFromWin = function (user) {
+    if (!activeMatch || OFF || LAB) return false; var h = hkey(user && (user.uniqueId || user.username || user.nickname)); if (!h) return false;
+    var isA = h === activeMatch.a, isB = h === activeMatch.b; if (!isA && !isB) return false;
+    var s = O.store(); if (!s) return false; var m = activeMatch;
+    safe(function () { s.update('opsTournaments/' + m.tid + '/matches/' + m.mid, { suggest: { winner: isA ? m.aId : m.bId, winnerName: isA ? m.aName : m.bName, at: SV, src: 'game' } }); });
+    return true;
+  };
   var lastAttempt = null;
   function attemptCheck(tag, name) {
     lastAttempt = { tag: tag, at: Date.now() };
@@ -275,12 +316,13 @@
   }
 
   function install() {
+    if (!OFF) installConfig();
     if (OFF || LAB || O._installed) return; O._installed = true;
     wrap('homeRegisterGameListener', function (tag) { var nm = tag; try { var r = window.TST_GAME_REGISTRY && window.TST_GAME_REGISTRY[tag]; if (r) nm = r.name; } catch (e) {} if (!rounds[tag]) O.roundStart(tag, null, null, nm, true); else rounds[tag].listener = true; }, function (tag) { // تسجيل لعبة يلغي مستمعات الألعاب الأخرى مباشرة (homeClearGameListeners) فننهي راوندها
       Object.keys(rounds).forEach(function (t) { if (t !== tag && t !== 'bridge-fate' && rounds[t] && rounds[t] !== rounds[tag]) O.roundEnd(t, 'replaced'); }); });
     wrap('homeUnregisterGameListener', function (tag) { O.roundEnd(tag, 'unregister'); });
     wrap('homeConnSetState', null, function (platform, state) { var prev = null; try { prev = window.homeConnGet(platform).state; } catch (e) {} if (prev !== state) O.connEvent(platform, prev, state); });
-    wrap('recordWin', function () { var t = Object.keys(rounds)[0]; if (t) O.roundComplete(t); });
+    wrap('recordWin', function (user) { var t = Object.keys(rounds)[0]; if (t) O.roundComplete(t); O.suggestFromWin(user); });
     wrap('levelsAwardRoundTo', function (user, tag) { O.roundComplete(tag); });
     wrap('ownerRegisterActiveStreamer', function (tag, username, platform, gameName) { O.roundStart(tag, username, platform, gameName); }, function (tag, username, platform, gameName) { ensureSession(username, platform); });
     wrap('goHome', function () { O.journey('games'); }, function () { Object.keys(rounds).forEach(function (t) { O.roundEnd(t, 'home'); }); });
@@ -307,7 +349,8 @@
       if (++tries < 6) setTimeout(wrapLaunchers, 3000);
     })();
     if (O.store() && uid()) flush();
+    if (!OFF) { var pl = function () { if (O.store()) O.configPreload(); }; setTimeout(pl, 2500); setInterval(pl, 10 * 60 * 1000); }
   }
-  window.addEventListener('fb-ready', function () { setTimeout(function () { var f = fb(); if (f && f.onAuthStateChanged) { f.onAuthStateChanged(f.auth, function (u) { if (u) { flush(); O.journey('open'); } }); } }, 0); });
+  window.addEventListener('fb-ready', function () { setTimeout(function () { var f = fb(); if (f && f.onAuthStateChanged) { f.onAuthStateChanged(f.auth, function (u) { if (u) { flush(); O.journey('open'); O.configPreload(); } }); } }, 0); });
   if (document.readyState === 'complete') setTimeout(boot, 0); else window.addEventListener('load', function () { setTimeout(boot, 1500); });
 })();

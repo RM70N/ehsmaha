@@ -37,7 +37,20 @@
     },
     "opsConfig": {
       ".read": "auth != null",
-      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "current": {
+        "$tag": {
+          ".validate": "newData.hasChildren(['v','values'])",
+          "v": {
+            ".validate": "newData.isNumber()"
+          },
+          "values": {
+            "$k": {
+              ".validate": "$k.matches(/^[A-Za-z0-9_]{1,40}$/) && ((newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 100000000) || newData.isBoolean() || newData.hasChildren())"
+            }
+          }
+        }
+      }
     },
     "opsTournaments": {
       ".read": "auth != null",

@@ -1,5 +1,5 @@
 /* سجل ألعاب الستريمر لطبقة العمليات: دالة التشغيل، حقول الإعداد، متغير المشاركين، دالة الانضمام/الشات.
- * مُشتق من خريطة الألعاب المستخدمة باختبارات الدمج (tests/bridge/games.js) — يُحدَّث معها. */
+ * مع حقول المختبر (lab) المشتقة من اختبار اللاعب المتأخر. مُشتق من خريطة الألعاب المستخدمة باختبارات الدمج (tests/bridge/games.js) — يُحدَّث معها. */
 window.EHS_OPS_GAMES = [
  {
   "tag": "main",
@@ -15,7 +15,23 @@ window.EHS_OPS_GAMES = [
   "chat": "addChatMsg",
   "join": "joinParticipant",
   "pre": null,
-  "connect": "connectTikTok"
+  "connect": "connectTikTok",
+  "lab": {
+   "isIn": "participants.has(uid)",
+   "start": "startRound()",
+   "elim": "participants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "keyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": [
+    "شمس"
+   ],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "gw",
@@ -32,7 +48,21 @@ window.EHS_OPS_GAMES = [
   "chat": "gwAddChatMsg",
   "join": "gwJoinParticipant",
   "pre": "gamePlatform['gw']='tiktok'; document.getElementById('gw-mode-ai').checked=false;",
-  "connect": "gwConnectTikTok"
+  "connect": "gwConnectTikTok",
+  "lab": {
+   "isIn": "gwParticipants.has(uid)",
+   "start": "gwBeginNewRound()",
+   "elim": "gwParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "gwKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "battery",
@@ -45,7 +75,28 @@ window.EHS_OPS_GAMES = [
   "chat": "addBatteryChatMsg",
   "join": "batteryApplyCharge",
   "pre": null,
-  "connect": "connectBatteryTikTok"
+  "connect": "connectBatteryTikTok",
+  "lab": {
+   "isIn": "__lateJoin.adapters.battery._in.has(uid)",
+   "start": "void 0",
+   "elim": null,
+   "lobby": "batteryNewRound()",
+   "kwVar": null,
+   "n": 0,
+   "heavy": false,
+   "kind": "native",
+   "afterJoin": false,
+   "play": [],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "skip": {
+    "start": "لعبة بلا زر بدء جولة (شحن مستمر)",
+    "late-new": "لا جولة محدّدة تُقبل فيها المشاركة المتأخرة",
+    "late-excl": "لا جولة محدّدة",
+    "end": "لا إجراء إنهاء راوند"
+   }
+  }
  },
  {
   "tag": "sniper",
@@ -60,7 +111,21 @@ window.EHS_OPS_GAMES = [
   "chat": "addSniperChatMsg",
   "join": "sniperJoinParticipant",
   "pre": null,
-  "connect": "connectSniperTikTok"
+  "connect": "connectSniperTikTok",
+  "lab": {
+   "isIn": "sniperParticipants.has(uid)",
+   "start": "startSniperRound()",
+   "elim": "sniperParticipants.delete(uid), sniperEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "sniperKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": true,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "hz",
@@ -75,7 +140,21 @@ window.EHS_OPS_GAMES = [
   "chat": "addHzChatMsg",
   "join": "hzJoinParticipant",
   "pre": null,
-  "connect": null
+  "connect": null,
+  "lab": {
+   "isIn": "hzParticipants.has(uid)",
+   "start": "startHzRound()",
+   "elim": "hzParticipants.delete(uid), hzEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "hzKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "rou",
@@ -90,7 +169,21 @@ window.EHS_OPS_GAMES = [
   "chat": "addRouChatMsg",
   "join": "rouJoinParticipant",
   "pre": null,
-  "connect": "connectRouletteTikTok"
+  "connect": "connectRouletteTikTok",
+  "lab": {
+   "isIn": "rouParticipants.has(uid)",
+   "start": "startRouletteRound()",
+   "elim": "rouParticipants.delete(uid), rouEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "rouKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "tmr",
@@ -106,7 +199,23 @@ window.EHS_OPS_GAMES = [
   "chat": "addTmrChatMsg",
   "join": "tmrJoinParticipant",
   "pre": null,
-  "connect": "connectTimerTikTok"
+  "connect": "connectTimerTikTok",
+  "lab": {
+   "isIn": "tmrParticipants.has(uid)",
+   "start": "startTimerClock()",
+   "elim": null,
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "tmrKeyword",
+   "heavy": false,
+   "kind": "native",
+   "afterJoin": false,
+   "play": [
+    "وقف"
+   ],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "bomb",
@@ -121,7 +230,22 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": "bombJoinParticipant",
   "pre": null,
-  "connect": null
+  "connect": null,
+  "lab": {
+   "isIn": "bombApi().getState().players.some(p => p.id === uid)",
+   "start": "(bombApi().settings({ times: '600,600,600' }), bombApi().start())",
+   "elim": "bombApi().kick(uid)",
+   "lobby": "bombApi().reset()",
+   "kwVar": null,
+   "n": 4,
+   "heavy": true,
+   "kind": "native",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": "document.querySelector('#bomb-frame').contentDocument.getElementById('b3d-bLate')"
+  }
  },
  {
   "tag": "box",
@@ -136,7 +260,22 @@ window.EHS_OPS_GAMES = [
   "chat": "addBoxChatMsg",
   "join": "boxJoinParticipant",
   "pre": null,
-  "connect": "connectBoxTikTok"
+  "connect": "connectBoxTikTok",
+  "lab": {
+   "isIn": "boxParticipants.has(uid)",
+   "start": "startBoxRound()",
+   "elim": "boxParticipants.delete(uid), boxEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "boxKeyword",
+   "n": 4,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "cr",
@@ -151,7 +290,27 @@ window.EHS_OPS_GAMES = [
   "chat": "addCrChatMsg",
   "join": "crJoinParticipant",
   "pre": null,
-  "connect": "connectCrTikTok"
+  "connect": "connectCrTikTok",
+  "lab": {
+   "isIn": "crParticipants.has(uid)",
+   "start": "startCrRound()",
+   "elim": "crParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "crKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": [
+    "يلا"
+   ],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "cr-maxracers",
+    30
+   ]
+  }
  },
  {
   "tag": "mz",
@@ -166,7 +325,25 @@ window.EHS_OPS_GAMES = [
   "chat": "addMzChatMsg",
   "join": "mzJoinParticipant",
   "pre": null,
-  "connect": "connectMzTikTok"
+  "connect": "connectMzTikTok",
+  "lab": {
+   "isIn": "mzParticipants.has(uid)",
+   "start": "startMzRound()",
+   "elim": "mzParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "mzKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "mz-maxplayers",
+    30
+   ]
+  }
  },
  {
   "tag": "ev",
@@ -181,7 +358,26 @@ window.EHS_OPS_GAMES = [
   "chat": "addEvChatMsg",
   "join": "evJoinParticipant",
   "pre": null,
-  "connect": "connectEvTikTok"
+  "connect": "connectEvTikTok",
+  "lab": {
+   "isIn": "evParticipants.has(uid)",
+   "start": "startEvRound()",
+   "elim": "evParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "evKeyword",
+   "n": 4,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "ev-maxplayers",
+    40
+   ]
+  }
  },
  {
   "tag": "ll",
@@ -197,7 +393,22 @@ window.EHS_OPS_GAMES = [
   "chat": "addLLChatMsg",
   "join": "llJoinParticipant",
   "pre": null,
-  "connect": "connectLLTikTok"
+  "connect": "connectLLTikTok",
+  "lab": {
+   "isIn": "llParticipants.has(uid)",
+   "start": "startLastLetterRound()",
+   "elim": "llParticipants.delete(uid), llEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "llKeyword",
+   "n": 4,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "wai",
@@ -214,7 +425,21 @@ window.EHS_OPS_GAMES = [
   "chat": "waiAddChatMsg",
   "join": "waiJoinParticipant",
   "pre": null,
-  "connect": "connectWAITikTok"
+  "connect": "connectWAITikTok",
+  "lab": {
+   "isIn": "waiParticipants.has(uid)",
+   "start": "startWAIRound()",
+   "elim": "waiParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "waiKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "ig",
@@ -229,7 +454,21 @@ window.EHS_OPS_GAMES = [
   "chat": "igAddChatMsg",
   "join": "igJoinParticipant",
   "pre": null,
-  "connect": "connectIGTikTok"
+  "connect": "connectIGTikTok",
+  "lab": {
+   "isIn": "igParticipants.has(uid)",
+   "start": "startIGRound()",
+   "elim": "igParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "igKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "rw",
@@ -245,7 +484,21 @@ window.EHS_OPS_GAMES = [
   "chat": "rwAddChatMsg",
   "join": "rwJoinParticipant",
   "pre": null,
-  "connect": "connectRWTikTok"
+  "connect": "connectRWTikTok",
+  "lab": {
+   "isIn": "rwParticipants.has(uid)",
+   "start": "startRWRound()",
+   "elim": "rwParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "rwKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "pgs",
@@ -262,7 +515,23 @@ window.EHS_OPS_GAMES = [
   "chat": "pgsAddChatMsg",
   "join": "pgsJoinParticipant",
   "pre": null,
-  "connect": "connectPGSTikTok"
+  "connect": "connectPGSTikTok",
+  "lab": {
+   "isIn": "pgsParticipants.has(uid)",
+   "start": "startPGRound()",
+   "elim": "pgsParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "pgsKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": [
+    "900"
+   ],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "lsc",
@@ -278,7 +547,21 @@ window.EHS_OPS_GAMES = [
   "chat": "lscAddChatMsg",
   "join": "lscJoinParticipant",
   "pre": null,
-  "connect": "connectLSCTikTok"
+  "connect": "connectLSCTikTok",
+  "lab": {
+   "isIn": "lscParticipants.has(uid)",
+   "start": "startLSCRound()",
+   "elim": "lscParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "lscKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "wr",
@@ -294,7 +577,21 @@ window.EHS_OPS_GAMES = [
   "chat": "wrAddChatMsg",
   "join": "wrJoinParticipant",
   "pre": null,
-  "connect": "connectWRTikTok"
+  "connect": "connectWRTikTok",
+  "lab": {
+   "isIn": "wrParticipants.has(uid)",
+   "start": "startWRRound()",
+   "elim": "wrParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "wrKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "draw",
@@ -309,7 +606,22 @@ window.EHS_OPS_GAMES = [
   "chat": "drawAddChatMsg",
   "join": "drawJoinParticipant",
   "pre": null,
-  "connect": "connectDrawTikTok"
+  "connect": "connectDrawTikTok",
+  "lab": {
+   "isIn": "drawParticipants.has(uid)",
+   "start": "startDrawRound()",
+   "elim": null,
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click(), (document.getElementById('gd-modal-yes') || { click() {} }).click()",
+   "kwVar": null,
+   "n": 0,
+   "heavy": false,
+   "kind": "native",
+   "afterJoin": false,
+   "play": null,
+   "noKw": true,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "cw",
@@ -324,7 +636,22 @@ window.EHS_OPS_GAMES = [
   "chat": "cwAddChatMsg",
   "join": "cwJoinParticipant",
   "pre": null,
-  "connect": "connectCWTikTok"
+  "connect": "connectCWTikTok",
+  "lab": {
+   "isIn": "cwActiveCountries.some(c => c.uid === uid)",
+   "start": "startCountryWarRound()",
+   "elim": "cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1), cwEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "cwKeyword",
+   "n": 4,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "cs",
@@ -339,7 +666,23 @@ window.EHS_OPS_GAMES = [
   "chat": "csAddChatMsg",
   "join": "csJoinParticipant",
   "pre": null,
-  "connect": "connectCSTikTok"
+  "connect": "connectCSTikTok",
+  "lab": {
+   "isIn": "csParticipants.has(uid)",
+   "start": "startCrownStealRound()",
+   "elim": "csParticipants.delete(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "csKeyword",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": [
+    "اسرق"
+   ],
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "findball",
@@ -354,7 +697,22 @@ window.EHS_OPS_GAMES = [
   "chat": "findballAddChatMsg",
   "join": "findballJoinParticipant",
   "pre": null,
-  "connect": "connectFindballTikTok"
+  "connect": "connectFindballTikTok",
+  "lab": {
+   "isIn": "findballParticipants.has(uid)",
+   "start": "findballStartRoundClick()",
+   "elim": "findballParticipants.delete(uid), findballEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "findballKeyword",
+   "n": 4,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null
+  }
  },
  {
   "tag": "chairs",
@@ -369,7 +727,23 @@ window.EHS_OPS_GAMES = [
   "chat": "chairsAddChatMsg",
   "join": "chairsJoinParticipant",
   "pre": null,
-  "connect": "connectChairsTikTok"
+  "connect": "connectChairsTikTok",
+  "lab": {
+   "isIn": "chairsParticipants.has(uid)",
+   "start": "chairsStartRoundClick()",
+   "elim": "chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "chairsKeyword",
+   "n": 5,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "lateStaged": true
+  }
  },
  {
   "tag": "tug",
@@ -388,7 +762,27 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": "tugJoinTeam",
   "pre": null,
-  "connect": null
+  "connect": null,
+  "lab": {
+   "isIn": "!!tugTeamOf(uid)",
+   "start": "startTugRound()",
+   "elim": null,
+   "lobby": "tugApi().reset()",
+   "kwVar": null,
+   "heavy": true,
+   "kind": "native",
+   "afterJoin": true,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": "document.querySelector('#tug-frame').contentDocument.getElementById('eht-late')",
+   "skip": {
+    "start": "تتطلب توزيع المشاركين على فريقين (أحمر/أزرق) بأوامر خاصة لا يغطيها المشغّل العام بعد",
+    "late-new": "يعتمد على بدء الجولة",
+    "late-excl": "يعتمد على بدء الجولة",
+    "end": "يعتمد على بدء الجولة"
+   }
+  }
  },
  {
   "tag": "rlgl",
@@ -404,7 +798,26 @@ window.EHS_OPS_GAMES = [
   "chat": "rlglAddChatMsg",
   "join": "rlglJoinParticipant",
   "pre": null,
-  "connect": "connectRlglTikTok"
+  "connect": "connectRlglTikTok",
+  "lab": {
+   "isIn": "rlglParticipants.has(uid)",
+   "start": "startRlglRound()",
+   "elim": "rlglEliminatePlayer(uid, 'red-light')",
+   "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
+   "kwVar": "rlglJoinKw",
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "rlgl-max-players",
+    50
+   ],
+   "elimCheck": "rlglEliminated.has(uid)"
+  }
  },
  {
   "tag": "tt10",
@@ -417,7 +830,25 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": null,
   "pre": null,
-  "connect": "tt10ConnectTikTok"
+  "connect": "tt10ConnectTikTok",
+  "lab": {
+   "isIn": "tt10Participants.has(uid)",
+   "start": "tt10StartRound()",
+   "elim": null,
+   "lobby": "tt10EndRound('test'), tt10NextRound()",
+   "kwVar": null,
+   "n": 2,
+   "heavy": false,
+   "kind": "native",
+   "afterJoin": false,
+   "play": null,
+   "noKw": true,
+   "kwVal": null,
+   "openBtn": null,
+   "skip": {
+    "end": "إنهاء الجولة مرتبط بدورة داخلية لا يغطيها المشغّل العام بعد"
+   }
+  }
  },
  {
   "tag": "glz",
@@ -432,7 +863,26 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": "glzAddParticipant",
   "pre": null,
-  "connect": "glzConnectTikTok"
+  "connect": "glzConnectTikTok",
+  "lab": {
+   "isIn": "glzAlive.has(uid)",
+   "start": "glzStartFirstRound()",
+   "elim": "glzAlive.delete(uid)",
+   "lobby": null,
+   "kwVar": "glzJoinKeyword",
+   "n": 6,
+   "heavy": false,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "glz-maxplayers",
+    40
+   ]
+  }
  },
  {
   "tag": "volcanic-lands",
@@ -445,7 +895,26 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": null,
   "pre": null,
-  "connect": null
+  "connect": null,
+  "lab": {
+   "isIn": "vlLateApi.players().has(uid)",
+   "start": "vlStart()",
+   "elim": null,
+   "lobby": null,
+   "kwVar": null,
+   "n": 3,
+   "heavy": false,
+   "kind": "native",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": "بركان",
+   "openBtn": null,
+   "cap": [
+    "volcanic-lands-maxplayers",
+    60
+   ]
+  }
  },
  {
   "tag": "cannon",
@@ -460,6 +929,60 @@ window.EHS_OPS_GAMES = [
   "chat": null,
   "join": "cannonJoin",
   "pre": null,
-  "connect": null
+  "connect": null,
+  "lab": {
+   "isIn": "cannonParticipants.has(uid)",
+   "start": "cannonStartRound()",
+   "elim": null,
+   "lobby": null,
+   "kwVar": null,
+   "n": 2,
+   "heavy": true,
+   "kind": "native",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": null,
+   "openBtn": null,
+   "cap": [
+    "cannon-s-max",
+    100
+   ],
+   "lateStaged": true
+  }
+ },
+ {
+  "tag": "roulette3d",
+  "title": "الروليت الروسي",
+  "launch": "launchRoulette3d",
+  "inputs": {
+   "roulette3d-join-kw": "دخول",
+   "roulette3d-reg": "0"
+  },
+  "pmap": null,
+  "st": null,
+  "kw": "دخول",
+  "chat": null,
+  "join": null,
+  "pre": null,
+  "connect": null,
+  "lab": {
+   "isIn": "(() => { try { return document.getElementById('roulette3d-frame').contentWindow.EhsemhaRoulette.getState().players.some(p => p.id === uid); } catch (e) { return false; } })()",
+   "start": "document.getElementById('roulette3d-frame').contentWindow.EhsemhaRoulette.start()",
+   "elim": null,
+   "lobby": "document.getElementById('roulette3d-frame').contentWindow.EhsemhaRoulette.newMatch()",
+   "kwVar": null,
+   "n": 3,
+   "heavy": true,
+   "kind": "managed",
+   "afterJoin": false,
+   "play": null,
+   "noKw": false,
+   "kwVal": "دخول",
+   "openBtn": null,
+   "skip": {
+    "late-new": "القبول المتأخر يُدار بطابور داخل اللعبة الثلاثية ولا يُختبر آلياً بعد"
+   }
+  }
  }
 ];

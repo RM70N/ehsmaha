@@ -7,7 +7,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await H.serveSite(); const b = await H.launchBrowser(); const page = await H.newPage(b, { query: '?debug=0' });
   await page.setViewportSize({ width: 1280, height: 800 }); await sleep(2500);
   const boot = await page.evaluate(() => ({ core: !!window.EhsOps, games: (window.EHS_OPS_GAMES || []).length, installed: !!EhsOps._installed, wrapped: ['homeRegisterGameListener', 'homeUnregisterGameListener', 'homeConnSetState', 'recordWin', 'ownerRegisterActiveStreamer', 'goHome'].filter((n) => window[n] && window[n].__ops), lab: EhsOps.lab }));
-  check('طبقة ops-core تُحمَّل وتغلّف دوال الموقع (ست دوال) وسجل الألعاب 30', boot.core && boot.games === 30 && boot.installed && boot.wrapped.length === 6 && !boot.lab, boot);
+  check('طبقة ops-core تُحمَّل وتغلّف دوال الموقع (ست دوال) وسجل الألعاب 30', boot.core && boot.games === 31 && boot.installed && boot.wrapped.length === 6 && !boot.lab, boot);
   await page.evaluate(() => { EhsOps._useMemoryStore(); EhsOps._uidOverride = 'uidstreamer1234567'; });
   // راوند: يُسجَّل مرة واحدة حتى لو بُلّغ بوسمين (تسجيل الستريمر ثم مستمع الأحداث)
   await page.evaluate(() => { ownerRegisterActiveStreamer('rou', 'streamer1', 'tiktok', 'دائرة الإقصاء'); homeRegisterGameListener('rou', function () {}); });
