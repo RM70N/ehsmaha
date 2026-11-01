@@ -138,7 +138,7 @@
 
   /* ---------- سجل الألعاب (Game Adapter Registry) ---------- */
   function gameCards() {
-    return Array.prototype.slice.call(document.querySelectorAll('.games-grid.hlob-registry .gcard[data-tag], .gcard[data-tag]')).filter(function (c) { return c.getAttribute('onclick'); }).map(function (c) {
+    return Array.prototype.slice.call(document.querySelectorAll('.games-grid.hlob-registry .gcard[data-tag]')).filter(function (c) { return c.getAttribute('onclick'); }).map(function (c) {
       var nm = (c.querySelector('.gcard-name,.gname,.gtitle') || c).textContent.replace(/\s+/g, ' ').trim().slice(0, 40);
       var tag = c.getAttribute('data-tag'); return { tag: tag, name: nm, el: c };
     });
@@ -231,6 +231,16 @@
     Object.keys(spec.inputs || {}).forEach(function (id) { var el = document.getElementById(id); if (el && !String(el.value || '').trim()) { el.value = spec.inputs[id]; el.dispatchEvent(new Event('input', { bubbles: true })); filled.push(id); } });
     return filled;
   }
+  function genericFill() {
+    var pgEl = document.querySelector('.page.active'); if (!pgEl) return;
+    var me = ''; try { me = (typeof homeConnectedUser === 'string' && homeConnectedUser) || ''; if (!me && typeof homeConnections === 'object') { var k = Object.keys(homeConnections)[0]; me = (homeConnections[k] || {}).username || ''; } } catch (e) {}
+    pgEl.querySelectorAll('input[type=text]').forEach(function (el) {
+      if (String(el.value || '').trim() || el.readOnly || el.disabled) return; var id = el.id || '';
+      var r = el.getBoundingClientRect(); if (!vis(el)) return;
+      var v = /(^|-)(user|kickuser|ytuser)$|user$/.test(id) ? me : (/(kw|keyword)$/.test(id) ? 'العب' : '');
+      if (v) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+  }
   function launchButton(spec) {
     var pgEl = document.querySelector('.page.active'); if (!pgEl) return null;
     var btns = Array.prototype.slice.call(pgEl.querySelectorAll('button')).filter(function (b) { return vis(b) && !b.disabled && !isBlocked(b); });
@@ -241,7 +251,7 @@
     var spec = activeSpec(); var pg = E.pageId();
     if (pg === 'home') return { ok: false, reason: 'no-game', detail: 'افتح لعبة أولاً' };
     var btn = launchButton(spec);
-    if (btn) { if (spec) fillDefaults(spec); setCur(btn); return press(btn); }
+    if (btn) { if (spec) fillDefaults(spec); genericFill(); setCur(btn); return press(btn); }
     var cand = buildRegistry().filter(function (t) { return /^(ابدا|بدء|شغل|ابدا اللعبه|ابدا الجوله|ابدا الراوند)/.test(t.norm); })[0];
     if (cand) { setCur(cand.el); return press(cand.el); }
     return { ok: false, reason: 'no-start', detail: 'لا شيء لبدئه الآن' };
