@@ -234,10 +234,10 @@
   function genericFill() {
     var pgEl = document.querySelector('.page.active'); if (!pgEl) return;
     var me = ''; try { me = (typeof homeConnectedUser === 'string' && homeConnectedUser) || ''; if (!me && typeof homeConnections === 'object') { var k = Object.keys(homeConnections)[0]; me = (homeConnections[k] || {}).username || ''; } } catch (e) {}
-    pgEl.querySelectorAll('input[type=text]').forEach(function (el) {
+    pgEl.querySelectorAll('input[type=text],input[type=password]').forEach(function (el) {
       if (String(el.value || '').trim() || el.readOnly || el.disabled) return; var id = el.id || '';
       var r = el.getBoundingClientRect(); if (!vis(el)) return;
-      var v = /(^|-)(user|kickuser|ytuser)$|user$/.test(id) ? me : (/(kw|keyword)$/.test(id) ? 'العب' : '');
+      var v = /(^|-)(user|kickuser|ytuser)$|user$/.test(id) ? me : (/(kw|keyword)$/.test(id) ? 'العب' : (/word$/.test(id) ? 'قمر' : ''));
       if (v) { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }
     });
   }
