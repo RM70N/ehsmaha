@@ -17,13 +17,19 @@
       "$id": {
         ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
         ".validate": "newData.hasChildren(['t','type','uid'])"
-      }
+      },
+      ".indexOn": [
+        "t"
+      ]
     },
     "opsSessions": {
       ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
       "$sid": {
         ".write": "auth != null && $sid.beginsWith(auth.uid.substring(0, 10))"
-      }
+      },
+      ".indexOn": [
+        "last"
+      ]
     },
     "opsHealth": {
       ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",

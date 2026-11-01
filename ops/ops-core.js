@@ -37,6 +37,12 @@
       if (val === null || val === undefined) delete n[a[a.length - 1]]; else n[a[a.length - 1]] = resolveSV(val);
     }
     function notify(p) { subs.slice().forEach(function (s) { if (p.indexOf(s.path) === 0 || s.path.indexOf(p) === 0) { try { s.cb(clone(getAt(s.path))); } catch (e) {} } }); }
+    function filt(v, o) {
+      if (!o || !v || typeof v !== 'object') return v; var keys = Object.keys(v);
+      if (o.orderBy) { if (o.startAt != null) keys = keys.filter(function (k) { return v[k] && v[k][o.orderBy] >= o.startAt; }); keys.sort(function (a, b) { return (v[a][o.orderBy] || 0) - (v[b][o.orderBy] || 0); }); }
+      if (o.limitLast) keys = keys.slice(-o.limitLast);
+      var out = {}; keys.forEach(function (k) { out[k] = v[k]; }); return out;
+    }
     function clone(v) { return v == null ? v : JSON.parse(JSON.stringify(v)); }
     return {
       kind: 'memory',
@@ -47,7 +53,12 @@
       remove: function (p) { setAt(p, null); notify(p); return Promise.resolve(); },
       get: function (p) { return Promise.resolve(clone(getAt(p))); },
       txn: function (p, fn) { var cur = clone(getAt(p)); var out = fn(cur); if (out === undefined) return Promise.resolve({ committed: false, value: cur }); setAt(p, out); notify(p); return Promise.resolve({ committed: true, value: clone(getAt(p)) }); },
-      on: function (p, cb) { var s = { path: p, cb: cb }; subs.push(s); setTimeout(function () { try { cb(clone(getAt(p))); } catch (e) {} }, 0); return function () { subs = subs.filter(function (x) { return x !== s; }); }; },
+      on: function (p, cb, opts) {
+        var s = { path: p, cb: function (v) { cb(filt(v, opts)); } }; subs.push(s);
+        setTimeout(function () { try { s.cb(clone(getAt(p))); } catch (e) {} }, 0);
+        return function () { subs = subs.filter(function (x) { return x !== s; }); };
+      },
+      connected: function (cb) { setTimeout(function () { cb(true); }, 0); return function () {}; },
       onDisconnect: function () { return { set: function () {}, update: function () {}, remove: function () {} }; }
     };
   }
@@ -65,10 +76,17 @@
       txn: function (p, fn) { return f.rtdbRunTransaction(R(p), function (cur) { var o = fn(cur); return o === undefined ? undefined : o; }).then(function (r) { return { committed: r.committed, value: r.snapshot.val() }; }); },
       on: function (p, cb, opts) {
         var ref = R(p);
-        if (opts && opts.limitLast && f.rtdbQuery && f.rtdbLimitToLast) ref = f.rtdbQuery(ref, f.rtdbLimitToLast(opts.limitLast));
+        if (opts && f.rtdbQuery) {
+          var qs = [];
+          if (opts.orderBy && f.rtdbOrderByChild) qs.push(f.rtdbOrderByChild(opts.orderBy));
+          if (opts.startAt != null && f.rtdbStartAt) qs.push(f.rtdbStartAt(opts.startAt));
+          if (opts.limitLast && f.rtdbLimitToLast) qs.push(f.rtdbLimitToLast(opts.limitLast));
+          if (qs.length) ref = f.rtdbQuery.apply(null, [ref].concat(qs));
+        }
         var h = f.rtdbOnValue(ref, function (s) { cb(s.val()); }, function (e) { if (opts && opts.onError) opts.onError(e); });
         return function () { try { f.rtdbOff(ref, 'value', h); } catch (e) { try { h(); } catch (e2) {} } };
       },
+      connected: function (cb) { var r = R('.info/connected'); var h = f.rtdbOnValue(r, function (s) { cb(!!s.val()); }); return function () { try { f.rtdbOff(r, 'value', h); } catch (e) {} }; },
       onDisconnect: function (p) { var d = f.rtdbOnDisconnect ? f.rtdbOnDisconnect(R(p)) : null; return d || { set: function () {}, update: function () {}, remove: function () {} }; }
     };
   }
@@ -157,15 +175,17 @@
 
   /* ---------- الراوندات ---------- */
   var rounds = {}; // tag -> {rid,start}
-  O.roundStart = function (tag, streamer, platform, gameName) {
+  O.roundStart = function (tag, streamer, platform, gameName, fromListener) {
     if (OFF || LAB) return null;
     var ss = ensureSession(currentStreamerName(streamer), platform); if (!ss) return null;
     if (rounds[tag]) return rounds[tag].rid;
     // نفس الراوند قد يُبلَّغ مرتين بوسمين مختلفين (تسجيل الستريمر ثم مستمع الأحداث): نربطهما بنفس الراوند
-    var recentKey = Object.keys(rounds).find(function (k) { return rounds[k] && Date.now() - rounds[k].start < 3000; });
-    if (recentKey) { rounds[tag] = rounds[recentKey]; return rounds[tag].rid; }
+    if (fromListener) {
+      var recentKey = Object.keys(rounds).find(function (k) { var x = rounds[k]; return x && x.owner && !x.listener && Date.now() - x.start < 3000; });
+      if (recentKey) { rounds[tag] = rounds[recentKey]; rounds[tag].listener = true; return rounds[tag].rid; }
+    }
     var rid = ss.sid + '_' + tag + '_' + (ss.rounds + 1);
-    rounds[tag] = { rid: rid, start: Date.now(), name: gameName || tag, done: false };
+    rounds[tag] = { rid: rid, start: Date.now(), name: gameName || tag, done: false, owner: !fromListener, listener: !!fromListener };
     ss.rounds++;
     var s = O.store();
     if (s) safe(function () { s.set('opsSessions/' + ss.sid + '/rounds/' + (ss.rounds), { game: tag, name: clip(gameName || tag, 40), start: SV, state: 'running' }); });
@@ -196,7 +216,7 @@
     if (ss) { var s = O.store(); if (s) safe(function () { s.push('opsSessions/' + ss.sid + '/conn', { t: SV, platform: clip(platform, 20), from: clip(from || '', 20), to: clip(to, 20) }); }); }
     O.emit('conn_' + to, { sid: ss && ss.sid, platform: platform, streamer: ss && ss.streamer, sev: sev, msg: clip((from || '') + ' > ' + to, 60), k: platform + ':' + to, dedupeMs: 1500 });
   };
-  O.launchFail = function (tag, msg) { O.emit('launch_fail', { game: tag, sev: 'error', msg: clip(msg, 160), k: tag, dedupeMs: 3000 }); O.journey('err', tag); };
+  O.launchFail = function (tag, msg) { O.emit('launch_fail', { sid: sess && sess.sid, streamer: sess && sess.streamer, game: tag, sev: 'error', msg: clip(msg, 160), k: tag, dedupeMs: 3000 }); O.journey('err', tag); };
 
   /* ---------- رحلة اللاعب (مجمّعة وبمعرّف غير مباشر) ---------- */
   var jmemo = {};
@@ -256,13 +276,14 @@
 
   function install() {
     if (OFF || LAB || O._installed) return; O._installed = true;
-    wrap('homeRegisterGameListener', function (tag) { var nm = tag; try { var r = window.TST_GAME_REGISTRY && window.TST_GAME_REGISTRY[tag]; if (r) nm = r.name; } catch (e) {} if (!rounds[tag]) O.roundStart(tag, null, null, nm); });
+    wrap('homeRegisterGameListener', function (tag) { var nm = tag; try { var r = window.TST_GAME_REGISTRY && window.TST_GAME_REGISTRY[tag]; if (r) nm = r.name; } catch (e) {} if (!rounds[tag]) O.roundStart(tag, null, null, nm, true); else rounds[tag].listener = true; }, function (tag) { // تسجيل لعبة يلغي مستمعات الألعاب الأخرى مباشرة (homeClearGameListeners) فننهي راوندها
+      Object.keys(rounds).forEach(function (t) { if (t !== tag && t !== 'bridge-fate' && rounds[t] && rounds[t] !== rounds[tag]) O.roundEnd(t, 'replaced'); }); });
     wrap('homeUnregisterGameListener', function (tag) { O.roundEnd(tag, 'unregister'); });
     wrap('homeConnSetState', null, function (platform, state) { var prev = null; try { prev = window.homeConnGet(platform).state; } catch (e) {} if (prev !== state) O.connEvent(platform, prev, state); });
     wrap('recordWin', function () { var t = Object.keys(rounds)[0]; if (t) O.roundComplete(t); });
     wrap('levelsAwardRoundTo', function (user, tag) { O.roundComplete(tag); });
     wrap('ownerRegisterActiveStreamer', function (tag, username, platform, gameName) { O.roundStart(tag, username, platform, gameName); }, function (tag, username, platform, gameName) { ensureSession(username, platform); });
-    wrap('goHome', function () { O.journey('games'); });
+    wrap('goHome', function () { O.journey('games'); }, function () { Object.keys(rounds).forEach(function (t) { O.roundEnd(t, 'home'); }); });
     document.addEventListener('click', function (e) {
       var c = e.target && e.target.closest && e.target.closest('.gcard[data-tag]'); if (!c) return;
       O.journey('select', c.getAttribute('data-tag')); O.journey('games');

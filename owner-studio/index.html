@@ -1842,11 +1842,13 @@ kbd{font-family:var(--f-num);background:var(--raised);border-radius:8px;padding:
 (function(){
   const {$,$$,esc,icon}=UI;
   const GROUPS=[
+    {id:'main',title:'الرئيسية',desc:'نظرة عامة وغرفة العمليات المباشرة.',tone:'violet',items:['home','ops']},
     {id:'community',title:'المجتمع',desc:'الأشخاص والفريق وصوت اللاعبين.',tone:'violet',items:['users','streamers','devspecial','feedback','moderators']},
-    {id:'live',title:'البث والمنافسة',desc:'كل ما يجري الآن على المنصة، وإدارة الفعاليات.',tone:'raised',items:['rounds','cwsessions','games','sevt','event100','events']},
+    {id:'live',title:'البث والمنافسة',desc:'كل ما يجري الآن على المنصة، وإدارة الفعاليات.',tone:'raised',items:['rounds','cwsessions','games','sevt','event100','events','sessions','lab','gconf','tournaments']},
     {id:'publish',title:'النشر والمحتوى',desc:'تحديثات ورسائل وفئات اللعب.',tone:'surface',items:['updates','messages','ahsemha']},
     {id:'rewards',title:'المكافآت والمتجر',desc:'إطارات وهدايا وأكواد ومنتجات.',tone:'gold',items:['frames','gifts','scode','store']},
-    {id:'insight',title:'التحليل',desc:'أرقام المنصة بوضوح.',tone:'surface',items:['stats']}
+    {id:'insight',title:'التحليل',desc:'أرقام المنصة بوضوح.',tone:'surface',items:['stats','journey']},
+    {id:'systems',title:'الأنظمة والمراقبة',desc:'صحة البنية التقنية وخدمات البث.',tone:'raised',items:['health']}
   ];
   const secs=()=>Studio.sections;
 
@@ -1924,6 +1926,9 @@ kbd{font-family:var(--f-num);background:var(--raised);border-radius:8px;padding:
 <script src="live-ops.js"></script>
 <script src="live-rewards.js"></script>
 <script src="live-events.js"></script>
+<script src="ops-common.js"></script>
+<script src="ops-room.js"></script>
+<script src="ops-health.js"></script>
 <script>
   if(!Studio.preview){ const mp=document.getElementById('mode-pill'); if(mp) mp.remove(); }
   Studio.boot();
