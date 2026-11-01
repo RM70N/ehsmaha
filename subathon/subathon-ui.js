@@ -20,7 +20,7 @@
     try { var f = window.__fb, u = uid(); if (f && f.rtdb && u) f.rtdbSet(f.rtdbRef(f.rtdb, 'subathon/' + u), { controllers: data.controllers.reduce(function (o, c) { o[c.key.replace(/[.#$\[\]\/:]/g, '_')] = { k: c.key, l: c.level, v: c.verified ? 1 : 0, n: String(c.name || '').slice(0, 40), t: c.addedAt }; return o; }, {}), mode: settings.mode, ts: Date.now() }).catch(function () {}); } catch (e) {}
   }
   function load() {
-    try { var d = JSON.parse(localStorage.getItem(lsKey()) || 'null'); if (d) { store = new C.ControllerStore(d.controllers || []); Object.assign(settings, d.settings || {}); } } catch (e) {}
+    try { var d = JSON.parse(localStorage.getItem(lsKey()) || 'null'); if (d) { store = new C.ControllerStore((d.controllers || []).map(function (c) { c.level = 3; return c; })); Object.assign(settings, d.settings || {}); } } catch (e) {}
     session = makeSession();
   }
   var session;
@@ -141,6 +141,7 @@
   }
 
   /* ---------------- الصفحة ---------------- */
+  var PERM_NAME = 'اختيار ألعاب ولعب', PERM_DESC = 'يختار أي لعبة من ألعاب الستريمر ويبدأها ويلعب فيها طبيعياً بالتعليقات، بدون الوصول للوحة المالك أو الحساب أو أي إعدادات حساسة';
   var LV_DESC = { 1: 'التنقل: اتجاهات، ضغط، رجوع، فتح لعبة بالاسم', 2: 'إدارة الألعاب: + الإعدادات، بدء اللعبة والراوند، التالي', 3: 'تحكم متقدم: كل ما سبق على الألعاب المسموحة' };
   var FORBID = ['لوحة المالك', 'تغيير الحساب', 'بيانات الدخول', 'الأمان والصلاحيات', 'المتحكمون الآخرون', 'البيانات الشخصية', 'الحذف', 'المدفوعات', 'قاعدة البيانات', 'تنفيذ كود من التعليقات', 'صفحات خارج الألعاب المسموحة'];
   function ensurePage() {
@@ -159,7 +160,7 @@
     var seen = observed[c.key] ? 'ظهر في الشات قبل ' + Math.max(0, Math.round((Date.now() - observed[c.key].at) / 1000)) + 'ث' : 'لم يظهر في الشات بعد';
     var av = c.avatar ? '<img src="' + esc(c.avatar) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : esc((c.name || c.username || '?').charAt(0).toUpperCase());
     return '<div class="sb-ctl' + (cur ? ' exec' : '') + '" data-key="' + esc(c.key) + '"><div class="sb-av">' + av + '</div><div class="grow"><div class="nm">' + esc(c.name || c.username) + ' ' + st + '</div><div class="meta">@' + esc(c.username) + ' · ' + esc(PLAT[c.platform] || c.platform) + ' · ' + seen + '</div></div>' +
-      '<select data-act="level" aria-label="الصلاحية">' + [1, 2, 3].map(function (n) { return '<option value="' + n + '"' + (c.level === n ? ' selected' : '') + '>' + C.LEVEL_NAMES[n] + '</option>'; }).join('') + '</select>' +
+      '<span class="sb-tag">'+PERM_NAME+'</span>' +
       (settings.mode === 'leader' && c.verified ? '<button type="button" class="sb-btn ghost" data-act="leader">' + ((settings.leaderKey || (store.verifiedList()[0] || {}).key) === c.key ? 'القائد' : 'اجعله قائداً') + '</button>' : '') +
       '<button type="button" class="sb-btn ghost" data-act="remove" aria-label="إزالة">إزالة</button></div>';
   }
@@ -209,7 +210,6 @@
     pageEl.querySelectorAll('.sb-ctl').forEach(function (row) {
       var key = row.getAttribute('data-key');
       row.querySelector('[data-act=remove]').onclick = function () { store.remove(key); if (settings.leaderKey === key) settings.leaderKey = null; session.queue = session.queue.filter(function (q) { return q.key !== key; }); save(); render(); };
-      row.querySelector('[data-act=level]').onchange = function (e) { store.setLevel(key, e.target.value); save(); render(); };
       var ld = row.querySelector('[data-act=leader]'); if (ld) ld.onclick = function () { settings.leaderKey = key; try { if (session.active) session.setLeader(key); } catch (e) {} save(); render(); };
     });
   }
@@ -221,7 +221,7 @@
     modalEl.innerHTML = '<div class="box"><h3>إضافة متحكم</h3><div class="sb-note" style="font:600 12px sans-serif;color:#a79bc4;line-height:1.7">الهوية تُعتمد فقط من الشات الحقيقي: اختر مشاهداً ظهر في تعليقات بثك الآن، أو اكتب اليوزر ويبقى «بانتظار التحقق» حتى يكتب تعليقاً.</div>' +
       '<div style="margin-top:12px;font:800 13px sans-serif">مشاهدون تم التعرف عليهم من البث</div><div id="sbm-list" style="margin-top:6px;max-height:180px;overflow:auto">' + (viewers.length ? viewers.map(function (v) { return '<div class="viewer" data-k="' + esc(v.key) + '">' + esc(v.name) + ' <span style="color:#a79bc4">@' + esc(v.key.split(':')[1]) + ' · ' + esc(PLAT[v.platform] || v.platform) + '</span></div>'; }).join('') : '<div style="color:#a79bc4;font:600 13px sans-serif;padding:8px">لم يُرصد أي مشاهد بعد. اربط البث وانتظر تعليقاً من المشاهد.</div>') + '</div>' +
       '<div class="row"><select id="sbm-plat">' + Object.keys(PLAT).map(function (p) { return '<option value="' + p + '">' + PLAT[p] + '</option>'; }).join('') + '</select><input id="sbm-user" type="text" placeholder="اليوزر بدون @" autocomplete="off" aria-label="اليوزر"></div>' +
-      ['1', '2', '3'].map(function (n) { return '<label class="perm"><input type="radio" name="sbm-lv" value="' + n + '"' + (n === '1' ? ' checked' : '') + '>' + C.LEVEL_NAMES[n] + '<small>' + LV_DESC[n] + '</small></label>'; }).join('') +
+      '<div class="perm" style="cursor:default"><b>'+PERM_NAME+'</b><small>'+PERM_DESC+'</small></div>' +
       '<div class="err" id="sbm-err" role="alert"></div><div class="row" style="justify-content:flex-start"><button type="button" class="b" id="sbm-ok">إضافة</button><button type="button" class="b g" id="sbm-cancel">إلغاء</button></div></div>';
     modalEl.classList.add('on');
     modalEl.querySelectorAll('.viewer').forEach(function (v) { v.onclick = function () { modalEl.querySelectorAll('.viewer').forEach(function (x) { x.classList.remove('sel'); }); v.classList.add('sel'); sel = v.getAttribute('data-k'); $('sbm-user').value = ''; }; });
@@ -229,7 +229,7 @@
     $('sbm-cancel').onclick = function () { modalEl.classList.remove('on'); };
     modalEl.onclick = function (e) { if (e.target === modalEl) modalEl.classList.remove('on'); };
     $('sbm-ok').onclick = function () {
-      var lv = +(modalEl.querySelector('input[name=sbm-lv]:checked') || {}).value || 1;
+      var lv = 3;
       try {
         if (sel) { var o = observed[sel]; store.add({ platform: o.platform, username: o.key.split(':')[1], level: lv, verified: true, name: o.name, avatar: o.avatar }); }
         else { var u = $('sbm-user').value.trim(); if (!u) throw new Error('اختر مشاهداً أو اكتب اليوزر'); var k = C.idKey($('sbm-plat').value, u); var seen = observed[k]; store.add({ platform: $('sbm-plat').value, username: u, level: lv, verified: !!seen, name: seen ? seen.name : u, avatar: seen ? seen.avatar : '' }); }

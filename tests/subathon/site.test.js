@@ -26,7 +26,7 @@ const U = 'sbstreamer';
   await say('ali_v', 'مرحبا');
   await ev(() => { document.getElementById('sb-add').click(); }); await sleep(200);
   check('المشاهد المرصود من الشات يظهر في القائمة', await ev(() => !!document.querySelector('#subathon-modal .viewer')));
-  await ev(() => { document.querySelector('#subathon-modal .viewer').click(); document.querySelector('input[name=sbm-lv][value="2"]').checked = true; document.getElementById('sbm-ok').click(); }); await sleep(200);
+  await ev(() => { document.querySelector('#subathon-modal .viewer').click(); document.getElementById('sbm-ok').click(); }); await sleep(200);
   // متحكم يدوي لم يظهر بعد = بانتظار التحقق
   await ev(() => { Subathon._store().add({ platform: 'tiktok', username: 'ghost_v', level: 1, verified: false }); Subathon.render(); });
   check('المتحكم المختار من الشات متحقق، واليدوي بانتظار التحقق', await ev(() => { const l = Subathon._store().list(); return l.length === 2 && l[0].verified && !l[1].verified; }));
@@ -44,10 +44,8 @@ const U = 'sbstreamer';
   const st1 = await ev(() => ({ stats: Subathon._session().stats(), ptr: !!document.querySelector('#subathon-pointer.on') }));
   check('«تحت» يحرّك المؤشر، «اضغط» ينفّذ فعلياً', st1.stats.ok >= 2, st1);
   await say('ali_v', 'ابدأ اللعبة');
-  check('المستوى ٢ لا يتجاوز: ابدأ في الرئيسية يفشل بسبب «لا لعبة» لا بسبب الصلاحية', await ev(() => !Subathon._session().metrics.reasons.level));
-  await ev(() => Subathon._store().setLevel('tiktok:ali_v', 1)); await say('ali_v', 'ابدأ اللعبة');
-  check('تخفيض الصلاحية إلى ١ يرفض ابدأ', await ev(() => Subathon._session().metrics.reasons.level >= 1));
-  await ev(() => Subathon._store().setLevel('tiktok:ali_v', 2));
+  check('ابدأ في الرئيسية يفشل بسبب «لا لعبة» لا بسبب الصلاحية', await ev(() => !Subathon._session().metrics.reasons.level));
+  check('لا قائمة مستويات: صلاحية واحدة «اختيار ألعاب ولعب»', await ev(() => !document.querySelector('#pg-subathon [data-act=level]') && /اختيار ألعاب ولعب/.test(document.querySelector('#pg-subathon .sb-ctl').innerText)));
   // فتح لعبة بالاسم
   await say('ali_v', 'افتح الروليت');
   const op = await ev(() => ({ page: document.querySelector('.page.active').id, game: SubathonEngine.openedGame(), res: Subathon._session().audit.slice(-3).map((e) => e.status + ':' + (e.detail || e.reason || '')) }));
