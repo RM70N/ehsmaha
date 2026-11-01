@@ -16,7 +16,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const starts = r1.ev.filter((e) => e.type === 'round_start'); const sids = Object.keys(r1.ss || {});
   check('بدء راوند واحد فقط رغم إشعارين (منع التكرار) + حدث جلسة', starts.length === 1 && r1.ev.some((e) => e.type === 'session_start'), r1.ev.map((e) => e.type));
   const sess = r1.ss && r1.ss[sids[0]];
-  check('جلسة الستريمر: الحالة live واسم الستريمر والمنصة ومعرّف يبدأ بمعرّف الحساب', sids.length === 1 && sess.state === 'live' && sess.streamer === 'streamer1' && sess.platform === 'tiktok' && sids[0].startsWith('uidstreame'), sess);
+  check('جلسة الستريمر: الحالة live واسم الستريمر والمنصة ومعرّف يبدأ بمعرّف الحساب', sids.length === 1 && sess.state === 'live' && sess.streamer === 'streamer1' && sess.platform === 'tiktok' && sids[0].startsWith('uidstreamer1234567_'), sess);
   check('الراوند مسجَّل داخل الجلسة بحالة running ولعبته', sess.rounds && sess.rounds['1'] && sess.rounds['1'].state === 'running' && sess.rounds['1'].game === 'rou', sess.rounds);
   // اتصال
   await page.evaluate(() => { homeConnSetState('tiktok', 'connected'); homeConnSetState('tiktok', 'reconnecting'); homeConnSetState('tiktok', 'connected'); });

@@ -25,7 +25,7 @@
     "opsSessions": {
       ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
       "$sid": {
-        ".write": "auth != null && $sid.beginsWith(auth.uid.substring(0, 10))"
+        ".write": "auth != null && $sid.contains(auth.uid)"
       },
       ".indexOn": [
         "last"
