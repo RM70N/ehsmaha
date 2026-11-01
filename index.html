@@ -1,6 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+<script>if(/[?&]opslab=1/.test(location.search))document.write('<script src="/ops/ops-lab-boot.js"><\/script>');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>احسمها | ehsmaha</title>
@@ -654,7 +655,8 @@
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
     update as rtdbUpdate, onValue as rtdbOnValue, off as rtdbOff, runTransaction as rtdbRunTransaction,
     serverTimestamp as rtdbServerTimestamp, push as rtdbPush, child as rtdbChild,
-    onDisconnect as rtdbOnDisconnect
+    onDisconnect as rtdbOnDisconnect,
+    query as rtdbQuery, limitToLast as rtdbLimitToLast, orderByChild as rtdbOrderByChild, startAt as rtdbStartAt
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
 
   const firebaseConfig = {
@@ -703,7 +705,8 @@
     rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
     // onDisconnect: الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع اتصال الستريمر
     // (سكّر التبويب/المتصفح/انقطعت شبكته) — تنظيف مضمون ما يحتاج أي نبضة حياة.
-    rtdbOnDisconnect
+    rtdbOnDisconnect,
+    rtdbQuery, rtdbLimitToLast, rtdbOrderByChild, rtdbStartAt
   };
   window.dispatchEvent(new Event('fb-ready'));
 </script>
@@ -86232,6 +86235,8 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/dhmx-welcome/dhmx-welcome.js"></script>
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-integration.js"></script>
+<script src="/ops/ops-games.js"></script>
+<script src="/ops/ops-core.js"></script>
 <script src="/som3h-10k/som3h-10k-celebration.js"></script>
 <script src="/owner-studio/owner-studio-bridge.js"></script>
 <script src="/revival-system/revival-config.js"></script>
