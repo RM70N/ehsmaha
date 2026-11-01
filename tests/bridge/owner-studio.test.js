@@ -73,6 +73,20 @@ const SECTIONS = ['home','users','streamers','games','stats','updates','moderato
   await go('streamers');
   check('ستريمر: البطاقات حيّة (الاسم واللعبة والمنصة)', await fe(() => { const t = document.querySelector('.st-grid').innerText; return /king_x/.test(t) && /الروليت/.test(t) && /lina/.test(t) && document.querySelectorAll('.st-card').length === 2; }));
 
+  await page.route('https://avatars.test/**', (r) => r.fulfill({ status: 200, contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64') }));
+  await page.evaluate(() => { (0, eval)('ownerUsersCache.push({username:"x1",linkedTiktokUsername:"king_x",linkedTiktokAvatar:"https://avatars.test/king.jpg"})'); });
+  await go('streamers');
+  await page.waitForTimeout(3600);
+  check('ستريمر: أفاتار الستريمر المرتبط يظهر (وغيره بالحرف الأول)', await fe(() => { const c = document.querySelectorAll('.st-card'); return c[0].querySelector('.av img') && c[0].querySelector('.av img').getAttribute('src') === 'https://avatars.test/king.jpg' && !c[1].querySelector('.av img') && /L/i.test(c[1].querySelector('.av').textContent); }));
+  await fe(() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; }; });
+  await fe(() => document.querySelector('.st-card').click());
+  check('ستريمر: الضغط على كرت تيك توك يفتح بثه', await fe(() => /^https:\/\/www\.tiktok\.com\/@king_x\/live$/.test(window.__opened[0] || '')), await fe(() => window.__opened[0]));
+  await fe(() => document.querySelectorAll('.st-card')[1].click());
+  check('ستريمر: كرت كيك يفتح kick.com', await fe(() => window.__opened[1] === 'https://kick.com/lina'), await fe(() => window.__opened[1]));
+  await fe(() => document.querySelector('.st-card button[data-go]').click());
+  check('ستريمر: زر «الراوندات» لا يفتح البث', await fe(() => window.__opened.length === 2));
+  await go('streamers');
+
   // --- ألعاب
   await spy(['ownerSetBadge', 'ownerMoveGame']);
   await go('games');
