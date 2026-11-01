@@ -55,21 +55,46 @@
 
   /* ---------------- ستريمر ---------------- */
   const wave=(n)=>Array.from({length:n},(_,i)=>`<i style="--hh:${25+((i*37)%60)}%;--d:${(i*90)%900}ms"></i>`).join('');
+  /* أفاتار الستريمر: (1) صورة الربط المحفوظة في حسابه (linkedTiktokAvatar) (2) سيرفر الجسر /profile (3) الحرف الأول */
+  const stAv={}; const stAsk={};
+  const bareName=(n)=>String(n||'').trim().replace(/^@+/,'').replace(/^(tiktok|twitch|kick|youtube)[:_]/i,'').toLowerCase();
+  function stAvatar(name){
+    const k=bareName(name); if(!k) return '';
+    if(stAv[k]) return stAv[k];
+    const us=G('ownerUsersCache')||[];
+    const u=us.find(x=>x&&x.linkedTiktokAvatar&&(bareName(x.linkedTiktokUsername)===k||bareName(x.username)===k));
+    if(u&&/^https:\/\//.test(u.linkedTiktokAvatar)){ return stAv[k]=u.linkedTiktokAvatar; }
+    if(!stAsk[k]){ stAsk[k]=1; const base=G('TIKTOK_PROFILE_API_URL');
+      if(base){ try{ fetch(base+'?u='+encodeURIComponent(k)).then(r=>r.json()).then(j=>{ stAv[k]=(j&&j.ok&&/^https:\/\//.test(j.avatar||''))?j.avatar:''; if(stAv[k]) L.changed(); }).catch(()=>{ stAv[k]=''; }); }catch(e){ stAv[k]=''; } } }
+    return '';
+  }
+  const STREAM_URL={ 'تيك توك':(u)=>'https://www.tiktok.com/@'+u+'/live','تويتش':(u)=>'https://www.twitch.tv/'+u,'كيك':(u)=>'https://kick.com/'+u,'يوتيوب':(u)=>'https://www.youtube.com/@'+u+'/live' };
+  function stUrl(x){ const u=bareName(x.name).replace(/[^a-z0-9._-]/g,''); if(!u) return ''; const f=STREAM_URL[x.badge]||STREAM_URL['تيك توك']; return f(encodeURIComponent(u)); }
+  function stAvHtml(x,h){
+    const src=stAvatar(x.name); const letter=esc(String(x.name||'?').replace(/^@/,'').charAt(0).toUpperCase()||'?');
+    return `<span class="av av-lg" style="--h1:${h[0]};--h2:${h[1]};position:relative;overflow:hidden">${letter}${src?`<img src="${esc(src)}" alt="" referrerpolicy="no-referrer" loading="lazy" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" onerror="this.remove()">`:''}</span>`;
+  }
   function stGrid(){
     const A=rows('owner-streamers-list');
     if(!A.length) return `<div class="state">${icon('radio')}<h4>لا يوجد أحد يبث الآن</h4><p>يظهر الستريمر هنا فور بدئه لعبة.</p></div>`;
-    return `<div class="st-grid">${A.map((x,i)=>{ const h=hue(x.name); const game=(x.subs[0]||'').replace(/^يلعب الآن:\s*/,'');
-      return `<article class="st-card is-live ${i===0?'big':''} glowcard" style="--h1:${h[0]};--h2:${h[1]}">
+    return `<div class="st-grid">${A.map((x,i)=>{ const h=hue(x.name); const game=(x.subs[0]||'').replace(/^يلعب الآن:\s*/,''); const url=stUrl(x);
+      return `<article class="st-card is-live ${i===0?'big':''} glowcard" style="--h1:${h[0]};--h2:${h[1]};${url?'cursor:pointer':''}" ${url?`data-href="${esc(url)}" role="link" tabindex="0" aria-label="فتح بث ${esc(x.name)}" title="فتح البث"`:''}>
         <div class="st-wave" aria-hidden="true">${wave(i===0?44:22)}</div>
         <div class="st-top"><span class="live-tag"><span class="dot live"></span>مباشر</span>${x.badge?UI.badge(x.badge):''}</div>
-        <div class="st-mid">${av(x.name,h,'av-lg')}<div><h3 class="h2" style="font-size:24px">${esc(x.name)}</h3><p class="muted">يلعب ${esc(game||'—')}</p></div></div>
+        <div class="st-mid">${stAvHtml(x,h)}<div><h3 class="h2" style="font-size:24px">${esc(x.name)}</h3><p class="muted">يلعب ${esc(game||'—')}</p></div></div>
         <div class="st-bot"><div class="st-bar"><div><b class="num" style="font-size:18px">${esc(game||'—')}</b><span>اللعبة الحالية</span></div></div>
           <button class="btn btn-ghost btn-sm" data-go="rounds">${icon('eye')}الراوندات</button></div>
       </article>`; }).join('')}</div>`;
   }
+  const stOpen=(c)=>{ const u=c&&c.dataset.href; if(u) window.open(u,'_blank','noopener,noreferrer'); };
   L.override('streamers',{
     tools:()=>`<span class="live-tag"><span class="dot live"></span><span class="num" id="st-n">${fmt(+T('owner-streamers-count')||0)}</span> يبثون الآن</span>`,
     html(){ return `<div id="st-box">${stGrid()}</div>`; },
+    mount(v){
+      v.addEventListener('click',e=>{ if(e.target.closest('button,a')) return; stOpen(e.target.closest('.st-card[data-href]')); });
+      const t=setInterval(()=>{ if(!v.isConnected){ clearInterval(t); return; } const box=v.querySelector('#st-box'); if(!box) return; const miss=[...box.querySelectorAll('.st-card .av')].some(a=>!a.querySelector('img')); if(!miss) return; const before=box.innerHTML; const html=stGrid(); if(html!==before&&html.includes('<img')) box.innerHTML=html; },3000);
+      v.addEventListener('keydown',e=>{ if(e.key!=='Enter'&&e.key!==' ') return; const c=e.target.closest('.st-card[data-href]'); if(c&&e.target===c){ e.preventDefault(); stOpen(c); } });
+    },
     refresh(v){ $('#st-box',v).innerHTML=stGrid(); const n=document.getElementById('st-n'); if(n) n.textContent=fmt(+T('owner-streamers-count')||0); }
   });
 
