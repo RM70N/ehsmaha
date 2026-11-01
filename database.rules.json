@@ -12,6 +12,83 @@
         }
       }
     },
+    "opsEvents": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$id": {
+        ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+        ".validate": "newData.hasChildren(['t','type','uid'])"
+      },
+      ".indexOn": [
+        "t"
+      ]
+    },
+    "opsSessions": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$sid": {
+        ".write": "auth != null && $sid.beginsWith(auth.uid.substring(0, 10))"
+      },
+      ".indexOn": [
+        "last"
+      ]
+    },
+    "opsHealth": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+    },
+    "opsConfig": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "current": {
+        "$tag": {
+          ".validate": "newData.hasChild('v')",
+          "v": {
+            ".validate": "newData.isNumber()"
+          },
+          "values": {
+            "$k": {
+              ".validate": "$k.matches(/^[A-Za-z0-9_]{1,40}$/) && ((newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 100000000) || newData.isBoolean() || newData.hasChildren())"
+            }
+          }
+        }
+      }
+    },
+    "opsTournaments": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$tid": {
+        "participants": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && newData.child('uid').val() === auth.uid"
+          }
+        }
+      }
+    },
+    "opsJourney": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "days": {
+        "$day": {
+          ".validate": "$day.matches(/^[0-9]{8}$/)",
+          "$anon": {
+            ".write": "auth != null"
+          }
+        }
+      },
+      "users": {
+        "$anon": {
+          ".write": "auth != null && !data.exists()"
+        }
+      }
+    },
+    "opsAudit": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$id": {
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+    "opsLab": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+    },
     "pendingUsernames": {
       ".read": true,
       "$usernameLower": {
