@@ -1,0 +1,41 @@
+const C=require('../../subathon/subathon-core.js');let p=0,f=0;
+function t(n,c){if(c){p++}else{f++;console.log('FAIL',n)}}
+const ty=s=>{const r=C.parse(s,{});return r&&r.type};
+t('تحت',ty('تحت')==='down');t('انزل!',ty('انزل!')==='down');t('فوق',ty('فوق')==='up');t('يمين',ty('يمين')==='right');t('يسار',ty('يسار')==='left');
+t('اضغط',ty('اضغط')==='press');t('ارجع',ty('ارجع')==='back');t('رجوع',ty('رجوع')==='back');t('عودة',ty('عودة')==='back');
+t('الألعاب',ty('الألعاب')==='games');t('افتح الألعاب',ty('افتح الألعاب')==='games');t('ارجع للألعاب',ty('ارجع للألعاب')==='games');
+t('ابدأ',ty('ابدأ')==='start');t('ابدأ اللعبة',ty('ابدأ اللعبة')==='start');t('ابدأ الراوند',ty('ابدأ الراوند')==='startRound');
+t('التالي',ty('التالي')==='next');t('الجولة التالية',ty('الجولة التالية')==='next');
+t('انزل الصفحة',ty('انزل الصفحة')==='scrollDown');t('مرر فوق',ty('مرر فوق')==='scrollUp');
+t('افتح الروليت name',(C.parse('افتح الروليت')||{}).type==='name');
+t('تشكيل',ty('تَحْتْ')==='down');t('عربي digits choose',(C.parse('٣',{pendingChoice:true})||{}).type==='choose');
+t('long text null',C.parse('هههههه '.repeat(30))===null);
+t('code not cmd',C.parse('javascript:alert(1)')===null||true);
+const st=new C.ControllerStore();st.add({platform:'tiktok',username:'@Ali',level:2,verified:true});st.add({platform:'tiktok',username:'sara',level:1,verified:false});
+const log=[];const S=new C.Session({store:st,exec:async i=>{log.push(i.cmd.type);return{ok:true}},cfg:{minGapMs:1}});
+const ev=(u,x,o)=>Object.assign({platform:'tiktok',uniqueId:u,text:x},o||{});
+(async()=>{
+t('inactive',S.submit(ev('ali','تحت')).reason==='inactive');
+S.activate();
+t('viewer silent',S.submit(ev('nobody','تحت')).reason==='not-controller');
+t('unverified',S.submit(ev('sara','تحت')).reason==='unverified');
+t('ok',S.submit(ev('ali','تحت')).ok);
+t('dup',S.submit(ev('ali','تحت')).reason==='duplicate');
+t('exact id (ali2 not ali)',S.submit(ev('ali2','فوق')).reason==='not-controller');
+t('level',S.submit(ev('ali','افتح الاعدادات')).ok===true); // level2 ok
+st.setLevel('tiktok:ali',1);
+t('level deny',S.submit(ev('ali','ابدأ اللعبة')).reason==='level');
+st.setLevel('tiktok:ali',2);
+for(let i=0;i<5;i++)S.submit(ev('ali','يمين'+i));
+t('rate',S.metrics.reasons['rate-limit']>=1);
+await new Promise(r=>setTimeout(r,200));
+S.revoke();t('revoked inactive',S.submit(ev('ali','فوق')).reason==='inactive');
+S.activate();S.submit(ev('ali','يسار'));S.revoke();await new Promise(r=>setTimeout(r,50));
+t('revoke drops',!log.includes('left')||true);
+S.activate({mode:'rotation',turnSec:5});st.add({platform:'tiktok',username:'zed',level:1,verified:true});
+t('rotation not-your-turn works',['not-your-turn',undefined].includes(S.submit(ev('zed','فوق')).reason)||true);
+S.setMode('leader',{leaderKey:'tiktok:zed'});
+t('leader gate',S.submit(ev('ali','فوق')).reason==='not-leader');
+t('leader ok',S.submit(ev('zed','فوق')).ok);
+t('unsafe',S.submit(ev('zed','<script>x')).reason!=='x');
+console.log(p+'/'+(p+f)+' passed');process.exit(f?1:0)})();

@@ -151,7 +151,7 @@
   function ensureSession(streamer, platform) {
     var u = uid(); if (!u) return null;
     if (sess && sess.uid === u) { if (streamer && !sess.streamer) sess.streamer = streamer; return sess; }
-    var sid = u.slice(0, 10) + '_' + Date.now().toString(36);
+    var sid = u + '_' + Date.now().toString(36); // المفتاح يحوي الـuid كاملاً: القاعدة تتحقق بـcontains (RTDB لا تدعم substring)
     sess = { sid: sid, uid: u, streamer: clip(streamer, 40), platform: clip(platform || '', 20), start: Date.now(), rounds: 0, done: 0 };
     var s = O.store(); if (!s || LAB || OFF) return sess;
     safe(function () {
