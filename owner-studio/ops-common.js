@@ -94,7 +94,8 @@
   /* ---------- أنماط ---------- */
   const st = document.createElement('style');
   st.textContent = `
-  .ops-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr))}
+  .ops-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+  @media(max-width:520px){.ops-kpi{min-height:88px;padding:12px}.ops-kpi .v{font-size:28px}}
   .ops-kpi{display:flex;flex-direction:column;gap:6px;padding:16px;min-height:104px}
   .ops-kpi .v{font-family:var(--f-display);font-weight:900;font-size:34px;line-height:1}
   .ops-kpi .l{color:var(--muted,#a9a3c4);font-size:13px}

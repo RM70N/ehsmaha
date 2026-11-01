@@ -14,18 +14,18 @@ const { check, done } = mkCheck();
   check('الأرقام من الجلسات الفعلية: ستريمر متصل ١، راوند نشط ١، بث نشط ١', kv('الستريمرز المتصلون') === '1' && kv('الراوندات النشطة') === '1' && kv('البثوث النشطة') === '1' && kv('الألعاب الجارية') === '1', k1);
   check('قائمة الراوندات المباشرة تعرض اللعبة والستريمر والمدة', await fe(() => { const r = document.querySelector('[data-rd]'); return !!r && /king_x/.test(r.innerText) && /منذ/.test(r.innerText); }));
   check('الخط الزمني يحوي بدء الجلسة وبدء الراوند واتصال البث بصيغة موحدة', await fe(() => { const t = document.querySelector('.ops-tl').innerText; return /بدء جلسة بث/.test(t) && /بدء راوند/.test(t) && /اتصال ناجح/.test(t); }));
-  // تحديث مباشر دون إعادة تحميل: راوند ثانٍ + انتهاء
-  await he(() => { homeRegisterGameListener('chairs', function () {}); });
-  await sleep(1000);
-  check('تحديث مباشر بدون إعادة تحميل: الراوندات النشطة صارت ٢', (await fe(() => [...document.querySelectorAll('#ops-main .ops-kpi')].map((x) => x.querySelector('.l').innerText.trim() + '=' + x.querySelector('.v').innerText.trim()))).some((x) => x.startsWith('الراوندات النشطة') && x.endsWith('=2')));
-  await he(() => { recordWin({ uniqueId: 'a' }, 'x', 1); homeUnregisterGameListener('chairs'); });
-  await sleep(1000);
-  check('انتهاء راوند يخفضه من القائمة مباشرة وتظهر أحداث الإكمال/النهاية', await fe(() => document.querySelectorAll('[data-rd]').length === 1 && /انتهاء راوند/.test(document.querySelector('.ops-tl').innerText)));
   // تفاصيل الراوند
   await fe(() => document.querySelector('[data-rd]').click()); await sleep(300);
   const md = await fe(() => { const d = document.querySelector('.dialog'); return d ? d.innerText : ''; });
   check('تفاصيل الراوند: المعلومات + حالة الاتصال + سجل الأحداث + توضيح حدود قائمة المشاركين', /king_x/.test(md) && /حالة الاتصال بالمصدر/.test(md) && /سجل أحداث الراوند/.test(md) && /قائمة المشاركين التفصيلية/.test(md), md.slice(0, 300));
   await fe(() => document.querySelector('.dialog [data-x]').click());
+  // تحديث مباشر دون إعادة تحميل: تشغيل لعبة أخرى يلغي مستمع السابقة (سلوك الموقع الحقيقي) فينتهي راوندها ويبدأ الجديد
+  await he(() => { homeRegisterGameListener('chairs', function () {}); });
+  await sleep(1000);
+  check('تحديث مباشر بدون إعادة تحميل: اللعبة الجديدة تحلّ محل السابقة (راوند واحد نشط: الكراسي)', await fe(() => document.querySelectorAll('[data-rd]').length === 1 && /الكراسي/.test(document.querySelector('[data-rd]').innerText) && /انتهاء راوند/.test(document.querySelector('.ops-tl').innerText)));
+  await he(() => { recordWin({ uniqueId: 'a' }, 'x', 1); homeUnregisterGameListener('chairs'); });
+  await sleep(1000);
+  check('انتهاء راوند يخفضه من القائمة مباشرة وتظهر أحداث الإكمال/النهاية', await fe(() => document.querySelectorAll('[data-rd]').length === 0 && /إكمال راوند بفائز/.test(document.querySelector('.ops-tl').innerText)));
   // تنبيهات: غياب نبضة => «تأخر» وليس «مؤكد»؛ فشل بدء لعبة => مؤكد؛ انقطاع الجلسة => مؤكد
   await he(() => { const s = EhsOps.store(); const root = s._root(); const k = Object.keys(root.opsSessions)[0]; root.opsSessions[k].last = Date.now() - 200000; EhsOps.emit('launch_fail', { sid: k, streamer: 'king_x', game: 'sniper', sev: 'error', msg: 'أدخل الكلمة المفتاحية', k: 'a1' }); s.update('opsSessions/' + k, {}); });
   await sleep(1200);
