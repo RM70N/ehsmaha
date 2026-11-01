@@ -32,7 +32,7 @@
 
   /* ---- زر الإغلاق + إخفاء عناصر المعاينة ---- */
   const css=document.createElement('style');
-  css.textContent='.g-foot{display:none!important}.os-exit{margin-inline-start:8px}#mode-pill{display:none!important}';
+  css.textContent='.intro{display:none!important}.g-foot{display:none!important}.os-exit{margin-inline-start:8px}#mode-pill{display:none!important}';
   document.head.appendChild(css);
   (function addExit(){
     const bar=$('.top-actions'); if(!bar) return;
