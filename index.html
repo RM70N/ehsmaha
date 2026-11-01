@@ -637,6 +637,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/dhmx-welcome/dhmx-welcome.css">
+<link rel="stylesheet" href="/owner-studio/legacy-skin.css">
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
   import {
@@ -2414,6 +2415,8 @@ body.pf-lock{overflow:hidden}
 .mod-save-btn:active{transform:skewX(-7deg) translateY(3px);box-shadow:var(--shadow-btn-pressed);}
 .owner-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9990;display:none;align-items:center;justify-content:center;padding:20px;}
 .owner-modal-overlay.visible{display:flex;}
+/* محرك لوحة المالك القديمة: يبقى بالـDOM مخفياً دائماً (دوالّه وحقوله وقوائمه يقرأها استوديو المالك ويستدعيها) */
+#owner-modal-overlay{display:none!important}
 .owner-modal{width:100%;max-width:640px;max-height:82vh;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden;}
 .owner-modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);}
 .owner-modal-title{font-size:18px;font-weight:900;background:linear-gradient(135deg,#f59e0b,#d97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
@@ -7807,80 +7810,6 @@ setTimeout(function () {
       </div>
     </div>
 
-    <!-- SECRET CODE: NEW CODE MODAL (نموذج إنشاء كود جديد) -->
-    <div class="owner-modal-overlay" id="scode-new-overlay" onclick="if(event.target===this) scodeCloseNew()">
-      <div class="owner-modal help-modal">
-        <div class="owner-modal-head">
-          <div class="owner-modal-title help-modal-title">🔑 كود جديد</div>
-          <button class="owner-modal-close" onclick="scodeCloseNew()">✕</button>
-        </div>
-        <div class="help-body">
-          <div class="field">
-            <label>اسم الكود (اللي يكتبه اللاعب)</label>
-            <input type="text" id="scode-name-new-input" placeholder="مثال: VIP2024" autocomplete="off" />
-          </div>
-
-          <div class="mod-settings-title">🎁 الجائزة (الإطار)</div>
-          <div class="frm-grant-subtabs">
-            <button type="button" class="owner-tab active" id="scode-frame-subtab-existing" onclick="scodeSwitchFrameSubtab('existing')">من الموجود</button>
-            <button type="button" class="owner-tab" id="scode-frame-subtab-upload" onclick="scodeSwitchFrameSubtab('upload')">إطار خاص</button>
-          </div>
-          <div id="scode-frame-existing-body">
-            <div class="frm-grant-existing-grid" id="scode-frame-grid"></div>
-          </div>
-          <div id="scode-frame-upload-body" style="display:none;">
-            <div class="field">
-              <label>صورة الإطار الخاص</label>
-              <input type="file" id="frm-owner-scode-file" accept="image/*" onchange="ownerFrameFilePreview('scode')" />
-              <div class="field-hint">تُحفظ داخل قاعدة البيانات مباشرة (بلا استضافة خارجية) — تُضغَّط وتُصغَّر تلقائياً قبل الحفظ، أي حجم/أبعاد تصلح</div>
-            </div>
-            <div class="frm-owner-editor" id="frm-owner-scode-editor" style="display:none;">
-              <div class="frm-owner-preview-wrap">
-                <img id="frm-owner-scode-preview-img" class="frm-owner-preview-img" alt="" />
-                <div class="frm-owner-hole-rect" id="frm-owner-scode-hole-rect"></div>
-              </div>
-              <div class="frm-owner-bgwarn" id="frm-owner-scode-bgwarn" style="display:none;">⚠️ خلفية الصورة تبين بيضاء معتمة وليست شفافة — بيظهر مربع أبيض حول الإطار وقت الاستخدام. صدّر الصورة بخلفية شفافة (PNG/WebP بقناة ألفا) قبل الرفع.</div>
-              <div class="field"><label>اسم الإطار</label><input type="text" id="frm-owner-scode-name" placeholder="مثال: تصميم خاص" /></div>
-              <div class="frm-owner-hole-fields">
-                <div class="field"><label>يسار %</label><input type="number" id="frm-owner-scode-l" value="10" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
-                <div class="field"><label>أعلى %</label><input type="number" id="frm-owner-scode-t" value="15" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
-                <div class="field"><label>عرض %</label><input type="number" id="frm-owner-scode-w" value="25" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
-                <div class="field"><label>ارتفاع %</label><input type="number" id="frm-owner-scode-h" value="70" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
-              </div>
-              <div class="field"><label>نسبة عرض:ارتفاع صورة الإطار (ratio)</label><input type="number" id="frm-owner-scode-ratio" value="2.5" min="0.1" step="0.01" /></div>
-            </div>
-          </div>
-
-          <div class="field">
-            <label>مدة التفعيل (أيام)</label>
-            <input type="number" id="scode-duration-input" placeholder="مثال: 2" min="1" step="1" />
-          </div>
-          <div class="field">
-            <label>عدد الأشخاص المسموح لهم استخدام الكود</label>
-            <input type="number" id="scode-maxuses-input" placeholder="مثال: 50" min="1" step="1" />
-          </div>
-
-          <button type="button" class="btn-primary" id="scode-publish-btn" onclick="scodePublishCode()">نشر</button>
-          <div class="status-msg" id="scode-publish-status"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SECRET CODE: USERS MODAL (قائمة من استخدم كوداً معيّناً) -->
-    <div class="owner-modal-overlay" id="scode-users-overlay" onclick="if(event.target===this) scodeCloseUsers()">
-      <div class="owner-modal help-modal">
-        <div class="owner-modal-head">
-          <div class="owner-modal-title help-modal-title">استخدموا كود: <span id="scode-users-modal-code">—</span></div>
-          <button class="owner-modal-close" onclick="scodeCloseUsers()">✕</button>
-        </div>
-        <div class="help-body">
-          <div class="owner-list" id="scode-users-modal-list">
-            <div class="owner-empty">جارِ التحميل...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- STORE TAB (متجر الحصانات وغيرها) -->
     <div class="owner-panel-body" id="owner-panel-store">
       <div id="store-body-list">
@@ -8256,6 +8185,82 @@ setTimeout(function () {
     </div>
   </div>
 </div>
+
+<!-- نوافذ الأكواد السرية (خارج محرك اللوحة القديمة المخفي حتى تظهر فوق استوديو المالك) -->
+    <!-- SECRET CODE: NEW CODE MODAL (نموذج إنشاء كود جديد) -->
+<div class="owner-modal-overlay" id="scode-new-overlay" onclick="if(event.target===this) scodeCloseNew()">
+  <div class="owner-modal help-modal">
+    <div class="owner-modal-head">
+      <div class="owner-modal-title help-modal-title">🔑 كود جديد</div>
+      <button class="owner-modal-close" onclick="scodeCloseNew()">✕</button>
+    </div>
+    <div class="help-body">
+      <div class="field">
+        <label>اسم الكود (اللي يكتبه اللاعب)</label>
+        <input type="text" id="scode-name-new-input" placeholder="مثال: VIP2024" autocomplete="off" />
+      </div>
+
+      <div class="mod-settings-title">🎁 الجائزة (الإطار)</div>
+      <div class="frm-grant-subtabs">
+        <button type="button" class="owner-tab active" id="scode-frame-subtab-existing" onclick="scodeSwitchFrameSubtab('existing')">من الموجود</button>
+        <button type="button" class="owner-tab" id="scode-frame-subtab-upload" onclick="scodeSwitchFrameSubtab('upload')">إطار خاص</button>
+      </div>
+      <div id="scode-frame-existing-body">
+        <div class="frm-grant-existing-grid" id="scode-frame-grid"></div>
+      </div>
+      <div id="scode-frame-upload-body" style="display:none;">
+        <div class="field">
+          <label>صورة الإطار الخاص</label>
+          <input type="file" id="frm-owner-scode-file" accept="image/*" onchange="ownerFrameFilePreview('scode')" />
+          <div class="field-hint">تُحفظ داخل قاعدة البيانات مباشرة (بلا استضافة خارجية) — تُضغَّط وتُصغَّر تلقائياً قبل الحفظ، أي حجم/أبعاد تصلح</div>
+        </div>
+        <div class="frm-owner-editor" id="frm-owner-scode-editor" style="display:none;">
+          <div class="frm-owner-preview-wrap">
+            <img id="frm-owner-scode-preview-img" class="frm-owner-preview-img" alt="" />
+            <div class="frm-owner-hole-rect" id="frm-owner-scode-hole-rect"></div>
+          </div>
+          <div class="frm-owner-bgwarn" id="frm-owner-scode-bgwarn" style="display:none;">⚠️ خلفية الصورة تبين بيضاء معتمة وليست شفافة — بيظهر مربع أبيض حول الإطار وقت الاستخدام. صدّر الصورة بخلفية شفافة (PNG/WebP بقناة ألفا) قبل الرفع.</div>
+          <div class="field"><label>اسم الإطار</label><input type="text" id="frm-owner-scode-name" placeholder="مثال: تصميم خاص" /></div>
+          <div class="frm-owner-hole-fields">
+            <div class="field"><label>يسار %</label><input type="number" id="frm-owner-scode-l" value="10" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+            <div class="field"><label>أعلى %</label><input type="number" id="frm-owner-scode-t" value="15" min="0" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+            <div class="field"><label>عرض %</label><input type="number" id="frm-owner-scode-w" value="25" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+            <div class="field"><label>ارتفاع %</label><input type="number" id="frm-owner-scode-h" value="70" min="1" max="100" step="0.1" oninput="ownerFrameHolePreviewUpdate('scode')" /></div>
+          </div>
+          <div class="field"><label>نسبة عرض:ارتفاع صورة الإطار (ratio)</label><input type="number" id="frm-owner-scode-ratio" value="2.5" min="0.1" step="0.01" /></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>مدة التفعيل (أيام)</label>
+        <input type="number" id="scode-duration-input" placeholder="مثال: 2" min="1" step="1" />
+      </div>
+      <div class="field">
+        <label>عدد الأشخاص المسموح لهم استخدام الكود</label>
+        <input type="number" id="scode-maxuses-input" placeholder="مثال: 50" min="1" step="1" />
+      </div>
+
+      <button type="button" class="btn-primary" id="scode-publish-btn" onclick="scodePublishCode()">نشر</button>
+      <div class="status-msg" id="scode-publish-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SECRET CODE: USERS MODAL (قائمة من استخدم كوداً معيّناً) -->
+<div class="owner-modal-overlay" id="scode-users-overlay" onclick="if(event.target===this) scodeCloseUsers()">
+  <div class="owner-modal help-modal">
+    <div class="owner-modal-head">
+      <div class="owner-modal-title help-modal-title">استخدموا كود: <span id="scode-users-modal-code">—</span></div>
+      <button class="owner-modal-close" onclick="scodeCloseUsers()">✕</button>
+    </div>
+    <div class="help-body">
+      <div class="owner-list" id="scode-users-modal-list">
+        <div class="owner-empty">جارِ التحميل...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- ====== ROUNDS: PICK-A-WINNER MODAL ====== -->
 <div class="owner-modal-overlay" id="rounds-pickwinner-overlay" onclick="if(event.target===this) ownerRoundsClosePickWinner()">
@@ -86227,6 +86232,7 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-celebration.js"></script>
+<script src="/owner-studio/owner-studio-bridge.js"></script>
 <script src="/revival-system/revival-config.js"></script>
 <script src="/revival-system/revival-effects.js"></script>
 <script src="/revival-system/revival-animation.js"></script>
