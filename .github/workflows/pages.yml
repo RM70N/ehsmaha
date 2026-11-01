@@ -23,6 +23,7 @@ on:
       - revival-system/**
       - dhmx-welcome/**
       - som3h-10k/**
+      - owner-studio/**
       - about-experience/previews-sq/**
       - about-experience/posters/**
       - code-race-banner.png
@@ -56,6 +57,7 @@ jobs:
           cp -r revival-system _site/revival-system
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k
+          cp -r owner-studio _site/owner-studio
           # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
           mkdir -p _site/about-experience
           cp -r about-experience/previews-sq about-experience/posters _site/about-experience/
