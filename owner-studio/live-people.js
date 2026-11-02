@@ -80,12 +80,12 @@
   function stGrid(){
     const A=rows('owner-streamers-list');
     if(!A.length) return `<div class="state">${icon('radio')}<h4>لا يوجد أحد يبث الآن</h4><p>يظهر الستريمر هنا فور بدئه لعبة.</p></div>`;
-    return `<div class="st-grid">${A.map((x,i)=>{ const h=hue(x.name); const game=(x.subs[0]||'').replace(/^يلعب الآن:\s*/,''); const url=stUrl(x);
+    return `<div class="st-grid">${A.map((x,i)=>{ const h=hue(x.name); const playing=/^يلعب الآن:/.test(x.subs[0]||''); const game=(x.subs[0]||'').replace(/^يلعب الآن:\s*/,''); const url=stUrl(x);
       return `<article class="st-card is-live ${i===0?'big':''} glowcard" style="--h1:${h[0]};--h2:${h[1]};${url?'cursor:pointer':''}" ${url?`data-href="${esc(url)}" role="link" tabindex="0" aria-label="فتح بث ${esc(x.name)}" title="فتح البث"`:''}>
         <div class="st-wave" aria-hidden="true">${wave(i===0?44:22)}</div>
         <div class="st-top"><span class="live-tag"><span class="dot live"></span>مباشر</span>${x.badge?UI.badge(x.badge):''}</div>
-        <div class="st-mid">${stAvHtml(x,h)}<div><h3 class="h2" style="font-size:24px">${esc(x.name)}</h3><p class="muted">يلعب ${esc(game||'—')}</p></div></div>
-        <div class="st-bot"><div class="st-bar"><div><b class="num" style="font-size:18px">${esc(game||'—')}</b><span>اللعبة الحالية</span></div></div>
+        <div class="st-mid">${stAvHtml(x,h)}<div><h3 class="h2" style="font-size:24px">${esc(x.name)}</h3><p class="muted">${playing?'يلعب '+esc(game||'—'):'متصل بالبث'}</p></div></div>
+        <div class="st-bot"><div class="st-bar"><div><b class="num" style="font-size:18px">${playing?esc(game||'—'):'بدون لعبة بعد'}</b><span>${playing?'اللعبة الحالية':'ربط بثه الآن'}</span></div></div>
           <button class="btn btn-ghost btn-sm" data-go="rounds">${icon('eye')}الراوندات</button></div>
       </article>`; }).join('')}</div>`;
   }

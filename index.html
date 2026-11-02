@@ -21065,6 +21065,8 @@ const PLATFORM_LABELS = { tiktok: '📱 تيك توك', twitch: '🟣 تويتش
 let ownerListenersStarted = false;
 let ownerUnsubUsers = null;
 let ownerUnsubStreamers = null;
+let ownerUnsubStreamersRt = null;
+let ownerStreamersFsRaw = [], ownerStreamersRtRaw = [];
 let ownerUsersCache = []; // آخر لقطة من مجموعة users — تُعاد قراءتها لقائمة "الحسابات الجديدة"
 
 // ==================== SHARED: USERNAME AUTOCOMPLETE ====================
@@ -21374,44 +21376,29 @@ function ownerBoot() {
     document.getElementById('owner-users-list').innerHTML = '<div class="owner-empty">⚠️ تعذّر تحميل المستخدمين: ' + ownerEscape(err.message) + '</div>';
   });
 
-  // ---- Streamers tab: live list of who is currently running which game ----
+  // ---- Streamers tab: live list of who is currently linked / running which game ----
+  // مصدران يُدمجان: (1) Firestore activeStreamers (لعبة شغّالة) (2) RTDB fsMirror/activeStreamers/link_* (بثّ مربوط
+  // فعلياً — يُكتب لحظة نجاح الربط ويُحذف تلقائياً عند الانقطاع) فيظهر الستريمر لحظة ربطه قبل أي لعبة.
+  ownerStreamersFsRaw = []; ownerStreamersRtRaw = [];
   ownerUnsubStreamers = fb.onSnapshot(fb.collection(fb.db, 'activeStreamers'), (snap) => {
-    const rawRows = [];
-    snap.forEach(d => rawRows.push(d.data()));
-
-    // كل ستريمر (بحسب اسم اليوزر) قد يكون له أكثر من doc — وحدة لكل لعبة
-    // شغّلها بترتيب. نعرض صف واحد فقط لكل يوزر فريد، ونأخذ أحدث لعبة لعبها
-    // (الأكبر بـ updatedAt) عشان ما يتكرر نفس الستريمر إذا بدّل لعبته.
-    const byUsername = new Map(); // usernameLower -> latest doc
-    rawRows.forEach(s => {
-      const key = (s.username || '').toLowerCase();
-      if (!key) return;
-      const existing = byUsername.get(key);
-      const thisTime = s.updatedAt?.seconds || 0;
-      const existingTime = existing ? (existing.updatedAt?.seconds || 0) : -1;
-      if (!existing || thisTime > existingTime) byUsername.set(key, s);
-    });
-    const rows = [...byUsername.values()];
-    rows.sort((a, b) => (b.updatedAt?.seconds || 0) - (a.updatedAt?.seconds || 0));
-
-    document.getElementById('owner-streamers-count').textContent = rows.length;
-    const list = document.getElementById('owner-streamers-list');
-    if (!rows.length) {
-      list.innerHTML = '<div class="owner-empty">لا يوجد أحد يبث الآن</div>';
-      return;
-    }
-    list.innerHTML = rows.map(s => `
-      <div class="owner-row">
-        <div class="owner-row-main">
-          <div class="owner-row-name">${ownerEscape(s.username || '—')}</div>
-          <div class="owner-row-sub">يلعب الآن: ${ownerEscape(s.gameName || '—')}</div>
-        </div>
-        <span class="owner-plat-badge">${ownerEscape(PLATFORM_LABELS[s.platform] || s.platform || '—')}</span>
-      </div>
-    `).join('');
+    const raw = [];
+    snap.forEach(d => raw.push(d.data()));
+    ownerStreamersFsRaw = raw;
+    ownerRenderStreamers();
   }, (err) => {
     document.getElementById('owner-streamers-list').innerHTML = '<div class="owner-empty">⚠️ تعذّر تحميل الستريمرز: ' + ownerEscape(err.message) + '</div>';
   });
+  try {
+    if (ownerUnsubStreamersRt) { ownerUnsubStreamersRt(); ownerUnsubStreamersRt = null; }
+    if (fb.rtdb && typeof fb.rtdbOnValue === 'function') {
+      const h = fb.rtdbOnValue(fb.rtdbRef(fb.rtdb, 'fsMirror/activeStreamers'), (snap) => {
+        const v = (snap && snap.exists && snap.exists()) ? (snap.val() || {}) : {};
+        ownerStreamersRtRaw = Object.keys(v).map(k => Object.assign({ _k: k }, v[k])).filter(x => x && x.username);
+        ownerRenderStreamers();
+      }, () => { /* أفضل جهد — Firestore يكفي */ });
+      ownerUnsubStreamersRt = (typeof h === 'function') ? h : null;
+    }
+  } catch (e) { /* أفضل جهد */ }
 
   // ---- Games tab: badge control per game, read from the DOM's gcards ----
   // ما نفتح مستمع خاص باللوحة على gameBadges - مستمع واحد مشترك
@@ -23229,6 +23216,61 @@ function publicGameOrderBoot() {
   gameOrderRtdbBoot();
 }
 
+
+// يدمج مصدري الستريمرز (Firestore: لعبة شغّالة، RTDB: بثّ مربوط) ويرسم قائمة اللوحة. ستريمر واحد لكل يوزر:
+// لو عنده لعبة (من أي مصدر) تُعرض، وإلا يظهر «متصل بالبث» لحظة ربطه.
+function ownerRenderStreamers() {
+  const list = document.getElementById('owner-streamers-list');
+  if (!list) return;
+  const STALE_MS = 12 * 3600 * 1000, now = Date.now();
+  const byUsername = new Map();
+  const consider = (s, tSec) => {
+    const key = String(s.username || '').toLowerCase();
+    if (!key) return;
+    const item = { username: s.username, platform: s.platform || null, gameName: s.gameName || null, t: tSec || 0 };
+    const ex = byUsername.get(key);
+    if (!ex) { byUsername.set(key, item); return; }
+    if (item.gameName && !ex.gameName) { byUsername.set(key, item); return; }
+    if (!item.gameName && ex.gameName) return;
+    if (item.t > ex.t) byUsername.set(key, item);
+  };
+  ownerStreamersFsRaw.forEach(s => consider(s, s.updatedAt?.seconds || 0));
+  ownerStreamersRtRaw.forEach(s => { const ms = Number(s.updatedAtMs) || 0; if (ms && now - ms > STALE_MS) return; consider(s, Math.floor(ms / 1000)); });
+  const rows = [...byUsername.values()].sort((a, b) => b.t - a.t);
+  document.getElementById('owner-streamers-count').textContent = rows.length;
+  if (!rows.length) { list.innerHTML = '<div class="owner-empty">لا يوجد أحد يبث الآن</div>'; return; }
+  list.innerHTML = rows.map(s => `
+      <div class="owner-row">
+        <div class="owner-row-main">
+          <div class="owner-row-name">${ownerEscape(s.username || '—')}</div>
+          <div class="owner-row-sub">${s.gameName ? 'يلعب الآن: ' + ownerEscape(s.gameName) : 'متصل بالبث'}</div>
+        </div>
+        <span class="owner-plat-badge">${ownerEscape(PLATFORM_LABELS[s.platform] || s.platform || '—')}</span>
+      </div>
+    `).join('');
+}
+
+// حضور الستريمر لحظة ربط بثه: يُكتب في RTDB (fsMirror/activeStreamers/link_<uid>) فيصل لقائمة المالك فوراً، ويُحذف
+// تلقائياً عند انقطاع الصفحة (onDisconnect) أو عند فك الربط. الكتابة أفضل جهد ولا تعيق أي شيء.
+let ownerPresenceDisc = false, ownerPresenceGame = null;
+function ownerPresenceSet(platform, username, gameName) {
+  try {
+    const u = fb && fb.auth && fb.auth.currentUser;
+    if (!fb || !fb.rtdb || !u || !u.uid || !username || typeof fb.rtdbSet !== 'function') return;
+    const ref = fb.rtdbRef(fb.rtdb, 'fsMirror/activeStreamers/link_' + u.uid);
+    if (gameName) ownerPresenceGame = gameName; else gameName = ownerPresenceGame;   // اتصال تلقائي أثناء لعبة لا يمسح اسمها
+    fb.rtdbSet(ref, { username: String(username).replace(/^@/, ''), platform: platform || null, gameTag: 'link', gameName: gameName || null, uid: u.uid, updatedAtMs: Date.now() }).catch(() => {});
+    if (!ownerPresenceDisc && typeof fb.rtdbOnDisconnect === 'function') { ownerPresenceDisc = true; try { const d = fb.rtdbOnDisconnect(ref); if (d && d.remove) d.remove(); } catch (e) {} }
+  } catch (e) { /* أفضل جهد */ }
+}
+function ownerPresenceClear() {
+  try {
+    const u = fb && fb.auth && fb.auth.currentUser;
+    if (!fb || !fb.rtdb || !u || !u.uid || typeof fb.rtdbRemove !== 'function') return;
+    fb.rtdbRemove(fb.rtdbRef(fb.rtdb, 'fsMirror/activeStreamers/link_' + u.uid)).catch(() => {});
+  } catch (e) { /* أفضل جهد */ }
+}
+
 // Records that `username` just launched `gameName` (tagged `gameTag`) on `platform`.
 // Called from every per-game launch function right after scoreCurrentStreamer is set.
 async function ownerRegisterActiveStreamer(gameTag, username, platform, gameName) {
@@ -23243,6 +23285,7 @@ async function ownerRegisterActiveStreamer(gameTag, username, platform, gameName
   alfawzanSpecialFabBoot();
   ghnamSpecialFabBoot();
   adminCommandGrantsBoot();
+  ownerPresenceSet(platform, username, gameName);
   try {
     await fb.setDoc(fb.doc(fb.db, 'activeStreamers', gameTag), {
       username, platform: platform || null, gameTag, gameName: gameName || null,
@@ -23752,6 +23795,7 @@ async function ownerLogPlayEvent(type, gameTag, gameName, username, platform) {
 // instead of showing a stale "still streaming" entry.
 async function ownerClearActiveStreamerForCurrentUser() {
   if (!fb || !currentUser) return;
+  ownerPresenceClear();
   try {
     const q = fb.query(fb.collection(fb.db, 'activeStreamers'), fb.where('uid', '==', currentUser.uid));
     const snap = await fb.getDocs(q);
@@ -25133,6 +25177,11 @@ function homeConnSetState(platform, state) {
     if (inGame) toast('✅ رجع اتصال شات البث');
   }
   homeConnStatusRender();
+  // حضور الستريمر لقائمة المالك: لحظة نجاح الربط الفعلي (وليس رجوع اتصال تلقائي فقط) يظهر عند المالك فوراً.
+  try {
+    if (state === 'connected') { const sl = homeConnections[platform]; if (sl && sl.username) ownerPresenceSet(platform, sl.username, null); }
+    else if (prev === 'connected' && homeConnOverall() !== 'connected') ownerPresenceClear();
+  } catch (e) { /* أفضل جهد */ }
   // ترحيب dh_mx (طبقة بصرية مستقلة: dhmx-welcome/): ربط ناجح فعلي يبدأه المستخدم فقط، لا إعادة اتصال بعد انقطاع.
   if (platform === 'tiktok' && typeof dhmxWelcomeOnState === 'function') { try { dhmxWelcomeOnState(state, wasReconnect); } catch (e) {} }
   // احتفال 10K للستريمر som3h.4 (طبقة بصرية مستقلة: som3h-10k/): نفس شرط الربط الناجح الفعلي.
@@ -25383,6 +25432,7 @@ function platformDisconnect(platform) {
   delete homeConnections[platform];
   delete homeConnState[platform];
   homeConnStatusRender();
+  try { if (homeConnOverall() !== 'connected') ownerPresenceClear(); } catch (e) { /* أفضل جهد */ }  // فك الربط: يختفي من قائمة المالك فوراً
 }
 
 function platformDisconnectAll() {
