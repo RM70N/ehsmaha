@@ -19735,6 +19735,7 @@ async function authRunPostAuthBootChain(lastSeenUpdateAt) {
   whatsNewCheck(lastSeenUpdateAt || null);
   personalMessageBoot();
   if (typeof som3h10kOnAuth === 'function') { try { som3h10kOnAuth(currentUser, currentUsername); } catch (e) {} } // احتفال 10K عند دخول Sjwj (som3h-10k/)
+  if (typeof blhh5kOnAuth === 'function') { try { blhh5kOnAuth(currentUser, currentUsername); } catch (e) {} } // احتفال 5K عند دخول rayan (blhh-5k/)
   await broadcastMessageCheckOnLoad();
   broadcastMessageBoot();
   storeNewAnnouncementBoot();
@@ -24386,6 +24387,7 @@ function tiktokConnectModalStart() {
   tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
   if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
+  if (typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
 
   try { if (window._tkModalSock) window._tkModalSock.close(1000); } catch (e) {}
   try { if (window._tkModalWatcher) window._tkModalWatcher.stop(); } catch (e) {}
@@ -24486,6 +24488,7 @@ function tiktokQuickReconnect(username, opts) {
   }
   if (!silent && typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
   if (!silent && typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
+  if (!silent && typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
   const overlay = document.getElementById('qc-connecting-overlay');
   const hideOverlay = () => {
     if (silent || !overlay) return;
@@ -25134,6 +25137,7 @@ function homeConnSetState(platform, state) {
   if (platform === 'tiktok' && typeof dhmxWelcomeOnState === 'function') { try { dhmxWelcomeOnState(state, wasReconnect); } catch (e) {} }
   // احتفال 10K للستريمر som3h.4 (طبقة بصرية مستقلة: som3h-10k/): نفس شرط الربط الناجح الفعلي.
   if (platform === 'tiktok' && typeof som3h10kOnState === 'function') { try { som3h10kOnState(state, wasReconnect); } catch (e) {} }
+  if (platform === 'tiktok' && typeof blhh5kOnState === 'function') { try { blhh5kOnState(state, wasReconnect); } catch (e) {} }
 }
 
 // حالة واحدة تمثّل كل المنصات الموصولة (أفضلها): متصل لو أي منصة متصلة.
@@ -25845,6 +25849,7 @@ function homeStartQuickConnect() {
   platformDisconnectAll();
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
   if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
+  if (typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
 
   const statusByPlatform = {};
   targets.forEach(t => { statusByPlatform[t.platform] = 'connecting'; });
@@ -86321,6 +86326,7 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/dhmx-welcome/dhmx-welcome.js"></script>
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-integration.js"></script>
+<script src="/blhh-5k/blhh-5k-integration.js"></script>
 <script src="/ops/ops-games.js"></script>
 <script src="/ops/ops-core.js"></script>
 <script src="/ops/ops-tournament-site.js"></script>
@@ -86328,6 +86334,7 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/subathon/subathon-engine.js"></script>
 <script src="/subathon/subathon-ui.js"></script>
 <script src="/som3h-10k/som3h-10k-celebration.js"></script>
+<script src="/blhh-5k/blhh-5k-celebration.js"></script>
 <script src="/owner-studio/owner-studio-bridge.js"></script>
 <script src="/revival-system/revival-config.js"></script>
 <script src="/revival-system/revival-effects.js"></script>
