@@ -29041,6 +29041,24 @@ function updateScorePanelVisibility(page) {
 // الألعاب تناديها.
 function updateScorePanelForRound(isRoundActive) { /* اللوح المصغّر انحذف */ }
 
+// زر الراوند يتبع حالة اللعبة دايماً. المشكلة: بعض الألعاب (ضربة الحظ، دائرة الإقصاء،
+// الصندوق العشوائي، آخر حرف) كانت تعطّل الزر وتكتب «الراوند شغال...» عند البدء ولا ترجّعه
+// عند انتهاء الراوند إلا بضغط «ريست» — فيبقى يظهر للستريمر أن الراوند جاري وهو منتهٍ.
+// بعد الانتهاء: الزر يتفعّل بنص «ابدأ راوند جديد» وضغطه يفتح لوبي جديد (نفس ريست بلا تأكيد).
+function roundBtnSync(btnId, status, labels, startFn, newRoundFn) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (status === 'active') { btn.disabled = true; btn.textContent = labels.running; return; }
+  btn.disabled = false;
+  if (status === 'finished') {
+    btn.textContent = labels.again;
+    btn.onclick = () => { try { newRoundFn(); } catch (e) { console.error('newRound', e); } };
+  } else {
+    btn.textContent = labels.idle;
+    btn.onclick = startFn;
+  }
+}
+
 // زر "إخفاء/إظهار شات البث" — مشترك بكل لوحات الألعاب. يخفي عمود الشات
 // بالكامل (والشات يفضل يستقبل الرسائل بالخلفية)، وتاخذ اللعبة العرض
 // الكامل. زر عائم صغير يظهر لإرجاع الشات وقت ما يكون مخفي.
@@ -33615,6 +33633,7 @@ function setHzGameStatus(s) {
   const strip = document.getElementById('hz-status-strip');
   strip.className = 'status-strip ' + s;
   updateScorePanelForRound(s === 'active');
+  roundBtnSync('hz-btn-round', s, { idle: '▶ ابدأ الراوند', running: '⏸ الراوند شغال...', again: '▶ ابدأ راوند جديد' }, startHzRound, initHzDashboard);
   if (s === 'waiting') strip.innerHTML = '⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية';
   else if (s === 'active') strip.innerHTML = '🍀 الراوند شغال — اضغط على أي صندوق تبيه!';
   else if (s === 'finished') strip.innerHTML = '🏆 انتهى الراوند!';
@@ -34992,6 +35011,7 @@ function setRouGameStatus(s) {
   const strip = document.getElementById('rou-status-strip');
   strip.className = 'status-strip ' + s;
   updateScorePanelForRound(s === 'active');
+  roundBtnSync('rou-btn-round', s, { idle: '▶ ابدأ الراوند', running: '⏸ الراوند شغال...', again: '▶ ابدأ راوند جديد' }, startRouletteRound, initRouletteDashboard);
   if (s === 'waiting') strip.innerHTML = '⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في الشات';
   else if (s === 'active') strip.innerHTML = '🎯 دائرة الإقصاء شغالة — الحظ يقرر!';
   else if (s === 'finished') strip.innerHTML = '🏆 انتهى الراوند!';
@@ -36913,6 +36933,7 @@ function setBoxGameStatus(s) {
   const strip = document.getElementById('box-status-strip');
   strip.className = 'status-strip ' + (s === 'active' ? 'active' : s === 'finished' ? 'finished' : 'waiting');
   updateScorePanelForRound(s === 'active');
+  roundBtnSync('box-btn-round', s, { idle: '▶ ابدأ اللعبة', running: '⏸ اللعبة شغالة...', again: '▶ ابدأ لعبة جديدة' }, startBoxRound, initBoxDashboard);
   if (s === 'waiting')  strip.innerHTML = '⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في الشات';
   else if (s === 'active')   strip.innerHTML = '🎁 اللعبة شغالة — اختر رقم صندوقك بالشات (1، 2، 3)!';
   else if (s === 'finished') strip.innerHTML = '🏆 انتهت اللعبة!';
@@ -39986,6 +40007,7 @@ function setLLGameStatus(s) {
   const strip = document.getElementById('ll-status-strip');
   strip.className = 'status-strip ' + (s === 'active' ? 'active' : s === 'finished' ? 'finished' : 'waiting');
   updateScorePanelForRound(s === 'active');
+  roundBtnSync('ll-btn-round', s, { idle: '▶ ابدأ الراوند', running: '⏸ الراوند شغال...', again: '▶ ابدأ راوند جديد' }, startLastLetterRound, initLLDashboard);
   if (s === 'waiting')   strip.innerHTML = '⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في الشات';
   else if (s === 'active')   strip.innerHTML = '🔡 الراوند شغال — السلسلة تكمل!';
   else if (s === 'finished') strip.innerHTML = '🏆 انتهى الراوند!';

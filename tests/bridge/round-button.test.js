@@ -18,15 +18,16 @@ const ONLY = (process.env.ONLY || '').split(',').filter(Boolean);
       await sleep(sp.lab && sp.lab.heavy ? 3500 : 1300);
       const kw = (sp.lab && sp.lab.kwVal) || sp.kw || 'ادخل'; for (const v of ['q1', 'q2', 'q3']) await say(v, kw);
       const hasBtn = await page.evaluate(() => !!document.querySelector('.page.active [id$="btn-round"]')); if (!hasBtn) { row.note = 'no-btn'; rows.push(row); console.log('SKIP ' + sp.tag + ' (لا زر راوند)'); continue; }
-      row.p0 = await snap(sp.st);
+      row.p0 = await snap(sp.st); const gp = await page.evaluate(() => document.querySelector('.page.active').id.replace(/^pg-/, ''));
       await page.evaluate(() => document.querySelector('.page.active [id$="btn-round"]').click()); await sleep(1300); row.p1 = await snap(sp.st);
       const ff = sp.tag === 'main' ? 'mainForceWin' : sp.tag + 'ForceWin'; const hasFF = await page.evaluate((ff) => typeof window[ff] === 'function', ff);
-      if (hasFF) { await page.evaluate((ff) => window[ff]({ uniqueId: 'tiktok:q1', nickname: 'q1' }), ff); await sleep(1800); row.p2 = await snap(sp.st);
-        await page.evaluate(() => { const b = document.querySelector('.page.active [id$="btn-round"]'); if (b && !b.disabled) b.click(); }); await sleep(1500); row.p3 = await snap(sp.st); }
+      if (hasFF) { await page.evaluate((ff) => window[ff]({ uniqueId: 'tiktok:q1', nickname: 'q1' }), ff); await sleep(1800); await page.evaluate((gp) => show(gp), gp); await sleep(600); row.p2 = await snap(sp.st);
+        await page.evaluate(() => { const b = document.querySelector('.page.active [id$="btn-round"]'); if (b && !b.disabled) b.click(); }); await sleep(1500); row.p3 = await snap(sp.st);
+        if (row.p3 && row.p3.status === 'waiting') { for (const v of ['q1', 'q2', 'q3']) await say(v, kw); await page.evaluate(() => { const b = document.querySelector('.page.active [id$="btn-round"]'); if (b && !b.disabled) b.click(); }); await sleep(1500); row.p4 = await snap(sp.st); } }
     } catch (e) { row.note = 'استثناء: ' + e.message.slice(0, 80); try { await page.close(); } catch (x) {} page = await H.newPage(b, { query: '?debug=0' }); await sleep(2500); await H.linkAccount(page, U).catch(() => {}); }
     // اتساق: status active ⇔ نص «شغال» وزر معطّل
-    const incons = [['p1', row.p1], ['p2', row.p2], ['p3', row.p3]].filter(([k, p]) => p && ((p.status === 'active') !== /شغ[اّ]ل/.test(p.text)));
-    rows.push(row); console.log((incons.length ? 'BAD  ' : 'OK   ') + sp.tag + ' p1=' + JSON.stringify(row.p1) + ' p2=' + JSON.stringify(row.p2) + ' p3=' + JSON.stringify(row.p3) + (row.note ? ' ' + row.note : '')); if (incons.length) bad.push(sp.tag);
+    const incons = [['p1', row.p1], ['p2', row.p2], ['p3', row.p3], ['p4', row.p4]].filter(([k, p]) => p && ((p.status === 'active') !== (p.disabled && /شغ[اّ]ل/.test(p.text)) && !(p.status !== 'active' && !p.disabled)));
+    rows.push(row); console.log((incons.length ? 'BAD  ' : 'OK   ') + sp.tag + ' p1=' + JSON.stringify(row.p1) + ' p2=' + JSON.stringify(row.p2) + ' p3=' + JSON.stringify(row.p3) + ' p4=' + JSON.stringify(row.p4) + (row.note ? ' ' + row.note : '')); if (incons.length) bad.push(sp.tag);
   }
   console.log('inconsistent: ' + bad.join(',') + ' | total ' + rows.length); await b.close(); process.exit(bad.length ? 1 : 0);
 })().catch((e) => { console.log('FATAL', e.message); process.exit(2); });
