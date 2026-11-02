@@ -178,6 +178,7 @@
   X.scrollUp = function () { var ok = scrollPage(-1); return ok ? { ok: true, detail: 'تمرير لفوق' } : { ok: false, reason: 'edge', detail: 'بداية الصفحة' }; };
   X.games = function () { if (E.pageId() === 'home') { return { ok: true, detail: 'الألعاب معروضة' }; } return goHome() ? { ok: true, detail: 'قائمة الألعاب' } : { ok: false, reason: 'nav' }; };
   X.back = function () {
+    if (kickEl) { closeKick(); return { ok: true, detail: 'أُغلقت قائمة الطرد' }; }
     var ctx = contextRoot();
     if (ctx.modal) { var cl = Array.prototype.slice.call(ctx.el.querySelectorAll('button,[onclick],[aria-label]')).filter(function (b) { return vis(b) && !isBlocked(b) && /(اغلاق|اغلق|اقفل|سكر|الغاء|رجوع|close|x|×|✕)/.test(C.normalize(labelOf(b)) + ' ' + (b.getAttribute('aria-label') || '').toLowerCase()); })[0]; if (cl) return press(cl); }
     var reg = buildRegistry().filter(function (t) { return /(رجوع|عوده|للخلف|الرئيسيه|القايمه|back)/.test(t.norm); })[0];
@@ -219,7 +220,48 @@
     if (list.length > 1) { numberTargets(list); E._choices = list.map(function (t) { return { label: t.label }; }); E._choiceEls = list.map(function (t) { return t.el; }); return { ok: false, reason: 'ambiguous', detail: 'عدة أزرار بنفس الاسم — اكتب رقماً', choices: E._choices }; }
     return { ok: false, reason: 'not-found', detail: 'لا هدف باسم «' + name + '»' };
   };
+
+  /* ---------- طرد لاعب: قائمة بأرقام كبيرة؛ رقم اللاعب يطرده ثم تُغلق القائمة ويكمل الراوند ---------- */
+  var kickEl = null, kickT = null, kickRows = [];
+  function closeKick() {
+    if (kickEl) { kickEl.remove(); kickEl = null; } clearTimeout(kickT); kickRows = [];
+    if (E._choices && E._choices.kick) E._choices = null;
+    var ov = document.getElementById('kick-modal-overlay'); if (ov) ov.classList.remove('visible');
+  }
+  E.closeKick = closeKick; E.kickOpen = function () { return !!kickEl; };
+  function playersOf(spec) {
+    try { var m = spec && spec.pmap ? (0, eval)(spec.pmap) : null; if (!m || typeof m.entries !== 'function') return [];
+      return Array.from(m.entries()).map(function (e) { var v = e[1] || {}; var u = v.user || v; return { uid: e[0], name: String(u.nickname || u.name || u.uniqueId || e[0]).replace(/^(tiktok|twitch|kick|youtube):/, '') }; }); } catch (x) { return []; }
+  }
+  X.kick = function () {
+    var pg = E.pageId(); if (pg === 'home') return { ok: false, reason: 'no-game', detail: 'لا لعبة مفتوحة' };
+    closeKick(); var rows = [];
+    var btn = Array.prototype.slice.call(document.querySelectorAll('.page.active .btn-kick, .page.active [onclick*="OpenKickModal"]')).filter(function (b) { return vis(b) && !b.disabled; })[0];
+    if (btn) {
+      btn.click(); var list = document.querySelectorAll('#kick-modal-list .rounds-pick-row');
+      rows = Array.prototype.map.call(list, function (r) { var n = r.querySelector('.rounds-pick-name'); return { name: n ? n.textContent.trim() : '', btn: r.querySelector('button') }; }).filter(function (r) { return r.btn; });
+      var ov = document.getElementById('kick-modal-overlay'); if (ov) ov.classList.remove('visible');     // نستبدل نافذة الستريمر بقائمتنا (المسار نفسه عند التأكيد)
+    } else {
+      var spec = activeSpec(); var ps = spec && spec.lab && spec.lab.elim ? playersOf(spec) : [];
+      rows = ps.map(function (p) { return { name: p.name, elim: function () { (0, eval)('(function(uid){' + spec.lab.elim + '})')(p.uid); } }; });
+      if (!rows.length && !spec) return { ok: false, reason: 'no-kick', detail: 'لا زر طرد في هذه الشاشة' };
+    }
+    if (!rows.length) { closeKick(); return { ok: false, reason: 'no-players', detail: 'لا لاعبين الآن' }; }
+    kickRows = rows.slice(0, 30);
+    kickEl = document.createElement('div'); kickEl.id = 'subathon-kick'; kickEl.setAttribute('data-subathon-ui', '1'); kickEl.setAttribute('role', 'dialog'); kickEl.setAttribute('aria-label', 'اطرد لاعب');
+    kickEl.innerHTML = '<div class="sk-box"><div class="sk-h"><b>اطرد لاعب</b><span>اكتب رقم اللاعب في الشات لطرده · اكتب «إلغاء» للإغلاق</span></div><div class="sk-grid">' +
+      kickRows.map(function (r, i) { return '<div class="sk-c"><i>' + (i + 1) + '</i><b></b></div>'; }).join('') + '</div>' + (rows.length > 30 ? '<div class="sk-more">يظهر أول ٣٠ لاعباً فقط</div>' : '') + '</div>';
+    document.body.appendChild(kickEl); kickEl.querySelectorAll('.sk-c b').forEach(function (b, i) { b.textContent = kickRows[i].name || ('لاعب ' + (i + 1)); });
+    E._choices = kickRows.map(function (r, i) { return { kick: i }; }); E._choices.kick = true; clearTimeout(kickT); kickT = setTimeout(closeKick, 40000);
+    return { ok: true, detail: 'قائمة الطرد: ' + kickRows.length + ' لاعب', choices: E._choices };
+  };
+
   X.choose = function (cmd) {
+    if (E._choices && E._choices.kick) {
+      var kr = kickRows[cmd.args.n - 1]; if (!kr) return { ok: false, reason: 'no-choice', detail: 'رقم غير موجود في القائمة', keep: true };
+      try { if (kr.btn) { if (!kr.btn.isConnected) throw new Error('gone'); kr.btn.click(); } else kr.elim(); } catch (e) { closeKick(); return { ok: false, reason: 'exception', detail: 'تعذر الطرد' }; }
+      var nm = kr.name; closeKick(); return { ok: true, detail: 'طُرد: ' + nm };
+    }
     var n = cmd.args.n - 1; var ch = E._choices; clearBadges(); if (!ch || !ch[n]) return { ok: false, reason: 'no-choice', detail: 'رقم غير صالح' };
     if (ch[n].game) return openGameByTag(ch[n].game);
     var el = E._choiceEls && E._choiceEls[n]; E._choices = null; return press(el);
@@ -281,6 +323,6 @@
     if (hooks.onAction) try { hooks.onAction(item, res); } catch (e) {}
     return Promise.resolve(res);
   };
-  E.clearPointer = function () { cur = null; E.setPointerVisible(false); clearBadges(); E._choices = null; };
+  E.clearPointer = function () { closeKick(); cur = null; E.setPointerVisible(false); clearBadges(); E._choices = null; };
   E.scrollPage = scrollPage; E.goHome = goHome;
 })();

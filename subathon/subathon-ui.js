@@ -261,6 +261,7 @@
   function onShow() {
     var pg = E.pageId();
     if (pg === 'subathon') { render(); if (!tick) tick = setInterval(function () { if (E.pageId() !== 'subathon') { clearInterval(tick); tick = null; return; } updLive(); }, 1000); }
+    if (pg !== E.pageId()) {} try { E.closeKick(); } catch (e) {}
     if (session && session.active) { session.contextChanged('page:' + pg); hudUpdate(); }
   }
   function updLive() {
