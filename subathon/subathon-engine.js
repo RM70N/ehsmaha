@@ -18,12 +18,19 @@
   E.hooks = hooks;
 
   /* ---------- أدوات ---------- */
+  /* مستطيل العنصر بإحداثيات الصفحة الرئيسية (يشمل إزاحة الإطارات iframe المتداخلة من نفس الأصل) */
+  function absRect(el) {
+    var r = el.getBoundingClientRect(), x = r.left, y = r.top, w = el.ownerDocument.defaultView;
+    try { while (w && w !== window && w.frameElement) { var fr = w.frameElement.getBoundingClientRect(); x += fr.left; y += fr.top; w = w.parent; } } catch (e) {}
+    return { left: x, top: y, right: x + r.width, bottom: y + r.height, width: r.width, height: r.height };
+  }
   function vis(el) {
     if (!el || !el.isConnected) return false;
-    var r = el.getBoundingClientRect(); if (r.width < 6 || r.height < 6) return false;
-    var cs = getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0 || cs.pointerEvents === 'none') return false;
+    var r = absRect(el); if (r.width < 6 || r.height < 6) return false;
+    var win = el.ownerDocument.defaultView || window, doc = el.ownerDocument;
+    var cs = win.getComputedStyle(el); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0 || cs.pointerEvents === 'none') return false;
     var vw = innerWidth, vh = innerHeight; if (r.bottom < -2000 || r.top > vh + 4000 || r.right < -50 || r.left > vw + 50) return false;
-    for (var p = el.parentElement; p && p !== document.body; p = p.parentElement) { var ps = getComputedStyle(p); if (ps.display === 'none' || ps.visibility === 'hidden') return false; }
+    for (var p = el.parentElement; p && p !== doc.body; p = p.parentElement) { var ps = win.getComputedStyle(p); if (ps.display === 'none' || ps.visibility === 'hidden') return false; }
     return true;
   }
   function labelOf(el) {
@@ -35,6 +42,7 @@
     var oc = (el.getAttribute('onclick') || '') + ' ' + (el.id || '') + ' ' + (el.className && el.className.baseVal === undefined ? el.className : '') + ' ' + (el.getAttribute('href') || '') + ' ' + (el.getAttribute('data-act') || '');
     if (C.BLOCK_RE.test(oc)) return true;
     var lb = labelOf(el); if (C.BLOCK_RE.test(lb)) return true;
+    if (/(تجربه سريعه|^اختبار|وضع التجربه|تجربه الان)/.test(C.normalize(lb))) return true;   // أزرار اللاعبين الوهميين/الاختبار: لا تُشغَّل في بث حيّ
     if (el.tagName === 'A' && el.href && !/^javascript:|^#/.test(el.getAttribute('href') || '') && el.origin && el.origin !== location.origin) return true;
     return false;
   }
@@ -56,13 +64,17 @@
   /* ---------- سجل الأهداف (Target Registry) ---------- */
   function buildRegistry() {
     var ctx = contextRoot(); var root = ctx.el; var out = [];
-    var nodes = root.querySelectorAll('button, a, [onclick], [role="button"], [role="tab"], input[type=button], input[type=submit], input[type=checkbox], input[type=radio], summary, .gcard');
+    var SEL = 'button, a, [onclick], [role="button"], [role="tab"], input[type=button], input[type=submit], input[type=checkbox], input[type=radio], summary, .gcard';
+    var nodes = Array.prototype.slice.call(root.querySelectorAll(SEL));
+    Array.prototype.forEach.call(root.querySelectorAll('iframe'), function (fr) {      // ألعاب الـiframe (3D/مستقلة): أزرارها جزء من الشاشة
+      try { if (!vis(fr)) return; var d = fr.contentDocument; if (d && d.body) nodes = nodes.concat(Array.prototype.slice.call(d.querySelectorAll(SEL))); } catch (e) { /* خارج الأصل: لا وصول */ }
+    });
     var seen = new Set();
     nodes.forEach(function (el) {
       if (seen.has(el) || !clickable(el) || !vis(el) || isBlocked(el)) return;
       // لا نأخذ الأب إن كان فيه ابن قابل للضغط يغطي نفس المنطقة (نفضّل الأعمق للأزرار؛ البطاقات gcard تُؤخذ كاملة)
       if (!el.classList.contains('gcard')) { var inner = el.querySelector('button,a[onclick],[onclick]'); if (inner && inner !== el && vis(inner) && !isBlocked(inner) && el.tagName !== 'BUTTON') return; }
-      seen.add(el); var r = el.getBoundingClientRect();
+      seen.add(el); var r = absRect(el);
       var lb = labelOf(el); if (!lb && !el.classList.contains('gcard')) return;
       out.push({ el: el, label: lb, norm: C.normalize(lb), cx: r.left + r.width / 2, cy: r.top + r.height / 2, r: r, page: E.pageId(), modal: ctx.modal });
     });
@@ -78,7 +90,7 @@
   }
   function placePointer(el, tagText) {
     var o = ensureOverlay(); if (!el || !el.isConnected) { o.classList.remove('on'); return; }
-    var r = el.getBoundingClientRect(); o.style.left = r.left - 4 + 'px'; o.style.top = r.top - 4 + 'px'; o.style.width = r.width + 8 + 'px'; o.style.height = r.height + 8 + 'px';
+    var r = absRect(el); o.style.left = r.left - 4 + 'px'; o.style.top = r.top - 4 + 'px'; o.style.width = r.width + 8 + 'px'; o.style.height = r.height + 8 + 'px';
     o.querySelector('.sbp-tag').textContent = tagText || labelOf(el).slice(0, 24); o.classList.add('on');
   }
   E.setPointerVisible = function (v) { var o = ensureOverlay(); if (!v) o.classList.remove('on'); else if (cur) placePointer(cur); };
@@ -124,6 +136,8 @@
     flash();
     el.click(); return { ok: true, detail: lb || 'ضغط' };
   }
+  /* الضغط عملية لمرة واحدة: بعده يُفرَّغ المؤشر حتى لا تعيد كلمة عادية في الشات (مثل «ادخل») ضغط آخر زر */
+  function pressOnce(el) { var r = press(el); setTimeout(function () { cur = null; E.setPointerVisible(false); }, 500); return r; }
   function flash() { var o = ensureOverlay(); o.classList.remove('hit'); void o.offsetWidth; o.classList.add('hit'); }
 
   /* ---------- أرقام مؤقتة للأسماء المكررة ---------- */
@@ -173,14 +187,14 @@
   /* ---------- المنفّذات ---------- */
   var X = {};
   X.down = function () { return move('down'); }; X.up = function () { return move('up'); }; X.left = function () { return move('left'); }; X.right = function () { return move('right'); };
-  X.press = function () { var el = E.current(); if (!el) { var m = move('down'); if (!m.ok) return m; return { ok: true, detail: 'تم تحديد: ' + m.detail }; } return press(el); };
+  X.press = function () { var el = E.current(); if (!el) return { ok: false, silent: true, reason: 'no-pointer' }; return pressOnce(el); };
   X.scrollDown = function () { var ok = scrollPage(1); return ok ? { ok: true, detail: 'تمرير لتحت' } : { ok: false, reason: 'edge', detail: 'نهاية الصفحة' }; };
   X.scrollUp = function () { var ok = scrollPage(-1); return ok ? { ok: true, detail: 'تمرير لفوق' } : { ok: false, reason: 'edge', detail: 'بداية الصفحة' }; };
   X.games = function () { if (E.pageId() === 'home') { return { ok: true, detail: 'الألعاب معروضة' }; } return goHome() ? { ok: true, detail: 'قائمة الألعاب' } : { ok: false, reason: 'nav' }; };
   X.back = function () {
     if (kickEl) { closeKick(); return { ok: true, detail: 'أُغلقت قائمة الطرد' }; }
     var ctx = contextRoot();
-    if (ctx.modal) { var cl = Array.prototype.slice.call(ctx.el.querySelectorAll('button,[onclick],[aria-label]')).filter(function (b) { return vis(b) && !isBlocked(b) && /(اغلاق|اغلق|اقفل|سكر|الغاء|رجوع|close|x|×|✕)/.test(C.normalize(labelOf(b)) + ' ' + (b.getAttribute('aria-label') || '').toLowerCase()); })[0]; if (cl) return press(cl); }
+    if (ctx.modal) { var cl = Array.prototype.slice.call(ctx.el.querySelectorAll('button,[onclick],[aria-label]')).filter(function (b) { return vis(b) && !isBlocked(b) && /(اغلاق|اغلق|اقفل|سكر|الغاء|رجوع|close|x|×|✕)/.test(C.normalize(labelOf(b)) + ' ' + (b.getAttribute('aria-label') || '').toLowerCase()); })[0]; if (cl) return pressOnce(cl); }
     var reg = buildRegistry().filter(function (t) { return /(رجوع|عوده|للخلف|الرئيسيه|القايمه|back)/.test(t.norm); })[0];
     if (reg) { var r = press(reg.el); if (r.ok) openedTag = null; return r; }
     if (E.pageId() !== 'home') { return goHome() ? { ok: true, detail: 'رجوع للرئيسية' } : { ok: false, reason: 'nav' }; }
@@ -189,7 +203,7 @@
   X.close = function () { return X.back(); };
   X.settings = function () {
     var reg = buildRegistry(); var t = reg.filter(function (t) { return /(اعدادات|ضبط|تخصيص|settings|⚙)/.test(t.norm); })[0];
-    if (t) return press(t.el);
+    if (t) return pressOnce(t.el);
     // صفحة إعداد اللعبة هي الإعدادات: افتحها إن كنا في الرئيسية على لعبة محددة
     var s = activeSpec(); if (s && E.pageId() !== 'setup-' + s.tag) return openGameByTag(s.tag);
     return { ok: false, reason: 'no-settings', detail: 'لا إعدادات في هذه الشاشة' };
@@ -206,17 +220,18 @@
 
   X.name = function (cmd, ctx) {
     var name = cmd.args.name; var q = C.normalize(name);
+    if (cmd.args.bareOnly) { try { if (Object.keys(homeGameListeners || {}).length) return { ok: false, silent: true, reason: 'game-chat' }; } catch (e) {} }
     // 1) أهداف السياق الحالي بالاسم (أزرار الشاشة)
     var reg = buildRegistry(); var exact = reg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
-    var part = exact.length ? exact : reg.filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; });
+    var part = exact.length ? exact : (cmd.args.bareOnly ? [] : reg).filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; });
     // 2) لعبة بالاسم (من الرئيسية، أو من أي مكان) — إن لم يطابق زر على الشاشة بدقة
     var onHome = E.pageId() === 'home';
-    var games = (onHome || !exact.length) ? homeCardsFor(name) : [];
+    var games = (onHome || !exact.length) ? (cmd.args.bareOnly ? C.matchGames(name, gameCards()) : homeCardsFor(name)) : [];
     if (games.length === 1 && (onHome || !exact.length)) { if (!(exact.length === 1 && !onHome)) return openGameByTag(games[0].tag); }
     if (games.length > 1) { numberTargets(games.map(function (g) { return { r: g.el.getBoundingClientRect() }; })); E._choices = games.map(function (g) { return { game: g.tag }; }); return { ok: false, reason: 'ambiguous', detail: 'أكثر من لعبة بهذا الاسم — اكتب رقماً', choices: E._choices }; }
     if (cmd.args.bareOnly && !exact.length && part.length !== 1) return { ok: false, reason: 'not-found', detail: 'لا هدف بهذا الاسم' };
     var list = exact.length ? exact : part;
-    if (list.length === 1) { setCur(list[0].el); return press(list[0].el); }
+    if (list.length === 1) { setCur(list[0].el); return pressOnce(list[0].el); }
     if (list.length > 1) { numberTargets(list); E._choices = list.map(function (t) { return { label: t.label }; }); E._choiceEls = list.map(function (t) { return t.el; }); return { ok: false, reason: 'ambiguous', detail: 'عدة أزرار بنفس الاسم — اكتب رقماً', choices: E._choices }; }
     return { ok: false, reason: 'not-found', detail: 'لا هدف باسم «' + name + '»' };
   };
@@ -264,7 +279,7 @@
     }
     var n = cmd.args.n - 1; var ch = E._choices; clearBadges(); if (!ch || !ch[n]) return { ok: false, reason: 'no-choice', detail: 'رقم غير صالح' };
     if (ch[n].game) return openGameByTag(ch[n].game);
-    var el = E._choiceEls && E._choiceEls[n]; E._choices = null; return press(el);
+    var el = E._choiceEls && E._choiceEls[n]; E._choices = null; return pressOnce(el);
   };
 
   /* بدء اللعبة: من صفحة الإعداد → اضغط زر التشغيل (مع تعبئة الحقول الفارغة بقيم افتراضية آمنة) */
@@ -293,22 +308,22 @@
     var spec = activeSpec(); var pg = E.pageId();
     if (pg === 'home') return { ok: false, reason: 'no-game', detail: 'افتح لعبة أولاً' };
     var btn = launchButton(spec);
-    if (btn) { if (spec) fillDefaults(spec); genericFill(); setCur(btn); return press(btn); }
+    if (btn) { if (spec) fillDefaults(spec); genericFill(); setCur(btn); return pressOnce(btn); }
     var cand = buildRegistry().filter(function (t) { return /^(ابدا|بدء|شغل|ابدا اللعبه|ابدا الجوله|ابدا الراوند)/.test(t.norm); })[0];
-    if (cand) { setCur(cand.el); return press(cand.el); }
+    if (cand) { setCur(cand.el); return pressOnce(cand.el); }
     return { ok: false, reason: 'no-start', detail: 'لا شيء لبدئه الآن' };
   };
   X.startRound = function () {
     var spec = activeSpec(); var pg = E.pageId();
     if (launchButton(spec) && /^setup-/.test(pg)) return X.start();
     var cand = buildRegistry().filter(function (t) { return /(ابدا الراوند|ابدا الجوله|ابدا المباراه|ابدا المواجهه|ابدا راوند|ابدا جوله|ابدا اللعب|ابدا الان|^ابدا$)/.test(t.norm); })[0];
-    if (cand) { setCur(cand.el); return press(cand.el); }
+    if (cand) { setCur(cand.el); return pressOnce(cand.el); }
     if (spec && spec.lab && spec.lab.start && /^[\w$.]+\(\)$/.test(spec.lab.start)) { try { (0, eval)(spec.lab.start); return { ok: true, detail: 'بدأ الراوند' }; } catch (e) { return { ok: false, reason: 'exec', detail: String(e.message).slice(0, 60) }; } }
     return { ok: false, reason: 'no-round', detail: 'لا يمكن بدء راوند الآن' };
   };
   X.next = function () {
     var cand = buildRegistry().filter(function (t) { return /(التالي|التاليه|جوله جديده|راوند جديد|جوله ثانيه|لعب مره|العب مره|مباراه جديده|مواجهه جديده|next)/.test(t.norm); })[0];
-    if (cand) { setCur(cand.el); return press(cand.el); }
+    if (cand) { setCur(cand.el); return pressOnce(cand.el); }
     return { ok: false, reason: 'no-next', detail: 'لا جولة تالية الآن' };
   };
   X.newRound = X.next;
