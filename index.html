@@ -31056,6 +31056,7 @@ function framesApplyToChip(wrapEl, uniqueId, sizePx) {
     let activeWrapMap = framesActiveWraps.get(key);
     if (!activeWrapMap) { activeWrapMap = new Map(); framesActiveWraps.set(key, activeWrapMap); }
     activeWrapMap.set(wrapEl, sizePx);
+    framesWatchKey(key); // متابعة حيّة: تغيير الإطار من جهاز الشخص يظهر هنا بلا إعادة تحميل
     if (framesParticipantCache.has(key)) {
       const cached = framesParticipantCache.get(key);
       if (cached) framesInjectRing(wrapEl, cached, sizePx); // عرض فوري بالقيمة المعروفة (بلا انتظار شبكة)
@@ -31116,6 +31117,68 @@ function framesRefreshChipsForKey(key, frameId) {
     framesResetChipFrame(el);
     if (frameId) framesInjectRing(el, frameId, sizePx);
   }
+}
+
+// ==================== FRAMES: متابعة حيّة لإطار كل مشارك معروض ====================
+// المشكلة: بطاقة المشارك تُبنى على جهاز الستريمر مرة واحدة عند الانضمام وتقرأ
+// الإطار وقتها فقط؛ لو غيّر اللاعب إطاره من جهازه بعد ذلك لا يتغيّر شيء عند
+// الستريمر (لا أحد يعيد القراءة) إلا إذا انضم لاعب جديد وأعاد بناء القائمة
+// بعد مهلة التحقق. الحل: مستمع RTDB خفيف لكل مشارك معروض (التفعيل يُكتب دايماً
+// بالقاعدتين) — عند أي تغيير بقيمة activeFrame نقرأ الحالة المدموجة الموثوقة
+// (فَيرستور + RTDB بختم الوقت) مرة واحدة ونحدّث كل بطاقة معروضة له فوراً. وفحص
+// دوري خفيف احتياطاً لو تعذّرت كتابة RTDB من جهاز اللاعب (يحدّث فقط عند تغيّر فعلي).
+const framesWatchers = new Map();       // levelsKey -> unsubscribe
+const FRAMES_WATCH_MAX = 80;
+const framesRecheckTimers = new Map();
+let framesSweepTimer = null, framesSweepCursor = 0;
+function framesRecheckKey(key) {
+  if (!key || framesRecheckTimers.has(key)) return;
+  framesRecheckTimers.set(key, setTimeout(() => {
+    framesRecheckTimers.delete(key);
+    try {
+      framesReadKV(key).then(snap => {
+        const v = snap.exists() ? (snap.data() || {}) : {};
+        const fid = v.activeFrame || '';
+        const prev = framesParticipantCache.has(key) ? framesParticipantCache.get(key) : undefined;
+        framesParticipantCache.set(key, fid);
+        framesParticipantCacheAt.set(key, Date.now());
+        if (fid !== prev) framesRefreshChipsForKey(key, fid);
+      }).catch(() => {});
+    } catch (e) { /* أفضل جهد */ }
+  }, 250));
+}
+function framesWatchKey(key) {
+  try {
+    if (!key || framesWatchers.has(key) || framesWatchers.size >= FRAMES_WATCH_MAX || !fb || !fb.rtdb || typeof fb.rtdbOnValue !== 'function') return;
+    const ref = fb.rtdbRef(fb.rtdb, framesRtdbPath(key));
+    framesWatchers.set(key, function () {}); // حجز فوري يمنع تكرار الاشتراك قبل رجوع الدالة
+    const unsub = fb.rtdbOnValue(ref, (snap) => {
+      try {
+        const v = (snap && snap.exists && snap.exists()) ? (snap.val() || {}) : {};
+        if (v.activeFrame === undefined) return;
+        const cur = framesParticipantCache.has(key) ? framesParticipantCache.get(key) : undefined;
+        if (cur !== undefined && v.activeFrame === cur) return; // البطاقة تعرض هذي القيمة أصلاً
+        framesRecheckKey(key);
+      } catch (e) { /* أفضل جهد */ }
+    }, () => {});
+    if (typeof unsub === 'function') framesWatchers.set(key, unsub);
+    if (!framesSweepTimer) framesSweepTimer = setInterval(framesSweep, 20000);
+  } catch (e) { framesWatchers.delete(key); }
+}
+function framesSweep() {
+  try {
+    // تنظيف: مفاتيح لم يبقَ لها أي بطاقة معروضة → نلغي الاشتراك
+    Array.from(framesActiveWraps.entries()).forEach(([key, m]) => {
+      Array.from(m.keys()).forEach(el => { if (!document.body.contains(el)) m.delete(el); });
+      if (!m.size) { framesActiveWraps.delete(key); const u = framesWatchers.get(key); if (u) { try { u(); } catch (e) {} framesWatchers.delete(key); } }
+    });
+    if (!framesActiveWraps.size) { clearInterval(framesSweepTimer); framesSweepTimer = null; return; }
+    if (document.hidden) return;
+    // احتياط: فحص دوري لعدد محدود من المفاتيح بالتناوب (يحدّث فقط عند تغيّر فعلي)
+    const keys = Array.from(framesActiveWraps.keys());
+    for (let i = 0; i < Math.min(8, keys.length); i++) framesRecheckKey(keys[(framesSweepCursor + i) % keys.length]);
+    framesSweepCursor = (framesSweepCursor + 8) % Math.max(1, keys.length);
+  } catch (e) { /* أفضل جهد */ }
 }
 
 // ==================== FRAMES: كتابة/حذف كتالوج ديناميكي (لوحة المالك) ====================
