@@ -81,13 +81,18 @@ const authEnter = (page, uid, username) => page.evaluate(async ([uid, username])
   await disconnect(page);
   await page.evaluate((u) => { const i = document.getElementById('tiktok-connect-username'); if (i) i.value = u; }, TARGET); await sleep(600);
   check('كتابة c7gaming777 بحقل نصي فقط: لا ترحيب', (await shows(page)) === 0);
-  await page.evaluate((u) => { platformConnect('tiktok', { username: u }, homeDispatchToGameListeners, function () {}); }, TARGET);
-  await page.waitForFunction(() => homeConnState.tiktok && homeConnState.tiktok.state === 'connected', null, { timeout: 15000 }).catch(() => {}); await sleep(1500);
-  check('ربط تلقائي صامت (بلا ضغط ربط) لـ c7gaming777: لا ترحيب', (await connectedNow(page)) && (await shows(page)) === 0);
   await disconnect(page);
   for (const u of ['c7gaming7777', 'xc7gaming777', 'c7gaming77', 'c7_gaming777']) { await linkModal(page, u); await sleep(1200); await disconnect(page); }
   check('أسماء مشابهة: لا ترحيب (مطابقة تامة فقط)', (await shows(page)) === 0);
   await page.context().close();
+
+  // ---- الربط التلقائي بالخلفية (بلا ضغط زر): يظهر الترحيب أيضاً
+  const bg = await newSitePage(browser);
+  await bg.evaluate((u) => { platformConnect('tiktok', { username: u }, homeDispatchToGameListeners, function () {}); }, TARGET);
+  check('ربط تلقائي بالخلفية (بدون ضغط ربط): يظهر الترحيب', await waitShown(bg, 1, 15000) && (await connectedNow(bg)));
+  await waitGone(bg, 8000); check('وللربط بالخلفية عرض ثانٍ أيضاً', await waitShown(bg, 2, 12000));
+  await waitGone(bg, 8000); await sleep(5000); check('مرتان فقط بالربط الصامت', (await shows(bg)) === 2, await shows(bg));
+  await bg.context().close();
 
   // ---- B) ربط c7gaming777 الفعلي: عرضان غير متتاليين، ثم لا شيء
   page = await newSitePage(browser);
