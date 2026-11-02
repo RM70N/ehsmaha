@@ -242,27 +242,30 @@ const authEnter = (page, uid, username) => page.evaluate(async ([uid, username])
   await tt(TARGET, 'live');
   await bad.context().close();
 
-  // ---- I) التكرار: كل تشغيل يُعاد 5 مرات متتالية بالضبط (الإعداد الافتراضي الحقيقي)
-  const rep = await newSitePage(browser, { repeats: 5 });
+  // ---- I) سياسة العرض: مرة لكل ريفرش، حد أقصى 5 مرات على الجهاز ثم يختفي نهائياً، ولا يتكرر بعد انتهائه
+  const rep = await newSitePage(browser, {});
   await authEnter(rep, 'uid-rayan', 'rayan');
-  let maxRoots = 0; const t0r = Date.now();
-  while (Date.now() - t0r < 60000) { maxRoots = Math.max(maxRoots, await rootCount(rep)); if ((await shows(rep)) >= 5 && (await rootCount(rep)) === 0) break; await sleep(150); }
-  await sleep(3500);
-  const lgr = await logOf(rep), adds = lgr.filter((e) => e.ev === 'add'), rems = lgr.filter((e) => e.ev === 'remove');
-  check('تحديث الصفحة/دخول rayan: الاحتفال يُعرض 5 مرات بالضبط ولا سادسة', adds.length === 5 && rems.length === 5 && (await rootCount(rep)) === 0, { adds: adds.length, rems: rems.length });
-  check('المرات الخمس متتالية بلا تداخل (مشهد واحد فقط في أي لحظة، وكل مرة بعد اختفاء السابقة)', maxRoots === 1 && adds.every((a, i) => i === 0 || a.t > rems[i - 1].t), { maxRoots });
-  const totalS = (rems[4].t - adds[0].t) / 1000;
-  check('المدة الكلية ≈ 5 × 7.2ث + فواصل (' + totalS.toFixed(1) + 'ث)', totalS > 33 && totalS < 48, totalS);
+  check('الزيارة الأولى (ريفرش أول): يظهر الاحتفال', await waitShown(rep, 1));
+  check('يختفي بعد انتهائه ولا يتكرر (لا عرض ثانٍ في نفس الزيارة)', await waitGone(rep, 15000) && (await sleep(5000), (await shows(rep)) === 1 && (await rootCount(rep)) === 0), await shows(rep));
+  await linkModal(rep, TARGET); await sleep(1500);
+  check('ربط .blhh بعد عرضه في نفس الزيارة: لا عرض ثانٍ', (await shows(rep)) === 1 && (await rootCount(rep)) === 0, await shows(rep));
+  check('الموقع قابل للاستخدام بعد الاحتفال (لا طبقة تغطي الصفحة)', await rep.evaluate(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight / 2); return !!e && !e.closest('.blhh-celebration'); }));
+  check('العدّاد المحفوظ = 1 بعد أول عرض', (await rep.evaluate(() => localStorage.getItem('ehs_blhh5k_shown'))) === '1');
+  // ريفرش: يظهر من جديد (عرض واحد)، حتى الخامسة
+  for (let n = 2; n <= 5; n++) {
+    await rep.reload({ waitUntil: 'domcontentloaded' }); await sleep(2500);
+    await authEnter(rep, 'uid-rayan', 'rayan');
+    check('ريفرش رقم ' + n + ': يظهر مرة واحدة', await waitShown(rep, 1) && (await rep.evaluate(() => localStorage.getItem('ehs_blhh5k_shown'))) === String(n));
+    await waitGone(rep, 15000);
+  }
+  await rep.reload({ waitUntil: 'domcontentloaded' }); await sleep(2500);
+  await authEnter(rep, 'uid-rayan', 'rayan'); await linkModal(rep, TARGET); await sleep(4000);
+  check('بعد 5 مرات: ريفرش سادس لا يُظهره أبداً (يختفي نهائياً) لا بدخول rayan ولا بالربط', (await shows(rep)) === 0 && (await rootCount(rep)) === 0, await shows(rep));
   await rep.context().close();
-  // الربط الناجح لـ .blhh أيضاً 5 مرات، ومع الشرطين معاً تبقى سلسلة واحدة (لا 10)
-  const rep2 = await newSitePage(browser, { repeats: 2 });
-  await authEnter(rep2, 'uid-rayan', 'rayan');
-  await linkModal(rep2, TARGET);
-  await sleep(1000);
-  const t1r = Date.now();
-  while (Date.now() - t1r < 40000) { if ((await shows(rep2)) >= 2 && (await rootCount(rep2)) === 0) break; await sleep(200); }
-  await sleep(3000);
-  check('الشرطان معاً: سلسلة واحدة فقط (عدد المرات = الإعداد لا ضعفه)', (await shows(rep2)) === 2, await shows(rep2));
+  // ربط .blhh فقط (بدون rayan): عرض واحد
+  const rep2 = await newSitePage(browser, {});
+  await linkModal(rep2, TARGET); await sleep(1000);
+  check('ربط .blhh الفعلي وحده: عرض واحد فقط', await waitShown(rep2, 1) && (await waitGone(rep2, 15000)) && (await sleep(4000), (await shows(rep2)) === 1), await shows(rep2));
   await rep2.context().close();
 
   const errs = [].concat(page._errors || []).filter((e) => !/Failed to load resource|ERR_/.test(e));

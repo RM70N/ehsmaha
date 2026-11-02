@@ -32,28 +32,21 @@
      (ربط حقيقي/نية/دخول rayan) فنضع علامته الأصلية مسبقاً ليتخطى التصميم لفّه، دون تعديل ملف التصميم. */
   try { if (typeof w.tiktokAttachAccountToGames === 'function') w.tiktokAttachAccountToGames.__blhh = true; } catch (e) {}
 
-  /* كل تشغيل (ربط بث ناجح أو دخول rayan أو تحديث الصفحة) يعرض الاحتفال REPEATS مرات متتالية، كل مرة بعد
-     اختفاء السابقة تماماً (لا تداخل). أي تشغيل يصل أثناء السلسلة يُتجاهل فلا تتضاعف. المرة الأولى والإعادات
-     تستخدم دالة التصميم الأصلية _designPreview لأنها تتخطى حارس الـ25ث المخصص لمنع التكرار العفوي. */
-  var REPEATS = 5, GAP_MS = 500, running = false;
-  function repeats() { var n = Number(w.__BLHH_5K_REPEATS); return n > 0 ? Math.floor(n) : REPEATS; }
+  /* سياسة العرض: الاحتفال يظهر مرة واحدة لكل تحديث (ريفرش) للصفحة فقط — لا يتكرر بعد انتهائه ولا يعيق الموقع —
+     وبحد أقصى MAX_SHOWS مرات إجمالاً على هذا الجهاز، وبعدها يختفي نهائياً. العدّاد يُحفظ في localStorage؛
+     لو تعذّر التخزين نكتفي بمرة واحدة لكل زيارة. أي تشغيل يصل (ربط/دخول) بعد عرضه في نفس الزيارة يُتجاهل. */
+  var MAX_SHOWS = 5, KEY = 'ehs_blhh5k_shown', running = false, shownThisVisit = false;
+  function maxShows() { var n = Number(w.__BLHH_5K_MAX); return n > 0 ? Math.floor(n) : MAX_SHOWS; }
+  function readCount() { try { return parseInt(w.localStorage.getItem(KEY), 10) || 0; } catch (e) { return 0; } }
+  function bumpCount() { try { w.localStorage.setItem(KEY, String(readCount() + 1)); } catch (e) {} }
   function isUp() { return !!document.querySelector('.blhh-celebration'); }
-  function waitGone(timeout) {
-    return new Promise(function (res) {
-      var t0 = Date.now();
-      (function chk() { if (!isUp() || Date.now() - t0 > timeout) return res(); setTimeout(chk, 200); })();
-    });
-  }
   function play() {
     var c = w.BlhhCelebration;
-    if (running || isUp() || !c || typeof c._designPreview !== 'function') return;
-    running = true;
-    var left = repeats();
-    (function next() {
-      if (left-- <= 0) { running = false; return; }
-      try { c._designPreview(); } catch (e) { running = false; return; }
-      setTimeout(function () { waitGone(15000).then(function () { setTimeout(next, GAP_MS); }); }, 300);
-    })();
+    if (running || shownThisVisit || isUp() || !c || typeof c._designPreview !== 'function') return;
+    if (readCount() >= maxShows()) return;                 // ظهر المرات الخمس: يختفي للأبد
+    running = true; shownThisVisit = true; bumpCount();
+    try { c._designPreview(); } catch (e) { /* أفضل جهد */ }
+    running = false;
   }
 
   w.blhh5kNoteIntent = function () { intentAt = Date.now(); };
