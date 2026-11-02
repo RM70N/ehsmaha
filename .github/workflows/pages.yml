@@ -24,6 +24,7 @@ on:
       - dhmx-welcome/**
       - som3h-10k/**
       - blhh-5k/**
+      - c7-welcome/**
       - owner-studio/**
       - ops/**
       - subathon/**
@@ -61,6 +62,7 @@ jobs:
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k
           cp -r blhh-5k _site/blhh-5k
+          cp -r c7-welcome _site/c7-welcome
           cp -r owner-studio _site/owner-studio
           cp -r ops _site/ops
           cp -r subathon _site/subathon

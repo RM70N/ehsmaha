@@ -1,0 +1,317 @@
+/* ==========================================================================
+   EHSEMHA — C7GAMING777 · THE LEGENDARY ARRIVAL
+   ترحيب سينمائي حصري — 4000ms بالضبط — ملف مستقل بالكامل
+   كل المحدّدات تبدأ بـ c7-welcome- لمنع أي تعارض مع احسمها.
+   ========================================================================== */
+
+.c7-welcome-root{
+  --c7w-black:#0A0420; --c7w-dark:#220F52; --c7w-royal:#6D28D9;
+  --c7w-electric:#8B5CF6; --c7w-soft:#C4B5FD; --c7w-white:#F8F7FC;
+  --c7w-steel:#2B2342; --c7w-steel-hi:#8C84AB;
+  --c7w-out:cubic-bezier(.16,1,.3,1);
+  --c7w-emb:clamp(210px,min(48vh,78vw),440px);
+  --c7w-hello:clamp(27px,calc(3.4vw + 1.6vh),70px);
+  --c7w-plate:clamp(15px,calc(1.35vw + 1vh),30px);
+  --c7w-handle:clamp(17px,calc(1.3vw + 1.1vh),30px);
+  position:fixed; inset:0; z-index:2147483000;
+  pointer-events:none; overflow:hidden; direction:rtl;
+  font-family:'Cairo','Tajawal','Noto Kufi Arabic',system-ui,sans-serif;
+  contain:layout paint style; opacity:0; -webkit-font-smoothing:antialiased;
+}
+.c7-welcome-root.c7w-play{opacity:1}
+.c7-welcome-root *{box-sizing:border-box}
+.c7-welcome-root .c7w-abs{position:absolute;inset:0}
+.c7-welcome-root.c7w-play *,.c7-welcome-root.c7w-play *::before,.c7-welcome-root.c7w-play *::after{animation-fill-mode:both!important}
+
+/* ------------------------------ الطبقة 1: الخلفية ------------------------------ */
+.c7-welcome-root .c7w-dim{
+  background:
+    radial-gradient(ellipse 70% 62% at 50% 46%, rgba(38,16,92,.93) 0%, rgba(14,5,38,.965) 58%, rgba(10,4,32,.99) 100%);
+}
+.c7w-play .c7w-dim{animation:c7w-fade-in 400ms linear 0ms, c7w-fade-out 400ms linear 3600ms}
+
+.c7-welcome-root .c7w-core{
+  position:absolute; left:50%; top:46%; width:min(150vmax,1500px); height:min(150vmax,1500px);
+  margin:calc(min(150vmax,1500px) / -2) 0 0 calc(min(150vmax,1500px) / -2);
+  background:radial-gradient(circle, rgba(139,92,246,.52) 0%, rgba(109,40,217,.20) 14%, rgba(23,11,45,.0) 34%);
+}
+.c7w-play .c7w-core{animation:c7w-core-in 650ms var(--c7w-out) 0ms, c7w-pulse 1800ms ease-in-out 900ms infinite alternate, c7w-fade-out 450ms linear 3550ms}
+
+.c7-welcome-root .c7w-rays{
+  position:absolute; left:50%; top:46%; width:min(190vmax,1900px); height:min(190vmax,1900px);
+  margin:calc(min(190vmax,1900px) / -2) 0 0 calc(min(190vmax,1900px) / -2);
+  background:repeating-conic-gradient(from 0deg, rgba(196,181,253,.13) 0deg 1.4deg, transparent 1.4deg 9deg);
+  -webkit-mask-image:radial-gradient(circle, #000 0%, rgba(0,0,0,.35) 18%, transparent 36%);
+          mask-image:radial-gradient(circle, #000 0%, rgba(0,0,0,.35) 18%, transparent 36%);
+}
+.c7w-play .c7w-rays{animation:c7w-fade-in 700ms linear 100ms, c7w-spin 90s linear 0ms infinite, c7w-fade-out 450ms linear 3550ms}
+
+.c7-welcome-root .c7w-floor{
+  position:absolute; left:-40%; right:-40%; bottom:-6%; height:46%;
+  background:
+    linear-gradient(rgba(196,181,253,.30) 1px, transparent 1px) 0 0/100% 46px,
+    linear-gradient(90deg, rgba(196,181,253,.24) 1px, transparent 1px) 0 0/72px 100%;
+  transform:perspective(520px) rotateX(66deg); transform-origin:50% 0;
+  -webkit-mask-image:linear-gradient(to bottom, transparent 0%, #000 38%, transparent 100%);
+          mask-image:linear-gradient(to bottom, transparent 0%, #000 38%, transparent 100%);
+}
+.c7w-play .c7w-floor{animation:c7w-floor-in 700ms var(--c7w-out) 100ms, c7w-fade-out 450ms linear 3550ms}
+
+.c7-welcome-root .c7w-shards{position:absolute; inset:0; width:100%; height:100%}
+.c7w-play .c7w-shards-far{animation:c7w-drift-far 4000ms linear 0ms, c7w-fade-in 600ms linear 0ms, c7w-fade-out 450ms linear 3550ms}
+.c7w-play .c7w-shards-near{animation:c7w-drift-near 4000ms linear 0ms, c7w-fade-in 500ms linear 150ms, c7w-fade-out 450ms linear 3550ms}
+
+.c7-welcome-root .c7w-streaks{position:absolute; inset:0; width:100%; height:100%}
+.c7w-streaks line{stroke:var(--c7w-soft); stroke-width:1.6; stroke-linecap:round; stroke-dasharray:1 1; stroke-dashoffset:1; opacity:0}
+.c7w-play .c7w-streaks line{animation:c7w-streak 520ms cubic-bezier(.5,0,.2,1) calc(var(--i) * 14ms)}
+
+/* HUD */
+.c7-welcome-root .c7w-hud-c{
+  position:absolute; width:clamp(34px,6vw,76px); height:clamp(34px,6vw,76px);
+  border:0 solid rgba(196,181,253,.75); opacity:0;
+}
+.c7w-hud-c::after{content:""; position:absolute; width:5px; height:5px; background:var(--c7w-soft); transform:rotate(45deg)}
+.c7w-hud-c.tl{top:clamp(12px,3vw,38px); left:clamp(12px,3vw,38px); border-top-width:2px; border-left-width:2px}
+.c7w-hud-c.tr{top:clamp(12px,3vw,38px); right:clamp(12px,3vw,38px); border-top-width:2px; border-right-width:2px}
+.c7w-hud-c.bl{bottom:clamp(12px,3vw,38px); left:clamp(12px,3vw,38px); border-bottom-width:2px; border-left-width:2px}
+.c7w-hud-c.br{bottom:clamp(12px,3vw,38px); right:clamp(12px,3vw,38px); border-bottom-width:2px; border-right-width:2px}
+.c7w-hud-c.tl::after{top:-3px;left:-3px} .c7w-hud-c.tr::after{top:-3px;right:-3px}
+.c7w-hud-c.bl::after{bottom:-3px;left:-3px} .c7w-hud-c.br::after{bottom:-3px;right:-3px}
+.c7w-play .c7w-hud-c{animation:c7w-hud-in 450ms var(--c7w-out) 150ms, c7w-fade-out 450ms linear 3550ms}
+
+.c7-welcome-root .c7w-rail{
+  position:absolute; top:50%; width:10px; height:min(34vh,280px); transform:translateY(-50%);
+  background:repeating-linear-gradient(to bottom, rgba(196,181,253,.65) 0 1px, transparent 1px 9px);
+  -webkit-mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+          mask-image:linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent);
+  opacity:0;
+}
+.c7w-rail.l{left:clamp(12px,3vw,38px)} .c7w-rail.r{right:clamp(12px,3vw,38px)}
+.c7w-play .c7w-rail{animation:c7w-fade-in 500ms linear 250ms, c7w-fade-out 450ms linear 3550ms}
+.c7-welcome-root .c7w-hline{
+  position:absolute; left:8%; right:8%; height:1px; opacity:0;
+  background:linear-gradient(90deg, transparent, rgba(196,181,253,.65) 30%, rgba(248,247,252,.8) 50%, rgba(196,181,253,.65) 70%, transparent);
+}
+.c7w-hline.t{top:clamp(22px,4.4vw,56px)} .c7w-hline.b{bottom:clamp(22px,4.4vw,56px)}
+.c7w-play .c7w-hline{animation:c7w-hline 600ms var(--c7w-out) 200ms, c7w-fade-out 450ms linear 3550ms}
+
+/* جزيئات الضوء المتجهة للمركز */
+.c7-welcome-root .c7w-pt{
+  position:absolute; left:50%; top:46%; width:var(--len,16px); height:2px; margin:-1px 0 0 0;
+  border-radius:2px; opacity:0; transform-origin:0 50%;
+  background:linear-gradient(90deg, transparent, var(--c7w-soft) 55%, var(--c7w-white));
+}
+.c7w-play .c7w-pt{animation:c7w-pt var(--dur,900ms) cubic-bezier(.45,0,.25,1) var(--del,0ms), c7w-fade-out 300ms linear 3600ms}
+
+/* ------------------------------ المسرح ------------------------------ */
+.c7-welcome-root .c7w-stage{
+  position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(6px,1.4vh,16px); padding:12px 4vw; padding-top:calc(12px + 2vh);
+}
+
+/* ------------------------------ الطبقة 2: المجسم المركزي ------------------------------ */
+.c7-welcome-root .c7w-emblem{position:relative; width:var(--c7w-emb); height:var(--c7w-emb); flex:none}
+.c7-welcome-root .c7w-emblem::before{ /* هالة خلف المجسم */
+  content:""; position:absolute; inset:-26%; border-radius:50%;
+  background:radial-gradient(circle, rgba(139,92,246,.55) 0%, rgba(109,40,217,.22) 38%, transparent 66%); opacity:0;
+}
+.c7-welcome-root .c7w-emblem::after{ /* ظل أرضي يعطي عمقًا */
+  content:""; position:absolute; left:12%; right:12%; bottom:-7%; height:9%; border-radius:50%;
+  background:radial-gradient(ellipse, rgba(7,4,13,.9) 0%, rgba(7,4,13,0) 70%); opacity:0;
+}
+.c7w-play .c7w-emblem::before{animation:c7w-fade-in 600ms linear 350ms, c7w-pulse 1800ms ease-in-out 950ms infinite alternate, c7w-fade-out 450ms linear 3450ms}
+.c7w-play .c7w-emblem::after{animation:c7w-fade-in 600ms linear 450ms, c7w-fade-out 450ms linear 3450ms}
+.c7-welcome-root .c7w-rings{position:absolute; inset:0; width:100%; height:100%; overflow:visible}
+.c7w-rings .c7w-g{transform-box:view-box; transform-origin:50% 50%}
+.c7w-play .c7w-g-all{animation:c7w-emb-in 560ms var(--c7w-out) 380ms, c7w-fade-out 450ms linear 3450ms; opacity:0}
+.c7w-play .c7w-g-tick{animation:c7w-spin 52s linear 0ms infinite}
+.c7w-play .c7w-g-seg{animation:c7w-spin-r 15s linear 0ms infinite}
+.c7w-play .c7w-g-fine{animation:c7w-spin 26s linear 0ms infinite}
+.c7w-play .c7w-g-oct{animation:c7w-spin-r 40s linear 0ms infinite}
+.c7w-rings .c7w-arc{fill:none; stroke-linecap:round}
+.c7w-play .c7w-arc{animation:c7w-arc 3200ms linear infinite}
+.c7w-play .c7w-arc.a2{animation-duration:4400ms; animation-direction:reverse}
+.c7w-play .c7w-arc.a3{animation-duration:5600ms}
+
+.c7-welcome-root .c7w-wave{
+  position:absolute; left:50%; top:50%; width:62%; height:62%; margin:-31% 0 0 -31%;
+  border-radius:50%; border:2px solid var(--c7w-soft); opacity:0;
+  box-shadow:0 0 28px rgba(139,92,246,.7), inset 0 0 22px rgba(139,92,246,.45);
+}
+.c7w-play .c7w-wave{animation:c7w-wave 900ms cubic-bezier(.2,.6,.3,1) 560ms}
+.c7w-play .c7w-wave.w2{animation-delay:800ms}
+
+/* صورة الحساب: قطر 268/600 من المجسم */
+.c7-welcome-root .c7w-avatar{
+  position:absolute; left:50%; top:50%; width:44.67%; height:44.67%; margin:-22.33% 0 0 -22.33%;
+  border-radius:50%; overflow:hidden; background:var(--c7w-dark); opacity:0;
+  box-shadow:0 0 0 1px rgba(7,4,13,.9), inset 0 0 32px rgba(7,4,13,.55);
+}
+.c7w-play .c7w-avatar{animation:c7w-avatar-in 560ms var(--c7w-out) 460ms, c7w-fade-out 350ms linear 3450ms}
+.c7w-avatar img{width:100%; height:100%; object-fit:cover; display:block}
+.c7w-avatar .c7w-fallback{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center; direction:ltr;
+  font:700 calc(var(--c7w-emb) * .16)/1 'Rajdhani','Cairo',sans-serif; letter-spacing:.06em; color:var(--c7w-white);
+  background:radial-gradient(circle at 50% 38%, #3a1f78 0%, var(--c7w-dark) 62%, var(--c7w-black) 100%);
+  text-shadow:0 0 22px rgba(139,92,246,.9);
+}
+.c7w-avatar::after{ /* عمق داخلي ثلاثي الأبعاد */
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:radial-gradient(circle at 50% 30%, rgba(248,247,252,.10), transparent 45%, rgba(7,4,13,.42) 100%);
+}
+.c7-welcome-root .c7w-sheen{
+  position:absolute; left:50%; top:50%; width:52%; height:52%; margin:-26% 0 0 -26%; border-radius:50%;
+  background:linear-gradient(105deg, transparent 38%, rgba(248,247,252,.95) 50%, transparent 62%) 140% 0/300% 100% no-repeat;
+  -webkit-mask-image:radial-gradient(circle, transparent 0 85%, #000 86% 100%);
+          mask-image:radial-gradient(circle, transparent 0 85%, #000 86% 100%);
+  opacity:0;
+}
+.c7w-play .c7w-sheen{animation:c7w-sheen 420ms ease-in-out 900ms, c7w-sheen 420ms ease-in-out 2500ms, c7w-fade-out 350ms linear 3450ms}
+
+/* اسم الحساب */
+.c7-welcome-root .c7w-handle{
+  display:flex; align-items:center; gap:clamp(8px,1.6vw,18px); direction:ltr; opacity:0;
+  margin-top:calc(var(--c7w-emb) * -.045);
+}
+.c7w-handle .c7w-name{
+  font:600 var(--c7w-handle)/1 'Rajdhani','Cairo',sans-serif; letter-spacing:.16em; padding-left:.16em;
+  color:var(--c7w-soft); text-shadow:0 0 16px rgba(139,92,246,.8), 0 2px 4px rgba(7,4,13,.9);
+}
+.c7w-handle .c7w-hl{
+  width:clamp(26px,6vw,78px); height:1px; position:relative;
+  background:linear-gradient(90deg, transparent, var(--c7w-soft));
+}
+.c7w-handle .c7w-hl.r{transform:scaleX(-1)}
+.c7w-handle .c7w-hl::after{content:""; position:absolute; right:-4px; top:-2.5px; width:6px; height:6px; background:var(--c7w-electric); transform:rotate(45deg); box-shadow:0 0 8px var(--c7w-electric)}
+.c7w-play .c7w-handle{animation:c7w-rise 450ms var(--c7w-out) 640ms, c7w-fade-out 300ms linear 3350ms}
+
+/* ------------------------------ النص الرئيسي ------------------------------ */
+.c7-welcome-root .c7w-hello{
+  display:block; word-spacing:.02em;
+  max-width:94vw; text-align:center; text-wrap:balance; margin-top:clamp(4px,1.2vh,14px);
+  font-family:'Cairo','Tajawal',sans-serif; font-weight:900; font-size:var(--c7w-hello); line-height:1.4;
+  color:var(--c7w-white); letter-spacing:0;
+  text-shadow:0 0 .42em rgba(139,92,246,.7), 0 .05em 0 rgba(7,4,13,.85), 0 .16em .36em rgba(0,0,0,.65);
+}
+.c7-welcome-root .c7w-w{display:inline-block; opacity:0}
+.c7w-play .c7w-w{animation:c7w-word 340ms var(--c7w-out) calc(1000ms + var(--i) * 50ms), c7w-fade-out 300ms linear 3350ms}
+
+/* ------------------------------ شريط اللقب ------------------------------ */
+.c7-welcome-root .c7w-plate-wrap{
+  position:relative; display:flex; align-items:center; gap:clamp(8px,1.4vw,16px);
+  margin-top:clamp(2px,.8vh,10px); max-width:94vw;
+}
+.c7w-plate-wrap .c7w-orn{
+  width:clamp(14px,5vw,64px); height:1px; position:relative; opacity:0;
+  background:linear-gradient(90deg, transparent, var(--c7w-soft));
+}
+.c7w-plate-wrap .c7w-orn.r{transform:scaleX(-1)}
+.c7w-plate-wrap .c7w-orn::after{content:""; position:absolute; right:-3px; top:-3px; width:7px; height:7px; border:1px solid var(--c7w-soft); transform:rotate(45deg)}
+.c7w-play .c7w-orn{animation:c7w-fade-in 350ms linear 1750ms, c7w-fade-out 300ms linear 3350ms}
+.c7-welcome-root .c7w-reveal{clip-path:inset(0 50% 0 50%);-webkit-clip-path:inset(0 50% 0 50%)}
+.c7w-play .c7w-reveal{animation:c7w-plate-in 420ms var(--c7w-out) 1500ms, c7w-fade-out 300ms linear 3350ms}
+.c7-welcome-root .c7w-plate{
+  --cut:clamp(10px,1.6vw,18px);
+  position:relative; padding:2px;
+  background:linear-gradient(180deg, #d9d3ee 0%, var(--c7w-steel-hi) 14%, #3b3157 40%, var(--c7w-royal) 100%);
+  clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  -webkit-clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+}
+.c7w-plate .c7w-plate-in{
+  clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  -webkit-clip-path:polygon(var(--cut) 0, calc(100% - var(--cut)) 0, 100% 50%, calc(100% - var(--cut)) 100%, var(--cut) 100%, 0 50%);
+  position:relative; overflow:hidden; padding:.28em 2.1em .34em; text-align:center; white-space:nowrap;
+  font-weight:900; font-size:var(--c7w-plate); line-height:1.35; color:var(--c7w-white);
+  background:
+    linear-gradient(180deg, rgba(248,247,252,.10) 0%, rgba(248,247,252,0) 38%),
+    linear-gradient(180deg, #2a2046 0%, #170B2D 46%, #0c0717 100%);
+  text-shadow:0 0 .5em rgba(139,92,246,.85), 0 .08em .12em rgba(7,4,13,.9);
+  box-shadow:inset 0 0 18px rgba(139,92,246,.25);
+}
+.c7w-plate .c7w-plate-in::before{ /* حد علوي مضيء */
+  content:""; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--c7w-soft) 20%, var(--c7w-white) 50%, var(--c7w-soft) 80%, transparent);
+}
+.c7w-plate .c7w-plate-in::after{ /* انعكاس ضوئي يمر على النص */
+  content:""; position:absolute; top:0; bottom:0; left:0; width:38%;
+  background:linear-gradient(105deg, transparent, rgba(248,247,252,.55), transparent);
+  transform:translateX(-140%) skewX(-18deg); opacity:0;
+}
+.c7w-play .c7w-plate .c7w-plate-in::after{animation:c7w-shine 520ms ease-in-out 1850ms}
+.c7w-plate .c7w-txt{display:inline-block; opacity:0}
+.c7w-play .c7w-plate .c7w-txt{animation:c7w-txt-in 320ms var(--c7w-out) 1700ms}
+.c7w-plate .c7w-bevel{ /* زخارف صغيرة على الأطراف */
+  position:absolute; top:50%; width:6px; height:6px; margin-top:-3px; background:var(--c7w-soft); transform:rotate(45deg); box-shadow:0 0 8px var(--c7w-electric);
+}
+.c7w-plate .c7w-bevel.l{left:.85em} .c7w-plate .c7w-bevel.r{right:.85em}
+
+/* ------------------------------ جوال ------------------------------ */
+@media (max-width:640px){
+  .c7-welcome-root{--c7w-emb:clamp(200px,min(40vh,76vw),340px)}
+  .c7w-plate .c7w-plate-in{padding:.26em 1.5em .32em}
+  .c7w-hline,.c7w-rail{display:none}
+}
+@media (max-height:520px) and (orientation:landscape){
+  .c7-welcome-root{--c7w-emb:clamp(120px,40vh,200px); --c7w-hello:clamp(20px,5vh,34px); --c7w-plate:clamp(14px,3.4vh,22px); --c7w-handle:clamp(13px,3vh,19px)}
+  .c7-welcome-root .c7w-stage{gap:3px; padding-top:8px}
+  .c7w-rail{display:none}
+}
+
+/* ------------------------------ الحركات ------------------------------ */
+@keyframes c7w-fade-in{from{opacity:0}to{opacity:1}}
+@keyframes c7w-fade-out{to{opacity:0}}
+@keyframes c7w-spin{to{transform:rotate(360deg)}}
+@keyframes c7w-spin-r{to{transform:rotate(-360deg)}}
+@keyframes c7w-core-in{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:scale(1)}}
+@keyframes c7w-pulse{from{opacity:.82}to{opacity:1}}
+@keyframes c7w-floor-in{from{opacity:0;transform:perspective(520px) rotateX(66deg) translateY(40px)}to{opacity:1;transform:perspective(520px) rotateX(66deg) translateY(0)}}
+@keyframes c7w-drift-far{from{transform:scale(1)}to{transform:scale(1.03)}}
+@keyframes c7w-drift-near{from{transform:scale(1)}to{transform:scale(1.09)}}
+@keyframes c7w-streak{0%{stroke-dashoffset:1;opacity:0}15%{opacity:.9}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes c7w-hud-in{from{opacity:0;transform:scale(1.35)}to{opacity:1;transform:scale(1)}}
+@keyframes c7w-hline{from{opacity:0;transform:scaleX(0)}to{opacity:1;transform:scaleX(1)}}
+@keyframes c7w-pt{
+  0%{opacity:0;transform:rotate(var(--a)) translateX(var(--r0))}
+  20%{opacity:.95}
+  100%{opacity:0;transform:rotate(var(--a)) translateX(var(--r1))}
+}
+@keyframes c7w-emb-in{from{opacity:0;transform:scale(1.12)}to{opacity:1;transform:scale(1)}}
+@keyframes c7w-arc{from{stroke-dashoffset:0}to{stroke-dashoffset:-360}}
+@keyframes c7w-wave{0%{opacity:.85;transform:scale(.55)}100%{opacity:0;transform:scale(1.95)}}
+@keyframes c7w-avatar-in{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes c7w-sheen{0%{opacity:1;background-position:140% 0}100%{opacity:1;background-position:-40% 0}}
+@keyframes c7w-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes c7w-word{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes c7w-plate-in{from{clip-path:inset(0 50% 0 50%);-webkit-clip-path:inset(0 50% 0 50%)}to{clip-path:inset(0 0 0 0);-webkit-clip-path:inset(0 0 0 0)}}
+@keyframes c7w-txt-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes c7w-shine{0%{opacity:1;transform:translateX(-140%) skewX(-18deg)}100%{opacity:1;transform:translateX(380%) skewX(-18deg)}}
+
+
+/* ------------------------------ تقليل الحركة ------------------------------
+   يبقى الترحيب بنفس المدة والتوقيت لكن بظهور واختفاء تدريجيين فقط.      */
+@media (prefers-reduced-motion:reduce){
+  @keyframes c7w-spin{from{transform:none}to{transform:none}}
+  @keyframes c7w-spin-r{from{transform:none}to{transform:none}}
+  @keyframes c7w-core-in{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-pulse{from{opacity:1}to{opacity:1}}
+  @keyframes c7w-floor-in{from{opacity:0;transform:perspective(520px) rotateX(66deg)}to{opacity:1;transform:perspective(520px) rotateX(66deg)}}
+  @keyframes c7w-drift-far{from{transform:none}to{transform:none}}
+  @keyframes c7w-drift-near{from{transform:none}to{transform:none}}
+  @keyframes c7w-hud-in{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-hline{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-emb-in{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-arc{from{stroke-dashoffset:0}to{stroke-dashoffset:0}}
+  @keyframes c7w-avatar-in{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-rise{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-word{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-txt-in{from{opacity:0}to{opacity:1}}
+  @keyframes c7w-plate-in{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 0 0 0)}}
+  .c7w-play .c7w-reveal{animation:c7w-fade-in 420ms linear 1500ms, c7w-fade-out 300ms linear 3350ms}
+  .c7w-pt,.c7w-streaks,.c7w-wave,.c7w-sheen,.c7w-rays,.c7w-plate .c7w-plate-in::after{display:none!important}
+}
+
+
+/* سطر C7 ON TOP تحت الصفيحة */
+.c7-welcome-root .c7w-ontop{font:700 clamp(22px,calc(2.6vw + 1.2vh),50px)/1 'Rajdhani','Cairo',sans-serif;letter-spacing:.3em;padding-left:.3em;color:var(--c7w-white);direction:ltr;opacity:0;margin-top:clamp(6px,1.4vh,16px);text-shadow:0 0 16px rgba(139,92,246,.95),0 0 38px rgba(109,40,217,.8)}
+.c7w-play .c7w-ontop{animation:c7w-word 380ms var(--c7w-out) 2150ms, c7w-fade-out 300ms linear 3350ms}
+@media (max-height:520px){.c7-welcome-root .c7w-ontop{font-size:clamp(14px,4vh,24px);margin-top:2px}}
