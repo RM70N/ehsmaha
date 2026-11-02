@@ -48,7 +48,7 @@
   };
   var NAVWORDS = {}; Object.keys(CMD).forEach(function (k) { CMD[k] = CMD[k].map(normalize); CMD[k].forEach(function (w) { (NAVWORDS[w] = NAVWORDS[w] || []).push(k); }); });
   function stripGo(t) { return t.replace(/^(روح|رح|لف|خش)\s+/, ''); }
-  var PRESS_PREFIX = /^(?:اضغط على|اضغط|اختار|اختر|افتح|ادخل|نفذ|اكبس|كبس|دوس|شغل|ابدا)\s+(.+)$/;
+  var PRESS_PREFIX = /^(?:اضغط على|اضغط|اختار|اختر|افتح|فتح|ادخل|نفذ|اكبس|كبس|دوس|شغل|ابدا)\s+(.+)$/;
   var NUM = /^(?:رقم\s+)?([1-9][0-9]?)$/;
   var MAXLEN = 60;
 
@@ -223,7 +223,8 @@
       self.metrics.queueMs.push(now - item.at); if (self.metrics.queueMs.length > 200) self.metrics.queueMs.shift();
       var t1 = self.now(); self.metrics.executed++; var ep = self.epoch;
       return Promise.resolve().then(function () { return self.exec(item, { level: c.level, epoch: ep }); }).then(function (res) {
-        res = res || { ok: false, detail: 'empty' }; self.metrics.execMs.push(self.now() - t1); if (self.metrics.execMs.length > 200) self.metrics.execMs.shift();
+        res = res || { ok: false, detail: 'empty' };
+        if (res.silent) { self.metrics.executed--; return; }                                           // كلام لعبة عادي أو أمر بلا هدف: لا سجل ولا مقاييس self.metrics.execMs.push(self.now() - t1); if (self.metrics.execMs.length > 200) self.metrics.execMs.shift();
         if (ep !== self.epoch) { return; }                                                                    // سُحب التفويض أثناء التنفيذ: لا نتيجة/أنيميشن
         if (res.ok) self.metrics.ok++; else { self.metrics.failed++; self.metrics.reasons['exec:' + (res.reason || 'fail')] = (self.metrics.reasons['exec:' + (res.reason || 'fail')] || 0) + 1; }
         if (res.choices) self.pendingChoice = { key: item.key, choices: res.choices, at: self.now() }; else if (item.cmd.type === 'choose' && !res.keep) self.pendingChoice = null;
