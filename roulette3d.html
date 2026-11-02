@@ -1105,12 +1105,14 @@ async function targetShot(id,p,t){
   await anim(dur,function(u){ var a=A0+d*eio(u), dt=Math.max(1/120,(u-last)*dur); last=u; devState.vel=(a-prev)/dt; prev=a; devState.angle=a; if(Math.random()<dt*8) AUD.play('whirr',clamp(Math.abs(devState.vel)/14,0,1),0); });
   check(id); devState.vel=0; devState.angle=A0+d;
   await selectScene(id,t);
-  var hit;
-  try{ hit=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ hit=false; }
-  log('fire',{pid:t.id,by:p.id,target:true,hit:hit,chamber:M.cyl?M.cyl.idx:null});
+  /* «أطلق على شخص»: الطلقة تصيب الهدف المختار ١٠٠٪ — النتيجة المعتمدة تُستدعى للتسجيل فقط ولا تغيّر الإصابة */
+  var natural=false;
+  try{ natural=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ natural=false; }
+  var hit=true;
+  log('fire',{pid:t.id,by:p.id,target:true,hit:hit,forced:!natural,chamber:M.cyl?M.cyl.idx:null});
   await fireScene(id,t,hit,p.name+' أطلق على '+t.name);
-  if(hit){ await elimScene(id,t,'fire'); }
-  else { if(M.mode.type==='fixed') revealFixed(false); go('PLAYER_SAFE'); await safeTail(id,t); M.pending=null; }
+  /* إن كانت الشحنة الطبيعية فارغة لا نكشف/نعيد تحميل الأسطوانة (لا تتغيّر احتمالات بقية المباراة) */
+  await elimScene(id,t,natural?'fire':'target');
 }
 function revealFixed(hit){ if(M.pending&&M.pending.commit) log('reveal',{commit:M.pending.commit,seed:M.pending.seed,r:M.pending.r.toFixed(10),hit:hit}); }
 async function eliminate(p,reason){

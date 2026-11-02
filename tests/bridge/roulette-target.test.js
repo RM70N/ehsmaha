@@ -61,9 +61,9 @@ const ok = (c, m) => { if (c) { pass++; console.log('  ✓', m); } else { fail++
   const after = await st();
   const tgt = after.players.find(p => p.name === tname), sh = after.players.find(p => p.id === shooter);
   ok(sh.alive, 'صاحب الدور لم يخرج');
-  ok(elim.length === (tgt.alive ? 0 : 1) && (tgt.alive || elim[0].name === tname), 'النتيجة على الهدف «' + tname + '»: ' + (tgt.alive ? 'نجا' : 'خرج'));
+  ok(!tgt.alive && elim.length === 1 && elim[0].name === tname, 'الطلقة تصيب الهدف المختار ١٠٠٪ «' + tname + '»: ' + (tgt.alive ? 'نجا (خطأ)' : 'خرج'));
   ok(!ev.some(e => e[0] === 'eliminated' && e[1].id === shooter), 'لا إقصاء لصاحب الدور');
-  ok(after.players.filter(p => p.alive).length === (tgt.alive ? 4 : 3), 'عدد الأحياء صحيح');
+  ok(after.players.filter(p => p.alive).length === 3, 'عدد الأحياء صحيح');
 
   console.log('— مرة واحدة لكل لاعب في المباراة: نكرر حتى يأتي دور نفس اللاعب');
   let again = false;
