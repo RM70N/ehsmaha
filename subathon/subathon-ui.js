@@ -73,7 +73,7 @@
   function time() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2); }
   function addLog(e) { e.t = time(); logItems.unshift(e); if (logItems.length > 120) logItems.pop(); renderLog(); }
   var STATUS_AR = { queued: 'بالانتظار', done: 'نُفّذ', failed: 'فشل', rejected: 'مرفوض', info: 'نظام' };
-  var REASON_AR = { 'unverified': 'هوية غير متحقق منها', 'level': 'صلاحية غير كافية', 'not-leader': 'ليس القائد', 'not-your-turn': 'ليس دورك', 'duplicate': 'تكرار', 'rate-limit': 'سرعة عالية', 'queue-full': 'الطابور ممتلئ', 'expired': 'انتهت صلاحية الأمر', 'stale-epoch': 'جلسة قديمة', 'stale-context': 'تغيرت الشاشة', 'revoked': 'سُحب التفويض', 'unsafe-text': 'نص غير آمن', 'conflict': 'تعارض', 'not-found': 'لا هدف بهذا الاسم', 'ambiguous': 'عدة نتائج', 'edge': 'نهاية الاتجاه', 'no-targets': 'لا عناصر', 'blocked': 'ممنوع', 'page-forbidden': 'صفحة غير مسموحة', 'no-game': 'لا لعبة', 'no-start': 'لا زر بدء', 'no-round': 'لا يمكن بدء راوند', 'no-next': 'لا جولة تالية', 'disabled': 'الزر معطل', 'gone': 'العنصر اختفى', 'exception': 'خطأ تنفيذ' };
+  var REASON_AR = { 'unverified': 'هوية غير متحقق منها', 'level': 'صلاحية غير كافية', 'not-leader': 'ليس القائد', 'not-your-turn': 'ليس دورك', 'duplicate': 'تكرار', 'rate-limit': 'سرعة عالية', 'queue-full': 'الطابور ممتلئ', 'expired': 'انتهت صلاحية الأمر', 'stale-epoch': 'جلسة قديمة', 'stale-context': 'تغيرت الشاشة', 'revoked': 'سُحب التفويض', 'unsafe-text': 'نص غير آمن', 'conflict': 'تعارض', 'not-found': 'لا هدف بهذا الاسم', 'ambiguous': 'عدة نتائج', 'edge': 'نهاية الاتجاه', 'no-targets': 'لا عناصر', 'blocked': 'ممنوع', 'page-forbidden': 'صفحة غير مسموحة', 'no-game': 'لا لعبة', 'no-start': 'لا زر بدء', 'no-kick': 'اللعبة ما فيها طرد لاعب', 'no-players': 'لا لاعبين الآن', 'no-choice': 'رقم غير موجود', 'no-round': 'لا يمكن بدء راوند', 'no-next': 'لا جولة تالية', 'disabled': 'الزر معطل', 'gone': 'العنصر اختفى', 'exception': 'خطأ تنفيذ' };
   function onSessionEvent(e) {
     addLog(e);
     if (e.status === 'done' || e.status === 'failed') { lastRes = { ok: e.status === 'done', text: e.status === 'done' ? (e.detail || 'تم') : (REASON_AR[e.reason] || e.detail || 'فشل'), who: e.name }; lastCmd = { who: e.name, text: e.text }; hudResult(lastRes.ok); }
@@ -261,6 +261,7 @@
   function onShow() {
     var pg = E.pageId();
     if (pg === 'subathon') { render(); if (!tick) tick = setInterval(function () { if (E.pageId() !== 'subathon') { clearInterval(tick); tick = null; return; } updLive(); }, 1000); }
+    if (pg !== E.pageId()) {} try { E.closeKick(); } catch (e) {}
     if (session && session.active) { session.contextChanged('page:' + pg); hudUpdate(); }
   }
   function updLive() {

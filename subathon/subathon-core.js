@@ -43,12 +43,13 @@
     newRound: ['جوله جديده', 'ابدا جوله جديده', 'راوند جديد', 'ابدا راوند جديد', 'جوله جديدة', 'العب مره ثانيه', 'مره ثانيه'],
     scrollDown: ['انزل الصفحه', 'مرر تحت', 'مرر للاسفل', 'نزل الصفحه', 'مرر لتحت'],
     scrollUp: ['ارفع الصفحه', 'مرر فوق', 'مرر للاعلي', 'اطلع الصفحه', 'مرر لفوق'],
-    close: ['اغلق', 'اقفل', 'سكر', 'الغاء', 'الغ', 'اغلاق']
+    close: ['اغلق', 'اقفل', 'سكر', 'الغاء', 'الغ', 'اغلاق'],
+    kick: ['اطرد لاعب', 'اطرد اللاعب', 'طرد لاعب', 'اطرد']
   };
   var NAVWORDS = {}; Object.keys(CMD).forEach(function (k) { CMD[k] = CMD[k].map(normalize); CMD[k].forEach(function (w) { (NAVWORDS[w] = NAVWORDS[w] || []).push(k); }); });
   function stripGo(t) { return t.replace(/^(روح|رح|لف|خش)\s+/, ''); }
   var PRESS_PREFIX = /^(?:اضغط على|اضغط|اختار|اختر|افتح|ادخل|نفذ|اكبس|كبس|دوس|شغل|ابدا)\s+(.+)$/;
-  var NUM = /^(?:رقم\s+)?([1-9])$/;
+  var NUM = /^(?:رقم\s+)?([1-9][0-9]?)$/;
   var MAXLEN = 60;
 
   /** يحلّل نص تعليق إلى أمر: {type, args?, raw, norm} أو null (ليس أمراً). لا يُنفّذ شيئاً. */
@@ -58,7 +59,7 @@
     var g = stripGo(n);
     var m = NUM.exec(n); if (m) return ctx && ctx.pendingChoice ? { type: 'choose', args: { n: +m[1] }, raw: raw, norm: n } : null;
     function typeOf(map, key) { var l = NAVWORDS[key]; return l && l.indexOf(map) >= 0; }
-    var order = ['scrollDown', 'scrollUp', 'startRound', 'newRound', 'games', 'settings', 'next', 'back', 'close', 'down', 'up', 'right', 'left'];
+    var order = ['kick', 'scrollDown', 'scrollUp', 'startRound', 'newRound', 'games', 'settings', 'next', 'back', 'close', 'down', 'up', 'right', 'left'];
     for (var i = 0; i < order.length; i++) { if (typeOf(order[i], g) || typeOf(order[i], n)) return { type: order[i], raw: raw, norm: n }; }
     // «ابدأ»/«شغل» وحدها = بدء اللعبة بحسب السياق. «اضغط» وحدها = ضغط المحدد.
     if (typeOf('start', n)) return { type: 'start', raw: raw, norm: n };
@@ -73,7 +74,7 @@
 
   /* مستويات الصلاحية المطلوبة لكل نوع أمر */
   var LEVEL_OF = { down: 1, up: 1, right: 1, left: 1, press: 1, back: 1, games: 1, scrollDown: 1, scrollUp: 1, close: 1, choose: 1,
-    name: 1, settings: 2, start: 2, startRound: 2, next: 2, newRound: 2 };
+    name: 1, kick: 1, settings: 2, start: 2, startRound: 2, next: 2, newRound: 2 };
   var LEVEL_NAMES = { 1: 'التنقل', 2: 'إدارة الألعاب', 3: 'تحكم ألعاب متقدم' };
 
   /* أنماط ممنوعة مطلقاً (مرحلة البوابة + مرحلة الأهداف): لوحة المالك/الحساب/الدفع/الحذف/الأمان */
@@ -181,7 +182,7 @@
     if (!c.verified) return reject('unverified');
     if (evt && evt.epoch != null && evt.epoch !== this.epoch) return reject('stale-epoch');             // حدث قديم من جلسة سابقة
     if (SENSITIVE_TEXT.test(text)) return reject('unsafe-text');
-    var cmd = parse(text, { pendingChoice: this.pendingChoice && this.pendingChoice.key === key }); this.metrics.parseMs.push(this.now() - t0); if (this.metrics.parseMs.length > 200) this.metrics.parseMs.shift();
+    var cmd = parse(text, { pendingChoice: !!(this.pendingChoice && this.pendingChoice.key === key && this.now() - this.pendingChoice.at < 35000) }); this.metrics.parseMs.push(this.now() - t0); if (this.metrics.parseMs.length > 200) this.metrics.parseMs.shift();
     if (!cmd) return { ok: false, reason: 'not-a-command', silent: true };
     if (LEVEL_OF[cmd.type] > c.level) return reject('level', { cmd: cmd.type, need: LEVEL_OF[cmd.type], has: c.level });
     // الدور/الوضع
@@ -225,7 +226,7 @@
         res = res || { ok: false, detail: 'empty' }; self.metrics.execMs.push(self.now() - t1); if (self.metrics.execMs.length > 200) self.metrics.execMs.shift();
         if (ep !== self.epoch) { return; }                                                                    // سُحب التفويض أثناء التنفيذ: لا نتيجة/أنيميشن
         if (res.ok) self.metrics.ok++; else { self.metrics.failed++; self.metrics.reasons['exec:' + (res.reason || 'fail')] = (self.metrics.reasons['exec:' + (res.reason || 'fail')] || 0) + 1; }
-        if (res.choices) self.pendingChoice = { key: item.key, choices: res.choices, at: self.now() }; else if (item.cmd.type === 'choose') self.pendingChoice = null;
+        if (res.choices) self.pendingChoice = { key: item.key, choices: res.choices, at: self.now() }; else if (item.cmd.type === 'choose' && !res.keep) self.pendingChoice = null;
         self._log({ status: res.ok ? 'done' : 'failed', who: item.key, name: item.who, cmd: item.cmd.type, text: safeText(item.cmd.raw), detail: res.detail || '', reason: res.reason || '', ms: self.now() - t1, id: item.id });
       }, function (e) { self.metrics.failed++; self._log({ status: 'failed', who: item.key, name: item.who, cmd: item.cmd.type, text: safeText(item.cmd.raw), reason: 'exception', detail: String(e && e.message || e).slice(0, 80), id: item.id }); })
         .then(function () { return new Promise(function (r) { setTimeout(r, self.cfg.minGapMs); }); }).then(step);
