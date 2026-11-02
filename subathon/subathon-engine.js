@@ -242,9 +242,9 @@
       rows = Array.prototype.map.call(list, function (r) { var n = r.querySelector('.rounds-pick-name'); return { name: n ? n.textContent.trim() : '', btn: r.querySelector('button') }; }).filter(function (r) { return r.btn; });
       var ov = document.getElementById('kick-modal-overlay'); if (ov) ov.classList.remove('visible');     // نستبدل نافذة الستريمر بقائمتنا (المسار نفسه عند التأكيد)
     } else {
-      var spec = activeSpec(); var ps = spec && spec.lab && spec.lab.elim ? playersOf(spec) : [];
+      var spec = activeSpec(); if (!(spec && spec.lab && spec.lab.elim)) return { ok: false, reason: 'no-kick', detail: 'هذه اللعبة ما فيها طرد لاعب' };
+      var ps = playersOf(spec);
       rows = ps.map(function (p) { return { name: p.name, elim: function () { (0, eval)('(function(uid){' + spec.lab.elim + '})')(p.uid); } }; });
-      if (!rows.length && !spec) return { ok: false, reason: 'no-kick', detail: 'لا زر طرد في هذه الشاشة' };
     }
     if (!rows.length) { closeKick(); return { ok: false, reason: 'no-players', detail: 'لا لاعبين الآن' }; }
     kickRows = rows.slice(0, 30);

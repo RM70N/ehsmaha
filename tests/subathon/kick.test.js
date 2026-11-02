@@ -24,11 +24,11 @@ const OUT = process.env.KICK_OUT || '/tmp/subathon-kick.json'; const ONLY = (pro
       const ids = ['kp1', 'kp2', 'kp3']; const isInE = sp.lab.isIn;
       for (let i = 0; i < ids.length; i++) { await say(ids[i], sp.tag === 'tug' ? (i % 2 ? 'ازرق' : 'احمر') : kw); }
       for (const id of ids) if (await waitIn(isInE, 'tiktok:' + id, heavy ? 20000 : 6000)) row.joined++;
-      await say('viewer1', 'ابدأ الراوند'); await sleep(900);
+      if (sp.tag !== 'sniper') { await say('viewer1', 'ابدأ الراوند'); await sleep(900); }
       const pg0 = await page.evaluate(() => document.querySelector('.page.active').id);
       await say('viewer1', 'اطرد لاعب'); await sleep(500);
       const ov = await page.evaluate(() => { const o = document.getElementById('subathon-kick'); if (!o) return null; return [...o.querySelectorAll('.sk-c')].map((c) => ({ n: c.querySelector('i').innerText, name: c.querySelector('b').innerText })); });
-      row.listShown = !!ov; row.numbers = ov ? ov.length : 0; row.cardList = ov;
+      row.audit = await page.evaluate(() => { const a = Subathon._session().audit.filter((e) => e.cmd === 'kick').slice(-1)[0]; return a ? a.status + ':' + (a.reason || '') + ':' + (a.detail || '') : null; }); row.hasBtn = await page.evaluate(() => !!document.querySelector('.page.active .btn-kick, .page.active [onclick*="OpenKickModal"]')); row.listShown = !!ov; row.numbers = ov ? ov.length : 0; row.cardList = ov;
       if (ov && ov.length) {
         const target = ov.find((c) => /^kp\d$/.test(c.name)) || ov[0]; row.kicked = target.name;
         await say('viewer1', target.n); await sleep(600);
@@ -38,9 +38,9 @@ const OUT = process.env.KICK_OUT || '/tmp/subathon-kick.json'; const ONLY = (pro
         row.pageSame = (await page.evaluate(() => document.querySelector('.page.active').id)) === pg0;
       }
     } catch (e) { row.note = 'استثناء: ' + e.message.slice(0, 80); try { await page.close(); } catch (x) {} page = await H.newPage(b, { query: '?debug=0' }); await sleep(2500); await H.linkAccount(page, U).catch(() => {}); await setup(); }
-    rows.push(row); const ok = row.listShown && row.kickedOk && row.overlayClosed && row.pageSame;
-    console.log((ok ? 'OK   ' : 'PART ') + row.tag + ' | ' + row.name + ' | joined ' + row.joined + ' list ' + row.numbers + ' kicked ' + row.kickedOk + ' closed ' + row.overlayClosed + ' page ' + row.pageSame + (row.note ? ' ' + row.note : ''));
+    rows.push(row); row.unsupported = !row.listShown && /no-kick/.test(row.audit || ''); const ok = row.unsupported || (row.listShown && row.kickedOk && row.overlayClosed && row.pageSame);
+    console.log((row.unsupported ? 'NOKICK ' : ok ? 'OK   ' : 'PART ') + row.tag + ' | ' + row.name + ' | joined ' + row.joined + ' list ' + row.numbers + ' kicked ' + row.kickedOk + ' closed ' + row.overlayClosed + ' page ' + row.pageSame + ' btn ' + row.hasBtn + ' audit ' + row.audit + (row.note ? ' ' + row.note : ''));
   }
   fs.writeFileSync(OUT, JSON.stringify(rows, null, 1));
-  console.log('full ' + rows.filter((r) => r.listShown && r.kickedOk && r.overlayClosed && r.pageSame).length + '/' + rows.length); await b.close(); process.exit(0);
+  console.log('full ' + rows.filter((r) => r.listShown && r.kickedOk && r.overlayClosed && r.pageSame).length + '/' + rows.length + ' unsupported ' + rows.filter((r) => r.unsupported).length); await b.close(); process.exit(0);
 })().catch((e) => { console.log('FATAL', e.message); process.exit(2); });
