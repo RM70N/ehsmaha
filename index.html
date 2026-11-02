@@ -638,6 +638,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Cairo:wght@400;600;700;800;900&family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/dhmx-welcome/dhmx-welcome.css">
+<link rel="stylesheet" href="/c7-welcome/c7-welcome.css">
 <link rel="stylesheet" href="/subathon/subathon.css">
 <link rel="stylesheet" href="/owner-studio/legacy-skin.css">
 <script type="module">
@@ -24430,6 +24431,7 @@ function tiktokConnectModalStart() {
   }
   tiktokConnectSetStatus('connecting', '⏳ جاري الاتصال بـ @' + uname + '…');
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (typeof c7WelcomeNoteIntent === 'function') c7WelcomeNoteIntent(); // نية ربط حقيقية (ترحيب c7gaming777)
   if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
   if (typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
 
@@ -24531,6 +24533,7 @@ function tiktokQuickReconnect(username, opts) {
     return;
   }
   if (!silent && typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (!silent && typeof c7WelcomeNoteIntent === 'function') c7WelcomeNoteIntent(); // نية ربط حقيقية (ترحيب c7gaming777)
   if (!silent && typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
   if (!silent && typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
   const overlay = document.getElementById('qc-connecting-overlay');
@@ -25184,6 +25187,7 @@ function homeConnSetState(platform, state) {
   } catch (e) { /* أفضل جهد */ }
   // ترحيب dh_mx (طبقة بصرية مستقلة: dhmx-welcome/): ربط ناجح فعلي يبدأه المستخدم فقط، لا إعادة اتصال بعد انقطاع.
   if (platform === 'tiktok' && typeof dhmxWelcomeOnState === 'function') { try { dhmxWelcomeOnState(state, wasReconnect); } catch (e) {} }
+  if (platform === 'tiktok' && typeof c7WelcomeOnState === 'function') { try { c7WelcomeOnState(state, wasReconnect); } catch (e) {} }
   // احتفال 10K للستريمر som3h.4 (طبقة بصرية مستقلة: som3h-10k/): نفس شرط الربط الناجح الفعلي.
   if (platform === 'tiktok' && typeof som3h10kOnState === 'function') { try { som3h10kOnState(state, wasReconnect); } catch (e) {} }
   if (platform === 'tiktok' && typeof blhh5kOnState === 'function') { try { blhh5kOnState(state, wasReconnect); } catch (e) {} }
@@ -25898,6 +25902,7 @@ function homeStartQuickConnect() {
   // معلّقة لمنصة تراجع عنها الستريمر (أو عند إعادة الربط بمنصات مختلفة).
   platformDisconnectAll();
   if (typeof dhmxWelcomeNoteIntent === 'function') dhmxWelcomeNoteIntent(); // نية ربط حقيقية (ترحيب dh_mx)
+  if (typeof c7WelcomeNoteIntent === 'function') c7WelcomeNoteIntent(); // نية ربط حقيقية (ترحيب c7gaming777)
   if (typeof som3h10kNoteIntent === 'function') som3h10kNoteIntent(); // نية ربط حقيقية (احتفال 10K)
   if (typeof blhh5kNoteIntent === 'function') blhh5kNoteIntent(); // نية ربط حقيقية (احتفال 5K)
 
@@ -86374,7 +86379,9 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 })();
 </script>
 <script src="/dhmx-welcome/dhmx-welcome.js"></script>
+<script src="/c7-welcome/c7-welcome.js"></script>
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
+<script src="/c7-welcome/c7-welcome-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-integration.js"></script>
 <script src="/blhh-5k/blhh-5k-integration.js"></script>
 <script src="/ops/ops-games.js"></script>
