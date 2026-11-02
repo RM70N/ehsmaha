@@ -121,7 +121,7 @@ const authEnter = (page, uid, username) => page.evaluate(async ([uid, username])
   check('طُلب البروفايل لـ .blhh فقط', page._profiles.length >= 1 && page._profiles.every((u) => u === TARGET), page._profiles);
   await sleep(1800);
   const cnt = await page.evaluate(() => ({ n: document.querySelector('.blhh-celebration__num').textContent, done: document.querySelector('.blhh-celebration__num').classList.contains('done'), medalHit: document.querySelector('.blhh-celebration__medal').classList.contains('hit') }));
-  check('العدّاد يصل إلى 5K مع حركة الإصابة (done + hit)', cnt.n === '5K' && cnt.done && cnt.medalHit, cnt);
+  check('العدّاد يعدّ من 0 حتى 5,000 مع حركة الإصابة (done + hit)', cnt.n === '5,000' && cnt.done && cnt.medalHit, cnt);
   // أثناء الاحتفال: التعليقات تصل
   await page.evaluate(() => { window.__chat = []; homeRegisterGameListener('s10test', (evt) => { window.__chat.push(1); }); });
   await H.ctl(H.PRIMARY, { cmd: 'chat', user: TARGET, viewer: 'viewer_' + RUN, text: 'تعليق أثناء الاحتفال', identity: { isFollowerOfAnchor: true } });

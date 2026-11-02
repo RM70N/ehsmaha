@@ -338,7 +338,7 @@
             '<div class="' + P + '__glow"></div><div class="' + P + '__frame"></div><div class="' + P + '__gap"></div><div class="' + P + '__gap2"></div>' +
             '<div class="' + P + '__img" id="' + P + '-img"><span class="' + P + '__mono">S</span></div><div class="' + P + '__gloss"></div>' +
           '</div>' +
-          '<div class="' + P + '__medal" id="' + P + '-medal"><div class="' + P + '__mfr"><div class="' + P + '__min"><span class="' + P + '__num" id="' + P + '-num">1</span></div></div><div class="' + P + '__burst" id="' + P + '-burst"></div></div>' +
+          '<div class="' + P + '__medal" id="' + P + '-medal"><div class="' + P + '__mfr"><div class="' + P + '__min"><span class="' + P + '__num" id="' + P + '-num">0</span></div></div><div class="' + P + '__burst" id="' + P + '-burst"></div></div>' +
         '</div>' +
         '<div class="' + P + '__txt">' +
           '<div class="' + P + '__tglow"></div>' +
@@ -461,7 +461,7 @@
     return function stop() { alive = false; cancelAnimationFrame(raf); window.removeEventListener('resize', size); };
   }
 
-  /* ───────────── العدّاد 1 → 5,000 ───────────── */
+  /* ───────────── العدّاد 0 → 5,000 ───────────── */
   function startCounter(root, reduced, onHit) {
     var num = root.querySelector('#' + P + '-num'), prog = root.querySelector('#' + P + '-prog');
     var ticks = root.querySelectorAll('#' + P + '-ticks .tk');
@@ -472,7 +472,7 @@
     (function tick(now) {
       if (!root.isConnected || finished) return;
       var k = Math.min(1, Math.max(0, (now - start) / D)), e = ease(k);
-      var v = Math.max(1, Math.round(1 + 4999 * e));
+      var v = Math.round(5000 * e);
       num.textContent = fmt(v);
       prog.setAttribute('stroke-dashoffset', (PC * (1 - e)).toFixed(2));
       var want = Math.round(e * TICKS);
@@ -480,7 +480,7 @@
       root.style.setProperty('--heat', (e * e).toFixed(3));
       if (k >= 1) {
         finished = true;
-        num.textContent = '5K'; num.className = num.className + ' done';
+        num.textContent = '5,000'; num.className = num.className + ' done';
         root.querySelector('#' + P + '-medal').className += ' hit';
         root.querySelector('#' + P + '-av').className += ' hit';
         var b = root.querySelector('#' + P + '-burst'); b.className += ' go';
