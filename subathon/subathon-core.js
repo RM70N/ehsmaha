@@ -48,7 +48,7 @@
   };
   var NAVWORDS = {}; Object.keys(CMD).forEach(function (k) { CMD[k] = CMD[k].map(normalize); CMD[k].forEach(function (w) { (NAVWORDS[w] = NAVWORDS[w] || []).push(k); }); });
   function stripGo(t) { return t.replace(/^(روح|رح|لف|خش)\s+/, ''); }
-  var PRESS_PREFIX = /^(?:اضغط على|اضغط|اختار|اختر|افتح|ادخل|نفذ|اكبس|كبس|دوس|شغل|ابدا)\s+(.+)$/;
+  var PRESS_PREFIX = /^(?:اضغط على|اضغط|اختار|اختر|افتح|فتح|ادخل|نفذ|اكبس|كبس|دوس|شغل|ابدا)\s+(.+)$/;
   var NUM = /^(?:رقم\s+)?([1-9][0-9]?)$/;
   var MAXLEN = 60;
 

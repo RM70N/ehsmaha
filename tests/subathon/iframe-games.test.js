@@ -4,12 +4,12 @@ const H = require('../bridge/harness'); const sleep = (ms) => new Promise((r) =>
 const FRAME = (g, call) => `(function(){const f=document.querySelector('.page.active iframe');const w=f&&f.contentWindow;try{return JSON.stringify(${call})}catch(e){return ''}})()`;
 const GAMES = [
   { tag: 'harfnajat', name: 'حرف النجاة', steps: ['ابدأ الإعداد', 'فتح غرفة الانتظار'], st: 'JSON.stringify(window.harfnajatApi().getState())' },
-  { tag: 'almeezan', name: 'الميزان', steps: ['إعداد الجولة', 'فتح الانضمام'], st: FRAME('', 'w.AlmeezanGame.getState()') },
+  { tag: 'almeezan', name: 'الميزان', steps: ['افتح إعداد الجولة', 'فتح الانضمام'], st: FRAME('', 'w.AlmeezanGame.getState()') },
   { tag: 'wesh', name: 'وش تغيّر؟', steps: ['ابدأ', 'افتح الردهة'], st: FRAME('', 'w.WeshTaghayarGame.getState()') },
   { tag: 'hq', name: 'حلّها قبلي', steps: ['ابدأ', 'افتح الانضمام'], st: FRAME('', 'w.HallahaGame.snapshot()') },
-  { tag: 'xo', name: 'إكس أو', steps: ['الإعداد', 'دخول شاشة الانتظار'], st: 'JSON.stringify(window.xoApi().getState())' },
+  { tag: 'xo', name: 'إكس أو', steps: ['افتح الإعداد', 'افتح دخول شاشة الانتظار'], st: 'JSON.stringify(window.xoApi().getState())' },
   { tag: 'latatayeh', name: 'لا تطيّحه', steps: ['ابدأ', 'فتح الانتظار'], st: 'JSON.stringify(window.latatayehApi().getState())' },
-  { tag: 'ek', name: 'اكذب عليّ', steps: ['إعداد المباراة', 'افتح قاعة الانضمام'], st: FRAME('', 'w.EkthebAlayGame.getState()') },
+  { tag: 'ek', name: 'اكذب عليّ', steps: ['افتح إعداد المباراة', 'افتح قاعة الانضمام'], st: FRAME('', 'w.EkthebAlayGame.getState()') },
   { tag: 'bomb', name: 'القنبلة المتحركة', steps: [], st: 'JSON.stringify(bombApi().getState())', words: ['دخول'] }
 ];
 (async () => {
