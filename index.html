@@ -24288,9 +24288,17 @@ const TIKTOK_CONNECT_MAX_FAILS = 3;       // (سيرفر قديم فقط) أخط
 // (fatal من السيرفر بعد استنفاد كل المحاولات والمزودين) أو صمته الكامل هذي المدة.
 const TIKTOK_CONNECT_DEADLINE_MS = 30000;
 
-function tiktokConnectFailMessage(code) {
+// أسباب تعطّل من طرف خدمة الربط نفسها (مزوّد التوقيع) لا من حساب الستريمر أو بثه —
+// نوضّحها بنص مختلف حتى لا يظن الستريمر أن المشكلة من يوزره أو بثه.
+const TIKTOK_SERVICE_SIDE_REASONS = new Set(['invalid_key', 'daily_limit', 'provider_denied', 'rate_limited']);
+
+function tiktokConnectFailMessage(code, reason) {
   if (code === 'user_not_found') return '⚠️ يوزرنيم غير موجود — تأكد من كتابته صح';
   if (code === 'timeout') return '⚠️ سيرفر الربط ما رد — تأكد من إنترنتك واضغط "إعادة المحاولة"';
+  if (reason && TIKTOK_SERVICE_SIDE_REASONS.has(reason)) {
+    // المشكلة من سعة خدمة الربط نفسها (لا من حسابك ولا من بثك) — إعادة المحاولة لاحقاً قد تنجح تلقائياً.
+    return '⚠️ خدمة الربط مزدحمة مؤقتاً من طرفنا — بثك سليم، جرّب "إعادة المحاولة" بعد قليل';
+  }
   // gave_up وأخواتها: بعد استنفاد كل المحاولات التلقائية (والمزودين البدلاء)
   return '⚠️ تعذّر الربط بتيك توك بعد عدة محاولات تلقائية — تأكد إن البث مفتوح فعلاً واضغط "إعادة المحاولة"';
 }
@@ -24333,7 +24341,7 @@ function tiktokConnectWatcher(onFail, onNotLive, onProgress) {
   w.fail = function (code, message, reason) {
     if (w.done) return;
     w.stop();
-    let text = message || tiktokConnectFailMessage(code);
+    let text = message || tiktokConnectFailMessage(code, reason);
     if (code !== 'user_not_found') {
       text += ' [' + (reason || code) + ']'; // رمز السبب للدعم/التشخيص
       // سيرفر الجسر الجديد يختم كل حالة بـsrv؛ غيابها = سيرفر Render ما زال على النسخة القديمة (هو مصدر أشيع فشل)

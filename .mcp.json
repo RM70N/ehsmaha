@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "eulerstream": {
+      "command": "sh",
+      "args": [
+        "-c",
+        "cd eulerstream-mcp-server && npm ci --silent --no-audit --no-fund >&2 && npm run build --silent >&2 && exec node dist/index.js"
+      ],
+      "env": { "EULER_API_KEY": "${EULER_API_KEY}" }
+    }
+  }
+}

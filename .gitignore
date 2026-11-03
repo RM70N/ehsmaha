@@ -5,7 +5,7 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-.mcp.json
+# .mcp.json يُتتبَّع عمداً (خادم eulerstream)
 .claude/
 .gstack/
 .task/
