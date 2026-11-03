@@ -76,6 +76,11 @@ module.exports = {
       .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
       .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
+    // مهام المالك (services/ownerAI) اللي انقطعت بإعادة التشغيل: نعلّمها ونبلّغ المالك بالنتيجة الجزئية
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => ok !== false && require('../services/ownerAI').recoverInterrupted(client))
+      .catch((err) => logger.warn('تعذّر فحص مهام المالك المنقطعة', { error: err }));
+
     try {
       await api.health();
       logger.info('طبقة الـAPI تستجيب ✅', { baseUrl: ctx.config.apiBaseUrl });

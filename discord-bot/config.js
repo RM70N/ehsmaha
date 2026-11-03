@@ -30,6 +30,25 @@ function readList(name) {
     .filter(Boolean);
 }
 
+// مفاتيح Gemini بالترتيب: GEMINI_API_KEY ثم GEMINI_API_KEY_2..6 ثم GEMINI_API_KEYS (مفصولة بفاصلة)
+function readGeminiKeys() {
+  const keys = [
+    process.env.GEMINI_API_KEY,
+    ...[2, 3, 4, 5, 6].map((n) => process.env[`GEMINI_API_KEY_${n}`]),
+    ...readList('GEMINI_API_KEYS')
+  ]
+    .map((k) => String(k || '').trim())
+    .filter(Boolean);
+  return [...new Set(keys)];
+}
+
+// نماذج احتياطية لما تخلص حصة النموذج الأساسي بكل المفاتيح (حصة كل نموذج منفصلة). off = بدون
+function readFallbackModels() {
+  const raw = String(process.env.GEMINI_FALLBACK_MODELS || '').trim();
+  if (/^(off|none|false|0)$/i.test(raw)) return [];
+  return raw ? readList('GEMINI_FALLBACK_MODELS') : ['gemini-3.1-flash-lite', 'gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash'];
+}
+
 function stripTrailingSlash(url) {
   return String(url || '').replace(/\/+$/, '');
 }
@@ -89,6 +108,10 @@ function buildConfig() {
   const badAdmins = adminIds.filter((id) => !isSnowflake(id));
   if (badAdmins.length) problems.push(`- ADMIN_IDS فيه معرّفات غير صالحة: ${badAdmins.join(', ')}`);
 
+  // مالك البوت — الحساب الوحيد المصرّح له بنظام التنفيذ الذكي (services/ownerAI)
+  const ownerDiscordId = (process.env.OWNER_DISCORD_ID || '944639301528977420').trim();
+  if (!isSnowflake(ownerDiscordId)) problems.push(`- OWNER_DISCORD_ID لازم يكون معرّف حساب ديسكورد صالح (أرقام فقط) — القيمة الحالية: "${ownerDiscordId.slice(0, 30)}"`);
+
   let numeric = {};
   try {
     numeric = {
@@ -145,6 +168,9 @@ function buildConfig() {
     apiBaseUrl: apiBaseUrl || `http://127.0.0.1:${internalApiPort(numeric)}`,
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
+    ownerDiscordId,
+    // OWNER_AI=off يوقف نظام تنفيذ أوامر المالك باللغة الطبيعية (مفعّل افتراضياً)
+    ownerAiEnabled: !/^(false|0|no|off)$/i.test(String(process.env.OWNER_AI || 'true').trim()),
     siteUrl,
     autoRegisterCommands: autoRegister,
     profileUrl: siteUrl + '/profile',
@@ -170,7 +196,11 @@ function buildConfig() {
     messageContentIntent,
     // المساعد الذكي (Gemini) — التذاكر + المنشن. النموذج يتبدّل بـGEMINI_MODEL بدون تعديل كود
     geminiApiKey: process.env.GEMINI_API_KEY.trim(),
-    geminiModel: (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim(),
+    // كل المفاتيح (الأول = GEMINI_API_KEY) — لو خلص حد مفتاح يتحول تلقائياً للي بعده
+    geminiApiKeys: Object.freeze(readGeminiKeys()),
+    // Reason: gemini-2.5-flash المجاني صار حده 20 طلب باليوم، و2.5-flash-lite/2.0-flash انوقفت (404)
+    geminiModel: (process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite').trim(),
+    geminiFallbackModels: Object.freeze(readFallbackModels()),
     // الهوية البصرية — مكان واحد لكل الألوان
     colors: Object.freeze({
       primary: 0x1a0d33,  // بنفسجي غامق (الأساسي)

@@ -539,7 +539,7 @@ test('/مساعدة: فيها قسم المساعد الذكي وأمر قناة
 });
 
 test('Gemini: النموذج من الإعدادات، والتفكير مطفأ لـ2.5 flash، والسجل بدون محتوى', async () => {
-  assert.equal(loadConfig().geminiModel, 'gemini-2.5-flash');
+  assert.equal(loadConfig().geminiModel, 'gemini-3.5-flash-lite', 'الافتراضي نفس اللي شغّال بالاستضافة (2.5-flash المجاني حده 20 طلب باليوم)');
   assert.deepEqual(gemini._internal.generationConfigFor('gemini-2.5-flash', { maxOutputTokens: 10, temperature: 0.5 }), {
     maxOutputTokens: 10,
     temperature: 0.5,
