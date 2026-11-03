@@ -269,3 +269,35 @@ test('balanced (default) with 9 keys: load spreads over all keys; exhausted/deni
   c.t += 31 * 60000; // انتهت فترة الإسكات اليومية → المفاتيح تعود
   assert.ok(/^key\d/.test(p.pick().provider.name));
 });
+
+test('half-open probe that ends offline/timeout/transient does not wedge the key forever (queue-stall bug)', () => {
+  for (const kind of ['offline', 'user_not_found', 'timeout', 'transient', 'blocked']) {
+    const c = new FakeClock();
+    const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B', TIKTOK_FREE_FALLBACK: '0' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+    const a = p.providers[0];
+    p.begin(a); p.end(a, { kind: 'rate_limited', retryAfterMs: 5000 });
+    c.t += 6000; // half_open
+    p.begin(a); p.end(a, { kind }); // التجريبي وصل ليوزر غير مباشر مثلاً
+    c.t += 2000;
+    const names = [];
+    for (let i = 0; i < 4; i++) { const r = p.pick(); assert.ok(r.provider, kind + ': provider available'); names.push(r.provider.name); p.begin(r.provider); p.end(r.provider, { ok: true }); c.t += 5; }
+    assert.ok(names.includes('key1/direct'), kind + ': key1 serves again');
+  }
+});
+
+test('non-daily 429 without retry-after cools the key briefly (5s, escalating), not 30s+', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEY: 'A' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  const a = p.providers[0];
+  p.begin(a); const i1 = p.end(a, { kind: 'rate_limited', retryAfterMs: 0 });
+  assert.equal(i1.cooldownMs, 5000);
+});
+
+test('invalid key (401) is silenced for hours, other denials (402/403) for 10 minutes', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEYS: 'A,B' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  p.begin(p.providers[0]); p.end(p.providers[0], { kind: 'provider_denied', invalidKey: true });
+  p.begin(p.providers[1]); p.end(p.providers[1], { kind: 'provider_denied' });
+  assert.equal(p.providers[0].breaker.waitMs(), 21600000);
+  assert.equal(p.providers[1].breaker.waitMs(), 600000);
+});
