@@ -23941,6 +23941,7 @@ function tiktokBridgeWsUrl(username) {
 // ---------- Failover بين سيرفرات الجسر (تيك توك فقط) ----------
 const TIKTOK_HEALTH_TIMEOUT_MS = 4000;            // مهلة فحص /healthz الواحد
 const TIKTOK_WS_FAILOVER_MS = 8000;               // مهلة فتح الويب سوكيت قبل التحويل للسيرفر التالي
+const TIKTOK_FIRST_MSG_TIMEOUT_MS = 12000;        // أقصى انتظار لأول رسالة بعد فتح الاتصال (السيرفر يرسلها فوراً عادة) — غياب تام يعني وصلة ميتة بصمت (جوال يقفل الشبكة بالخلفية)
 const TIKTOK_PRIMARY_RECHECK_MS = 5 * 60 * 1000;  // فحص رجوع الأساسي بالخلفية
 const TIKTOK_PRIMARY_STABLE_CHECKS = 2;           // نجاحات متتالية قبل الرجوع (منع الرفرفة)
 let tiktokPrimaryWatchTimer = null;
@@ -24092,6 +24093,8 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
     sock = s;
     const startedAt = Date.now();
     let transportOpen = false;
+    let gotFirstMessage = false;
+    let firstMsgGuard = null;
     const guard = setTimeout(() => {
       if (sock === s && !transportOpen && !closedByCaller && tried < n) failover(s, index, 'ما انفتح الاتصال خلال ' + (TIKTOK_WS_FAILOVER_MS / 1000) + 'ث');
     }, TIKTOK_WS_FAILOVER_MS);
@@ -24100,8 +24103,23 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
       transportOpen = true;
       clearTimeout(guard);
       if (index !== tiktokActiveBridgeIndex) tiktokBridgeSetActive(index, 'فشل فتح الويب سوكيت على السيرفر السابق');
+      // السيرفر يرسل حالته الحالية فوراً عند addClient (راجع server.js) — أول رسالة
+      // توصل خلال أجزاء من الثانية عادة. لو فتحت الوصلة (onopen) ولكن ما وصلت أي
+      // رسالة إطلاقاً خلال هالمهلة، فهي وصلة "ميتة بصمت" (الجوال يقفل الشبكة بالخلفية
+      // بدون close frame) — بدون هذا الحارس تبقى الشاشة عالقة على "في الطابور" للأبد
+      // بلا أي محاولة إعادة اتصال، لأن مراقب homeConnWatchdogTick نفسه ما يبدأ قبل
+      // أول bridge_ping (pingSeen)، وهذي الحالة ما توصلها حتى أول نبض.
+      firstMsgGuard = setTimeout(() => {
+        if (sock !== s || gotFirstMessage || closedByCaller) return;
+        if (tried < n) { failover(s, index, 'ما وصلت أي رسالة خلال ' + (TIKTOK_FIRST_MSG_TIMEOUT_MS / 1000) + 'ث من فتح الاتصال (وصلة ميتة بصمت)'); return; }
+        try { s.onopen = null; s.onmessage = null; s.onclose = null; s.close(); } catch (e) {}
+        if (sock === s) sock = null;
+        if (onClose) onClose({ code: 1006 });
+      }, TIKTOK_FIRST_MSG_TIMEOUT_MS);
     };
     s.onmessage = (e) => {
+      gotFirstMessage = true;
+      clearTimeout(firstMsgGuard);
       let d; try { d = JSON.parse(e.data); } catch (err) { return; }
       if (d && d.type === 'bridge_status') {
         if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
@@ -24121,6 +24139,7 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
     s.onerror = () => {};
     s.onclose = (e) => {
       clearTimeout(guard);
+      clearTimeout(firstMsgGuard);
       if (sock !== s) return;
       const networkFail = !transportOpen ||
         ((Date.now() - startedAt) <= TIKTOK_WS_FAILOVER_MS && e && TIKTOK_WS_FAILOVER_CLOSE_CODES.indexOf(e.code) > -1);
