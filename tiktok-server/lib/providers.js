@@ -3,11 +3,11 @@
 //
 // المزود = { مفتاح API (اختياري) + عنوان سيرفر التوقيع + مسار (مباشر أو بروكسي) }.
 // لكل مزود: محدّد معدل تكيّفي مستقل (حصة Euler لكل مفتاح/IP) وقاطع دائرة مستقل.
-// المزودات مرتبة بطبقات (tier). الاستراتيجية الافتراضية "متوازنة" (balanced): كل المفاتيح بنفس الطبقة وتتقاسم
-// الحمل (الأقل انشغالاً ثم الأقدم استخداماً)، فلا يتكدس الطابور على مفتاح واحد وبقية المفاتيح خاملة؛ ولو مفتاح
-// "خلص" (429 حصة/معدل، أو 402/401 رفض، أو تعطّل) يُفتح قاطعه ويكمل الباقون تلقائياً، ويرجع هو أول ما يتعافى.
-// الاستراتيجية "متسلسلة" (TIKTOK_KEY_STRATEGY=sequential، اختيارية): المفتاح الأول وحده ما دام سليماً ثم الثاني…
-//   المفاتيح (tier 0) ← عناوين توقيع بديلة ← الطبقة المجانية كملاذ أخير.
+// المزودات مرتبة بطبقات (tier). الاستراتيجية الافتراضية "متسلسلة" (TIKTOK_KEY_STRATEGY=sequential):
+// المفتاح الأول وحده يعمل ما دام سليماً، ولو "خلص" (429 حصة/معدل، أو 402 رفض، أو تعطّل) ينتقل الاتصال
+// تلقائياً للثاني، ثم الثالث… ويرجع للأول تلقائياً أول ما يتعافى قاطعه. الترتيب:
+//   المفتاح 1 (tier 0) ← المفتاح 2 (tier 1) ← … ← عناوين توقيع بديلة ← الطبقة المجانية كملاذ أخير.
+// الاستراتيجية "متوازنة" (balanced): كل المفاتيح بنفس الطبقة وتتقاسم الحمل بالتساوي.
 // الطبقة الأدنى ما تُستخدم إلا لو كل مزودي الطبقة الأعلى معطّلين (قاطع مفتوح) — مو لمجرد ازدحام لحظي.
 //
 // لا أسرار هنا: كل شيء من متغيرات البيئة، والأسماء الظاهرة (name) عامة بلا مفاتيح ولا عناوين بروكسي.
@@ -15,7 +15,7 @@
 const { CircuitBreaker } = require('./circuit-breaker');
 const { RateLimiter } = require('./rate-limiter');
 
-const MAX_PROVIDERS = 64; // 16 مفتاحاً × عدة مسارات + بدائل (كان 16 فيُقطع بقية المفاتيح عند وجود بروكسيات)
+const MAX_PROVIDERS = 16;
 
 function splitList(raw) {
   return String(raw || '').split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
@@ -41,7 +41,7 @@ function loadProviderDefs(env, defaults) {
   const fallbackUrls = splitList(e.TIKTOK_SIGN_FALLBACK_URLS);
   const proxies = splitList(e.TIKTOK_PROXIES);
   const freeFallback = String(e.TIKTOK_FREE_FALLBACK == null ? '1' : e.TIKTOK_FREE_FALLBACK) !== '0';
-  const sequential = String(e.TIKTOK_KEY_STRATEGY || 'balanced').trim().toLowerCase() === 'sequential';
+  const sequential = String(e.TIKTOK_KEY_STRATEGY || 'sequential').trim().toLowerCase() !== 'balanced';
 
   const routes = [{ id: 'direct', proxyUrl: '' }].concat(proxies.map((p, i) => ({ id: 'proxy' + (i + 1), proxyUrl: p })));
   const defs = [];
@@ -64,11 +64,10 @@ class ProviderPool {
   constructor(defs, opts) {
     const o = Object.assign({
       now: Date.now, ratePerMin: 90, freeRatePerMin: 30, minRatePerMin: 6, burst: 6, inFlight: 4,
-      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, invalidKeyCooldownMs: 21600000, dailyCooldownMs: 1800000, decreaseFactor: 0.6,
+      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, dailyCooldownMs: 1800000, decreaseFactor: 0.6,
     }, opts || {});
     this.now = o.now;
     this.deniedCooldownMs = o.deniedCooldownMs;
-    this.invalidKeyCooldownMs = o.invalidKeyCooldownMs; // مفتاح مرفوض 401 (خاطئ/ملغى): لا يُعاد تجريبه كل 10 دقائق ويضيّع محاولة كل مستخدم
     this.dailyCooldownMs = o.dailyCooldownMs;
     this.providers = defs.map((def, i) => {
       const rate = (def.free ? o.freeRatePerMin : o.ratePerMin) / 60;
@@ -139,20 +138,13 @@ class ProviderPool {
       provider.breaker.trip(outcome.retryAfterMs > 0 ? Math.min(outcome.retryAfterMs, 3600000) : this.dailyCooldownMs, true);
     } else if (kind === 'rate_limited') {
       provider.limiter.onRateLimited();
-      provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : Math.min(60000, 5000 * Math.pow(2, Math.min(4, provider.breaker.trips))));
+      provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : 0);
     } else if (kind === 'provider_denied') {
-      provider.breaker.trip(outcome.invalidKey ? this.invalidKeyCooldownMs : this.deniedCooldownMs, true);
+      provider.breaker.trip(this.deniedCooldownMs, true);
     } else if (kind === 'sign_failed') {
       provider.breaker.onFailure();
     }
-    else if (kind === 'offline' || kind === 'user_not_found') {
-      // السيرفر ردّ ردّاً سليماً (اليوزر غير مباشر/غير موجود) = المفتاح يعمل. مهم: لو كان هذا الطلب هو التجريبي
-      // لقاطع half_open وتُرك بلا حسم، يعلق المفتاح للأبد (كل مفاتيح الطابور تتجمد تدريجياً).
-      if (wasOpen) { provider.breaker.onSuccess(); info.recovered = true; }
-      else provider.breaker.releaseProbe();
-    } else {
-      provider.breaker.releaseProbe(); // blocked / timeout / transient: لا تُحسب ضد المزود لكن لا تترك التجريبي معلقاً
-    }
+    // user_not_found / offline / blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع
     // (المهلة قد تكون من تيك توك نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة).
     info.opened = !wasOpen && provider.breaker.state === 'open';
     info.cooldownMs = Math.max(0, provider.breaker.waitMs());
