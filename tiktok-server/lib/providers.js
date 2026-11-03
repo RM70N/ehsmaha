@@ -3,11 +3,11 @@
 //
 // المزود = { مفتاح API (اختياري) + عنوان سيرفر التوقيع + مسار (مباشر أو بروكسي) }.
 // لكل مزود: محدّد معدل تكيّفي مستقل (حصة Euler لكل مفتاح/IP) وقاطع دائرة مستقل.
-// المزودات مرتبة بطبقات (tier). الاستراتيجية الافتراضية "متسلسلة" (TIKTOK_KEY_STRATEGY=sequential):
-// المفتاح الأول وحده يعمل ما دام سليماً، ولو "خلص" (429 حصة/معدل، أو 402 رفض، أو تعطّل) ينتقل الاتصال
-// تلقائياً للثاني، ثم الثالث… ويرجع للأول تلقائياً أول ما يتعافى قاطعه. الترتيب:
-//   المفتاح 1 (tier 0) ← المفتاح 2 (tier 1) ← … ← عناوين توقيع بديلة ← الطبقة المجانية كملاذ أخير.
-// الاستراتيجية "متوازنة" (balanced): كل المفاتيح بنفس الطبقة وتتقاسم الحمل بالتساوي.
+// المزودات مرتبة بطبقات (tier). الاستراتيجية الافتراضية "متوازنة" (balanced): كل المفاتيح بنفس الطبقة وتتقاسم
+// الحمل (الأقل انشغالاً ثم الأقدم استخداماً)، فلا يتكدس الطابور على مفتاح واحد وبقية المفاتيح خاملة؛ ولو مفتاح
+// "خلص" (429 حصة/معدل، أو 402/401 رفض، أو تعطّل) يُفتح قاطعه ويكمل الباقون تلقائياً، ويرجع هو أول ما يتعافى.
+// الاستراتيجية "متسلسلة" (TIKTOK_KEY_STRATEGY=sequential، اختيارية): المفتاح الأول وحده ما دام سليماً ثم الثاني…
+//   المفاتيح (tier 0) ← عناوين توقيع بديلة ← الطبقة المجانية كملاذ أخير.
 // الطبقة الأدنى ما تُستخدم إلا لو كل مزودي الطبقة الأعلى معطّلين (قاطع مفتوح) — مو لمجرد ازدحام لحظي.
 //
 // لا أسرار هنا: كل شيء من متغيرات البيئة، والأسماء الظاهرة (name) عامة بلا مفاتيح ولا عناوين بروكسي.
@@ -15,7 +15,7 @@
 const { CircuitBreaker } = require('./circuit-breaker');
 const { RateLimiter } = require('./rate-limiter');
 
-const MAX_PROVIDERS = 16;
+const MAX_PROVIDERS = 64; // 16 مفتاحاً × عدة مسارات + بدائل (كان 16 فيُقطع بقية المفاتيح عند وجود بروكسيات)
 
 function splitList(raw) {
   return String(raw || '').split(/[,\s]+/).map((s) => s.trim()).filter(Boolean);
@@ -41,7 +41,7 @@ function loadProviderDefs(env, defaults) {
   const fallbackUrls = splitList(e.TIKTOK_SIGN_FALLBACK_URLS);
   const proxies = splitList(e.TIKTOK_PROXIES);
   const freeFallback = String(e.TIKTOK_FREE_FALLBACK == null ? '1' : e.TIKTOK_FREE_FALLBACK) !== '0';
-  const sequential = String(e.TIKTOK_KEY_STRATEGY || 'sequential').trim().toLowerCase() !== 'balanced';
+  const sequential = String(e.TIKTOK_KEY_STRATEGY || 'balanced').trim().toLowerCase() === 'sequential';
 
   const routes = [{ id: 'direct', proxyUrl: '' }].concat(proxies.map((p, i) => ({ id: 'proxy' + (i + 1), proxyUrl: p })));
   const defs = [];
