@@ -1055,11 +1055,11 @@ async function playRound(id,presetPid){
   refreshOdds(); persist();
   await selectScene(id,p);
   go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now();
-  var dec=await waitDecision(id,p), tgt=null;
+  var dec=await decideOrAuto(id,p), tgt=null;
   while(dec.choice===3){
     p.tgtUsed=true; go('TARGET_PICK'); tgt=await pickTarget(id,p);
     if(tgt) break;
-    M.pending.choice=0; M.pending.by=''; go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now(); dec=await waitDecision(id,p);
+    M.pending.choice=0; M.pending.by=''; go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now(); dec=await decideOrAuto(id,p);
   }
   go('RESOLVING'); log('decision',{pid:pid,choice:dec.choice,by:dec.by,target:tgt?tgt.id:null});
   if(tgt){ await targetShot(id,p,tgt); return; }
@@ -1120,6 +1120,14 @@ async function eliminate(p,reason){
   emit('eliminated',{id:p.id,name:p.name,reason:reason,remaining:alive().length});
   if(M.mode.type==='cyl'&&reason==='fire'&&!externalAuth){ log('reveal',{commit:M.cyl.commit,seed:M.cyl.seed,pos:M.cyl.pos}); await loadCylinder(); }
   if(M.mode.type==='fixed') revealFixed(true);
+}
+/* لو لم يبقَ للاعب أي خيار غير «أطلق» (انتهت الامتناعات واستُخدم «أطلق على شخص») يُطلق النظام تلقائياً بلا انتظار كتابته */
+async function decideOrAuto(id,p){
+  if(p.passes>0||!p.tgtUsed) return waitDecision(id,p);
+  showDecide(p,M.cfg.decTime); $('#dq').textContent='لا خيار غير الإطلاق — يُطلق تلقائيًا · القرار بيد';
+  M.pending.choice=1; M.pending.by='auto'; log('auto_fire',{pid:p.id});
+  hideDecideSoon(1); AUD.play('lock'); AUD.silence(1.6); await wait(1500,id);
+  return {choice:1,by:'auto'};
 }
 async function waitDecision(id,p){
   var T=M.cfg.decTime, left=T, last=performance.now(), lastSec=-1, botAt=p.isBot?performance.now()+(1800+Math.random()*5200):0, botChoice=0;
