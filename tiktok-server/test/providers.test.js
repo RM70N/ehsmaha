@@ -26,14 +26,15 @@ test('env: several keys + fallback url + proxies + free last resort', () => {
   assert.ok(names.includes('key1/direct') && names.includes('key1/proxy1') && names.includes('key4/proxy1'));
   assert.ok(names.includes('fallback1/direct'));
   assert.equal(r.defs.at(-1).name, 'free/direct');
-  assert.equal(r.defs.at(-1).tier, 5, 'sequential: after 4 keys + 1 fallback url');
+  assert.equal(r.defs.at(-1).tier, 2, 'balanced: keys tier 0, fallback url tier 1, free last');
   assert.ok(r.defs.every((d) => !/SECRET|proxyhost|pw@/.test(d.name)), 'names never leak secrets');
   assert.equal(mk({ EULER_API_KEY: 'k', TIKTOK_FREE_FALLBACK: '0' }).defs.length, 1);
 });
 
 test('env: provider count is capped', () => {
   const keys = Array.from({ length: 30 }, (_, i) => 'k' + i).join(',');
-  assert.ok(mk({ EULER_API_KEYS: keys }).defs.length <= 16);
+  assert.ok(mk({ EULER_API_KEYS: keys }).defs.length <= 64);
+  assert.equal(mk({ EULER_API_KEYS: Array.from({ length: 9 }, (_, i) => 'k' + i).join(','), TIKTOK_PROXIES: 'http://a:1,http://b:2' }).defs.filter((d) => !d.free).length, 27, '9 keys x 3 routes all kept');
 });
 
 function pool(defs, clock, opts) {
@@ -127,22 +128,24 @@ test('buildConnectionOptions: per-provider Euler client with key/basePath/timeou
   assert.notEqual(o1.eulerApiInstance, o2.eulerApiInstance);
 });
 
-test('sequential (default): each key is its own tier — key1 first, key2 only when key1 is down, free tier last', () => {
-  const r = mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C' });
+test('sequential (opt-in): each key is its own tier — key1 first, key2 only when key1 is down, free tier last', () => {
+  const r = mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_KEY_STRATEGY: 'sequential' });
+  const seqDefault = mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C' });
+  assert.equal(seqDefault.sequential, false, 'default is balanced');
   assert.equal(r.sequential, true);
   assert.deepEqual(r.defs.map((d) => [d.name, d.tier]), [['key1/direct', 0], ['key2/direct', 1], ['key3/direct', 2], ['free/direct', 3]]);
-  assert.deepEqual(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_KEY_STRATEGY: 'balanced' }).defs.map((d) => d.tier), [0, 0, 0, 1]);
+  assert.deepEqual(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C' }).defs.map((d) => d.tier), [0, 0, 0, 1]);
 });
 
 test('six extra keys (EULER_API_KEYS) after the primary = 7 keys in strict order', () => {
-  const r = mk({ EULER_API_KEY: 'K1', EULER_API_KEYS: 'K2,K3,K4,K5,K6,K7' });
+  const r = mk({ EULER_API_KEY: 'K1', EULER_API_KEYS: 'K2,K3,K4,K5,K6,K7', TIKTOK_KEY_STRATEGY: 'sequential' });
   assert.equal(r.keyCount, 7);
   assert.deepEqual(r.defs.filter((d) => !d.free).map((d) => d.apiKey), ['K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7']);
 });
 
 test('sequential failover: uses key1 alone; when key1 is exhausted (429) moves to key2, then key3; returns to key1 when it recovers', () => {
   const c = new FakeClock();
-  const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_FREE_FALLBACK: '0' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B,C', TIKTOK_FREE_FALLBACK: '0', TIKTOK_KEY_STRATEGY: 'sequential' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
   const use = () => { const r = p.pick(); p.begin(r.provider); return r.provider; };
   for (let i = 0; i < 5; i++) { const a = use(); assert.equal(a.name, 'key1/direct'); p.end(a, { ok: true }); c.t += 10; }
   const a = use(); p.end(a, { kind: 'rate_limited', retryAfterMs: 20000 });
@@ -190,7 +193,7 @@ test('٦ مفاتيح مفصولة بفواصل داخل EULER_SIGN_API_KEY (أ�
     assert.equal(r.keyCount, 6, name);
     assert.equal(names(r), EXPECT_SIX, name);
     assert.deepEqual(r.defs.slice(0, 6).map((d) => d.apiKey), SIX);
-    assert.deepEqual(r.defs.slice(0, 6).map((d) => d.tier), [0, 1, 2, 3, 4, 5]);
+    assert.deepEqual(r.defs.slice(0, 6).map((d) => d.tier), [0, 0, 0, 0, 0, 0]);
   }
 });
 
@@ -225,7 +228,8 @@ test('خلط الصيغ: بلا تكرار والترتيب ثابت، وkeyTail
 
 test('٦ مفاتيح + بروكسيات: الأولوية للمفتاح الأول وكل مفتاح مساره، والسقف ١٦ مزوداً', () => {
   const r = mk({ EULER_API_KEYS: SIX.join(','), TIKTOK_PROXIES: 'http://p1,http://p2' });
-  assert.ok(r.defs.length <= 16);
+  assert.ok(r.defs.length <= 64);
+  assert.equal(mk({ EULER_API_KEYS: Array.from({ length: 9 }, (_, i) => 'k' + i).join(','), TIKTOK_PROXIES: 'http://a:1,http://b:2' }).defs.filter((d) => !d.free).length, 27, '9 keys x 3 routes all kept');
   assert.equal(r.defs[0].name, 'key1/direct');
   assert.ok(r.defs.every((d) => d.name !== undefined));
 });
@@ -244,4 +248,24 @@ test('الاستراتيجية المتسلسلة: المفتاح ٢ يُستخ�
     pool.end(pick.provider, { kind: 'rate_limited', daily: true, retryAfterMs: 3600000 });
   }
   assert.deepEqual(used, ['key1/direct', 'key2/direct', 'key3/direct', 'key4/direct', 'key5/direct', 'key6/direct', 'free/direct']);
+});
+
+test('balanced (default) with 9 keys: load spreads over all keys; exhausted/denied keys are skipped automatically and rejoin after cooldown', () => {
+  const c = new FakeClock();
+  const keys = Array.from({ length: 9 }, (_, i) => 'K' + (i + 1));
+  const p = new ProviderPool(mk({ EULER_API_KEYS: keys.join(',') }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 4 });
+  // 9 طلبات متزامنة = 9 مفاتيح مختلفة (لا تكدس على مفتاح واحد)
+  const used = new Set();
+  for (let i = 0; i < 9; i++) { const r = p.pick(); assert.ok(r.provider, 'request ' + i + ' dispatched at once'); p.begin(r.provider); used.add(r.provider.name); }
+  assert.equal(used.size, 9);
+  p.providers.forEach((x) => p.end(x, { ok: true }));
+  // مفتاح خلصت حصته اليومية + مفتاح مرفوض (401) → الباقون يخدمون
+  p.begin(p.providers[0]); p.end(p.providers[0], { kind: 'rate_limited', retryAfterMs: 0, daily: true });
+  p.begin(p.providers[1]); p.end(p.providers[1], { kind: 'provider_denied', invalidKey: true });
+  for (let i = 0; i < 20; i++) { const r = p.pick(); assert.ok(r.provider); assert.ok(!['key1/direct', 'key2/direct'].includes(r.provider.name)); p.begin(r.provider); p.end(r.provider, { ok: true }); c.t += 5; }
+  // لو كل المفاتيح خلصت: الطبقة المجانية كملاذ أخير
+  p.providers.filter((x) => !x.def.free).forEach((x) => { p.begin(x); p.end(x, { kind: 'rate_limited', retryAfterMs: 0, daily: true }); });
+  assert.equal(p.pick().provider.name, 'free/direct');
+  c.t += 31 * 60000; // انتهت فترة الإسكات اليومية → المفاتيح تعود
+  assert.ok(/^key\d/.test(p.pick().provider.name));
 });
