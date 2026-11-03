@@ -292,3 +292,12 @@ test('non-daily 429 without retry-after cools the key briefly (5s, escalating), 
   p.begin(a); const i1 = p.end(a, { kind: 'rate_limited', retryAfterMs: 0 });
   assert.equal(i1.cooldownMs, 5000);
 });
+
+test('invalid key (401) is silenced for hours, other denials (402/403) for 10 minutes', () => {
+  const c = new FakeClock();
+  const p = new ProviderPool(mk({ EULER_API_KEYS: 'A,B' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+  p.begin(p.providers[0]); p.end(p.providers[0], { kind: 'provider_denied', invalidKey: true });
+  p.begin(p.providers[1]); p.end(p.providers[1], { kind: 'provider_denied' });
+  assert.equal(p.providers[0].breaker.waitMs(), 21600000);
+  assert.equal(p.providers[1].breaker.waitMs(), 600000);
+});

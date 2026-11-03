@@ -64,10 +64,11 @@ class ProviderPool {
   constructor(defs, opts) {
     const o = Object.assign({
       now: Date.now, ratePerMin: 90, freeRatePerMin: 30, minRatePerMin: 6, burst: 6, inFlight: 4,
-      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, dailyCooldownMs: 1800000, decreaseFactor: 0.6,
+      breakerThreshold: 3, breakerCooldownMs: 30000, breakerMaxCooldownMs: 300000, deniedCooldownMs: 600000, invalidKeyCooldownMs: 21600000, dailyCooldownMs: 1800000, decreaseFactor: 0.6,
     }, opts || {});
     this.now = o.now;
     this.deniedCooldownMs = o.deniedCooldownMs;
+    this.invalidKeyCooldownMs = o.invalidKeyCooldownMs; // مفتاح مرفوض 401 (خاطئ/ملغى): لا يُعاد تجريبه كل 10 دقائق ويضيّع محاولة كل مستخدم
     this.dailyCooldownMs = o.dailyCooldownMs;
     this.providers = defs.map((def, i) => {
       const rate = (def.free ? o.freeRatePerMin : o.ratePerMin) / 60;
@@ -140,7 +141,7 @@ class ProviderPool {
       provider.limiter.onRateLimited();
       provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : Math.min(60000, 5000 * Math.pow(2, Math.min(4, provider.breaker.trips))));
     } else if (kind === 'provider_denied') {
-      provider.breaker.trip(this.deniedCooldownMs, true);
+      provider.breaker.trip(outcome.invalidKey ? this.invalidKeyCooldownMs : this.deniedCooldownMs, true);
     } else if (kind === 'sign_failed') {
       provider.breaker.onFailure();
     }
