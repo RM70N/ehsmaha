@@ -3,6 +3,7 @@
 // كل رسالة بالسيرفر:
 //   1) ربط ديسكورد بألعاب الموقع — services/discordRelay.js (روم مربوط بموقع مفتوح:
 //      الرسالة تنتقل للعبة لحظياً، وتكمل باقي المعالجة عادي)
+//   1.5) تحكم المالك باللغة الطبيعية — services/ownerAI (منشن مباشر من المالك فقط؛ غيره يكمل عادي)
 //   2) الحماية التلقائية (روابط/سبام) — services/autoMod.js
 //   3) مساعد احسمها الذكي — services/aiAssistant.js:
 //        • قناة تكت دعم نشط ← رسائل صاحب التكت لـGemini (بسياق المحادثة)
@@ -18,6 +19,7 @@ const autoReply = require('../services/autoReply');
 const aiAssistant = require('../services/aiAssistant');
 const aiStyle = require('../services/aiStyle');
 const discordRelay = require('../services/discordRelay');
+const ownerAI = require('../services/ownerAI');
 const logger = require('../utils/logger');
 
 let started = false;
@@ -37,6 +39,10 @@ module.exports = {
     } catch (err) {
       logger.warn('ربط ديسكورد: تعذّر تمرير رسالة', { channelId: message.channelId, error: err });
     }
+
+    // تحكم المالك باللغة الطبيعية (services/ownerAI): منشن مباشر للبوت من حساب المالك فقط ← خطة
+    // وتنفيذ فعلي. أي رسالة غير ذلك ترجع false فوراً ويكمل المسار المعتاد بدون أي تغيير.
+    if (await ownerAI.handleMessage(message)) return;
 
     // الحماية: لو الرسالة انحذفت/صاحبها انكتم، ما نرد عليها
     const punished = await autoMod.handleMessage(message, { contentIntent: !!(ctx && ctx.messageContentIntent) });

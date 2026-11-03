@@ -153,6 +153,15 @@ const tickets = {
   },
   async forgetChannel(ticketId) {
     await db.run('UPDATE tickets SET channel_id = NULL WHERE id = ?', [ticketId]);
+  },
+  // التكتات المفتوحة (لنظام أوامر المالك: "كم تكت مفتوح عندنا؟")
+  async openList(guildId, limit = 25) {
+    const rows = await db.query("SELECT * FROM tickets WHERE guild_id = ? AND status = 'open' ORDER BY created_at DESC, id DESC LIMIT ?", [guildId, limit]);
+    return rows.map(mapTicket);
+  },
+  async openCount(guildId) {
+    const rows = await db.query("SELECT COUNT(*) AS n FROM tickets WHERE guild_id = ? AND status = 'open'", [guildId]);
+    return toNum(rows[0].n);
   }
 };
 
@@ -387,4 +396,49 @@ const aiStyle = {
   }
 };
 
-module.exports = { adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle };
+// ---------------- نظام تنفيذ أوامر المالك (services/ownerAI) ----------------
+// سجل كل مهمة: يمنع تكرار تنفيذ نفس الرسالة (message_id فريد)، ويحفظ خطة التأكيد
+// الثابتة (plan_json + hash)، ونتائج الخطوات، وحالة المهمة (تنجو من إعادة التشغيل).
+const mapOwnerTask = (r) => (r ? { ...r, id: toNum(r.id), created_at: toNum(r.created_at), updated_at: toNum(r.updated_at) } : null);
+
+const ownerAiTasks = {
+  // يرجّع true لو هذي أول مرة تُسجَّل الرسالة (false = مكررة)
+  async claim({ taskId, messageId, guildId, channelId, ownerId, requestText = null }) {
+    const t = now();
+    const r = await db.run(
+      `INSERT INTO owner_ai_tasks (task_id, message_id, guild_id, channel_id, owner_id, request_text, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, 'planning', ?, ?) ON CONFLICT (message_id) DO NOTHING RETURNING id`,
+      [taskId, messageId, guildId, channelId, ownerId, requestText, t, t]
+    );
+    return r.rows.length > 0;
+  },
+  async get(taskId) {
+    const rows = await db.query('SELECT * FROM owner_ai_tasks WHERE task_id = ?', [taskId]);
+    return mapOwnerTask(rows[0]);
+  },
+  async update(taskId, patch) {
+    const allowed = ['status', 'plan_json', 'plan_hash', 'results_json', 'error_code'];
+    const cols = Object.keys(patch).filter((k) => allowed.includes(k));
+    if (!cols.length) return;
+    await db.run(`UPDATE owner_ai_tasks SET ${cols.map((c) => `${c} = ?`).join(', ')}, updated_at = ? WHERE task_id = ?`, [...cols.map((c) => patch[c]), now(), taskId]);
+  },
+  // انتقال ذرّي بين حالتين — يرجّع true لو نجح (يمنع ضغطتي تأكيد متزامنتين)
+  async transition(taskId, from, to) {
+    const r = await db.run('UPDATE owner_ai_tasks SET status = ?, updated_at = ? WHERE task_id = ? AND status = ?', [to, now(), taskId, from]);
+    return r.changes > 0;
+  },
+  async running() {
+    const rows = await db.query("SELECT * FROM owner_ai_tasks WHERE status = 'running'");
+    return rows.map(mapOwnerTask);
+  },
+  async recent(guildId, limit = 10) {
+    const rows = await db.query('SELECT * FROM owner_ai_tasks WHERE guild_id = ? ORDER BY created_at DESC, id DESC LIMIT ?', [guildId, limit]);
+    return rows.map(mapOwnerTask);
+  },
+  async prune(days) {
+    const r = await db.run("DELETE FROM owner_ai_tasks WHERE created_at < ? AND status <> 'awaiting_confirm'", [now() - days * 24 * 60 * 60 * 1000]);
+    return r.changes;
+  }
+};
+
+module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle };
