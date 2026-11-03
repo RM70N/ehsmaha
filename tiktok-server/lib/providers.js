@@ -138,13 +138,20 @@ class ProviderPool {
       provider.breaker.trip(outcome.retryAfterMs > 0 ? Math.min(outcome.retryAfterMs, 3600000) : this.dailyCooldownMs, true);
     } else if (kind === 'rate_limited') {
       provider.limiter.onRateLimited();
-      provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : 0);
+      provider.breaker.trip(outcome.retryAfterMs > 0 ? outcome.retryAfterMs : Math.min(60000, 5000 * Math.pow(2, Math.min(4, provider.breaker.trips))));
     } else if (kind === 'provider_denied') {
       provider.breaker.trip(this.deniedCooldownMs, true);
     } else if (kind === 'sign_failed') {
       provider.breaker.onFailure();
     }
-    // user_not_found / offline / blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع
+    else if (kind === 'offline' || kind === 'user_not_found') {
+      // السيرفر ردّ ردّاً سليماً (اليوزر غير مباشر/غير موجود) = المفتاح يعمل. مهم: لو كان هذا الطلب هو التجريبي
+      // لقاطع half_open وتُرك بلا حسم، يعلق المفتاح للأبد (كل مفاتيح الطابور تتجمد تدريجياً).
+      if (wasOpen) { provider.breaker.onSuccess(); info.recovered = true; }
+      else provider.breaker.releaseProbe();
+    } else {
+      provider.breaker.releaseProbe(); // blocked / timeout / transient: لا تُحسب ضد المزود لكن لا تترك التجريبي معلقاً
+    }
     // (المهلة قد تكون من تيك توك نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة).
     info.opened = !wasOpen && provider.breaker.state === 'open';
     info.cooldownMs = Math.max(0, provider.breaker.waitMs());

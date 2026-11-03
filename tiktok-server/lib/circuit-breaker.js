@@ -15,6 +15,7 @@ class CircuitBreaker {
     this.openUntil = 0;
     this.trips = 0;          // عدد مرات الفتح المتتالية (يضاعف المدة)
     this.probing = false;    // طلب تجريبي جارٍ بحالة half_open
+    this.probeAt = 0;
     this.lastTripAt = 0;
   }
 
@@ -28,13 +29,18 @@ class CircuitBreaker {
     const s = this.state;
     if (s === 'closed') return 0;
     if (s === 'open') return this.openUntil - this.now();
-    return this.probing ? 1000 : 0; // half_open: طلب تجريبي واحد فقط بنفس الوقت
+    // half_open: طلب تجريبي واحد فقط بنفس الوقت. حماية: لو علق التجريبي (ما رجع نتيجة) أكثر من دقيقة نفتح الباب من جديد.
+    if (this.probing && this.now() - this.probeAt > 60000) this.probing = false;
+    return this.probing ? 1000 : 0;
   }
 
   canRequest() { return this.waitMs() === 0; }
 
   // يُستدعى عند بدء الطلب؛ يعلّم الطلب التجريبي.
-  onDispatch() { if (this.state === 'half_open') this.probing = true; }
+  onDispatch() { if (this.state === 'half_open') { this.probing = true; this.probeAt = this.now(); } }
+
+  // الطلب التجريبي انتهى بنتيجة محايدة (لا نجاح ولا فشل للمزود): نحرّر الباب لتجريبي جديد بدل تعليق المزود للأبد.
+  releaseProbe() { this.probing = false; }
 
   onSuccess() {
     this.failures = 0;
