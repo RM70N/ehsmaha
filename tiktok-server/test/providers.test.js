@@ -245,3 +245,18 @@ test('الاستراتيجية المتسلسلة: المفتاح ٢ يُستخ�
   }
   assert.deepEqual(used, ['key1/direct', 'key2/direct', 'key3/direct', 'key4/direct', 'key5/direct', 'key6/direct', 'free/direct']);
 });
+
+test('half-open probe ending in a neutral outcome (offline/user_not_found/timeout/transient/blocked) does not wedge the key forever', () => {
+  for (const kind of ['offline', 'user_not_found', 'timeout', 'transient', 'blocked']) {
+    const c = new FakeClock();
+    const p = new ProviderPool(mk({ EULER_API_KEY: 'A', EULER_API_KEYS: 'B', TIKTOK_FREE_FALLBACK: '0' }).defs, { now: c.now, ratePerMin: 6000, burst: 100, inFlight: 100 });
+    const a = p.providers[0];
+    p.begin(a); p.end(a, { kind: 'rate_limited', retryAfterMs: 5000 }); // يفتح القاطع
+    c.t += 6000; // half_open الآن
+    p.begin(a); p.end(a, { kind }); // الطلب التجريبي ينتهي بنتيجة محايدة (لا نجاح صريح ولا فشل)
+    c.t += 2000;
+    const names = [];
+    for (let i = 0; i < 4; i++) { const r = p.pick(); assert.ok(r.provider, kind + ': provider still available after probe'); names.push(r.provider.name); p.begin(r.provider); p.end(r.provider, { ok: true }); c.t += 5; }
+    assert.ok(names.includes('key1/direct'), kind + ': key1 serves requests again (not wedged)');
+  }
+});

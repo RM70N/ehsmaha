@@ -15,6 +15,7 @@ class CircuitBreaker {
     this.openUntil = 0;
     this.trips = 0;          // عدد مرات الفتح المتتالية (يضاعف المدة)
     this.probing = false;    // طلب تجريبي جارٍ بحالة half_open
+    this.probeAt = 0;
     this.lastTripAt = 0;
   }
 
@@ -28,13 +29,23 @@ class CircuitBreaker {
     const s = this.state;
     if (s === 'closed') return 0;
     if (s === 'open') return this.openUntil - this.now();
-    return this.probing ? 1000 : 0; // half_open: طلب تجريبي واحد فقط بنفس الوقت
+    // half_open: طلب تجريبي واحد فقط بنفس الوقت. حماية: لو تعلّق التجريبي (نتيجته ليست نجاحاً
+    // ولا فشلاً صريحاً — مثل "غير مباشر"/"غير موجود"/مهلة لا تُحسب ضد المزود) أكثر من دقيقة،
+    // نحرّر الباب لتجريبي جديد بدل أن يعلق المفتاح للأبد (راجع releaseProbe أدناه).
+    if (this.probing && this.now() - this.probeAt > 60000) this.probing = false;
+    return this.probing ? 1000 : 0;
   }
 
   canRequest() { return this.waitMs() === 0; }
 
   // يُستدعى عند بدء الطلب؛ يعلّم الطلب التجريبي.
-  onDispatch() { if (this.state === 'half_open') this.probing = true; }
+  onDispatch() { if (this.state === 'half_open') { this.probing = true; this.probeAt = this.now(); } }
+
+  // الطلب التجريبي انتهى بنتيجة محايدة (لا تُحسب نجاحاً ولا فشلاً للمزود، مثل "غير مباشر"):
+  // نحرّر الباب لتجريبي آخر فوراً بدل تعليق المفتاح. بدون هذا، أي نتيجة محايدة أثناء
+  // half_open تترك probing=true للأبد (لا onSuccess ولا onFailure يصفّرانها)، فيبقى
+  // canRequest() يرجع false على هذا المزود إلى ما لا نهاية رغم أن القاطع "نصف مفتوح" منطقياً.
+  releaseProbe() { if (this.state === 'half_open') this.probing = false; }
 
   onSuccess() {
     this.failures = 0;

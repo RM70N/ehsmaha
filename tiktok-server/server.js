@@ -185,13 +185,17 @@ function initFirestore() {
 async function isStreamerEnabled(identifier) {
   if (!db) return true; // لا فحص إذا Firestore غير متاح — لا نمنع الخدمة بالكامل
   try {
-    const snap = await db.collection('bridgeStreamers').doc(identifier).get();
+    // بدون مهلة هنا: لو تعلّق طلب Firestore (شبكة/gRPC) يتعلّق فتح الاتصال بالكامل بصمت —
+    // لا سطر لوغ "عميل جديد اتصل" ولا رد للعميل، والمستخدم يرى "جاري الربط" بلا نهاية حتى
+    // تنتهي مهلة المراقب بالواجهة (30ث) بلا أي أثر بسجل السيرفر. هذا بالضبط العرض الذي
+    // يصعب تشخيصه: لا خطأ مسجَّل، فقط صمت تام.
+    const snap = await withTimeout(db.collection('bridgeStreamers').doc(identifier).get(), 4000, 'فحص Firestore تجاوز 4 ثوانٍ');
     if (!snap.exists) return true; // لم يُعطَّل صراحة = مسموح افتراضياً
     const data = snap.data() || {};
     return data.enabled !== false;
   } catch (e) {
     log('warn', 'فحص Firestore فشل لـ ' + identifier + ': ' + e.message);
-    return true; // فشل الفحص لا يمنع الخدمة
+    return true; // فشل الفحص (أو تجاوز المهلة) لا يمنع الخدمة
   }
 }
 
