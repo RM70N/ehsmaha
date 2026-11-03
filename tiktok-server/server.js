@@ -132,10 +132,6 @@ const TIKTOK_NOT_FOUND_BASE_MS = 60000;
 const TIKTOK_NOT_FOUND_MAX_MS = 5 * 60 * 1000;
 const TIKTOK_STABLE_MS = envNum('TIKTOK_STABLE_MS', 60000);
 const TIKTOK_MAX_ATTEMPTS = envNum('TIKTOK_MAX_ATTEMPTS', 12);
-// سقف محاولات "فوراً بمزود بديل" المتتالية (تقفز أمام الجميع بالطابور) لكل غرفة قبل إعادتها للترتيب
-// العادي: غرفة تدور على مزودين معطّلين (مفاتيح ميتة) كانت تقفز أمام كل الغرف الأخرى في كل محاولة،
-// فتؤخر ربط ستريمرز آخرين رغم أن مشكلتها هي نفسها لن تُحل بالقفز.
-const TIKTOK_MAX_FRONT_STREAK = envNum('TIKTOK_MAX_FRONT_STREAK', 3);
 const TIKTOK_GIVE_UP_MS = envNum('TIKTOK_GIVE_UP_MS', 8 * 60 * 1000);
 const TIKTOK_PARKED_RETRY_MS = envNum('TIKTOK_PARKED_RETRY_MS', 5 * 60 * 1000);
 const TIKTOK_REVIVE_MIN_GAP_MS = 10000;
@@ -725,7 +721,6 @@ class TikTokRoom extends BaseRoom {
     this.notLiveRetries = 0;
     this.notFoundStreak = 0;
     this.excluded = new Set(); // مزودون فشلوا بهذه الجولة (لا نعيدهم قبل تجربة البقية)
-    this.frontStreak = 0; // محاولات "فوراً بمزود بديل" المتتالية بهذه الجولة (انظر TIKTOK_MAX_FRONT_STREAK)
     this.connectToken = 0;
     this.attemptPromise = null;
     this.connectedAt = 0;
@@ -894,7 +889,6 @@ class TikTokRoom extends BaseRoom {
       this.attemptNo = 0;
       this.retryAt = 0;
       this.excluded.clear();
-      this.frontStreak = 0;
       this.sawInvalidKey = false;
       if (this.requestedAt) { metrics.observe('time_to_connected', now - this.requestedAt); this.requestedAt = 0; }
       // failStreak لا يُصفَّر هنا — فقط بعد ثبات الاتصال TIKTOK_STABLE_MS. لو كان تيك توك يقبل
@@ -1060,14 +1054,10 @@ class TikTokRoom extends BaseRoom {
       slog('info', 'provider_switch', { room: this.uniqueId, from: provider.name, kind });
       this.setProgress('retrying', kind);
       this.startProgressTicker();
-      // إنصاف الطابور: بعد عدة قفزات متتالية بلا نتيجة، نرجع للترتيب العادي جولة واحدة حتى تأخذ
-      // الغرف الأخرى المنتظرة دورها، ثم نعاود القفز لو احتجنا.
-      if (this.frontStreak < TIKTOK_MAX_FRONT_STREAK) { this.frontStreak++; this.enqueue({ front: true }); }
-      else { this.frontStreak = 0; this.enqueue(); }
+      this.enqueue({ front: true }); // فوراً بمزود بديل — بلا انتظار تراجع
       return;
     }
     this.excluded.clear();
-    this.frontStreak = 0;
     metrics.inc('retries_total', { kind });
     // 429: القاطع يحمل retry-after الحقيقي — الطابور نفسه ينتظره. غير ذلك: تراجع أسّي.
     const delay = kind === 'rate_limited' ? 0 : backoffDelay(this.failStreak, { baseMs: TIKTOK_RETRY_BASE_MS, maxMs: TIKTOK_RETRY_MAX_MS });
