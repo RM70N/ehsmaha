@@ -1091,10 +1091,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .pcw-wrap{width:100%;max-width:820px;display:flex;flex-direction:column;align-items:center;}
 .pcw-back{align-self:flex-start;}
 
-.pcw-turn-banner{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;margin-bottom:22px;}
+.pcw-turn-row{width:100%;max-width:640px;display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:22px;flex-wrap:wrap;}
+.pcw-turn-banner{width:100%;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center;margin-bottom:0;}
 .pcw-turn-label{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
 .pcw-turn-name{font-size:26px;font-weight:900;color:var(--accent2);margin-bottom:6px;}
 .pcw-turn-hint{font-size:13px;color:var(--muted);}
+.pcw-timer-box{--pcw-timer-pct:100;--pcw-timer-color:#22c55e;position:relative;flex-shrink:0;width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:conic-gradient(from 0deg,var(--pcw-timer-color) calc(var(--pcw-timer-pct)*1%),rgba(255,255,255,.1) 0);box-shadow:0 0 0 4px rgba(255,255,255,.07),0 6px 20px rgba(0,0,0,.4);transition:background .15s linear,box-shadow .2s ease;}
+.pcw-timer-box::before{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--bg,#14141c);}
+.pcw-timer-num{position:relative;z-index:1;font-size:24px;font-weight:900;color:#fff;font-variant-numeric:tabular-nums;}
+.pcw-timer-box.pcw-timer-warn{--pcw-timer-color:#f59e0b;}
+.pcw-timer-box.pcw-timer-danger{--pcw-timer-color:#ef4444;animation:pcwTimerPulse .6s ease-in-out infinite;}
+@keyframes pcwTimerPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 4px rgba(239,68,68,.25),0 6px 20px rgba(239,68,68,.45);}50%{transform:scale(1.1);box-shadow:0 0 0 9px rgba(239,68,68,.15),0 6px 30px rgba(239,68,68,.7);}}
 
 .pcw-elim-input-row{width:100%;max-width:420px;display:flex;gap:8px;margin-bottom:20px;}
 .pcw-elim-input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 14px;font-size:14px;color:var(--text);font-family:inherit;text-align:center;}
@@ -11743,10 +11750,15 @@ syncCluster();
   <div class="pcw-wrap">
     <button class="back-btn pcw-back" onclick="pcwQuit()">← إنهاء اللعبة</button>
 
-    <div class="pcw-turn-banner">
-      <div class="pcw-turn-label">دور الإقصاء لهالجولة</div>
-      <div class="pcw-turn-name" id="pcw-turn-name">—</div>
-      <div class="pcw-turn-hint">اضغطوا على أي دولة على اللوحة لإقصائها، أو اكتبوا رقمها/اسمها تحت</div>
+    <div class="pcw-turn-row">
+      <div class="pcw-turn-banner">
+        <div class="pcw-turn-label">دور الإقصاء لهالجولة</div>
+        <div class="pcw-turn-name" id="pcw-turn-name">—</div>
+        <div class="pcw-turn-hint">اضغطوا على أي دولة على اللوحة لإقصائها، أو اكتبوا رقمها/اسمها تحت</div>
+      </div>
+      <div class="pcw-timer-box" id="pcw-timer-box">
+        <div class="pcw-timer-num" id="pcw-timer-num">15</div>
+      </div>
     </div>
 
     <div class="pcw-elim-input-row">
@@ -23929,6 +23941,7 @@ function tiktokBridgeWsUrl(username) {
 // ---------- Failover بين سيرفرات الجسر (تيك توك فقط) ----------
 const TIKTOK_HEALTH_TIMEOUT_MS = 4000;            // مهلة فحص /healthz الواحد
 const TIKTOK_WS_FAILOVER_MS = 8000;               // مهلة فتح الويب سوكيت قبل التحويل للسيرفر التالي
+const TIKTOK_FIRST_MSG_TIMEOUT_MS = 12000;        // أقصى انتظار لأول رسالة بعد فتح الاتصال (السيرفر يرسلها فوراً عادة) — غياب تام يعني وصلة ميتة بصمت (جوال يقفل الشبكة بالخلفية)
 const TIKTOK_PRIMARY_RECHECK_MS = 5 * 60 * 1000;  // فحص رجوع الأساسي بالخلفية
 const TIKTOK_PRIMARY_STABLE_CHECKS = 2;           // نجاحات متتالية قبل الرجوع (منع الرفرفة)
 let tiktokPrimaryWatchTimer = null;
@@ -24080,6 +24093,8 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
     sock = s;
     const startedAt = Date.now();
     let transportOpen = false;
+    let gotFirstMessage = false;
+    let firstMsgGuard = null;
     const guard = setTimeout(() => {
       if (sock === s && !transportOpen && !closedByCaller && tried < n) failover(s, index, 'ما انفتح الاتصال خلال ' + (TIKTOK_WS_FAILOVER_MS / 1000) + 'ث');
     }, TIKTOK_WS_FAILOVER_MS);
@@ -24088,8 +24103,23 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
       transportOpen = true;
       clearTimeout(guard);
       if (index !== tiktokActiveBridgeIndex) tiktokBridgeSetActive(index, 'فشل فتح الويب سوكيت على السيرفر السابق');
+      // السيرفر يرسل حالته الحالية فوراً عند addClient (راجع server.js) — أول رسالة
+      // توصل خلال أجزاء من الثانية عادة. لو فتحت الوصلة (onopen) ولكن ما وصلت أي
+      // رسالة إطلاقاً خلال هالمهلة، فهي وصلة "ميتة بصمت" (الجوال يقفل الشبكة بالخلفية
+      // بدون close frame) — بدون هذا الحارس تبقى الشاشة عالقة على "في الطابور" للأبد
+      // بلا أي محاولة إعادة اتصال، لأن مراقب homeConnWatchdogTick نفسه ما يبدأ قبل
+      // أول bridge_ping (pingSeen)، وهذي الحالة ما توصلها حتى أول نبض.
+      firstMsgGuard = setTimeout(() => {
+        if (sock !== s || gotFirstMessage || closedByCaller) return;
+        if (tried < n) { failover(s, index, 'ما وصلت أي رسالة خلال ' + (TIKTOK_FIRST_MSG_TIMEOUT_MS / 1000) + 'ث من فتح الاتصال (وصلة ميتة بصمت)'); return; }
+        try { s.onopen = null; s.onmessage = null; s.onclose = null; s.close(); } catch (e) {}
+        if (sock === s) sock = null;
+        if (onClose) onClose({ code: 1006 });
+      }, TIKTOK_FIRST_MSG_TIMEOUT_MS);
     };
     s.onmessage = (e) => {
+      gotFirstMessage = true;
+      clearTimeout(firstMsgGuard);
       let d; try { d = JSON.parse(e.data); } catch (err) { return; }
       if (d && d.type === 'bridge_status') {
         if (d.state === 'connected' && !openFired) { openFired = true; if (onOpen) onOpen(); }
@@ -24109,6 +24139,7 @@ function tiktokOpenWS(username, _unusedApiKey, onEvent, onOpen, onClose, opts) {
     s.onerror = () => {};
     s.onclose = (e) => {
       clearTimeout(guard);
+      clearTimeout(firstMsgGuard);
       if (sock !== s) return;
       const networkFail = !transportOpen ||
         ((Date.now() - startedAt) <= TIKTOK_WS_FAILOVER_MS && e && TIKTOK_WS_FAILOVER_CLOSE_CODES.indexOf(e.code) > -1);
@@ -55136,8 +55167,52 @@ function pcwRenderCountriesGrid() {
   });
 }
 
+const PCW_TURN_SECONDS = 15;
+let pcwTimerInterval = null;
+let pcwTimerDeadline = 0;
+
+function pcwStartTimer() {
+  pcwStopTimer();
+  pcwTimerDeadline = Date.now() + PCW_TURN_SECONDS * 1000;
+  const numEl = document.getElementById('pcw-timer-num');
+  const boxEl = document.getElementById('pcw-timer-box');
+  const tick = () => {
+    const remainingMs = pcwTimerDeadline - Date.now();
+    const remaining = Math.max(0, Math.ceil(remainingMs / 1000));
+    if (numEl) numEl.textContent = remaining;
+    if (boxEl) {
+      const pct = Math.max(0, Math.min(100, (remainingMs / (PCW_TURN_SECONDS * 1000)) * 100));
+      boxEl.style.setProperty('--pcw-timer-pct', pct);
+      boxEl.classList.toggle('pcw-timer-warn', remaining <= 7 && remaining > 3);
+      boxEl.classList.toggle('pcw-timer-danger', remaining <= 3);
+    }
+    if (remainingMs <= 0) {
+      pcwStopTimer();
+      pcwSkipTurnTimeout();
+    }
+  };
+  tick();
+  pcwTimerInterval = setInterval(tick, 100);
+}
+
+function pcwStopTimer() {
+  if (pcwTimerInterval) { clearInterval(pcwTimerInterval); pcwTimerInterval = null; }
+  const boxEl = document.getElementById('pcw-timer-box');
+  if (boxEl) { boxEl.classList.remove('pcw-timer-warn', 'pcw-timer-danger'); boxEl.style.setProperty('--pcw-timer-pct', 100); }
+}
+
+function pcwSkipTurnTimeout() {
+  const turnName = document.getElementById('pcw-turn-name').textContent;
+  document.getElementById('pcw-elim-text').textContent = '⏰ انتهى الوقت! تم تخطي دور ' + turnName;
+  document.getElementById('pcw-elim-overlay').classList.add('show');
+  setTimeout(() => {
+    document.getElementById('pcw-elim-overlay').classList.remove('show');
+    pcwStartRound();
+  }, 2600);
+}
+
 function pcwStartRound() {
-  if (pcwActiveCountries.length <= 1) { pcwFinishGame(); return; }
+  if (pcwActiveCountries.length <= 1) { pcwStopTimer(); pcwFinishGame(); return; }
 
   // الدور لازم يكون لأحد اللاعبين الأحياء فقط (اللي دولته لسا موجودة بـ
   // pcwActiveCountries) — الاختيار من pcwPlayers مباشرة كان يسمح برجوع
@@ -55149,11 +55224,13 @@ function pcwStartRound() {
   if (elimInput) elimInput.value = '';
   pcwRenderCountriesGrid();
   show('countrywarparty');
+  pcwStartTimer();
 }
 
 function pcwEliminateCountry(countryName) {
   const idx = pcwActiveCountries.findIndex(c => c.name === countryName);
   if (idx === -1) return;
+  pcwStopTimer();
 
   const eliminatedEntry = pcwActiveCountries[idx];
   const eliminatedPlayer = pcwPlayers[eliminatedEntry.playerIdx];
@@ -55211,6 +55288,7 @@ function pcwFinishGame() {
 
 function pcwQuit() {
   if (!confirm('تبي تنهي اللعبة الحالية؟')) return;
+  pcwStopTimer();
   show('party-home');
 }
 </script>
