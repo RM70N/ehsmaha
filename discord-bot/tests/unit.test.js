@@ -82,7 +82,8 @@ test('التحقق من البيئة: رسالة واضحة بكل النواق�
     delete process.env.GEMINI_MODEL;
     const cfg = buildConfig();
     assert.equal(cfg.geminiApiKey, 'g-key');
-    assert.equal(cfg.geminiModel, 'gemini-2.5-flash', 'النموذج الافتراضي');
+    assert.equal(cfg.geminiModel, 'gemini-3.5-flash-lite', 'النموذج الافتراضي (نفس اللي شغّال بالاستضافة)');
+    assert.equal(cfg.ownerDiscordId, '944639301528977420', 'مالك البوت المعتمد');
     assert.equal(cfg.aiMentionCooldownSeconds, 10);
     process.env.GEMINI_MODEL = 'gemini-2.5-flash-lite';
     assert.equal(buildConfig().geminiModel, 'gemini-2.5-flash-lite', 'تبديل النموذج من البيئة');

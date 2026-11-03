@@ -30,7 +30,9 @@ function listJsFiles(dir) {
 /**
  * @returns {{ commands: Map<string, object>, buttons: Map<string, Function>, definitions: object[] }}
  */
-function loadCommands(commandsDir = path.join(__dirname, '..', 'commands')) {
+const DEFAULT_COMMANDS_DIR = path.join(__dirname, '..', 'commands');
+
+function loadCommands(commandsDir = DEFAULT_COMMANDS_DIR) {
   const commands = new Map();
   const buttons = new Map();
   const definitions = [];
@@ -57,6 +59,12 @@ function loadCommands(commandsDir = path.join(__dirname, '..', 'commands')) {
       if (buttons.has(prefix)) throw new Error(`بادئة الزر "${prefix}" مكررة (${rel})`);
       buttons.set(prefix, handler);
     }
+  }
+
+  // أزرار تأكيد أوامر المالك (services/ownerAI) — داخلية: ما لها أمر Slash. تحميل كسول عشان
+  // npm run check و deploy-commands ما يحتاجون بيئة التشغيل.
+  if (commandsDir === DEFAULT_COMMANDS_DIR) {
+    buttons.set('ownerai', (...args) => require('../services/ownerAI').onButton(...args));
   }
 
   return { commands, buttons, definitions };
