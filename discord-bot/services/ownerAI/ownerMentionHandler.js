@@ -22,6 +22,9 @@ const { OwnerAIError, describe, buildReport, fromDiscord } = require('./errorHan
 const toErr = (err) => (err instanceof OwnerAIError ? err : fromDiscord(err));
 const typing = (channel) => (channel && typeof channel.sendTyping === 'function' ? channel.sendTyping().catch(() => null) : null);
 const NO_MENTIONS = { parse: [], repliedUser: false };
+// أوامر تعليم المساعد بالمنشن ("تعلم: سؤال = جواب" / "تعليمة: ...") تخص ذاكرة المساعد (services/aiMemory) — ما نعترضها:
+// تكمل للمسار العادي بنفس صيغتها القديمة حتى لو المرسل هو المالك.
+const TEACH_PASSTHROUGH = /^\s*(?:تعلم|تعلّم|علم|علّم|تعليمة|تعليمه|أمر|امر)\s*[:：]/;
 // ❓ للأسئلة (غموض) و❌ لأي فشل — كل رسالة خطأ تبدأ بعلامة واضحة
 const failText = (e) => `${e.code === 'AMBIGUOUS' ? '❓' : '❌'} ${describe(e)}`;
 
@@ -153,6 +156,7 @@ async function handleMessage(message) {
     if (!guard.mentionsBot(message, botUser)) return false;
     const text = guard.stripMention(message.content, botUser.id);
     if (!text) return false; // منشن فاضي ← ترحيب المساعد العادي
+    if (TEACH_PASSTHROUGH.test(text)) return false; // تعليم المساعد ← مسار الذاكرة العادي
     const replyRef = message.reference && message.reference.messageId ? `${message.reference.channelId || message.channel.id}/${message.reference.messageId}` : null;
 
     if (!queue.markSeen(message.id)) return true; // نفس الرسالة وصلت مرتين

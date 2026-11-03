@@ -185,6 +185,19 @@ test('المالك يسأل سؤالاً عادياً (mode=chat): يكمل ال
   assert.equal(w.replies.length, 1);
 });
 
+test('أوامر تعليم المساعد ("تعلم: س = ج" / "تعليمة: ...") من المالك ما تنعترض: تكمل لمسار الذاكرة العادي بدون أي طلب تخطيط', async () => {
+  const w = baseWorld();
+  for (const t of ['تعلم: كم سعر الاشتراك = مجاني', 'تعلّم : وش احسمها = منصة ألعاب', 'تعليمة: رد بإيجاز دائماً', 'أمر: لا تذكر الأسعار']) {
+    const msg = w.say(w.general, w.owner, t);
+    assert.equal(await ownerAI.handleMessage(msg), false, t);
+  }
+  assert.equal(calls.length, 0, 'ولا طلب لـGemini');
+  assert.equal(w.guild.log.length, 0);
+  // أمر تنفيذي عادي يشتغل بنفس الوقت
+  on('ارسل', plan([null, 'send_message', { channel: 'التحديثات', content: 'هلا' }]));
+  assert.equal(await ownerAI.handleMessage(w.say(w.general, w.owner, 'ارسل هلا بالتحديثات')), true);
+});
+
 test('حساب البوت أو Webhook يحمل نفس المعرّف: مرفوض — الاعتماد على author.id وغير بوت فقط', async () => {
   const w = baseWorld();
   const botMsg = w.say(w.general, w.owner, 'ارسل');
