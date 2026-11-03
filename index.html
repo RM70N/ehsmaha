@@ -23904,9 +23904,16 @@ function twitchEventShape(displayName, uniqueId, message) {
 // الاستعلام — تُضاف تلقائياً). الأول هو الأساسي، والباقي احتياطي بالترتيب:
 // لو ما رد السيرفر الحالي ننتقل للي بعده (دائرياً)، ونرجع للأساسي تلقائياً
 // بعد ما يثبت إنه رجع (راجع tiktokBridgePrimaryRecoveryCheck).
+//
+// كان هنا "ehsmaha-wbkn.onrender.com" كأساسي — تحقّقت من حساب Render عبر الـ
+// API (list_services) ولا يوجد أي سيرفر بهذا الاسم إطلاقاً في الحساب الذي
+// يملك هذا الريبو، فقط "ehsmaha.onrender.com" (srv-da31bb49v7es73crfh10)
+// موجود وشغّال. كل محاولة ربط جديدة من كل ستريمر كانت تجرّب هذا العنوان
+// الميت أولاً — إما تأخير 8ث قبل التحويل للاحتياطي، أو (لو فتحت الوصلة على
+// مستوى النقل بصمت دون أي رد تطبيقي) عالقة فعلياً بلا نهاية قبل إصلاح حارس
+// "الوصلة الميتة بصمت". إزالته نهائياً يحذف هذا التأخير/الخطر من كل اتصال.
 const TIKTOK_BRIDGE_SERVERS = [
-  'wss://ehsmaha-wbkn.onrender.com/ws',  // Primary
-  'wss://ehsmaha.onrender.com/ws'        // Fallback
+  'wss://ehsmaha.onrender.com/ws'
 ];
 let tiktokActiveBridgeIndex = 0;
 
