@@ -132,3 +132,16 @@ test('stop() resolves waiting entries as cancelled', async () => {
   q.stop();
   assert.deepEqual(await w, { cancelled: true });
 });
+
+test('zero usable providers (pool.pick always returns waitMs:null) does not freeze pump() in an infinite synchronous loop', () => {
+  // حماية ضد عطل قاتل: لو ما فيه أي مزود بالنظام إطلاقاً (pool.size === 0، سيناريو تهيئة خاطئة)،
+  // pump() كان يدخل حلقة متزامنة بلا نهاية (تفريغ exclude الفارغ أصلاً لا يغيّر شيئاً، فيعيد نفس
+  // الفحص للأبد) — تُجمِّد عملية Node بالكامل لكل الغرف لا غرفة واحدة فقط. مُثبَتة بسكربت منفصل عبر
+  // `timeout` في المحارة (exit 124 على الكود القديم)؛ هنا نتأكد أن request() يرجع فوراً ولا يعلّق.
+  const pool = { pick: () => ({ waitMs: null }), size: 0 };
+  const q = new ConnectQueue(pool, {});
+  const start = Date.now();
+  q.request('room1', { dispatch: async () => ({ ok: true }) });
+  assert.ok(Date.now() - start < 1000, 'request() يجب أن يرجع فوراً بلا حلقة متزامنة بلا نهاية');
+  assert.equal(q.stats().waiting, 1, 'الغرفة تبقى منتظرة (مجدولة لإعادة محاولة لاحقة) بدل تجميد العملية');
+});

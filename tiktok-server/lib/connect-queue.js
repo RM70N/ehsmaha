@@ -80,7 +80,15 @@ class ConnectQueue {
           this._run(entry, r.provider);
           continue; // نفس الفهرس صار للعنصر التالي
         }
-        if (r.waitMs == null) { entry.exclude.clear(); continue; } // كل المزودين مستبعدون: نبدأ جولة جديدة
+        if (r.waitMs == null) {
+          // كل المزودين مستبعدون بهذي الغرفة: نبدأ جولة جديدة (نفرّغ exclude) ونعيد المحاولة فوراً.
+          // لكن لو exclude أصلاً فارغ، فالتفريغ لا يغيّر شيئاً — يعني لا يوجد أي مزود بالنظام إطلاقاً
+          // (pool.size === 0)، وإعادة pick() فوراً بلا نهاية تُجمِّد السيرفر بحلقة متزامنة لا تتوقف.
+          // بدلها: ننتظر 5 ثوانٍ قبل إعادة المحاولة، كأي غرفة أخرى تنتظر مزوداً.
+          if (entry.exclude.size === 0) { wake = Math.min(wake, 5000); i++; continue; }
+          entry.exclude.clear();
+          continue;
+        }
         wake = Math.min(wake, r.waitMs);
         i++;
       }

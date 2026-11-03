@@ -143,9 +143,17 @@ class ProviderPool {
       provider.breaker.trip(this.deniedCooldownMs, true);
     } else if (kind === 'sign_failed') {
       provider.breaker.onFailure();
+    } else if (kind === 'offline' || kind === 'user_not_found') {
+      // السيرفر ردّ رداً سليماً (المفتاح يعمل)، لكنها ليست "نجاحاً" بمعنى onSuccess (لا نصفّر trips
+      // بسبب يوزر غير موجود). المهم: لو كان هذا الطلب تجريبي half_open نحسمه كنجاح جزئي حتى لا يعلق.
+      if (wasOpen) { provider.breaker.onSuccess(); info.recovered = true; } else { provider.breaker.releaseProbe(); }
+    } else {
+      // blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع (قد تكون المهلة من تيك توك
+      // نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة)، لكن لا نترك طلباً تجريبياً معلَّقاً بلا حسم —
+      // بدونه، أي نتيجة محايدة أثناء half_open تُبقي probing=true للأبد (لا onSuccess ولا onFailure
+      // يصفّرانها)، فيبقى canRequest() يرجع false على هذا المزود إلى ما لا نهاية.
+      provider.breaker.releaseProbe();
     }
-    // user_not_found / offline / blocked / timeout / transient: لا تُحسب ضد سلامة مزود التوقيع
-    // (المهلة قد تكون من تيك توك نفسه؛ حكم القاطع فقط على أخطاء التوقيع الصريحة).
     info.opened = !wasOpen && provider.breaker.state === 'open';
     info.cooldownMs = Math.max(0, provider.breaker.waitMs());
     return info;
