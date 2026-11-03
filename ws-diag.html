@@ -17,6 +17,8 @@
 <body>
 <h1>فحص مباشر لاتصال WebSocket بسيرفر الربط (بلا أي كود من الموقع الرئيسي)</h1>
 <p>هذه صفحة تشخيص منفصلة تماماً: تفتح اتصال WebSocket خام بسيرفر الجسر مباشرة، بدون أي منطق إعادة محاولة أو إيقاظ أو طابور من كود الموقع. الهدف: معرفة هل جوالك/شبكتك تقدر تفتح اتصال WebSocket بالسيرفر أصلاً أم لا.</p>
+<label>يوزر تيك توك (اختياري، بلا @): <input id="uname" type="text" placeholder="diagtest123" style="padding:8px;border-radius:6px;border:1px solid #333;background:#15151c;color:#eee;"></label>
+<br>
 <button onclick="runTest()">ابدأ الفحص</button>
 <div id="log"></div>
 <script>
@@ -30,7 +32,8 @@ function line(text, cls) {
 }
 function runTest() {
   document.getElementById('log').textContent = '';
-  const url = 'wss://ehsmaha.onrender.com/ws?platform=tiktok&u=diagtest123';
+  const u = (document.getElementById('uname').value || 'diagtest123').trim().replace(/^@/, '');
+  const url = 'wss://ehsmaha.onrender.com/ws?platform=tiktok&u=' + encodeURIComponent(u);
   line('محاولة فتح: ' + url, 'info');
   line('User-Agent: ' + navigator.userAgent, 'info');
   let ws;
