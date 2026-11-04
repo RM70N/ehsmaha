@@ -1,6 +1,12 @@
-name: Build & Publish Desktop App
+name: Desktop Release (Windows)
 
-# يُشغَّل تلقائياً عند رفع تاج إصدار مثل v1.0.0، أو يدوياً من تبويب Actions.
+# يبني تطبيق احسمها لويندوز وينشره على GitHub Releases عند رفع تاج vX.Y.Z.
+# مستقل تماماً عن نشر الموقع (pages.yml): تحديث الموقع لا يتطلب إصدار EXE جديد
+# (التطبيق يزامن محتوى الموقع بنفسه عبر content-manifest.json).
+#
+# قواعد: (1) لا نشر قبل نجاح lint + الاختبارات + E2E. (2) التاج يجب أن يطابق desktop/package.json.
+# (3) لا يُحذف ولا يُستبدل أي أصل منشور لنفس الإصدار — رقم جديد لكل إصدار.
+# (4) التوقيع الرقمي يُفعَّل فقط لو وُجدت أسرار CSC_LINK / CSC_KEY_PASSWORD.
 on:
   push:
     tags:
@@ -8,90 +14,130 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write # electron-builder يحتاج هذه الصلاحية لإنشاء/رفع GitHub Release
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  # ينشئ GitHub Release للتاج (لو ما كان موجوداً) قبل أي بناء. بدون هذه
-  # الخطوة، كل مهمة (windows-latest, macos-latest) — بل وحتى مهام النشر
-  # الداخلية لكل معمارية مختلفة (x64/arm64) على ماك — تحاول إنشاء نفس
-  # الإصدار في نفس اللحظة تقريباً، فيحدث تعارض (race condition) يفشل معه
-  # طلب "إنشاء Release" لدى GitHub بخطأ 422 "Published releases must have
-  # a valid tag" حتى لو نجح رفع الملفات فعلياً. إنشاء الإصدار مرة واحدة
-  # هنا أولاً يعني أن كل مهمة لاحقة تجده موجوداً بالفعل فتكتفي برفع
-  # الملفات إليه مباشرة بدل التسابق على إنشائه.
-  ensure-release:
+  verify:
     runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
+    defaults:
+      run:
+        working-directory: desktop
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Resolve release tag
-        id: tag
-        run: |
-          if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          else
-            VERSION=$(node -p "require('./desktop/package.json').version")
-            echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Create release if missing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            echo "الإصدار $TAG موجود بالفعل — تخطّي الإنشاء"
-          else
-            gh release create "$TAG" --repo "${{ github.repository }}" --title "$TAG" --notes "تم إنشاؤه تلقائياً بواسطة GitHub Actions"
-          fi
-
-      - name: Delete stale desktop assets
-        # electron-builder يتخطّى رفع الملف من جديد لو رقم الإصدار
-        # (desktop/package.json) ما تغيّر ووجد أصلاً أصلاً بنفس الاسم على
-        # الإصدار — حتى لو محتوى الكود تغيّر فعلياً. حذف الملفات القديمة هنا
-        # قبل البناء يضمن رفع نسخة جديدة دائماً بكل تشغيل يدوي، بدون الحاجة
-        # لرفع رقم الإصدار (وبالتالي تاج) مع كل تعديل بسيط.
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${{ steps.tag.outputs.tag }}"
-          for asset in ehsmaha-setup.exe ehsmaha-setup.exe.blockmap ehsmaha-x64.dmg ehsmaha-x64.dmg.blockmap ehsmaha-arm64.dmg ehsmaha-arm64.dmg.blockmap latest.yml latest-mac.yml; do
-            gh release delete-asset "$TAG" "$asset" --repo "${{ github.repository }}" -y || true
-          done
-
-  build:
-    needs: ensure-release
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            script: dist:win
-          - os: macos-latest
-            script: dist:mac
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: desktop/package-lock.json
-
       - name: Install dependencies
-        working-directory: desktop
         run: npm ci
+      - name: Version matches tag
+        if: github.ref_type == 'tag'
+        run: node scripts/verify-version.js "${{ github.ref_name }}"
+      - name: Dependency audit (production, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Bundle site and run Electron E2E (Xvfb)
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 || true
+          npx playwright --version >/dev/null 2>&1 || npm i --no-save playwright@1.49.1
+          xvfb-run -a npm run test:e2e
 
-      - name: Build and publish (${{ matrix.os }})
+  build-windows:
+    needs: verify
+    runs-on: windows-latest
+    defaults:
+      run:
         working-directory: desktop
-        run: npm run ${{ matrix.script }} -- --publish always
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - name: Build NSIS installer
+        run: npm run dist:win
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+      - name: Verify artifacts (exe, blockmap, latest.yml, sha512, version)
+        run: npm run verify:dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-dist
+          if-no-files-found: error
+          path: |
+            desktop/dist/ehsmaha-setup.exe
+            desktop/dist/ehsmaha-setup.exe.blockmap
+            desktop/dist/latest.yml
+
+  # macOS: يُبقي أزرار dmg بالموقع تعمل (روابط releases/latest/download). غير مطلوب للمواصفات،
+  # وفشله لا يمنع نشر نسخة ويندوز.
+  build-macos:
+    needs: verify
+    runs-on: macos-latest
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: desktop/package-lock.json
+      - run: npm ci
+      - run: npm run prepare-assets && npx electron-builder --mac --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dist
+          if-no-files-found: error
+          path: |
+            desktop/dist/ehsmaha-*.dmg
+            desktop/dist/ehsmaha-*.dmg.blockmap
+            desktop/dist/latest-mac.yml
+
+  publish:
+    if: ${{ always() && github.ref_type == 'tag' && needs.build-windows.result == 'success' }}
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-dist
+          path: dist
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: macos-dist
+          path: dist
+      - name: Publish to GitHub Release (never overwrite published assets)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            if gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name' | grep -qx 'ehsmaha-setup.exe'; then
+              echo "الإصدار $TAG منشور مسبقاً بأصوله. ارفع رقم الإصدار (package.json + تاج جديد) بدل الاستبدال." >&2
+              exit 1
+            fi
+          else
+            gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes "إصدار تطبيق احسمها لويندوز $TAG"
+          fi
+          # الـEXE والـblockmap أولاً، ثم latest.yml أخيراً: المحدّث لا يرى الإصدار قبل اكتمال ملفاته.
+          gh release upload "$TAG" dist/ehsmaha-setup.exe dist/ehsmaha-setup.exe.blockmap --repo "$REPO"
+          for f in dist/ehsmaha-*.dmg dist/ehsmaha-*.dmg.blockmap dist/latest-mac.yml; do
+            [ -f "$f" ] && gh release upload "$TAG" "$f" --repo "$REPO"
+          done
+          gh release upload "$TAG" dist/latest.yml --repo "$REPO"
