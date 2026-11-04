@@ -56,10 +56,17 @@ export class ConnectionManager {
   }
 
   // -------------------------------------------------------------- تتبّع الحسابات
+  // أول فحص بعد track() لازم يكون فوري تقريباً (مستخدم ينتظر ربط حسابه الآن، لا فحصاً دورياً
+  // مجدولاً) — كان هنا خطأ حقيقي: pollDelay(0, this.pollMin, rng) يعطي قيمة عشوائية بين 0
+  // وpollMin كاملاً (30 ثانية بالإعداد الافتراضي)، فيبدو الاتصال "عالقاً" لمن يجرّبه لأول مرة.
+  // أثبتته لوغات نشر حقيقي: يوزر تتبُّعه بدأ 09:22:42 لم يصل أول connect_attempt إلا 09:23:04
+  // (22.6 ثانية انتظار عشوائي بلا أي سبب). الإبطاء المقصود (thundering herd عند تحميل حسابات
+  // كثيرة دفعة وحدة عند الإقلاع) يكفيه جيترر صغير جداً (حتى ثانية واحدة)، لا نطاق الفحص الدوري
+  // الكامل.
   track(username) {
     if (this.tracked.has(username)) return;
     this.tracked.add(username);
-    this._scheduleCheck(username, pollDelay(0, this.pollMin, this.rng)); // أول فحص بلا انتظار طويل
+    this._scheduleCheck(username, Math.round(this.rng() * 1000));
   }
 
   untrack(username) {
