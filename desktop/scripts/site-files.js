@@ -23,6 +23,7 @@ const ROOT_FILES = [
   'ws-diag.html',
   'desktop-auth.html',
   'windows-app.html',
+  'link-device.html',
   'code-race-banner.png',
   'discord-logo.png',
 ];

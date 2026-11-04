@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>تسجيل الدخول</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  body { padding: 24px; display: grid; place-items: center; min-height: 100vh; background: radial-gradient(circle at 50% 20%, #170B2D 0%, #07040D 70%); }
+  main { width: min(100%, 420px); text-align: center; }
+  img { width: 72px; height: 72px; border-radius: 18px; margin-bottom: 12px; }
+  h1 { font-size: 20px; margin: 0 0 18px; }
+  .box { background: var(--surface); border: 1px solid rgba(167,139,250,.22); border-radius: 14px; padding: 18px; margin-bottom: 14px; text-align: right; }
+  .box h2 { font-size: 15px; margin: 0 0 6px; }
+  .box p { color: var(--soft); font-size: 13px; line-height: 1.8; margin: 0 0 12px; }
+  button { width: 100%; }
+  input { width: 100%; direction: ltr; text-align: center; letter-spacing: 4px; font-size: 22px; font-family: Consolas, monospace; text-transform: uppercase; padding: 12px; border-radius: 10px; border: 1px solid rgba(167,139,250,.4); background: #07040D; color: var(--text); margin-bottom: 10px; }
+  .steps { margin: 0 0 12px; padding: 0 18px 0 0; color: var(--soft); font-size: 13px; line-height: 1.9; }
+  #msg { min-height: 22px; font-size: 13px; color: var(--soft); }
+  #msg.err { color: #fca5a5; } #msg.ok { color: #86efac; }
+</style>
+</head>
+<body>
+  <main>
+    <img src="logo.png" alt="">
+    <h1>تسجيل الدخول إلى احسمها</h1>
+
+    <section class="box">
+      <h2>الدخول برمز احسمها</h2>
+      <ol class="steps">
+        <li>اضغط «فتح صفحة الرمز» وسجّل دخولك في احسمها من المتصفح.</li>
+        <li>اضغط «إنشاء رمز الدخول» وانسخ الرمز.</li>
+        <li>الصقه هنا واضغط «دخول».</li>
+      </ol>
+      <button id="open" type="button" class="ghost">فتح صفحة الرمز</button>
+      <div style="height:10px"></div>
+      <input id="code" type="text" maxlength="9" placeholder="XXXX-XXXX" autocomplete="off" spellcheck="false" aria-label="رمز الدخول">
+      <button id="go" type="button">دخول</button>
+    </section>
+
+    <section class="box">
+      <h2>الدخول بحساب جوجل</h2>
+      <p>يفتح متصفح الجهاز وتختار حسابك المسجّل عليه.</p>
+      <button id="google" type="button" class="ghost">الدخول بجوجل</button>
+    </section>
+    <div id="msg" role="status"></div>
+  </main>
+  <script src="login.js"></script>
+</body>
+</html>

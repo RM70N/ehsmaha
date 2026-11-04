@@ -98,5 +98,6 @@ module.exports = {
   SESSION_PARTITION: 'persist:ehsmaha',
   BRAND_BG: '#07040D',
   BRAND: { bg: '#07040D', surface: '#170B2D', primary: '#5B21B6', accent: '#7C3AED', soft: '#A78BFA', text: '#F8F7FC' },
+  AUTH_API: 'https://ehsmaha-piratetok-bridge.onrender.com',
   AUTH_PORT_RANGE: [43711, 43722],
 };

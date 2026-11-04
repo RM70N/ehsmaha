@@ -85,3 +85,15 @@ test('desktop-auth.html must not set referrer=no-referrer (browser would send Or
   assert.ok(!/<meta[^>]+name=["']referrer["'][^>]+no-referrer/i.test(html));
   assert.ok(/43711/.test(html) && /__auth\/callback/.test(html));
 });
+
+test('redeemLinkCode: validates locally, maps server errors, never throws', async () => {
+  const { redeemLinkCode, customTokenScript } = require('../src/auth-bridge');
+  const api = 'http://x';
+  assert.equal((await redeemLinkCode('123', { postJson: async () => { throw new Error('no'); }, api })).error, 'invalid_code');
+  assert.equal((await redeemLinkCode('ABCD-EFGH', { postJson: async () => { throw new Error('no'); }, api })).error, 'network');
+  assert.equal((await redeemLinkCode('ABCDEFGH', { postJson: async () => ({ status: 400, json: { error: 'invalid_code' } }), api })).error, 'invalid_code');
+  assert.equal((await redeemLinkCode('ABCDEFGH', { postJson: async () => ({ status: 429, json: { error: 'rate_limited' } }), api })).error, 'rate_limited');
+  let sent; const ok = await redeemLinkCode('abcd-efgh', { postJson: async (u, b) => { sent = [u, b]; return { status: 200, json: { customToken: 'x'.repeat(40) } }; }, api });
+  assert.deepEqual(sent, ['http://x/desktop-auth/redeem', { code: 'ABCDEFGH' }]); assert.equal(ok.ok, true);
+  const sc = customTokenScript('t"+alert(1)+"'); new Function(sc); assert.ok(sc.includes('\\"+alert(1)+\\"'));
+});

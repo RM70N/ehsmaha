@@ -23,6 +23,7 @@ on:
       - ws-diag.html
       - desktop-auth.html
       - windows-app.html
+      - link-device.html
       - windows-app/**
       - revival-system/**
       - dhmx-welcome/**
@@ -62,7 +63,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html desktop-auth.html windows-app.html code-race-banner.png discord-logo.png CNAME _site/
+          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html desktop-auth.html windows-app.html link-device.html code-race-banner.png discord-logo.png CNAME _site/
           cp -r revival-system _site/revival-system
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k

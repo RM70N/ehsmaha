@@ -249,6 +249,9 @@ test('Google sign-in: system-browser flow, state single-use, origin check, crede
   try {
     // الموقع يطلق popup لجوجل ⇒ يُعاد توجيهه لمتصفح النظام
     await s.win.evaluate(() => { window.open('https://accounts.google.com/o/oauth2/auth?x=1'); });
+    const lw = await until(async () => s.app.windows().find((w) => w.url().endsWith('login.html')), 8000);
+    await lw.waitForLoadState('domcontentloaded');
+    await lw.click('#google');
     const ext = await until(async () => (await T(s.app, () => global.__ehsTest.externals())).find((u) => u.includes('desktop-auth.html')), 5000);
     const u = new URL(ext);
     assert.equal(u.origin, 'https://ehsmaha.com');
@@ -353,4 +356,44 @@ test('no menu bar (no white strip); "تطبيق احسمها" tab opens the down
     const back = await s.win.evaluate(() => [...document.querySelectorAll('[data-site-link]')].map((a) => a.getAttribute('href')));
     assert.ok(back.every((h) => h === '/'));
   } finally { await s.close(); }
+});
+
+test('login with احسمها code: issue (site) → type code (app) → signInWithCustomToken in page; bad/replayed codes refused', async () => {
+  const { DesktopAuthService } = await import('../../../tiktok-relay/src/desktopAuth.js');
+  const svc = new DesktopAuthService({ createCustomToken: async (uid) => 'custom-token-for-' + uid + '-xxxxxxxxxxxxxxxx' });
+  const bridge = http.createServer((req, res) => {
+    const ch = []; req.on('data', (c) => ch.push(c));
+    req.on('end', async () => {
+      let body = {}; try { body = JSON.parse(Buffer.concat(ch).toString() || '{}'); } catch (e) { /* */ }
+      const r = req.url === '/desktop-auth/redeem' ? await svc.redeem(body.code, req.socket.remoteAddress) : { ok: false, error: 'nf' };
+      res.writeHead(r.ok ? 200 : 400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(r.ok ? { customToken: r.customToken } : { error: r.error }));
+    });
+  });
+  await new Promise((r) => bridge.listen(0, '127.0.0.1', r));
+  const s = await start({ extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + bridge.address().port, EHSMAHA_LINK_PAGE: 'https://ehsmaha.com/link-device.html' } });
+  try {
+    await T(s.app, () => global.__ehsTest.openLoginWindow());
+    const lw = await until(async () => s.app.windows().find((w) => w.url().endsWith('login.html')), 8000);
+    await lw.waitForLoadState('domcontentloaded');
+    assert.equal(await lw.evaluate(() => typeof window.ehsmahaLogin), 'object');
+    assert.equal(await s.win.evaluate(() => typeof window.ehsmahaLogin), 'undefined', 'login API not exposed to site');
+    await lw.click('#open');
+    assert.ok((await T(s.app, () => global.__ehsTest.externals())).includes('https://ehsmaha.com/link-device.html'));
+    // رمز خاطئ
+    await lw.fill('#code', 'AAAA-AAAA'); await lw.click('#go');
+    await until(async () => /غير صحيح/.test(await lw.textContent('#msg')), 5000);
+    // الموقع يصدر رمزاً للمستخدم uidA
+    const { code } = svc.issue('uidA');
+    await lw.fill('#code', code.slice(0, 4) + '-' + code.slice(4).toLowerCase()); await lw.click('#go');
+    await until(async () => (await s.win.evaluate(() => (window.__fakeFs.customSignins || []).length)) === 1, 8000);
+    assert.match(await s.win.evaluate(() => window.__fakeFs.customSignins[0]), /^custom-token-for-uidA/);
+    // إعادة استخدام الرمز مرفوضة
+    await until(async () => !s.app.windows().some((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000);
+    await T(s.app, () => global.__ehsTest.openLoginWindow());
+    const lw2 = await until(async () => s.app.windows().find((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000).catch(() => null);
+    if (lw2) { await lw2.fill('#code', code); await lw2.click('#go'); await sleep(800); assert.equal(await s.win.evaluate(() => window.__fakeFs.customSignins.length), 1); }
+    const log = fs.readFileSync(path.join(s.userData, 'logs', 'ehsmaha.log'), 'utf8');
+    assert.ok(!log.includes('custom-token-for'), 'token not logged');
+  } finally { await s.close(); bridge.close(); }
 });
