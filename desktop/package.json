@@ -1,6 +1,6 @@
 {
   "name": "ehsmaha-desktop",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "تطبيق سطح المكتب لمنصة احسمها (ehsmaha.com)",
   "author": {
     "name": "احسمها",
@@ -19,9 +19,14 @@
     "dev": "npm run prepare-assets && electron . --dev",
     "pack": "npm run prepare-assets && electron-builder --dir",
     "dist": "npm run prepare-assets && electron-builder",
-    "dist:win": "npm run prepare-assets && electron-builder --win",
+    "dist:win": "npm run prepare-assets && electron-builder --win --publish never",
     "dist:mac": "npm run prepare-assets && electron-builder --mac",
-    "publish": "npm run prepare-assets && electron-builder --publish always"
+    "publish": "echo 'النشر يتم من GitHub Actions فقط (desktop-release.yml)' && exit 1",
+    "lint": "node scripts/lint.js",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "npm run sync && node --test --test-concurrency=1 test/e2e/app.e2e.test.js",
+    "verify:dist": "node scripts/verify-dist.js",
+    "verify:version": "node scripts/verify-version.js"
   },
   "devDependencies": {
     "electron": "^38.8.6",

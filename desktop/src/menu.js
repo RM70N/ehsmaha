@@ -7,7 +7,7 @@ const { SITE_ORIGIN } = require('./config');
  * قائمة مبسّطة بالعربية: تحديث، رجوع/تقدّم، حجم الخط، ملء الشاشة، خروج.
  * كل قوائم Electron الافتراضية غير الضرورية (Edit/Window/Help الكاملة) محذوفة.
  */
-function buildAppMenu({ getWindow, reloadApp, goBack, goForward, checkForUpdates, isDev }) {
+function buildAppMenu({ getWindow, reloadApp, goBack, goForward, checkForUpdates, openSettings, isDev }) {
   const isMac = process.platform === 'darwin';
   const win = () => getWindow && getWindow();
 
@@ -52,6 +52,7 @@ function buildAppMenu({ getWindow, reloadApp, goBack, goForward, checkForUpdates
         accelerator: isMac ? 'Cmd+Right' : 'Alt+Right',
         click: () => goForward && goForward(),
       },
+      { label: 'الإعدادات', accelerator: 'CmdOrCtrl+,', click: () => openSettings && openSettings() },
       { type: 'separator' },
       ...(isMac ? [] : [{ label: 'تحقق من وجود تحديث', click: () => checkForUpdates && checkForUpdates() }]),
       { label: 'فتح الموقع في المتصفح', click: () => shell.openExternal(SITE_ORIGIN) },

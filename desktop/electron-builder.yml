@@ -15,6 +15,7 @@ files:
   - main.js
   - preload.js
   - src/**/*
+  - scripts/site-manifest.js
   - renderer/**/*
   - site/**/*
   - package.json
@@ -37,7 +38,8 @@ win:
     - target: nsis
       arch: [x64]
   artifactName: ehsmaha-setup.${ext}
-  icon: build/icon.png
+  icon: build/icon.ico
+  # التوقيع الرقمي: غير مفعّل لعدم وجود شهادة. عند توفرها تُضبط CSC_LINK/CSC_KEY_PASSWORD كأسرار GitHub.
 
 nsis:
   oneClick: true
@@ -51,6 +53,10 @@ nsis:
   displayLanguageSelector: false
   installerLanguages: [ar]
   language: "1025" # العربية
+  installerIcon: build/installer-icon.ico
+  uninstallerIcon: build/installer-icon.ico
+  installerHeaderIcon: build/installer-icon.ico
+  runAfterFinish: true
 
 # ---------------------------------------------------------------------- macOS
 mac:

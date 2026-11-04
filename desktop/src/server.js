@@ -54,7 +54,11 @@ class LocalSiteServer {
     this.server = null;
     this.port = null;
     this.rootDir = null;
+    this.postHandler = null;
   }
+
+  /** معالج POST محدود لمسار واحد (__auth/callback): (req, body) => {status, html}. */
+  setPostHandler(fn) { this.postHandler = fn; }
 
   get origin() {
     return this.port ? `http://localhost:${this.port}` : null;
@@ -115,6 +119,17 @@ class LocalSiteServer {
       res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
       return res.end('forbidden');
     }
+    if (req.method === 'POST' && this.postHandler && String(req.url).split('?')[0] === '/__auth/callback') {
+      const chunks = []; let size = 0;
+      req.on('data', (c) => { size += c.length; if (size <= 16384) chunks.push(c); });
+      req.on('end', () => {
+        let out = { status: 400, html: 'bad request' };
+        try { if (size <= 16384) out = this.postHandler(req, Buffer.concat(chunks).toString('utf8')) || out; } catch (e) { /* 400 */ }
+        res.writeHead(out.status, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' });
+        res.end(out.html);
+      });
+      return;
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405, { Allow: 'GET, HEAD' });
       return res.end();
@@ -143,9 +158,16 @@ class LocalSiteServer {
       } catch (e) { /* غير موجود — ننزل لـ SPA fallback */ }
     }
 
-    // SPA fallback: أي مسار غير موجود (مثل /games/shad-al-habl) يخدم index.html
-    // بنفس سلوك استضافة الموقع الحيّ.
-    if (!filePath) filePath = path.join(this.rootDir, 'index.html');
+    // SPA fallback: مسار تطبيق بلا امتداد (مثل /games/shad-al-habl) يخدم index.html بنفس
+    // سلوك استضافة الموقع الحيّ. أما ملف بامتداد غير موجود (js/css/png...) فـ404 صريح —
+    // كي لا يُرجَع HTML بدل السكربت فيُحجب بـnosniff ويصعب تشخيصه.
+    if (!filePath) {
+      if (path.extname(pathname)) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+        return res.end('not found');
+      }
+      filePath = path.join(this.rootDir, 'index.html');
+    }
 
     const ext = path.extname(filePath).toLowerCase();
     const isDocument = ext === '.html' || ext === '.htm';
