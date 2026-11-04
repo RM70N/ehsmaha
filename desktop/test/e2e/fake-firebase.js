@@ -19,8 +19,8 @@ function importedNames(html, moduleFile) {
 }
 
 const IMPL = {
-  initializeApp: '() => ({})', getAuth: '() => ({ currentUser: null })',
-  onAuthStateChanged: '(a, cb) => { setTimeout(() => cb(null), 30); return () => {}; }',
+  initializeApp: '() => ({})', getAuth: '() => ({ currentUser: window.__fakeUser || null })',
+  onAuthStateChanged: '(a, cb) => { setTimeout(() => cb(window.__fakeUser || null), 30); return () => {}; }',
   setPersistence: 'async () => {}', browserLocalPersistence: '{}',
   signInWithCredential: 'async (auth, cred) => { (window.__fakeFs.signins = window.__fakeFs.signins || []).push({ hasId: !!cred.idToken, hasAccess: !!cred.accessToken }); return { user: { uid: "u1" } }; }',
   signInWithCustomToken: 'async (auth, tok) => { (window.__fakeFs.customSignins = window.__fakeFs.customSignins || []).push(tok); return { user: { uid: "u1" } }; }',

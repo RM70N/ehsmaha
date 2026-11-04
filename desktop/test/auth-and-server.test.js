@@ -97,3 +97,14 @@ test('redeemLinkCode: validates locally, maps server errors, never throws', asyn
   assert.deepEqual(sent, ['http://x/desktop-auth/redeem', { code: 'ABCDEFGH' }]); assert.equal(ok.ok, true);
   const sc = customTokenScript('t"+alert(1)+"'); new Function(sc); assert.ok(sc.includes('\\"+alert(1)+\\"'));
 });
+
+test('requestLinkCode: validates username locally and maps responses', async () => {
+  const { requestLinkCode } = require('../src/auth-bridge');
+  const api = 'http://x';
+  assert.equal((await requestLinkCode('a', { postJson: async () => ({}), api })).error, 'invalid_username');
+  assert.equal((await requestLinkCode('a b', { postJson: async () => ({}), api })).error, 'invalid_username');
+  let sent; const ok = await requestLinkCode(' @Sultan ', { postJson: async (u, b) => { sent = [u, b]; return { status: 200, json: { ok: true, delivered: true } }; }, api });
+  assert.deepEqual(sent, ['http://x/desktop-auth/request', { username: 'Sultan' }]); assert.deepEqual(ok, { ok: true, delivered: true });
+  assert.equal((await requestLinkCode('sultan', { postJson: async () => { throw new Error('n'); }, api })).error, 'network');
+  assert.equal((await requestLinkCode('sultan', { postJson: async () => ({ status: 429, json: { error: 'rate_limited' } }), api })).error, 'rate_limited');
+});

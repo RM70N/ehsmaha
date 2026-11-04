@@ -77,7 +77,7 @@ function buildCsp(selfOrigin) {
     `font-src 'self' ${self} data: https://fonts.gstatic.com https://*.gstatic.com`,
     `img-src 'self' ${self} data: blob: https:`,
     `media-src 'self' ${self} data: blob: https:`,
-    `connect-src 'self' ${self} data: blob: ${CONNECT_HOSTS.join(' ')}`,
+    `connect-src 'self' ${self} data: blob: ${CONNECT_HOSTS.join(' ')}${process.env.EHSMAHA_E2E === '1' && process.env.EHSMAHA_E2E_CONNECT ? ' ' + process.env.EHSMAHA_E2E_CONNECT : ''}`,
     `frame-src 'self' ${self} https://www.youtube.com https://www.youtube-nocookie.com https://*.firebaseapp.com https://*.google.com https://accounts.google.com https://*.tiktok.com https://player.twitch.tv`,
     `worker-src 'self' ${self} blob:`,
     `object-src 'none'`,

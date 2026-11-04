@@ -358,42 +358,59 @@ test('no menu bar (no white strip); "تطبيق احسمها" tab opens the down
   } finally { await s.close(); }
 });
 
-test('login with احسمها code: issue (site) → type code (app) → signInWithCustomToken in page; bad/replayed codes refused', async () => {
-  const { DesktopAuthService } = await import('../../../tiktok-relay/src/desktopAuth.js');
-  const svc = new DesktopAuthService({ createCustomToken: async (uid) => 'custom-token-for-' + uid + '-xxxxxxxxxxxxxxxx' });
+test('login with احسمها code: username → code pushed to the open site session (big modal) → typed in app → signed in', async () => {
+  const { DesktopAuthService, DesktopLinkHub } = await import('../../../tiktok-relay/src/desktopAuth.js');
+  const hub = new DesktopLinkHub({ verifyToken: async (t) => (t === 'fake-id-token' ? { uid: 'uidS' } : null) });
+  const svc = new DesktopAuthService({
+    createCustomToken: async (uid) => 'custom-token-for-' + uid + '-xxxxxxxxxxxxxxxx',
+    resolveUid: async (n) => (n === 'sultan' ? 'uidS' : null),
+    push: (uid, m) => hub.push(uid, m),
+  });
   const bridge = http.createServer((req, res) => {
     const ch = []; req.on('data', (c) => ch.push(c));
     req.on('end', async () => {
       let body = {}; try { body = JSON.parse(Buffer.concat(ch).toString() || '{}'); } catch (e) { /* */ }
-      const r = req.url === '/desktop-auth/redeem' ? await svc.redeem(body.code, req.socket.remoteAddress) : { ok: false, error: 'nf' };
+      let r = { ok: false, error: 'nf' };
+      if (req.url === '/desktop-auth/request') r = await svc.requestByUsername(body.username, req.socket.remoteAddress);
+      if (req.url === '/desktop-auth/redeem') r = await svc.redeem(body.code, req.socket.remoteAddress);
       res.writeHead(r.ok ? 200 : 400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(r.ok ? { customToken: r.customToken } : { error: r.error }));
+      res.end(JSON.stringify(r.ok ? (r.customToken ? { customToken: r.customToken } : { ok: true, delivered: r.delivered }) : { error: r.error }));
     });
   });
+  bridge.on('upgrade', (req, sock, head) => { if (req.url === '/desktop-auth/ws') hub.handleUpgrade(req, sock, head); else sock.destroy(); });
   await new Promise((r) => bridge.listen(0, '127.0.0.1', r));
-  const s = await start({ extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + bridge.address().port, EHSMAHA_LINK_PAGE: 'https://ehsmaha.com/link-device.html' } });
+  const port = bridge.address().port;
+  const fake = await startFakeSite(SITE);
+  const { app, userData } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + port, EHSMAHA_E2E_CONNECT: 'ws://127.0.0.1:' + port } });
   try {
-    await T(s.app, () => global.__ehsTest.openLoginWindow());
-    const lw = await until(async () => s.app.windows().find((w) => w.url().endsWith('login.html')), 8000);
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await win.context().addInitScript(`window.EHS_DESKTOP_LINK_API='ws://127.0.0.1:${port}'; window.__fakeUser={uid:'uidS',displayName:'Sultan',getIdToken:async()=>'fake-id-token'};`);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => (await app.evaluate(() => global.__ehsTest.probePage()))?.pageId, 20000);
+    await until(async () => hub.subs.size === 1, 10000); // جلسة الموقع اتصلت وصودق عليها
+    await app.evaluate(() => global.__ehsTest.openLoginWindow());
+    const lw = await until(async () => app.windows().find((w) => w.url().endsWith('login.html')), 8000);
     await lw.waitForLoadState('domcontentloaded');
-    assert.equal(await lw.evaluate(() => typeof window.ehsmahaLogin), 'object');
-    assert.equal(await s.win.evaluate(() => typeof window.ehsmahaLogin), 'undefined', 'login API not exposed to site');
-    await lw.click('#open');
-    assert.ok((await T(s.app, () => global.__ehsTest.externals())).includes('https://ehsmaha.com/link-device.html'));
-    // رمز خاطئ
+    // يوزر غير موجود/بلا جلسة: رسالة واضحة، لا خطوة ثانية
+    await lw.fill('#user', 'nobody'); await lw.click('#send');
+    await until(async () => /ما لقينا/.test(await lw.textContent('#msg')), 5000);
+    assert.equal(await lw.isVisible('#step2'), false);
+    // يوزر صحيح: الرمز يظهر بالموقع بخط كبير
+    await lw.fill('#user', 'Sultan'); await lw.click('#send');
+    await until(async () => lw.isVisible('#step2'), 5000);
+    const shown = await until(async () => win.evaluate(() => { const m = document.getElementById('ehs-dl'); return m && m.classList.contains('on') ? document.getElementById('ehs-dl-code').textContent : null; }), 5000);
+    assert.match(shown, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    const fs2 = await win.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ehs-dl-code')).fontSize));
+    assert.ok(fs2 >= 40, 'big font: ' + fs2);
+    // التطبيق لا يستلم الرمز تلقائياً: لازم يكتبه المستخدم
+    assert.equal(await win.evaluate(() => (window.__fakeFs.customSignins || []).length), 0);
     await lw.fill('#code', 'AAAA-AAAA'); await lw.click('#go');
     await until(async () => /غير صحيح/.test(await lw.textContent('#msg')), 5000);
-    // الموقع يصدر رمزاً للمستخدم uidA
-    const { code } = svc.issue('uidA');
-    await lw.fill('#code', code.slice(0, 4) + '-' + code.slice(4).toLowerCase()); await lw.click('#go');
-    await until(async () => (await s.win.evaluate(() => (window.__fakeFs.customSignins || []).length)) === 1, 8000);
-    assert.match(await s.win.evaluate(() => window.__fakeFs.customSignins[0]), /^custom-token-for-uidA/);
-    // إعادة استخدام الرمز مرفوضة
-    await until(async () => !s.app.windows().some((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000);
-    await T(s.app, () => global.__ehsTest.openLoginWindow());
-    const lw2 = await until(async () => s.app.windows().find((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000).catch(() => null);
-    if (lw2) { await lw2.fill('#code', code); await lw2.click('#go'); await sleep(800); assert.equal(await s.win.evaluate(() => window.__fakeFs.customSignins.length), 1); }
-    const log = fs.readFileSync(path.join(s.userData, 'logs', 'ehsmaha.log'), 'utf8');
-    assert.ok(!log.includes('custom-token-for'), 'token not logged');
-  } finally { await s.close(); bridge.close(); }
+    await lw.fill('#code', shown.toLowerCase()); await lw.click('#go');
+    await until(async () => (await win.evaluate(() => (window.__fakeFs.customSignins || []).length)) === 1, 8000);
+    assert.match(await win.evaluate(() => window.__fakeFs.customSignins[0]), /^custom-token-for-uidS/);
+    const log = fs.readFileSync(path.join(userData, 'logs', 'ehsmaha.log'), 'utf8');
+    assert.ok(!log.includes('custom-token-for') && !log.includes(shown.replace('-', '')), 'secrets not logged');
+  } finally { await app.close().catch(() => {}); fake.close(); bridge.close(); }
 });

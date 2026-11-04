@@ -87,7 +87,18 @@ async function redeemLinkCode(code, { postJson, api }) {
   return { ok: false, error: err === 'rate_limited' ? 'rate_limited' : err === 'invalid_code' ? 'invalid_code' : 'failed' };
 }
 
+/** يطلب من الخادم دفع رمز إلى جلسات الموقع المفتوحة لهذا اليوزر (الرمز لا يعود للتطبيق). */
+async function requestLinkCode(username, { postJson, api }) {
+  const name = String(username == null ? '' : username).trim().replace(/^@/, '');
+  if (!/^[\p{L}\p{N}_.\-]{2,32}$/u.test(name)) return { ok: false, error: 'invalid_username' };
+  let r;
+  try { r = await postJson(api + '/desktop-auth/request', { username: name }); } catch (e) { return { ok: false, error: 'network' }; }
+  if (r && r.status === 200 && r.json && r.json.ok) return { ok: true, delivered: !!r.json.delivered };
+  const err = r && r.json && r.json.error;
+  return { ok: false, error: err === 'rate_limited' ? 'rate_limited' : err === 'invalid_username' ? 'invalid_username' : 'failed' };
+}
+
 const SUCCESS_PAGE = '<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>احسمها</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#07040D;color:#F8F7FC;font-family:Segoe UI,Tahoma,sans-serif"><div style="text-align:center"><h2>تم تسجيل الدخول</h2><p style="color:#A78BFA">ارجع إلى تطبيق احسمها، تقدر تغلق هذه النافذة.</p></div></body></html>';
 const FAIL_PAGE = SUCCESS_PAGE.replace('تم تسجيل الدخول', 'تعذّر إكمال تسجيل الدخول').replace('ارجع إلى تطبيق احسمها، تقدر تغلق هذه النافذة.', 'ارجع للتطبيق وحاول مرة أخرى.');
 
-module.exports = { AuthBridge, signInScript, customTokenScript, redeemLinkCode, SUCCESS_PAGE, FAIL_PAGE, TTL_MS };
+module.exports = { AuthBridge, signInScript, customTokenScript, redeemLinkCode, requestLinkCode, SUCCESS_PAGE, FAIL_PAGE, TTL_MS };

@@ -58,3 +58,27 @@ test('CORS only for ehsmaha.com origins', () => {
   assert.deepEqual(corsHeaders('https://evil.com'), {});
   assert.deepEqual(corsHeaders(''), {});
 });
+
+test('requestByUsername: pushes code to the account\'s open sessions only; never returns it; limits', async () => {
+  let t = 1_000_000; const pushed = [];
+  const s = new DesktopAuthService({
+    createCustomToken: async (uid) => 'tok-' + uid, now: () => t,
+    resolveUid: async (n) => (n === 'sultan' ? 'uidS' : null),
+    push: (uid, msg) => { pushed.push([uid, msg]); return uid === 'uidS' ? 1 : 0; },
+  });
+  const r = await s.requestByUsername('@Sultan', '1.1.1.1');
+  assert.equal(r.ok, true); assert.equal(r.delivered, true); assert.ok(!('code' in r));
+  assert.equal(pushed[0][0], 'uidS');
+  const code = pushed[0][1].code;
+  assert.equal((await s.redeem(code, '2.2.2.2')).customToken, 'tok-uidS');
+  // مستخدم غير موجود: نفس الشكل، لا دفع
+  const n = await s.requestByUsername('nobody', '1.1.1.1');
+  assert.deepEqual([n.ok, n.delivered], [true, false]); assert.equal(pushed.length, 1);
+  // بلا جلسة مفتوحة: لا رمز معلّق
+  const off = new DesktopAuthService({ createCustomToken: async () => 'x', resolveUid: async () => 'u', push: () => 0, now: () => t });
+  assert.equal((await off.requestByUsername('someone', 'i')).delivered, false); assert.equal(off.codes.size, 0);
+  // حد لكل يوزر (3/دقيقة) ثم يُرفض
+  for (let i = 0; i < 2; i++) await s.requestByUsername('sultan', '3.3.3.3');
+  assert.equal((await s.requestByUsername('sultan', '4.4.4.4')).error, 'rate_limited');
+  assert.equal((await s.requestByUsername('a b!', 'ip')).error, 'invalid_username');
+});

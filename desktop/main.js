@@ -37,7 +37,7 @@ const { Logger } = require('./src/logger');
 const { NotificationManager } = require('./src/notifications');
 const { BRIDGE_SOURCE } = require('./src/page-bridge');
 const { navigationScript, TARGETS } = require('./src/deeplinks');
-const { AuthBridge, signInScript, customTokenScript, redeemLinkCode, SUCCESS_PAGE, FAIL_PAGE } = require('./src/auth-bridge');
+const { AuthBridge, signInScript, customTokenScript, redeemLinkCode, requestLinkCode, SUCCESS_PAGE, FAIL_PAGE } = require('./src/auth-bridge');
 
 const IS_DEV = !app.isPackaged || process.argv.includes('--dev');
 const REMOTE_MODE = process.env.EHSMAHA_MODE === 'remote' || process.argv.includes('--remote');
@@ -477,6 +477,11 @@ function registerIpc() {
   }));
 
   ipcMain.handle('login:google', guard(['login'], () => { startGoogleLogin(); return true; }));
+  ipcMain.handle('login:request-code', guard(['login'], async (_e, username) => {
+    const r = await requestLinkCode(String(username || '').slice(0, 64), { postJson: postJsonViaNet, api: AUTH_API });
+    if (!r.ok) logger.warn('auth', 'request-code refused:', r.error);
+    return r;
+  }));
   ipcMain.handle('login:open-link-page', guard(['login'], () => openExternal((E2E && process.env.EHSMAHA_LINK_PAGE) || (SITE_ORIGIN + '/link-device.html'))));
   ipcMain.handle('login:redeem', guard(['login'], async (_e, code) => {
     const r = await redeemLinkCode(code, { postJson: postJsonViaNet, api: AUTH_API });
