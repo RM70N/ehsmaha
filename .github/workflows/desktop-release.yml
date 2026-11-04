@@ -50,6 +50,11 @@ jobs:
         run: npm run lint
       - name: Unit tests
         run: npm test
+      - name: Relay (login endpoints) deps + tests
+        working-directory: tiktok-relay
+        run: |
+          npm ci
+          node --test test/*.test.js
       - name: Bundle site and run Electron E2E (Xvfb)
         timeout-minutes: 15
         run: |
