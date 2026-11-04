@@ -184,6 +184,7 @@ function createMainWindow() {
       backgroundThrottling: false, // الألعاب المباشرة والجلسة لا تتجمّد بالتصغير
     },
   });
+  mainWindow.removeMenu(); // بدون شريط قوائم نهائياً (لا شريط أبيض، ولا يظهر بالضغط على Alt)
   if (state.get('maximized', false)) mainWindow.maximize();
   if (state.get('fullscreen', false)) mainWindow.setFullScreen(true);
 
@@ -207,8 +208,22 @@ function createMainWindow() {
     if (input.type !== 'keyDown') return;
     const key = String(input.key || '').toLowerCase();
     if ((IS_DEV || process.env.EHSMAHA_DEVTOOLS === '1') && input.control && input.shift && key === 'i') { event.preventDefault(); wc.toggleDevTools(); return; }
-    if (key === 'f5') { event.preventDefault(); reloadApp(); }
+    if (key === 'f5' || ((input.control || input.meta) && key === 'r')) { event.preventDefault(); reloadApp(); }
     if (key === 'f11') { event.preventDefault(); toggleFullscreen(); }
+    // لا توجد قائمة (شريط أبيض) — الاختصارات تُعالَج هنا.
+    if (input.control || input.meta) {
+      const step = key === '=' || key === '+' ? 0.1 : key === '-' ? -0.1 : key === '0' ? 0 : null;
+      if (step !== null) {
+        event.preventDefault();
+        const next = step === 0 ? 1 : Math.min(1.5, Math.max(0.7, Math.round((wc.getZoomFactor() + step) * 20) / 20));
+        wc.setZoomFactor(next); settings.update({ zoomFactor: next });
+      }
+    }
+    if (input.alt && (key === 'arrowleft' || key === 'arrowright') && wc.navigationHistory) {
+      event.preventDefault();
+      if (key === 'arrowleft' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
+      if (key === 'arrowright' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
+    }
   });
 
   wc.on('did-fail-load', (_e, code, desc, url, isMain) => {
@@ -597,7 +612,7 @@ async function boot() {
     },
   });
 
-  buildAppMenu({
+  if (process.platform === 'darwin') buildAppMenu({
     getWindow: () => mainWindow, reloadApp, openSettings,
     goBack: () => { const wc = mainWindow && mainWindow.webContents; if (wc && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); },
     goForward: () => { const wc = mainWindow && mainWindow.webContents; if (wc && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); },

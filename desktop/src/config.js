@@ -46,6 +46,7 @@ const CONNECT_HOSTS = [
   'https://*.kick.com',
   'https://*.pusher.com',
   'https://flagcdn.com',
+  'https://api.github.com',
   'https://cdn.jsdelivr.net',
   'https://cdnjs.cloudflare.com',
   'https://unpkg.com',

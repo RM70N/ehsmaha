@@ -337,3 +337,20 @@ test('settings window: defaults, validated updates, only reachable from settings
     assert.equal(test.shown, true);
   } finally { await s.close(); }
 });
+
+test('no menu bar (no white strip); "تطبيق احسمها" tab opens the download page in-app', async () => {
+  const s = await start();
+  try {
+    const menu = await T(s.app, () => { const w = global.__ehsTest.getMainWindow(); return { visible: w.isMenuBarVisible(), hasMenu: !!w.menu }; });
+    assert.equal(menu.visible, false);
+    const tab = await s.win.evaluate(() => { const b = document.getElementById('topnav-tab-winapp'); return b && b.textContent.trim(); });
+    assert.equal(tab, 'تطبيق احسمها');
+    await s.win.evaluate(() => document.getElementById('topnav-tab-winapp').click());
+    await until(async () => s.win.url().endsWith('/windows-app.html'), 8000);
+    await until(async () => (await s.win.evaluate(() => document.querySelectorAll('img.shot').length)) >= 1, 8000);
+    const hrefs = await s.win.evaluate(() => [...document.querySelectorAll('[data-download]')].map((a) => a.getAttribute('href')));
+    assert.ok(hrefs.every((h) => /releases\/latest\/download\/ehsmaha-setup\.exe$/.test(h)));
+    const back = await s.win.evaluate(() => [...document.querySelectorAll('[data-site-link]')].map((a) => a.getAttribute('href')));
+    assert.ok(back.every((h) => h === '/'));
+  } finally { await s.close(); }
+});

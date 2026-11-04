@@ -79,3 +79,9 @@ test('every file in site-files exists in repo root', () => {
   for (const f of ROOT_FILES) assert.ok(fs.existsSync(path.join(root, f)), f);
   for (const d of DIRS) assert.ok(fs.existsSync(path.join(root, d)), d);
 });
+
+test('desktop-auth.html must not set referrer=no-referrer (browser would send Origin: null)', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'desktop-auth.html'), 'utf8');
+  assert.ok(!/<meta[^>]+name=["']referrer["'][^>]+no-referrer/i.test(html));
+  assert.ok(/43711/.test(html) && /__auth\/callback/.test(html));
+});

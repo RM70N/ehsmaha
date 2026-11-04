@@ -6754,6 +6754,7 @@ if (location.hostname === 'streamgame1.netlify.app') {
     <button type="button" class="topnav-tab" id="topnav-tab-solo" onclick="topnavGoSection('solo')"> ألعاب فردية</button>
     <button type="button" class="topnav-tab" id="topnav-tab-party" onclick="topnavGoSection('party')"> العاب الجمعات</button>
     <button type="button" class="topnav-tab" id="topnav-tab-ahsemha" onclick="topnavGoSection('ahsemha')">فئات</button>
+    <button type="button" class="topnav-tab" id="topnav-tab-winapp" onclick="openWindowsApp()">تطبيق احسمها</button>
   </div>
 </nav>
 
@@ -19821,6 +19822,10 @@ function sevtUpdateEventTabVisibility() {
 }
 
 // يفتح صفحة فعالية "سباق الأكواد". داخل تطبيق سطح المكتب (file://) نفتح نسخة الموقع.
+function openWindowsApp() {
+  const base = /^https?:$/.test(location.protocol) ? '/' : 'https://ehsmaha.com/';
+  location.href = base + 'windows-app.html';
+}
 function openCodeRace() {
   const base = /^https?:$/.test(location.protocol) ? '/' : 'https://ehsmaha.com/';
   location.href = base + 'code-race.html';
