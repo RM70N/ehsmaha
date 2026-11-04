@@ -22,6 +22,9 @@ const ROOT_FILES = [
   'harf-alnajat3d.html',
   'ws-diag.html',
   'desktop-auth.html',
+  'windows-app.html',
+  'link-device.html',
+  'desktop-link.js',
   'code-race-banner.png',
   'discord-logo.png',
 ];
@@ -37,6 +40,7 @@ const DIRS = [
   'subathon',
   'about-experience/previews-sq',
   'about-experience/posters',
+  'windows-app',
 ];
 
 module.exports = { ROOT_FILES, DIRS };

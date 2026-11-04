@@ -30,6 +30,18 @@ if (location.protocol === 'file:' && /\/renderer\/offline\.html$/.test(location.
 }
 try { contextBridge.exposeInMainWorld('ehsmahaDesktop', api); } catch (e) { /* */ }
 
+const isLoginPage = location.protocol === 'file:' && /\/renderer\/login\.html$/.test(location.pathname);
+if (isLoginPage) {
+  try {
+    contextBridge.exposeInMainWorld('ehsmahaLogin', {
+      google: () => ipcRenderer.invoke('login:google'),
+      requestCode: (u) => ipcRenderer.invoke('login:request-code', String(u || '').slice(0, 64)),
+      openLinkPage: () => ipcRenderer.invoke('login:open-link-page'),
+      redeem: (code) => ipcRenderer.invoke('login:redeem', String(code || '').slice(0, 32)),
+    });
+  } catch (e) { /* */ }
+}
+
 if (isSettingsPage) {
   const call = (ch, arg) => ipcRenderer.invoke(ch, arg);
   try {
@@ -51,7 +63,7 @@ if (isSettingsPage) {
 
 /* ---------------------------------------------------- الإشعارات (من الصفحة) */
 
-if (!isSettingsPage && location.protocol !== 'file:') {
+if (!isSettingsPage && !isLoginPage && location.protocol !== 'file:') {
   document.addEventListener('ehsmaha-desktop-event', (e) => {
     const d = e && e.detail;
     if (!d || typeof d !== 'object') return;

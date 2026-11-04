@@ -249,6 +249,9 @@ test('Google sign-in: system-browser flow, state single-use, origin check, crede
   try {
     // الموقع يطلق popup لجوجل ⇒ يُعاد توجيهه لمتصفح النظام
     await s.win.evaluate(() => { window.open('https://accounts.google.com/o/oauth2/auth?x=1'); });
+    const lw = await until(async () => s.app.windows().find((w) => w.url().endsWith('login.html')), 8000);
+    await lw.waitForLoadState('domcontentloaded');
+    await lw.click('#google');
     const ext = await until(async () => (await T(s.app, () => global.__ehsTest.externals())).find((u) => u.includes('desktop-auth.html')), 5000);
     const u = new URL(ext);
     assert.equal(u.origin, 'https://ehsmaha.com');
@@ -336,4 +339,78 @@ test('settings window: defaults, validated updates, only reachable from settings
     const test = await sw.evaluate(() => window.ehsmahaSettings.testNotification());
     assert.equal(test.shown, true);
   } finally { await s.close(); }
+});
+
+test('no menu bar (no white strip); "تطبيق احسمها" tab opens the download page in-app', async () => {
+  const s = await start();
+  try {
+    const menu = await T(s.app, () => { const w = global.__ehsTest.getMainWindow(); return { visible: w.isMenuBarVisible(), hasMenu: !!w.menu }; });
+    assert.equal(menu.visible, false);
+    const tab = await s.win.evaluate(() => { const b = document.getElementById('topnav-tab-winapp'); return b && b.textContent.trim(); });
+    assert.equal(tab, 'تطبيق احسمها');
+    await s.win.evaluate(() => document.getElementById('topnav-tab-winapp').click());
+    await until(async () => s.win.url().endsWith('/windows-app.html'), 8000);
+    await until(async () => (await s.win.evaluate(() => document.querySelectorAll('img.shot').length)) >= 1, 8000);
+    const hrefs = await s.win.evaluate(() => [...document.querySelectorAll('[data-download]')].map((a) => a.getAttribute('href')));
+    assert.ok(hrefs.every((h) => /releases\/latest\/download\/ehsmaha-setup\.exe$/.test(h)));
+    const back = await s.win.evaluate(() => [...document.querySelectorAll('[data-site-link]')].map((a) => a.getAttribute('href')));
+    assert.ok(back.every((h) => h === '/'));
+  } finally { await s.close(); }
+});
+
+test('login with احسمها code: username → code pushed to the open site session (big modal) → typed in app → signed in', async () => {
+  const { DesktopAuthService, DesktopLinkHub } = await import('../../../tiktok-relay/src/desktopAuth.js');
+  const hub = new DesktopLinkHub({ verifyToken: async (t) => (t === 'fake-id-token' ? { uid: 'uidS' } : null) });
+  const svc = new DesktopAuthService({
+    createCustomToken: async (uid) => 'custom-token-for-' + uid + '-xxxxxxxxxxxxxxxx',
+    resolveUid: async (n) => (n === 'sultan' ? 'uidS' : null),
+    push: (uid, m) => hub.push(uid, m),
+  });
+  const bridge = http.createServer((req, res) => {
+    const ch = []; req.on('data', (c) => ch.push(c));
+    req.on('end', async () => {
+      let body = {}; try { body = JSON.parse(Buffer.concat(ch).toString() || '{}'); } catch (e) { /* */ }
+      let r = { ok: false, error: 'nf' };
+      if (req.url === '/desktop-auth/request') r = await svc.requestByUsername(body.username, req.socket.remoteAddress);
+      if (req.url === '/desktop-auth/redeem') r = await svc.redeem(body.code, req.socket.remoteAddress);
+      res.writeHead(r.ok ? 200 : 400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(r.ok ? (r.customToken ? { customToken: r.customToken } : { ok: true, delivered: r.delivered }) : { error: r.error }));
+    });
+  });
+  bridge.on('upgrade', (req, sock, head) => { if (req.url === '/desktop-auth/ws') hub.handleUpgrade(req, sock, head); else sock.destroy(); });
+  await new Promise((r) => bridge.listen(0, '127.0.0.1', r));
+  const port = bridge.address().port;
+  const fake = await startFakeSite(SITE);
+  const { app, userData } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + port, EHSMAHA_E2E_CONNECT: 'ws://127.0.0.1:' + port } });
+  try {
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await win.context().addInitScript(`window.EHS_DESKTOP_LINK_API='ws://127.0.0.1:${port}'; window.__fakeUser={uid:'uidS',displayName:'Sultan',getIdToken:async()=>'fake-id-token'};`);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => (await app.evaluate(() => global.__ehsTest.probePage()))?.pageId, 20000);
+    await until(async () => hub.subs.size === 1, 10000); // جلسة الموقع اتصلت وصودق عليها
+    await app.evaluate(() => global.__ehsTest.openLoginWindow());
+    const lw = await until(async () => app.windows().find((w) => w.url().endsWith('login.html')), 8000);
+    await lw.waitForLoadState('domcontentloaded');
+    // يوزر غير موجود/بلا جلسة: رسالة واضحة، لا خطوة ثانية
+    await lw.fill('#user', 'nobody'); await lw.click('#send');
+    await until(async () => /ما لقينا/.test(await lw.textContent('#msg')), 5000);
+    assert.equal(await lw.isVisible('#step2'), false);
+    // يوزر صحيح: الرمز يظهر بالموقع بخط كبير
+    await lw.fill('#user', 'Sultan'); await lw.click('#send');
+    await until(async () => lw.isVisible('#step2'), 5000);
+    const shown = await until(async () => win.evaluate(() => { const m = document.getElementById('ehs-dl'); return m && m.classList.contains('on') ? document.getElementById('ehs-dl-code').textContent : null; }), 5000);
+    assert.match(shown, /^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+    const fs2 = await win.evaluate(() => parseFloat(getComputedStyle(document.getElementById('ehs-dl-code')).fontSize));
+    assert.ok(fs2 >= 40, 'big font: ' + fs2);
+    // التطبيق لا يستلم الرمز تلقائياً: لازم يكتبه المستخدم
+    assert.equal(await win.evaluate(() => (window.__fakeFs.customSignins || []).length), 0);
+    await lw.fill('#code', 'AAAA-AAAA'); await lw.click('#go');
+    await until(async () => /غير صحيح/.test(await lw.textContent('#msg')), 5000);
+    await lw.fill('#code', shown.toLowerCase()); await lw.click('#go');
+    await until(async () => (await win.evaluate(() => (window.__fakeFs.customSignins || []).length)) === 1, 8000);
+    assert.match(await win.evaluate(() => window.__fakeFs.customSignins[0]), /^custom-token-for-uidS/);
+    const log = fs.readFileSync(path.join(userData, 'logs', 'ehsmaha.log'), 'utf8');
+    assert.ok(!log.includes('custom-token-for') && !log.includes(shown.replace('-', '')), 'secrets not logged');
+  } finally { await app.close().catch(() => {}); fake.close(); bridge.close(); }
 });

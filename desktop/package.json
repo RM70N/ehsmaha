@@ -24,13 +24,14 @@
     "publish": "echo 'النشر يتم من GitHub Actions فقط (desktop-release.yml)' && exit 1",
     "lint": "node scripts/lint.js",
     "test": "node --test test/*.test.js",
-    "test:e2e": "npm run sync && node --test --test-concurrency=1 test/e2e/app.e2e.test.js",
+    "test:e2e": "npm run sync && node --test --test-concurrency=1 --test-timeout=150000 test/e2e/app.e2e.test.js",
     "verify:dist": "node scripts/verify-dist.js",
     "verify:version": "node scripts/verify-version.js"
   },
   "devDependencies": {
     "electron": "^38.8.6",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "playwright": "^1.49.1"
   },
   "dependencies": {
     "electron-updater": "^6.8.9"

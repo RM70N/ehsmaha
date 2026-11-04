@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ربط تطبيق احسمها</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #07040D; color: #F8F7FC; font-family: "Segoe UI", Tahoma, sans-serif; }
+  .card { width: min(92vw, 440px); background: #170B2D; border: 1px solid rgba(167,139,250,.25); border-radius: 16px; padding: 32px 28px; text-align: center; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  p { color: #A78BFA; line-height: 1.8; margin: 0 0 18px; font-size: 14px; }
+  button, a.btn { display: inline-block; width: 100%; padding: 13px 16px; border: 0; border-radius: 10px; background: #7C3AED; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; font-family: inherit; }
+  button:hover, a.btn:hover { background: #5B21B6; }
+  button:disabled { opacity: .6; cursor: default; }
+  .code { font-family: Consolas, monospace; font-size: 34px; letter-spacing: 6px; direction: ltr; background: #07040D; border: 1px dashed #7C3AED; border-radius: 12px; padding: 16px 8px; margin: 6px 0 14px; user-select: all; }
+  .small { font-size: 13px; color: #A78BFA; margin-top: 12px; }
+  .err { color: #fca5a5; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main class="card">
+  <h1>ربط تطبيق احسمها</h1>
+  <div id="loading"><p>جاري التحقق من حسابك...</p></div>
+
+  <div id="signedout" hidden>
+    <p>سجّل دخولك في احسمها أولاً من هذا المتصفح، ثم ارجع لهذه الصفحة لتحصل على رمز الدخول للتطبيق.</p>
+    <a class="btn" href="/">تسجيل الدخول في احسمها</a>
+  </div>
+
+  <div id="signedin" hidden>
+    <p id="who"></p>
+    <button id="gen" type="button">إنشاء رمز الدخول</button>
+    <div id="result" hidden>
+      <p>اكتب هذا الرمز في تطبيق احسمها:</p>
+      <div class="code" id="code" dir="ltr"></div>
+      <button id="copy" type="button">نسخ الرمز</button>
+      <div class="small" id="timer"></div>
+    </div>
+  </div>
+  <div id="msg" class="small" role="status"></div>
+</main>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+
+  // نفس إعداد الويب العام للموقع (ليس سراً).
+  const app = initializeApp({ apiKey: "AIzaSyCo37Dpu-tYccZcfgHqttJfh9vgOj0bTEE", authDomain: "streamgame-180b8.firebaseapp.com", projectId: "streamgame-180b8" });
+  const auth = getAuth(app);
+  const API = "https://ehsmaha-piratetok-bridge.onrender.com";
+  const $ = (id) => document.getElementById(id);
+  let tick = null;
+
+  onAuthStateChanged(auth, (user) => {
+    $("loading").hidden = true;
+    $("signedout").hidden = !!user;
+    $("signedin").hidden = !user;
+    if (user) $("who").textContent = "مسجّل الدخول: " + (user.displayName || user.email || "حسابك");
+  });
+
+  $("gen").addEventListener("click", async () => {
+    const btn = $("gen"); btn.disabled = true; $("msg").className = "small"; $("msg").textContent = "";
+    try {
+      const idToken = await auth.currentUser.getIdToken(true);
+      const r = await fetch(API + "/desktop-auth/issue", { method: "POST", headers: { Authorization: "Bearer " + idToken, "Content-Type": "application/json" }, body: "{}" });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || "failed");
+      $("code").textContent = j.code.slice(0, 4) + "-" + j.code.slice(4);
+      $("result").hidden = false;
+      let left = j.expiresInSec;
+      clearInterval(tick);
+      const paint = () => { $("timer").textContent = left > 0 ? "ينتهي الرمز خلال " + left + " ثانية" : "انتهى الرمز، أنشئ رمزاً جديداً."; if (left <= 0) { clearInterval(tick); btn.disabled = false; $("result").hidden = true; } left--; };
+      paint(); tick = setInterval(paint, 1000);
+    } catch (e) {
+      $("msg").className = "small err";
+      $("msg").textContent = e.message === "rate_limited" ? "محاولات كثيرة، انتظر دقيقة." : "تعذّر إنشاء الرمز، حاول مرة أخرى.";
+      btn.disabled = false;
+    }
+  });
+  $("copy").addEventListener("click", async () => { try { await navigator.clipboard.writeText($("code").textContent.replace("-", "")); $("copy").textContent = "تم النسخ"; } catch (e) { /* */ } });
+</script>
+</body>
+</html>

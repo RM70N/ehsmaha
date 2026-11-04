@@ -11,7 +11,12 @@ on:
   push:
     tags:
       - "v*.*.*"
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "انشر الإصدار (ينشئ التاج v<desktop/package.json> على main تلقائياً)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -23,6 +28,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: desktop
@@ -45,10 +51,11 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Bundle site and run Electron E2E (Xvfb)
+        timeout-minutes: 15
         run: |
-          sudo apt-get update -y && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libgbm1 || true
-          npx playwright --version >/dev/null 2>&1 || npm i --no-save playwright@1.49.1
-          xvfb-run -a npm run test:e2e
+          sudo apt-get update -y
+          sudo apt-get install -y xvfb libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 || true
+          xvfb-run -a --server-args="-screen 0 1920x1080x24" npm run test:e2e
 
   build-windows:
     needs: verify
@@ -108,10 +115,11 @@ jobs:
             desktop/dist/latest-mac.yml
 
   publish:
-    if: ${{ always() && github.ref_type == 'tag' && needs.build-windows.result == 'success' }}
+    if: ${{ always() && needs.build-windows.result == 'success' && (github.ref_type == 'tag' || (github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main')) }}
     needs: [build-windows, build-macos]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: windows-dist
@@ -124,16 +132,17 @@ jobs:
       - name: Publish to GitHub Release (never overwrite published assets)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
           REPO: ${{ github.repository }}
         run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then TAG="${{ github.ref_name }}"; else TAG="v$(node -p "require('./desktop/package.json').version")"; fi
+          echo "TAG=$TAG"
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             if gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name' | grep -qx 'ehsmaha-setup.exe'; then
               echo "الإصدار $TAG منشور مسبقاً بأصوله. ارفع رقم الإصدار (package.json + تاج جديد) بدل الاستبدال." >&2
               exit 1
             fi
           else
-            gh release create "$TAG" --repo "$REPO" --title "$TAG" --notes "إصدار تطبيق احسمها لويندوز $TAG"
+            gh release create "$TAG" --repo "$REPO" --target "${{ github.sha }}" --title "$TAG" --notes "إصدار تطبيق احسمها لويندوز $TAG"
           fi
           # الـEXE والـblockmap أولاً، ثم latest.yml أخيراً: المحدّث لا يرى الإصدار قبل اكتمال ملفاته.
           gh release upload "$TAG" dist/ehsmaha-setup.exe dist/ehsmaha-setup.exe.blockmap --repo "$REPO"
