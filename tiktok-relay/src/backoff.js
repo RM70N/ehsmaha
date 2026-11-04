@@ -9,7 +9,9 @@ export function backoffDelay(attempt, opts) {
   const raw = Math.min(o.maxMs, o.baseMs * Math.pow(o.factor, n - 1));
   const spread = raw * o.jitter;
   const jittered = raw - spread + o.rng() * spread * 2;
-  return Math.max(o.minMs, Math.round(jittered));
+  // الـjitter يقدر يتجاوز maxMs لو raw قريب من السقف (مثال: raw=maxMs وrng()=1 يعطي maxMs*(1+jitter))،
+  // فنُقفل النطاق من الطرفين بعد الـjitter، لا من طرف minMs فقط.
+  return Math.min(o.maxMs, Math.max(o.minMs, Math.round(jittered)));
 }
 
 // jitter للفحص الدوري (±نسبة حول قيمة بين min/max) — لتفادي اصطفاف كل الحسابات على نفس اللحظة.

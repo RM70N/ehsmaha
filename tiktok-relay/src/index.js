@@ -11,10 +11,18 @@ import { RelayBroadcaster } from './wsServer.js';
 import { createTokenVerifier } from './firebaseAuth.js';
 import * as piratetokProvider from './providers/piratetokProvider.js';
 import * as eulerProvider from './providers/eulerProvider.js';
+import { TestHarness } from './testHarness.js';
+import fs from 'node:fs';
+import nodePath from 'node:path';
+import { fileURLToPath } from 'node:url';
 
+const __dirname = nodePath.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 10000);
 const ENABLE_FALLBACK = process.env.ENABLE_FALLBACK === '1';
 const FIREBASE_WEB_API_KEY = process.env.FIREBASE_WEB_API_KEY || '';
+// أداة الاختبار (/test صفحة، /testws اتصال بلا مصادقة) — للتجربة على بث حقيقي قبل أي ربط
+// بالموقع الرئيسي. تُعطَّل بوضوح في نشر إنتاجي حقيقي مستقبلاً عبر DISABLE_TEST_HARNESS=1.
+const TEST_HARNESS_ENABLED = process.env.DISABLE_TEST_HARNESS !== '1';
 
 let admin = null;
 let db = null;
@@ -35,6 +43,7 @@ if (svcJson) {
 const verifyToken = createTokenVerifier({ admin: db ? admin : null, firebaseWebApiKey: FIREBASE_WEB_API_KEY });
 const linking = db ? new LinkingService(db) : null;
 const broadcaster = new RelayBroadcaster({ verifyToken, log });
+let testHarness = null;
 
 const manager = new ConnectionManager({
   primaryProvider: piratetokProvider,
@@ -51,8 +60,13 @@ const manager = new ConnectionManager({
     maxCooldownMs: Number(process.env.BREAKER_MAX_COOLDOWN_MS || 300000),
   },
   log,
-  onEvent: (ev) => { broadcaster.broadcast(ev.streamer, ev); },
+  onEvent: (ev) => {
+    broadcaster.broadcast(ev.streamer, ev);
+    if (testHarness) testHarness.forwardEvent(ev);
+  },
 });
+
+if (TEST_HARNESS_ENABLED) testHarness = new TestHarness({ manager, log });
 
 async function readJsonBody(req, limit = 10_000) {
   let size = 0;
@@ -81,6 +95,16 @@ const server = http.createServer(async (req, res) => {
   const path = url.pathname;
 
   if (path === '/healthz') return sendJson(res, 200, { ok: true });
+
+  if (TEST_HARNESS_ENABLED && (path === '/test' || path === '/test.html')) {
+    try {
+      const html = fs.readFileSync(nodePath.join(__dirname, '..', 'test.html'), 'utf8');
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      return res.end(html);
+    } catch (e) {
+      res.writeHead(500); return res.end('test.html missing');
+    }
+  }
 
   if (path === '/health') {
     return sendJson(res, 200, {
@@ -130,6 +154,7 @@ const server = http.createServer(async (req, res) => {
 server.on('upgrade', (req, socket, head) => {
   const path = new URL(req.url, 'http://localhost').pathname;
   if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
+  else if (TEST_HARNESS_ENABLED && path === '/testws' && testHarness) testHarness.handleUpgrade(req, socket, head);
   else socket.destroy();
 });
 
@@ -155,6 +180,7 @@ async function shutdown(signal) {
   log('info', 'shutdown_start', { signal });
   await manager.shutdown();
   broadcaster.closeAll();
+  if (testHarness) testHarness.closeAll();
   server.close(() => {
     log('info', 'shutdown_done', {});
     process.exit(0);
