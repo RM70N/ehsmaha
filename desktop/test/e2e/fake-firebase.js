@@ -39,7 +39,7 @@ const IMPL = {
 };
 
 function moduleSource(names, isAuth) {
-  const lines = ["window.__fakeFs = window.__fakeFs || { l: {}, subs: [], emit(path, data) { (this.l[path] || []).forEach((cb) => cb({ exists: () => true, data: () => data })); } };"];
+  const lines = ["window.__fakeFs = window.__fakeFs || { l: {}, subs: [], emit(path, data) { const conv = (v) => (v && typeof v === 'object' ? (v.__ms !== undefined ? { toMillis: () => v.__ms, seconds: v.__ms / 1000 } : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, conv(x)]))) : v); data = conv(data); (this.l[path] || []).forEach((cb) => cb({ exists: () => true, data: () => data })); } };"];
   for (const n of names) {
     if (n === 'GoogleAuthProvider') {
       lines.push('export class GoogleAuthProvider { static credential(idToken, accessToken) { return { idToken, accessToken }; } static credentialFromResult() { return null; } }');

@@ -68,6 +68,7 @@ let appOrigin = null;
 let retryTimer = null;
 let syncTimer = null;
 let isQuitting = false;
+let shownOnce = false;
 let lastStagedDiff = null;
 let gpuCrashes = 0;
 const crashTimes = [];
@@ -246,10 +247,11 @@ function createMainWindow() {
   mainWindow.once('ready-to-show', () => {
     closeSplash();
     if (START_HIDDEN) return; // التشغيل مع ويندوز: يبدأ بالـTray
+    shownOnce = true;
     mainWindow.show();
   });
-  setTimeout(() => { // شبكة أمان: لا نترك المستخدم أمام شاشة انتظار للأبد
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible() && !START_HIDDEN) { closeSplash(); mainWindow.show(); }
+  setTimeout(() => { // شبكة أمان: لا نترك المستخدم أمام شاشة انتظار للأبد (مرة واحدة فقط؛ لا تُظهر نافذة أُخفيت لاحقاً بالـTray)
+    if (mainWindow && !mainWindow.isDestroyed() && !shownOnce && !START_HIDDEN) { shownOnce = true; closeSplash(); mainWindow.show(); }
   }, 12000);
 
   const saveBounds = () => {
@@ -569,7 +571,10 @@ async function boot() {
   coordinator.onChange((ev) => {
     logger.info('content', ev.type, ev.version || ev.reason || '');
     if (ev.type === 'applied') {
-      for (const f of newGameFiles(lastStagedDiff)) notifications.handle({ kind: 'new-game', id: 'file:' + f, title: 'لعبة جديدة في احسمها', body: 'تمت إضافة لعبة جديدة. افتح احسمها وجرّبها.', target: 'home' });
+      for (const f of newGameFiles(lastStagedDiff)) {
+        const r = notifications.handle({ kind: 'new-game', id: 'file:' + f, title: 'لعبة جديدة في احسمها', body: 'تمت إضافة لعبة جديدة. افتح احسمها وجرّبها.', target: 'home' });
+        logger.info('notify', 'new-game', f, r.reason);
+      }
       lastStagedDiff = null;
     }
     if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('settings:changed', {});
