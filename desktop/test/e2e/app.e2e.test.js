@@ -34,9 +34,10 @@ function variant(mutate) {
 async function start({ siteDir = SITE, userData, extraEnv } = {}) {
   const fake = await startFakeSite(siteDir);
   const { app, userData: ud } = await launchApp({ siteOrigin: fake.origin, userData, extraEnv });
-  const win = await app.firstWindow();
+  await app.firstWindow();
+  const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
   await installFakeFirebase(win);
-  await win.goto('http://localhost:43711/');
+  await win.reload();
   await until(async () => (await app.evaluate(() => global.__ehsTest.probePage()))?.pageId, 20000);
   return { app, win, fake, userData: ud, close: async () => { await app.close().catch(() => {}); fake.close(); } };
 }
