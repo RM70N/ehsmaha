@@ -1,0 +1,10 @@
+:root { --bg:#07040D; --surface:#170B2D; --primary:#5B21B6; --accent:#7C3AED; --soft:#A78BFA; --text:#F8F7FC; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif; }
+button { font-family: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 600; color: var(--text); background: var(--primary); }
+button:hover { background: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--soft); outline-offset: 2px; }
+button.ghost { background: transparent; border: 1px solid rgba(167,139,250,.4); color: var(--soft); }
+button.ghost:hover { background: rgba(124,58,237,.18); }
+button:disabled { opacity: .5; cursor: default; }

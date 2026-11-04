@@ -21,6 +21,7 @@ on:
       - la-tatayeh3d.html
       - harf-alnajat3d.html
       - ws-diag.html
+      - desktop-auth.html
       - revival-system/**
       - dhmx-welcome/**
       - som3h-10k/**
@@ -34,6 +35,7 @@ on:
       - code-race-banner.png
       - discord-logo.png
       - CNAME
+      - desktop/scripts/site-manifest.js
       - .github/workflows/pages.yml
   workflow_dispatch:
 
@@ -58,7 +60,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html code-race-banner.png discord-logo.png CNAME _site/
+          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html desktop-auth.html code-race-banner.png discord-logo.png CNAME _site/
           cp -r revival-system _site/revival-system
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k
@@ -74,6 +76,11 @@ jobs:
           # لازم تحمّل نفس index.html، فنخلّي 404.html نسخة منه (تطبيق صفحة واحدة يقرأ المسار بنفسه).
           cp index.html _site/404.html
           touch _site/.nojekyll
+
+      # Content Manifest لتطبيق سطح المكتب: قائمة كل ملفات الموقع مع SHA-256 وإصدار موحّد.
+      # لا يغيّر شيئاً بالموقع؛ ملف إضافي يُنشر بجانبه ويقرأه التطبيق للتحديث الآمن.
+      - name: Generate content manifest (desktop app)
+        run: node desktop/scripts/site-manifest.js _site
 
       - uses: actions/configure-pages@v5
 

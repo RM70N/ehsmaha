@@ -1,131 +1,64 @@
 'use strict';
 
-const { dialog, app } = require('electron');
+const { app } = require('electron');
 
 /**
- * التحديث التلقائي للتطبيق نفسه عبر GitHub Releases (electron-updater).
- * مصدر التحديث مضبوط في electron-builder.yml تحت publish: provider github،
- * وهو نفس مصدر رابط التحميل المباشر.
+ * تحديث التطبيق نفسه (ملف EXE) عبر electron-updater + GitHub Releases.
+ * قواعد: لا يُعاد التشغيل أبداً من تلقاء نفسه أثناء جولة/بث (isBusy)، ولا خفض
+ * لإصدار أقدم، ولا إصدارات تجريبية. التنزيل بالخلفية، والتثبيت إمّا عند إغلاق
+ * التطبيق (autoInstallOnAppQuit) أو بطلب صريح من المستخدم من الإعدادات.
  */
+function initUpdater({ notify, log, onReady }) {
+  let autoUpdater = null;
+  const state = { ready: false, version: null, checking: false };
 
-let autoUpdater = null;
-let checking = false;
+  const noop = {
+    state,
+    checkForUpdates: async () => null,
+    checkManually: async () => ({ message: 'التحديث التلقائي يعمل فقط في النسخة المثبَّتة.' }),
+    installNow: () => false,
+  };
+  if (!app.isPackaged) { log && log('التحديث التلقائي معطّل (نسخة غير مثبَّتة)'); return noop; }
+  try { ({ autoUpdater } = require('electron-updater')); } catch (err) { log && log('electron-updater غير متوفّر: ' + (err && err.message)); return noop; }
 
-function getUpdater(log) {
-  if (autoUpdater) return autoUpdater;
-  try {
-    ({ autoUpdater } = require('electron-updater'));
-  } catch (err) {
-    log && log('electron-updater غير متوفّر: ' + (err && err.message));
-    return null;
-  }
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowPrerelease = false;
   autoUpdater.logger = null;
-  return autoUpdater;
-}
 
-/**
- * @param {object} opts
- * @param {() => Electron.BrowserWindow|null} opts.getWindow
- * @param {(payload: object) => void} opts.notify
- * @param {(msg: string) => void} opts.log
- */
-function initUpdater({ getWindow, notify, log }) {
-  if (!app.isPackaged) {
-    log && log('التحديث التلقائي معطّل أثناء التطوير (نسخة غير مغلّفة)');
-    return { checkForUpdates: () => Promise.resolve(null), checkManually: manualUnavailable };
-  }
-  const updater = getUpdater(log);
-  if (!updater) return { checkForUpdates: () => Promise.resolve(null), checkManually: manualUnavailable };
-
-  updater.on('checking-for-update', () => log && log('جارِ التحقق من وجود تحديث...'));
-  updater.on('update-available', (info) => {
-    log && log('يوجد تحديث: ' + (info && info.version));
-    notify && notify({ type: 'app-update-downloading', version: info && info.version });
+  autoUpdater.on('update-available', (info) => log && log('تحديث متاح: ' + (info && info.version)));
+  autoUpdater.on('error', (err) => log && log('خطأ تحديث التطبيق: ' + (err && err.message)));
+  autoUpdater.on('update-downloaded', (info) => {
+    state.ready = true; state.version = info && info.version;
+    log && log('تحديث التطبيق جاهز: ' + state.version);
+    onReady && onReady(state.version);
   });
-  updater.on('update-not-available', () => log && log('لا يوجد تحديث جديد'));
-  updater.on('error', (err) => log && log('خطأ في التحديث: ' + (err && err.message)));
-  updater.on('download-progress', (p) => {
-    notify && notify({ type: 'app-update-progress', percent: Math.round(p.percent || 0) });
-  });
-  updater.on('update-downloaded', async (info) => {
-    notify && notify({ type: 'app-update-ready', version: info && info.version });
-    const win = getWindow && getWindow();
-    const opts = {
-      type: 'info',
-      buttons: ['إعادة التشغيل الآن', 'لاحقاً'],
-      defaultId: 0,
-      cancelId: 1,
-      title: 'تحديث جديد لتطبيق احسمها',
-      message: 'تم تنزيل النسخة ' + (info && info.version) + ' بنجاح',
-      detail: 'أعد تشغيل التطبيق لتطبيق التحديث. أو أغلق التطبيق وسيُطبَّق تلقائياً في المرة القادمة.',
-      noLink: true,
-    };
-    const res = win ? await dialog.showMessageBox(win, opts) : await dialog.showMessageBox(opts);
-    if (res.response === 0) {
-      setImmediate(() => updater.quitAndInstall(false, true));
-    }
-  });
-
-  let manual = false;
 
   async function checkForUpdates() {
-    if (checking) return null;
-    checking = true;
-    try {
-      return await updater.checkForUpdates();
-    } catch (err) {
-      log && log('فشل التحقق من التحديث: ' + (err && err.message));
-      if (manual) {
-        dialog.showMessageBox({
-          type: 'warning',
-          title: 'تعذّر التحقق من التحديثات',
-          message: 'ما قدرنا نتحقق من وجود نسخة أحدث',
-          detail: String((err && err.message) || err),
-          buttons: ['حسناً'],
-          noLink: true,
-        });
-      }
-      return null;
-    } finally {
-      checking = false;
-      manual = false;
-    }
+    if (state.checking) return null;
+    state.checking = true;
+    try { return await autoUpdater.checkForUpdates(); }
+    catch (err) { log && log('فشل التحقق من التحديث: ' + (err && err.message)); return null; }
+    finally { state.checking = false; }
   }
 
   async function checkManually() {
-    manual = true;
-    const result = await checkForUpdates();
-    const info = result && result.updateInfo;
-    if (info && info.version && info.version !== app.getVersion()) return;
-    if (!manualDialogShown(result)) {
-      dialog.showMessageBox({
-        type: 'info',
-        title: 'تطبيق احسمها',
-        message: 'أنت على أحدث نسخة (' + app.getVersion() + ')',
-        buttons: ['تمام'],
-        noLink: true,
-      });
-    }
+    if (state.ready) return { message: 'التحديث ' + state.version + ' جاهز. اضغط «تثبيت التحديث».' };
+    const r = await checkForUpdates();
+    if (!r) return { message: 'تعذّر التحقق من التحديثات الآن. تأكد من الاتصال وحاول لاحقاً.' };
+    const v = r.updateInfo && r.updateInfo.version;
+    if (v && v !== app.getVersion() && r.downloadPromise) return { message: 'يوجد تحديث ' + v + ' وجارٍ تنزيله بالخلفية.' };
+    return { message: 'أنت على أحدث نسخة (' + app.getVersion() + ').' };
   }
 
-  return { checkForUpdates, checkManually };
-}
+  function installNow() {
+    if (!state.ready) return false;
+    setImmediate(() => autoUpdater.quitAndInstall(false, true));
+    return true;
+  }
 
-function manualDialogShown(result) {
-  return !!(result && result.updateInfo && result.downloadPromise);
-}
-
-function manualUnavailable() {
-  return dialog.showMessageBox({
-    type: 'info',
-    title: 'تطبيق احسمها',
-    message: 'التحديث التلقائي يعمل فقط في النسخة المثبَّتة',
-    detail: 'شغّل التطبيق من ملف التثبيت (setup) حتى يعمل التحديث التلقائي من GitHub Releases.',
-    buttons: ['حسناً'],
-    noLink: true,
-  });
+  return { state, checkForUpdates, checkManually, installNow };
 }
 
 module.exports = { initUpdater };

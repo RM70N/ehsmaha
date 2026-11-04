@@ -46,6 +46,9 @@ const CONNECT_HOSTS = [
   'https://*.kick.com',
   'https://*.pusher.com',
   'https://flagcdn.com',
+  'https://cdn.jsdelivr.net',
+  'https://cdnjs.cloudflare.com',
+  'https://unpkg.com',
   'https://images.weserv.nl',
   'https://ehsmaha.com',
   'wss://*.firebaseio.com',
@@ -68,8 +71,8 @@ function buildCsp(selfOrigin) {
   const self = selfOrigin || "'self'";
   return [
     `default-src 'self' ${self}`,
-    `script-src 'self' ${self} 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.googleapis.com https://www.googletagmanager.com https://*.google-analytics.com`,
-    `style-src 'self' ${self} 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com`,
+    `script-src 'self' ${self} 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://*.gstatic.com https://apis.google.com https://*.googleapis.com https://www.googletagmanager.com https://*.google-analytics.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`,
+    `style-src 'self' ${self} 'unsafe-inline' https://fonts.googleapis.com https://*.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com`,
     `font-src 'self' ${self} data: https://fonts.gstatic.com https://*.gstatic.com`,
     `img-src 'self' ${self} data: blob: https:`,
     `media-src 'self' ${self} data: blob: https:`,
@@ -92,5 +95,7 @@ module.exports = {
   APP_ID: 'com.ehsmaha.desktop',
   WINDOW_TITLE: 'احسمها | ehsmaha',
   SESSION_PARTITION: 'persist:ehsmaha',
-  BRAND_BG: '#0b0518',
+  BRAND_BG: '#07040D',
+  BRAND: { bg: '#07040D', surface: '#170B2D', primary: '#5B21B6', accent: '#7C3AED', soft: '#A78BFA', text: '#F8F7FC' },
+  AUTH_PORT_RANGE: [43711, 43722],
 };

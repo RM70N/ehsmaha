@@ -2,41 +2,27 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
 <title>احسمها | لا يوجد اتصال</title>
+<link rel="stylesheet" href="theme.css">
 <style>
-  html, body { margin: 0; height: 100%; }
-  body {
-    background: radial-gradient(circle at 50% 30%, #1a0b33 0%, #0b0518 70%);
-    color: #f4ecff; font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", system-ui, sans-serif;
-    display: flex; align-items: center; justify-content: center; text-align: center;
-  }
-  .card { max-width: 480px; padding: 30px; }
-  .icon { font-size: 60px; margin-bottom: 14px; }
-  h1 { font-size: 24px; margin: 0 0 12px; }
-  p { font-size: 15px; line-height: 2; opacity: .82; margin: 0 0 24px; }
-  button {
-    appearance: none; border: 0; cursor: pointer; border-radius: 12px; color: #fff;
-    padding: 12px 30px; font-size: 15px; font-weight: 700;
-    background: linear-gradient(135deg, #7c3aed, #c026d3);
-  }
-  button:hover { filter: brightness(1.1); }
-  .hint { margin-top: 18px; font-size: 13px; opacity: .55; }
+  body { height: 100vh; display: flex; align-items: center; justify-content: center; text-align: center;
+    background: radial-gradient(circle at 50% 30%, #170B2D 0%, #07040D 70%); }
+  .card { max-width: 460px; padding: 32px; }
+  img { width: 84px; height: 84px; border-radius: 20px; margin-bottom: 18px; }
+  h1 { font-size: 22px; margin: 0 0 10px; }
+  p { color: var(--soft); line-height: 1.9; margin: 0 0 22px; font-size: 15px; }
+  .hint { margin-top: 16px; font-size: 13px; color: var(--soft); opacity: .8; }
 </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">📡</div>
+  <main class="card">
+    <img src="logo.png" alt="">
     <h1>لا يوجد اتصال بالإنترنت</h1>
-    <p>ما قدرنا نوصل لسيرفر احسمها. تأكد من اتصالك بالإنترنت، والتطبيق يعيد المحاولة تلقائياً كل ٥ ثوانٍ.</p>
+    <p>احسمها يحتاج اتصالاً بالإنترنت للتواصل مع الألعاب والبث. بنحاول نرجع الاتصال تلقائياً.</p>
     <button id="retry" type="button">إعادة المحاولة الآن</button>
-    <div class="hint" id="hint">جارِ إعادة المحاولة...</div>
-  </div>
-<script>
-  document.getElementById('retry').addEventListener('click', function () {
-    document.getElementById('hint').textContent = 'جارِ المحاولة...';
-    if (window.ehsmahaDesktop) window.ehsmahaDesktop.reload();
-  });
-</script>
+    <div class="hint" id="hint">المحاولة التالية خلال ٥ ثوانٍ</div>
+  </main>
+  <script src="offline.js"></script>
 </body>
 </html>

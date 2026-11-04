@@ -33,7 +33,8 @@ const PROBE_SOURCE = `(function(){
     } catch (e) {}
     var frames = document.querySelectorAll('iframe').length;
     var gameFrame = false;
-    try { var fs = document.querySelectorAll('iframe'); for (var j = 0; j < fs.length; j++) { var s = fs[j].getAttribute('src') || ''; if (/\\.html(\\?|#|$)/.test(s) && fs[j].offsetParent !== null) gameFrame = true; } } catch (e) {}
+    // إطارات اللعب لها معرّف *-frame وتحمل src فعلياً؛ معاينات الصفحة الرئيسية (.lp-frame) زخرفية.
+    try { var fs = document.querySelectorAll('iframe[id$="-frame"]'); for (var j = 0; j < fs.length; j++) { if ((fs[j].getAttribute('src') || '') && fs[j].offsetParent !== null) gameFrame = true; } } catch (e) {}
     return { pageId: id, connections: conns, gameListeners: games, frames: frames, gameFrame: gameFrame, path: location.pathname };
   } catch (e) { return null; }
 })()`;

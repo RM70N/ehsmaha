@@ -21,6 +21,7 @@ const ROOT_FILES = [
   'la-tatayeh3d.html',
   'harf-alnajat3d.html',
   'ws-diag.html',
+  'desktop-auth.html',
   'code-race-banner.png',
   'discord-logo.png',
 ];
