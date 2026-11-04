@@ -23907,12 +23907,17 @@ function twitchEventShape(displayName, uniqueId, message) {
 //
 // كان هنا "ehsmaha-wbkn.onrender.com" كأساسي — تحقّقت من حساب Render عبر الـ
 // API (list_services) ولا يوجد أي سيرفر بهذا الاسم إطلاقاً في الحساب الذي
-// يملك هذا الريبو، فقط "ehsmaha.onrender.com" (srv-da31bb49v7es73crfh10)
-// موجود وشغّال. كل محاولة ربط جديدة من كل ستريمر كانت تجرّب هذا العنوان
-// الميت أولاً — إما تأخير 8ث قبل التحويل للاحتياطي، أو (لو فتحت الوصلة على
-// مستوى النقل بصمت دون أي رد تطبيقي) عالقة فعلياً بلا نهاية قبل إصلاح حارس
-// "الوصلة الميتة بصمت". إزالته نهائياً يحذف هذا التأخير/الخطر من كل اتصال.
+// يملك هذا الريبو. أُزيل نهائياً.
+//
+// الأساسي الآن ehsmaha-piratetok-bridge (tiktok-relay/، مزوّد piratetok-live-js
+// بلا مفتاح/حصة مشتركة). بروتوكول الأسلاك مطابق حرفياً لما يرسله tiktok-server
+// القديم (bridge_status + {messages:[{type:'WebcastChatMessage'|...، user:
+// {uniqueId,nickname,...}}]})، فكل الألعاب تشتغل بلا أي تعديل — راجع تعليق
+// tiktok-relay/src/legacyBridge.js للتفاصيل الكاملة ومطابقة الحقول حرفياً مع
+// مخطط بروتوكول تيك توك الثنائي. القديم (tiktok-server/Euler) باقٍ كاحتياطي
+// بالفشل التلقائي بالأسفل — لم يُحذف ولم يُعدَّل.
 const TIKTOK_BRIDGE_SERVERS = [
+  'wss://ehsmaha-piratetok-bridge.onrender.com/ws',
   'wss://ehsmaha.onrender.com/ws'
 ];
 let tiktokActiveBridgeIndex = 0;

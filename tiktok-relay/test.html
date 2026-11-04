@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>اختبار ربط PirateTok — بث حقيقي</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, 'Segoe UI', Tahoma, sans-serif; background: #0b0f14; color: #e6edf3; }
+  header { padding: 16px 20px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; font-weight: 800; }
+  .sub { color: #8b96a5; font-size: 12px; }
+  main { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px; max-width: 1100px; margin: 0 auto; }
+  @media (min-width: 820px) { main { grid-template-columns: 360px 1fr; } }
+  .panel { background: #111820; border: 1px solid #1f2937; border-radius: 12px; padding: 14px; }
+  .row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type=text] { flex: 1; background: #0b0f14; border: 1px solid #1f2937; color: #e6edf3; border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  button { background: #7c3aed; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 700; cursor: pointer; font-size: 13px; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.secondary { background: #1f2937; }
+  .status { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 10px; border: 1px solid #1f2937; }
+  .status.ok { border-color: #22c55e55; background: #22c55e11; color: #86efac; }
+  .status.bad { border-color: #ef444455; background: #ef444411; color: #fca5a5; }
+  .status.warn { border-color: #f59e0b55; background: #f59e0b11; color: #fcd34d; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12px; color: #c3cad3; }
+  .kv b { color: #8b96a5; font-weight: 600; }
+  pre.diag { background: #0b0f14; border: 1px solid #1f2937; border-radius: 8px; padding: 10px; font-size: 11px; max-height: 220px; overflow: auto; margin: 0; }
+  .log { height: 60vh; min-height: 300px; overflow-y: auto; display: flex; flex-direction: column-reverse; }
+  .ev { padding: 8px 10px; border-bottom: 1px solid #1f2937; font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
+  .ev .t { color: #6b7684; font-size: 10px; min-width: 56px; }
+  .ev .type { font-weight: 800; min-width: 64px; }
+  .ev.chat .type { color: #60a5fa; }
+  .ev.gift .type { color: #f59e0b; }
+  .ev.like .type { color: #f472b6; }
+  .ev.follow .type { color: #34d399; }
+  .ev.share .type { color: #a78bfa; }
+  .ev.join .type { color: #8b96a5; }
+  .ev.liveEnded .type { color: #ef4444; }
+  .ev .body { flex: 1; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; background: #1f2937; }
+  .counts { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: #8b96a5; margin-top: 8px; }
+  .counts span b { color: #e6edf3; }
+</style>
+</head>
+<body>
+<header>
+  <h1>اختبار ربط PirateTok</h1>
+  <span class="sub">أداة تجربة مباشرة — بلا حساب ولا تسجيل دخول، منفصلة تماماً عن موقع احسمها الرئيسي</span>
+</header>
+<main>
+  <div class="panel">
+    <div class="row">
+      <input type="text" id="username" placeholder="يوزر تيك توك (بدون @)" autocomplete="off" />
+    </div>
+    <div class="row">
+      <button id="connectBtn">اتصال</button>
+      <button id="disconnectBtn" class="secondary" disabled>قطع</button>
+    </div>
+    <div id="status" class="status warn">لم يبدأ الاتصال بعد</div>
+    <div class="kv" id="kv"></div>
+    <div class="counts" id="counts"></div>
+    <h3 style="font-size:12px;color:#8b96a5;margin:14px 0 6px;">تشخيص حي (قاطع الدائرة / المزوّد)</h3>
+    <pre class="diag" id="diag">—</pre>
+  </div>
+  <div class="panel">
+    <div class="log" id="log"></div>
+  </div>
+</main>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var usernameEl = $('username'), connectBtn = $('connectBtn'), disconnectBtn = $('disconnectBtn');
+  var statusEl = $('status'), kvEl = $('kv'), diagEl = $('diag'), logEl = $('log'), countsEl = $('counts');
+  var ws = null;
+  var counts = { chat: 0, gift: 0, like: 0, follow: 0, share: 0, join: 0, liveEnded: 0 };
+
+  function setStatus(tone, text) {
+    statusEl.className = 'status ' + tone;
+    statusEl.textContent = text;
+  }
+
+  function renderCounts() {
+    countsEl.innerHTML = Object.keys(counts).map(function (k) {
+      return '<span>' + k + ': <b>' + counts[k] + '</b></span>';
+    }).join('');
+  }
+
+  function fmtTime(ts) {
+    var d = new Date(ts || Date.now());
+    return d.toLocaleTimeString('ar-SA', { hour12: false });
+  }
+
+  function addEvent(ev) {
+    var row = document.createElement('div');
+    row.className = 'ev ' + (ev.type || '');
+    var body = '';
+    if (ev.type === 'chat') body = (ev.user && ev.user.name || '؟') + ': ' + (ev.text || '');
+    else if (ev.type === 'gift') body = (ev.user && ev.user.name || '؟') + ' أرسل ' + (ev.gift && ev.gift.name || '') + ' ×' + (ev.gift && ev.gift.count || 1) + ' (' + (ev.gift && ev.gift.diamonds || 0) + ' ماسة)';
+    else if (ev.type === 'like') body = (ev.user && ev.user.name || '؟') + ' أعجب ×' + (ev.count || 1) + ' (إجمالي ' + (ev.total || 0) + ')';
+    else if (ev.type === 'follow') body = (ev.user && ev.user.name || '؟') + ' تابع البث';
+    else if (ev.type === 'share') body = (ev.user && ev.user.name || '؟') + ' شارك البث';
+    else if (ev.type === 'join') body = (ev.user && ev.user.name || '؟') + ' انضم للبث';
+    else if (ev.type === 'liveEnded') body = 'انتهى البث';
+    else body = JSON.stringify(ev);
+    row.innerHTML = '<span class="t">' + fmtTime(ev.ts) + '</span><span class="type">' + (ev.type || '?') + '</span><span class="body"></span>';
+    row.querySelector('.body').textContent = body;
+    logEl.insertBefore(row, logEl.firstChild);
+    while (logEl.children.length > 300) logEl.removeChild(logEl.lastChild);
+    if (counts.hasOwnProperty(ev.type)) { counts[ev.type]++; renderCounts(); }
+  }
+
+  function connect() {
+    var u = (usernameEl.value || '').trim().replace(/^@/, '');
+    if (!u) { setStatus('bad', 'اكتب يوزر تيك توك أولاً'); return; }
+    if (ws) { try { ws.close(); } catch (e) {} }
+    counts = { chat: 0, gift: 0, like: 0, follow: 0, share: 0, join: 0, liveEnded: 0 };
+    renderCounts();
+    logEl.innerHTML = '';
+    kvEl.innerHTML = '';
+    diagEl.textContent = '—';
+    setStatus('warn', 'جارِ الاتصال بأداة الاختبار...');
+    connectBtn.disabled = true;
+    disconnectBtn.disabled = false;
+
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host + '/testws?u=' + encodeURIComponent(u));
+
+    ws.onopen = function () { setStatus('warn', 'الوصلة مفتوحة — بانتظار بدء الربط الفعلي ببث @' + u); };
+    ws.onclose = function (e) {
+      setStatus('bad', 'انقطعت الوصلة (كود ' + e.code + ')');
+      connectBtn.disabled = false; disconnectBtn.disabled = true;
+    };
+    ws.onerror = function () { setStatus('bad', 'خطأ بالوصلة'); };
+    ws.onmessage = function (msg) {
+      var d;
+      try { d = JSON.parse(msg.data); } catch (e) { return; }
+      if (d.type === '_test_status') { setStatus('warn', d.message); return; }
+      if (d.type === '_test_stats') {
+        var active = d.active;
+        setStatus(active ? 'ok' : 'warn', active ? ('متصل فعلياً ببث @' + d.username + ' — الأحداث تصل مباشرة') : ('بانتظار الاتصال ببث @' + d.username + ' (قد يكون البث غير مباشر الآن)'));
+        var snap = d.managerSnapshot || {};
+        kvEl.innerHTML =
+          '<b>متتبَّع</b><span>' + (snap.tracked != null ? snap.tracked : '—') + '</span>' +
+          '<b>نشط الآن</b><span>' + (snap.active != null ? snap.active : '—') + '</span>';
+        diagEl.textContent = JSON.stringify(snap.breakers || {}, null, 2);
+        return;
+      }
+      addEvent(d);
+    };
+  }
+
+  function disconnect() {
+    if (ws) { try { ws.close(1000, 'user'); } catch (e) {} }
+    connectBtn.disabled = false; disconnectBtn.disabled = true;
+    setStatus('warn', 'قُطع الاتصال يدوياً');
+  }
+
+  connectBtn.addEventListener('click', connect);
+  disconnectBtn.addEventListener('click', disconnect);
+  usernameEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') connect(); });
+  renderCounts();
+})();
+</script>
+</body>
+</html>
