@@ -12,6 +12,7 @@ import { createTokenVerifier } from './firebaseAuth.js';
 import * as piratetokProvider from './providers/piratetokProvider.js';
 import * as eulerProvider from './providers/eulerProvider.js';
 import { TestHarness } from './testHarness.js';
+import { LegacyBridgeServer } from './legacyBridge.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -68,6 +69,31 @@ const manager = new ConnectionManager({
 
 if (TEST_HARNESS_ENABLED) testHarness = new TestHarness({ manager, log });
 
+function withTimeout(promise, ms, message) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(message || 'timeout')), ms);
+    promise.then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+  });
+}
+
+// فحص تفعيل الستريمر (bridgeStreamers/{id}.enabled) — نفس مستند/حقل tiktok-server القديم، بمهلة
+// 4 ثوانٍ صريحة: طلب Firestore معلّق بلا مهلة يعلّق فتح الاتصال بالكامل بصمت (عطل حقيقي وُجد
+// وأُصلح بـtiktok-server سابقاً — طبَّقناه هنا من البداية بدل تكراره).
+async function isStreamerEnabled(identifier) {
+  if (!db) return true;
+  try {
+    const snap = await withTimeout(db.collection('bridgeStreamers').doc(identifier).get(), 4000, 'فحص Firestore تجاوز 4 ثوانٍ');
+    if (!snap.exists) return true;
+    const data = snap.data() || {};
+    return data.enabled !== false;
+  } catch (e) {
+    log('warn', 'firestore_enabled_check_failed', { identifier, message: e && e.message });
+    return true; // لا نمنع الخدمة بالكامل لعطل Firestore
+  }
+}
+
+const legacyBridge = new LegacyBridgeServer({ log, isStreamerEnabled });
+
 async function readJsonBody(req, limit = 10_000) {
   let size = 0;
   const chunks = [];
@@ -112,6 +138,7 @@ const server = http.createServer(async (req, res) => {
       enableFallback: ENABLE_FALLBACK,
       firebaseConfigured: !!db,
       manager: manager.snapshot(),
+      legacyBridgeRooms: legacyBridge.rooms.size,
     });
   }
 
@@ -153,7 +180,10 @@ const server = http.createServer(async (req, res) => {
 
 server.on('upgrade', (req, socket, head) => {
   const path = new URL(req.url, 'http://localhost').pathname;
-  if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
+  // /ws: بروتوكول الأسلاك القديم المتوافق مع كل ألعاب index.html (راجع legacyBridge.js) —
+  // هذا المسار الذي يربط به الموقع الرئيسي فعلياً (TIKTOK_BRIDGE_SERVERS).
+  if (path === '/ws') legacyBridge.handleUpgrade(req, socket, head);
+  else if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
   else if (TEST_HARNESS_ENABLED && path === '/testws' && testHarness) testHarness.handleUpgrade(req, socket, head);
   else socket.destroy();
 });
@@ -170,7 +200,7 @@ if (linking) {
 }
 
 server.listen(PORT, () => {
-  log('info', 'listening', { port: PORT, provider: 'piratetok', enableFallback: ENABLE_FALLBACK });
+  log('info', 'listening', { port: PORT, provider: 'piratetok', enableFallback: ENABLE_FALLBACK, legacyBridgePath: '/ws' });
 });
 
 let shuttingDown = false;
@@ -180,6 +210,7 @@ async function shutdown(signal) {
   log('info', 'shutdown_start', { signal });
   await manager.shutdown();
   broadcaster.closeAll();
+  legacyBridge.closeAll();
   if (testHarness) testHarness.closeAll();
   server.close(() => {
     log('info', 'shutdown_done', {});

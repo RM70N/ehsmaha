@@ -2,6 +2,10 @@
 // تطبيع يوزر تيك توك: إزالة @ والمسافات وروابط الصفحة، تحويل لحروف صغيرة، والتحقق من الصيغة.
 // صيغة تيك توك المسموحة: أحرف/أرقام إنجليزية و . و _ فقط، بطول 1-24.
 const USERNAME_RE = /^[a-z0-9._]{1,24}$/;
+// رموز خفية شائعة من لصق رابط/يوزر عبر كيبورد الجوال العربي (علامات اتجاه RTL/LRM، أحرف تحكّم،
+// BOM) — نفس نطاق tiktok-server/lib/tiktok-id.js. بدونها، يوزر صحيح مكتوب فعلاً يُرفض بصمت لمجرد
+// رمز غير مرئي بوسط النص لا يظهر للمستخدم إطلاقاً.
+const INVISIBLE_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F​-‏‪-‮⁠-⁤⁦-⁩﻿]/g;
 
 export class InvalidUsernameError extends Error {
   constructor(reason) {
@@ -12,7 +16,7 @@ export class InvalidUsernameError extends Error {
 
 // يقبل: "user", "@user", " @User ", "https://www.tiktok.com/@user", "https://www.tiktok.com/@user/live"
 export function normalizeTikTokUsername(raw) {
-  let s = String(raw == null ? '' : raw).trim();
+  let s = String(raw == null ? '' : raw).replace(INVISIBLE_RE, '').trim();
   if (!s) throw new InvalidUsernameError('فارغ');
   // رابط صفحة: استخرج الجزء بعد @
   const urlMatch = s.match(/tiktok\.com\/@([^/?#]+)/i);

@@ -24,3 +24,9 @@ test('يرفض المدخلات الفارغة أو غير الصحيحة', () =
 test('يقبل النقطة والشرطة السفلية', () => {
   assert.equal(normalizeTikTokUsername('a.b_c9'), 'a.b_c9');
 });
+
+test('يزيل الرموز الخفية (كيبورد جوال عربي: اتجاه RTL/LRM، BOM) بدل رفض يوزر صحيح', () => {
+  assert.equal(normalizeTikTokUsername('‏user_name‎'), 'user_name');
+  assert.equal(normalizeTikTokUsername('@‫user.name‬'), 'user.name');
+  assert.equal(normalizeTikTokUsername('﻿someone'), 'someone');
+});
