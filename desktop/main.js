@@ -22,6 +22,7 @@ const config = require('./src/config');
 const {
   AUTH_HOSTS, APP_ID, WINDOW_TITLE, SESSION_PARTITION, BRAND_BG, PREFERRED_PORT,
 } = config;
+const AUTH_API = (E2E && process.env.EHSMAHA_AUTH_API) || config.AUTH_API;
 const SITE_ORIGIN = (E2E && process.env.EHSMAHA_SITE_ORIGIN) || config.SITE_ORIGIN;
 const { LocalSiteServer } = require('./src/server');
 const { ContentStore } = require('./src/content-store');
@@ -36,7 +37,7 @@ const { Logger } = require('./src/logger');
 const { NotificationManager } = require('./src/notifications');
 const { BRIDGE_SOURCE } = require('./src/page-bridge');
 const { navigationScript, TARGETS } = require('./src/deeplinks');
-const { AuthBridge, signInScript, SUCCESS_PAGE, FAIL_PAGE } = require('./src/auth-bridge');
+const { AuthBridge, signInScript, customTokenScript, redeemLinkCode, requestLinkCode, SUCCESS_PAGE, FAIL_PAGE } = require('./src/auth-bridge');
 
 const IS_DEV = !app.isPackaged || process.argv.includes('--dev');
 const REMOTE_MODE = process.env.EHSMAHA_MODE === 'remote' || process.argv.includes('--remote');
@@ -53,6 +54,7 @@ app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 let mainWindow = null;
 let splashWindow = null;
 let settingsWindow = null;
+let loginWindow = null;
 let server = null;
 let store = null;
 let state = null;
@@ -184,6 +186,7 @@ function createMainWindow() {
       backgroundThrottling: false, // الألعاب المباشرة والجلسة لا تتجمّد بالتصغير
     },
   });
+  mainWindow.removeMenu(); // بدون شريط قوائم نهائياً (لا شريط أبيض، ولا يظهر بالضغط على Alt)
   if (state.get('maximized', false)) mainWindow.maximize();
   if (state.get('fullscreen', false)) mainWindow.setFullScreen(true);
 
@@ -192,14 +195,14 @@ function createMainWindow() {
   const wc = mainWindow.webContents;
 
   wc.setWindowOpenHandler(({ url }) => {
-    if (isAuthUrl(url)) { startGoogleLogin(); return { action: 'deny' }; }
+    if (isAuthUrl(url)) { openLoginWindow(); return { action: 'deny' }; }
     openExternal(url);
     return { action: 'deny' };
   });
   wc.on('will-navigate', (event, url) => {
     if (isAppUrl(url) || url.startsWith('file://')) return;
     event.preventDefault();
-    if (isAuthUrl(url)) startGoogleLogin(); else openExternal(url);
+    if (isAuthUrl(url)) openLoginWindow(); else openExternal(url);
   });
   wc.on('will-attach-webview', (e) => e.preventDefault());
 
@@ -207,8 +210,22 @@ function createMainWindow() {
     if (input.type !== 'keyDown') return;
     const key = String(input.key || '').toLowerCase();
     if ((IS_DEV || process.env.EHSMAHA_DEVTOOLS === '1') && input.control && input.shift && key === 'i') { event.preventDefault(); wc.toggleDevTools(); return; }
-    if (key === 'f5') { event.preventDefault(); reloadApp(); }
+    if (key === 'f5' || ((input.control || input.meta) && key === 'r')) { event.preventDefault(); reloadApp(); }
     if (key === 'f11') { event.preventDefault(); toggleFullscreen(); }
+    // لا توجد قائمة (شريط أبيض) — الاختصارات تُعالَج هنا.
+    if (input.control || input.meta) {
+      const step = key === '=' || key === '+' ? 0.1 : key === '-' ? -0.1 : key === '0' ? 0 : null;
+      if (step !== null) {
+        event.preventDefault();
+        const next = step === 0 ? 1 : Math.min(1.5, Math.max(0.7, Math.round((wc.getZoomFactor() + step) * 20) / 20));
+        wc.setZoomFactor(next); settings.update({ zoomFactor: next });
+      }
+    }
+    if (input.alt && (key === 'arrowleft' || key === 'arrowright') && wc.navigationHistory) {
+      event.preventDefault();
+      if (key === 'arrowleft' && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack();
+      if (key === 'arrowright' && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward();
+    }
   });
 
   wc.on('did-fail-load', (_e, code, desc, url, isMain) => {
@@ -372,6 +389,37 @@ function startGoogleLogin() {
   toast('أكمل تسجيل الدخول بجوجل في المتصفح، ثم ارجع هنا.', 'info', { key: 'auth', timeout: 12000 });
 }
 
+function postJsonViaNet(url, body) {
+  const { net } = require('electron');
+  return new Promise((resolve, reject) => {
+    const req = net.request({ method: 'POST', url, useSessionCookies: false });
+    req.setHeader('Content-Type', 'application/json');
+    const timer = setTimeout(() => { try { req.abort(); } catch (e) { /* */ } reject(new Error('timeout')); }, 20000);
+    req.on('response', (res) => {
+      const ch = []; res.on('data', (c) => ch.push(c));
+      res.on('end', () => { clearTimeout(timer); let json = null; try { json = JSON.parse(Buffer.concat(ch).toString('utf8')); } catch (e) { /* */ } resolve({ status: res.statusCode, json }); });
+      res.on('error', (e) => { clearTimeout(timer); reject(e); });
+    });
+    req.on('error', (e) => { clearTimeout(timer); reject(e); });
+    req.write(JSON.stringify(body)); req.end();
+  });
+}
+
+function openLoginWindow() {
+  if (loginWindow && !loginWindow.isDestroyed()) { loginWindow.show(); loginWindow.focus(); return; }
+  loginWindow = new BrowserWindow({
+    width: 480, height: 720, minWidth: 420, minHeight: 600, title: 'تسجيل الدخول', backgroundColor: BRAND_BG, icon: appIcon(),
+    parent: mainWindow || undefined, show: false,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, devTools: IS_DEV },
+  });
+  loginWindow.removeMenu();
+  loginWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  loginWindow.webContents.on('will-navigate', (e) => e.preventDefault());
+  loginWindow.once('ready-to-show', () => loginWindow.show());
+  loginWindow.on('closed', () => { loginWindow = null; });
+  loginWindow.loadFile(path.join(__dirname, 'renderer', 'login.html'));
+}
+
 /* ---------------------------------------------------------- IPC آمن */
 
 /** المرسل يجب أن يكون الإطار الرئيسي لصفحة التطبيق ('app') أو صفحة الإعدادات المحلية ('settings'). */
@@ -381,6 +429,7 @@ function senderKind(event) {
     const url = f.url;
     if (event.sender === (mainWindow && mainWindow.webContents) && f === event.sender.mainFrame && isAppUrl(url)) return 'app';
     if (settingsWindow && event.sender === settingsWindow.webContents && f === event.sender.mainFrame && url.startsWith('file://') && url.endsWith('/renderer/settings.html')) return 'settings';
+    if (loginWindow && event.sender === loginWindow.webContents && f === event.sender.mainFrame && url.startsWith('file://') && url.endsWith('/renderer/login.html')) return 'login';
     if (event.sender === (mainWindow && mainWindow.webContents) && f === event.sender.mainFrame && url.startsWith('file://') && url.endsWith('/renderer/offline.html')) return 'offline';
   } catch (e) { /* */ }
   return null;
@@ -425,6 +474,25 @@ function registerIpc() {
     if (!ev || !PAGE_EVENT_KINDS.has(ev.kind)) return;
     const r = notifications.handle({ ...ev, target: Object.prototype.hasOwnProperty.call(TARGETS, ev.target) ? ev.target : 'home' });
     log('page-event', ev.kind, r.reason);
+  }));
+
+  ipcMain.handle('login:google', guard(['login'], () => { startGoogleLogin(); return true; }));
+  ipcMain.handle('login:request-code', guard(['login'], async (_e, username) => {
+    const r = await requestLinkCode(String(username || '').slice(0, 64), { postJson: postJsonViaNet, api: AUTH_API });
+    if (!r.ok) logger.warn('auth', 'request-code refused:', r.error);
+    return r;
+  }));
+  ipcMain.handle('login:open-link-page', guard(['login'], () => openExternal((E2E && process.env.EHSMAHA_LINK_PAGE) || (SITE_ORIGIN + '/link-device.html'))));
+  ipcMain.handle('login:redeem', guard(['login'], async (_e, code) => {
+    const r = await redeemLinkCode(code, { postJson: postJsonViaNet, api: AUTH_API });
+    if (!r.ok) { logger.warn('auth', 'redeem refused:', r.error); return { ok: false, error: r.error }; }
+    let ok = false;
+    try { if (mainWindow && !mainWindow.isDestroyed()) ok = await mainWindow.webContents.executeJavaScript(customTokenScript(r.customToken), false); } catch (e) { ok = false; }
+    logger.info('auth', ok ? 'اكتمل الدخول برمز احسمها' : 'تعذّر إكمال الدخول برمز احسمها داخل الصفحة');
+    if (!ok) return { ok: false, error: 'page' };
+    toast('تم تسجيل الدخول.', 'success', { key: 'auth' });
+    setTimeout(() => { if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close(); showMainWindow(); }, 900);
+    return { ok: true };
   }));
 
   ipcMain.handle('settings:get', guard(['settings'], () => ({
@@ -494,6 +562,7 @@ function createTray() {
   tray.setToolTip('احسمها');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'فتح احسمها', click: showMainWindow },
+    { label: 'تسجيل الدخول', click: openLoginWindow },
     { label: 'الإعدادات', click: openSettings },
     { label: 'التحقق من التحديثات', click: () => { openSettings(); } },
     { type: 'separator' },
@@ -597,7 +666,7 @@ async function boot() {
     },
   });
 
-  buildAppMenu({
+  if (process.platform === 'darwin') buildAppMenu({
     getWindow: () => mainWindow, reloadApp, openSettings,
     goBack: () => { const wc = mainWindow && mainWindow.webContents; if (wc && wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); },
     goForward: () => { const wc = mainWindow && mainWindow.webContents; if (wc && wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); },
@@ -613,7 +682,7 @@ async function boot() {
   }
 
   if (E2E) {
-    global.__ehsTest = { store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, updater, externals: () => global.__ehsExternals || [] };
+    global.__ehsTest = { store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
   }
 }
 

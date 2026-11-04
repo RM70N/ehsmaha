@@ -46,6 +46,7 @@ const CONNECT_HOSTS = [
   'https://*.kick.com',
   'https://*.pusher.com',
   'https://flagcdn.com',
+  'https://api.github.com',
   'https://cdn.jsdelivr.net',
   'https://cdnjs.cloudflare.com',
   'https://unpkg.com',
@@ -76,7 +77,7 @@ function buildCsp(selfOrigin) {
     `font-src 'self' ${self} data: https://fonts.gstatic.com https://*.gstatic.com`,
     `img-src 'self' ${self} data: blob: https:`,
     `media-src 'self' ${self} data: blob: https:`,
-    `connect-src 'self' ${self} data: blob: ${CONNECT_HOSTS.join(' ')}`,
+    `connect-src 'self' ${self} data: blob: ${CONNECT_HOSTS.join(' ')}${process.env.EHSMAHA_E2E === '1' && process.env.EHSMAHA_E2E_CONNECT ? ' ' + process.env.EHSMAHA_E2E_CONNECT : ''}`,
     `frame-src 'self' ${self} https://www.youtube.com https://www.youtube-nocookie.com https://*.firebaseapp.com https://*.google.com https://accounts.google.com https://*.tiktok.com https://player.twitch.tv`,
     `worker-src 'self' ${self} blob:`,
     `object-src 'none'`,
@@ -97,5 +98,6 @@ module.exports = {
   SESSION_PARTITION: 'persist:ehsmaha',
   BRAND_BG: '#07040D',
   BRAND: { bg: '#07040D', surface: '#170B2D', primary: '#5B21B6', accent: '#7C3AED', soft: '#A78BFA', text: '#F8F7FC' },
+  AUTH_API: 'https://ehsmaha-piratetok-bridge.onrender.com',
   AUTH_PORT_RANGE: [43711, 43722],
 };

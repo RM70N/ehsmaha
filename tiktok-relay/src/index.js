@@ -12,6 +12,7 @@ import { createTokenVerifier } from './firebaseAuth.js';
 import * as piratetokProvider from './providers/piratetokProvider.js';
 import * as eulerProvider from './providers/eulerProvider.js';
 import { TestHarness } from './testHarness.js';
+import { DesktopAuthService, DesktopLinkHub, corsHeaders } from './desktopAuth.js';
 import { LegacyBridgeServer } from './legacyBridge.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
@@ -44,6 +45,14 @@ if (svcJson) {
 const verifyToken = createTokenVerifier({ admin: db ? admin : null, firebaseWebApiKey: FIREBASE_WEB_API_KEY });
 const linking = db ? new LinkingService(db) : null;
 const broadcaster = new RelayBroadcaster({ verifyToken, log });
+// رمز ربط التطبيق (يحتاج admin لإصدار Custom Token)
+const desktopLinkHub = new DesktopLinkHub({ verifyToken, log });
+const desktopAuth = db ? new DesktopAuthService({
+  createCustomToken: (uid) => admin.auth().createCustomToken(uid),
+  resolveUid: async (nameLower) => { const d = await db.collection('usernames').doc(nameLower).get(); return d.exists && d.data() && d.data().uid ? String(d.data().uid) : null; },
+  push: (uid, msg) => desktopLinkHub.push(uid, msg),
+}) : null;
+function clientIp(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
 let testHarness = null;
 
 const manager = new ConnectionManager({
@@ -142,6 +151,36 @@ const server = http.createServer(async (req, res) => {
     });
   }
 
+  if (path === '/desktop-auth/issue' || path === '/desktop-auth/redeem' || path === '/desktop-auth/request') {
+    const cors = corsHeaders(req.headers.origin || '');
+    const send = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...cors }); res.end(JSON.stringify(obj)); };
+    if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+    if (req.method !== 'POST') return send(405, { error: 'method_not_allowed' });
+    if (!desktopAuth) return send(503, { error: 'firebase_not_configured' });
+    try {
+      if (path === '/desktop-auth/issue') {
+        // يُستدعى من صفحة الموقع فقط (أصل ehsmaha.com) وبتوكن مستخدم مسجّل.
+        if (!cors['Access-Control-Allow-Origin']) return send(403, { error: 'forbidden_origin' });
+        const user = await verifyToken(bearerToken(req));
+        if (!user) return send(401, { error: 'unauthorized' });
+        const r = desktopAuth.issue(user.uid);
+        return r.ok ? send(200, r) : send(r.error === 'rate_limited' ? 429 : 400, { error: r.error });
+      }
+      if (path === '/desktop-auth/request') {
+        const b = await readJsonBody(req, 1024);
+        const r = await desktopAuth.requestByUsername(b.username, clientIp(req));
+        if (r.ok) return send(200, { ok: true, delivered: r.delivered, expiresInSec: r.expiresInSec });
+        return send(r.error === 'rate_limited' ? 429 : r.error === 'invalid_username' ? 400 : 500, { error: r.error });
+      }
+      const body = await readJsonBody(req, 2048);
+      const r = await desktopAuth.redeem(body.code, clientIp(req));
+      if (r.ok) return send(200, { customToken: r.customToken });
+      return send(r.error === 'rate_limited' ? 429 : r.error === 'invalid_code' ? 400 : 500, { error: r.error });
+    } catch (e) {
+      return send(400, { error: 'bad_request' });
+    }
+  }
+
   if (path === '/link' && req.method === 'POST') {
     if (!linking) return sendJson(res, 503, { error: 'firebase_not_configured' });
     try {
@@ -184,6 +223,7 @@ server.on('upgrade', (req, socket, head) => {
   // هذا المسار الذي يربط به الموقع الرئيسي فعلياً (TIKTOK_BRIDGE_SERVERS).
   if (path === '/ws') legacyBridge.handleUpgrade(req, socket, head);
   else if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
+  else if (path === '/desktop-auth/ws') desktopLinkHub.handleUpgrade(req, socket, head);
   else if (TEST_HARNESS_ENABLED && path === '/testws' && testHarness) testHarness.handleUpgrade(req, socket, head);
   else socket.destroy();
 });
