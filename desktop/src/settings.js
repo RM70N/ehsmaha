@@ -6,6 +6,7 @@ const DEFAULTS = Object.freeze({
   closeToTray: true,            // إغلاق النافذة = تصغير إلى Tray
   ownerLink: true,              // إحصاءات مجهولة (حضور التطبيق) + رسائل/إعدادات من احسمها
   zoomFactor: 1,
+  toastPosition: 'top',         // top | center | bottom — مكان رسائل التطبيق
   notif: Object.freeze({
     enabled: true,
     sound: true,
@@ -17,6 +18,7 @@ const DEFAULTS = Object.freeze({
   }),
 });
 
+const TOAST_POS = ['top', 'center', 'bottom'];
 const NOTIF_KEYS = Object.keys(DEFAULTS.notif);
 
 function clampZoom(z) {
@@ -37,6 +39,7 @@ class Settings {
       closeToTray: typeof saved.closeToTray === 'boolean' ? saved.closeToTray : DEFAULTS.closeToTray,
       ownerLink: typeof saved.ownerLink === 'boolean' ? saved.ownerLink : DEFAULTS.ownerLink,
       zoomFactor: clampZoom(saved.zoomFactor == null ? 1 : saved.zoomFactor),
+      toastPosition: TOAST_POS.includes(saved.toastPosition) ? saved.toastPosition : DEFAULTS.toastPosition,
       notif,
     };
   }
@@ -48,6 +51,7 @@ class Settings {
       if (typeof patch.startWithWindows === 'boolean') cur.startWithWindows = patch.startWithWindows;
       if (typeof patch.closeToTray === 'boolean') cur.closeToTray = patch.closeToTray;
       if (typeof patch.ownerLink === 'boolean') cur.ownerLink = patch.ownerLink;
+      if (TOAST_POS.includes(patch.toastPosition)) cur.toastPosition = patch.toastPosition;
       if (patch.zoomFactor != null) cur.zoomFactor = clampZoom(patch.zoomFactor);
       if (patch.notif && typeof patch.notif === 'object') {
         for (const k of NOTIF_KEYS) if (typeof patch.notif[k] === 'boolean') cur.notif[k] = patch.notif[k];
