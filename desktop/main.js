@@ -9,7 +9,7 @@
  */
 
 const {
-  app, BrowserWindow, session, shell, ipcMain, nativeImage, dialog, Notification, Tray, Menu, screen, clipboard,
+  app, BrowserWindow, session, shell, ipcMain, nativeImage, dialog, Notification, Tray, Menu, screen, clipboard, powerMonitor,
 } = require('electron');
 const path = require('path');
 const fs = require('fs');
@@ -71,6 +71,9 @@ let appUrl = null;
 let appOrigin = null;
 let retryTimer = null;
 let syncTimer = null;
+// مزامنة المحتوى: كل دقيقتين (الـmanifest صغير) + عند الإقلاع بعد 3 ثوانٍ + عند الرجوع للتطبيق. الاختبارات تتحكم بها بمتغيرات.
+const SYNC_MS = E2E ? Number(process.env.EHSMAHA_SYNC_MS || 3000) : 2 * 60 * 1000;
+const SYNC_MIN_GAP_MS = E2E ? Number(process.env.EHSMAHA_SYNC_GAP_MS || 500) : 20 * 1000;
 let isQuitting = false;
 let shownOnce = false;
 let idleSince = 0;
@@ -371,12 +374,27 @@ async function reloadAndCheck() {
   return false;
 }
 
+let syncing = null;
+let lastSyncAt = 0;
 async function runContentSync() {
   if (REMOTE_MODE || !server) return { status: 'skipped' };
-  const res = await syncContent({ store, origin: SITE_ORIGIN, fetchBuffer: electronFetchBuffer(), log: (m) => log(m) });
-  if (res.status === 'staged') { lastStagedDiff = res.diff; await coordinator.consider(); }
-  if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('settings:changed', {});
-  return res;
+  if (syncing) return syncing; // لا فحصان متوازيان
+  syncing = (async () => {
+    try {
+      const res = await syncContent({ store, origin: SITE_ORIGIN, fetchBuffer: electronFetchBuffer(), log: (m) => log(m) });
+      lastSyncAt = Date.now();
+      if (res.status === 'staged') { lastStagedDiff = res.diff; await coordinator.consider(); }
+      if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('settings:changed', {});
+      return res;
+    } finally { syncing = null; }
+  })();
+  return syncing;
+}
+
+/** فحص سريع عند الرجوع للتطبيق (تركيز/إظهار/عودة الشبكة)، بحد أدنى 20 ثانية بين فحصين. */
+function syncSoon() {
+  if (REMOTE_MODE || !server || Date.now() - lastSyncAt < SYNC_MIN_GAP_MS) return;
+  runContentSync().catch(() => {});
 }
 
 const GAME_FILE_RE = /^[a-z0-9][a-z0-9-]*\.html$/i;
@@ -742,15 +760,17 @@ async function boot() {
 
   syncAppLink();
   setTimeout(() => updater.checkForUpdates(), 15000);
-  setInterval(() => updater.checkForUpdates(), 2 * 60 * 60 * 1000);
+  setInterval(() => updater.checkForUpdates(), 30 * 60 * 1000);
 
   if (!REMOTE_MODE && server) {
-    setTimeout(() => runContentSync().catch(() => {}), E2E ? 1500 : 12000);
-    syncTimer = setInterval(() => runContentSync().catch(() => {}), (E2E ? 3000 : 20 * 60 * 1000));
+    setTimeout(() => runContentSync().catch(() => {}), E2E ? 1500 : 3000);
+    syncTimer = setInterval(() => runContentSync().catch(() => {}), SYNC_MS);
+    if (mainWindow) { for (const ev of ['focus', 'show', 'restore']) mainWindow.on(ev, syncSoon); }
+    powerMonitor.on('resume', () => setTimeout(syncSoon, 3000));
   }
 
   if (E2E) {
-    global.__ehsTest = { store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, getAppLink: () => appLink, getFlags: () => appFlags, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
+    global.__ehsTest = { syncSoon, store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, getAppLink: () => appLink, getFlags: () => appFlags, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
   }
 }
 

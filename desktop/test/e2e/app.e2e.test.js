@@ -548,3 +548,27 @@ test('native link active (1.1.3+): page client stays silent, so the app is count
     assert.equal(await win.evaluate(() => document.documentElement.getAttribute('data-ehs-native')), '1');
   } finally { await app.close().catch(() => {}); fake.close(); srv.close(); }
 });
+
+test('fast content updates: returning to the app (focus) triggers an immediate sync even with a long interval; no parallel syncs', async () => {
+  const fake = await startFakeSite(SITE);
+  const { app } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_SYNC_MS: '600000', EHSMAHA_SYNC_GAP_MS: '300' } });
+  try {
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => (await app.evaluate(() => global.__ehsTest.probePage()))?.pageId, 20000);
+    await sleep(2500); // انتهى الفحص الأول (1.5ث)
+    const before = await T(app, () => global.__ehsTest.store.activeVersion());
+    const v2 = variant((d) => fs.writeFileSync(path.join(d, 'fast-game.html'), '<!doctype html><html><body>F</body></html>'));
+    fake.setDir(v2.dir);
+    const t0 = Date.now();
+    await T(app, () => { global.__ehsTest.getMainWindow().emit('focus'); });
+    await until(async () => (await T(app, () => global.__ehsTest.store.activeVersion())) === v2.manifest.version, 20000, 200);
+    const took = Date.now() - t0;
+    assert.notEqual(before, v2.manifest.version);
+    assert.ok(took < 15000, 'applied within ' + took + 'ms of returning to the app');
+    // لا فحصان متوازيان
+    const hits = await T(app, async () => { const a = global.__ehsTest.runContentSync(); const b = global.__ehsTest.runContentSync(); return a === b || (await Promise.all([a, b])).length === 2; });
+    assert.equal(hits, true);
+  } finally { await app.close().catch(() => {}); fake.close(); }
+});
