@@ -53,7 +53,9 @@ test('launch: window, security prefs, local origin, bridge surface', async () =>
   try {
     const prefs = await T(s.app, () => { const w = global.__ehsTest.getMainWindow(); const p = w.webContents.getLastWebPreferences(); return { ci: p.contextIsolation, ni: p.nodeIntegration, sb: p.sandbox, ws: p.webSecurity, title: w.getTitle(), url: w.webContents.getURL() }; });
     assert.deepEqual([prefs.ci, prefs.ni, prefs.sb, prefs.ws], [true, false, true, true]);
-    assert.equal(prefs.url, 'http://localhost:43711/');
+    const port1 = await T(s.app, () => global.__ehsTest.getServer().port);
+    assert.ok(port1 >= 43711 && port1 <= 43722, 'port in app range: ' + port1);
+    assert.equal(prefs.url, 'http://localhost:' + port1 + '/');
     assert.match(prefs.title, /احسمها/);
     const surface = await s.win.evaluate(() => ({ req: typeof require, proc: typeof process, desk: window.ehsmahaDesktop && window.ehsmahaDesktop.isDesktopApp, settings: typeof window.ehsmahaSettings, keys: Object.keys(window.ehsmahaDesktop || {}) }));
     assert.equal(surface.req, 'undefined'); assert.equal(surface.proc, 'undefined');
@@ -245,30 +247,36 @@ test('scenario 4: Windows notifications — hidden/minimized/focused/disabled/de
 });
 
 test('Google sign-in: system-browser flow, state single-use, origin check, credential reaches page', async () => {
-  const s = await start();
+  const t0 = Date.now(); const lap = (n) => console.log('# google-signin step ' + n + ' @' + (Date.now() - t0) + 'ms');
+  const s = await start(); lap('started');
   try {
     // الموقع يطلق popup لجوجل ⇒ يُعاد توجيهه لمتصفح النظام
     await s.win.evaluate(() => { window.open('https://accounts.google.com/o/oauth2/auth?x=1'); });
+    lap('popup-sent');
     const lw = await until(async () => s.app.windows().find((w) => w.url().endsWith('login.html')), 8000);
     await lw.waitForLoadState('domcontentloaded');
+    lap('login-window');
     await lw.click('#google');
     const ext = await until(async () => (await T(s.app, () => global.__ehsTest.externals())).find((u) => u.includes('desktop-auth.html')), 5000);
+    lap('external-recorded');
     const u = new URL(ext);
     assert.equal(u.origin, 'https://ehsmaha.com');
     const state = u.searchParams.get('state'); const port = Number(u.searchParams.get('port'));
-    assert.equal(port, 43711);
+    assert.equal(port, await T(s.app, () => global.__ehsTest.getServer().port));
     const post = (body, origin) => new Promise((res) => { const r = http.request({ host: '127.0.0.1', port, path: '/__auth/callback', method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/x-www-form-urlencoded' } }, (x) => { x.resume(); res(x.statusCode); }); r.end(body); });
     assert.equal(await post(`state=${state}&idToken=tok&accessToken=acc`, 'https://evil.example'), 400);
     // محاولة بأصل خاطئ استهلكت الـstate؟ لا — الأصل يُفحص أولاً فلا يُستهلك
     assert.equal(await post(`state=${state}&idToken=tok&accessToken=acc`, 'https://ehsmaha.com'), 200);
     await until(async () => (await s.win.evaluate(() => (window.__fakeFs.signins || []).length)) === 1, 8000);
     assert.equal(await post(`state=${state}&idToken=tok&accessToken=acc`, 'https://ehsmaha.com'), 400, 'replay rejected');
+    lap('replay-checked');
     const log = fs.readFileSync(path.join(s.userData, 'logs', 'ehsmaha.log'), 'utf8');
     assert.ok(!log.includes('tok') || !/idToken=tok|accessToken=acc/.test(log), 'tokens not logged');
     // التنقل المباشر إلى جوجل داخل النافذة الرئيسية مرفوض أيضاً
     const nav = await s.win.evaluate(() => { try { location.href = 'https://accounts.google.com/x'; } catch (e) {} return location.origin; });
-    assert.equal(nav, 'http://localhost:43711');
-  } finally { await s.close(); }
+    lap('nav-checked');
+    assert.equal(nav, 'http://localhost:' + port);
+  } finally { await s.close(); lap('closed'); }
 });
 
 test('external links open in system browser (denied in-app); non-http schemes ignored', async () => {
