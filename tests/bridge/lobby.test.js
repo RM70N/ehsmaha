@@ -137,7 +137,7 @@ const settle = (p) => p.waitForTimeout(120);
 
   // ---------- 7) أوضاع اللعب والتنقل ----------
   await page.evaluate(() => { window.__nav = []; window.topnavGoSection = (s) => window.__nav.push('go:' + s); window.show = (p) => window.__nav.push('show:' + p); window.homeOpenQuickConnect = () => window.__nav.push('qc'); });
-  const tiles = await page.$$('.hlob-tile');
+  const tiles = await page.$$('.hlob-tile:not(#hlob-tile-winapp)'); // بطاقة «تطبيق احسمها» تنقل لصفحة مستقلة فتُختبر بملف desktop E2E
   for (const t of tiles) await t.click();
   await page.click('.hlob-nav .hlob-btn-quick');
   check('طرق اللعب: فردي/جمعات/وردل/الفئات + ابدأ بثاً سريعاً', JSON.stringify(await page.evaluate(() => window.__nav)) === JSON.stringify(['go:solo', 'go:party', 'show:wordle-mode-select', 'show:ahsemha-home', 'qc']), await page.evaluate(() => window.__nav));
