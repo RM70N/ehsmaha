@@ -414,3 +414,15 @@ test('login with احسمها code: username → code pushed to the open site se
     assert.ok(!log.includes('custom-token-for') && !log.includes(shown.replace('-', '')), 'secrets not logged');
   } finally { await app.close().catch(() => {}); fake.close(); bridge.close(); }
 });
+
+test('auth page shows "الدخول برمز احسمها" under the Google button and it opens the login window', async () => {
+  const s = await start();
+  try {
+    const info = await s.win.evaluate(() => { const g = document.getElementById('auth-google-btn'); const b = document.getElementById('ehs-code-login-btn'); return { has: !!b, text: b && b.textContent, after: !!g && g.nextElementSibling === b, dup: document.querySelectorAll('#ehs-code-login-btn').length }; });
+    assert.deepEqual(info, { has: true, text: 'الدخول برمز احسمها', after: true, dup: 1 });
+    await s.win.evaluate(() => document.getElementById('ehs-code-login-btn').click());
+    const lw = await until(async () => s.app.windows().find((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000);
+    await lw.waitForLoadState('domcontentloaded');
+    assert.equal(await lw.isVisible('#send'), true);
+  } finally { await s.close(); }
+});

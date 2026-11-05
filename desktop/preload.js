@@ -159,4 +159,22 @@ if (isLocalApp && location.protocol !== 'file:') {
   window.addEventListener('online', () => showToast({ message: 'رجع الاتصال بالإنترنت.', kind: 'success', key: 'net', timeout: 5000 }));
 }
 
+// زر «الدخول برمز احسمها» تحت زر جوجل بصفحة تسجيل الدخول (إضافة من التطبيق فقط؛ لا يعدّل ملفات الموقع).
+function injectCodeLoginButton() {
+  const g = document.getElementById('auth-google-btn');
+  if (!g || document.getElementById('ehs-code-login-btn')) return;
+  const b = document.createElement('button');
+  b.type = 'button'; b.id = 'ehs-code-login-btn'; b.className = 'auth-btn';
+  b.style.marginTop = '10px';
+  b.textContent = 'الدخول برمز احسمها';
+  b.addEventListener('click', () => ipcRenderer.send('ehsmaha:open-login'));
+  g.insertAdjacentElement('afterend', b);
+}
+if (isLocalApp && location.protocol !== 'file:') {
+  window.addEventListener('DOMContentLoaded', () => {
+    injectCodeLoginButton();
+    new MutationObserver(injectCodeLoginButton).observe(document.body, { childList: true, subtree: true });
+  });
+}
+
 window.addEventListener('DOMContentLoaded', () => { if (location.protocol !== 'file:') ensureLayer(); });

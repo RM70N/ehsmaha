@@ -469,6 +469,7 @@ function registerIpc() {
   })));
   ipcMain.handle('ehsmaha:open-external', guard(['app'], (_e, url) => openExternal(String(url || ''))));
   ipcMain.handle('ehsmaha:retry', guard(['offline'], async () => { if (await isNetworkReachable()) reloadApp(); return true; }));
+  ipcMain.on('ehsmaha:open-login', guard(['app'], () => openLoginWindow()));
   ipcMain.on('ehsmaha:toast-action', guard(['app'], (_e, id) => { if (id === 'apply-content') coordinator.applyByConsent(); }));
   ipcMain.on('ehsmaha:page-event', guard(['app'], (_e, ev) => {
     if (!ev || !PAGE_EVENT_KINDS.has(ev.kind)) return;
