@@ -169,3 +169,14 @@ test('AppLink: hello, validates/dedups owner notifications, sanitises config, re
   l.stop(); assert.equal(inst[2].closed, true); assert.equal(inst[2].onclose, null); assert.equal(timers.length, 2, 'no reconnect after stop');
   assert.equal(cmpVer('1.1.2', '1.1.10') < 0, true); assert.equal(cmpVer('2.0.0', '1.9.9') > 0, true);
 });
+
+test('download page always points at the LATEST release asset and never shows a hard-coded old version', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', '..', 'windows-app.html'), 'utf8');
+  assert.match(html, /windowsUrl:\s*"https:\/\/github\.com\/rm70n\/ehsmaha\/releases\/latest\/download\/ehsmaha-setup\.exe"/);
+  assert.ok(!/releases\/download\/v\d/.test(html), 'no pinned version URL');
+  assert.match(html, /fallbackRelease:\s*\{\}/);
+  assert.match(html, /releases\/latest"/); // يقرأ آخر إصدار من API للرقم والحجم
+  // اسم الأصل ثابت بين الإصدارات (يعتمد عليه الرابط الثابت)
+  const yml = fs.readFileSync(path.join(__dirname, '..', 'electron-builder.yml'), 'utf8');
+  assert.match(yml, /artifactName:\s*ehsmaha-setup\.\$\{ext\}/);
+});
