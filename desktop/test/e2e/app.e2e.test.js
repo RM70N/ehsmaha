@@ -415,14 +415,42 @@ test('login with احسمها code: username → code pushed to the open site se
   } finally { await app.close().catch(() => {}); fake.close(); bridge.close(); }
 });
 
-test('auth page shows "الدخول برمز احسمها" above the Google button and it opens the login window', async () => {
+test('code-login button (delivered by site script) shows above Google in BOTH login and signup tabs, truly visible and working', async () => {
   const s = await start();
   try {
-    const info = await s.win.evaluate(() => { const g = document.getElementById('auth-google-btn'); const b = document.getElementById('ehs-code-login-btn'); return { has: !!b, title: b && b.querySelector('.ehs-cl-title').textContent, logo: !!(b && b.querySelector('svg.ehs-cl-logo')), above: !!g && g.previousElementSibling === b, dup: document.querySelectorAll('#ehs-code-login-btn').length }; });
-    assert.deepEqual(info, { has: true, title: 'الدخول برمز احسمها', logo: true, above: true, dup: 1 });
+    await s.win.evaluate(() => { document.querySelector('.page.active').classList.remove('active'); document.getElementById('pg-auth').classList.add('active'); });
+    await until(async () => s.win.evaluate(() => !!document.getElementById('ehs-code-login-btn')), 8000);
+    for (const tab of ['login', 'signup']) {
+      await s.win.evaluate((t) => authSwitchTab(t), tab);
+      await sleep(250);
+      const info = await s.win.evaluate(() => {
+        const g = document.getElementById('auth-google-btn'); const b = document.getElementById('ehs-code-login-btn');
+        const r = b.getBoundingClientRect(); const gr = g.getBoundingClientRect(); const box = document.querySelector('.auth-box').getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const hit = document.elementFromPoint(cx, cy);
+        return { title: b.querySelector('.ehs-cl-title').textContent, logo: !!b.querySelector('svg.ehs-cl-logo'), above: g.previousElementSibling === b, aboveY: r.bottom <= gr.top + 1,
+          sized: r.width > 200 && r.height > 40, inBox: r.left >= box.left && r.right <= box.right + 1 && r.top >= box.top && r.bottom <= box.bottom,
+          display: getComputedStyle(b).display, vis: getComputedStyle(b).visibility, clickable: !!hit && b.contains(hit), dup: document.querySelectorAll('#ehs-code-login-btn').length };
+      });
+      assert.deepEqual(info, { title: 'الدخول برمز احسمها', logo: true, above: true, aboveY: true, sized: true, inBox: true, display: 'flex', vis: 'visible', clickable: true, dup: 1 }, tab);
+    }
     await s.win.evaluate(() => document.getElementById('ehs-code-login-btn').click());
     const lw = await until(async () => s.app.windows().find((w) => !w.isClosed() && w.url().endsWith('login.html')), 8000);
     await lw.waitForLoadState('domcontentloaded');
     assert.equal(await lw.isVisible('#send'), true);
+  } finally { await s.close(); }
+});
+
+test('the button works from the PLAIN site (no desktop API) without breaking: script is inert outside the app', async () => {
+  const s = await start();
+  try {
+    const inert = await s.win.evaluate(async () => {
+      const code = await (await fetch('/desktop-app-ui.js')).text();
+      document.getElementById('ehs-code-login-btn') && document.getElementById('ehs-code-login-btn').remove();
+      const fakeWindow = { __proto__: null }; // موقع عادي: لا ehsmahaDesktop
+      new Function('window', 'document', 'MutationObserver', code)(fakeWindow, document, class { observe() { throw new Error('should not observe'); } });
+      return !document.getElementById('ehs-code-login-btn') && !fakeWindow.__ehsDesktopAppUi;
+    });
+    assert.equal(inert, true);
   } finally { await s.close(); }
 });
