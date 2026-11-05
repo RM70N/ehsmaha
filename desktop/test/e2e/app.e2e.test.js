@@ -501,3 +501,50 @@ test('owner link: app registers presence, receives owner notification + remote c
     assert.ok(!log.includes('عرض خاص') || true);
   } finally { await app.close().catch(() => {}); fake.close(); srv.close(); }
 });
+
+async function relayWithHub() {
+  const { AppControlService, AppLinkHub } = await import('../../../tiktok-relay/src/appControl.js');
+  const svc = new AppControlService({}); const hub = new AppLinkHub({ service: svc });
+  const srv = http.createServer((q, r) => { r.writeHead(404); r.end(); });
+  srv.on('upgrade', (req, sock, head) => { if (req.url === '/desktop-app/ws') hub.handleUpgrade(req, sock, head); else sock.destroy(); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { svc, hub, srv, port: srv.address().port };
+}
+
+test('older app versions (no native link): the site-delivered presence client counts them and shows owner notifications + config', async () => {
+  const { svc, hub, srv, port } = await relayWithHub();
+  const fake = await startFakeSite(SITE);
+  const { app } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_E2E_CONNECT: 'ws://127.0.0.1:' + port } });
+  try {
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await win.context().addInitScript(`window.EHS_APP_LINK_API='ws://127.0.0.1:${port}'; window.EHS_APP_VERSION_OVERRIDE='1.1.2';`);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => svc.online.size === 1, 15000);
+    const st = await svc.stats();
+    assert.equal(st.onlineNow, 1); assert.equal(st.installs, 1);
+    assert.equal([...svc.installs.values()][0].v, '1.1.2');
+    const r = svc.notify({ title: 'إشعار للتطبيق', body: 'يعمل' }, (m) => hub.broadcast(m));
+    assert.equal(r.delivered, 1);
+    await until(async () => win.evaluate(() => /إشعار للتطبيق/.test((document.getElementById('ehs-app-toasts') || {}).innerText || '')), 8000);
+    await svc.setConfig({ codeLoginEnabled: false, motd: { text: 'رسالة اختبار', active: true, id: 'z1' } }); hub.broadcastConfig();
+    await until(async () => win.evaluate(() => document.documentElement.getAttribute('data-ehs-code-login') === '0'), 8000);
+    await until(async () => win.evaluate(() => /رسالة اختبار/.test(document.getElementById('ehs-app-toasts').innerText)), 8000);
+  } finally { await app.close().catch(() => {}); fake.close(); srv.close(); }
+});
+
+test('native link active (1.1.3+): page client stays silent, so the app is counted exactly once', async () => {
+  const { svc, srv, port } = await relayWithHub();
+  const fake = await startFakeSite(SITE);
+  const { app } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + port, EHSMAHA_APP_LINK: '1', EHSMAHA_E2E_CONNECT: 'ws://127.0.0.1:' + port } });
+  try {
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await win.context().addInitScript(`window.EHS_APP_LINK_API='ws://127.0.0.1:${port}';`);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => svc.online.size === 1, 15000);
+    await sleep(7000); // أطول من مهلة العميل الصفحي (4 ثوانٍ)
+    assert.equal(svc.online.size, 1); assert.equal(svc.installs.size, 1, 'one install id only');
+    assert.equal(await win.evaluate(() => document.documentElement.getAttribute('data-ehs-native')), '1');
+  } finally { await app.close().catch(() => {}); fake.close(); srv.close(); }
+});

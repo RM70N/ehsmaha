@@ -262,7 +262,7 @@ function createMainWindow() {
     closeSplash();
     if (isAppUrl(wc.getURL())) {
       wc.setZoomFactor(settings.getAll().zoomFactor);
-      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin });
+      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
       wc.executeJavaScript(BRIDGE_SOURCE, false).catch((e) => logger.warn('bridge', e && e.message));
     }
     if (coordinator) coordinator.consider().catch(() => {});
@@ -601,7 +601,7 @@ function handleOwnerNotify(m) {
 
 function handleRemoteConfig(c) {
   appFlags = { codeLogin: c.codeLoginEnabled !== false };
-  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin });
+  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
   if (c.motd.active && c.motd.text && state.get('lastMotdId', '') !== c.motd.id) {
     state.set('lastMotdId', c.motd.id);
     toast(c.motd.text, 'info', { key: 'motd', timeout: 20000 });
@@ -622,6 +622,7 @@ function syncAppLink() {
     });
     appLink.start();
   } else if (!want && appLink) { appLink.stop(); appLink = null; }
+  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
 }
 
 function startAutoInstallWatcher() {
