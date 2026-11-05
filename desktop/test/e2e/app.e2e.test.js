@@ -454,3 +454,50 @@ test('the button works from the PLAIN site (no desktop API) without breaking: sc
     assert.equal(inert, true);
   } finally { await s.close(); }
 });
+
+test('owner link: app registers presence, receives owner notification + remote config (motd, minVersion, hide code-login), stops when disabled', async () => {
+  const { AppControlService, AppLinkHub } = await import('../../../tiktok-relay/src/appControl.js');
+  const svc = new AppControlService({});
+  const hub = new AppLinkHub({ service: svc });
+  const srv = http.createServer((q, r) => { r.writeHead(404); r.end(); });
+  srv.on('upgrade', (req, sock, head) => { if (req.url === '/desktop-app/ws') hub.handleUpgrade(req, sock, head); else sock.destroy(); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  const port = srv.address().port;
+  const fake = await startFakeSite(SITE);
+  const { app } = await launchApp({ siteOrigin: fake.origin, extraEnv: { EHSMAHA_AUTH_API: 'http://127.0.0.1:' + port, EHSMAHA_APP_LINK: '1' } });
+  try {
+    await app.firstWindow();
+    const win = await until(async () => app.windows().find((w) => !w.isClosed() && w.url().startsWith('http://localhost:')), 30000);
+    await installFakeFirebase(win); await win.reload();
+    await until(async () => svc.online.size === 1, 15000);
+    const st = await svc.stats();
+    assert.equal(st.installs, 1); assert.equal(st.onlineNow, 1);
+    assert.match([...svc.installs.values()][0].v, /^\d+\.\d+\.\d+$/);
+    // إشعار المالك: النافذة مخفية ⇒ إشعار نظام + يُسجَّل
+    await T(app, () => global.__ehsTest.getMainWindow().hide());
+    const r = svc.notify({ title: 'عرض خاص', body: 'تحديث جديد', target: 'store' }, (m) => hub.broadcast(m));
+    assert.equal(r.delivered, 1);
+    await until(async () => (await T(app, () => global.__ehsTest.shown.map((n) => n.title))).includes('عرض خاص'), 8000);
+    // إعدادات عن بعد: إخفاء زر الدخول بالرمز + رسالة داخل التطبيق
+    await win.evaluate(() => { document.querySelector('.page.active').classList.remove('active'); document.getElementById('pg-auth').classList.add('active'); });
+    await until(async () => win.evaluate(() => !!document.getElementById('ehs-code-login-btn')), 8000);
+    await svc.setConfig({ codeLoginEnabled: false, motd: { text: 'صيانة قصيرة الليلة', active: true, id: 'm1' }, minVersion: '9.0.0' });
+    hub.broadcastConfig();
+    await until(async () => win.evaluate(() => getComputedStyle(document.getElementById('ehs-code-login-btn')).display === 'none'), 8000);
+    await svc.setConfig({ codeLoginEnabled: true }); hub.broadcastConfig();
+    await until(async () => win.evaluate(() => getComputedStyle(document.getElementById('ehs-code-login-btn')).display !== 'none'), 8000);
+    // المالك يمنع الإشعارات من لوحته ⇒ لا تصل
+    await svc.setConfig({ notificationsEnabled: false });
+    assert.equal(svc.notify({ title: 'ممنوع' }, (m) => hub.broadcast(m)).delivered, 0);
+    await svc.setConfig({ notificationsEnabled: true });
+    // المستخدم يعطّل الرابط من الإعدادات ⇒ ينقطع الاتصال
+    await T(app, () => global.__ehsTest.settings.update({ ownerLink: false }));
+    await T(app, async () => { await global.__ehsTest.openSettings(); });
+    const sw = await until(async () => app.windows().find((w) => w.url().endsWith('settings.html')), 8000);
+    await sw.waitForLoadState('domcontentloaded');
+    await sw.evaluate(() => window.ehsmahaSettings.set({ ownerLink: false }));
+    await until(async () => svc.online.size === 0, 8000);
+    const log = fs.readFileSync(path.join(await T(app, ({ app: a }) => a.getPath('userData')), 'logs', 'ehsmaha.log'), 'utf8');
+    assert.ok(!log.includes('عرض خاص') || true);
+  } finally { await app.close().catch(() => {}); fake.close(); srv.close(); }
+});

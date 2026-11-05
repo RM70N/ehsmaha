@@ -1848,7 +1848,7 @@ kbd{font-family:var(--f-num);background:var(--raised);border-radius:8px;padding:
     {id:'publish',title:'النشر والمحتوى',desc:'تحديثات ورسائل وفئات اللعب.',tone:'surface',items:['updates','messages','ahsemha']},
     {id:'rewards',title:'المكافآت والمتجر',desc:'إطارات وهدايا وأكواد ومنتجات.',tone:'gold',items:['frames','gifts','scode','store']},
     {id:'insight',title:'التحليل',desc:'أرقام المنصة بوضوح.',tone:'surface',items:['stats','journey']},
-    {id:'systems',title:'الأنظمة والمراقبة',desc:'صحة البنية التقنية وخدمات البث.',tone:'raised',items:['health']}
+    {id:'systems',title:'الأنظمة والمراقبة',desc:'صحة البنية التقنية وخدمات البث.',tone:'raised',items:['health','app']}
   ];
   const secs=()=>Studio.sections;
 
@@ -1934,6 +1934,7 @@ kbd{font-family:var(--f-num);background:var(--raised);border-radius:8px;padding:
 <script src="ops-lab.js"></script>
 <script src="ops-tournaments.js"></script>
 <script src="ops-journey.js"></script>
+<script src="ops-app.js"></script>
 <script>
   if(!Studio.preview){ const mp=document.getElementById('mode-pill'); if(mp) mp.remove(); }
   Studio.boot();

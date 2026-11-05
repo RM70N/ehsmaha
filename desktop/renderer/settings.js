@@ -10,6 +10,7 @@ async function load() {
   $('v-source').textContent = s.info.contentSource === 'downloaded' ? 'محدّث من الموقع' : 'مضمّن مع التطبيق';
   $('s-startup').checked = s.settings.startWithWindows;
   $('s-tray').checked = s.settings.closeToTray;
+  $('s-ownerlink').checked = s.settings.ownerLink;
   $('s-zoom').value = s.settings.zoomFactor;
   $('zoom-val').textContent = Math.round(s.settings.zoomFactor * 100) + '%';
   document.querySelectorAll('[data-n]').forEach((el) => { el.checked = !!s.settings.notif[el.dataset.n]; });
@@ -19,6 +20,7 @@ async function load() {
 
 $('s-startup').addEventListener('change', (e) => api.set({ startWithWindows: e.target.checked }));
 $('s-tray').addEventListener('change', (e) => api.set({ closeToTray: e.target.checked }));
+$('s-ownerlink').addEventListener('change', (e) => api.set({ ownerLink: e.target.checked }));
 $('s-zoom').addEventListener('input', (e) => { $('zoom-val').textContent = Math.round(e.target.value * 100) + '%'; });
 $('s-zoom').addEventListener('change', (e) => api.set({ zoomFactor: Number(e.target.value) }));
 document.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('change', () => api.set({ notif: { [el.dataset.n]: el.checked } })));
