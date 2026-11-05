@@ -2,7 +2,7 @@
 const api = window.ehsmahaLogin;
 const $ = (id) => document.getElementById(id);
 const say = (t, cls) => { const m = $('msg'); m.textContent = t; m.className = cls || ''; };
-const ERR = { invalid_username: 'اليوزر غير صالح.', invalid_code: 'الرمز غير صحيح أو انتهت صلاحيته.', rate_limited: 'محاولات كثيرة. انتظر قليلاً ثم حاول.', network: 'تعذّر الاتصال بالخادم. تأكد من الإنترنت.', failed: 'تعذّر تسجيل الدخول. حاول مرة أخرى.', page: 'تم استلام الرمز لكن تعذّر إكمال الدخول داخل التطبيق.' };
+const ERR = { invalid_username: 'اليوزر أو الإيميل غير صالح.', lookup_unavailable: 'خدمة البحث عن اليوزر مشغولة حالياً. جرّب كتابة إيميل حسابك بدل اليوزر، أو أعد المحاولة بعد قليل.', invalid_code: 'الرمز غير صحيح أو انتهت صلاحيته.', rate_limited: 'محاولات كثيرة. انتظر قليلاً ثم حاول.', network: 'تعذّر الاتصال بالخادم. تأكد من الإنترنت.', failed: 'تعذّر تسجيل الدخول. حاول مرة أخرى.', page: 'تم استلام الرمز لكن تعذّر إكمال الدخول داخل التطبيق.' };
 
 $('send').addEventListener('click', async () => {
   $('send').disabled = true; say('جارٍ إرسال الرمز...');

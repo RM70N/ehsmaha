@@ -73,13 +73,15 @@ export class DesktopAuthService {
    */
   async requestByUsername(rawName, ip) {
     const name = String(rawName == null ? '' : rawName).trim().replace(/^@/, '').toLowerCase();
-    if (!/^[\p{L}\p{N}_.\-]{2,32}$/u.test(name)) return { ok: false, error: 'invalid_username' };
+    // يوزر أو إيميل (الإيميل يُحلّ عبر Firebase Auth فلا يتأثر بانتهاء حصة Firestore).
+    const isEmail = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/.test(name) && name.length <= 254;
+    if (!isEmail && !/^[\p{L}\p{N}_.\-]{2,32}$/u.test(name)) return { ok: false, error: 'invalid_username' };
     const wi = this._win(this.reqByIp, String(ip || 'unknown'), 6, 60 * 1000);
     const wn = this._win(this.reqByName, name, 3, 60 * 1000);
     if (wi.full() || wn.full()) return { ok: false, error: 'rate_limited' };
     wi.add(); wn.add();
     let uid = null;
-    try { uid = await this.resolveUid(name); } catch (e) { return { ok: false, error: 'internal' }; }
+    try { uid = await this.resolveUid(name); } catch (e) { return { ok: false, error: e && e.code === 'lookup_unavailable' ? 'lookup_unavailable' : 'internal' }; }
     if (!uid) return { ok: true, delivered: false }; // لا نكشف وجود الحساب
     const r = this.issue(uid, { skipLimit: true });
     const delivered = this.push(uid, { type: 'code', code: r.code, expiresInSec: r.expiresInSec }) > 0;

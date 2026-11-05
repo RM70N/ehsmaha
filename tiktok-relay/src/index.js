@@ -13,6 +13,7 @@ import * as piratetokProvider from './providers/piratetokProvider.js';
 import * as eulerProvider from './providers/eulerProvider.js';
 import { TestHarness } from './testHarness.js';
 import { DesktopAuthService, DesktopLinkHub, corsHeaders } from './desktopAuth.js';
+import { createAccountResolver } from './accountLookup.js';
 import { LegacyBridgeServer } from './legacyBridge.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
@@ -33,7 +34,7 @@ if (svcJson) {
   try {
     admin = await import('firebase-admin');
     admin = admin.default || admin;
-    if (!admin.apps || !admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(JSON.parse(svcJson)) });
+    if (!admin.apps || !admin.apps.length) admin.initializeApp({ credential: admin.credential.cert(JSON.parse(svcJson)), databaseURL: process.env.FIREBASE_DATABASE_URL || 'https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app' });
     db = admin.firestore();
   } catch (e) {
     log('error', 'firebase_init_failed', { message: e && e.message });
@@ -46,10 +47,11 @@ const verifyToken = createTokenVerifier({ admin: db ? admin : null, firebaseWebA
 const linking = db ? new LinkingService(db) : null;
 const broadcaster = new RelayBroadcaster({ verifyToken, log });
 // رمز ربط التطبيق (يحتاج admin لإصدار Custom Token)
+const resolveAccountUid = db ? createAccountResolver({ admin, db }) : null;
 const desktopLinkHub = new DesktopLinkHub({ verifyToken, log });
 const desktopAuth = db ? new DesktopAuthService({
   createCustomToken: (uid) => admin.auth().createCustomToken(uid),
-  resolveUid: async (nameLower) => { const d = await db.collection('usernames').doc(nameLower).get(); return d.exists && d.data() && d.data().uid ? String(d.data().uid) : null; },
+  resolveUid: resolveAccountUid,
   push: (uid, msg) => desktopLinkHub.push(uid, msg),
 }) : null;
 function clientIp(req) { return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(); }
@@ -170,7 +172,7 @@ const server = http.createServer(async (req, res) => {
         const b = await readJsonBody(req, 1024);
         const r = await desktopAuth.requestByUsername(b.username, clientIp(req));
         if (r.ok) return send(200, { ok: true, delivered: r.delivered, expiresInSec: r.expiresInSec });
-        return send(r.error === 'rate_limited' ? 429 : r.error === 'invalid_username' ? 400 : 500, { error: r.error });
+        return send(r.error === 'rate_limited' ? 429 : r.error === 'invalid_username' ? 400 : r.error === 'lookup_unavailable' ? 503 : 500, { error: r.error });
       }
       const body = await readJsonBody(req, 2048);
       const r = await desktopAuth.redeem(body.code, clientIp(req));
