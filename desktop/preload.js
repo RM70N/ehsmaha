@@ -260,6 +260,11 @@ if (isLocalApp && location.protocol !== 'file:') {
 // بدون إصدار جديد. نحمّله من أصل التطبيق فقط.
 if (isLocalApp && location.protocol !== 'file:') {
   window.addEventListener('DOMContentLoaded', () => {
+    // زر «الدخول عبر Google» مخفي داخل التطبيق فقط (الموقع نفسه لم يتغيّر)؛ الدخول بالإيميل أو برمز احسمها.
+    const hide = document.createElement('style');
+    hide.id = 'ehs-hide-google';
+    hide.textContent = '#auth-google-btn{display:none!important}';
+    (document.head || document.documentElement).appendChild(hide);
     const sc = document.createElement('script');
     sc.src = '/desktop-app-ui.js'; sc.async = true;
     (document.head || document.documentElement).appendChild(sc);
