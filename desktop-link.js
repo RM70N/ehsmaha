@@ -85,20 +85,43 @@
       return id;
     } catch (e) { return ''; }
   }
+  var TOAST_CSS = '#ehs-app-toasts{position:fixed;left:50%;transform:translateX(-50%);z-index:2147483000;display:flex;flex-direction:column;gap:12px;align-items:center;width:min(520px,calc(100vw - 32px));direction:rtl;font-family:inherit;pointer-events:none}' +
+    '#ehs-app-toasts.top{top:22px}#ehs-app-toasts.center{top:50%;transform:translate(-50%,-50%)}#ehs-app-toasts.bottom{bottom:26px}' +
+    '.ehs-t{--a:#F5C451;--b:#7C3AED;position:relative;pointer-events:auto;width:100%;overflow:hidden;display:flex;align-items:center;gap:14px;padding:16px 18px 20px;border-radius:18px;color:#F8F7FC;cursor:pointer;background:linear-gradient(135deg,rgba(36,18,72,.94),rgba(18,9,38,.96));-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 0 0 1px rgba(167,139,250,.28),0 18px 50px rgba(8,3,22,.65),0 0 38px -8px var(--b);animation:ehsIn .46s cubic-bezier(.2,.9,.25,1.15) both}' +
+    '#ehs-app-toasts.bottom .ehs-t{animation-name:ehsInUp}#ehs-app-toasts.center .ehs-t{animation-name:ehsPop;padding:22px 24px 26px}' +
+    '.ehs-t.ehs-out{animation:ehsOut .26s ease-in both!important}' +
+    '.ehs-t:before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;background:linear-gradient(120deg,var(--a),transparent 38%,transparent 62%,#F5C451);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.8}' +
+    '.ehs-t:after{content:"";position:absolute;top:0;bottom:0;width:38%;left:-50%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.14),transparent);transform:skewX(-18deg);animation:ehsShine 1.1s .35s ease-out 1 both}' +
+    '.ehs-ic{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;background:linear-gradient(145deg,var(--b),var(--a));box-shadow:0 6px 18px -4px var(--b),inset 0 1px 0 rgba(255,255,255,.35);animation:ehsRing 1.2s .45s ease-in-out 1 both}' +
+    '.ehs-ic svg{width:24px;height:24px}.ehs-bd{flex:1;min-width:0}.ehs-br{display:block;font-size:11px;font-weight:700;letter-spacing:.6px;color:var(--a)}' +
+    '.ehs-tt{font-size:15.5px;font-weight:800;line-height:1.5}.ehs-dd{margin-top:2px;font-size:13.5px;line-height:1.75;color:#D9CEFA;overflow-wrap:anywhere}' +
+    '#ehs-app-toasts.center .ehs-tt{font-size:18px}#ehs-app-toasts.center .ehs-dd{font-size:15px}' +
+    '.ehs-x{flex:none;width:30px;height:30px;border:0;border-radius:9px;background:rgba(255,255,255,.07);color:#C4B5FD;font-size:18px;line-height:1;cursor:pointer}.ehs-x:hover{background:rgba(255,255,255,.16);color:#fff}' +
+    '.ehs-bar{position:absolute;inset-inline:0;bottom:0;height:3px;background:rgba(255,255,255,.08)}.ehs-bar i{display:block;height:100%;transform-origin:right center;background:linear-gradient(270deg,var(--a),var(--b));animation:ehsDrain 20s linear forwards}.ehs-t:hover .ehs-bar i{animation-play-state:paused}' +
+    '@keyframes ehsIn{from{transform:translateY(-34px) scale(.94);opacity:0;filter:blur(6px)}to{transform:none;opacity:1;filter:none}}@keyframes ehsInUp{from{transform:translateY(34px) scale(.94);opacity:0;filter:blur(6px)}to{transform:none;opacity:1;filter:none}}' +
+    '@keyframes ehsPop{from{transform:scale(.82);opacity:0;filter:blur(8px)}to{transform:none;opacity:1;filter:none}}@keyframes ehsOut{to{transform:translateY(-14px) scale(.96);opacity:0}}' +
+    '@keyframes ehsShine{from{left:-50%}to{left:130%}}@keyframes ehsRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(11deg)}60%{transform:rotate(-7deg)}80%{transform:rotate(4deg)}}@keyframes ehsDrain{from{transform:scaleX(1)}to{transform:scaleX(0)}}' +
+    '@media (prefers-reduced-motion:reduce){.ehs-t,.ehs-t:after,.ehs-ic,.ehs-bar i{animation:none!important}}';
+  var BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
   function toast(title, body) {
     try {
+      if (!document.getElementById('ehs-app-toasts-css')) { var st = document.createElement('style'); st.id = 'ehs-app-toasts-css'; st.textContent = TOAST_CSS; document.head.appendChild(st); }
+      var pos = document.documentElement.getAttribute('data-ehs-toastpos'); if (pos !== 'center' && pos !== 'bottom') pos = 'top';
       var box = document.getElementById('ehs-app-toasts');
-      if (!box) {
-        box = document.createElement('div'); box.id = 'ehs-app-toasts';
-        box.style.cssText = 'position:fixed;inset-inline-start:18px;bottom:18px;z-index:2147483000;display:flex;flex-direction:column;gap:10px;direction:rtl;font-family:inherit';
-        document.body.appendChild(box);
-      }
-      var t = document.createElement('div');
-      t.style.cssText = 'min-width:260px;max-width:400px;background:#170B2D;color:#F8F7FC;border:1px solid rgba(167,139,250,.35);border-inline-start:4px solid #7C3AED;border-radius:12px;padding:12px 14px;box-shadow:0 12px 34px rgba(0,0,0,.5);font-size:14px;line-height:1.7';
-      var b = document.createElement('b'); b.textContent = title; t.appendChild(b);
-      if (body) { var p = document.createElement('div'); p.textContent = body; p.style.color = '#DDD1FF'; t.appendChild(p); }
-      t.addEventListener('click', function () { t.remove(); });
-      box.appendChild(t); setTimeout(function () { t.remove(); }, 20000);
+      if (!box) { box = document.createElement('div'); box.id = 'ehs-app-toasts'; document.body.appendChild(box); }
+      box.className = pos;
+      var t = document.createElement('div'); t.className = 'ehs-t'; t.setAttribute('role', 'status');
+      var ic = document.createElement('div'); ic.className = 'ehs-ic'; ic.innerHTML = BELL; t.appendChild(ic);
+      var bd = document.createElement('div'); bd.className = 'ehs-bd';
+      var br = document.createElement('span'); br.className = 'ehs-br'; br.textContent = 'احسمها'; bd.appendChild(br);
+      var tt = document.createElement('div'); tt.className = 'ehs-tt'; tt.textContent = title; bd.appendChild(tt);
+      if (body) { var dd = document.createElement('div'); dd.className = 'ehs-dd'; dd.textContent = body; bd.appendChild(dd); }
+      t.appendChild(bd);
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'ehs-x'; x.setAttribute('aria-label', 'إغلاق'); x.textContent = '×'; t.appendChild(x);
+      var bar = document.createElement('div'); bar.className = 'ehs-bar'; bar.appendChild(document.createElement('i')); t.appendChild(bar);
+      function close() { if (t.__g) return; t.__g = 1; t.classList.add('ehs-out'); setTimeout(function () { t.remove(); }, 260); }
+      t.addEventListener('click', close); bar.firstChild.addEventListener('animationend', close);
+      box.appendChild(t);
     } catch (e) {}
   }
   function osNotify(title, body) {
