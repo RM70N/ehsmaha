@@ -6,8 +6,36 @@ export function isQuota(e) {
   return /RESOURCE_EXHAUSTED|Quota exceeded|resource-exhausted/i.test(m) || (e && e.code === 8);
 }
 
+// دليل احتياطي من Firebase Auth: الموقع يحفظ اليوزر كـ displayName للحساب عند التسجيل/تغيير اليوزر، وAuth لا يتأثر
+// بحصة Firestore. نبني خريطة displayName(lower) → uid بقراءة listUsers على دفعات ونحدّثها كل 10 دقائق.
+const DIR_TTL = 10 * 60e3;
+const DIR_MAX_PAGES = 50; // ≤ 50,000 حساب
+
 export function createAccountResolver({ admin, db, now = Date.now }) {
   const cache = new Map();
+  let dir = null; // { map, exp }
+  let dirLoading = null;
+  async function authDirectory() {
+    if (dir && dir.exp > now()) return dir.map;
+    if (!dirLoading) {
+      dirLoading = (async () => {
+        const map = new Map();
+        let token;
+        for (let i = 0; i < DIR_MAX_PAGES; i++) {
+          const page = await admin.auth().listUsers(1000, token);
+          for (const u of page.users || []) {
+            const n = u && typeof u.displayName === 'string' ? u.displayName.trim().toLowerCase() : '';
+            if (n && !map.has(n)) map.set(n, u.uid);
+          }
+          token = page.pageToken;
+          if (!token) break;
+        }
+        dir = { map, exp: now() + DIR_TTL };
+        return map;
+      })().finally(() => { dirLoading = null; });
+    }
+    return dirLoading;
+  }
   return async function resolveAccountUid(key) {
     if (key.includes('@')) {
       try { return (await admin.auth().getUserByEmail(key)).uid; }
@@ -30,6 +58,13 @@ export function createAccountResolver({ admin, db, now = Date.now }) {
       const snap = await admin.database().ref('pendingUsernames/' + key.replace(/[.#$\[\]\/]/g, '_')).get();
       if (snap.exists() && snap.val() && snap.val().uid) return String(snap.val().uid);
     } catch (e) { /* الحكم بالأسفل */ }
+    if (quota) {
+      try {
+        const uid = (await authDirectory()).get(key.toLowerCase());
+        if (uid) { cache.set(key, { uid, exp: now() + 3600e3 }); return uid; }
+        // لا نجزم بعدم الوجود: حسابات قديمة قد لا تحمل displayName ⇒ نكمل إلى lookup_unavailable
+      } catch (e) { /* نكمل لـlookup_unavailable */ }
+    }
     if (quota) { const err = new Error('lookup_unavailable'); err.code = 'lookup_unavailable'; throw err; }
     return null;
   };
