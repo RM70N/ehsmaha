@@ -9,7 +9,7 @@ const fs = require('fs');
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
 
 const ROOT = path.join(__dirname, '../..');
-const HOSTS = { 'ehsmaha-wbkn.onrender.com': { ws: 18081, ctl: 19081 }, 'ehsmaha.onrender.com': { ws: 18082, ctl: 19082 } };
+const HOSTS = { 'ehsmaha-wbkn.onrender.com': { ws: 18081, ctl: 19081 }, 'ehsmaha-piratetok-bridge.onrender.com': { ws: 18081, ctl: 19081 }, 'ehsmaha.onrender.com': { ws: 18082, ctl: 19082 } };
 const PRIMARY = HOSTS['ehsmaha-wbkn.onrender.com'];
 const FALLBACK = HOSTS['ehsmaha.onrender.com'];
 

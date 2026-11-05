@@ -35,7 +35,7 @@ if (isLoginPage) {
   try {
     contextBridge.exposeInMainWorld('ehsmahaLogin', {
       google: () => ipcRenderer.invoke('login:google'),
-      requestCode: (u) => ipcRenderer.invoke('login:request-code', String(u || '').slice(0, 64)),
+      requestCode: (u) => ipcRenderer.invoke('login:request-code', String(u || '').slice(0, 254)),
       openLinkPage: () => ipcRenderer.invoke('login:open-link-page'),
       redeem: (code) => ipcRenderer.invoke('login:redeem', String(code || '').slice(0, 32)),
     });
