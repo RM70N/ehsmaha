@@ -88,7 +88,7 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const outIdx = args.indexOf('--out');
   const outFile = outIdx > -1 ? args[outIdx + 1] : null;
-  const dir = args.filter((a, i) => a !== '--out' && i !== outIdx + 1)[0];
+  const dir = args.filter((a, i) => a !== '--out' && (outIdx < 0 || i !== outIdx + 1))[0];
   if (!dir || !fs.existsSync(dir)) {
     console.error('usage: node site-manifest.js <site-dir> [--out file]');
     process.exit(1);
