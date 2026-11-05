@@ -30,6 +30,7 @@ const { syncContent, electronFetchBuffer } = require('./src/content-sync');
 const { UpdateCoordinator } = require('./src/update-coordinator');
 const { PROBE_SOURCE, classify } = require('./src/safe-point');
 const { initUpdater } = require('./src/updater');
+const { shouldInstallNow } = require('./src/auto-install');
 const { buildAppMenu } = require('./src/menu');
 const { AppState } = require('./src/state');
 const { Settings } = require('./src/settings');
@@ -71,6 +72,8 @@ let retryTimer = null;
 let syncTimer = null;
 let isQuitting = false;
 let shownOnce = false;
+let idleSince = 0;
+let autoInstallTimer = null;
 let lastStagedDiff = null;
 let gpuCrashes = 0;
 const crashTimes = [];
@@ -470,7 +473,7 @@ function registerIpc() {
   ipcMain.handle('ehsmaha:open-external', guard(['app'], (_e, url) => openExternal(String(url || ''))));
   ipcMain.handle('ehsmaha:retry', guard(['offline'], async () => { if (await isNetworkReachable()) reloadApp(); return true; }));
   ipcMain.on('ehsmaha:open-login', guard(['app'], () => openLoginWindow()));
-  ipcMain.on('ehsmaha:toast-action', guard(['app'], (_e, id) => { if (id === 'apply-content') coordinator.applyByConsent(); }));
+  ipcMain.on('ehsmaha:toast-action', guard(['app'], (_e, id) => { if (id === 'apply-content') coordinator.applyByConsent(); if (id === 'install-app-update' && updater && updater.state.ready) { isQuitting = true; updater.installNow(); } }));
   ipcMain.on('ehsmaha:page-event', guard(['app'], (_e, ev) => {
     if (!ev || !PAGE_EVENT_KINDS.has(ev.kind)) return;
     const r = notifications.handle({ ...ev, target: Object.prototype.hasOwnProperty.call(TARGETS, ev.target) ? ev.target : 'home' });
@@ -579,6 +582,24 @@ async function onNotificationClick(target) {
   if (classify(await probePage()).idle) mainWindow.webContents.executeJavaScript(navigationScript(target), false).catch(() => {});
 }
 
+function startAutoInstallWatcher() {
+  if (autoInstallTimer || E2E) return;
+  autoInstallTimer = setInterval(async () => {
+    try {
+      if (!updater || !updater.state.ready) return;
+      const idle = classify(await probePage()).idle;
+      const now = Date.now();
+      if (idle) { if (!idleSince) idleSince = now; } else idleSince = 0;
+      const d = shouldInstallNow({ ready: true, idle, win: windowState(), uptimeMs: process.uptime() * 1000, idleSinceMs: idleSince ? now - idleSince : 0 });
+      if (d.install) {
+        logger.info('updater', 'تثبيت تحديث التطبيق تلقائياً:', d.reason);
+        clearInterval(autoInstallTimer); autoInstallTimer = null;
+        isQuitting = true; updater.installNow();
+      }
+    } catch (e) { logger.warn('updater', 'auto-install check', e && e.message); }
+  }, 30 * 1000);
+}
+
 /* ------------------------------------------------------------------ الإقلاع */
 
 async function boot() {
@@ -661,7 +682,8 @@ async function boot() {
   updater = initUpdater({
     log: (m) => logger.info('updater', m),
     onReady: (version) => {
-      toast('تحديث التطبيق ' + version + ' جاهز، يتثبّت عند إغلاق التطبيق أو من الإعدادات.', 'info', { key: 'app-update', timeout: 12000 });
+      toast('تحديث التطبيق ' + version + ' جاهز. يتثبّت تلقائياً حين تكون بعيداً أو عند الإغلاق.', 'info', { key: 'app-update', timeout: 0, action: { id: 'install-app-update', label: 'حدّث الآن' } });
+      startAutoInstallWatcher();
       notifications.handle({ kind: 'update', id: 'app:' + version, title: 'تحديث جديد لتطبيق احسمها', body: 'النسخة ' + version + ' جاهزة، وتُثبَّت عند إغلاق التطبيق.', target: 'home' });
       if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('settings:changed', {});
     },
@@ -675,7 +697,7 @@ async function boot() {
   });
 
   setTimeout(() => updater.checkForUpdates(), 15000);
-  setInterval(() => updater.checkForUpdates(), 6 * 60 * 60 * 1000);
+  setInterval(() => updater.checkForUpdates(), 2 * 60 * 60 * 1000);
 
   if (!REMOTE_MODE && server) {
     setTimeout(() => runContentSync().catch(() => {}), E2E ? 1500 : 12000);
@@ -743,6 +765,7 @@ if (!gotLock) {
   app.on('activate', () => { if (!mainWindow) { createSplash(); createMainWindow(); } else showMainWindow(); });
   app.on('before-quit', () => {
     isQuitting = true;
+    clearInterval(autoInstallTimer);
     clearInterval(syncTimer); clearTimeout(retryTimer);
     if (coordinator) coordinator.dispose();
     if (server) server.stop();

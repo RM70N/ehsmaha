@@ -25,6 +25,7 @@ const ROOT_FILES = [
   'windows-app.html',
   'link-device.html',
   'desktop-link.js',
+  'desktop-app-ui.js',
   'code-race-banner.png',
   'discord-logo.png',
 ];
