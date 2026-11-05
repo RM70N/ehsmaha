@@ -150,7 +150,7 @@ function showToast({ message, kind, action, key, timeout }) {
 }
 
 ipcRenderer.on('ehsmaha:status', (_e, p) => {
-  if (p && p.type === 'flags' && document.documentElement) { document.documentElement.setAttribute('data-ehs-code-login', p.codeLogin === false ? '0' : '1'); return; }
+  if (p && p.type === 'flags' && document.documentElement) { document.documentElement.setAttribute('data-ehs-code-login', p.codeLogin === false ? '0' : '1'); if (typeof p.nativeLink === 'boolean') document.documentElement.setAttribute('data-ehs-native', p.nativeLink ? '1' : '0'); return; }
   if (!p || p.type !== 'toast') return;
   showToast({ message: p.message, kind: p.kind, action: p.action, key: p.key, timeout: p.timeout });
 });
