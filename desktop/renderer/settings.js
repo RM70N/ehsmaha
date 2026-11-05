@@ -12,6 +12,7 @@ async function load() {
   $('s-tray').checked = s.settings.closeToTray;
   $('s-ownerlink').checked = s.settings.ownerLink;
   $('s-zoom').value = s.settings.zoomFactor;
+  $('s-toastpos').value = s.settings.toastPosition;
   $('zoom-val').textContent = Math.round(s.settings.zoomFactor * 100) + '%';
   document.querySelectorAll('[data-n]').forEach((el) => { el.checked = !!s.settings.notif[el.dataset.n]; });
   $('b-apply').hidden = !s.info.contentPending;
@@ -21,6 +22,7 @@ async function load() {
 $('s-startup').addEventListener('change', (e) => api.set({ startWithWindows: e.target.checked }));
 $('s-tray').addEventListener('change', (e) => api.set({ closeToTray: e.target.checked }));
 $('s-ownerlink').addEventListener('change', (e) => api.set({ ownerLink: e.target.checked }));
+$('s-toastpos').addEventListener('change', (e) => api.set({ toastPosition: e.target.value }));
 $('s-zoom').addEventListener('input', (e) => { $('zoom-val').textContent = Math.round(e.target.value * 100) + '%'; });
 $('s-zoom').addEventListener('change', (e) => api.set({ zoomFactor: Number(e.target.value) }));
 document.querySelectorAll('[data-n]').forEach((el) => el.addEventListener('change', () => api.set({ notif: { [el.dataset.n]: el.checked } })));
