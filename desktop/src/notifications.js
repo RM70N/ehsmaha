@@ -17,6 +17,7 @@ const KIND_TO_SETTING = Object.freeze({
   update: 'updates',
   account: 'account',
   personal: 'account',
+  owner: 'events',
 });
 
 // نوع => نص عام يظهر على شاشة القفل بدل المحتوى الحساس.

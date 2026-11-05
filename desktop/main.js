@@ -31,6 +31,7 @@ const { UpdateCoordinator } = require('./src/update-coordinator');
 const { PROBE_SOURCE, classify } = require('./src/safe-point');
 const { initUpdater } = require('./src/updater');
 const { shouldInstallNow } = require('./src/auto-install');
+const { AppLink, cmpVer } = require('./src/app-link');
 const { buildAppMenu } = require('./src/menu');
 const { AppState } = require('./src/state');
 const { Settings } = require('./src/settings');
@@ -73,6 +74,8 @@ let syncTimer = null;
 let isQuitting = false;
 let shownOnce = false;
 let idleSince = 0;
+let appLink = null;
+let appFlags = { codeLogin: true };
 let autoInstallTimer = null;
 let lastStagedDiff = null;
 let gpuCrashes = 0;
@@ -259,6 +262,7 @@ function createMainWindow() {
     closeSplash();
     if (isAppUrl(wc.getURL())) {
       wc.setZoomFactor(settings.getAll().zoomFactor);
+      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin });
       wc.executeJavaScript(BRIDGE_SOURCE, false).catch((e) => logger.warn('bridge', e && e.message));
     }
     if (coordinator) coordinator.consider().catch(() => {});
@@ -506,6 +510,7 @@ function registerIpc() {
   ipcMain.handle('settings:set', guard(['settings'], (_e, patch) => {
     const next = settings.update(patch);
     applyLoginItem(next.startWithWindows);
+    syncAppLink();
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomFactor(next.zoomFactor);
     return next;
   }));
@@ -582,6 +587,43 @@ async function onNotificationClick(target) {
   if (classify(await probePage()).idle) mainWindow.webContents.executeJavaScript(navigationScript(target), false).catch(() => {});
 }
 
+function getInstallId() {
+  let id = state.get('installId', '');
+  if (!/^[a-f0-9]{32}$/.test(id)) { id = require('crypto').randomBytes(16).toString('hex'); state.set('installId', id); }
+  return id;
+}
+
+function handleOwnerNotify(m) {
+  toast(m.title + (m.body ? ' — ' + m.body : ''), 'info', { key: 'owner-' + m.id, timeout: 15000 });
+  const r = notifications.handle({ kind: 'owner', id: m.id, title: m.title, body: m.body, target: m.target, sentAt: m.sentAt });
+  logger.info('owner', 'إشعار من المالك:', r.reason);
+}
+
+function handleRemoteConfig(c) {
+  appFlags = { codeLogin: c.codeLoginEnabled !== false };
+  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin });
+  if (c.motd.active && c.motd.text && state.get('lastMotdId', '') !== c.motd.id) {
+    state.set('lastMotdId', c.motd.id);
+    toast(c.motd.text, 'info', { key: 'motd', timeout: 20000 });
+  }
+  if (c.minVersion && cmpVer(app.getVersion(), c.minVersion) < 0) {
+    toast('نسخة التطبيق (' + app.getVersion() + ') قديمة. التحديث إلى ' + c.minVersion + ' مطلوب.', 'error', { key: 'minver', timeout: 0, action: { id: 'install-app-update', label: 'حدّث الآن' } });
+    if (updater) updater.checkForUpdates();
+  }
+}
+
+function syncAppLink() {
+  const want = settings.getAll().ownerLink && (app.isPackaged || (E2E && process.env.EHSMAHA_APP_LINK === '1'));
+  if (want && !appLink) {
+    appLink = new AppLink({
+      WebSocketImpl: globalThis.WebSocket, url: AUTH_API.replace(/^http/, 'ws') + '/desktop-app/ws',
+      installId: getInstallId(), version: app.getVersion(), platform: process.platform,
+      onNotify: handleOwnerNotify, onConfig: handleRemoteConfig, log: (m) => logger.info('applink', m),
+    });
+    appLink.start();
+  } else if (!want && appLink) { appLink.stop(); appLink = null; }
+}
+
 function startAutoInstallWatcher() {
   if (autoInstallTimer || E2E) return;
   autoInstallTimer = setInterval(async () => {
@@ -593,7 +635,8 @@ function startAutoInstallWatcher() {
       const d = shouldInstallNow({ ready: true, idle, win: windowState(), uptimeMs: process.uptime() * 1000, idleSinceMs: idleSince ? now - idleSince : 0 });
       if (d.install) {
         logger.info('updater', 'تثبيت تحديث التطبيق تلقائياً:', d.reason);
-        clearInterval(autoInstallTimer); autoInstallTimer = null;
+        clearInterval(autoInstallTimer);
+    if (appLink) appLink.stop(); autoInstallTimer = null;
         isQuitting = true; updater.installNow();
       }
     } catch (e) { logger.warn('updater', 'auto-install check', e && e.message); }
@@ -696,6 +739,7 @@ async function boot() {
     checkForUpdates: openSettings, isDev: IS_DEV,
   });
 
+  syncAppLink();
   setTimeout(() => updater.checkForUpdates(), 15000);
   setInterval(() => updater.checkForUpdates(), 2 * 60 * 60 * 1000);
 
@@ -705,7 +749,7 @@ async function boot() {
   }
 
   if (E2E) {
-    global.__ehsTest = { store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
+    global.__ehsTest = { store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, getAppLink: () => appLink, getFlags: () => appFlags, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
   }
 }
 
