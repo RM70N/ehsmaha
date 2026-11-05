@@ -65,3 +65,77 @@
   }
   if (window.__fb) start(); else window.addEventListener('fb-ready', start, { once: true });
 })();
+
+/*
+ * حضور تطبيق احسمها لويندوز + استقبال إشعارات/رسائل المالك — لكل إصدارات التطبيق (1.1.0 وما بعد) بدون تحديث EXE:
+ * هذا الملف جزء من محتوى الموقع فيصل التطبيقات تلقائياً بمزامنة المحتوى. التطبيق 1.1.3+ يملك اتصالاً أصلياً
+ * (data-ehs-native="1") فيتوقف هذا العميل عنه لتفادي العدّ المزدوج. لا يعمل بالمتصفح العادي.
+ */
+(function () {
+  var D = window.ehsmahaDesktop;
+  if (!D || !D.isDesktopApp || window.__ehsAppPresence) return;
+  window.__ehsAppPresence = true;
+  var API = (window.EHS_APP_LINK_API || 'wss://ehsmaha-piratetok-bridge.onrender.com') + '/desktop-app/ws';
+  var ws = null, retry = 0, timer = null, version = '', seen = {};
+
+  function installId() {
+    try {
+      var id = localStorage.getItem('ehs_app_install_id');
+      if (!/^[a-f0-9]{32}$/.test(id || '')) { var a = new Uint8Array(16); crypto.getRandomValues(a); id = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); localStorage.setItem('ehs_app_install_id', id); }
+      return id;
+    } catch (e) { return ''; }
+  }
+  function toast(title, body) {
+    try {
+      var box = document.getElementById('ehs-app-toasts');
+      if (!box) {
+        box = document.createElement('div'); box.id = 'ehs-app-toasts';
+        box.style.cssText = 'position:fixed;inset-inline-start:18px;bottom:18px;z-index:2147483000;display:flex;flex-direction:column;gap:10px;direction:rtl;font-family:inherit';
+        document.body.appendChild(box);
+      }
+      var t = document.createElement('div');
+      t.style.cssText = 'min-width:260px;max-width:400px;background:#170B2D;color:#F8F7FC;border:1px solid rgba(167,139,250,.35);border-inline-start:4px solid #7C3AED;border-radius:12px;padding:12px 14px;box-shadow:0 12px 34px rgba(0,0,0,.5);font-size:14px;line-height:1.7';
+      var b = document.createElement('b'); b.textContent = title; t.appendChild(b);
+      if (body) { var p = document.createElement('div'); p.textContent = body; p.style.color = '#DDD1FF'; t.appendChild(p); }
+      t.addEventListener('click', function () { t.remove(); });
+      box.appendChild(t); setTimeout(function () { t.remove(); }, 20000);
+    } catch (e) {}
+  }
+  function osNotify(title, body) {
+    try {
+      if (typeof Notification === 'function' && Notification.permission === 'granted' && (document.hidden || !document.hasFocus())) new Notification(title, { body: body || '' });
+    } catch (e) {}
+  }
+  function onMsg(m) {
+    if (!m || typeof m !== 'object') return;
+    if (m.type === 'notify' && typeof m.id === 'string' && typeof m.title === 'string' && !seen[m.id]) {
+      seen[m.id] = 1; var title = m.title.slice(0, 80), body = String(m.body || '').slice(0, 240);
+      toast(title, body); osNotify(title, body);
+    } else if (m.type === 'config' && m.config) {
+      var c = m.config;
+      document.documentElement.setAttribute('data-ehs-code-login', c.codeLoginEnabled === false ? '0' : '1');
+      if (c.motd && c.motd.active && c.motd.text) { try { if (localStorage.getItem('ehs_motd_seen') !== c.motd.id) { localStorage.setItem('ehs_motd_seen', c.motd.id); toast('رسالة من احسمها', String(c.motd.text).slice(0, 300)); } } catch (e) {} }
+    }
+  }
+  function open() {
+    clearTimeout(timer);
+    var id = installId(); if (!id) return;
+    try { ws = new WebSocket(API); } catch (e) { return sched(); }
+    ws.onopen = function () { ws.send(JSON.stringify({ type: 'hello', installId: id, version: version, platform: 'win32' })); };
+    ws.onmessage = function (ev) { retry = 0; try { onMsg(JSON.parse(ev.data)); } catch (e) {} };
+    ws.onclose = function () { ws = null; sched(); };
+    ws.onerror = function () {};
+  }
+  function sched() { retry = Math.min(retry + 1, 8); timer = setTimeout(open, Math.min(60000, 2000 * Math.pow(2, retry - 1)) + Math.random() * 1000); }
+
+  // ننتظر قليلاً: إن كان للتطبيق اتصال أصلي (1.1.3+) نتوقف.
+  setTimeout(function () {
+    if (document.documentElement.getAttribute('data-ehs-native') === '1') return;
+    Promise.resolve(typeof D.getInfo === 'function' ? D.getInfo() : null).then(function (i) { version = (i && /^\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(i.version)) ? i.version : ''; if (window.EHS_APP_VERSION_OVERRIDE) version = window.EHS_APP_VERSION_OVERRIDE; /* للاختبارات فقط */ }, function () {}).then(function () {
+      // 1.1.3 وما بعد لها اتصال أصلي بالتطبيق نفسه (حتى لو لم يصل وسم data-ehs-native بعد) ⇒ لا نعدّها مرتين.
+      var p = version.split('.').map(Number); if (p.length === 3 && (p[0] > 1 || (p[0] === 1 && (p[1] > 1 || (p[1] === 1 && p[2] >= 3))))) return;
+      open();
+    });
+  }, 4000);
+})();
+

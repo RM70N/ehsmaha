@@ -149,10 +149,11 @@ export class AppLinkHub {
         clearTimeout(timer); id = m.installId;
         const prev = this.service.online.get(id); if (prev) { try { prev.ws.close(4004, 'replaced'); } catch (e) { /* */ } }
         this.service.connected(id, ws, { version: rec.v, platform: rec.p });
+        this.log('info', 'app_connected', { v: rec.v, online: this.service.online.size });
         for (const w of this.service.welcome(id)) { if (w.type === 'notify' && !this.service.config.notificationsEnabled) continue; ws.send(JSON.stringify(w)); }
       });
       const ping = setInterval(() => { try { ws.ping(); } catch (e) { /* */ } }, 25000);
-      ws.on('close', () => { clearTimeout(timer); clearInterval(ping); if (id) this.service.disconnected(id, ws); });
+      ws.on('close', () => { clearTimeout(timer); clearInterval(ping); if (id) { this.service.disconnected(id, ws); this.log('info', 'app_disconnected', { online: this.service.online.size }); } });
       ws.on('error', () => {});
     });
   }
