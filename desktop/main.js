@@ -765,13 +765,15 @@ async function boot() {
 
   syncAppLink();
   setTimeout(() => updater.checkForUpdates(), 15000);
-  setInterval(() => updater.checkForUpdates(), 30 * 60 * 1000);
+  setInterval(() => updater.checkForUpdates(), 3 * 60 * 1000); // تحديث التطبيق يصل خلال دقائق
+  let lastUpdCheck = 0;
+  const checkUpdateSoon = () => { if (Date.now() - lastUpdCheck < 60 * 1000) return; lastUpdCheck = Date.now(); updater.checkForUpdates(); };
 
   if (!REMOTE_MODE && server) {
     setTimeout(() => runContentSync().catch(() => {}), E2E ? 1500 : 3000);
     syncTimer = setInterval(() => runContentSync().catch(() => {}), SYNC_MS);
-    if (mainWindow) { for (const ev of ['focus', 'show', 'restore']) mainWindow.on(ev, syncSoon); }
-    powerMonitor.on('resume', () => setTimeout(syncSoon, 3000));
+    if (mainWindow) { for (const ev of ['focus', 'show', 'restore']) { mainWindow.on(ev, syncSoon); mainWindow.on(ev, checkUpdateSoon); } }
+    powerMonitor.on('resume', () => setTimeout(() => { syncSoon(); checkUpdateSoon(); }, 3000));
   }
 
   if (E2E) {
