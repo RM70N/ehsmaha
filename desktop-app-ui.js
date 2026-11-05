@@ -9,6 +9,8 @@
   window.__ehsDesktopAppUi = true;
 
   var CSS = `
+html[data-ehs-code-login="0"] #ehs-code-login-btn{display:none !important}
+
 #ehs-code-login-btn{position:relative;width:100%;margin:0 0 12px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 16px;
   border:1px solid rgba(167,139,250,.55);border-radius:14px;cursor:pointer;direction:rtl;text-align:right;color:#F8F7FC;font-family:inherit;
   background:linear-gradient(135deg,#4C1D95 0%,#5B21B6 45%,#7C3AED 100%);

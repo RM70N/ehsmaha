@@ -14,6 +14,7 @@ import * as eulerProvider from './providers/eulerProvider.js';
 import { TestHarness } from './testHarness.js';
 import { DesktopAuthService, DesktopLinkHub, corsHeaders } from './desktopAuth.js';
 import { createAccountResolver } from './accountLookup.js';
+import { AppControlService, AppLinkHub, createDownloadsFetcher, OWNER_EMAIL } from './appControl.js';
 import { LegacyBridgeServer } from './legacyBridge.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
@@ -48,6 +49,15 @@ const linking = db ? new LinkingService(db) : null;
 const broadcaster = new RelayBroadcaster({ verifyToken, log });
 // رمز ربط التطبيق (يحتاج admin لإصدار Custom Token)
 const resolveAccountUid = db ? createAccountResolver({ admin, db }) : null;
+// التحكم بتطبيق ويندوز من لوحة المالك (إحصاءات/إشعار/إعدادات). التخزين الدائم: RTDB عبر admin.
+const appStore = db ? {
+  get: async (p) => { const s = await admin.database().ref(p).get(); return s.exists() ? s.val() : null; },
+  set: async (p, v) => { await admin.database().ref(p).set(v); },
+} : null;
+const appControl = new AppControlService({ store: appStore, fetchDownloads: createDownloadsFetcher(), log });
+appControl.load().then(() => log('info', 'appctl_loaded', { installs: appControl.installs.size }));
+const appLinkHub = new AppLinkHub({ service: appControl, log });
+async function requireOwner(req) { const u = await verifyToken(bearerToken(req)); return u && String(u.email || '').toLowerCase() === OWNER_EMAIL ? u : null; }
 const desktopLinkHub = new DesktopLinkHub({ verifyToken, log });
 const desktopAuth = db ? new DesktopAuthService({
   createCustomToken: (uid) => admin.auth().createCustomToken(uid),
@@ -183,6 +193,31 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
+  if (path.startsWith('/desktop-app/admin/')) {
+    const cors = corsHeaders(req.headers.origin || '');
+    const send = (code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...cors }); res.end(JSON.stringify(obj)); };
+    if (req.method === 'OPTIONS') { res.writeHead(204, cors); return res.end(); }
+    if (!cors['Access-Control-Allow-Origin']) return send(403, { error: 'forbidden_origin' });
+    try {
+      if (!(await requireOwner(req))) return send(401, { error: 'unauthorized' });
+      if (path === '/desktop-app/admin/stats' && req.method === 'GET') return send(200, await appControl.stats());
+      if (path === '/desktop-app/admin/config' && req.method === 'GET') return send(200, { config: appControl.getConfig() });
+      if (path === '/desktop-app/admin/config' && req.method === 'POST') {
+        const b = await readJsonBody(req, 4096);
+        const cfg = await appControl.setConfig(b);
+        appLinkHub.broadcastConfig();
+        return send(200, { config: cfg });
+      }
+      if (path === '/desktop-app/admin/notify' && req.method === 'POST') {
+        const b = await readJsonBody(req, 2048);
+        if (!appControl.getConfig().notificationsEnabled) return send(409, { error: 'notifications_disabled' });
+        const r = appControl.notify(b, (m) => appLinkHub.broadcast(m));
+        return r.ok ? send(200, r) : send(400, { error: r.error });
+      }
+      return send(404, { error: 'not_found' });
+    } catch (e) { return send(400, { error: 'bad_request' }); }
+  }
+
   if (path === '/link' && req.method === 'POST') {
     if (!linking) return sendJson(res, 503, { error: 'firebase_not_configured' });
     try {
@@ -226,6 +261,7 @@ server.on('upgrade', (req, socket, head) => {
   if (path === '/ws') legacyBridge.handleUpgrade(req, socket, head);
   else if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
   else if (path === '/desktop-auth/ws') desktopLinkHub.handleUpgrade(req, socket, head);
+  else if (path === '/desktop-app/ws') appLinkHub.handleUpgrade(req, socket, head);
   else if (TEST_HARNESS_ENABLED && path === '/testws' && testHarness) testHarness.handleUpgrade(req, socket, head);
   else socket.destroy();
 });

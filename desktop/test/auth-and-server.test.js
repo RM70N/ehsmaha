@@ -145,3 +145,27 @@ test('auto-install policy: never during a round, only when user is away or long 
   assert.equal(shouldInstallNow({ ...base, win: present }).reason, 'user-present');
   assert.equal(shouldInstallNow({ ...base, win: present, idleSinceMs: IDLE_FOCUSED_MS }).reason, 'long-idle');
 });
+
+test('AppLink: hello, validates/dedups owner notifications, sanitises config, reconnects with backoff, stops cleanly', () => {
+  const { AppLink, cmpVer } = require('../src/app-link');
+  const sent = []; const inst = [];
+  class FakeWS { constructor(u) { this.u = u; this.readyState = 1; inst.push(this); } send(d) { sent.push(JSON.parse(d)); } close() { this.closed = true; } }
+  const timers = []; const notes = []; const cfgs = [];
+  const l = new AppLink({ WebSocketImpl: FakeWS, url: 'ws://x/desktop-app/ws', installId: 'a'.repeat(32), version: '1.1.2', platform: 'win32',
+    onNotify: (m) => notes.push(m), onConfig: (c) => cfgs.push(c), setTimeoutImpl: (fn, ms) => { timers.push([fn, ms]); return { unref() {} }; }, clearTimeoutImpl: () => {} });
+  l.start(); inst[0].onopen();
+  assert.deepEqual(sent[0], { type: 'hello', installId: 'a'.repeat(32), version: '1.1.2', platform: 'win32' });
+  const msg = (o) => inst[0].onmessage({ data: JSON.stringify(o) });
+  msg({ type: 'notify', id: 'n1', title: 'مرحبا', body: 'x', target: 'home', sentAt: 5 });
+  msg({ type: 'notify', id: 'n1', title: 'مكرر' });            // dedup
+  msg({ type: 'notify', title: 'بلا id' }); msg({ type: 'notify', id: 'n2' }); msg({ type: 'evil' }); inst[0].onmessage({ data: 'not json' });
+  assert.deepEqual(notes.map((n) => n.id), ['n1']);
+  msg({ type: 'config', config: { motd: { text: 'صيانة', id: 'm1', active: true }, minVersion: 'abc', codeLoginEnabled: false, junk: 1 } });
+  assert.deepEqual(cfgs[0], { motd: { text: 'صيانة', id: 'm1', active: true }, minVersion: '', codeLoginEnabled: false });
+  inst[0].onclose(); assert.equal(timers.length, 1); assert.ok(timers[0][1] >= 2000 && timers[0][1] < 3100);
+  timers[0][0](); assert.equal(inst.length, 2);
+  inst[1].onclose(); assert.ok(timers[1][1] >= 4000);
+  timers[1][0](); assert.equal(inst.length, 3);
+  l.stop(); assert.equal(inst[2].closed, true); assert.equal(inst[2].onclose, null); assert.equal(timers.length, 2, 'no reconnect after stop');
+  assert.equal(cmpVer('1.1.2', '1.1.10') < 0, true); assert.equal(cmpVer('2.0.0', '1.9.9') > 0, true);
+});
