@@ -130,3 +130,18 @@ test('requestLinkCode: accepts an email, maps lookup_unavailable', async () => {
   assert.equal((await requestLinkCode('x', { postJson: async () => ({}), api: 'http://x' })).error, 'invalid_username');
   assert.equal((await requestLinkCode('sultan', { postJson: async () => ({ status: 503, json: { error: 'lookup_unavailable' } }), api: 'http://x' })).error, 'lookup_unavailable');
 });
+
+test('auto-install policy: never during a round, only when user is away or long idle', () => {
+  const { shouldInstallNow, MIN_UPTIME_MS, IDLE_FOCUSED_MS } = require('../src/auto-install');
+  const away = { visible: false, focused: false, minimized: false };
+  const base = { ready: true, idle: true, win: away, uptimeMs: MIN_UPTIME_MS + 1, idleSinceMs: 0 };
+  assert.equal(shouldInstallNow({ ...base, ready: false }).install, false);
+  assert.equal(shouldInstallNow({ ...base, uptimeMs: 1000 }).reason, 'just-started');
+  assert.equal(shouldInstallNow({ ...base, idle: false }).reason, 'busy');           // جولة/بث نشط
+  assert.equal(shouldInstallNow({ ...base, idle: false, win: away }).install, false);  // حتى لو المستخدم بعيد
+  assert.deepEqual(shouldInstallNow(base), { install: true, reason: 'user-away' });
+  assert.equal(shouldInstallNow({ ...base, win: { visible: true, focused: false, minimized: true } }).install, true);
+  const present = { visible: true, focused: true, minimized: false };
+  assert.equal(shouldInstallNow({ ...base, win: present }).reason, 'user-present');
+  assert.equal(shouldInstallNow({ ...base, win: present, idleSinceMs: IDLE_FOCUSED_MS }).reason, 'long-idle');
+});
