@@ -14,7 +14,6 @@ $('send').addEventListener('click', async () => {
   say('وصل الرمز إلى شاشة احسمها. اكتبه هنا.', 'ok');
 });
 $('user').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('send').click(); });
-$('google').addEventListener('click', async () => { await api.google(); say('أكمل الدخول في المتصفح ثم ارجع للتطبيق.'); });
 $('code').addEventListener('input', (e) => {
   const v = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
   e.target.value = v.length > 4 ? v.slice(0, 4) + '-' + v.slice(4) : v;
