@@ -478,7 +478,7 @@ function registerIpc() {
 
   ipcMain.handle('login:google', guard(['login'], () => { startGoogleLogin(); return true; }));
   ipcMain.handle('login:request-code', guard(['login'], async (_e, username) => {
-    const r = await requestLinkCode(String(username || '').slice(0, 64), { postJson: postJsonViaNet, api: AUTH_API });
+    const r = await requestLinkCode(String(username || '').slice(0, 254), { postJson: postJsonViaNet, api: AUTH_API });
     if (!r.ok) logger.warn('auth', 'request-code refused:', r.error);
     return r;
   }));

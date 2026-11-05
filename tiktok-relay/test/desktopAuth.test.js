@@ -82,3 +82,15 @@ test('requestByUsername: pushes code to the account\'s open sessions only; never
   assert.equal((await s.requestByUsername('sultan', '4.4.4.4')).error, 'rate_limited');
   assert.equal((await s.requestByUsername('a b!', 'ip')).error, 'invalid_username');
 });
+
+test('requestByUsername: accepts email; quota outage surfaces lookup_unavailable (not a generic error)', async () => {
+  const seen = [];
+  const s = new DesktopAuthService({
+    createCustomToken: async () => 'x', push: () => 1,
+    resolveUid: async (k) => { seen.push(k); if (k === 'down') { const e = new Error('q'); e.code = 'lookup_unavailable'; throw e; } return k.includes('@') ? 'uidE' : null; },
+  });
+  assert.deepEqual((await s.requestByUsername('User@Mail.com', 'i1')).ok, true);
+  assert.equal(seen[0], 'user@mail.com');
+  assert.equal((await s.requestByUsername('down', 'i2')).error, 'lookup_unavailable');
+  assert.equal((await s.requestByUsername('bad@@x', 'i3')).error, 'invalid_username');
+});

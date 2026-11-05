@@ -122,3 +122,11 @@ test('site-manifest CLI works exactly as pages.yml calls it (dir only, and with 
   execFileSync(process.execPath, [cli, dir, '--out', out]);
   assert.ok(fs.existsSync(out));
 });
+
+test('requestLinkCode: accepts an email, maps lookup_unavailable', async () => {
+  const { requestLinkCode } = require('../src/auth-bridge');
+  let sent; const ok = await requestLinkCode('Me@Mail.com', { postJson: async (u, b) => { sent = b; return { status: 200, json: { ok: true, delivered: true } }; }, api: 'http://x' });
+  assert.deepEqual(sent, { username: 'Me@Mail.com' }); assert.equal(ok.ok, true);
+  assert.equal((await requestLinkCode('x', { postJson: async () => ({}), api: 'http://x' })).error, 'invalid_username');
+  assert.equal((await requestLinkCode('sultan', { postJson: async () => ({ status: 503, json: { error: 'lookup_unavailable' } }), api: 'http://x' })).error, 'lookup_unavailable');
+});
