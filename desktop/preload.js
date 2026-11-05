@@ -161,7 +161,7 @@ if (isLocalApp && location.protocol !== 'file:') {
 
 // زر «الدخول برمز احسمها» تحت زر جوجل بصفحة تسجيل الدخول (إضافة من التطبيق فقط؛ لا يعدّل ملفات الموقع).
 const CODE_BTN_CSS = `
-#ehs-code-login-btn{position:relative;width:100%;margin-top:12px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 16px;
+#ehs-code-login-btn{position:relative;width:100%;margin:0 0 12px;display:flex;align-items:center;gap:12px;padding:10px 14px 10px 16px;
   border:1px solid rgba(167,139,250,.55);border-radius:14px;cursor:pointer;direction:rtl;text-align:right;color:#F8F7FC;font-family:inherit;
   background:linear-gradient(135deg,#4C1D95 0%,#5B21B6 45%,#7C3AED 100%);
   box-shadow:0 6px 22px rgba(124,58,237,.35),inset 0 1px 0 rgba(255,255,255,.18);overflow:hidden;isolation:isolate;
@@ -196,7 +196,7 @@ function injectCodeLoginButton() {
   b.type = 'button'; b.id = 'ehs-code-login-btn';
   b.innerHTML = CODE_BTN_HTML; // محتوى ثابت من التطبيق (لا مدخلات خارجية)
   b.addEventListener('click', () => ipcRenderer.send('ehsmaha:open-login'));
-  g.insertAdjacentElement('afterend', b);
+  g.insertAdjacentElement('beforebegin', b); // فوق زر جوجل
 }
 if (isLocalApp && location.protocol !== 'file:') {
   window.addEventListener('DOMContentLoaded', () => {
