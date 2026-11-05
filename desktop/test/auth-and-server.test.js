@@ -108,3 +108,17 @@ test('requestLinkCode: validates username locally and maps responses', async () 
   assert.equal((await requestLinkCode('sultan', { postJson: async () => { throw new Error('n'); }, api })).error, 'network');
   assert.equal((await requestLinkCode('sultan', { postJson: async () => ({ status: 429, json: { error: 'rate_limited' } }), api })).error, 'rate_limited');
 });
+
+test('site-manifest CLI works exactly as pages.yml calls it (dir only, and with --out)', () => {
+  const { execFileSync } = require('child_process');
+  const os = require('os');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cli-site-'));
+  fs.writeFileSync(path.join(dir, 'index.html'), '<!doctype html><html></html>');
+  const cli = path.join(__dirname, '..', 'scripts', 'site-manifest.js');
+  execFileSync(process.execPath, [cli, dir]);
+  const m = JSON.parse(fs.readFileSync(path.join(dir, 'content-manifest.json'), 'utf8'));
+  assert.equal(m.files.length, 1);
+  const out = path.join(dir, 'x.json');
+  execFileSync(process.execPath, [cli, dir, '--out', out]);
+  assert.ok(fs.existsSync(out));
+});
