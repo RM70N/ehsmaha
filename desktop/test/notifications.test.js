@@ -122,3 +122,12 @@ test('deeplinks: whitelist only', () => {
   assert.ok(navigationScript('"+alert(1)+"').includes('"home"'));
   assert.equal(resolveTarget('__proto__'), 'pg-home');
 });
+
+test('settings: toastPosition defaults to top, accepts only top|center|bottom', () => {
+  const mem = {}; const st = { get: (k, d) => (k in mem ? mem[k] : d), set: (k, v) => { mem[k] = v; } };
+  const s = new (require('../src/settings').Settings)(st);
+  assert.equal(s.getAll().toastPosition, 'top');
+  assert.equal(s.update({ toastPosition: 'center' }).toastPosition, 'center');
+  assert.equal(s.update({ toastPosition: 'left' }).toastPosition, 'center');
+  assert.equal(s.update({ toastPosition: 'bottom' }).toastPosition, 'bottom');
+});

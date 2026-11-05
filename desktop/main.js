@@ -102,7 +102,7 @@ function appIcon() {
 function sendStatus(payload) {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('ehsmaha:status', payload);
 }
-function toast(message, kind, extra) { sendStatus({ type: 'toast', message, kind: kind || 'info', ...(extra || {}) }); }
+function toast(message, kind, extra) { sendStatus({ type: 'toast', message, kind: kind || 'info', position: settings ? settings.getAll().toastPosition : 'top', ...(extra || {}) }); }
 
 function hostOf(url) { try { return new URL(url); } catch (e) { return null; } }
 function isAppUrl(url) { const u = hostOf(url); return !!(u && appOrigin && u.origin === appOrigin); }
@@ -265,7 +265,7 @@ function createMainWindow() {
     closeSplash();
     if (isAppUrl(wc.getURL())) {
       wc.setZoomFactor(settings.getAll().zoomFactor);
-      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
+      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink, toastPosition: settings ? settings.getAll().toastPosition : 'top' });
       wc.executeJavaScript(BRIDGE_SOURCE, false).catch((e) => logger.warn('bridge', e && e.message));
     }
     if (coordinator) coordinator.consider().catch(() => {});
@@ -526,7 +526,12 @@ function registerIpc() {
     info: { version: app.getVersion(), electron: process.versions.electron, ...contentInfo(), appUpdateReady: !!(updater && updater.state.ready) },
   })));
   ipcMain.handle('settings:set', guard(['settings'], (_e, patch) => {
+    const prevPos = settings.getAll().toastPosition;
     const next = settings.update(patch);
+    if (next.toastPosition !== prevPos) {
+      sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink, toastPosition: next.toastPosition });
+      toast('هكذا ستظهر رسائل التطبيق من الآن.', 'info', { key: 'pos-preview', timeout: 4000, title: 'احسمها', body: 'هكذا ستظهر رسائل التطبيق من الآن.', variant: 'owner' });
+    }
     applyLoginItem(next.startWithWindows);
     syncAppLink();
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.setZoomFactor(next.zoomFactor);
@@ -612,17 +617,17 @@ function getInstallId() {
 }
 
 function handleOwnerNotify(m) {
-  toast(m.title + (m.body ? ' — ' + m.body : ''), 'info', { key: 'owner-' + m.id, timeout: 15000 });
+  toast(m.title + (m.body ? ' — ' + m.body : ''), 'info', { key: 'owner-' + m.id, timeout: 15000, title: m.title, body: m.body || '', variant: 'owner' });
   const r = notifications.handle({ kind: 'owner', id: m.id, title: m.title, body: m.body, target: m.target, sentAt: m.sentAt });
   logger.info('owner', 'إشعار من المالك:', r.reason);
 }
 
 function handleRemoteConfig(c) {
   appFlags = { codeLogin: c.codeLoginEnabled !== false };
-  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
+  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink, toastPosition: settings ? settings.getAll().toastPosition : 'top' });
   if (c.motd.active && c.motd.text && state.get('lastMotdId', '') !== c.motd.id) {
     state.set('lastMotdId', c.motd.id);
-    toast(c.motd.text, 'info', { key: 'motd', timeout: 20000 });
+    toast(c.motd.text, 'info', { key: 'motd', timeout: 20000, title: 'رسالة من احسمها', body: c.motd.text, variant: 'owner' });
   }
   if (c.minVersion && cmpVer(app.getVersion(), c.minVersion) < 0) {
     toast('نسخة التطبيق (' + app.getVersion() + ') قديمة. التحديث إلى ' + c.minVersion + ' مطلوب.', 'error', { key: 'minver', timeout: 0, action: { id: 'install-app-update', label: 'حدّث الآن' } });
@@ -640,7 +645,7 @@ function syncAppLink() {
     });
     appLink.start();
   } else if (!want && appLink) { appLink.stop(); appLink = null; }
-  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink });
+  sendStatus({ type: 'flags', codeLogin: appFlags.codeLogin, nativeLink: !!appLink, toastPosition: settings ? settings.getAll().toastPosition : 'top' });
 }
 
 function startAutoInstallWatcher() {
@@ -760,17 +765,19 @@ async function boot() {
 
   syncAppLink();
   setTimeout(() => updater.checkForUpdates(), 15000);
-  setInterval(() => updater.checkForUpdates(), 30 * 60 * 1000);
+  setInterval(() => updater.checkForUpdates(), 3 * 60 * 1000); // تحديث التطبيق يصل خلال دقائق
+  let lastUpdCheck = 0;
+  const checkUpdateSoon = () => { if (Date.now() - lastUpdCheck < 60 * 1000) return; lastUpdCheck = Date.now(); updater.checkForUpdates(); };
 
   if (!REMOTE_MODE && server) {
     setTimeout(() => runContentSync().catch(() => {}), E2E ? 1500 : 3000);
     syncTimer = setInterval(() => runContentSync().catch(() => {}), SYNC_MS);
-    if (mainWindow) { for (const ev of ['focus', 'show', 'restore']) mainWindow.on(ev, syncSoon); }
-    powerMonitor.on('resume', () => setTimeout(syncSoon, 3000));
+    if (mainWindow) { for (const ev of ['focus', 'show', 'restore']) { mainWindow.on(ev, syncSoon); mainWindow.on(ev, checkUpdateSoon); } }
+    powerMonitor.on('resume', () => setTimeout(() => { syncSoon(); checkUpdateSoon(); }, 3000));
   }
 
   if (E2E) {
-    global.__ehsTest = { syncSoon, store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, getAppLink: () => appLink, getFlags: () => appFlags, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
+    global.__ehsTest = { toast, handleOwnerNotify, syncSoon, store, coordinator, notifications, settings, runContentSync, probePage, getMainWindow: () => mainWindow, getServer: () => server, authBridge, shown: NotifClass.shown, openSettings, getSettingsWindow: () => settingsWindow, getAppLink: () => appLink, getFlags: () => appFlags, openLoginWindow, getLoginWindow: () => loginWindow, updater, externals: () => global.__ehsExternals || [] };
   }
 }
 

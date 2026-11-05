@@ -7,7 +7,7 @@
  *  - ونفضّل التثبيت الصامت عند إغلاق التطبيق (autoInstallOnAppQuit) دائماً.
  */
 const MIN_UPTIME_MS = 60 * 1000;      // لا نعيد التشغيل بأول دقيقة من الإقلاع
-const IDLE_FOCUSED_MS = 10 * 60 * 1000; // نافذة مفتوحة ومركّزة لكن خاملة (بلا جولة) هذه المدة
+const IDLE_FOCUSED_MS = 2 * 60 * 1000;  // نافذة مفتوحة ومركّزة لكن خاملة (بلا جولة) هذه المدة
 
 /**
  * @param {{ready:boolean, idle:boolean, win:{visible:boolean, focused:boolean, minimized:boolean}, uptimeMs:number, idleSinceMs:number}} c
