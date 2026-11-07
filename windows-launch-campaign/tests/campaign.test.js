@@ -66,6 +66,12 @@ const setNow=async(t)=>{await fetch(URL+'__now?t='+encodeURIComponent(t||''))};
   ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await waitOpen(pg);
   await pg.evaluate(()=>{const a=document.querySelector('.page.active'); if(a) a.classList.remove('active'); let g=document.getElementById('pg-bomb-play'); if(!g){g=document.createElement('div');g.className='page';g.id='pg-bomb-play';document.body.appendChild(g)} g.classList.add('active');}); await pg.waitForFunction(()=>!document.getElementById('wlc-root'),null,{timeout:8000}); ok('overlay closes if player enters a game while it is open'); await ctx.close();
 
+  // 8b) connected TikTok chat only (no round) must NOT block the ad
+  ({ctx,pg}=await mk()); await pg.addInitScript(()=>{window.addEventListener('DOMContentLoaded',()=>{const s=document.createElement('script');s.textContent='window.__x=1';document.head.appendChild(s)})});
+  await pg.goto(URL+'index.html'); await pg.waitForFunction(()=>document.querySelector('.page.active'),null,{timeout:15000});
+  await pg.evaluate(()=>{ try { homeConnections.set('x',{ws:{}}) } catch(e) { window.homeConnections=new Map([['x',{ws:{}}]]) } });
+  await waitOpen(pg); ok('connected chat (no game round) does not block the overlay'); await ctx.close();
+
   // 9) site not altered: only 2 script tags + overlay styles prefixed
   const css=require('fs').readFileSync(require('path').join(__dirname,'..','campaign.css'),'utf8');
   const sels=css.replace(/\/\*[\s\S]*?\*\//g,'').replace(/@font-face\{[^}]*\}/g,'').replace(/@keyframes [\w-]+\{(?:[^{}]|\{[^{}]*\})*\}/g,'').replace(/@media[^{]*\{/g,'').split('{').map(x=>x.split('}').pop().trim()).filter(Boolean);
