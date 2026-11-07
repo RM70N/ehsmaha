@@ -45,8 +45,7 @@
     try {
       var act = document.querySelector('.page.active');
       if (act && act.id && !IDLE_PAGES.test(act.id)) return true;
-      var hc = (typeof homeConnections !== 'undefined') ? homeConnections : null;
-      if (hc) { var vals = (hc instanceof Map) ? Array.from(hc.values()) : Object.values(hc); for (var i = 0; i < vals.length; i++) if (vals[i] && vals[i].ws) return true; }
+      // اتصال الشات (homeConnections) وحده لا يعني جولة لعب: الستريمر المتصل بالشات هو الجمهور الأساسي للإعلان.
       var hg = (typeof homeGameListeners !== 'undefined') ? homeGameListeners : null;
       if (hg && ((hg instanceof Map || hg instanceof Set) ? hg.size : (Array.isArray(hg) ? hg.length : Object.keys(hg).length)) > 0) return true;
       var fs = document.querySelectorAll('iframe[id$="-frame"]');
