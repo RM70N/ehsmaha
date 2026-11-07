@@ -41,18 +41,19 @@
   var busyCheck = null;
   // صفحات الواجهة الخاملة داخل الموقع (نفس قائمة نقطة التحديث الآمنة في تطبيق سطح المكتب)
   var IDLE_PAGES = /^pg-(landing|home|auth|choose-username|profile|callcenter|leaderboard|levels|frames|faq|contest-top20|solo-home|party-home|ahsemha-home|ahsemha-pick|ahsemha-teams|ahsemha-board)$/;
-  function siteBusy() {
+  function siteBusyReason() {
     try {
       var act = document.querySelector('.page.active');
-      if (act && act.id && !IDLE_PAGES.test(act.id)) return true;
+      if (act && act.id && !IDLE_PAGES.test(act.id)) return 'page:' + act.id;
       // اتصال الشات (homeConnections) وحده لا يعني جولة لعب: الستريمر المتصل بالشات هو الجمهور الأساسي للإعلان.
       var hg = (typeof homeGameListeners !== 'undefined') ? homeGameListeners : null;
-      if (hg && ((hg instanceof Map || hg instanceof Set) ? hg.size : (Array.isArray(hg) ? hg.length : Object.keys(hg).length)) > 0) return true;
+      if (hg && ((hg instanceof Map || hg instanceof Set) ? hg.size : (Array.isArray(hg) ? hg.length : Object.keys(hg).length)) > 0) return 'game-listeners';
       var fs = document.querySelectorAll('iframe[id$="-frame"]');
-      for (var j = 0; j < fs.length; j++) if ((fs[j].getAttribute('src') || '') && fs[j].offsetParent !== null) return true;
+      for (var j = 0; j < fs.length; j++) if ((fs[j].getAttribute('src') || '') && fs[j].offsetParent !== null) return 'game-frame:' + fs[j].id;
     } catch (e) { /* */ }
-    return false;
+    return '';
   }
+  function siteBusy() { return siteBusyReason() !== ''; }
   function isBusyRoute() {
     var p = location.pathname;
     for (var i = 0; i < excludeRes.length; i++) if (excludeRes[i].test(p)) return true;
@@ -92,7 +93,18 @@
   function scheduleStart() {
     after(state.start - now(), function () { evaluate(); });
   }
+  function debugReport(extra) {
+    try {
+      if (!/[?&]wlc-debug=1(&|$)/.test(location.search)) return;
+      var act = document.querySelector('.page.active');
+      var r = { phase: phase(), now: new Date(now()).toISOString(), start: new Date(state.start).toISOString(), end: new Date(state.end).toISOString(),
+        desktopApp: isDesktopApp(), closedThisSession: wasClosed(), activePage: act ? act.id : null, busy: siteBusyReason() || (isBusyRoute() ? 'route/busyCheck' : ''), note: extra || '' };
+      var t = 'wlc-debug\n' + Object.keys(r).map(function (k) { return k + ': ' + r[k]; }).join('\n');
+      console.info(t); alert(t);
+    } catch (e) { /* */ }
+  }
   function evaluate() {
+    debugReport('evaluate');
     if (state.open) return;
     var p = phase();
     if (p === 'ended') return;
