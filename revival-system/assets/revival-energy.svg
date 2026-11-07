@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+<defs><radialGradient id="f" gradientUnits="userSpaceOnUse" cx="300" cy="300" r="300">
+<stop offset="0" stop-color="#C4B5FD" stop-opacity=".9"/><stop offset=".5" stop-color="#7C3AED" stop-opacity=".4"/><stop offset=".92" stop-color="#5B21B6" stop-opacity="0"/>
+</radialGradient></defs>
+<g fill="url(#f)">
+<polygon points="300.0,300.0 600.0,297.0 600.0,303.0"/>
+<polygon points="300.0,300.0 522.4,414.3 518.1,422.2"/>
+<polygon points="300.0,300.0 468.3,548.4 463.3,551.7"/>
+<polygon points="300.0,300.0 399.8,529.2 391.5,532.7"/>
+<polygon points="300.0,300.0 273.0,598.8 267.1,598.2"/>
+<polygon points="300.0,300.0 164.1,509.8 156.6,504.8"/>
+<polygon points="300.0,300.0 90.0,514.2 85.8,510.0"/>
+<polygon points="300.0,300.0 62.0,376.4 59.4,367.8"/>
+<polygon points="300.0,300.0 5.4,243.3 6.6,237.5"/>
+<polygon points="300.0,300.0 67.3,208.5 70.8,200.2"/>
+<polygon points="300.0,300.0 107.8,69.7 112.4,65.9"/>
+<polygon points="300.0,300.0 247.7,55.5 256.5,53.8"/>
+<polygon points="300.0,300.0 297.0,0.0 303.0,0.0"/>
+<polygon points="300.0,300.0 414.3,77.6 422.2,81.9"/>
+<polygon points="300.0,300.0 548.4,131.7 551.7,136.7"/>
+<polygon points="300.0,300.0 529.2,200.2 532.7,208.5"/>
+</g></svg>

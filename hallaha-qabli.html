@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>حلّها قبلي — احسمها</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&display=swap" rel="stylesheet">
+<style>:root{--bg:#160F22;--bg2:#1E1530;--card:#241A38;--card2:#2C2145;--line:#3A2E57;--acc:#7B3FE4;--acc2:#B79CFF;--gold:#F4C430;--amber:#F2A33A;--tx:#F3EEFF;--mut:#A99BC8;--ok:#5EE0A0;--bad:#FF7A8A;--steel:#4a4064}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:Cairo,Tajawal,'Segoe UI',Tahoma,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+body{background:radial-gradient(ellipse at 50% -10%,#2b1b4a 0%,var(--bg) 62%)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+#app{height:100%;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:rgba(22,15,34,.85);flex:none}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;font-size:19px}
+.brand svg{width:26px;height:26px}
+.sp{flex:1}
+.btn{padding:9px 16px;border-radius:12px;background:var(--card2);border:1px solid var(--line);font-weight:700;font-size:15px;transition:background .15s,transform .1s}
+.btn:hover{background:#38295a}.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--acc);border-color:#9a68ff}.btn.pri:hover{background:#8d52f0}
+.btn.gold{background:var(--gold);color:#2a1d00;border-color:#ffe082}.btn.gold:hover{background:#ffd54a}
+.btn.big{padding:13px 26px;font-size:18px;border-radius:14px}.btn.sm{padding:6px 12px;font-size:13px;border-radius:10px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.scr{flex:1;min-height:0;overflow:auto;position:relative}
+/* بداية */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:center;max-width:1180px;margin:0 auto;padding:28px 22px;min-height:100%}
+.hero h1{font-size:54px;font-weight:900;line-height:1.15;margin-bottom:14px}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p{font-size:19px;color:var(--mut);line-height:1.8;margin-bottom:22px;max-width:520px}
+.acts{display:flex;flex-wrap:wrap;gap:10px}
+.stat{margin-top:16px;color:var(--mut);font-size:14px}
+/* إعداد */
+.wrap{max-width:760px;margin:0 auto;padding:26px 20px 40px}
+.wrap h2{font-size:30px;font-weight:900;margin-bottom:6px}.wrap .sub{color:var(--mut);margin-bottom:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fld{display:flex;flex-direction:column;gap:6px}.fld label{font-weight:700;font-size:14px;color:var(--acc2)}
+.fld input,.fld select{padding:11px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);color:var(--tx);font:inherit;font-size:16px}
+.chk{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);font-weight:700}
+.chk input{width:20px;height:20px;accent-color:var(--acc)}
+.note{margin-top:12px;font-size:13.5px;color:var(--mut);line-height:1.7;padding:11px 14px;border-radius:12px;background:rgba(123,63,228,.1);border:1px solid rgba(123,63,228,.3)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* خزنة */
+.vault{direction:ltr;position:relative;width:100%;max-width:560px;margin:0 auto;perspective:1500px;user-select:none}
+.vframe{position:relative;aspect-ratio:520/440;width:100%}
+.vframe>svg,.vframe .cav,.vframe .door{position:absolute}
+.vframe>svg.fr{inset:0;width:100%;height:100%}
+.vframe .cav,.vframe .door{left:11.15%;top:13.2%;width:77.7%;height:73.6%}
+.cav{border-radius:14px;overflow:hidden;background:#0c0816}.cav svg{width:100%;height:100%;display:block}
+.cav .glow{opacity:0;transition:opacity .9s}.vault.open .cav .glow{opacity:1}
+.door{transform-origin:0 50%;transition:transform 1.3s cubic-bezier(.55,0,.25,1);transform-style:preserve-3d;z-index:2}
+.door svg{width:100%;height:100%;overflow:visible;display:block;filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.vault.open .door{transform:rotateY(-112deg)}
+.vframe>svg.hg{inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.q{fill:var(--amber);opacity:.85}
+.vault.armed .win{animation:winp 1.6s ease-in-out infinite}
+.vault.armed .q{animation:qp 1.6s ease-in-out infinite}
+@keyframes winp{50%{stroke:#ffd27a;filter:drop-shadow(0 0 4px rgba(242,163,58,.7))}}
+@keyframes qp{50%{opacity:1}}
+.vault.lite.armed .win,.vault.lite.armed .q{animation:none}
+.wheel{transform-origin:330px 150px;transition:transform 1s cubic-bezier(.4,0,.2,1)}
+.vault.turn .wheel{transform:rotate(540deg)}
+.bolt{transition:transform .4s ease-in}.vault.retract .bolt{transform:translateX(-30px)}
+.vault.shake .vframe{animation:shk .45s linear}
+@keyframes shk{0%,100%{transform:none}15%{transform:translate(-3px,1px)}30%{transform:translate(3px,-1px)}45%{transform:translate(-2px,0)}60%{transform:translate(2px,1px)}80%{transform:translate(-1px,0)}}
+.dg{font-weight:900;fill:var(--tx);font-family:Cairo,sans-serif}
+.dg.gold{fill:var(--gold)}
+.led{fill:#2a2340;transition:fill .3s}.led.on{fill:var(--amber)}.led.win{fill:var(--gold)}
+.lockring{fill:none;stroke:var(--acc2);stroke-width:3;opacity:0;transition:opacity .3s}.vault.locked .lockring{opacity:1}
+.reduced *{transition-duration:.01s!important;animation:none!important}
+/* بانر فوق الخزنة */
+.stagebox{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px}
+.vtitle{min-height:60px;text-align:center}
+.vtitle .big{font-size:30px;font-weight:900}
+.vtitle .sm{color:var(--mut);font-size:16px;margin-top:2px}
+.vtitle.pop .big{animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+.winner{min-height:54px;text-align:center;font-weight:900;font-size:26px;color:var(--gold)}
+.winner small{display:block;color:var(--mut);font-size:15px;font-weight:700}
+/* شاشة اللعب */
+.play{display:grid;grid-template-columns:minmax(210px,250px) minmax(0,1fr) minmax(280px,380px);gap:14px;padding:14px;height:100%;min-height:0}
+.play>*{min-height:0}
+.panel{background:rgba(36,26,56,.82);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.panel h3{padding:12px 14px 8px;font-size:16px;font-weight:900;display:flex;align-items:center;gap:8px;flex:none}
+.panel h3 .sp{flex:1}
+.hud{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:7px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-weight:800;font-size:15px}
+.chip b{color:var(--gold)}
+.chip.pulse{animation:cp .45s}
+@keyframes cp{40%{transform:scale(1.12);border-color:var(--acc2);background:#3a2a62}}
+.timer{position:relative;width:62px;height:62px}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer circle{fill:none;stroke-width:7}
+.timer .tr{stroke:var(--line)}.timer .tp{stroke:var(--amber);stroke-linecap:round;transition:stroke-dashoffset .12s linear}
+.timer.low .tp{stroke:var(--bad)}
+.timer span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:21px}
+.mid{display:flex;flex-direction:column;justify-content:center;align-items:center;min-height:0;overflow:hidden;gap:8px}
+.mid .vault{max-width:min(560px,100%)}
+.how{font-size:15px;color:var(--mut);text-align:center;line-height:1.6}
+.how b{color:var(--tx)}
+.lock-banner{font-weight:900;color:var(--acc2);font-size:20px}
+/* سجل */
+.logbody{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 12px 12px;scrollbar-width:thin}
+.legend{display:flex;flex-direction:column;gap:3px;padding:8px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--mut);flex:none;background:rgba(0,0,0,.15)}
+.legend span{display:flex;align-items:center;gap:7px}
+.ic{width:18px;height:18px;flex:none}
+.stg{margin-top:10px}
+.stg>h4{font-size:13.5px;color:var(--acc2);margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.stg>h4 em{font-style:normal;color:var(--mut);font-weight:600}
+.stg.live{border:1.5px dashed var(--amber);border-radius:12px;padding:10px 12px;background:rgba(242,163,58,.07)}
+.stg.latest>h4{color:var(--gold)}
+.stg.old{opacity:.78}
+.att{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:8px 10px;margin-bottom:6px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+.att.best{border-color:var(--gold);box-shadow:inset 3px 0 0 var(--gold)}
+.att .cd{display:flex;gap:4px;direction:ltr}
+.att .cd i{font-style:normal;width:30px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#0e0a18;border:1px solid #4b3d6e;font-weight:900;font-size:22px}
+.att .rs{display:flex;gap:6px;flex-wrap:wrap;font-size:13.5px;font-weight:700}
+.att .rs span{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:#1a1228;border:1px solid var(--line)}
+.att .rs b{font-size:16px;color:var(--tx)}
+.att .wh{grid-column:1/3;font-size:12.5px;color:var(--mut)}
+.att .tagb{font-size:11.5px;color:#2a1d00;background:var(--gold);border-radius:999px;padding:1px 8px;font-weight:900}
+.att.new .cd i{animation:dg .35s both;animation-delay:calc(var(--i)*.07s)}
+.att.new .rp,.att.new .rm,.att.new .wh{animation:fin .3s both}
+.att.new .rp{animation-delay:calc(var(--i)*.07s + .3s)}.att.new .rm{animation-delay:calc(var(--i)*.07s + .55s)}.att.new .wh{animation-delay:calc(var(--i)*.07s + .7s)}
+@keyframes dg{from{opacity:0;transform:translateY(8px) scale(.8)}to{opacity:1;transform:none}}
+@keyframes fin{from{opacity:0}to{opacity:1}}
+.vl{font-size:13px;color:var(--mut);padding:7px 10px;border-radius:10px;background:var(--bg2);margin-top:8px;border:1px solid var(--line)}
+.vl b{color:var(--gold);direction:ltr;unicode-bidi:isolate}
+.empty{color:var(--mut);font-size:14px;padding:10px 4px;line-height:1.7}
+/* نقاط */
+.sc{flex:1;min-height:0;overflow-y:auto;padding:0 10px 10px;scrollbar-width:thin}
+.pr{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;margin-bottom:4px}
+.pr:nth-child(odd){background:rgba(255,255,255,.03)}
+.pr .rk{width:22px;text-align:center;color:var(--mut);font-weight:800}
+.pr .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;font-size:15px}
+.pr .pt{font-weight:900;color:var(--gold)}
+.pr.wait{opacity:.6}
+.pr small{color:var(--mut);font-size:11.5px}
+.av{width:28px;height:28px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;overflow:hidden;background-size:cover;background-position:center}
+/* أدوات الستريمر */
+.host{flex:none;border-top:1px solid var(--line);background:rgba(18,12,30,.96);padding:8px 12px;display:flex;flex-direction:column;gap:6px}
+.host .row{justify-content:center}
+.hostfeed{font-size:12.5px;color:var(--mut);max-height:64px;overflow:auto;display:flex;flex-direction:column;gap:2px;text-align:center}
+.hostfeed .warn{color:var(--amber)}.hostfeed .ok{color:var(--ok)}
+.hostmin{position:fixed;bottom:10px;inset-inline-start:10px;z-index:30}
+.linkchip{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.linkchip i{width:9px;height:9px;border-radius:50%;background:var(--ok)}.linkchip.off i{background:var(--bad)}.linkchip.off{border-color:var(--bad)}.linkchip.sim i{background:var(--amber)}
+.alert{padding:10px 16px;border-radius:12px;background:rgba(255,122,138,.14);border:1.5px solid var(--bad);font-weight:800;text-align:center;font-size:15px}
+.alert.ok{background:rgba(94,224,160,.12);border-color:var(--ok)}
+.pausebar{padding:8px 14px;border-radius:12px;background:rgba(242,163,58,.14);border:1.5px solid var(--amber);font-weight:900;text-align:center}
+/* ردهة */
+.lobby{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1100px;margin:0 auto;padding:22px;align-items:center;min-height:100%}
+.joinbox{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;text-align:center}
+.joinbox .w{display:inline-block;margin:6px 0 8px;font-size:48px;font-weight:900;color:var(--gold);padding:4px 26px;border-radius:16px;background:#0e0a18;border:2px dashed #6b5b8f}
+.joinbox .ex{margin-top:10px;font-size:16px;color:var(--tx);line-height:1.7;padding:10px;border-radius:12px;background:rgba(123,63,228,.12)}
+.joinbox .ex b{direction:ltr;unicode-bidi:isolate;color:var(--gold)}
+.plist{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;max-height:190px;overflow:auto;margin:12px 0}
+.pc{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 6px;border-radius:999px;background:var(--bg2);border:1px solid var(--line);font-weight:700;font-size:14px;animation:pop .3s}
+/* نهاية */
+.final{max-width:900px;margin:0 auto;padding:26px 18px;text-align:center}
+.final .win{margin-bottom:18px}.final .win .nm{font-size:48px;font-weight:900;color:var(--gold);line-height:1.3}.final .muted{color:var(--mut)}
+.top3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.top3 .cardx{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px}
+.top3 .cardx:first-child{border-color:var(--gold)}
+/* مودال / توست */
+#modal{position:fixed;inset:0;z-index:100;background:rgba(8,5,16,.7);display:flex;align-items:center;justify-content:center;padding:18px}
+#modal[hidden]{display:none}
+.mbox{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:22px;max-width:520px;width:100%;max-height:88vh;overflow:auto}
+.mbox h3{font-size:22px;margin-bottom:10px}.mbox p,.mbox li{color:var(--mut);line-height:1.8;font-size:15.5px}.mbox ol{padding-inline-start:20px}
+.mbox .row{margin-top:16px;justify-content:flex-start}
+#toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+#toast div{padding:9px 16px;border-radius:12px;background:#2c2145;border:1px solid var(--acc2);font-weight:700;animation:pop .25s}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+#fx i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall var(--d) cubic-bezier(.3,.5,.6,1) forwards}
+@keyframes fall{to{transform:translate(var(--x),105vh) rotate(var(--r));opacity:.9}}
+.simbar{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;padding-top:4px;border-top:1px dashed var(--line)}
+.embed .top{display:none!important}
+.srsr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* جوال */
+.playcol{display:flex;flex-direction:column;min-height:0;height:100%}.playcol .play{flex:1}
+@media (max-width:980px){
+ .hero{grid-template-columns:1fr;gap:10px}.hero h1{font-size:38px}
+ .lobby{grid-template-columns:1fr}
+ .scr.playscr{overflow-y:auto;overflow-x:hidden}
+ .playcol{height:auto;min-height:100%}
+ .play{display:flex;flex-direction:column;height:auto;overflow:visible;padding:10px;gap:10px;flex:none}
+ .mid{overflow:visible;flex:none}
+ .play .mid{order:1}.play .logpanel{order:2;height:400px;flex:none}.play .scorepanel{order:3;max-height:260px;flex:none}
+ .host{margin-top:auto}
+ .grid2{grid-template-columns:1fr}
+ .top3{grid-template-columns:1fr}
+ .vtitle .big{font-size:24px}
+ .host .btn{padding:7px 10px;font-size:13px}
+}
+
+.att .rs .tagb{background:var(--gold);color:#2a1d00;border-color:#ffe082;font-size:11.5px;font-weight:900;padding:2px 9px}
+.door .dback{position:absolute;inset:0;border-radius:14px;transform:rotateY(180deg);backface-visibility:hidden;background:linear-gradient(135deg,#3a3157,#1d1730);border:3px solid #6b5b8f;box-shadow:inset 0 0 0 10px rgba(0,0,0,.18)}
+.door svg{backface-visibility:hidden}
+
+.embed #app{padding-top:38px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="fx" aria-hidden="true"></div>
+<div id="modal" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>/* منطق «حلّها قبلي» — بلا أي اعتماد على المتصفح. يُختبر في node ويُدمج في الصفحة. */
+(function (root) {
+  'use strict';
+  const AR = '٠١٢٣٤٥٦٧٨٩', FA = '۰۱۲۳۴۵۶۷۸۹';
+  const normDigits = s => String(s == null ? '' : s).replace(/[٠-٩]/g, d => AR.indexOf(d)).replace(/[۰-۹]/g, d => FA.indexOf(d)).replace(/[​-‏‪-‮⁦-⁩﻿٬٫]/g, '');
+  const normWord = s => String(s == null ? '' : s).replace(/[ً-ٰٟـ​-‏‪-‮⁦-⁩﻿]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/\s+/g, ' ').trim().toLowerCase();
+  /* محاولة صالحة: ثلاثة أرقام مختلفة، متصلة أو مفصولة بفاصل واضح */
+  function parseAttempt(text) {
+    const s = normDigits(text).trim();
+    if (!/\d/.test(s)) return { ok: false, reason: 'chat' };
+    const m = /^(\d)(\d)(\d)$/.exec(s) || /^(\d)[\s,،.\-_/]+(\d)[\s,،.\-_/]+(\d)$/.exec(s);
+    if (!m) return { ok: false, reason: (s.match(/\d/g) || []).length >= 2 ? 'format' : 'chat' };
+    if (m[1] === m[2] || m[1] === m[3] || m[2] === m[3]) return { ok: false, reason: 'dup' };
+    return { ok: true, code: m[1] + m[2] + m[3] };
+  }
+  /* التقييم: الموضع الصحيح أولًا، ثم الأرقام الموجودة بمواضع مختلفة، دون عدّ رقم مرتين */
+  function evaluate(code, guess) {
+    let exact = 0; const rc = [], rg = [];
+    for (let i = 0; i < 3; i++) { if (code[i] === guess[i]) exact++; else { rc.push(code[i]); rg.push(guess[i]); } }
+    let mis = 0;
+    for (const g of rg) { const k = rc.indexOf(g); if (k >= 0) { mis++; rc.splice(k, 1); } }
+    return { exact, mis };
+  }
+  const DEF = { joinWord: 'انضم', vaults: 5, collectSec: 20, readSec: 8, maxStages: 8, points: 100, late: true, reduced: false, quality: 'normal', manual: false };
+  const D = { intro: 2200, locked: 1300, opening: 6800, held: 5200 };
+  const RUN = ['intro', 'collect', 'locked', 'reveal', 'opening', 'held'];
+
+  function create(opts) {
+    opts = opts || {};
+    const rng = opts.rng || Math.random, clock = opts.now || (() => Date.now());
+    const G = { cfg: Object.assign({}, DEF, opts.cfg || {}), phase: 'idle', paused: false, autoPaused: false, linkDown: false, link: true, joinOpen: true, matchId: 0, vaultNo: 0, vaultTotal: 0, stage: 0, stageSeq: 0, tb: null, tieRes: null, players: new Map(), listeners: [], feed: [], hv: 0, t: null, vlog: [], hist: [], cur: null, awarded: new Set(), seen: new Set(), seenQ: [] };
+    let secret = null;
+    const emit = (ev, d) => G.listeners.forEach(f => { try { f(ev, d); } catch (e) { } });
+    const feed = (txt, kind) => { const last = G.feed[G.feed.length - 1]; if (last && last.base === txt) { last.n++; last.text = txt + ' (×' + last.n + ')'; last.t = clock(); } else { G.feed.push({ t: clock(), text: txt, base: txt, n: 1, kind: kind || 'info' }); if (G.feed.length > 80) G.feed.shift(); } emit('feed'); };
+    function setPhase(ph, ms) { G.phase = ph; G.paused = false; G.autoPaused = false; G.t = { total: ms, deadline: ms === Infinity ? Infinity : clock() + ms, rem: 0 }; emit('state'); }
+    const plist = () => [...G.players.values()];
+    const stand = () => plist().sort((a, b) => b.score - a.score || b.opened - a.opened || a.joined - b.joined);
+    function leaders() { const ps = plist(); if (!ps.length) return []; const mx = Math.max(...ps.map(p => p.score)); return ps.filter(p => p.score === mx); }
+    function addPlayer(id, name, avatar, late) {
+      const had = G.players.get(id);
+      if (had) { if (name) had.name = String(name).slice(0, 24); if (avatar) had.avatar = avatar; return { p: had, isNew: false }; }
+      const p = { id, name: String(name || id).slice(0, 24), avatar: avatar || '', score: 0, opened: 0, joined: G.players.size, activeFrom: late ? G.stageSeq + 1 : 0 };
+      G.players.set(id, p); emit('join', p); emit('state'); return { p, isNew: true };
+    }
+    function removePlayer(id) { G.players.delete(id); emit('state'); }
+    function eligible() { return plist().filter(p => (!G.tb || G.tb.includes(p.id))); }
+    /* ───── دورة الخزنة ───── */
+    function genSecret() { const d = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']; for (let i = 9; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); const t = d[i]; d[i] = d[j]; d[j] = t; } return d[0] + d[1] + d[2]; }
+    function openLobby() { G.phase = 'lobby'; G.joinOpen = true; G.matchId++; G.vaultNo = 0; G.stage = 0; G.stageSeq = 0; G.tb = null; G.tieRes = null; G.vlog = []; G.hist = []; G.cur = null; secret = null; G.paused = false; G.t = null; plist().forEach(p => { p.score = 0; p.opened = 0; p.activeFrom = 0; }); emit('state'); return { ok: true }; }
+    function startMatch() {
+      if (G.phase !== 'lobby') return { ok: false, reason: 'phase' };
+      if (!G.players.size) return { ok: false, reason: 'noplayers' };
+      G.vaultTotal = +G.cfg.vaults || 5; G.vaultNo = 0; G.awarded = new Set(); emit('start'); return newVault(false);
+    }
+    function newVault(isTb) {
+      G.vaultNo++; secret = genSecret(); G.stage = 0; G.hist = []; G.cur = { solved: [], status: null, tb: !!isTb, attempts: new Map() }; G.hv++;
+      setPhase('intro', D.intro); return { ok: true };
+    }
+    function beginStage() {
+      G.stage++; G.stageSeq++; G.cur.attempts = new Map(); G.cur.solved = [];
+      setPhase('collect', G.cfg.collectSec * 1000); emit('collect');
+    }
+    function lock() {
+      if (G.phase !== 'collect') return { ok: false };
+      const rows = new Map(); const solved = [];
+      for (const [id, a] of G.cur.attempts) {
+        const r = evaluate(secret, a.code); a.exact = r.exact; a.mis = r.mis;
+        if (a.code === secret) solved.push(id);
+        const k = a.code; let row = rows.get(k); if (!row) { row = { code: k, exact: r.exact, mis: r.mis, ids: [] }; rows.set(k, row); } row.ids.push(id);
+      }
+      const list = [...rows.values()].sort((a, b) => b.exact - a.exact || b.mis - a.mis || (a.code < b.code ? -1 : 1));
+      G.cur.solved = solved;
+      G.hist.push({ v: G.vaultNo, stage: G.stage, count: G.cur.attempts.size, rows: list.map(r => ({ code: r.code, exact: r.exact, mis: r.mis, ids: r.ids.slice() })) });
+      G.hv++; setPhase('locked', D.locked); emit('locked'); return { ok: true };
+    }
+    function revealPhase() { setPhase('reveal', G.cfg.manual ? Infinity : G.cfg.readSec * 1000); emit('reveal'); }
+    function afterReveal() {
+      if (G.cur.solved.length) return openVault();
+      if (G.stage >= (+G.cfg.maxStages || 8)) return holdVault('held');
+      beginStage(); return { ok: true };
+    }
+    function openVault() {
+      const key = G.matchId + ':' + G.vaultNo + ':' + (G.tb ? 'tb' : 'm');
+      if (!G.awarded.has(key)) {
+        G.awarded.add(key);
+        for (const id of G.cur.solved) { const p = G.players.get(id); if (p) { p.score += +G.cfg.points || 100; p.opened++; } }
+      }
+      G.cur.status = 'opened'; G.vlog.push({ no: G.vaultNo, tb: !!G.tb, code: secret, status: 'opened', winners: G.cur.solved.slice(), stage: G.stage });
+      G.hv++; setPhase('opening', D.opening); emit('open', { winners: G.cur.solved.slice(), code: secret }); return { ok: true };
+    }
+    function holdVault(status) {
+      G.cur.status = status || 'held'; G.vlog.push({ no: G.vaultNo, tb: !!G.tb, code: secret, status: G.cur.status, winners: [], stage: G.stage });
+      G.hv++; setPhase('held', D.held); emit('held', { code: secret }); return { ok: true };
+    }
+    function afterVault() {
+      if (G.tb) { G.phase = 'final'; G.t = null; G.tb = null; G.tieRes = leaders().length > 1 ? 'tie' : 'broken'; emit('state'); emit('final'); return { ok: true }; }
+      if (G.vaultNo >= G.vaultTotal) { G.phase = 'final'; G.t = null; G.tieRes = null; emit('state'); emit('final'); return { ok: true }; }
+      return newVault(false);
+    }
+    function tick() {
+      if (!G.t || G.paused || !RUN.includes(G.phase)) return;
+      if (clock() < G.t.deadline) return;
+      switch (G.phase) {
+        case 'intro': return beginStage();
+        case 'collect': return lock();
+        case 'locked': return revealPhase();
+        case 'reveal': return afterReveal();
+        case 'opening': case 'held': return afterVault();
+      }
+    }
+    /* ───── أدوات الستريمر ───── */
+    function pause() { if (G.paused || !G.t || !RUN.includes(G.phase)) return { ok: false }; G.t.rem = G.t.deadline === Infinity ? Infinity : Math.max(0, G.t.deadline - clock()); G.paused = true; emit('state'); return { ok: true }; }
+    function resume(force) { if (!G.paused) return { ok: false }; if (G.linkDown && !force) return { ok: false, reason: 'linkdown' }; G.paused = false; G.autoPaused = false; G.t.deadline = G.t.rem === Infinity ? Infinity : clock() + G.t.rem; emit('state'); return { ok: true }; }
+    function setLink(up) {
+      up = !!up; if (up === G.link) return; G.link = up; G.linkDown = !up;
+      if (!up) { feed('انقطع اتصال البث — توقفت المهلة تلقائيًا', 'warn'); if (!G.paused && G.t && RUN.includes(G.phase)) { pause(); G.autoPaused = true; } }
+      else feed('رجع اتصال البث — اضغط استئناف عند الجاهزية', 'ok');
+      emit('state');
+    }
+    function extend(ms) { if (G.phase !== 'collect' || !G.t) return { ok: false }; G.t.total += ms; if (G.paused) G.t.rem += ms; else G.t.deadline += ms; emit('state'); return { ok: true }; }
+    function closeEarly() { if (G.phase !== 'collect' || G.paused) return { ok: false }; return lock(); }
+    function nextStage() { if (G.phase === 'reveal' && !G.paused) return afterReveal(); if (G.phase === 'locked' && !G.paused) return revealPhase(); return { ok: false }; }
+    function skipHold() { if ((G.phase === 'opening' || G.phase === 'held') && !G.paused) return afterVault(); return { ok: false }; }
+    function skipVault() { if (!['collect', 'locked', 'reveal', 'intro'].includes(G.phase)) return { ok: false }; if (G.phase === 'collect' || G.phase === 'intro') { G.cur.attempts = new Map(); } return holdVault('skipped'); }
+    function replayStage() {
+      if (!['collect', 'locked'].includes(G.phase)) return { ok: false };
+      if (G.phase === 'locked') { G.hist.pop(); G.hv++; }
+      G.cur.attempts = new Map(); G.cur.solved = []; setPhase('collect', G.cfg.collectSec * 1000); emit('collect'); feed('أُعيدت مرحلة المحاولات بنفس الرمز', 'warn'); return { ok: true };
+    }
+    function restartMatch(same) { if (!same) { G.players.clear(); G.phase = 'idle'; G.t = null; G.tb = null; G.tieRes = null; G.vlog = []; G.hist = []; G.cur = null; secret = null; G.vaultNo = 0; emit('state'); return { ok: true }; } return openLobby(); }
+    function startTiebreak() {
+      if (G.phase !== 'final') return { ok: false }; const ls = leaders(); if (ls.length < 2) return { ok: false, reason: 'notie' };
+      G.tb = ls.map(p => p.id); G.tieRes = null; return newVault(true);
+    }
+    function sharedWin() { if (G.phase !== 'final') return { ok: false }; G.tieRes = 'shared'; emit('state'); emit('final'); return { ok: true }; }
+    function setJoinOpen(v) { G.joinOpen = !!v; emit('state'); return { ok: true }; }
+    /* ───── رسائل الشات ───── */
+    function receiveChat(m) {
+      if (!m) return { ok: false, reason: 'empty' };
+      const eid = m.eid != null ? String(m.eid) : '';
+      if (eid) { if (G.seen.has(eid)) return { ok: false, reason: 'dupevent' }; G.seen.add(eid); G.seenQ.push(eid); if (G.seenQ.length > 4000) G.seen.delete(G.seenQ.shift()); }
+      const uid = String(m.userId == null ? '' : m.userId); if (!uid) return { ok: false, reason: 'noid' };
+      const text = String(m.text == null ? '' : m.text);
+      const ph = G.phase;
+      if (normWord(text) && normWord(text) === normWord(G.cfg.joinWord)) {
+        if (ph === 'lobby') {
+          if (!G.joinOpen) return { ok: false, reason: 'joinclosed' };
+          const r = addPlayer(uid, m.nickname, m.avatarUrl, false); return { ok: true, reason: r.isNew ? 'joined' : 'already' };
+        }
+        if (G.players.has(uid)) { addPlayer(uid, m.nickname, m.avatarUrl, false); return { ok: true, reason: 'already' }; }
+        if (ph === 'idle' || ph === 'final') return { ok: false, reason: 'closed' };
+        if (!G.cfg.late || !G.joinOpen) return { ok: false, reason: 'late_off' };
+        if (G.tb) return { ok: false, reason: 'tb' };
+        const r = addPlayer(uid, m.nickname, m.avatarUrl, true); feed((r.p.name) + ' انضم متأخرًا — يلعب من المرحلة التالية', 'info'); return { ok: true, reason: 'late' };
+      }
+      const pa = parseAttempt(text);
+      if (!pa.ok) { if (pa.reason === 'chat') return { ok: false, reason: 'chat' }; if (ph === 'collect') feed('رسالة غير صالحة من ' + ((G.players.get(uid) || {}).name || uid) + ' — لم تُستهلك المحاولة', 'dim'); return { ok: false, reason: pa.reason }; }
+      if (ph !== 'collect') return { ok: false, reason: (ph === 'locked' || ph === 'reveal') ? 'closed' : 'notopen' };
+      if (G.paused) return { ok: false, reason: 'paused' };
+      const p = G.players.get(uid);
+      if (!p) return { ok: false, reason: 'notjoined' };
+      if (G.tb && !G.tb.includes(uid)) return { ok: false, reason: 'notinvolved' };
+      if (p.activeFrom > G.stageSeq) return { ok: false, reason: 'late_wait' };
+      if (G.cur.attempts.has(uid)) { feed(p.name + ': محاولة ثانية في نفس المرحلة — متجاهلة', 'dim'); return { ok: false, reason: 'already' }; }
+      G.cur.attempts.set(uid, { code: pa.code }); emit('attempt', { id: uid }); return { ok: true, reason: 'accepted' };
+    }
+    /* ───── لقطة العرض (لا تحمل الرمز قبل نهاية الخزنة) ───── */
+    function snapshot() {
+      const ended = G.phase === 'opening' || G.phase === 'held';
+      const nm = id => (G.players.get(id) || {}).name || id;
+      const act = eligible().filter(p => p.activeFrom <= G.stageSeq).length;
+      const hist = G.hist.map(h => ({ v: h.v, stage: h.stage, count: h.count, rows: h.rows.map(r => ({ code: r.code, exact: r.exact, mis: r.mis, n: r.ids.length, names: r.ids.slice(0, 3).map(nm) })) }));
+      const remMs = !G.t ? 0 : (G.paused ? G.t.rem : (G.t.deadline === Infinity ? Infinity : Math.max(0, G.t.deadline - clock())));
+      return {
+        phase: G.phase, paused: G.paused, autoPaused: G.autoPaused, linkDown: G.linkDown, joinOpen: G.joinOpen, matchId: G.matchId, vaultNo: G.vaultNo, vaultTotal: G.vaultTotal, tb: !!G.tb, stage: G.stage, maxStages: +G.cfg.maxStages,
+        submitted: G.cur && G.phase !== 'idle' && G.phase !== 'lobby' ? G.cur.attempts.size : 0, active: act, remMs, totalMs: G.t ? G.t.total : 0, hv: G.hv, hist,
+        players: stand().map(p => ({ id: p.id, name: p.name, avatar: p.avatar, score: p.score, opened: p.opened, waiting: p.activeFrom > G.stageSeq && G.phase !== 'lobby' })),
+        vlog: G.vlog.map(v => ({ no: v.no, tb: v.tb, status: v.status, code: v.code, winners: v.winners.map(nm), stage: v.stage })),
+        result: ended ? { code: secret, status: G.cur.status, winners: G.cur.solved.map(id => ({ id, name: nm(id), avatar: (G.players.get(id) || {}).avatar || '' })), stage: G.stage } : null,
+        tieRes: G.tieRes, cfg: { joinWord: G.cfg.joinWord, vaults: G.cfg.vaults, collectSec: G.cfg.collectSec, readSec: G.cfg.readSec, maxStages: G.cfg.maxStages, points: G.cfg.points, late: G.cfg.late, manual: G.cfg.manual, reduced: G.cfg.reduced, quality: G.cfg.quality }
+      };
+    }
+    return { G, cfg: G.cfg, on: f => G.listeners.push(f), addPlayer, removePlayer, plist, stand, leaders, openLobby, startMatch, tick, receiveChat, snapshot, pause, resume, setLink, extend, closeEarly, nextStage, skipHold, skipVault, replayStage, restartMatch, startTiebreak, sharedWin, setJoinOpen,
+      debugSecret() { if (!G.cfg.debug) throw new Error('debug off'); return secret; } };
+  }
+  const API = { create, evaluate, parseAttempt, normWord, normDigits, DEF, D };
+  if (typeof module !== 'undefined' && module.exports) module.exports = API; else root.HqLogic = API;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+;
+/* واجهة «حلّها قبلي» */
+(function () {
+  'use strict';
+  const L = window.HqLogic, EMBED = /[?&]embed=1/.test(location.search);
+  const $ = (s, r) => (r || document).querySelector(s);
+  const h = (tag, a, ...kids) => { const e = document.createElement(tag); if (a) for (const k in a) { const v = a[k]; if (v == null || v === false) continue; if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k === 'html') e.innerHTML = v; else if (k.slice(0, 2) === 'on') e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v); } kids.flat().forEach(c => { if (c != null && c !== false) e.append(c.nodeType ? c : document.createTextNode(c)); }); return e; };
+  const LS = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } } };
+  let saved = {}; try { saved = JSON.parse(LS.get('hq_cfg') || '{}') || {}; } catch (e) { }
+  const M = L.create({ cfg: saved });
+  const G = M.G, app = $('#app');
+  if (EMBED) document.documentElement.classList.add('embed');
+  const reducedMQ = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  const isReduced = () => !!(G.cfg.reduced || reducedMQ.matches);
+  const isLite = () => G.cfg.quality === 'low';
+  const saveCfg = () => LS.set('hq_cfg', JSON.stringify({ joinWord: G.cfg.joinWord, vaults: G.cfg.vaults, collectSec: G.cfg.collectSec, readSec: G.cfg.readSec, maxStages: G.cfg.maxStages, points: G.cfg.points, late: G.cfg.late, reduced: G.cfg.reduced, quality: G.cfg.quality }));
+  const AVC = ['#7B3FE4', '#E2538A', '#2FA67A', '#D9822B', '#3B82D6', '#B24DD8', '#C2503A', '#2A9DA8'];
+  function hash(s) { let x = 0; for (const c of String(s)) x = (x * 31 + c.charCodeAt(0)) | 0; return Math.abs(x); }
+  function avatar(name, url, id) {
+    const e = h('span', { class: 'av', style: 'background-color:' + AVC[hash(id || name) % AVC.length], text: String(name || '').trim().charAt(0) || '؟' });
+    if (url) { const im = new Image(); im.onload = () => { e.style.backgroundImage = 'url("' + url.replace(/"/g, '%22') + '")'; e.textContent = ''; }; im.src = url; }
+    return e;
+  }
+  function toast(t) { const box = $('#toast'), d = h('div', { text: t }); box.append(d); setTimeout(() => d.remove(), 2600); }
+  function modal(title, body, btns) {
+    return new Promise(res => {
+      const m = $('#modal'); m.textContent = ''; m.hidden = false;
+      const done = v => { m.hidden = true; m.textContent = ''; res(v); };
+      m.append(h('div', { class: 'mbox', role: 'dialog', 'aria-modal': 'true' }, h('h3', { text: title }), body, h('div', { class: 'row' }, (btns || [{ t: 'حسنًا', v: true, cls: 'pri' }]).map(b => h('button', { class: 'btn ' + (b.cls || ''), type: 'button', text: b.t, onclick: () => done(b.v) })))));
+      const f = m.querySelector('.btn.pri,.btn'); if (f) f.focus();
+    });
+  }
+  const ICON_PIN = '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="2.5" fill="none" stroke="#F4C430" stroke-width="1.8"/><circle cx="10" cy="10" r="2.6" fill="#F4C430"/></svg>';
+  const ICON_SWAP = '<svg class="ic" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 7h12m0 0-3-3m3 3-3 3M17 13H5m0 0 3-3m-3 3 3 3" fill="none" stroke="#B79CFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const LOGO = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="4" width="26" height="24" rx="5" fill="#2C2145" stroke="#B79CFF" stroke-width="2"/><circle cx="20" cy="16" r="5" fill="none" stroke="#F4C430" stroke-width="2"/><path d="M20 11v10M15 16h10" stroke="#F4C430" stroke-width="1.6"/><rect x="7" y="10" width="6" height="12" rx="2" fill="#7B3FE4"/></svg>';
+  const toAr = n => String(n);
+
+  /* ───── الخزنة ───── */
+  function vaultSVG() {
+    const wins = [0, 1, 2].map(i => { const x = 34 + i * 80; return `<rect x="${x - 4}" y="40" width="76" height="108" rx="12" fill="#1c1530" stroke="#3a3152" stroke-width="2"/><rect class="win" x="${x}" y="44" width="68" height="100" rx="9" fill="#0b0815" stroke="#F2A33A" stroke-width="2"/><text class="dg q" id="dg${i}" x="${x + 34}" y="116" text-anchor="middle" font-size="64">?</text>`; }).join('');
+    const spokes = [0, 60, 120, 180, 240, 300].map(a => `<line x1="330" y1="150" x2="${330 + 52 * Math.cos(a * Math.PI / 180)}" y2="${150 + 52 * Math.sin(a * Math.PI / 180)}" stroke="#B79CFF" stroke-width="7" stroke-linecap="round"/>`).join('');
+    const rivets = [[22, 22], [382, 22], [22, 302], [382, 302]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="5" fill="#2a2340" stroke="#6b5b8f" stroke-width="1.5"/>`).join('');
+    const bolts = [34, 144, 254].map(y => `<rect class="bolt" x="394" y="${y}" width="26" height="24" rx="5" fill="url(#bg)" stroke="#2a2340" stroke-width="2"/>`).join('');
+    return `
+    <svg class="fr" viewBox="0 0 520 440" aria-hidden="true"><defs><linearGradient id="fr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b3354"/><stop offset=".55" stop-color="#241d38"/><stop offset="1" stop-color="#17112a"/></linearGradient></defs>
+      <rect x="6" y="6" width="508" height="428" rx="32" fill="url(#fr)" stroke="#52456f" stroke-width="3"/>
+      <rect x="30" y="30" width="460" height="380" rx="20" fill="none" stroke="#120c20" stroke-width="3"/><rect x="34" y="34" width="452" height="372" rx="18" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="2"/>
+      <circle cx="22" cy="22" r="5" fill="#2a2340" stroke="#6b5b8f"/><circle cx="498" cy="22" r="5" fill="#2a2340" stroke="#6b5b8f"/><circle cx="22" cy="418" r="5" fill="#2a2340" stroke="#6b5b8f"/><circle cx="498" cy="418" r="5" fill="#2a2340" stroke="#6b5b8f"/>
+      <rect x="44" y="418" width="90" height="14" rx="6" fill="#120c20"/><rect x="386" y="418" width="90" height="14" rx="6" fill="#120c20"/></svg>
+    <div class="cav"><svg viewBox="0 0 404 324" aria-hidden="true"><defs><radialGradient id="gl" cx=".5" cy=".6" r=".75"><stop offset="0" stop-color="#ffe9a3"/><stop offset=".45" stop-color="#F4C430" stop-opacity=".75"/><stop offset="1" stop-color="#7B3FE4" stop-opacity="0"/></radialGradient><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#c8921a"/></linearGradient></defs>
+      <rect width="404" height="324" fill="#0c0816"/><g class="glow"><rect width="404" height="324" fill="url(#gl)"/>
+      <rect x="40" y="250" width="320" height="6" fill="#3a2e57"/><g fill="url(#gb)" stroke="#8a5f0c" stroke-width="2"><path d="M70 250l12-34h70l12 34z"/><path d="M180 250l12-34h70l12 34z"/><path d="M124 216l12-34h70l12 34z"/></g></g></svg></div>
+    <div class="door"><svg viewBox="0 0 404 324" aria-hidden="true"><defs><linearGradient id="dg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#52486f"/><stop offset="1" stop-color="#2b2342"/></linearGradient><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b6a3e6"/><stop offset="1" stop-color="#6d5c9a"/></linearGradient></defs>
+      <rect width="404" height="324" rx="14" fill="url(#dg)" stroke="#7a69a3" stroke-width="3"/><rect x="12" y="12" width="380" height="300" rx="10" fill="none" stroke="#1a1428" stroke-width="2.5"/><rect x="14" y="14" width="376" height="296" rx="9" fill="none" stroke="rgba(255,255,255,.09)" stroke-width="1.5"/>
+      ${rivets}${wins}
+      <rect x="30" y="166" width="236" height="44" rx="8" fill="#1a1428" stroke="#3a3152" stroke-width="2"/><text id="plate" x="148" y="196" text-anchor="middle" font-size="19" font-weight="800" fill="#B79CFF" font-family="Cairo,sans-serif"></text>
+      <g id="leds"></g>
+      <g class="wheel"><circle cx="330" cy="150" r="64" fill="#241c3a" stroke="#8d7bc0" stroke-width="8"/><circle cx="330" cy="150" r="48" fill="none" stroke="#3a3152" stroke-width="3"/>${spokes}<circle cx="330" cy="150" r="17" fill="#7B3FE4" stroke="#B79CFF" stroke-width="3"/></g>
+      <rect class="lockring" x="3" y="3" width="398" height="318" rx="12"/>${bolts}</svg><div class="dback"></div></div>
+    <svg class="hg" viewBox="0 0 520 440" aria-hidden="true"><g fill="url(#bg)" stroke="#120c20" stroke-width="2"><rect x="46" y="96" width="26" height="46" rx="8"/><rect x="46" y="300" width="26" height="46" rx="8"/></g></svg>`;
+  }
+  function makeVault(host) {
+    const v = h('div', { class: 'vault' }, h('div', { class: 'vframe', html: vaultSVG() })); host.append(v);
+    const dg = [0, 1, 2].map(i => v.querySelector('#dg' + i)), plate = v.querySelector('#plate'), leds = v.querySelector('#leds');
+    let token = 0; const T = (f, ms) => { const k = token; setTimeout(() => { if (k === token) f(); }, ms); };
+    const C = {
+      el: v, setQ() { dg.forEach(d => { d.textContent = '?'; d.setAttribute('class', 'dg q'); }); },
+      setCode(code, gold) { dg.forEach((d, i) => { d.textContent = code[i]; d.setAttribute('class', 'dg' + (gold ? ' gold' : '')); }); },
+      plate(t) { plate.textContent = t; },
+      setLeds(stage, max, solved) { leds.innerHTML = ''; const n = Math.min(+max || 8, 12), w = Math.min(22, 224 / n - 3); for (let i = 0; i < n; i++) { const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); r.setAttribute('x', 32 + i * (w + 3)); r.setAttribute('y', 222); r.setAttribute('width', w); r.setAttribute('height', 10); r.setAttribute('rx', 3); r.setAttribute('class', 'led' + (i < stage ? (solved && i === stage - 1 ? ' win' : ' on') : '')); leds.append(r); } },
+      arm(on) { v.classList.toggle('armed', !!on); }, locked(on) { v.classList.toggle('locked', !!on); },
+      lite(on) { v.classList.toggle('lite', !!on); },
+      closed() { token++; v.classList.remove('open', 'turn', 'retract', 'shake', 'locked'); },
+      closeAnim() { token++; if (!v.classList.contains('open') && !v.classList.contains('turn')) return; if (isReduced()) { C.closed(); return; } v.classList.remove('open'); T(() => { v.classList.remove('retract'); }, 900); T(() => { v.classList.remove('turn'); }, 1250); },
+      shake() { if (isReduced()) return; v.classList.remove('shake'); void v.offsetWidth; v.classList.add('shake'); setTimeout(() => v.classList.remove('shake'), 480); },
+      openSeq(done) {
+        token++; const r = isReduced();
+        if (r) { v.classList.add('turn', 'retract', 'open'); T(done || (() => { }), 50); return; }
+        C.shake(); T(() => v.classList.add('turn'), 520); T(() => v.classList.add('retract'), 1450); T(() => v.classList.add('open'), 1900); T(done || (() => { }), 2500);
+      }
+    };
+    C.lite(isLite()); return C;
+  }
+  function confetti() {
+    if (isReduced()) return; const box = $('#fx'), n = isLite() ? 16 : 38, cols = ['#7B3FE4', '#B79CFF', '#F4C430', '#F2A33A', '#ffffff'];
+    for (let i = 0; i < n; i++) { const e = h('i'); e.style.left = Math.random() * 100 + '%'; e.style.background = cols[i % cols.length]; e.style.setProperty('--x', (Math.random() * 160 - 80) + 'px'); e.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg'); e.style.setProperty('--d', (1.6 + Math.random() * 1.2) + 's'); box.append(e); setTimeout(() => e.remove(), 3200); }
+  }
+  /* ───── الهيكل ───── */
+  let screen = '', setupOpen = false, vc = null, lastPhase = '', lastHv = -1, lastKey = '', hostHidden = false, scoresOpen = true, simOn = false;
+  const ui = {};
+  function topbar() {
+    return h('div', { class: 'top' }, h('div', { class: 'brand', html: LOGO + '<span>حلّها قبلي</span>' }), h('div', { class: 'sp' }),
+      G.phase !== 'idle' ? h('button', { class: 'btn sm', type: 'button', text: 'إنهاء المباراة', onclick: async () => { if (await modal('إنهاء المباراة؟', h('p', { text: 'ترجع للإعداد وتُفقد النقاط الحالية.' }), [{ t: 'إلغاء', v: false }, { t: 'تأكيد', v: true, cls: 'pri' }])) { M.restartMatch(false); setupOpen = true; render(true); } } }) : null);
+  }
+  function screenOf() { const ph = G.phase; return ph === 'idle' ? (setupOpen ? 'setup' : 'start') : ph === 'lobby' ? 'lobby' : ph === 'final' ? 'final' : 'play'; }
+  function render(force) {
+    const scr = screenOf(); const key = scr + ':' + (scr === 'final' ? G.tieRes + ':' + M.leaders().length : '');
+    if (!force && scr === screen && (scr === 'play' || key === lastKey)) return;
+    screen = scr; lastKey = key; lastPhase = ''; lastHv = -1; vc = null;
+    app.textContent = ''; document.body.classList.toggle('reduced', isReduced());
+    app.append(topbar()); const body = h('div', { class: 'scr' + (scr === 'play' ? ' playscr' : '') }); app.append(body);
+    ({ start: vStart, setup: vSetup, lobby: vLobby, play: vPlay, final: vFinal }[scr])(body);
+  }
+  function vStart(b) {
+    const hero = h('div', { class: 'hero' }), L1 = h('div'), R = h('div');
+    L1.append(h('h1', { html: 'حلّها <em>قبلي</em>' }), h('p', { text: 'خزنة برمز سرّي من 3 أرقام. جرّب من الشات، اقرأ نتائج محاولات الجميع، وافتحها قبل غيرك!' }),
+      h('div', { class: 'acts' }, h('button', { class: 'btn pri big', type: 'button', text: 'ابدأ', onclick: () => { setupOpen = true; render(true); } }), h('button', { class: 'btn big', type: 'button', text: 'طريقة اللعب', onclick: howTo }), EMBED ? null : h('button', { class: 'btn big', type: 'button', text: 'تجربة سريعة', onclick: quick })),
+      h('div', { class: 'stat', text: 'لعبة صامتة بلا موسيقى · تعمل على شات البث مباشرة' }));
+    const vv = makeVault(R); vv.setQ(); vv.plate('الخزنة ١'); vv.setLeds(0, 8); vc = vv;
+    hero.append(L1, R); b.append(hero);
+  }
+  function howTo() {
+    modal('طريقة اللعب', h('div', null, h('ol', null, h('li', { text: 'اكتب كلمة الانضمام في الشات لتدخل المباراة.' }), h('li', { text: 'الخزنة لها رمز سرّي من 3 أرقام مختلفة (قد يبدأ بصفر).' }), h('li', { text: 'في كل مرحلة ترسل محاولة واحدة: 3 أرقام مختلفة مثل 583.' }), h('li', { text: 'بعد إغلاق المرحلة تظهر محاولات الجميع ونتائجها: كم رقم «بمكانه» وكم رقم «بمكان غلط».' }), h('li', { text: 'استنتج من السجل وجرّب في المرحلة التالية. من يحلّها أولًا يفتح الخزنة ويكسب النقاط، ومن حلّها معه في نفس المرحلة يشاركه.' })), h('p', { text: 'ملاحظة: رسائل الشات نفسها علنية على منصة البث؛ اللعبة تخفي النتائج الجديدة حتى إغلاق المرحلة، لكنها لا تستطيع إخفاء رسائل الشات.' })), [{ t: 'فهمت', v: true, cls: 'pri' }]);
+  }
+  function quick() {
+    G.cfg.collectSec = 15; G.cfg.readSec = 6; G.cfg.vaults = 3; M.openLobby(); simPlayers(8); render(true); toast('أُضيف 8 لاعبين للتجربة');
+  }
+  /* ───── الإعداد ───── */
+  function vSetup(b) {
+    const c = G.cfg; const sel = (id, opts, val) => { const s = h('select', { id }); opts.forEach(([v, t]) => s.append(h('option', { value: v, text: t, selected: String(v) === String(val) }))); return s; };
+    const f = (label, el) => h('div', { class: 'fld' }, h('label', { text: label }), el);
+    const ji = h('input', { id: 'su-join', value: c.joinWord, maxlength: 16 });
+    const els = { vaults: sel('su-vaults', [3, 5, 8, 10].map(n => [n, n + ' خزنات']), c.vaults), collect: sel('su-collect', [10, 15, 20, 30, 45, 60].map(n => [n, n + ' ثانية']), c.collectSec), read: sel('su-read', [5, 8, 12, 15].map(n => [n, n + ' ثوانٍ']), c.readSec), stages: sel('su-stages', [4, 6, 8, 10, 12].map(n => [n, n + ' مراحل']), c.maxStages), points: sel('su-points', [50, 100, 200, 300].map(n => [n, n + ' نقطة']), c.points), q: sel('su-q', [['normal', 'عادية'], ['low', 'خفيفة (أسلس)']], c.quality) };
+    const late = h('input', { type: 'checkbox', id: 'su-late', checked: !!c.late }), red = h('input', { type: 'checkbox', id: 'su-red', checked: !!c.reduced });
+    b.append(h('div', { class: 'wrap' }, h('h2', { text: 'إعداد المباراة' }), h('p', { class: 'sub', text: 'اضبط القيم ثم افتح الانضمام.' }),
+      h('div', { class: 'grid2' }, f('كلمة الانضمام', ji), f('عدد الخزنات', els.vaults), f('مدة استقبال المحاولات', els.collect), f('مدة قراءة النتائج', els.read), f('أقصى مراحل لكل خزنة', els.stages), f('نقاط الفوز بالخزنة', els.points), f('مستوى الرسوم', els.q),
+        h('div', { class: 'fld' }, h('label', { text: 'خيارات' }), h('label', { class: 'chk' }, late, 'السماح بالانضمام المتأخر'), h('label', { class: 'chk', style: 'margin-top:6px' }, red, 'تقليل الحركة'))),
+      h('div', { class: 'note', text: 'رسائل منصة البث علنية: اللعبة تخفي نتائج المرحلة حتى إغلاقها ولا تستطيع إخفاء رسائل الشات نفسها. لا أفضلية لمن تصل رسالته أولًا — كل المحاولات داخل المرحلة تُقيَّم معًا.' }),
+      h('div', { class: 'row', style: 'margin-top:20px' }, h('button', { class: 'btn pri big', type: 'button', text: 'افتح الانضمام', onclick: () => {
+        const w = (ji.value || '').trim(); if (!w || /\d/.test(w)) { toast('كلمة الانضمام لا تحتوي أرقامًا'); return; }
+        Object.assign(G.cfg, { joinWord: w, vaults: +els.vaults.value, collectSec: +els.collect.value, readSec: +els.read.value, maxStages: +els.stages.value, points: +els.points.value, quality: els.q.value, late: late.checked, reduced: red.checked }); saveCfg(); M.openLobby(); setupOpen = false; render(true);
+      } }), h('button', { class: 'btn big', type: 'button', text: 'رجوع', onclick: () => { setupOpen = false; render(true); } }))));
+  }
+  /* ───── الردهة ───── */
+  function linkChip() { const sim = !EMBED; const off = G.linkDown; return h('span', { class: 'linkchip' + (off ? ' off' : sim ? ' sim' : ''), id: 'linkchip' }, h('i'), off ? 'البث منقطع' : (sim ? 'تشغيل مستقل (بدون بث)' : 'البث متصل')); }
+  function vLobby(b) {
+    const left = h('div'); const vv = makeVault(left); vv.setQ(); vv.plate('خزنة مغلقة'); vv.setLeds(0, G.cfg.maxStages); vc = vv;
+    const plist = h('div', { class: 'plist', id: 'plist' }), cnt = h('div', { id: 'pcount', class: 'muted' });
+    const jb = h('div', { class: 'joinbox' }, h('div', { class: 'muted', text: 'اكتب كلمة الانضمام في الشات' }), h('div', { class: 'w', id: 'jw', text: G.cfg.joinWord }), cnt, plist,
+      h('div', { class: 'ex', html: 'وقت المحاولة اكتب 3 أرقام مختلفة، مثل <b>583</b>' }), h('div', { class: 'row', style: 'justify-content:center;margin-top:12px' }, linkChip()));
+    const acts = h('div', { class: 'row', style: 'justify-content:center;margin-top:16px' }, h('button', { class: 'btn pri big', id: 'bstart', type: 'button', text: 'بدء المباراة', onclick: () => { const r = M.startMatch(); if (!r.ok) toast('لا يوجد لاعبون بعد'); render(true); } }), h('button', { class: 'btn', id: 'bjoin', type: 'button', text: G.joinOpen ? 'إغلاق الانضمام' : 'فتح الانضمام', onclick: () => { M.setJoinOpen(!G.joinOpen); $('#bjoin').textContent = G.joinOpen ? 'إغلاق الانضمام' : 'فتح الانضمام'; toast(G.joinOpen ? 'الانضمام مفتوح' : 'الانضمام مغلق'); } }), h('button', { class: 'btn', type: 'button', text: 'الإعدادات', onclick: () => { M.restartMatch(true); G.phase = 'idle'; setupOpen = true; render(true); } }));
+    const simb = EMBED ? null : h('div', { class: 'simbar' }, h('button', { class: 'btn sm', type: 'button', text: '+8 لاعبين تجريبيين', onclick: () => { simPlayers(8); } }), h('button', { class: 'btn sm', type: 'button', text: '+50', onclick: () => simPlayers(50) }));
+    const right = h('div'); right.append(jb, acts); if (simb) right.append(simb); b.append(h('div', { class: 'lobby' }, left, right)); lobbyPlayers();
+  }
+  function lobbyPlayers() {
+    const pl = $('#plist'); if (!pl) return; const ps = M.plist(); $('#pcount').textContent = ps.length ? 'المنضمون: ' + ps.length : 'بانتظار المشاركين…';
+    const have = new Set([...pl.children].map(c => c.dataset.id)); ps.forEach(p => { if (!have.has(p.id)) pl.append(h('span', { class: 'pc', 'data-id': p.id }, avatar(p.name, p.avatar, p.id), p.name)); });
+    const bs = $('#bstart'); if (bs) bs.disabled = !ps.length;
+  }
+  /* ───── اللعب ───── */
+  function vPlay(b) {
+    const mid = h('div', { class: 'mid' }), hud = h('div', { class: 'hud', id: 'hud' }); mid.append(hud);
+    const stagebox = h('div', { class: 'stagebox' }); mid.append(stagebox);
+    stagebox.append(h('div', { class: 'vtitle', id: 'vtitle' }));
+    vc = makeVault(stagebox); stagebox.append(h('div', { class: 'winner', id: 'winner' }), h('div', { class: 'how', id: 'how' }));
+    const logp = h('aside', { class: 'panel logpanel' }, h('h3', { text: 'سجل المحاولات' }), h('div', { class: 'logbody', id: 'logbody', tabindex: '0', 'aria-label': 'سجل المحاولات' }),
+      h('div', { class: 'legend' }, h('span', { html: ICON_PIN + '<b>بمكانه:</b> الرقم موجود وفي خانته' }), h('span', { html: ICON_SWAP + '<b>بمكان غلط:</b> الرقم موجود لكن بخانة ثانية' })));
+    const sp = h('aside', { class: 'panel scorepanel' }, h('h3', null, 'النقاط', h('span', { class: 'sp' }), h('button', { class: 'btn sm', type: 'button', id: 'sctog', text: 'إخفاء', onclick: () => { scoresOpen = !scoresOpen; syncScores(); } })), h('div', { class: 'sc', id: 'sc' }));
+    const host = hostBar();
+    const col = h('div', { class: 'playcol' }, h('div', { class: 'play' }, sp, mid, logp), host);
+    b.append(col); sync(true);
+  }
+  function hostBar() {
+    const hb = h('div', { class: 'host', id: 'host' });
+    if (hostHidden) { hb.style.display = 'none'; }
+    const B = (t, f, cls, id) => h('button', { class: 'btn sm ' + (cls || ''), type: 'button', text: t, id, onclick: f });
+    const conf = async (title, msg, f) => { if (await modal(title, h('p', { text: msg }), [{ t: 'إلغاء', v: false }, { t: 'تأكيد', v: true, cls: 'pri' }])) f(); };
+    hb.append(h('div', { id: 'alerts' }), h('div', { class: 'hostfeed', id: 'feed' }),
+      h('div', { class: 'row' }, B('إيقاف مؤقت', () => { const r = G.paused ? M.resume() : M.pause(); if (r && r.reason === 'linkdown') toast('البث منقطع — انتظر عودة الاتصال أو استأنف يدويًا'); }, '', 'bpause'), B('+10 ث', () => M.extend(10000), '', 'bext'), B('إغلاق المحاولات الآن', () => M.closeEarly(), '', 'bclose'), B('المرحلة التالية', () => M.nextStage(), '', 'bnext'), B('الخزنة التالية', () => conf('الانتقال للخزنة التالية؟', 'تُنهى الخزنة الحالية بلا فائز ويُكشف رمزها.', () => M.skipVault()), '', 'bnv'), B('إعادة المرحلة', () => conf('إعادة مرحلة المحاولات؟', 'تُمسح محاولات هذه المرحلة وتُفتح من جديد بنفس الرمز، دون أي نقاط.', () => M.replayStage()), '', 'breplay'),
+        B('ملء الشاشة', () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch (e) { } }), B('تقدّم يدوي: ' + (G.cfg.manual ? 'نعم' : 'لا'), () => { G.cfg.manual = !G.cfg.manual; $('#bman').textContent = 'تقدّم يدوي: ' + (G.cfg.manual ? 'نعم' : 'لا'); if (!G.cfg.manual && G.phase === 'reveal' && G.t && G.t.deadline === Infinity) { G.t.deadline = Date.now() + 100; } }, '', 'bman'),
+        B('إعادة المباراة', () => conf('إعادة المباراة؟', 'تُصفّر النقاط وترجع للردهة بنفس المشاركين.', () => { M.restartMatch(true); render(true); })), B('إخفاء الأدوات', () => { hostHidden = true; hb.style.display = 'none'; hostMin(true); })));
+    if (!EMBED) hb.append(h('div', { class: 'simbar' }, B('محاكاة: الكل يرسل محاولة', () => simAttempts(1)), B('محاكاة: نصفهم', () => simAttempts(.5)), B('+10 لاعبين', () => simPlayers(10)), B('لاعب متأخر', () => { const n = M.plist().length + 1; M.receiveChat({ userId: 'late' + n, nickname: 'متأخر' + n, text: G.cfg.joinWord }); })));
+    return hb;
+  }
+  function hostMin(show) { let m = $('#hostmin'); if (!show) { if (m) m.remove(); return; } if (m) return; m = h('button', { class: 'btn sm hostmin', id: 'hostmin', type: 'button', text: 'أدوات الستريمر', onclick: () => { hostHidden = false; const hb = $('#host'); if (hb) hb.style.display = ''; hostMin(false); } }); document.body.append(m); }
+  document.addEventListener('keydown', e => { if (e.key === 'h' || e.key === 'H') { if (/INPUT|SELECT|TEXTAREA/.test((e.target || {}).tagName || '')) return; const hb = $('#host'); if (!hb) return; hostHidden = !hostHidden; hb.style.display = hostHidden ? 'none' : ''; hostMin(hostHidden); } });
+
+  function nameChip(p) { return p.name; }
+  function sync(force) {
+    if (screen !== 'play') return; const s = M.snapshot(); const ph = s.phase, entered = ph !== lastPhase, hvc = s.hv !== lastHv;
+    if (entered || force) onEnter(s, entered);
+    if (hvc || entered || force) buildLog(s, entered);
+    lastPhase = ph; lastHv = s.hv; updateHud(s); syncScores(s); updateHost(s);
+  }
+  function onEnter(s, entered) {
+    const ph = s.phase, vt = $('#vtitle'), how = $('#how'), win = $('#winner'); if (!vt) return;
+    const vlabel = (s.tb ? 'الخزنة الفاصلة' : 'الخزنة ' + toAr(s.vaultNo) + ' من ' + toAr(s.vaultTotal));
+    vc.plate(s.tb ? 'خزنة فاصلة' : 'الخزنة ' + toAr(s.vaultNo)); vc.setLeds(s.stage, s.maxStages, ph === 'opening');
+    const title = (big, sm) => { vt.innerHTML = ''; vt.append(h('div', { class: 'big', text: big })); if (sm) vt.append(h('div', { class: 'sm', text: sm })); vt.classList.remove('pop'); void vt.offsetWidth; vt.classList.add('pop'); };
+    if (ph === 'intro') {
+      vc.closeAnim(); setTimeout(() => { if (G.phase === 'intro') vc.setQ(); }, 0); vc.setQ(); vc.arm(false); vc.locked(false); win.textContent = ''; title(vlabel, 'جهّزوا أرقامكم'); how.innerHTML = ''; if (entered) vc.shake();
+    } else if (ph === 'collect') {
+      vc.closed(); vc.setQ(); vc.arm(true); vc.locked(false); win.textContent = ''; title('المرحلة ' + toAr(s.stage) + ' — ارسل محاولتك', vlabel); how.innerHTML = 'اكتب <b>3 أرقام مختلفة</b> في الشات، مثل <b dir="ltr">583</b> — محاولة واحدة لكل مرحلة';
+    } else if (ph === 'locked') {
+      vc.arm(false); vc.locked(true); vc.shake(); title('تم تثبيت المحاولات', 'لا استقبال بعد الآن'); how.textContent = '';
+    } else if (ph === 'reveal') {
+      vc.locked(false); vc.arm(false); title('نتائج المرحلة ' + toAr(s.stage), 'اقرأ السجل واستنتج'); how.innerHTML = 'استفد من كل المحاولات في السجل قبل المرحلة التالية';
+    } else if (ph === 'opening' && s.result) {
+      title(vlabel, 'انفتحت!'); vc.arm(false); vc.setCode(s.result.code, true); how.textContent = '';
+      vc.openSeq(() => { const w = s.result.winners; win.innerHTML = ''; win.append(h('div', { text: w.map(x => x.name).join(' و ') }), h('small', { text: (w.length > 1 ? 'فتحوها معًا في المرحلة ' : 'فتحها في المرحلة ') + toAr(s.result.stage) + ' · +' + G.cfg.points + ' نقطة' + (w.length > 1 ? ' لكل واحد' : '') })); confetti(); });
+    } else if (ph === 'held' && s.result) {
+      vc.arm(false); vc.setCode(s.result.code, false); title('الخزنة صمدت هالمرة', s.result.status === 'skipped' ? 'تم تخطي الخزنة' : 'ما حلّها أحد خلال ' + toAr(s.result.stage) + ' مراحل'); win.textContent = ''; how.innerHTML = 'الرمز كان <b dir="ltr">' + s.result.code + '</b>'; vc.shake();
+    }
+  }
+  function updateHud(s) {
+    const hud = $('#hud'); if (!hud) return; const run = ['collect', 'locked', 'reveal'].includes(s.phase);
+    const tot = s.totalMs || 1, rem = s.remMs === Infinity ? tot : s.remMs, pct = Math.max(0, Math.min(1, rem / tot)), sec = s.remMs === Infinity ? '∞' : Math.ceil(rem / 1000), R = 27, C = 2 * Math.PI * R;
+    let tm = $('#tmr'); const key = s.phase + s.vaultNo + s.stage + s.tb;
+    if (!tm || hud.dataset.key !== key) {
+      hud.dataset.key = key; hud.textContent = '';
+      hud.append(h('span', { class: 'chip', text: (s.tb ? 'خزنة فاصلة' : 'الخزنة ' + toAr(s.vaultNo) + '/' + toAr(s.vaultTotal)) }), h('span', { class: 'chip', text: 'المرحلة ' + toAr(s.stage) + '/' + toAr(s.maxStages) }));
+      if (s.phase === 'collect' || s.phase === 'reveal') hud.append(h('div', { class: 'timer', id: 'tmr', html: '<svg viewBox="0 0 62 62"><circle class="tr" cx="31" cy="31" r="' + R + '"/><circle class="tp" cx="31" cy="31" r="' + R + '" stroke-dasharray="' + C + '" stroke-dashoffset="0"/></svg><span id="tsec"></span>' }));
+      if (s.phase === 'collect') hud.append(h('span', { class: 'chip', id: 'subm' }));
+      tm = $('#tmr');
+    }
+    if (tm) { const c = tm.querySelector('.tp'); c.style.strokeDashoffset = String(C * (1 - pct)); $('#tsec').textContent = sec; tm.classList.toggle('low', s.phase === 'collect' && rem < 5000); }
+    const sb = $('#subm'); if (sb) { const t = 'أرسلوا: ' + s.submitted + ' من ' + s.active; if (sb.dataset.t !== t) { sb.dataset.t = t; sb.innerHTML = 'أرسلوا: <b>' + s.submitted + '</b> من ' + s.active; if (!isReduced()) { sb.classList.remove('pulse'); void sb.offsetWidth; sb.classList.add('pulse'); } } }
+  }
+  function buildLog(s, entered) {
+    const lb = $('#logbody'); if (!lb) return; const keep = lb.scrollTop; lb.textContent = '';
+    if (s.phase === 'collect' || s.phase === 'intro') lb.append(h('section', { class: 'stg live' }, h('h4', { text: s.phase === 'intro' ? 'الخزنة الجديدة' : 'المرحلة ' + toAr(s.stage) + ' — جارٍ استقبال المحاولات' }), h('div', { class: 'empty', text: s.phase === 'intro' ? 'سجل هذه الخزنة يبدأ بعد أول مرحلة.' : 'النتائج تظهر لكل الناس معًا بعد إغلاق المرحلة — لا نتيجة جزئية الآن.' })));
+    const hist = s.hist.slice().reverse(); const newest = s.hist.length ? s.hist[s.hist.length - 1].stage : 0;
+    if (!hist.length && s.phase !== 'collect' && s.phase !== 'intro') lb.append(h('div', { class: 'empty', text: 'لا محاولات بعد.' }));
+    hist.forEach(st => {
+      const isNew = st.stage === newest, best = st.rows.length ? st.rows[0] : null;
+      const sec = h('section', { class: 'stg ' + (isNew ? 'latest' : 'old') }, h('h4', null, 'المرحلة ' + toAr(st.stage), h('em', { text: '· ' + st.count + ' محاولة' + (isNew ? ' · الأحدث' : '') })));
+      if (!st.rows.length) sec.append(h('div', { class: 'empty', text: 'لم يرسل أحد محاولة في هذه المرحلة.' }));
+      st.rows.forEach((r, i) => {
+        const solved = r.exact === 3, tag = (i === 0 && !solved && best && (best.exact || best.mis)) ? h('span', { class: 'tagb', text: 'الأقرب' }) : null;
+        const row = h('div', { class: 'att' + (i === 0 && isNew ? ' best' : '') + (isNew && entered ? ' new' : ''), style: '--i:' + Math.min(i, 14) }, h('div', { class: 'cd', 'aria-label': 'المحاولة ' + r.code }, r.code.split('').map(d => h('i', { text: d }))),
+          h('div', { class: 'rs' }, h('span', { class: 'rp', html: ICON_PIN + '<b>' + r.exact + '</b> بمكانه' }), h('span', { class: 'rm', html: ICON_SWAP + '<b>' + r.mis + '</b> بمكان غلط' }), tag),
+          h('div', { class: 'wh', text: r.n > 3 ? 'أصحاب المحاولة: ' + r.n + ' لاعبًا' : (r.n > 1 ? 'أصحاب المحاولة (' + r.n + '): ' : 'صاحبها: ') + r.names.join('، ') }));
+        if (i !== 0 || !isNew) row.classList.remove('best'); if (i === 0 && isNew && !solved) row.classList.add('best');
+        sec.append(row);
+      }); lb.append(sec);
+    });
+    s.vlog.filter(v => !(s.vaultNo === v.no && (s.phase === 'opening' || s.phase === 'held')) && v.no !== s.vaultNo || v.tb).slice().reverse().forEach(v => lb.append(h('div', { class: 'vl', html: (v.tb ? 'الفاصلة' : 'الخزنة ' + toAr(v.no)) + ': ' + (v.status === 'opened' ? 'فُتحت بالمرحلة ' + toAr(v.stage) + ' — الرمز <b>' + v.code + '</b> — ' + v.winners.join(' و ') : 'صمدت — الرمز <b>' + v.code + '</b>') })));
+    if (!entered) lb.scrollTop = keep; else lb.scrollTop = 0;
+  }
+  function syncScores(s) {
+    const sc = $('#sc'); if (!sc) return; s = s || M.snapshot(); const tg = $('#sctog'); if (tg) tg.textContent = scoresOpen ? 'إخفاء' : 'إظهار'; sc.style.display = scoresOpen ? '' : 'none'; if (!scoresOpen) return;
+    const key = s.players.map(p => p.id + p.score + p.waiting + p.name).join('|'); if (sc.dataset.k === key) return; sc.dataset.k = key; sc.textContent = '';
+    s.players.slice(0, 12).forEach((p, i) => sc.append(h('div', { class: 'pr' + (p.waiting ? ' wait' : '') }, h('span', { class: 'rk', text: i + 1 }), avatar(p.name, p.avatar, p.id), h('span', { class: 'nm' }, p.name, p.waiting ? h('small', { text: ' · يدخل المرحلة القادمة' }) : null), h('span', { class: 'pt', text: p.score }))));
+    if (s.players.length > 12) sc.append(h('div', { class: 'empty', text: '+ ' + (s.players.length - 12) + ' لاعبين آخرين' }));
+  }
+  function updateHost(s) {
+    const set = (id, f) => { const e = $(id); if (e) f(e); };
+    set('#bpause', e => { e.textContent = s.paused ? 'استئناف' : 'إيقاف مؤقت'; e.classList.toggle('pri', s.paused); });
+    set('#bext', e => e.disabled = s.phase !== 'collect'); set('#bclose', e => e.disabled = s.phase !== 'collect' || s.paused); set('#bnext', e => e.disabled = !((s.phase === 'reveal' || s.phase === 'locked') && !s.paused));
+    set('#bnv', e => e.disabled = !['collect', 'locked', 'reveal'].includes(s.phase)); set('#breplay', e => e.disabled = !['collect', 'locked'].includes(s.phase));
+    set('#alerts', e => { const k = (s.linkDown ? 'd' : '') + (s.paused ? 'p' : '') + (s.autoPaused ? 'a' : ''); if (e.dataset.k === k) return; e.dataset.k = k; e.textContent = '';
+      if (s.linkDown) e.append(h('div', { class: 'alert', text: 'انقطع اتصال البث — أُوقفت المهلة تلقائيًا. الرمز والمحاولات محفوظة ولن تُحتسب خسارة على أحد.' }));
+      else if (s.paused && s.autoPaused) e.append(h('div', { class: 'alert ok', text: 'رجع الاتصال — اضغط «استئناف» لمتابعة المرحلة. إن شككت بضياع رسائل استخدم «إعادة المرحلة» (بنفس الرمز ودون نقاط).' }));
+      else if (s.paused) e.append(h('div', { class: 'pausebar', text: 'المباراة متوقفة مؤقتًا' })); });
+    set('#feed', e => { const k = G.feed.length + ':' + (G.feed[G.feed.length - 1] || {}).t; if (e.dataset.k === k) return; e.dataset.k = k; e.textContent = ''; G.feed.slice(-4).forEach(f => e.append(h('div', { class: f.kind, text: f.text }))); });
+    set('#linkchip', e => e.replaceWith(linkChip()));
+  }
+  /* ───── نهاية ───── */
+  function vFinal(b) {
+    const ps = M.stand(), ls = M.leaders(), tie = ls.length > 1, res = G.tieRes;
+    const wrap = h('div', { class: 'final' });
+    if (!ls.length || ls[0].score === 0) {
+      wrap.append(h('div', { class: 'win' }, h('p', { class: 'muted', text: 'النتيجة' }), h('div', { class: 'nm', text: 'الخزائن صمدت كلها' }), h('p', { class: 'muted', text: 'ما فتح أحد أي خزنة — لا فائز في هذه المباراة.' })));
+    } else if (tie && res !== 'shared') {
+      wrap.append(h('div', { class: 'win' }, h('p', { class: 'muted', text: 'تعادل!' }), h('div', { class: 'nm', text: ls.map(p => p.name).join(' و ') }), h('p', { text: ls[0].score + ' نقطة لكل واحد' })), h('p', { class: 'muted', text: 'الحسم بخزنة فاصلة بين المتعادلين فقط، أو فوز مشترك — دون أي أفضلية لسرعة وصول الرسائل.' }),
+        h('div', { class: 'row', style: 'justify-content:center;margin:12px 0' }, h('button', { class: 'btn pri big', type: 'button', text: 'خزنة فاصلة', onclick: () => { const r = M.startTiebreak(); if (!r.ok) toast('تعذّرت الخزنة الفاصلة'); render(true); } }), h('button', { class: 'btn big', type: 'button', text: 'فوز مشترك', onclick: () => { M.sharedWin(); render(true); } })));
+    } else wrap.append(h('div', { class: 'win' }, h('p', { class: 'muted', text: tie ? 'فوز مشترك' : 'الفائز' }), h('div', { class: 'nm', text: ls.map(p => p.name).join(' و ') || '—' }), h('p', { text: (ls[0] ? ls[0].score : 0) + ' نقطة · فتح ' + (ls[0] ? ls[0].opened : 0) + ' خزنة' })));
+    wrap.append(h('div', { class: 'top3' }, ps.slice(0, 3).map((p, i) => h('div', { class: 'cardx' }, h('div', { class: 'muted', text: 'المركز ' + toAr(i + 1) }), h('div', { class: 'row', style: 'justify-content:center;margin:6px 0' }, avatar(p.name, p.avatar, p.id), h('b', { text: p.name })), h('div', { text: p.score + ' نقطة' }), h('div', { class: 'muted', text: 'خزنات مفتوحة: ' + p.opened })))));
+    wrap.append(h('div', { class: 'row', style: 'justify-content:center' }, h('button', { class: 'btn pri big', type: 'button', text: 'إعادة بنفس المشاركين', onclick: () => { M.restartMatch(true); render(true); } }), h('button', { class: 'btn big', type: 'button', text: 'مباراة جديدة', onclick: () => { M.restartMatch(false); setupOpen = true; render(true); } }), h('button', { class: 'btn big', type: 'button', text: 'العودة لمكتبة الألعاب', onclick: () => { if (EMBED) { try { parent.postMessage({ source: 'ehsemha-hq', type: 'home' }, '*'); } catch (e) { } } else { M.restartMatch(false); setupOpen = false; render(true); } } })));
+    b.append(wrap); if (!tie || res === 'shared') confetti();
+  }
+  /* ───── محاكاة (للتجربة المستقلة فقط) ───── */
+  let simN = 0;
+  function simPlayers(n) { for (let i = 0; i < n; i++) { simN++; M.receiveChat({ userId: 'sim' + simN, nickname: 'لاعب ' + simN, text: G.cfg.joinWord }); } if (screen === 'lobby') lobbyPlayers(); }
+  function simAttempts(frac) {
+    const s = M.snapshot(); if (s.phase !== 'collect') { toast('ليست مرحلة محاولات'); return; }
+    const cands = []; for (let a = 0; a < 10; a++) for (let b = 0; b < 10; b++) for (let c = 0; c < 10; c++) if (a !== b && a !== c && b !== c) cands.push('' + a + b + c);
+    const rows = s.hist.map(x => x.rows).flat(); const cons = cands.filter(c => rows.every(r => { const e = L.evaluate(c, r.code); return e.exact === r.exact && e.mis === r.mis; }));
+    let k = 0; M.plist().forEach(p => { if (Math.random() > frac) return; const code = (cons.length ? cons : cands)[Math.floor(Math.random() * (cons.length || cands.length))]; if (M.receiveChat({ userId: p.id, nickname: p.name, text: code }).ok) k++; }); toast(k + ' محاولة أُرسلت');
+  }
+  /* ───── الإقلاع ───── */
+  M.on((ev, d) => {
+    if (ev === 'join' && screen === 'lobby') lobbyPlayers();
+    if (ev === 'attempt') { const sb = $('#subm'); if (sb) updateHud(M.snapshot()); }
+    if (ev === 'state') { const scr = screenOf(); if (scr !== screen || scr === 'final') render(scr === 'final' ? false : false); else if (scr === 'play') sync(); else if (scr === 'lobby') { lobbyPlayers(); const lc = $('#linkchip'); if (lc) lc.replaceWith(linkChip()); } }
+    if (ev === 'feed') updateHost(M.snapshot());
+  });
+  function boot() {
+    document.body.classList.toggle('reduced', isReduced()); render(true);
+    setInterval(() => { M.tick(); if (screen === 'play') { const s = M.snapshot(); updateHud(s); } }, 100);
+  }
+  window.HallahaGame = { receiveChat: m => M.receiveChat(m), snapshot: () => M.snapshot(), setLink: v => M.setLink(v), openLobby: () => { M.openLobby(); render(true); }, startMatch: () => { const r = M.startMatch(); render(true); return r; }, version: 'hq-1', _M: M, EMBED };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>
+<script>
+(function(){
+  'use strict';
+  if(!/[?&]embed=1/.test(location.search)) return;
+  var TAG='hq', wonSent={};
+  function post(o){ try{ o.source='ehsemha-'+TAG; parent.postMessage(o,'*'); }catch(e){} }
+  var api=window.HallahaGame, M=api._M, started=false;
+  function msg(u,text,eid){ return {userId:String(u.uniqueId),nickname:u.nickname||u.uniqueId,avatarUrl:u.avatar||'',text:String(text||''),eid:eid||'',receivedAt:Date.now()}; }
+  function winners(list){ var out=[]; (list||[]).forEach(function(p){ if(p) out.push({uniqueId:String(p.id),nickname:p.name||p.id,avatar:p.avatar||''}); }); return out; }
+  M.on(function(ev){
+    if(ev==='start'&&!started){ started=true; post({type:'start'}); }
+    if(ev==='final'){
+      var G=M.G, ls=M.leaders();
+      if(G.matchId>0&&ls.length&&ls[0].score>0&&(ls.length===1||G.tieRes==='shared'||G.tieRes==='broken')&&wonSent[G.matchId+':'+G.vaultNo]!==1){
+        wonSent[G.matchId+':'+G.vaultNo]=1; post({type:'win',winners:winners(ls)}); post({type:'finish'});
+      }
+    }
+    if(ev==='state'&&M.G.phase==='lobby') started=false;
+  });
+  window.EhsemhaEmbed={
+    tag:TAG,
+    ready:function(){ return !!api; },
+    chat:function(u,text,eid){ if(!api||!u||!u.uniqueId) return null; try{ return api.receiveChat(msg(u,text,eid)); }catch(e){ console.error(e); return null; } },
+    setLink:function(up){ try{ api.setLink(!!up); }catch(e){} },
+    state:function(){ try{ return api.snapshot(); }catch(e){ return null; } }
+  };
+  post({type:'ready'});
+})();
+</script>
+</body>
+</html>

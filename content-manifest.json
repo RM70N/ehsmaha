@@ -1,0 +1,452 @@
+{
+  "schema": 1,
+  "version": "81ed35f9d3c0bc7a",
+  "generatedAt": "2026-11-07T19:19:25.112Z",
+  "files": [
+    {
+      "path": "about-experience/posters/sq-cannon.webp",
+      "size": 20608,
+      "sha256": "0a73f03af6f56046c66272619077c83e455d60795d2cd44287f76f13ba656c5c"
+    },
+    {
+      "path": "about-experience/posters/sq-countrywar.webp",
+      "size": 13754,
+      "sha256": "bb53feb01c338b6cea6b141aef52b444c70848df3cbdd2e09b0e556bedc21f1f"
+    },
+    {
+      "path": "about-experience/posters/sq-roulette.webp",
+      "size": 7120,
+      "sha256": "c34b418f281a2e4be92cbc04fd1934476f2140ac21925afd981d169d40f631cc"
+    },
+    {
+      "path": "about-experience/previews-sq/cannon.html",
+      "size": 114898,
+      "sha256": "9e6dd1d765ddda18b3a3e0c4841a7fe7da074a2f1d656aaee4b6b1f9169f040e"
+    },
+    {
+      "path": "about-experience/previews-sq/countrywar.html",
+      "size": 64823,
+      "sha256": "4cbf6765653268f85e232ee08218ce8d2c9f76d61ded6aafc472927a7c548d69"
+    },
+    {
+      "path": "about-experience/previews-sq/roulette.html",
+      "size": 154719,
+      "sha256": "31e0600520c86eefee387222528665192735fccb23dae3c8429e4bf33723d157"
+    },
+    {
+      "path": "almeezan3d.html",
+      "size": 804391,
+      "sha256": "08f20c4c3f0f4a48861f7065e49eea7fa67b1518b12d736da5bf3e36a5148f3c"
+    },
+    {
+      "path": "blhh-5k/blhh-5k-celebration.js",
+      "size": 44549,
+      "sha256": "c57c0ca0429305d13f4fd6bc4df8e52c55a6f16c29aaa1f1018febec56ac5f75"
+    },
+    {
+      "path": "blhh-5k/blhh-5k-integration.js",
+      "size": 5809,
+      "sha256": "461656124098c97fa9181f9c93f31d4f844d66f168e558a3f0f97233ad303824"
+    },
+    {
+      "path": "bomb3d.html",
+      "size": 167193,
+      "sha256": "0a92a1edf085e3720861ff76194377fa4662d8985424637af11d0a5f3ee6ec5e"
+    },
+    {
+      "path": "c7-welcome/c7-welcome-integration.js",
+      "size": 4017,
+      "sha256": "00b3b3feb45ad5850131b20b215cdbde132da99197cdca026d643b6cbf59f0b3"
+    },
+    {
+      "path": "c7-welcome/c7-welcome.css",
+      "size": 20635,
+      "sha256": "4558def87cfca4a57cfe504f9e3ef270620f0e34f17b985ba11a550ff2036aac"
+    },
+    {
+      "path": "c7-welcome/c7-welcome.js",
+      "size": 18900,
+      "sha256": "9aecae9a33a9d2f8e451892aed44ca7108984fe5f934f1d96f24f57ec5c272d4"
+    },
+    {
+      "path": "callcenter3d.html",
+      "size": 754412,
+      "sha256": "50cc45e1a83befda469f3de38ef3792e358bbb2711806c9245f601c11f463b0a"
+    },
+    {
+      "path": "code-race-banner.png",
+      "size": 2461295,
+      "sha256": "6626b2986d9840a310d2d86bc270b0ac849ba43ff314913b85448ef9db8fe597"
+    },
+    {
+      "path": "code-race.html",
+      "size": 429749,
+      "sha256": "5f960a30d580e0b3bc83b046e6f00bd20c88fc16ef7964b11fcac3466ab54711"
+    },
+    {
+      "path": "desktop-app-ui.js",
+      "size": 4493,
+      "sha256": "5c7faddd13f675d33262c9df0f35e8a0833aef8f11b32e2f1f42d2d83a3beecd"
+    },
+    {
+      "path": "desktop-auth.html",
+      "size": 4278,
+      "sha256": "4ccfeaa27dc1fcb5a5261a00a6cf9aa7bd145922dcb033ab394c03d788f84b78"
+    },
+    {
+      "path": "desktop-link.js",
+      "size": 14689,
+      "sha256": "1c6f433e0be2bf209ed858005339299c7e37ac0455c64a67bfb7feb56c23767d"
+    },
+    {
+      "path": "dhmx-welcome/dhmx-welcome-integration.js",
+      "size": 6750,
+      "sha256": "06c7894cda892a3627cc48efd05568ccc76ae0b3b0bf4a00bbedac215a54399d"
+    },
+    {
+      "path": "dhmx-welcome/dhmx-welcome.css",
+      "size": 19838,
+      "sha256": "841d7d5a5904cdd72d0756957ada9a67833c92c5362ef704a4a51837df54f3c0"
+    },
+    {
+      "path": "dhmx-welcome/dhmx-welcome.js",
+      "size": 18697,
+      "sha256": "6bec7a18d923626da42e1558deacd240f7029827fa39307738febfcb489665aa"
+    },
+    {
+      "path": "discord-logo.png",
+      "size": 12134,
+      "sha256": "f9b21bb0f163b8cf838947d867e2d8b0689a4d9b48298ef4523dd1d4208c39a4"
+    },
+    {
+      "path": "ektheb-alay.html",
+      "size": 124744,
+      "sha256": "c45663e360dfbcd84686345565eb3dde5352f8ae88ec499d3089f16b3c4ab5c6"
+    },
+    {
+      "path": "hallaha-qabli.html",
+      "size": 75315,
+      "sha256": "0273cd73dafb95bc2248fa9eb790f5951eaee918a2a767575ac5020ee7b69b23"
+    },
+    {
+      "path": "harf-alnajat3d.html",
+      "size": 829405,
+      "sha256": "ac90f0bde8e218bc129858149846dea995db3bb8c10a0ee93dc0f7f272c69099"
+    },
+    {
+      "path": "index.html",
+      "size": 7028731,
+      "sha256": "9f26f5b60683b1e1e183216fefd85a8e64cf282530c4b2856a1841dd4452a400"
+    },
+    {
+      "path": "la-tatayeh3d.html",
+      "size": 2733700,
+      "sha256": "2688fe0f7d2ed6cdbdf20d584e7a734e9522a91c750637d21b02a152618124f5"
+    },
+    {
+      "path": "link-device.html",
+      "size": 4765,
+      "sha256": "3177764e097162304277695060eb68efb21523feb593f22cbc8d39d563c4e50f"
+    },
+    {
+      "path": "ops/ops-core.js",
+      "size": 25628,
+      "sha256": "0edeb3ccfd9e5803e3e47fbcb160cc9cd94c99513133363d149a262b216d1ad2"
+    },
+    {
+      "path": "ops/ops-games.js",
+      "size": 24030,
+      "sha256": "6579453d609f9fb1eb88f8ccc75f478281bb6a2ae1365475dda7408a624c2059"
+    },
+    {
+      "path": "ops/ops-lab-boot.js",
+      "size": 5231,
+      "sha256": "af079fb6802d80caff7df1e6e1e76b42e284188585e6568df3a1864c628ff2b5"
+    },
+    {
+      "path": "ops/ops-tournament-site.js",
+      "size": 4752,
+      "sha256": "1cffb03236f6a682cb13ff25973a253c01422fbd8c831fe7067a00021d5605d1"
+    },
+    {
+      "path": "owner-studio/index.html",
+      "size": 179377,
+      "sha256": "981606bbff309c71d09709876fa27561a551bf2a924f742b0260cc7019483b42"
+    },
+    {
+      "path": "owner-studio/legacy-skin.css",
+      "size": 2568,
+      "sha256": "0bba0c328b402937e2bdca2d265b0324f59b9af0fb47bc27745a3c78f238de07"
+    },
+    {
+      "path": "owner-studio/live-events.js",
+      "size": 5765,
+      "sha256": "3a63e803da3468cf1e3238a9871f8379fa8fb1aa51d10cb5854e33d890dee4c6"
+    },
+    {
+      "path": "owner-studio/live-forms.js",
+      "size": 9507,
+      "sha256": "7f88ee8931d255cc57430bd713413a18535216fd963ff7ca8d59b378dde14e97"
+    },
+    {
+      "path": "owner-studio/live-ops.js",
+      "size": 29072,
+      "sha256": "ce07209de712532fbd998ecdc0ffa06cee6fa48edc8e13c7aae08d8e05d67f43"
+    },
+    {
+      "path": "owner-studio/live-people.js",
+      "size": 18949,
+      "sha256": "614582a12b04f7e28f9694171f538005565841ef5a03bcbaba32d4179c47ff5b"
+    },
+    {
+      "path": "owner-studio/live-rewards.js",
+      "size": 18540,
+      "sha256": "1171eff3b26543b3cf12f70dd67d5abb1f89a57161d28e46292ec06365c2a1c6"
+    },
+    {
+      "path": "owner-studio/live.js",
+      "size": 12212,
+      "sha256": "43be7d7c8aa0c78a4c20056d5f38e5067c1c9cafa3b7e410ba2c270e2f6ae567"
+    },
+    {
+      "path": "owner-studio/ops-app.js",
+      "size": 12578,
+      "sha256": "7a7ea352dd71f9f1ed62df4ec4375aa976114b2b3dcdec4b8c57a721b12a85f8"
+    },
+    {
+      "path": "owner-studio/ops-common.js",
+      "size": 12901,
+      "sha256": "f82859d177cafe96c817bcf6e09fa6dcda6b498d6d73f9f42a33d7bced391339"
+    },
+    {
+      "path": "owner-studio/ops-config.js",
+      "size": 13247,
+      "sha256": "a22f5a0a2267d54adb1368ae16ee51500104fd13ef8b0eee86a354c940218fff"
+    },
+    {
+      "path": "owner-studio/ops-health.js",
+      "size": 21105,
+      "sha256": "33e0c749daf50e8e1dcbb41a56dfce0df09c4ac78665911cc82b8a6cfc7a1eef"
+    },
+    {
+      "path": "owner-studio/ops-journey.js",
+      "size": 15714,
+      "sha256": "b63aa87e73ca5ee29b88de201b00b7d222fcc51f0963785e0b9ace6c27ddac80"
+    },
+    {
+      "path": "owner-studio/ops-lab.js",
+      "size": 28465,
+      "sha256": "59103e6edf73a1ac7dc15a1aff617be9f9ac29a8be2f762b50b8e30a85559678"
+    },
+    {
+      "path": "owner-studio/ops-room.js",
+      "size": 28136,
+      "sha256": "d5b0848099e502de1fa2f3ec14b21cbbcd0f37a36d30940879acd4ea67cd7f8a"
+    },
+    {
+      "path": "owner-studio/ops-tournaments.js",
+      "size": 45931,
+      "sha256": "325f73219350d6314e26368eec957ac528e4d58662960e6d76c10018e0268226"
+    },
+    {
+      "path": "owner-studio/owner-studio-bridge.js",
+      "size": 5157,
+      "sha256": "5d09663962532e141346c224b3c306535b4db4ec8ae699f69f82fb6dbbe137d8"
+    },
+    {
+      "path": "owner-studio/user-suggest.js",
+      "size": 9347,
+      "sha256": "cbb72a6b91044edddd3ebf503d2b6970419f7e4f8fca8500a43ae0a748dbb9f4"
+    },
+    {
+      "path": "revival-system/assets/fallback-avatar.svg",
+      "size": 468,
+      "sha256": "8ebf43d96102df3e9a0ccb53674a986e51254d4a9521fb04d511318364dc4e94"
+    },
+    {
+      "path": "revival-system/assets/revival-energy.svg",
+      "size": 1255,
+      "sha256": "347d8f15937ed029256e42837e095a5c8640a3070b96a86ceb052a2a62475242"
+    },
+    {
+      "path": "revival-system/assets/revival-frame.svg",
+      "size": 1295,
+      "sha256": "772c68db4910538ec0414b48185f77478e6514ea1bb82bb7b78cbe08d24c2861"
+    },
+    {
+      "path": "revival-system/revival-animation.js",
+      "size": 9539,
+      "sha256": "c3c230e4d82d7a40abcf459acdd3089bb87986472fcc370a60dd65b5424444a2"
+    },
+    {
+      "path": "revival-system/revival-config.js",
+      "size": 1218,
+      "sha256": "4c124f71e18610a8735e5e3caa8a5b52298939e46599c07802ce4b9dbc3d6727"
+    },
+    {
+      "path": "revival-system/revival-controller.js",
+      "size": 4683,
+      "sha256": "9bb338ad0f1f4d0affe361ade9ccb0207675e949c3b4c446063ab453c2a4473a"
+    },
+    {
+      "path": "revival-system/revival-effects.js",
+      "size": 3689,
+      "sha256": "e3caf42a1a47d136f846d9f877ed5318c5971d8f97de3141133e66ae1744a8be"
+    },
+    {
+      "path": "revival-system/revival-presentation.js",
+      "size": 5442,
+      "sha256": "9c9e73f2a15b4a5b2500cf7f6ad6c4c4dad3bee8f15cd41e5caa7f3b16193bdd"
+    },
+    {
+      "path": "revival-system/revival-style.css",
+      "size": 6902,
+      "sha256": "c33c83c4c57686c073bd57d32bb68636be7a14c1ceefc9f1544d6341fd17a72a"
+    },
+    {
+      "path": "roulette3d.html",
+      "size": 147561,
+      "sha256": "be435e37487da12ece8d4c274c63900476211ce31a4baa609502780bce80b287"
+    },
+    {
+      "path": "som3h-10k/som3h-10k-celebration.js",
+      "size": 44325,
+      "sha256": "62a0d9b5f3abe8f9fdacbd2556c4c0cd68ed00d427c6e0f54e24a51212448e6a"
+    },
+    {
+      "path": "som3h-10k/som3h-10k-integration.js",
+      "size": 5785,
+      "sha256": "f913429b526027f6cff0678d763084b8ae5741061638506aa952dac55f03b379"
+    },
+    {
+      "path": "subathon/subathon-core.js",
+      "size": 25793,
+      "sha256": "fd2d6d948f58fb3ae8e5941ebede0667983070d91dc4650b165fa420c4226f99"
+    },
+    {
+      "path": "subathon/subathon-engine.js",
+      "size": 29788,
+      "sha256": "2f8ff59d56b8ef8bac3a886f59e8c158dc79126cae2e1115059a4a16b1860f26"
+    },
+    {
+      "path": "subathon/subathon-ui.js",
+      "size": 35600,
+      "sha256": "9fb8df07cdd90b14735eb81fc6e126a6bd0e7e17c8f2b761ed4fa80c331ba3f1"
+    },
+    {
+      "path": "subathon/subathon.css",
+      "size": 18722,
+      "sha256": "0bb170059e282c4e166be2348363d0c80b1497cdbd3552f16bf804f36bd32c56"
+    },
+    {
+      "path": "tug3d.html",
+      "size": 715541,
+      "sha256": "580b47f452a515379fa22f0c4e2a476dd8602ed321181f31e4617565953c555b"
+    },
+    {
+      "path": "wesh-taghayar.html",
+      "size": 1519492,
+      "sha256": "b7e3c711e10cfc99127cc48266419d7584665a824e08712fa1553f928ebef56c"
+    },
+    {
+      "path": "windows-app.html",
+      "size": 388087,
+      "sha256": "603f011ca7265f66aa2476eb2cd87ed7ba98f4aa25365195f754f12a4ed1b084"
+    },
+    {
+      "path": "windows-app/screens/home.jpg",
+      "size": 125115,
+      "sha256": "8a482837c11fa8c109218385d3fb7cc92858530bf117dd00399c41e53cb8b306"
+    },
+    {
+      "path": "windows-launch-campaign/README.md",
+      "size": 2267,
+      "sha256": "4a47b4c02fcd778d45e82bfe4fb74a514129b119f71cc4d3437a39d0e5dd0785"
+    },
+    {
+      "path": "windows-launch-campaign/assets/decorative-elements.svg",
+      "size": 1102,
+      "sha256": "eaa7c3d20e9f37950d450f6edd392c872b1aa10ae728420432462ed749f8551d"
+    },
+    {
+      "path": "windows-launch-campaign/assets/desktop-preview.webp",
+      "size": 8828,
+      "sha256": "f0e787d9bac8be44846e4a42eeeb98e0ee2c1b176b2e4ce32f7af62a49bad714"
+    },
+    {
+      "path": "windows-launch-campaign/assets/fonts/tajawal-1.woff2",
+      "size": 8940,
+      "sha256": "4255019c1cd986f7cda7869df69baf72730d61304ae14baba4acfeb13085da54"
+    },
+    {
+      "path": "windows-launch-campaign/assets/fonts/tajawal-2.woff2",
+      "size": 9024,
+      "sha256": "fa5e72326681abee3a4952be582e1c2c2abb27932ef262610c078ce89541f919"
+    },
+    {
+      "path": "windows-launch-campaign/assets/fonts/tajawal-3.woff2",
+      "size": 8700,
+      "sha256": "4d7f3fca4a75b2bd4291bf1b8c2fddfd86170993938a8a9b436fc0d7ec9ae3ae"
+    },
+    {
+      "path": "windows-launch-campaign/assets/fonts/tajawal-4.woff2",
+      "size": 9996,
+      "sha256": "de8f431c146ab1feb612cb7ced0842ae5c4e2f12067d13db0badeca73977200b"
+    },
+    {
+      "path": "windows-launch-campaign/assets/fonts/tajawal-5.woff2",
+      "size": 10224,
+      "sha256": "518d9efed800bdd33e0b5b09b2fe59debfff6656e5ea6e3b7169b26cbad269bc"
+    },
+    {
+      "path": "windows-launch-campaign/assets/launch-artwork.webp",
+      "size": 21214,
+      "sha256": "e9134696c3778146c6241f75f1375b107fa8444e852127ce9d0ebba95e046691"
+    },
+    {
+      "path": "windows-launch-campaign/assets/logo.png",
+      "size": 13921,
+      "sha256": "078d836720f43da500fa02db918dfc6d08c9a894985b9df6613e064bf38d6a1c"
+    },
+    {
+      "path": "windows-launch-campaign/campaign-config.js",
+      "size": 1956,
+      "sha256": "26f6e8f96135ad12c3174b64b045617efce920c46f74e9567b48b49dea6ba9e3"
+    },
+    {
+      "path": "windows-launch-campaign/campaign.css",
+      "size": 19222,
+      "sha256": "1f8b8b88a11085c3e1a3bb28b3af06e48db85913b29d1cd6fa5ea9c44e97f967"
+    },
+    {
+      "path": "windows-launch-campaign/campaign.js",
+      "size": 14659,
+      "sha256": "7dc6cf8e3b81bf9ef30f9993416723024612561c709657180f44a3cdf5e0da5c"
+    },
+    {
+      "path": "windows-launch-campaign/tests/campaign.test.js",
+      "size": 7905,
+      "sha256": "71fc9ff93ee177fe35235a4a30df02f79161c46c7077f0361348fd53aea5c0a0"
+    },
+    {
+      "path": "windows-launch-campaign/tests/screenshots.js",
+      "size": 1145,
+      "sha256": "2262085fc55438519ebdef3e843383dd53c62e24be9d81f131d46176b1c8e120"
+    },
+    {
+      "path": "windows-launch-campaign/tests/server.js",
+      "size": 1056,
+      "sha256": "489a8d76b475d1da726ab3af5853f0cb5019c0ca657225c1e3c5a45c36779ae9"
+    },
+    {
+      "path": "ws-diag.html",
+      "size": 3673,
+      "sha256": "cc86039a99a6a26f0c3eddce2eb31bef439cb2e334deebcaba517ec56d1ccb41"
+    },
+    {
+      "path": "xo.html",
+      "size": 109130,
+      "sha256": "e3205a6e05925ddf4e7b61f857c8991147030768ac8441b4fea8e5cf49d290f9"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+/* نوافذ الموقع القديمة التي تفتحها دوال لوحة المالك فوق الاستوديو (محرر الفئات، الإعدادات…): نفس لغة تصميم الاستوديو.
+   تُطبَّق فقط أثناء فتح الاستوديو (body.os-open). */
+body.os-open .owner-modal-overlay,body.os-open .mod-modal-overlay{background:rgba(5,5,8,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+body.os-open .owner-modal{background:#18181F;color:#F8F7FC;border:1px solid rgba(255,255,255,.12);border-radius:24px;box-shadow:0 28px 60px -20px rgba(0,0,0,.85);font-family:'Tajawal','Cairo',system-ui,sans-serif}
+body.os-open .owner-modal-head{border-bottom:1px solid rgba(255,255,255,.07);padding:20px 24px}
+body.os-open .owner-modal-title,body.os-open .mod-modal-title{background:none;-webkit-text-fill-color:#F8F7FC;color:#F8F7FC;font-family:'Cairo','Tajawal',sans-serif;font-weight:800;font-size:22px}
+body.os-open .owner-modal-close{color:#BDBACB;border-radius:12px;width:44px;height:44px}
+body.os-open .owner-modal-close:hover{background:#22212B;color:#fff}
+body.os-open .owner-modal label{color:#BDBACB;font-weight:700}
+body.os-open .owner-modal input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=color]),body.os-open .owner-modal select,body.os-open .owner-modal textarea{background:#101015;color:#F8F7FC;border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:12px 14px;font-family:inherit;min-height:46px}
+body.os-open .owner-modal input:focus,body.os-open .owner-modal select:focus,body.os-open .owner-modal textarea:focus{outline:2px solid #A78BFA;outline-offset:1px}
+body.os-open .owner-modal .btn-primary{background:linear-gradient(135deg,#6D28D9,#7C3AED);color:#fff;border:0;border-radius:999px;padding:12px 22px;font-weight:800;min-height:46px;font-family:'Cairo',sans-serif}
+body.os-open .owner-modal .btn-danger{background:rgba(251,113,133,.14);color:#FB7185;border:1px solid rgba(251,113,133,.4);border-radius:999px;padding:12px 22px;font-weight:800;min-height:46px}
+body.os-open .owner-modal .btn-reset,body.os-open .owner-modal .btn-secondary,body.os-open .owner-modal .back-btn{background:#22212B;color:#F8F7FC;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:10px 18px;font-weight:700}
+body.os-open .owner-row,body.os-open .rounds-pick-row{background:#18181F;border:1px solid rgba(255,255,255,.07);border-radius:16px}
+body.os-open .owner-empty{color:#8F8B9F}
+body.os-open .status-msg.ok{color:#34D399}body.os-open .status-msg.err{color:#FB7185}

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>فحص اتصال سيرفر الربط</title>
+<style>
+  body { background:#0b0b10; color:#eee; font-family:system-ui,-apple-system,sans-serif; padding:16px; direction:rtl; }
+  h1 { font-size:18px; }
+  #log { white-space:pre-wrap; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; line-height:1.6; background:#15151c; border-radius:8px; padding:12px; direction:ltr; text-align:left; }
+  .ok { color:#5fd38d; }
+  .bad { color:#ff6b6b; }
+  .info { color:#9ad0ff; }
+  button { background:#7c5cff; color:#fff; border:0; padding:10px 16px; border-radius:8px; font-size:15px; margin:8px 4px 16px 0; }
+</style>
+</head>
+<body>
+<h1>فحص مباشر لاتصال WebSocket بسيرفر الربط (بلا أي كود من الموقع الرئيسي)</h1>
+<p>هذه صفحة تشخيص منفصلة تماماً: تفتح اتصال WebSocket خام بسيرفر الجسر مباشرة، بدون أي منطق إعادة محاولة أو إيقاظ أو طابور من كود الموقع. الهدف: معرفة هل جوالك/شبكتك تقدر تفتح اتصال WebSocket بالسيرفر أصلاً أم لا.</p>
+<label>يوزر تيك توك (اختياري، بلا @): <input id="uname" type="text" placeholder="diagtest123" style="padding:8px;border-radius:6px;border:1px solid #333;background:#15151c;color:#eee;"></label>
+<br>
+<button onclick="runTest()">ابدأ الفحص</button>
+<div id="log"></div>
+<script>
+function line(text, cls) {
+  const el = document.getElementById('log');
+  const span = document.createElement('div');
+  if (cls) span.className = cls;
+  const t = new Date().toISOString().split('T')[1].replace('Z','');
+  span.textContent = '[' + t + '] ' + text;
+  el.appendChild(span);
+}
+function runTest() {
+  document.getElementById('log').textContent = '';
+  const u = (document.getElementById('uname').value || 'diagtest123').trim().replace(/^@/, '');
+  const url = 'wss://ehsmaha.onrender.com/ws?platform=tiktok&u=' + encodeURIComponent(u);
+  line('محاولة فتح: ' + url, 'info');
+  line('User-Agent: ' + navigator.userAgent, 'info');
+  let ws;
+  const startedAt = Date.now();
+  try {
+    ws = new WebSocket(url);
+  } catch (e) {
+    line('فشل إنشاء WebSocket فوراً: ' + e.message, 'bad');
+    return;
+  }
+  const timeout = setTimeout(() => {
+    line('مرّت 15 ثانية بلا أي حدث (لا open ولا error) — الاتصال معلّق تماماً، هذا دليل حظر شبكة لاتصالات WebSocket تحديداً.', 'bad');
+  }, 15000);
+  ws.onopen = () => {
+    clearTimeout(timeout);
+    line('✅ نجح فتح الاتصال خلال ' + (Date.now() - startedAt) + 'ms — جوالك يصل لسيرفر الربط عبر WebSocket بلا مشكلة.', 'ok');
+    line('سيصل أي رسالة حالة من السيرفر خلال ثوانٍ (bridge_status)...', 'info');
+  };
+  ws.onmessage = (ev) => {
+    line('رسالة من السيرفر: ' + String(ev.data).slice(0, 300), 'ok');
+  };
+  ws.onerror = (ev) => {
+    clearTimeout(timeout);
+    line('❌ حدث خطأ WebSocket (التفاصيل محدودة من المتصفح لأسباب أمنية، لكن هذا يعني فشل الاتصال).', 'bad');
+  };
+  ws.onclose = (ev) => {
+    clearTimeout(timeout);
+    line('إغلاق الاتصال — code=' + ev.code + ' reason="' + ev.reason + '" wasClean=' + ev.wasClean + ' بعد ' + (Date.now() - startedAt) + 'ms', ev.code === 1000 || ev.code === 1001 ? 'info' : 'bad');
+  };
+}
+</script>
+</body>
+</html>
