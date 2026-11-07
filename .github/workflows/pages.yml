@@ -27,6 +27,7 @@ on:
       - desktop-link.js
       - desktop-app-ui.js
       - windows-app/**
+      - windows-launch-campaign/**
       - revival-system/**
       - dhmx-welcome/**
       - som3h-10k/**
@@ -75,6 +76,7 @@ jobs:
           cp -r ops _site/ops
           cp -r subathon _site/subathon
           cp -r windows-app _site/windows-app
+          cp -r windows-launch-campaign _site/windows-launch-campaign
           # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
           mkdir -p _site/about-experience
           cp -r about-experience/previews-sq about-experience/posters _site/about-experience/

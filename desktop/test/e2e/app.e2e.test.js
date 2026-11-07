@@ -64,7 +64,7 @@ test('launch: window, security prefs, local origin, bridge surface', async () =>
   } finally { await s.close(); }
 });
 
-test('all 67 bundled files are served with correct types; no HTML masquerading as JS/CSS', async () => {
+test('all bundled files are served with correct types; no HTML masquerading as JS/CSS', async () => {
   const s = await start();
   try {
     const m = JSON.parse(fs.readFileSync(path.join(SITE, MANIFEST_NAME), 'utf8'));
@@ -580,4 +580,17 @@ test('fast content updates: returning to the app (focus) triggers an immediate s
     const hits = await T(app, async () => { const a = global.__ehsTest.runContentSync(); const b = global.__ehsTest.runContentSync(); return a === b || (await Promise.all([a, b])).length === 2; });
     assert.equal(hits, true);
   } finally { await app.close().catch(() => {}); fake.close(); }
+});
+
+test('Windows launch campaign: script is bundled and loaded, but the overlay never appears inside the installed app', async () => {
+  const s = await start();
+  try {
+    await sleep(6000); // أطول من showDelay + idle callback
+    const r = await s.win.evaluate(() => ({ api: typeof window.EhsemhaLaunchCampaign, cfg: !!window.WINDOWS_LAUNCH_CAMPAIGN, root: !!document.getElementById('wlc-root'), css: !!document.getElementById('wlc-css'), desk: window.ehsmahaDesktop && window.ehsmahaDesktop.isDesktopApp }));
+    assert.deepEqual(r, { api: 'object', cfg: true, root: false, css: false, desk: true });
+    for (const f of ['campaign.js', 'campaign-config.js', 'campaign.css', 'assets/launch-artwork.webp']) {
+      const st = await new Promise((res) => http.get({ host: '127.0.0.1', port: 43711, path: '/windows-launch-campaign/' + f }, (x) => { x.resume(); res(x.statusCode); }));
+      assert.equal(st, 200, f);
+    }
+  } finally { await s.close(); }
 });
