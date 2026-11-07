@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "81ed35f9d3c0bc7a",
-  "generatedAt": "2026-11-07T19:19:25.112Z",
+  "version": "8ecf3b7063952c15",
+  "generatedAt": "2026-11-07T19:39:45.244Z",
   "files": [
     {
       "path": "about-experience/posters/sq-cannon.webp",
@@ -420,13 +420,13 @@
     },
     {
       "path": "windows-launch-campaign/campaign.js",
-      "size": 14659,
-      "sha256": "7dc6cf8e3b81bf9ef30f9993416723024612561c709657180f44a3cdf5e0da5c"
+      "size": 14586,
+      "sha256": "6240d37b0806b74d4b78c78fe4fe055d5dd884d51e6e083090e23cd399ac66a0"
     },
     {
       "path": "windows-launch-campaign/tests/campaign.test.js",
-      "size": 7905,
-      "sha256": "71fc9ff93ee177fe35235a4a30df02f79161c46c7077f0361348fd53aea5c0a0"
+      "size": 8544,
+      "sha256": "e8b031e45d34d303f26f72867262dbd61f3a38a3a6bd635a29b7d5af65fbed39"
     },
     {
       "path": "windows-launch-campaign/tests/screenshots.js",
