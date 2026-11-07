@@ -12,10 +12,16 @@
 //        بعد مهلة سماح قصيرة للجلسات الجديدة جداً (الويب هوك يسبق بيانات الموقع).
 //      • جلسة بالمزامنة مو موجودة محلياً → تنضاف (تعويض ويب هوك متأخر/فاشل).
 //
+// عرض لحظي (لوحة المالك نفسها): جلسة بدون لعبة = "متصل بالبث" (status: 'linked') — تظهر لحظة ربط الستريمر
+// ليوزره قبل أي لعبة، وتتحول 'playing' لما يشغّل لعبة. أي تغيير يُطلق حدث (onChange) فيتحدّث /بث فوراً:
+//   • startRealtime(source): يربط حدث التغيير القادم من طبقة الـAPI المدمجة (مستمعا Firestore وRTDB)
+//     بالمزامنة فوراً (مع تجميع للأحداث المتلاحقة)، ومزامنة احتياطية أبطأ كل STREAM_POLL_SECONDS.
+//
 // أمان إضافي: كل جلسة لها مؤقت انتهاء (STREAM_MAX_HOURS، افتراضياً 6 ساعات من
 // بدايتها) — لو ما وصل حدث "انتهى" أبداً (كراش متصفح/انقطاع)، الجلسة تنحذف
 // تلقائياً. المؤقت يُلغى (clearTimeout) لو وصل حدث الانتهاء الحقيقي قبله.
 
+const EventEmitter = require('node:events');
 const logger = require('../utils/logger');
 
 const PLATFORMS = Object.freeze(['tiktok', 'twitch', 'kick', 'youtube']);
@@ -23,6 +29,15 @@ const NEW_SESSION_GRACE_MS = 3 * 60 * 1000;
 
 const sessions = new Map(); // sessionId -> session
 let maxAgeMs = 6 * 60 * 60 * 1000;
+const emitter = new EventEmitter();
+emitter.setMaxListeners(50);
+
+/** يسجّل مستمع لأي تغيير بقائمة البث (جلسة جديدة/انتهت/تغيّرت لعبتها). يرجّع دالة إلغاء. */
+function onChange(cb) {
+  emitter.on('change', cb);
+  return () => emitter.off('change', cb);
+}
+const notify = () => emitter.emit('change');
 
 function configure({ maxHours } = {}) {
   if (maxHours) maxAgeMs = maxHours * 60 * 60 * 1000;
@@ -46,6 +61,7 @@ function remove(sessionId, reason) {
   clearTimer(s);
   sessions.delete(sessionId);
   logger.info('انتهت جلسة بث', { sessionId, streamer: s.platformUsername, platform: s.platform, reason });
+  notify();
   return true;
 }
 
@@ -71,11 +87,14 @@ function upsert(input) {
 
   const prev = sessions.get(input.sessionId);
   clearTimer(prev);
+  // الويب هوك دايماً معه اسم لعبة؛ جلسة المزامنة بدون لعبة = "متصل بالبث"
+  const gameName = input.gameName || (input.source === 'poll' ? null : 'لعبة');
   const session = {
     sessionId: input.sessionId,
     platform: input.platform,
     platformUsername: String(input.platformUsername).trim().replace(/^@+/, ''),
-    gameName: input.gameName || 'لعبة',
+    gameName,
+    status: gameName ? 'playing' : 'linked',
     gameId: input.gameId || null,
     startedAt: Math.min(startedAt, now),
     source: input.source || 'webhook',
@@ -87,7 +106,8 @@ function upsert(input) {
   session.timer = setTimeout(() => remove(session.sessionId, 'auto-expiry'), Math.min(expiresIn, 2 ** 31 - 1));
   if (session.timer && typeof session.timer.unref === 'function') session.timer.unref();
   sessions.set(session.sessionId, session);
-  if (!prev) logger.info('بدأت جلسة بث', { sessionId: session.sessionId, streamer: session.platformUsername, platform: session.platform, game: session.gameName, source: session.source });
+  if (!prev) logger.info('بدأت جلسة بث', { sessionId: session.sessionId, streamer: session.platformUsername, platform: session.platform, game: session.gameName, status: session.status, source: session.source });
+  if (!prev || prev.gameName !== session.gameName || prev.platformUsername !== session.platformUsername) notify();
   return { ok: true };
 }
 
@@ -126,9 +146,15 @@ function reconcile(remote) {
   const localKeys = new Set([...sessions.values()].map((s) => s.key));
   for (const [key, r] of remoteByKey) {
     if (localKeys.has(key)) {
-      // جلسة مصدرها المزامنة نفسها: نحدّث اسم اللعبة لو تغيّر
+      // الستريمر ما زال يبث: نحدّث اللعبة/الحالة لو تغيّرت (ربط ← يشغّل لعبة، أو لعبة ← لعبة ثانية)
       const local = [...sessions.values()].find((s) => s.key === key);
-      if (local && local.source === 'poll' && r.gameName && local.gameName !== r.gameName) local.gameName = r.gameName;
+      const game = r.gameName || null;
+      if (local && local.source !== 'webhook' && local.gameName !== game) {
+        local.gameName = game;
+        local.gameId = r.gameId || null;
+        local.status = game ? 'playing' : 'linked';
+        notify();
+      }
       continue;
     }
     const res = upsert({ ...r, source: 'poll' });
@@ -139,7 +165,9 @@ function reconcile(remote) {
 
 function clearAll() {
   for (const s of sessions.values()) clearTimer(s);
+  const had = sessions.size > 0;
   sessions.clear();
+  if (had) notify();
 }
 
 // ---------------- المزامنة الدورية ----------------
@@ -168,6 +196,46 @@ function startPolling(fetchRemote, intervalMs) {
 function stopPolling() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = null;
+  if (realtimeOff) realtimeOff();
+  realtimeOff = null;
+  if (realtimeDebounce) clearTimeout(realtimeDebounce);
+  realtimeDebounce = null;
+}
+
+// ---------------- التحديث اللحظي ----------------
+let realtimeOff = null;
+let realtimeDebounce = null;
+
+/**
+ * اربط مصدر لحظي (طبقة الـAPI المدمجة): كل تغيير ببثوث الموقع → مزامنة فورية (تجميع 150ms للأحداث المتلاحقة).
+ * @param {{ getActiveStreams: Function, onChange: Function, start?: Function }} source
+ * @param {{ safetyPollMs?: number, debounceMs?: number }} [opts]
+ */
+function startRealtime(source, { safetyPollMs = 60 * 1000, debounceMs = 150 } = {}) {
+  stopPolling();
+  const sync = async () => {
+    try {
+      const data = await source.getActiveStreams();
+      const result = reconcile(Array.isArray(data && data.streams) ? data.streams : []);
+      lastPoll = { at: Date.now(), ok: true, error: null };
+      if (result.added || result.removed) logger.info('مزامنة جلسات البث', result);
+    } catch (err) {
+      lastPoll = { at: Date.now(), ok: false, error: err.code || err.message };
+      logger.warn('تعذّرت مزامنة جلسات البث — الحالة الحالية باقية', { code: err.code });
+    }
+  };
+  realtimeOff = source.onChange(() => {
+    if (realtimeDebounce) return;
+    realtimeDebounce = setTimeout(() => {
+      realtimeDebounce = null;
+      sync();
+    }, debounceMs);
+    if (typeof realtimeDebounce.unref === 'function') realtimeDebounce.unref();
+  });
+  if (typeof source.start === 'function') source.start(); // المستمعان يشتغلون من الإقلاع
+  sync();
+  pollTimer = setInterval(sync, safetyPollMs); // احتياطي لو فات حدث (مثلاً انقطاع مستمع)
+  if (typeof pollTimer.unref === 'function') pollTimer.unref();
 }
 
 // ---------------- التحقق من حمولة الويب هوك ----------------
@@ -207,7 +275,9 @@ module.exports = {
   reconcile,
   clearAll,
   startPolling,
+  startRealtime,
   stopPolling,
+  onChange,
   validatePayload,
   lastPoll: () => ({ ...lastPoll }),
   size: () => sessions.size
