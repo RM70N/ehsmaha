@@ -226,6 +226,7 @@ function shutdown(signal, webServer) {
   const force = setTimeout(() => process.exit(0), 20000);
   force.unref();
   liveStreams.stopPolling();
+  require('./services/liveBoard').stopAll();
   clearInterval(shutdown.selfPingTimer);
   require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()
