@@ -42,6 +42,7 @@ const DIRS = [
   'about-experience/previews-sq',
   'about-experience/posters',
   'windows-app',
+  'windows-launch-campaign',
 ];
 
 module.exports = { ROOT_FILES, DIRS };
