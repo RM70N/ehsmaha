@@ -48,7 +48,7 @@ const verifyToken = createTokenVerifier({ admin: db ? admin : null, firebaseWebA
 const linking = db ? new LinkingService(db) : null;
 const broadcaster = new RelayBroadcaster({ verifyToken, log });
 // رمز ربط التطبيق (يحتاج admin لإصدار Custom Token)
-const resolveAccountUid = db ? createAccountResolver({ admin, db }) : null;
+const resolveAccountUid = db ? createAccountResolver({ admin, db, log }) : null;
 // التحكم بتطبيق ويندوز من لوحة المالك (إحصاءات/إشعار/إعدادات). التخزين الدائم: RTDB عبر admin.
 const appStore = db ? {
   get: async (p) => { const s = await admin.database().ref(p).get(); return s.exists() ? s.val() : null; },
