@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "version": "be219385907f1980",
-  "generatedAt": "2026-11-07T19:43:58.555Z",
+  "version": "8f4a03998dbd9bb6",
+  "generatedAt": "2026-11-07T20:01:39.627Z",
   "files": [
     {
       "path": "about-experience/posters/sq-cannon.webp",
@@ -350,13 +350,33 @@
     },
     {
       "path": "windows-app.html",
-      "size": 388087,
-      "sha256": "603f011ca7265f66aa2476eb2cd87ed7ba98f4aa25365195f754f12a4ed1b084"
+      "size": 388063,
+      "sha256": "77d97aee8e7f7b414a988373d2cf5aea3848ac6f205b8deb6b352c8602075604"
+    },
+    {
+      "path": "windows-app/screens/game3d.jpg",
+      "size": 186038,
+      "sha256": "1881500cd8db426b111a69380c418d749a3f5edf3a96a25cdf79346f5f868657"
     },
     {
       "path": "windows-app/screens/home.jpg",
       "size": 125115,
       "sha256": "8a482837c11fa8c109218385d3fb7cc92858530bf117dd00399c41e53cb8b306"
+    },
+    {
+      "path": "windows-app/screens/round.jpg",
+      "size": 184944,
+      "sha256": "1748a9b21d063a835bac193bd6b210ace03ffd2f6f000ddf4f96b6ffe5a35b6e"
+    },
+    {
+      "path": "windows-app/screens/streamer.jpg",
+      "size": 98417,
+      "sha256": "89ded10429678cdfe5fb7bca1d51bd02b25585afd781e72977dea21af4a4e125"
+    },
+    {
+      "path": "windows-app/screens/win.jpg",
+      "size": 39959,
+      "sha256": "324dbcb3e316a2c447f90230b7dd891b9ac292067fc6f4eb915e2dc44b4dec43"
     },
     {
       "path": "windows-launch-campaign/README.md",
