@@ -2,25 +2,23 @@
 
 // إعدادات "لعبة القناص" (/قناص) — عدّل هنا بدون لمس منطق اللعبة.
 
-// حجم الشبكة حسب عدد المشاركين الكلي (مع القناص) — أول سطر ينطبق من فوق:
-//   20 لاعب فأكثر ← 50 مربع · أقل من 20 ← 20 مربع
-const GRID_SIZE_THRESHOLDS = [
-  { minPlayers: 20, boxes: 50 },
-  { minPlayers: 0, boxes: 20 }
-];
+// حجم الشبكة حسب عدد المشاركين الكلي (مع القناص) — أول سطر ينطبق من فوق
+// (مطابق لصفحة القناص بالموقع: شبكة 1-50 دائماً، وكل مربع يتسع لاعبين)
+const GRID_SIZE_THRESHOLDS = [{ minPlayers: 0, boxes: 50 }];
+const CELL_CAPACITY = 2;
 
 // الأسلحة: targets = كم مربع تصيب الطلقة الوحدة دفعة وحدة
+// بالموقع: السنايبر مربع واحد، القنبلة 4 مربعات متجاورة (رقم..رقم+3)، النيوك 6 متجاورة (رقم-1..رقم+4)
 const WEAPONS = {
-  sniper: { name: 'سنايبر', emoji: '🔫', targets: 1 },
-  bomb: { name: 'قنبلة', emoji: '💣', targets: 3 },
-  nuke: { name: 'نيوك', emoji: '☢️', targets: 5 }
+  sniper: { name: 'سنايبر', emoji: '🔫', targets: 1, from: 0, to: 0, desc: 'يقصي مربع واحد' },
+  bomb: { name: 'قنبلة', emoji: '💣', targets: 4, from: 0, to: 3, desc: 'تقصي 4 مربعات متجاورة' },
+  nuke: { name: 'نيوك', emoji: '☢️', targets: 6, from: -1, to: 4, desc: 'تقصي 6 مربعات متجاورة' }
 };
 
 // الذخيرة حسب حجم الشبكة (كل سلاح بذخيرة منفصلة). حجم مو موجود هنا ← يستخدم
 // أقرب حجم أصغر منه (أو الأصغر لو ما فيه).
 const AMMO_BY_GRID = {
-  20: { sniper: 10, bomb: 5, nuke: 3 },
-  50: { sniper: 20, bomb: 10, nuke: 6 }
+  50: { sniper: 25, bomb: 6, nuke: 4 }
 };
 
 // التوقيتات
@@ -30,4 +28,4 @@ const TIMINGS = {
   statusEveryMs: 15 * 1000 // تحديث رسالة الحالة العامة (الوقت المتبقي + الأحياء)
 };
 
-module.exports = { GRID_SIZE_THRESHOLDS, WEAPONS, AMMO_BY_GRID, TIMINGS };
+module.exports = { GRID_SIZE_THRESHOLDS, CELL_CAPACITY, WEAPONS, AMMO_BY_GRID, TIMINGS };

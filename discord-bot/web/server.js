@@ -16,6 +16,7 @@ const { rateLimit } = require('express-rate-limit');
 const logger = require('../utils/logger');
 const liveStreams = require('../services/liveStreams');
 const discordRelay = require('../services/discordRelay');
+const { createRoundsWeb, createDirectory } = require('../services/discordRounds/http');
 
 function safeEqual(a, b) {
   const ha = crypto.createHash('sha256').update(String(a || '')).digest();
@@ -113,6 +114,17 @@ function createApp({ client, config }) {
     return undefined;
   });
 
+  // راوندات الألعاب (صفحة الراوند + REST + OAuth) — راجع services/discordRounds
+  const roundsWeb = createRoundsWeb({
+    getRuntime: () => require('../services/discordRounds').get(),
+    directory: createDirectory(() => {
+      const rt = require('../services/discordRounds').get();
+      return rt && rt.getClient();
+    })
+  });
+  roundsWeb.mount(app);
+  app.locals.roundsWeb = roundsWeb;
+
   app.use((req, res) => res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'المسار غير موجود' } }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
@@ -155,6 +167,9 @@ function startWebServer({ client, config }) {
     });
   });
   server.on('error', (err) => logger.error('خطأ بخادم البوت', { error: err }));
+  // اتصالات اللعب المباشر (WebSocket) لراوندات الألعاب
+  const ws = app.locals.roundsWeb.attachWebSocket(server);
+  server.on('close', () => ws.close());
   return server;
 }
 

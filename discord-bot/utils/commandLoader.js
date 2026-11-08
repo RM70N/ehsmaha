@@ -65,6 +65,8 @@ function loadCommands(commandsDir = DEFAULT_COMMANDS_DIR) {
   // npm run check و deploy-commands ما يحتاجون بيئة التشغيل.
   if (commandsDir === DEFAULT_COMMANDS_DIR) {
     buttons.set('ownerai', (...args) => require('../services/ownerAI').onButton(...args));
+    // أزرار إدارة راوندات الألعاب للمضيف (بدء / طرد / إلغاء) — الانضمام ما يكون إلا برابط الراوند
+    buttons.set('rd', (...args) => require('../services/discordRounds/command').onRoundButton(...args));
   }
 
   return { commands, buttons, definitions };
