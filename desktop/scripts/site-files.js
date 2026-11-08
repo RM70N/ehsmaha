@@ -28,6 +28,7 @@ const ROOT_FILES = [
   'link-device.html',
   'desktop-link.js',
   'desktop-app-ui.js',
+  'ehsemha-responsive-fixes.css',
   'code-race-banner.png',
   'discord-logo.png',
 ];
