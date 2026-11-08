@@ -7,6 +7,8 @@
  */
 
 const ROOT_FILES = [
+  'ehsemha-perf.js',
+  'ehsemha-perf.css',
   'index.html',
   'roulette3d.html',
   'bomb3d.html',
@@ -26,6 +28,7 @@ const ROOT_FILES = [
   'link-device.html',
   'desktop-link.js',
   'desktop-app-ui.js',
+  'ehsemha-responsive-fixes.css',
   'code-race-banner.png',
   'discord-logo.png',
 ];
@@ -42,6 +45,7 @@ const DIRS = [
   'about-experience/previews-sq',
   'about-experience/posters',
   'windows-app',
+  'windows-launch-campaign',
 ];
 
 module.exports = { ROOT_FILES, DIRS };
