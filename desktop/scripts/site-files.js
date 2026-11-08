@@ -7,6 +7,8 @@
  */
 
 const ROOT_FILES = [
+  'ehsemha-perf.js',
+  'ehsemha-perf.css',
   'index.html',
   'roulette3d.html',
   'bomb3d.html',
