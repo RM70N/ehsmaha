@@ -89,6 +89,15 @@ module.exports = {
       .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
       .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
+    // راوندات الألعاب (/دول /روليت /قناص): المدير + استعادة الراوندات الحية بعد إعادة التشغيل
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => require('../services/discordRounds').init({
+        getClient: () => ctx.client,
+        config: ctx.config,
+        db: ok === false ? null : require('../database/botDb')
+      }))
+      .catch((err) => logger.error('تعذّر تشغيل نظام راوندات الألعاب', { error: err }));
+
     // مهام المالك (services/ownerAI) اللي انقطعت بإعادة التشغيل: نعلّمها ونبلّغ المالك بالنتيجة الجزئية
     Promise.resolve(ctx.dbReady)
       .then((ok) => ok !== false && require('../services/ownerAI').recoverInterrupted(client))
