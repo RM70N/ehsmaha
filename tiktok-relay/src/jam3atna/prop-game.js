@@ -22,8 +22,8 @@ export class PropGame {
   }
   _after(ms, fn) { const t = setTimeout(() => { this.timers.delete(t); if (!this.stopped) fn(); }, ms); this.timers.add(t); return t; }
   stop() { this.stopped = true; for (const t of this.timers) clearTimeout(t); this.timers.clear(); clearInterval(this.tick); }
-  players() { return [...this.room.players.values()].filter((p) => !p.isHost); }
-  host() { return this.room.players.get(this.room.hostId); }
+  players() { return [...this.room.players.values()].filter((p) => !p.isHost || p.plays); }
+  host() { const h = this.room.players.get(this.room.hostId); return h && h.plays ? null : h; }
   g(p, d) { this.srv.sendTo(p, { t: 'g', d }); }
   gall(d, filter) { this.srv.broadcast(this.room, { t: 'g', d }, filter); }
 
@@ -92,6 +92,7 @@ export class PropGame {
     return shuffle(out);
   }
   _sendSetup(p) {
+    if (!p) return;
     if (!p) return; const rs = this.rs; const s = rs.st.get(p.id); const now = Date.now();
     const base = { k: 'setup', round: rs.n, of: this.total, map: rs.mapId, phase: rs.phase, hideEnd: rs.hideEnd, endAt: rs.endAt, loadMin: rs.loadMin, now, roles: this._roles().map((r) => ({ id: r.id, name: r.name, avatar: r.avatar, role: r.role, found: r.found })) };
     if (s && s.role === 'hide' && !s.found) {
@@ -187,6 +188,7 @@ export class PropGame {
     else { const h = this.host(); if (h) this.g(h, { k: 'snap', seek: [], mv: [] }); }
   }
   _watchSnap(p, seekers, delta) {
+    if (!p) return;
     if (!p || !p.ws) return; if (!this.watchSent) this.watchSent = new Map();
     let sent = this.watchSent.get(p.id); if (!sent) { sent = new Map(); this.watchSent.set(p.id, sent); }
     this.g(p, { k: 'snap', seek: seekers, mv: delta(sent, seekers.map((q) => [q[0], q[1], q[2], q[4]])) });
@@ -212,7 +214,7 @@ export class PropGame {
 
   // ------------------------------------------------------------ أوامر اللاعبين
   onMessage(p, d) {
-    const rs = this.rs; if (!rs || rs.over || p.isHost) return; const s = rs.st.get(p.id); if (!s || s.found) return; const now = Date.now();
+    const rs = this.rs; if (!rs || rs.over || (p.isHost && !p.plays)) return; const s = rs.st.get(p.id); if (!s || s.found) return; const now = Date.now();
     if (d.k === 'ready') { if (rs.phase === 'load') rs.ready.add(p.id); return; }
     if (d.k === 'in') { const mx = Number(d.x), mz = Number(d.z); if (Number.isFinite(mx) && Number.isFinite(mz)) { s.mx = Math.max(-1, Math.min(1, mx)); s.mz = Math.max(-1, Math.min(1, mz)); } return; }
     if (s.role === 'hide') {
