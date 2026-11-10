@@ -10,7 +10,7 @@ import { sfx, ambience, stopAmb } from '../shared/audio.js';
 export function mount(ctx) {
   const { THREE, el, net, isHost } = ctx; const KT = kit(THREE);
   const stage = createStage(THREE, el, { fov: 62 }); const { scene, camera } = stage; const K = makeWorldKit(THREE, stage.level);
-  stage.renderer.toneMapping = THREE.ACESFilmicToneMapping; stage.renderer.toneMappingExposure = 0.92;
+  stage.renderer.toneMapping = THREE.ACESFilmicToneMapping; stage.renderer.toneMappingExposure = 0.84;
   const hemi = new THREE.HemisphereLight(0xffffff, 0x888899, 0.7); scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(20, 40, 14); sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22; sun.shadow.camera.far = 90; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0005; scene.add(sun, sun.target); stage.sun = sun;
   const fill = new THREE.PointLight(0xfff1dd, 0.0, 16, 1.6); scene.add(fill);

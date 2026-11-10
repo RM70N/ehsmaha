@@ -9,14 +9,14 @@ export function house() {
   });
   const HW = 0xe9dcc6;
   // ---------- الطابق الأرضي: أرضيات
-  b.room('majlis', -25, -18, -8, 0, { floor: 'wood', c1: 0xcaa273, c2: 0xb68c5c, tint: 0xfff0d6 });
-  b.room('hall', -25, 0, -8, 18, { floor: 'marble', c1: 0xece3d4, c2: 0xdcd0bc });
-  b.room('living', -8, -18, 8, 0, { floor: 'wood', c1: 0xd2ab7c, c2: 0xbf9566 });
-  b.room('kitchen', -8, 0, 8, 18, { floor: 'tile', c1: 0xd8d4cb, c2: 0xc4c0b6 });
-  b.room('stairhall', 8, -18, 14, -2, { floor: 'wood', c1: 0xc79d6e, c2: 0xb3875a, noCeiling: true, spawn: false, skipCheck: true });
-  b.room('bath1', 8, -2, 14, 5, { floor: 'tile', c1: 0xcfdde0, c2: 0xbccdd1 });
-  b.room('laundry', 8, 5, 14, 18, { floor: 'concrete', c1: 0xc9c7c2, c2: 0xb8b6b1 });
-  b.room('garden', 14, -18, 25, 18, { floor: 'grass', c1: 0x5a9a4a, c2: 0x4c8a3e, noCeiling: true });
+  b.room('majlis', -25, -18, -8, 0, { floor: 'parquet', c1: 0xb98a5c, c2: 0xa57a4c, wc: 0x65765a, dado: 0x49362d, trim: 0xb18b50 });
+  b.room('hall', -25, 0, -8, 18, { floor: 'stone', c1: 0xb8ad98, c2: 0xa99e89, wc: 0xc8b49a, dado: 0x76543e, trim: 0x49362d });
+  b.room('living', -8, -18, 8, 0, { floor: 'wood', c1: 0xc79763, c2: 0xb2854f, wc: 0x334f68, dado: 0x76543e, trim: 0xc8b49a });
+  b.room('kitchen', -8, 0, 8, 18, { floor: 'tile', c1: 0xb7aea0, c2: 0xa59c8e, wc: 0xd8c7a6, dado: 0x2f6b66, trim: 0x76543e, dadoGloss: true });
+  b.room('stairhall', 8, -18, 14, -2, { floor: 'wood', c1: 0xb98a5c, c2: 0xa57a4c, wc: 0xc8b49a, dado: 0x76543e, trim: 0x49362d, noCeiling: true, spawn: false, skipCheck: true });
+  b.room('bath1', 8, -2, 14, 5, { floor: 'tile', c1: 0x9fbcc0, c2: 0x8eadb1, wc: 0x7fa6a8, dado: 0xe6ddc9, trim: 0x76543e });
+  b.room('laundry', 8, 5, 14, 18, { floor: 'concrete', c1: 0xa49f93, c2: 0x948f83, wc: 0xb9ad94, dado: 0x4d5a64, trim: 0x76543e });
+  b.room('garden', 14, -18, 25, 18, { floor: 'grass', c1: 0x5a9a4a, c2: 0x4c8a3e, noCeiling: true, wc: 0xa66c57 });
   // ---------- جدران الأرضي
   b.box(-25, -18, 14, 18, { s: [[-16, 2.4]], e: [[-4.2, 2.2], [12, 2.4]] }, { lv: 0, c: 0xe3d4bb });
   b.wall(-25, 0, -8, 0, [[-16.5, 5, 'open']], { lv: 0 }); b.wall(-8, -18, -8, 0, [[-9, 3.6, 'open']], { lv: 0 }); b.wall(-8, 0, -8, 18, [[9, 3.4, 'open']], { lv: 0 });
@@ -55,7 +55,7 @@ export function house() {
   b.solid('washer', 9.2, 16.4, 0.9, 0.9, { h: 0.9 }); b.solid('washer', 10.4, 16.4, 0.9, 0.9, { h: 0.9 }); b.solid('shelfu', 13.5, 11, 0.5, 4.0, { h: 1.9 }); b.prop('hamper', 12.4, 16.8, 0); b.prop('vacuum', 9.2, 7.0, 0); b.prop('hamper', 12.8, 7.2, 0); b.prop('shoebox', 12.2, 14.0, 0.5); b.prop('bag', 9.3, 9.0, 0.3);
   b.prop('plant', 9.0, -3.2, 0); b.prop('cabinet', 13.0, -4.6, 0); b.prop('lamp', 9.0, -6.6, 0); b.deco('painting', 13.9, -9, { y: 1.9, w: 1.4, h: 0.9, c: 0xb88b4a });
   // ---------- الحديقة
-  b.deco('path', 20, 0, { x0: 14, z0: -0.6, x1: 25, z1: 0.6, c: 0xb9a98a }); b.deco('path', 20, 0, { x0: 19.4, z0: -17, x1: 20.6, z1: 17, c: 0xb9a98a });
+  b.deco('strip', 20, 0, { x0: 14, z0: -0.6, x1: 25, z1: 0.6, c: 0xb9a98a }); b.deco('strip', 20, 0, { x0: 19.4, z0: -17, x1: 20.6, z1: 17, c: 0xb9a98a });
   b.solid('gtable', 21.5, 9.5, 1.6, 1.6, { h: 0.78 }); b.solid('umbrella', 21.5, 9.5, 0.4, 0.4, { h: 2.6, hit: false }); b.solid('swing', 22.6, -11.5, 3.0, 2.0, { h: 2.2 }); b.solid('tree', 17, -14.5, 1.0, 1.0, { h: 4.5 }); b.solid('tree', 17.4, 14.5, 1.0, 1.0, { h: 4.2 }); b.solid('tree', 23.6, 3.5, 1.0, 1.0, { h: 3.8 });
   b.prop('gchair', 20.2, 8.2, Math.PI); b.prop('gchair', 22.8, 8.2, Math.PI); b.prop('gchair', 20.2, 10.9, 0); b.prop('gchair', 22.8, 10.9, 0); b.prop('plant', 15.0, -2.4, 0); b.prop('plant', 15.0, 2.4, 0); b.prop('plant', 24.2, -3.0, 0); b.prop('plant', 24.2, 16.6, 0); b.prop('toybox', 22.0, -6.0, 0.3); b.prop('hamper', 15.0, 16.6, 0);
   b.prop('plant', 15.0, -16.6, 0); b.prop('plant', 24.2, -16.6, 0); b.prop('ottoman', 19.0, 13.5, 0); b.prop('lamp', 24.0, 12.6, 0);
@@ -63,12 +63,12 @@ export function house() {
 
   // ==================== الطابق العلوي (lv1) ====================
   const U = { lv: 1 };
-  b.room('landing', 8, -18, 14, -13.4, { floor: 'wood', c1: 0xc79d6e, c2: 0xb3875a, lv: 1, spawn: false });
-  b.room('gallery', -8, -18, 8, 6, { floor: 'carpet', c1: 0xb7a58a, c2: 0xa39172, lv: 1 });
-  b.room('master', -25, -18, -8, 0, { floor: 'carpet', c1: 0xc2b3c9, c2: 0xaf9fb8, lv: 1 });
-  b.room('bed2', -25, 0, -8, 18, { floor: 'carpet', c1: 0xb9cbc3, c2: 0xa6b9b0, lv: 1 });
-  b.room('bath2', -8, 6, 8, 18, { floor: 'tile', c1: 0xd5e3e6, c2: 0xc2d2d6, lv: 1 });
-  b.room('bed3', 8, -3, 14, 18, { floor: 'carpet', c1: 0xd2c3a0, c2: 0xbfb08c, lv: 1 });
+  b.room('landing', 8, -18, 14, -13.4, { floor: 'wood', c1: 0xb98a5c, c2: 0xa57a4c, lv: 1, spawn: false, wc: 0xc8b49a, dado: 0x76543e, trim: 0x49362d });
+  b.room('gallery', -8, -18, 8, 6, { floor: 'carpet', c1: 0x8a6f52, c2: 0x7a6044, lv: 1, wc: 0x65765a, dado: 0x49362d, trim: 0xb18b50 });
+  b.room('master', -25, -18, -8, 0, { floor: 'carpet', c1: 0x8a5a68, c2: 0x7a4c5a, lv: 1, wc: 0x713b43, dado: 0x49362d, trim: 0xd6c3a5 });
+  b.room('bed2', -25, 0, -8, 18, { floor: 'wood', c1: 0xcfb48a, c2: 0xbfa27a, lv: 1, wc: 0x7fa6a8, dado: 0xe6ddc9, trim: 0x3f6b6d });
+  b.room('bath2', -8, 6, 8, 18, { floor: 'tile', c1: 0x9bb3c4, c2: 0x8aa3b5, lv: 1, wc: 0x6f93a8, dado: 0xe6ddc9, trim: 0x334f68 });
+  b.room('bed3', 8, -3, 14, 18, { floor: 'carpet', c1: 0xc48a4c, c2: 0xb27a3e, lv: 1, wc: 0xf0b45a, dado: 0x334f68, trim: 0xf3ece0 });
   b.box(-25, -18, 14, 18, {}, { lv: 1, c: 0xe3d4bb });
   b.wall(-8, -18, -8, 0, [[-9, 2.6]], U); b.wall(-25, 0, -8, 0, [], U); b.wall(-8, 0, -8, 18, [[3, 2.4], [11.5, 2.4]], U); b.wall(-8, 6, 8, 6, [[0, 2.4]], U);
   b.wall(8, -18, 8, 6, [[-15.7, 2.4], [1, 2.2]], U); b.wall(8, -3, 14, -3, [], U); b.wall(8, 6, 8, 18, [], U); b.wall(8, -13.4, 14, -13.4, [[11, 5.6, 'open']], { lv: 1, h: 1.1, c: 0xb08a5a });

@@ -45,8 +45,14 @@ export function buildWorld({ THREE, K, kit, map, assets, scene, quality, rendere
     const mk = (parts, bw, bh, bd, c, x, y, z, m) => parts.push(along ? K.box(bw, bh, bd, c, x, y, z, { m }) : K.box(bd, bh, bw, c, z, y, x, { m }));
     if (w.glass) { mk(full, L, h, Tk * 0.4, 0xbfe6f5, 0, 0, 0, 'glass'); mk(full, L, 0.08, Tk, 0x9aa5ad, 0, 0, 0, 'metal'); mk(full, L, 0.08, Tk, 0x9aa5ad, 0, h - 0.08, 0, 'metal'); }
     else {
-      mk(full, L, h, Tk, col, 0, 0, 0, 'base'); mk(full, L + 0.02, 0.14, Tk + 0.05, baseCol, 0, 0, 0, 'gloss'); if (th.band !== false) mk(full, L + 0.01, 0.1, Tk + 0.03, trimCol, 0, 1.05, 0, 'gloss'); mk(full, L + 0.02, 0.1, Tk + 0.08, trimWhite, 0, h - 0.1, 0, 'base');
-      mk(low, L, 1.0, Tk, col, 0, 0, 0, 'base'); mk(low, L + 0.02, 0.14, Tk + 0.05, baseCol, 0, 0, 0, 'gloss'); mk(low, L + 0.02, 0.06, Tk + 0.06, trimWhite, 0, 1.0, 0, 'base');
+      const roomAt = (px, pz) => { for (const r of map.rooms) if (r.lv === (lv === 2 ? 0 : lv) && px >= r.x0 && px <= r.x1 && pz >= r.z0 && pz <= r.z1) return r; return null; };
+      const sideRoom = (a, sd) => along ? roomAt(w.x + a, w.z + sd * (Tk / 2 + 0.35)) : roomAt(w.x + sd * (Tk / 2 + 0.35), w.z + a);
+      const n = Math.max(1, Math.ceil(L / 0.4)); const runs = []; for (let i = 0; i < n; i++) { const a = -L / 2 + (i + 0.5) * (L / n); const rA = sideRoom(a, -1), rB = sideRoom(a, 1); const last = runs[runs.length - 1]; if (last && last.rA === rA && last.rB === rB) last.e = a + L / n / 2; else runs.push({ rA, rB, s: a - L / n / 2, e: a + L / n / 2 }); }
+      const wallC = (r) => w.c || (r && r.wc) || (r ? wallCol : (th.ext || wallCol)), dadoC = (r) => w.c2 || (r && r.dado) || th.dado || wallCol, trimC = (r) => (r && r.trim) || trimCol;
+      for (const ru of runs) { const le = ru.e - ru.s, ac = (ru.s + ru.e) / 2; for (const sd of [-1, 1]) { const r = sd < 0 ? ru.rA : ru.rB; const off = sd * Tk / 4, tk = Tk / 2 + 0.002;
+        mk(full, le, h, tk, wallC(r), ac, 0, off, 'base'); mk(low, le, 1.0, tk, wallC(r), ac, 0, off, 'base');
+        if (th.band !== false) { mk(full, le, 1.05, tk + 0.04, dadoC(r), ac, 0, off + sd * 0.02, th.dadoGloss ? 'gloss' : 'base'); mk(full, le, 0.07, tk + 0.07, trimC(r), ac, 1.05, off + sd * 0.035, 'gloss'); mk(low, le, 0.99, tk + 0.04, dadoC(r), ac, 0, off + sd * 0.02, 'base'); }
+        mk(full, le, 0.14, tk + 0.06, baseCol, ac, 0, off + sd * 0.03, 'gloss'); mk(full, le, 0.1, tk + 0.1, (r && r.crown) || trimWhite, ac, h - 0.1, off + sd * 0.05, 'base'); mk(low, le, 0.06, tk + 0.08, trimC(r), ac, 1.0, off + sd * 0.04, 'base'); } }
     }
     for (const p of full) p.translate(w.x, 0, w.z); for (const p of low) p.translate(w.x, 0, w.z); w._full = full; w._low = low;
   }

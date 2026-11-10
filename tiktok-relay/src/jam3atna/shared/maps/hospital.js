@@ -4,20 +4,20 @@ import { mapBuilder } from '../prop-core.js';
 export function hospital() {
   const b = mapBuilder({
     id: 'hospital', ready: true, name: 'المستشفى', line: 'كل شيء طبيعي... إلا اللي متخبي بين الأغراض!', w: 56, d: 36, gate: { x: -17, z: 16.4, lv: 0 },
-    theme: { sky: 0xdfeaf2, fog: 0xdfeaf2, fogN: 55, fogF: 150, sun: 0xfff6ea, sunI: 0.8, amb: 0.5, ambSky: 0xe6f1fb, ambGround: 0x6f7f8c, fillI: 0.45, step: 'tile', wall: 0xe3eaee, trim: 0x7fc4d6, base: 0xb9d6df, ground: 0x9db2bd },
+    theme: { sky: 0xbfd0d6, fog: 0xbfd0d6, fogN: 55, fogF: 150, sun: 0xffeccf, sunI: 0.85, amb: 0.34, ambSky: 0xd3e0e2, ambGround: 0x6a5a4c, fillI: 0.32, step: 'tile', wall: 0xd8d3c7, dado: 0x376b77, trim: 0x9c7656, base: 0x5a4636, crown: 0xefe8da, ceil: 0xe9e2d3, lamp: 0xfff0d4, doorFrame: 0x9c7656, door: 0x8a6a4c, ext: 0x8b8f86, floorMul: 1.0, dadoGloss: true, ground: 0x7e8a82 },
     ambience: 'hospital', music: [262, 330, 392],
     tour: [[-17, 16, 2.4, -17, 6, 1.1], [-12, 5, 2.6, 6, 0.5, 1.4], [8, 0.5, 2.8, -12, -2, 1.4], [-21, -4, 3.2, -21, -15, 1.0]],
   });
   const WC = 0xf1f5f7;
   // ---------- أرضيات
-  b.room('lobby', -28, 3, -6, 18, { floor: 'tile', c1: 0xe9eff3, c2: 0xd4dfe6, tint: 0xffffff });
-  b.room('corridor', -28, -3, 28, 3, { floor: 'vinyl', c1: 0xcfdde6, c2: 0xc2d3de });
-  b.room('er', -28, -18, -12, -3, { floor: 'vinyl', c1: 0xbfd3e3, c2: 0xb3c9db, tint: 0xeaf4ff });
-  b.room('lab', -12, -18, 0, -3, { floor: 'epoxy', c1: 0xb5e0dc, c2: 0xa6d4cf, tint: 0xe8fffd });
-  b.room('pharm', 0, -18, 10, -3, { floor: 'tile', c1: 0xe6f1e4, c2: 0xd3e6d0, tint: 0xf3fff0 });
-  b.room('or', 10, -18, 28, -3, { floor: 'epoxy', c1: 0xa9d8d2, c2: 0x9ccbc5, tint: 0xe2fff9 });
-  [[-6, 3, 'p1'], [3, 12, 'p2'], [12, 21, 'p3']].forEach(([x0, x1, id], i) => b.room(id, x0, 3, x1, 18, { floor: 'wood', c1: [0xe8d3b0, 0xdcc49b, 0xead9bb][i], c2: [0xd9c29b, 0xcdb388, 0xdcc8a4][i], tint: 0xfff3e0 }));
-  b.room('supply', 21, 3, 28, 18, { floor: 'concrete', c1: 0xcdd2d6, c2: 0xc0c6cb });
+  b.room('lobby', -28, 3, -6, 18, { floor: 'stone', c1: 0xb9b4a6, c2: 0xa9a496, wc: 0xd8d3c7, dado: 0x376b77, trim: 0x9c7656 });
+  b.room('corridor', -28, -3, 28, 3, { floor: 'stone', c1: 0xa9afab, c2: 0x9aa09c, wc: 0x92afa3, dado: 0x9c7656, trim: 0xd8d3c7 });
+  b.room('er', -28, -18, -12, -3, { floor: 'vinyl', c1: 0x7fa1ad, c2: 0x7194a0, wc: 0xcdd9d6, dado: 0x376b77, trim: 0xd8d3c7 });
+  b.room('lab', -12, -18, 0, -3, { floor: 'epoxy', c1: 0x6fa59f, c2: 0x62998f, wc: 0xbcd6cc, dado: 0x30383d, trim: 0x92afa3 });
+  b.room('pharm', 0, -18, 10, -3, { floor: 'tile', c1: 0xb7c4a6, c2: 0xa7b596, wc: 0xe2dcc9, dado: 0x65805f, trim: 0x9c7656 });
+  b.room('or', 10, -18, 28, -3, { floor: 'epoxy', c1: 0x5d9a9b, c2: 0x528d90, wc: 0x6fa7a8, dado: 0x376b77, trim: 0xd8d3c7 });
+  [[-6, 3, 'p1'], [3, 12, 'p2'], [12, 21, 'p3']].forEach(([x0, x1, id], i) => b.room(id, x0, 3, x1, 18, { floor: 'wood', c1: [0xc7a27a, 0xb58f68, 0xcfae86][i], c2: [0xb58f68, 0xa07c58, 0xbf9c74][i], wc: [0xa8c1b4, 0xd7cfbd, 0x9fb8c6][i], dado: [0x376b77, 0x9c7656, 0x30506a][i], trim: 0xe6dfcf }));
+  b.room('supply', 21, 3, 28, 18, { floor: 'concrete', c1: 0xa9a699, c2: 0x9b988b, wc: 0xc9c2b1, dado: 0x30383d, trim: 0x9c7656 });
 
   // ---------- جدران
   b.box(-28, -18, 28, 18, { s: [[-17, 5, 'glass']] }, { c: WC });

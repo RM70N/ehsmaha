@@ -4,6 +4,7 @@ export function house(K) {
   const { box, cyl, sph, rbox, tor, lathe } = K;
   const hosp = hospital(K);
   const WOOD = 0x9b6b43, DWOOD = 0x6a4a30, LWOOD = 0xc9a67a, STEEL = 0xc5ccd3, CREAM = 0xf1ead9, DARK = 0x2a3038;
+  const shade = (c, k) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
   const chairParts = (c = 0xb58a5a, seat = 0xd7b98f) => [...[[-0.17, 0.17], [0.17, 0.17], [-0.17, -0.17], [0.17, -0.17]].map(([x, z]) => box(0.04, 0.45, 0.04, c, x, 0, z)), rbox(0.42, 0.05, 0.42, seat, 0, 0.45, 0, { r: 0.05, bev: 0.015, m: 'fabric' }), box(0.4, 0.05, 0.03, c, 0, 0.78, -0.19), box(0.4, 0.05, 0.03, c, 0, 0.64, -0.19), box(0.04, 0.4, 0.03, c, -0.17, 0.5, -0.19), box(0.04, 0.4, 0.03, c, 0.17, 0.5, -0.19)];
   const kinds = {
     lamp: () => [cyl(0.2, 0.22, 0.03, DARK, 0, 0, 0, { seg: 16, m: 'metal' }), cyl(0.018, 0.018, 1.3, 0xb89a5a, 0, 0.03, 0, { seg: 8, m: 'metal' }), lathe([[0.1, 0], [0.2, 0.0], [0.26, 0.3], [0.18, 0.34], [0.1, 0.3]], 0xf6e4b8, 0, 1.3, 0, { seg: 20, m: 'fabric' }), sph(0.1, 0xfff2cf, 0, 1.45, 0, { m: 'emis' })],
@@ -25,7 +26,7 @@ export function house(K) {
   const solids = {
     toilet: hosp.solids.toilet, sink: hosp.solids.sink,
     sofa: (o) => { const { w, d, h, c } = o; const col = c || 0x8f4a3a, dk = c ? 0x00000000 : 0; const along = w >= d; const L = along ? w : d, T = along ? d : w; const P = (a, y, t, la, hh, tt, cc, r = 0.1) => along ? rbox(la, hh, tt, cc, a, y, t, { r, bev: 0.05, m: 'fabric' }) : rbox(tt, hh, la, cc, t, y, a, { r, bev: 0.05, m: 'fabric' });
-      const back = along ? -T / 2 + 0.2 : -T / 2 + 0.2; const p = [P(0, 0.12, 0, L, 0.3, T - 0.08, col, 0.14), P(0, 0.4, back, L - 0.1, h - 0.4, 0.34, col * 0.9 | 0, 0.14), P(-L / 2 + 0.18, 0.12, 0, 0.36, h - 0.28, T - 0.06, col, 0.12), P(L / 2 - 0.18, 0.12, 0, 0.36, h - 0.28, T - 0.06, col, 0.12)];
+      const back = along ? -T / 2 + 0.2 : -T / 2 + 0.2; const p = [P(0, 0.12, 0, L, 0.3, T - 0.08, col, 0.14), P(0, 0.4, back, L - 0.1, h - 0.4, 0.34, shade(col, 0.82), 0.14), P(-L / 2 + 0.18, 0.12, 0, 0.36, h - 0.28, T - 0.06, col, 0.12), P(L / 2 - 0.18, 0.12, 0, 0.36, h - 0.28, T - 0.06, col, 0.12)];
       const n = Math.max(2, Math.round(L / 1.1)); for (let i = 0; i < n; i++) { const a = -L / 2 + 0.4 + (i + 0.5) * ((L - 0.8) / n); p.push(P(a, 0.42, T * 0.1, (L - 0.9) / n - 0.04, 0.12, T - 0.5, col, 0.08)); }
       p.push(P(-L * 0.3, 0.52, back + 0.26, 0.4, 0.34, 0.12, 0xe9c46a, 0.08), P(L * 0.32, 0.52, back + 0.26, 0.4, 0.34, 0.12, 0x6fa3b3, 0.08)); for (const a of [-1, 1]) for (const t of [-1, 1]) p.push(along ? cyl(0.035, 0.025, 0.12, DWOOD, a * (L / 2 - 0.1), 0, t * (T / 2 - 0.1), { seg: 6 }) : cyl(0.035, 0.025, 0.12, DWOOD, t * (T / 2 - 0.1), 0, a * (L / 2 - 0.1), { seg: 6 })); return p; },
     coffee: (o) => { const { w, d, h, c } = o; return [topWood(w, d, h - 0.05, c || DWOOD), ...legs4(w, d, h - 0.05), box(w - 0.3, 0.03, d - 0.3, 0x5a3f28, 0, 0.16, 0), cyl(0.07, 0.06, 0.1, 0xe8e0d0, -w * 0.2, h, 0, { seg: 12, m: 'gloss' }), box(0.22, 0.03, 0.3, 0x2f6f8f, w * 0.15, h, 0.02, { ry: 0.3, m: 'fabric' }), box(0.2, 0.02, 0.26, 0xe9c46a, w * 0.15 + 0.03, h + 0.03, 0.02, { ry: 0.1, m: 'fabric' })]; },
