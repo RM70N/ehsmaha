@@ -40,6 +40,8 @@ export function hospital() {
   b.prop('monitor', -20.8, 7.7, 0); b.prop('wheelch', -26.4, 9.0, 0.3); b.prop('ivstand', -9.6, 4.6, 0);
   b.deco('sign', -26, 10, { rot: 1.57, text: 'الاستقبال', y: 2.3, c: 0x2f8fa3, wallX: -27.8 });
   b.deco('clock', -27.8, 7, { y: 2.6, rot: Math.PI / 2 });
+  b.deco('panel', -17, 17.78, { y: 0.9, w: 9, h: 2.2, rot: Math.PI }); b.deco('panel', -27.78, 14, { y: 0.9, w: 5, h: 2.2, rot: Math.PI / 2 }); b.deco('panel', -17, 3.22, { y: 0.9, w: 6, h: 2.2 });
+  b.row('splant', -26.6, 6.6, 1, 0, 0, 0);
   b.label('الاستقبال', -17, 3.3, 3.0); b.deco('autodoor', -17, 18, { w: 5, axis: 'x' });
 
   // ---------- الطوارئ

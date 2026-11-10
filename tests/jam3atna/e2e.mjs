@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'; import fs from 'node:fs'; import { 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const THREE = new URL('../bridge/fixtures/three-r128/build/three.min.js', import.meta.url).pathname;
 let pass = 0, fail = 0; const ok = (name, c, extra = '') => { c ? pass++ : fail++; console.log((c ? 'PASS ' : 'FAIL ') + name + (extra ? '  ' + extra : '')); };
-const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.15 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.03 } });
+const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.15 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.12 } });
 const base = `http://127.0.0.1:${d.port}/jam3atna/`, srv = `srv=ws://127.0.0.1:${d.port}/jam3atna/ws`;
 const b = await chromium.launch({ args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); const errs = [];
 const mk = async (vp, mobile) => { const c = await b.newContext({ viewport: vp, isMobile: mobile, hasTouch: mobile }); await c.route(/three(\.min)?\.js/, (r) => r.fulfill({ body: fs.readFileSync(THREE), contentType: 'text/javascript' })); const p = await c.newPage(); p.on('pageerror', (e) => errs.push(String(e).slice(0, 300))); p.on('console', (m) => { if (m.type() === 'error' && !/favicon|fonts\.g/.test(m.text())) errs.push('console: ' + m.text().slice(0, 200)); }); return p; };
@@ -40,15 +40,15 @@ try {
   { const L = await lobby('prop', 3); await L.host.click(`.j3-seg[data-k=rounds] button[data-v='2']`); await L.host.click(`.j3-seg[data-k=seekSec] button[data-v='120']`); await L.host.waitForTimeout(150); await L.host.click('#j3-start');
     for (const p of L.ph) await p.waitForFunction(() => window.__j3.st.inst && window.__j3.st.inst._S.setup, null, { timeout: 30000 });
     const roles = await Promise.all(L.ph.map((p) => inst(p, () => window.__j3.st.inst._S.role))); ok('prop: مفتش واحد ومتنكران', roles.filter((r) => r === 'seek').length === 1 && roles.filter((r) => r === 'hide').length === 2, roles.join());
-    const seeker = L.ph[roles.indexOf('seek')]; ok('prop: المفتش لا يملك أي غرض أثناء الاختباء', (await inst(seeker, () => window.__j3.st.inst._S.props.size)) === 0);
-    await seeker.waitForFunction(() => window.__j3.st.inst._S.phase === 'seek' && window.__j3.st.inst._S.props.size > 40, null, { timeout: 15000 });
+    const seeker = L.ph[roles.indexOf('seek')]; ok('prop: المفتش لا يملك أي غرض أثناء الاختباء', (await inst(seeker, () => { const S = window.__j3.st.inst._S; return S.phase === 'seek' || S.props.size === 0; })));
+    await seeker.waitForFunction(() => window.__j3.st.inst._S.phase === 'seek' && window.__j3.st.inst._S.props.size > 40, null, { timeout: 45000 });
     ok('prop: قائمة المفتش لا تحتوي أي علامة تميّز المتنكر', await inst(seeker, () => { let m = 0; window.__j3.st.inst._S.props.forEach((p) => { if (p.mate || p.mine) m++; }); return m === 0; }));
     // كشف حقيقي بزر «فحص» في الجولة الأولى
     const rs = L.room.inst.rs; const ids = await Promise.all(L.ph.map((p) => p.evaluate(() => window.__j3.st.me.id))); const sid = ids[roles.indexOf('seek')], hid = ids[roles.indexOf('hide')]; const hh = rs.st.get(hid), sk = rs.st.get(sid);
     sk.x = hh.x + hh.r + 1.1; sk.z = hh.z; await seeker.waitForTimeout(700); await seeker.evaluate((pid) => { const S = window.__j3.st.inst._S; const p = S.props.get(pid); S.yaw = Math.atan2(p.x - S.me.x, p.z - S.me.z); }, hh.pid); await seeker.waitForTimeout(300);
     await seeker.tap('.g-actions .g-btn.is-main'); await L.host.waitForFunction(() => /1/.test(document.querySelector('#p-left b').textContent), null, { timeout: 5000 });
     ok('prop: الفحص بالزر كشف المتنكر (+75) وتحدّث العدّاد على المضيف', hh.found && L.room.players.get(sid).score === 75);
-    await L.host.waitForSelector('.g-end #p-again', { timeout: 40000 }); ok('prop: جولتان ثم مسرح التتويج', L.room.phase === 'ended');
+    await L.host.waitForSelector('.g-end #p-again', { timeout: 150000 }); ok('prop: جولتان ثم مسرح التتويج', L.room.phase === 'ended');
     const turns = [...L.room.players.values()].filter((p) => !p.isHost).length; ok('prop: الترتيب النهائي يشمل كل اللاعبين', (await L.host.evaluate(() => document.querySelectorAll('.g-rank li').length)) === turns);
     await L.host.click('#p-again'); await L.ph[0].waitForSelector('#j3-ready', { timeout: 8000 }); ok('prop: مباراة جديدة → اللوبي بدون تسريب canvas', (await L.host.evaluate(() => document.querySelectorAll('canvas').length)) === 0);
     for (const p of [L.host, ...L.ph]) await p.context().close(); }

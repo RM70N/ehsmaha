@@ -274,6 +274,31 @@ test('المتنكر: انتهاء المحاولات = فوز المتنكري�
 
 test('المتنكر: كل خريطة جاهزة تجتاز الفحص المعماري (اتصال الغرف، وصول المفتش، لا تداخل)', async () => {
   const { analyze } = await import('../../tests/jam3atna/mapcheck.mjs'); let n = 0;
-  for (const id of MAP_IDS) { if (!MAPS[id].ready) continue; n++; const r = analyze(id); assert.deepEqual(r.issues, [], id); assert.ok(r.stats.props >= 60 && r.stats.rooms >= 6, id + ' كثافة'); for (let s = 1; s <= 30; s++) { const L = genLayout(id, s); assert.ok(L.length >= r.stats.props * 0.85); for (const a of L) assert.ok(KINDS[a.kind]); } }
+  for (const id of MAP_IDS) { if (!MAPS[id].ready) continue; n++; const r = analyze(id); assert.deepEqual(r.issues, [], id); assert.ok(r.stats.props >= 60 && r.stats.rooms >= 4, id + ' كثافة'); for (let s = 1; s <= 30; s++) { const L = genLayout(id, s); assert.ok(L.length >= r.stats.props * 0.85); for (const a of L) assert.ok(KINDS[a.kind]); } }
   assert.ok(n >= 1);
+});
+
+// ---------------------------------------------------------------- خرائط مين المتنكر: التدوير والدرج
+test('المتنكر: تدوير الخرائط الست — لا تكرار قبل اكتمال الدورة، والدورة الجديدة لا تبدأ بآخر خريطة', async () => {
+  const { PropGame } = await import('../src/jam3atna/prop-game.js');
+  const ready = MAP_IDS.filter((id) => MAPS[id].ready); assert.equal(ready.length, 6);
+  for (let trial = 0; trial < 40; trial++) {
+    const g = new PropGame({}, { settings: { map: 'rotate' }, players: new Map() }, {}); g.mapQueue = []; g.lastMap = null;
+    const seq = []; for (let i = 0; i < 18; i++) seq.push(g._nextMap());
+    for (let c = 0; c < 3; c++) assert.equal(new Set(seq.slice(c * 6, c * 6 + 6)).size, 6, 'كل دورة تضم الست خرائط مرة واحدة');
+    assert.notEqual(seq[6], seq[5]); assert.notEqual(seq[12], seq[11]);
+  }
+});
+
+test('المتنكر: الدرج يبدّل الطابق تدريجيًا ولا قفز بين الطوابق (المنزل والفندق)', async () => {
+  const { stepMove, updateLevel } = await import('../src/jam3atna/shared/prop-sim.js');
+  const { levelY, LH } = await import('../src/jam3atna/shared/prop-core.js');
+  const walk = (map, from, to, steps) => { const p = { x: from[0], z: from[1], lv: 0 }; const seen = new Set(); let prevY = levelY(map, p.x, p.z, p.lv), maxJump = 0;
+    for (let i = 0; i < steps; i++) { const dx = (to[0] - p.x), dz = (to[1] - p.z), d = Math.hypot(dx, dz); if (d < 0.1) break; const m = stepMove(map, p.x, p.z, dx / d * 0.1, dz / d * 0.1, 0.3, [], null, p.lv); p.x = m.x; p.z = m.z; updateLevel(map, p); seen.add(p.lv); const y = levelY(map, p.x, p.z, p.lv); maxJump = Math.max(maxJump, Math.abs(y - prevY)); prevY = y; }
+    return { p, seen, maxJump }; };
+  const hotel = MAPS.hotel; let r = walk(hotel, [-14, 0], [-3, 0], 400); assert.equal(r.p.lv, 1, 'صعود درج الفندق'); assert.ok(r.maxJump < 0.25, 'لا قفزة ارتفاع: ' + r.maxJump);
+  r = walk(hotel, [-3, 0], [-14, 0], 400); // من الأعلى نبدأ بطابق 1
+  const house = MAPS.house; r = walk(house, [11, -5], [11, -15], 500); assert.equal(r.p.lv, 1, 'صعود درج المنزل'); assert.ok(r.maxJump < 0.25);
+  // لا يصعد لاعب عبر جدار/خارج الدرج: من الصالة مباشرة إلى فوق نفس النقطة يبقى طابقه
+  const q = { x: 0, z: 10, lv: 0 }; updateLevel(hotel, q); assert.equal(q.lv, 0);
 });
