@@ -146,6 +146,22 @@ test('API integration (Firebase emulator)', { skip: !EMULATED && 'Firebase emula
     assert.equal(streams[0].gameName, 'كلمات', 'الأحدث يغلب');
   });
 
+  await t.test('active-streams: ستريمر ربط يوزره (RTDB link) يظهر "متصل بالبث" لحظياً، ويختفي لما ينقطع', { skip: !RTDB_EMULATED && 'محاكي Realtime Database غير مشغّل' }, async () => {
+    const put = (path, body) => fetch(`http://${process.env.FIREBASE_DATABASE_EMULATOR_HOST}/${path}.json?ns=${RTDB_NS}`, { method: body === null ? 'DELETE' : 'PUT', headers: { authorization: 'Bearer owner' }, body: body === null ? undefined : JSON.stringify(body) });
+    const find = async () => (await call('GET', '/api/discord/active-streams')).body.data.streams.find((s) => s.platformUsername === 'RestLinker');
+    const until = async (cond) => { for (let i = 0; i < 60; i++) { if (await cond()) return true; await new Promise((r) => setTimeout(r, 100)); } return false; };
+    await put('fsMirror/activeStreamers/link_uidRest', { username: 'RestLinker', platform: 'kick', gameTag: 'link', gameName: null, uid: 'uidRest', updatedAtMs: Date.now() });
+    assert.ok(await until(async () => !!(await find())), 'ما ظهر الستريمر المربوط\n' + serverLog);
+    const s = await find();
+    assert.equal(s.platform, 'kick');
+    assert.equal(s.status, 'linked');
+    assert.equal(s.gameName, null);
+    await put('fsMirror/activeStreamers/link_uidRest', { username: 'RestLinker', platform: 'kick', gameTag: 'link', gameName: 'الدول', uid: 'uidRest', updatedAtMs: Date.now() });
+    assert.ok(await until(async () => (await find() || {}).status === 'playing'));
+    await put('fsMirror/activeStreamers/link_uidRest', null);
+    assert.ok(await until(async () => !(await find())), 'ما اختفى بعد الحذف');
+  });
+
   await t.test('bot-state: حفظ دائم مجزّأ، استرجاع، ورفض النسخة القديمة', async () => {
     const sha = (b) => crypto.createHash('sha256').update(b).digest('hex');
     assert.equal((await call('POST', '/api/discord/bot-state/claim', { key: 'wrong-key', body: { bootAt: 1 } })).status, 401);

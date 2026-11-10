@@ -16,6 +16,7 @@ import { DesktopAuthService, DesktopLinkHub, corsHeaders } from './desktopAuth.j
 import { createAccountResolver } from './accountLookup.js';
 import { AppControlService, AppLinkHub, createDownloadsFetcher, OWNER_EMAIL } from './appControl.js';
 import { LegacyBridgeServer } from './legacyBridge.js';
+import { Jam3atnaServer } from './jam3atna/server.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -254,6 +255,9 @@ const server = http.createServer(async (req, res) => {
   res.end('not found');
 });
 
+// «جمعتنا»: غرف اللعب الجماعي — وحدة مستقلة لا تشارك أي حالة مع بقية الخدمة.
+const jam3atna = new Jam3atnaServer({ log });
+
 server.on('upgrade', (req, socket, head) => {
   const path = new URL(req.url, 'http://localhost').pathname;
   // /ws: بروتوكول الأسلاك القديم المتوافق مع كل ألعاب index.html (راجع legacyBridge.js) —
@@ -262,6 +266,7 @@ server.on('upgrade', (req, socket, head) => {
   else if (path === '/relay') broadcaster.handleUpgrade(req, socket, head);
   else if (path === '/desktop-auth/ws') desktopLinkHub.handleUpgrade(req, socket, head);
   else if (path === '/desktop-app/ws') appLinkHub.handleUpgrade(req, socket, head);
+  else if (path === '/jam3atna/ws') jam3atna.handleUpgrade(req, socket, head);
   else if (TEST_HARNESS_ENABLED && path === '/testws' && testHarness) testHarness.handleUpgrade(req, socket, head);
   else socket.destroy();
 });
@@ -289,6 +294,7 @@ async function shutdown(signal) {
   await manager.shutdown();
   broadcaster.closeAll();
   legacyBridge.closeAll();
+  jam3atna.closeAll();
   if (testHarness) testHarness.closeAll();
   server.close(() => {
     log('info', 'shutdown_done', {});

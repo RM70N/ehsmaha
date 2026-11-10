@@ -1,12 +1,12 @@
 'use strict';
 
-// /روليت — لعبة "روليت الإقصاء" الجماعية (المحرّك بـservices/roulette.js،
-// والأمر والأزرار من المصنع المشترك utils/gameCommand.js).
+// /روليت — راوند ويب مرتبط بديسكورد (services/discordRounds). الأمر ينشئ الراوند ويرسل رابطه،
+// والدخول واللعب والمشاهدة من الرابط (OAuth ديسكورد).
 
-const roulette = require('../../services/roulette');
-const { createGameCommand } = require('../../utils/gameCommand');
+const { createRoundCommand } = require('../../services/discordRounds/command');
 
-module.exports = createGameCommand(roulette, {
+module.exports = createRoundCommand({
+  gameType: 'roulette',
   name: 'روليت',
-  description: '🎯 روليت الإقصاء — لعبة جماعية: آخر واحد يبقى يفوز'
+  description: '🎯 روليت الإقصاء — راوند ويب: الروليت يختار لاعب ويطرد واحد، وآخر واحد يفوز'
 });

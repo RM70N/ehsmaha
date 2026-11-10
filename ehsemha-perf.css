@@ -1,0 +1,3 @@
+/* PERF-01: يُفعَّل فقط على عناصر أنيميشنها خارج الشاشة (يضبطه ehsemha-perf.js) */
+[data-ehs-off], [data-ehs-off] *, [data-ehs-off] *::before, [data-ehs-off] *::after { animation-play-state: paused !important; }
+

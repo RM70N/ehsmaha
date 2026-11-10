@@ -63,8 +63,21 @@ module.exports = {
       api.health().catch((err) => logger.warn('نبضة الـAPI فشلت', { code: err.code }));
     }, API_KEEPALIVE_MS).unref();
 
-    // /بث: مزامنة دورية مع بيانات الموقع (تعوّض أي webhook متأخر/فاشل وتنظّف العالق)
-    liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
+    // /بث: نفس مصدر قسم البثوث بلوحة المالك، **لحظياً**:
+    //   • الـAPI مدمجة بنفس العملية (الافتراضي) ← نربط مستمعي Firestore/RTDB مباشرة بالمزامنة: الستريمر يظهر
+    //     بـ/بث لحظة ربط يوزره (قبل أي لعبة) ويختفي لحظة انقطاعه، ومزامنة احتياطية كل STREAM_POLL_SECONDS.
+    //   • API منفصلة (API_BASE_URL) ← ما فيه دفع لحظي، فنكتفي بمزامنة دورية (تعوّض أي webhook متأخر/فاشل).
+    if (ctx.config.embeddedApi) {
+      try {
+        liveStreams.startRealtime(require('../api/services/activeStreams'), { safetyPollMs: ctx.config.streamPollSeconds * 1000 });
+        logger.info('📡 /بث: تحديث لحظي من بيانات الموقع (قسم البثوث بلوحة المالك)');
+      } catch (err) {
+        logger.warn('تعذّر تشغيل التحديث اللحظي لـ/بث — رجعنا للمزامنة الدورية', { error: err });
+        liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
+      }
+    } else {
+      liveStreams.startPolling(() => api.getActiveStreams(), ctx.config.streamPollSeconds * 1000);
+    }
 
     // ربط ديسكورد بألعاب الموقع يقرأ نص رسائل الروم
     if (ctx.messageContentIntent === false) {
@@ -75,6 +88,15 @@ module.exports = {
     Promise.resolve(ctx.dbReady)
       .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
       .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
+
+    // راوندات الألعاب (/دول /روليت /قناص): المدير + استعادة الراوندات الحية بعد إعادة التشغيل
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => require('../services/discordRounds').init({
+        getClient: () => ctx.client,
+        config: ctx.config,
+        db: ok === false ? null : require('../database/botDb')
+      }))
+      .catch((err) => logger.error('تعذّر تشغيل نظام راوندات الألعاب', { error: err }));
 
     // مهام المالك (services/ownerAI) اللي انقطعت بإعادة التشغيل: نعلّمها ونبلّغ المالك بالنتيجة الجزئية
     Promise.resolve(ctx.dbReady)

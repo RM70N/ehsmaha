@@ -1,12 +1,12 @@
 'use strict';
 
-// /قناص — "لعبة القناص" الجماعية (المحرّك بـservices/sniperGame.js، واللوبي
-// والأمر والأزرار من lobbyManager + utils/gameCommand.js — نفس /روليت و/دول).
+// /قناص — راوند ويب مرتبط بديسكورد (services/discordRounds). الأمر ينشئ الراوند ويرسل رابطه،
+// والدخول واللعب والمشاهدة من الرابط (OAuth ديسكورد).
 
-const sniper = require('../../services/sniperGame');
-const { createGameCommand } = require('../../utils/gameCommand');
+const { createRoundCommand } = require('../../services/discordRounds/command');
 
-module.exports = createGameCommand(sniper, {
+module.exports = createRoundCommand({
+  gameType: 'sniper',
   name: 'قناص',
-  description: '🎯 لعبة القناص — اختبئ بمربع سري، والقناص عنده 4 دقائق يصيدكم'
+  description: '🔫 لعبة القناص — راوند ويب: قناص يصيد والباقين يختبئون بمربعات سرية'
 });

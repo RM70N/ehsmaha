@@ -172,6 +172,13 @@ function buildConfig() {
     // OWNER_AI=off يوقف نظام تنفيذ أوامر المالك باللغة الطبيعية (مفعّل افتراضياً)
     ownerAiEnabled: !/^(false|0|no|off)$/i.test(String(process.env.OWNER_AI || 'true').trim()),
     siteUrl,
+    // راوندات الألعاب (services/discordRounds): رابط خادم الويب العام + OAuth2 ديسكورد.
+    // بدونهم أوامر /دول /روليت /قناص ترد برسالة إعداد واضحة (ما فيه رجوع للطريقة القديمة).
+    rounds: Object.freeze({
+      publicUrl: normalizeBaseUrl(process.env.ROUNDS_PUBLIC_URL),
+      clientSecret: (process.env.DISCORD_CLIENT_SECRET || '').trim() || null,
+      sessionSecret: (process.env.ROUNDS_SESSION_SECRET || '').trim() || null
+    }),
     autoRegisterCommands: autoRegister,
     profileUrl: siteUrl + '/profile',
     logoUrl: process.env.LOGO_URL || siteUrl + '/discord-logo.png',

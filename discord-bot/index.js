@@ -226,9 +226,11 @@ function shutdown(signal, webServer) {
   const force = setTimeout(() => process.exit(0), 20000);
   force.unref();
   liveStreams.stopPolling();
+  require('./services/liveBoard').stopAll();
   clearInterval(shutdown.selfPingTimer);
   require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()
+    .then(() => require('./services/discordRounds').shutdown()) // يحفظ الراوندات ويقفل اتصالات اللعب (WebSocket) قبل إيقاف الخادم
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())
     .then(() => stateBackup.shutdown()) // آخر نسخة احتياطية قبل ما يطفي (عبر الـAPI المدمجة — لسا شغالة)

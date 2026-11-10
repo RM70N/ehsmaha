@@ -1,12 +1,12 @@
 'use strict';
 
-// /دول — "لعبة الدول" الجماعية (المحرّك بـservices/countriesGame.js، والأمر
-// والأزرار من المصنع المشترك utils/gameCommand.js — نفس /روليت بالضبط).
+// /دول — راوند ويب مرتبط بديسكورد (services/discordRounds). الأمر ينشئ الراوند ويرسل رابطه،
+// والدخول واللعب والمشاهدة من الرابط (OAuth ديسكورد).
 
-const countries = require('../../services/countriesGame');
-const { createGameCommand } = require('../../utils/gameCommand');
+const { createRoundCommand } = require('../../services/discordRounds/command');
 
-module.exports = createGameCommand(countries, {
+module.exports = createRoundCommand({
+  gameType: 'countries',
   name: 'دول',
-  description: '🌍 لعبة الدول — كل لاعب له دولة سرية، وآخر واحد يبقى يفوز'
+  description: '🌍 لعبة الدول — راوند ويب: كل لاعب له دولة سرية وآخر واحد يبقى يفوز'
 });

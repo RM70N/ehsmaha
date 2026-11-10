@@ -8,7 +8,7 @@
 // من السيرفر فقط، ومجموعات البوت الخاصة (discordApiStats...) تبقى مقفلة
 // تماماً أمام المتصفحات بالقاعدة العامة "match /{document=**} → false".
 
-const { initializeApp, cert, applicationDefault } = require('firebase-admin/app');
+const { initializeApp, cert, applicationDefault, deleteApp } = require('firebase-admin/app');
 const { getFirestore, FieldValue, FieldPath, Timestamp, AggregateField } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 const { getDatabase } = require('firebase-admin/database');
@@ -63,8 +63,17 @@ function rtdb() {
   return getDatabase(app);
 }
 
+// إغلاق نظيف لتطبيق Firebase (يقفل اتصالات Firestore/RTDB) — للاختبارات والإيقاف الهادئ
+async function shutdown() {
+  if (!app) return;
+  const a = app;
+  app = null;
+  await deleteApp(a).catch(() => null);
+}
+
 module.exports = {
   init,
+  shutdown,
   db,
   rtdb,
   auth: () => getAuth(app),
