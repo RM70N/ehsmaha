@@ -7,6 +7,7 @@
   --safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box}
+.j3 [hidden]{display:none !important}
 html,body{margin:0;background:var(--ink);color:var(--text);font-family:var(--font);-webkit-text-size-adjust:100%}
 body{min-height:100dvh;overflow-x:hidden}
 button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
