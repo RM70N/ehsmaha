@@ -67,7 +67,7 @@ export function buildWorld({ THREE, K, kit, map, assets, scene, quality, rendere
   const place = (parts, x, y, z, ry, L) => { const m = new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, ry, 0)), new THREE.Vector3(1, 1, 1)); for (const p of parts) { p.applyMatrix4(m); statics[L >= 1 ? 1 : 0].push(p); } };
   for (const s of map.solids) {
     const fn = assets.solids[s.style]; const L = s.lv === 2 ? 0 : s.lv; let parts;
-    try { parts = fn ? fn({ w: s.w, d: s.d, h: s.h, c: s.c, med: s.med }) : [K.box(s.w, s.h, s.d, s.c || 0x8888aa, 0, 0, 0)]; } catch (e) { parts = [K.box(s.w, s.h, s.d, 0xaa4444, 0, 0, 0)]; }
+    try { parts = fn ? fn(s) : [K.box(s.w, s.h, s.d, s.c || 0x8888aa, 0, 0, 0)]; } catch (e) { parts = [K.box(s.w, s.h, s.d, 0xaa4444, 0, 0, 0)]; }
     place(parts, s.x, 0, s.z, 0, L);
   }
   const decoMeshes = [];
