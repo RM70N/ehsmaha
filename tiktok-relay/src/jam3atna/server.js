@@ -78,7 +78,7 @@ export class Jam3atnaServer {
     return {
       t: 'room', code: room.code, game: room.game, phase: room.phase, hostId: room.hostId, settings: room.settings,
       min: this._min(room.game), max: g.max,
-      players: [...room.players.values()].filter((p) => !p.isHost).map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, ready: p.ready, on: !!p.ws, score: p.score })),
+      players: [...room.players.values()].filter((p) => !p.isHost || p.plays).map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, ready: p.ready, on: !!p.ws, score: p.score })),
       hostOn: !!(room.players.get(room.hostId) || {}).ws,
     };
   }
@@ -97,7 +97,7 @@ export class Jam3atnaServer {
       const r = this.rooms.get(String(m.code || '').toUpperCase());
       if ((this.joinFails.get(s.ip) || []).filter((t) => Date.now() - t < 60000).length > 30) return this._send(ws, { t: 'error', code: 'slow_down' });
       if (!r || r.phase === 'closed') return this._failJoin(ws, 'not_found');
-      return this._send(ws, { t: 'peek', code: r.code, game: r.game, phase: r.phase, count: r.players.size - 1, max: GAMES[r.game].max });
+      return this._send(ws, { t: 'peek', code: r.code, game: r.game, phase: r.phase, count: [...r.players.values()].filter((p) => !p.isHost || p.plays).length, max: GAMES[r.game].max });
     }
     if (m.t === 'create') {
       if (s.room) return;
@@ -105,9 +105,9 @@ export class Jam3atnaServer {
       if (this.rooms.size >= this.cfg.maxRooms) return this._send(ws, { t: 'error', code: 'busy' });
       const code = this._newCode();
       const room = { code, game: m.game, phase: 'lobby', players: new Map(), settings: Object.assign({}, g.defaults), hostId: null, inst: null, createdAt: Date.now(), touched: Date.now(), hostTimer: null };
-      const host = this._mkPlayer(ws, 'المضيف', '0'); host.isHost = true; room.hostId = host.id; room.players.set(host.id, host);
+      const host = this._mkPlayer(ws, 'المضيف', '0'); host.isHost = true; room.hostId = host.id; if (m.plays) { host.plays = true; host.ready = true; const hn = cleanName(m.name); host.name = hn.length >= 2 ? hn : 'المضيف'; host.avatar = cleanAvatar(m.avatar); } room.players.set(host.id, host);
       this.rooms.set(code, room); s.room = code; s.pid = host.id;
-      this._send(ws, { t: 'joined', code, you: { id: host.id, token: host.token, host: true }, now: Date.now() });
+      this._send(ws, { t: 'joined', code, you: { id: host.id, token: host.token, host: true, plays: !!host.plays, name: host.name }, now: Date.now() });
       this.pushRoom(room); this.log('info', 'jam3atna_room_created', { game: m.game });
       return;
     }
@@ -122,10 +122,10 @@ export class Jam3atnaServer {
         if (p) return this._attach(ws, room, p, true);
       }
       if (room.phase !== 'lobby') return this._send(ws, { t: 'error', code: 'started' });
-      if (room.players.size - 1 >= GAMES[room.game].max) return this._send(ws, { t: 'error', code: 'full' });
+      if ([...room.players.values()].filter((p) => !p.isHost || p.plays).length >= GAMES[room.game].max) return this._send(ws, { t: 'error', code: 'full' });
       const name = cleanName(m.name); if (name.length < 2) return this._send(ws, { t: 'error', code: 'bad_name' });
       const nn = normName(name);
-      if ([...room.players.values()].some((p) => !p.isHost && normName(p.name) === nn)) return this._send(ws, { t: 'error', code: 'name_taken' });
+      if ([...room.players.values()].some((p) => (!p.isHost || p.plays) && normName(p.name) === nn)) return this._send(ws, { t: 'error', code: 'name_taken' });
       const p = this._mkPlayer(ws, name, cleanAvatar(m.avatar)); room.players.set(p.id, p);
       return this._attach(ws, room, p, false);
     }
@@ -137,6 +137,15 @@ export class Jam3atnaServer {
     switch (m.t) {
       case 'ready': if (room.phase === 'lobby' && !isHost) { me.ready = !!m.v; this.pushRoom(room); } break;
       case 'leave': this._removePlayer(room, me, 'left'); break;
+      case 'hostquit': { // المضيف اللاعب يطلع من اللعب ويكمل كشاشة مشاهدة (الغرفة تبقى)
+        if (!isHost || !me.plays || room.phase === 'closed') break;
+        me.plays = false; me.ready = false; if (room.inst && room.phase === 'playing') room.inst.onLeave(me);
+        this.sendTo(me, { t: 'you', plays: false, name: me.name }); this.pushRoom(room);
+        if (room.inst && room.phase !== 'lobby') room.inst.onRejoin(me); break; }
+      case 'hostplay': { // المضيف يقرر يلعب معهم أو يكتفي بالمشاهدة (قبل البدء فقط)
+        if (!isHost || room.phase !== 'lobby') break; const on = !!m.v;
+        if (on) { const hn = cleanName(m.name); const nm = hn.length >= 2 ? hn : (me.name !== 'المضيف' ? me.name : 'المضيف'); if ([...room.players.values()].some((p) => p !== me && (!p.isHost || p.plays) && normName(p.name) === normName(nm))) return this.sendTo(me, { t: 'error', code: 'name_taken' }); if ([...room.players.values()].filter((p) => !p.isHost || p.plays).length >= GAMES[room.game].max) return this.sendTo(me, { t: 'error', code: 'full' }); me.name = nm; if (m.avatar != null) me.avatar = cleanAvatar(m.avatar); me.plays = true; me.ready = true; } else { me.plays = false; me.ready = false; }
+        this.sendTo(me, { t: 'you', plays: !!me.plays, name: me.name }); this.pushRoom(room); break; }
       case 'settings': {
         if (!isHost || room.phase !== 'lobby' || !m.s || typeof m.s !== 'object') break;
         const rules = SETTING_RULES[room.game];
@@ -150,7 +159,7 @@ export class Jam3atnaServer {
       }
       case 'start': {
         if (!isHost || room.phase !== 'lobby') break; // الضغط مرتين: الثانية تُتجاهل لأن الحالة تغيّرت
-        const active = [...room.players.values()].filter((p) => !p.isHost);
+        const active = [...room.players.values()].filter((p) => !p.isHost || p.plays);
         if (active.length < this._min(room.game)) { this.sendTo(me, { t: 'error', code: 'need_players', min: this._min(room.game) }); break; }
         room.phase = 'playing';
         for (const p of active) { p.score = 0; p.ready = false; }
@@ -182,7 +191,7 @@ export class Jam3atnaServer {
     }
     clearTimeout(p.dropTimer); p.dropTimer = null; p.ws = ws; ws.j.room = room.code; ws.j.pid = p.id;
     if (p.id === room.hostId) { clearTimeout(room.hostTimer); room.hostTimer = null; }
-    this._send(ws, { t: 'joined', code: room.code, you: { id: p.id, token: p.token, host: p.id === room.hostId, name: p.name }, now: Date.now(), rejoin });
+    this._send(ws, { t: 'joined', code: room.code, you: { id: p.id, token: p.token, host: p.id === room.hostId, plays: !!p.plays, name: p.name }, now: Date.now(), rejoin });
     this.pushRoom(room);
     if (rejoin && room.inst && room.phase !== 'lobby') room.inst.onRejoin(p);
   }

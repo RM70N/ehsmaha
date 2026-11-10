@@ -11,6 +11,7 @@ const mk = async (vp, mobile) => { const c = await b.newContext({ viewport: vp, 
 const inst = (p, f) => p.evaluate(f);
 async function lobby(game, n) {
   const host = await mk({ width: 1280, height: 720 }, false); await host.goto(base + '?' + srv + '#/' + game); await host.click('#j3-create'); await host.waitForSelector('.j3-qr svg'); const code = await host.evaluate(() => window.__j3.st.room.code);
+  await host.uncheck('#j3-hostplay'); await host.waitForFunction(() => document.querySelectorAll('.j3-player').length === 0 || true);
   const qr = await host.evaluate(() => { const s = document.querySelector('.j3-qr svg'); return !!s && s.querySelectorAll('rect,path').length > 0; });
   const ph = []; for (let i = 0; i < n; i++) { const p = await mk({ width: 390, height: 844 }, true); await p.goto(base + '?r=' + code + '&' + srv); await p.fill('#j3-name', 'لاعب' + (i + 1)); await p.click('#j3-nameform button.j3-btn-main'); await p.waitForSelector('#j3-ready'); await p.click('#j3-ready'); ph.push(p); }
   await host.waitForFunction((k) => document.querySelectorAll('.j3-player.is-ready').length === k, n);
@@ -52,6 +53,16 @@ try {
     const turns = [...L.room.players.values()].filter((p) => !p.isHost).length; ok('prop: الترتيب النهائي يشمل كل اللاعبين', (await L.host.evaluate(() => document.querySelectorAll('.g-rank li').length)) === turns);
     await L.host.click('#p-again'); await L.ph[0].waitForSelector('#j3-ready', { timeout: 8000 }); ok('prop: مباراة جديدة → اللوبي بدون تسريب canvas', (await L.host.evaluate(() => document.querySelectorAll('canvas').length)) === 0);
     for (const p of [L.host, ...L.ph]) await p.context().close(); }
+  // ---------------- المضيف يلعب معهم ----------------
+  { const host = await mk({ width: 1280, height: 720 }, false); await host.goto(base + '?' + srv + '#/city'); await host.click('#j3-create'); await host.waitForSelector('.j3-qr svg');
+    ok('host-play: المضيف يدخل تلقائيًا كلاعب (خانة اللعب مفعّلة وهو بالقائمة)', await host.isChecked('#j3-hostplay') && (await host.locator('.j3-player').count()) === 1);
+    const code = await host.evaluate(() => window.__j3.st.room.code); const p = await mk({ width: 390, height: 844 }, true); await p.goto(base + '?r=' + code + '&' + srv); await p.fill('#j3-name', 'سارة'); await p.click('#j3-nameform button.j3-btn-main'); await p.waitForSelector('#j3-ready'); await p.click('#j3-ready');
+    await host.waitForFunction(() => document.querySelectorAll('.j3-player').length === 2); await host.click('#j3-start');
+    await host.waitForFunction(() => window.__j3.st.inst && window.__j3.st.inst._S.world, null, { timeout: 40000 }); await host.waitForSelector('#c-mission:not([hidden])', { timeout: 40000 });
+    ok('host-play: المضيف يرى واجهة اللاعب (مهمة سرية + زر خروج)', (await host.locator('.g-exit').count()) === 1 && !(await host.evaluate(() => window.__j3.st.me.host && !window.__j3.st.me.plays)));
+    await host.click('.g-exit'); await host.click('#j3-xyes'); await host.waitForFunction(() => window.__j3.st.me && window.__j3.st.me.plays === false, null, { timeout: 8000 }); await host.waitForSelector('.g-board', { timeout: 20000 });
+    ok('host-play: بعد الخروج يتحول لشاشة المشاهدة والغرفة مستمرة', (await host.locator('.g-exit').count()) === 0 && !!d.j.rooms.get(code));
+    for (const x of [host, p]) await x.context().close(); }
   ok('لا أخطاء JavaScript في أي جلسة', errs.length === 0, errs.slice(0, 3).join(' | '));
 } catch (e) { fail++; console.log('FAIL استثناء: ' + String(e && e.stack || e).slice(0, 600)); if (errs.length) console.log(errs.slice(0, 4).join('\n')); }
 console.log(`\n${pass}/${pass + fail} passed`); await b.close(); d.close(); process.exit(fail ? 1 : 0);

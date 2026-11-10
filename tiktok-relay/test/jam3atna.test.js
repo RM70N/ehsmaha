@@ -311,3 +311,27 @@ test('المدينة: كل أنواع الأحداث التسعة تتولد و�
   g.simT = () => 0; for (let i = 0; i < 600; i++) { const ev = g._ambient({ startAt: 1000 }); seen.add(ev.type); assert.ok(ev.at >= 3000 && ev.at <= 9000); }
   assert.equal(seen.size, 9, [...seen].join());
 });
+
+// ---------------------------------------------------------------- المضيف يلعب معهم
+test('المضيف يلعب: يدخل تلقائيًا كلاعب، يبدأ مع لاعب واحد، يستلم مهمته ويقدر يطلع من اللعب', async () => {
+  const b = await boot({ min: { city: 2 }, city: { introMs: 100, revealMs: 100, timeScale: 0.3 } });
+  try {
+    const host = await b.conn(); host.send({ t: 'create', game: 'city', plays: true, name: 'أبو فهد', avatar: '3' });
+    const jd = await host.wait((m) => m.t === 'joined'); assert.equal(jd.you.host, true); assert.equal(jd.you.plays, true); assert.equal(jd.you.name, 'أبو فهد');
+    const room = b.j.rooms.get(jd.code);
+    const rv = await host.wait((m) => m.t === 'room' && m.players.length === 1); assert.equal(rv.players[0].name, 'أبو فهد');
+    // لاعب ثاني بنفس الاسم يُرفض، ويُحسب المضيف ضمن العدد
+    const dup = await b.conn(); dup.send({ t: 'join', code: jd.code, name: 'أبو فهد' }); assert.equal((await dup.wait((m) => m.t === 'error')).code, 'name_taken');
+    const p = await b.conn(); p.send({ t: 'join', code: jd.code, name: 'سارة', avatar: '1' }); await p.wait((m) => m.t === 'joined');
+    const pk = await b.conn(); pk.send({ t: 'peek', code: jd.code }); assert.equal((await pk.wait((m) => m.t === 'peek')).count, 2);
+    // المضيف يلغي اللعب ثم يفعّله من جديد
+    host.send({ t: 'hostplay', v: false }); await host.wait((m) => m.t === 'room' && m.players.length === 1);
+    host.send({ t: 'hostplay', v: true, name: 'أبو فهد' }); await host.wait((m) => m.t === 'room' && m.players.length === 2);
+    host.send({ t: 'start' }); await sleep(50); assert.equal(room.phase, 'playing');
+    const mis = await host.gw('mission', 4000); assert.ok(typeof mis.text === 'string' || mis.watching, 'المضيف اللاعب يستلم مهمة لاعب وليس شاشة مضيف');
+    assert.equal(host.log.some((m) => m.t === 'g' && m.d.k === 'round'), false, 'لا يستلم رسائل شاشة المضيف');
+    // يطلع من اللعب: الغرفة تبقى ويصير مشاهدًا
+    host.send({ t: 'hostquit' }); await host.wait((m) => m.t === 'you' && m.plays === false); await sleep(80);
+    assert.equal(room.phase, 'playing'); assert.equal(room.players.get(room.hostId).plays, false); assert.ok(host.log.some((m) => m.t === 'g' && m.d.k === 'round'), 'يتحول لشاشة مشاهدة');
+  } finally { await b.close(); }
+});

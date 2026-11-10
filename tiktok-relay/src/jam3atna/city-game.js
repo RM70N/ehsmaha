@@ -20,7 +20,7 @@ export class CityGame {
   }
   _after(ms, fn) { const t = setTimeout(() => { this.timers.delete(t); if (!this.stopped) fn(); }, ms); this.timers.add(t); return t; }
   stop() { this.stopped = true; for (const t of this.timers) clearTimeout(t); this.timers.clear(); if (this.actorTimer) clearInterval(this.actorTimer); }
-  players() { return [...this.room.players.values()].filter((p) => !p.isHost); }
+  players() { return [...this.room.players.values()].filter((p) => !p.isHost || p.plays); }
   active() { return this.players().filter((p) => !this.out.has(p.id)); }
   g(p, d) { this.srv.sendTo(p, { t: 'g', d }); }
   gall(d, filter) { this.srv.broadcast(this.room, { t: 'g', d }, filter); }
@@ -70,7 +70,7 @@ export class CityGame {
       const slot = r.per.get(p.id);
       this.g(p, Object.assign({ k: 'mission', text: slot ? slot.text : null, watching: !slot }, base));
     }
-    this.g(this.room.players.get(this.room.hostId), Object.assign({ k: 'round' }, base));
+    { const hp = this.room.players.get(this.room.hostId); if (hp && !hp.plays) this.g(hp, Object.assign({ k: 'round' }, base)); }
     if (r.actors.length) {
       this.gall({ k: 'spawn', ents: r.actors.map((a) => a.def) });
       this.actorTimer = setInterval(() => this._tickActors(), this.cfg.actorMs);
@@ -200,7 +200,7 @@ export class CityGame {
 
   // ---------------------------------------------------------------- الإجابات
   onMessage(p, d) {
-    if (d.k !== 'pick' || p.isHost) return;
+    if (d.k !== 'pick' || (p.isHost && !p.plays)) return;
     const r = this.round; const now = Date.now();
     if (!r || r.done || d.round !== r.n || now >= r.endAt) return;     // إجابة متأخرة/من جولة سابقة: تُتجاهل
     const slot = r.per.get(p.id); if (!slot || slot.ok || slot.locked) return; // منع احتساب النقاط مرتين
@@ -265,7 +265,7 @@ export class CityGame {
     if (!r || r.done) return;
     const slot = r.per.get(p.id);
     const base = { round: r.n, of: this.total, type: r.type, title: TITLES[r.type], endAt: r.endAt, pickKind: r.pickKind, shared: SHARED.has(r.type) || r.tie, event: r.event, now: Date.now() };
-    this.g(p, Object.assign(p.isHost ? { k: 'round' } : { k: 'mission', text: slot ? slot.text : null, watching: !slot, done: slot && (slot.ok || slot.locked) }, base));
+    this.g(p, Object.assign(p.isHost && !p.plays ? { k: 'round' } : { k: 'mission', text: slot ? slot.text : null, watching: !slot, done: slot && (slot.ok || slot.locked) }, base));
     if (r.actors.length) this.g(p, { k: 'spawn', ents: r.actors.map((a) => a.def) });
   }
 }
