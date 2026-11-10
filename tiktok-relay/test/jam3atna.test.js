@@ -166,7 +166,9 @@ test('المدينة: آلاف المهمات المولّدة كلها لها �
         const runs = r.actors.map((a) => { let ran = false; const kf = a.kf; for (let q = 2; q < kf.length; q++) { const p0 = kf[q - 1], p1 = kf[q]; const ns = p0[1] === p1[1]; const from = ns ? p0[2] : p0[1], to = ns ? p1[2] : p1[1]; if (from === to) continue; for (let c = 0; c <= CITY.N; c++) { const line = roadAt(c) - CITY.ROAD / 2; if (from < line && to > line) { const tm = p0[0] + (line - from) / (to - from) * (p1[0] - p0[0]); const li = ns ? Math.round((p0[1] + CITY.LANE - roadAt(0)) / (roadAt(1) - roadAt(0))) : c; const lj = ns ? c : Math.round((p0[2] - CITY.LANE - roadAt(0)) / (roadAt(1) - roadAt(0))); if (lightState(li, lj, g.simT(r.startAt + p0[0])) !== (ns ? 'ns' : 'ew')) ran = true; /* الحكم لحظة مغادرة خط الوقوف */ } } } return ran; });
         const bad = r.actors.findIndex((a) => a.def.id === r.shared); assert.equal(runs[bad], true, 'المخالفة تقطع فعلاً على الأحمر'); assert.equal(runs.filter(Boolean).length, 1, 'ولا سيارة غيرها تقطع');
       }
-      if (r.event && r.event.type === 'jam') assert.equal(r.event.dur, CITY.CYCLE * 1000);
+      if (r.event && ['jam', 'closure', 'rush'].includes(r.event.type)) { assert.equal(r.event.dur, CITY.CYCLE * 1000); assert.ok(Array.isArray(r.event.ids) && typeof r.event.t0 === 'number', 'حدث توقف: معرّفات السيارات ووقت البدء'); }
+      if (r.event && r.event.type === 'convoy') assert.ok(r.event.road >= 0 && r.event.road <= CITY.N && (r.event.axis === 0 || r.event.axis === 1));
+      if (r.event) assert.ok(['blackout', 'rain', 'train', 'jam', 'rush', 'convoy', 'festival', 'market', 'closure'].includes(r.event.type) && r.event.dur >= 9000);
       r.done = true; clearInterval(g.actorTimer);
     }
     g.stop();
@@ -301,4 +303,11 @@ test('المتنكر: الدرج يبدّل الطابق تدريجيًا ولا
   const house = MAPS.house; r = walk(house, [11, -5], [11, -15], 500); assert.equal(r.p.lv, 1, 'صعود درج المنزل'); assert.ok(r.maxJump < 0.25);
   // لا يصعد لاعب عبر جدار/خارج الدرج: من الصالة مباشرة إلى فوق نفس النقطة يبقى طابقه
   const q = { x: 0, z: 10, lv: 0 }; updateLevel(hotel, q); assert.equal(q.lv, 0);
+});
+
+test('المدينة: كل أنواع الأحداث التسعة تتولد وتُحترم قواعدها (لا تعطّل المهمات)', async () => {
+  const seen = new Set(); const g = new CityGame({ players: new Map(), settings: { rounds: 5 } }, { timeScale: 1 }, {});
+  g.world = (await import('../src/jam3atna/shared/city-sim.js')).genCity(12345);
+  g.simT = () => 0; for (let i = 0; i < 600; i++) { const ev = g._ambient({ startAt: 1000 }); seen.add(ev.type); assert.ok(ev.at >= 3000 && ev.at <= 9000); }
+  assert.equal(seen.size, 9, [...seen].join());
 });

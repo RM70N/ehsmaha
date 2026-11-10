@@ -33,8 +33,9 @@ export function createCityArt(THREE, renderer, quality = 'medium') {
   function fb(p, b, face, u, y, ww, hh, th, off, c, m) { const [ry, nx, nz] = SIDE[face]; const even = face < 2; const half = (even ? b.d : b.w) / 2; const tx = even ? (face === 0 ? 1 : -1) : 0, tz = even ? 0 : (face === 2 ? -1 : 1);
     p.push(box(ww, hh, th, c, nx * (half + off) + tx * u, y, nz * (half + off) + tz * u, { ry, m })); }
   function windows(p, b, faces, rows, cols, y0, y1, pal, o = {}) {
+    if (quality === 'low') o = Object.assign({}, o, { balcony: false, ac: false, noTrim: true });
     for (const f of faces) { const span = f < 2 ? b.w : b.d; for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const y = y0 + r * (y1 - y0) / rows + 0.18, u = ((c + 0.5) / cols - 0.5) * span * 0.88; const ww = Math.min(o.maxW || 1.15, span / cols * 0.62), hh = Math.min(o.maxH || 1.2, (y1 - y0) / rows * 0.66);
-      fb(p, b, f, u, y - 0.06, ww + 0.22, 0.1, 0.2, 0.02, pal.trim, 'gloss'); fb(p, b, f, u, y, ww, hh, 0.1, 0.03, pal.glass, 'glass');
+      if (!o.noTrim) fb(p, b, f, u, y - 0.06, ww + 0.22, 0.1, 0.2, 0.02, pal.trim, 'gloss'); fb(p, b, f, u, y, ww, hh, 0.1, 0.03, pal.glass, 'glass');
       const lit = hash(b.id + f + r * 9 + c * 3) < (o.lit == null ? 0.55 : o.lit); if (lit) fb(p, b, f, u, y + 0.06, ww * 0.84, hh * 0.84, 0.03, 0.07, 0xffdc8c, 'emis');
       if (o.balcony && r % 2 === 1) { fb(p, b, f, u, y - 0.1, ww + 0.5, 0.1, 0.8, 0.4, pal.trim, 'gloss'); fb(p, b, f, u, y, ww + 0.5, 0.5, 0.04, 0.78, shade(pal.trim, 0.7), 'metal'); }
       if (o.ac && hash(b.id + 'ac' + r + c) < 0.2) fb(p, b, f, u + ww * 0.7, y + 0.1, 0.5, 0.4, 0.3, 0.28, 0xd9dde0, 'gloss'); } } }

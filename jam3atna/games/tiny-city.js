@@ -2,7 +2,7 @@
 // والإجابة الصحيحة غير موجودة هنا إطلاقًا — نرسل «اختياري هو كذا» والخادم يحكم.
 import { genCity, entState, lightState, roadAt, blockAt, COLORS, CITY, CITY_SIZE, buildingLabel } from '../shared/city-sim.js';
 import { createStage, addLights, kit, h, fmtTime, esc } from '../shared/three-kit.js';
-import { sfx, ambience, stopAmb } from '../shared/audio.js';
+import { sfx, ambience, stopAmb, cityLife, rainAmb, sound } from '../shared/audio.js';
 import { createCityArt, DISTRICT_NAME, DISTRICT_GRID } from './city/city-arch.js';
 import { createCrowd } from './city/crowd.js';
 import { createEventFx } from './city/events-fx.js';
@@ -26,6 +26,8 @@ export function mount(ctx) {
     <div class="g-mission" id="c-mission" hidden></div><div class="g-spacer"></div>
     <div class="g-confirm" id="c-confirm" hidden><span id="c-sel"></span><button class="j3-btn j3-btn-main j3-btn-sm" id="c-yes">تأكيد</button><button class="j3-btn j3-btn-quiet" id="c-no">إلغاء</button></div>
     <div class="g-bottom"><button class="g-btn" id="c-reset" aria-label="إعادة تمركز الكاميرا"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>تمركز</button>
+      <button class="g-btn" id="c-lv" aria-label="مستوى التقريب"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4-4M8 11h6"/></svg><span id="c-lvl"></span></button>
+      <button class="g-btn" id="c-s" aria-label="الصوت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 9v6h4l5 4V5L8 9H4zM17 8a5 5 0 010 8"/></svg>صوت</button>
       <button class="g-btn" id="c-t" aria-label="وقت اليوم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span id="c-tl"></span></button>
       <button class="g-btn" id="c-q" aria-label="جودة الرسومات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 18V9M10 18V5M16 18v-7M22 18v-4"/></svg><span id="c-ql"></span></button></div>`;
   const $ = (s) => hud.querySelector(s);
@@ -34,6 +36,12 @@ export function mount(ctx) {
   $('#c-q').onclick = () => { const o = ['low', 'medium', 'high']; stage.setQuality(o[(o.indexOf(stage.level) + 1) % 3], true); sfx.tap(); };
   $('#c-reset').onclick = () => { flyTo(0, 0, 120, 0.7, 0.95, 0.7); sfx.tap(); };
   const TL = { morning: 'صباح', sunset: 'غروب', night: 'ليل' }; $('#c-tl').textContent = TL[todMode] || 'صباح'; $('#c-t').onclick = () => { const o = ['morning', 'sunset', 'night']; todMode = o[(o.indexOf(todMode) + 1) % 3]; $('#c-tl').textContent = TL[todMode]; applyTod(); sfx.tap(); };
+  // مستويات الاستكشاف: نظرة شاملة / الحي / التفاصيل — انتقال سلس بين المستويات
+  const LV = [['شاملة', 125, 0.95], ['الحي', 62, 0.72], ['التفاصيل', 30, 0.52]]; const lvOf = () => (cam.dist > 90 ? 0 : cam.dist > 44 ? 1 : 2);
+  $('#c-lv').onclick = () => { const n = (lvOf() + 1) % 3; const t = LV[n]; flyTo(cam.tx, cam.tz, t[1], cam.yaw, t[2], 1.1); sfx.tap(); };
+  const sp = h('div', 'g-sndp'); sp.hidden = true; sp.innerHTML = '<label>المؤثرات<input type="range" min="0" max="100" id="c-sv"></label><label>أجواء المدينة<input type="range" min="0" max="100" id="c-av"></label><label>الصوت العام<input type="range" min="0" max="100" id="c-mv"></label>'; el.appendChild(sp);
+  $('#c-s').onclick = () => { sp.hidden = !sp.hidden; sfx.tap(); }; sp.querySelector('#c-sv').value = Math.round(sound.sfxVol * 100); sp.querySelector('#c-av').value = Math.round(sound.ambVol * 100); sp.querySelector('#c-mv').value = Math.round(sound.vol * 100);
+  sp.querySelector('#c-sv').oninput = (e) => sound.setSfxVol(e.target.value / 100); sp.querySelector('#c-av').oninput = (e) => sound.setAmbVol(e.target.value / 100); sp.querySelector('#c-mv').oninput = (e) => sound.setVol(e.target.value / 100);
   $('#c-no').onclick = () => select(null);
   $('#c-yes').onclick = () => { if (!S.sel || !S.round || S.done) return; net.g({ k: 'pick', id: S.sel.id, round: S.round.round }); sfx.tap(); select(null); };
   function banner(text, sub) { const b = h('div', 'g-banner', `<div>${esc(text)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`); el.appendChild(b); later(1900, () => b.remove()); }
@@ -93,7 +101,7 @@ export function mount(ctx) {
     // سكة القطار المرتفعة (يمر عليها القطار في حدث «مرور قطار»)
     const tz = roadAt(2) + 2.6; p.push(K.box(CITY_SIZE + 24, 0.4, 2.2, 0x8a8f94, 0, 7.5, tz)); for (let x = -HALF; x <= HALF; x += PITCH_) p.push(K.cyl(0.4, 0.5, 7.4, 0x8a8f94, x + 0.2, 3.7, tz, 8));
     const base = K.mesh(p, { cast: false }); scene.add(base);
-    for (const b of world.buildings) { const m = art.buildingMesh(b); m.userData.pick = { id: b.id, kind: 'b', label: buildingLabel(b), h: Math.max(b.h, 1.5) + 2 }; scene.add(m); S.bld.set(b.id, m); }
+    for (const b of world.buildings) { const m = art.buildingMesh(b); m.userData.pick = { id: b.id, kind: 'b', label: buildingLabel(b), h: Math.max(b.h, 1.5) + 2 }; m.geometry.computeBoundingBox(); m.userData.b = { x: b.x, z: b.z, w: b.w, d: b.d, vh: m.geometry.boundingBox.max.y + 0.16 }; scene.add(m); S.bld.set(b.id, m); }
     for (const e of world.ents) addEnt(e);
     S.ambient = art.createAmbient(world, scene);
     S.crowd = createCrowd(THREE, scene, { world, CITY, blockAt, roadAt, lightState, DISTRICT_GRID, seed }); S.fx2 = createEventFx(THREE, scene, art, { world, CITY, roadAt, blockAt, CITY_SIZE, DISTRICT_GRID, crowd: S.crowd });
@@ -132,11 +140,11 @@ export function mount(ctx) {
   const onMove = (e) => {
     const p = ptrs.get(e.pointerId); if (!p) return; const dx = e.clientX - p[0], dy = e.clientY - p[1]; p[0] = e.clientX; p[1] = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
     if (ptrs.size === 1) { if (e.buttons === 2 || e.shiftKey) pan(dx, dy); else { cam.yaw -= dx * 0.006; cam.pitch = Math.max(0.35, Math.min(1.45, cam.pitch + dy * 0.005)); } }
-    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; if (pinch) cam.dist = Math.max(18, Math.min(190, cam.dist * pinch / d)); if (lastMid) pan(mid[0] - lastMid[0], mid[1] - lastMid[1]); pinch = d; lastMid = mid; }
+    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; if (pinch) cam.dist = Math.max(14, Math.min(190, cam.dist * pinch / d)); if (lastMid) pan(mid[0] - lastMid[0], mid[1] - lastMid[1]); pinch = d; lastMid = mid; }
   };
   function pan(dx, dy) { const k = cam.dist * 0.0016; cam.tx -= (Math.cos(cam.yaw) * dx + Math.sin(cam.yaw) * dy) * k; cam.tz -= (-Math.sin(cam.yaw) * dx + Math.cos(cam.yaw) * dy) * k; cam.tx = Math.max(-HALF, Math.min(HALF, cam.tx)); cam.tz = Math.max(-HALF, Math.min(HALF, cam.tz)); }
   const onUp = (e) => { const was = ptrs.size; ptrs.delete(e.pointerId); pinch = 0; lastMid = null; if (was === 1 && moved < 9 && performance.now() - downAt < 450) tap(e.clientX, e.clientY); }; // السحب لا يُحتسب اختيارًا
-  const onWheel = (e) => { e.preventDefault(); cam.dist = Math.max(18, Math.min(190, cam.dist * (1 + Math.sign(e.deltaY) * 0.1))); cam.g = null; };
+  const onWheel = (e) => { e.preventDefault(); cam.dist = Math.max(14, Math.min(190, cam.dist * (1 + Math.sign(e.deltaY) * 0.1))); cam.g = null; };
   cv.addEventListener('pointerdown', onDown); cv.addEventListener('pointermove', onMove); cv.addEventListener('pointerup', onUp); cv.addEventListener('pointercancel', onUp); cv.addEventListener('wheel', onWheel, { passive: false }); cv.addEventListener('contextmenu', (e) => e.preventDefault());
 
   const ray = new THREE.Raycaster(), v2 = new THREE.Vector2(), v3 = new THREE.Vector3();
@@ -169,7 +177,12 @@ export function mount(ctx) {
     if (S.rain.visible) { const a = S.rain.geometry.attributes.position; for (let i = 0; i < a.count; i++) { let y = a.getY(i) - dt * 45; if (y < 0) y += 60; a.setY(i, y); } a.needsUpdate = true; }
     if (S.dark.visible) { const m = S.dark.material; m.opacity += ((S.darkOn ? 0.62 : 0) - m.opacity) * Math.min(1, dt * 4); if (!S.darkOn && m.opacity < 0.02) S.dark.visible = false; }
     for (const f of S.fx) f(dt, t);
-    if (S.round && !S.done) { const left = S.round.endAt - now; const tm = $('#c-timer'); tm.textContent = fmtTime(left); const low = left < 10000 && left > 0; if (low !== tm.classList.contains('is-low')) tm.classList.toggle('is-low', low); if (low && Math.floor(left / 1000) !== S.lastBeep) { S.lastBeep = Math.floor(left / 1000); sfx.low(); } }
+    if (S.round && !S.done) { const left = S.round.endAt - now; const dur = S.round.endAt - (S.rs || S.round.endAt - 60000); $('#c-mission').style.setProperty('--p', Math.max(0, Math.min(1, left / Math.max(1000, dur)))); hud.classList.toggle('is-last', left < 10000 && left > 0); const tm = $('#c-timer'); tm.textContent = fmtTime(left); const low = left < 10000 && left > 0; if (low !== tm.classList.contains('is-low')) tm.classList.toggle('is-low', low); if (low && Math.floor(left / 1000) !== S.lastBeep) { S.lastBeep = Math.floor(left / 1000); sfx.low(); } }
+    // قطع المباني الحاجبة (Cutaway): عند التقريب تنخفض المباني الواقعة بين الكاميرا والهدف تدريجيًا (لا تكشف أي معلومة)
+    S.occT = (S.occT || 0) + dt; if (S.occT > 0.12) { S.occT = 0; const near = cam.dist < 85; const cx = camera.position.x, cz = camera.position.z, cy = camera.position.y; const dx = cam.tx - cx, dz = cam.tz - cz, L2 = dx * dx + dz * dz || 1;
+      S.bld.forEach((m, id) => { const b = m.userData.b; if (!b) return; let tgt = 1; if (near && b.vh > 6) { const t = ((b.x - cx) * dx + (b.z - cz) * dz) / L2; if (t > 0.05 && t < 0.97) { const px = cx + dx * t, pz = cz + dz * t; const hw = Math.max(b.w, b.d) * 0.55; if (Math.abs(px - b.x) < hw && Math.abs(pz - b.z) < hw && b.vh > cy * (1 - t) + 1) tgt = 0.3; } } m.userData.occ = tgt; }); }
+    S.bld.forEach((m) => { const o = m.userData.occ; if (o == null) return; const k = Math.min(1, dt * 6); m.scale.y += (o - m.scale.y) * k; });
+    const lvn = LV[lvOf()][0]; if (lvn !== S.lvn) { S.lvn = lvn; $('#c-lvl').textContent = lvn; }
     camUpdate(dt);
   };
   const EV = { blackout: ['انقطعت الكهرباء!', 'جزء من المدينة صار ظلام'], rain: ['بدأ المطر', 'الرؤية صارت أصعب شوي'], train: ['قطار يمر!', 'ممكن يغطي عليك لثواني'], jam: ['زحمة مفاجئة!', 'السيارات واقفة بالتقاطع'], rush: ['ساعة الذروة!', 'ازدحام كبير في وسط المدينة'], convoy: ['موكب يمر!', 'مركبات مميزة تعبر أحد الشوارع'], festival: ['مهرجان المدينة!', 'الناس يتجمعون في الساحة'], market: ['سوق نشط!', 'حركة كبيرة في المنطقة التجارية'], closure: ['إغلاق شارع!', 'السيارات تنتظر عند التقاطع'] };
@@ -177,13 +190,13 @@ export function mount(ctx) {
     if (ev.type === 'blackout') { S.dark.position.set((ev.qx ? 1 : -1) * HALF / 2, 13, (ev.qz ? 1 : -1) * HALF / 2); S.dark.visible = true; S.darkOn = true; }
     if (ev.type === 'rain') { S.rain.visible = true; lights.sun.intensity = 0.55; lights.hemi.intensity = 0.48; }
     if (ev.type === 'train') S.train.visible = true;
-    if (S.fx2) S.fx2.start(ev); if (ev.type === 'jam' || ev.type === 'rush' || ev.type === 'closure') S.pauses.push({ t0: ev.t0, dur: ev.dur / 1000, ids: new Set(ev.ids) }); }
-  function endEvent(ev) { if (S.fx2) S.fx2.end(ev); if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = S_base.sun; lights.hemi.intensity = S_base.hemi; } if (ev.type === 'train') S.train.visible = false; }
+    if (ev.type === 'rain') rainAmb(true); if (S.fx2) S.fx2.start(ev); if (ev.type === 'jam' || ev.type === 'rush' || ev.type === 'closure') S.pauses.push({ t0: ev.t0, dur: ev.dur / 1000, ids: new Set(ev.ids) }); }
+  function endEvent(ev) { if (ev.type === 'rain') rainAmb(false); if (S.fx2) S.fx2.end(ev); if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = S_base.sun; lights.hemi.intensity = S_base.hemi; } if (ev.type === 'train') S.train.visible = false; }
 
   // ------------------------------------------------------------ رسائل الخادم
   function clearActors() { S.actors.forEach((m) => { scene.remove(m); m.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }); S.actors.clear(); }
   function onMission(d) {
-    S.round = d; S.done = !!d.done; S.event = d.event ? Object.assign({}, d.event) : null; S.beacon.visible = false; select(null); clearActors(); S.lastBeep = -1;
+    S.round = d; S.rs = net.now(); S.done = !!d.done; S.event = d.event ? Object.assign({}, d.event) : null; S.beacon.visible = false; select(null); clearActors(); S.lastBeep = -1;
     $('#c-round b').textContent = d.type === 'tie' ? 'فاصل' : d.round + ' / ' + d.of; const ms = $('#c-mission'); ms.hidden = false;
     if (isHost) { ms.innerHTML = `<small>${esc(d.title)}</small>${d.shared ? 'مهمة مشتركة للجميع — الأسرع يكسب مكافأة!' : 'كل لاعب عنده هدف سري بجواله'}`; cam.auto = true; flyTo(0, 0, 125, cam.yaw, 0.95, 1.4); }
     else if (d.watching) ms.innerHTML = `<small>${esc(d.title)}</small>أنت خارج المنافسة حاليًا — تابع الجولة.`;
@@ -220,7 +233,7 @@ export function mount(ctx) {
   }
   function onMsg(d) {
     if (disposed) return;
-    if (d.k === 'init') { if (S.seed === d.seed) return; S.t0 = d.t0; buildWorld(d.seed); stopAmb(); ambience('city'); cam.dist = 230; cam.pitch = 1.35; flyTo(0, 0, isHost ? 125 : 105, 0.7, 0.95, 4.2); banner('المدينة المصغّرة', 'استعدوا...'); later(3300, () => countdown(3)); drawBoard(); return; }
+    if (d.k === 'init') { if (S.seed === d.seed) return; S.t0 = d.t0; buildWorld(d.seed); stopAmb(); ambience('city'); cityLife(() => Math.max(0.15, 1.25 - cam.dist / 150)); cam.dist = 230; cam.pitch = 1.35; flyTo(0, 0, isHost ? 125 : 105, 0.7, 0.95, 4.2); banner('المدينة المصغّرة', 'استعدوا...'); later(3300, () => countdown(3)); drawBoard(); return; }
     if (!S.world) return;
     if (d.k === 'mission' || d.k === 'round') return onMission(d);
     if (d.k === 'spawn') { clearActors(); d.ents.forEach((e) => { const m = addEnt(e, true); m.visible = false; }); return; }
