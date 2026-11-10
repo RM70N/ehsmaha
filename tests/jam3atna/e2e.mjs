@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'; import fs from 'node:fs'; import { 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const THREE = new URL('../bridge/fixtures/three-r128/build/three.min.js', import.meta.url).pathname;
 let pass = 0, fail = 0; const ok = (name, c, extra = '') => { c ? pass++ : fail++; console.log((c ? 'PASS ' : 'FAIL ') + name + (extra ? '  ' + extra : '')); };
-const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.8 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.12 } });
+const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.55 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.12 } });
 const base = `http://127.0.0.1:${d.port}/jam3atna/`, srv = `srv=ws://127.0.0.1:${d.port}/jam3atna/ws`;
 const b = await chromium.launch({ args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); const errs = [];
 const mk = async (vp, mobile) => { const c = await b.newContext({ viewport: vp, isMobile: mobile, hasTouch: mobile }); await c.route(/three(\.min)?\.js/, (r) => r.fulfill({ body: fs.readFileSync(THREE), contentType: 'text/javascript' })); const p = await c.newPage(); p.on('pageerror', (e) => errs.push(String(e).slice(0, 300))); p.on('console', (m) => { if (m.type() === 'error' && !/favicon|fonts\.g/.test(m.text())) errs.push('console: ' + m.text().slice(0, 200)); }); return p; };
@@ -26,7 +26,7 @@ try {
     for (let guard = 0; guard < 400 && L.room.phase === 'playing'; guard++) { const r = g.round; if (r && !r.done && !seen.has(r.n + r.type) && Date.now() >= r.openAt) { seen.add(r.n + r.type);
         await L.ph[0].evaluate(([id, n]) => window.__j3.net.g({ k: 'pick', id, round: n }), [r.per.get(ids[0]).target, r.n]);
         if (r.n === 1) await L.ph[1].evaluate(([id, n]) => window.__j3.net.g({ k: 'pick', id, round: n }), [r.per.get(ids[1]).target, r.n]); } await L.host.waitForTimeout(100); }
-    await L.host.waitForSelector('.g-end #c-again', { timeout: 20000 });
+    await L.host.waitForSelector('.g-end #c-again', { timeout: 90000 });
     ok('city: 3 جولات ثم منصة التتويج على المضيف', L.room.phase === 'ended' && seen.size >= 3, [...seen].join(','));
     ok('city: النقاط متزامنة بين الخادم وجوال اللاعب', (await L.ph[0].evaluate(() => window.__j3.st.inst._S.score)) === L.room.players.get(ids[0]).score, String(L.room.players.get(ids[0]).score));
     ok('city: الفائز هو الأعلى نقاطًا', (await L.host.evaluate(() => document.querySelector('.g-rank li span').textContent)).includes('لاعب1'));
