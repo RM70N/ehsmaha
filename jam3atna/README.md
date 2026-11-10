@@ -63,3 +63,6 @@ node tests/jam3atna/e2e.mjs
 - المحرّك: `games/world/world-kit.js` (مواد، أرضيات، شخصية بشرية بمفاصل) و`world-builder.js` (جدران ملونة لكل غرفة، أبواب، أسقف، Instancing).
 - الهوية الفنية: `docs/ART-BIBLE.md` — لقطات من اللعبة الفعلية: `docs/screens/`.
 - فحص معماري آلي: `node tests/jam3atna/mapcheck.mjs <id>` (اتصال الغرف، وصول المفتش لكل غرض، لا تداخل).
+
+## المدينة المصغّرة — التصميم الجديد
+تقرير كامل: `docs/CITY-REPORT.md`. لقطات: `docs/screens/city/` (6 أحياء، صباح/غروب/ليل، الأحداث). زر «صباح/غروب/ليل» في الواجهة أو `?tod=sunset`.

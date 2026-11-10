@@ -7,7 +7,7 @@ const SHIRTS = [0x6b7f5a, 0x8a6a4a, 0x5a6a7a, 0x7a5a58, 0x9a8f78, 0x4a5a52, 0x7f
 const PANTS = [0x3a3f4a, 0x4a3f36, 0x2f3a3f, 0x5a5448, 0x3a3a3a];
 
 export function createCrowd(THREE, scene, o) {
-  const { world, CITY, blockAt, roadAt, lightState, DISTRICT_GRID, seed } = o;
+  const { world, CITY, blockAt, roadAt, lightState, DISTRICT_GRID, seed, quality } = o;
   const R = (() => { let a = (seed ^ 0x9e3779b9) >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; })();
   const pick = (a) => a[Math.floor(R() * a.length)];
   const agents = []; const HALFB = CITY.BLOCK / 2 - 0.5; const PER = 8 * HALFB;
@@ -24,11 +24,12 @@ export function createCrowd(THREE, scene, o) {
   const plaza = world.buildings.find((b) => b.kind === 'plaza');
   // مجموعة الاحتفال: عدد من المتنزهين ينجذبون للساحة
   agents.filter((a) => a.kind === 'walk').forEach((a, i) => { a.fest = i % 3 === 0; a.fx = (R() - 0.5) * 7; a.fz = (R() - 0.5) * 7; });
+  if (quality === 'low') { const keep = agents.filter((a, i) => i % 2 === 0 || a.kind === 'sit'); agents.length = 0; agents.push(...keep); }
   const N = agents.length; const fest = { on: 0, k: 0 }; let mkt = { on: 0, k: 0, d: 'shop' };
 
   // ---------------- الهندسة المشتركة (قطع بشرية مثبتة على نقطة المفصل)
   const G = (w, h, d, ox, oy, oz) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(ox, oy, oz); return g; };
-  const geos = { torso: G(0.5, 0.66, 0.3, 0, 1.12, 0), head: new THREE.SphereGeometry(0.22, 10, 8), hair: new THREE.SphereGeometry(0.235, 10, 7, 0, 6.283, 0, 1.75), leg: G(0.19, 0.78, 0.22, 0, -0.39, 0), arm: G(0.13, 0.62, 0.15, 0, -0.3, 0) };
+  const geos = { torso: G(0.5, 0.66, 0.3, 0, 1.12, 0), head: new THREE.SphereGeometry(0.22, quality === 'low' ? 7 : 10, quality === 'low' ? 5 : 8), hair: new THREE.SphereGeometry(0.235, quality === 'low' ? 7 : 10, quality === 'low' ? 4 : 7, 0, 6.283, 0, 1.75), leg: G(0.19, 0.78, 0.22, 0, -0.39, 0), arm: G(0.13, 0.62, 0.15, 0, -0.3, 0) };
   geos.head.translate(0, 1.72, 0.0); geos.hair.translate(0, 1.76, -0.02);
   const mat = new THREE.MeshStandardMaterial({ roughness: 0.9, metalness: 0 });
   const mesh = {}; const C = new THREE.Color();
