@@ -141,5 +141,5 @@ export function makeWorldKit(THREE, quality = 'medium') {
     const stepNow = Math.floor((r.phase + Math.PI / 2) / Math.PI) !== Math.floor((prev + Math.PI / 2) / Math.PI); return stepNow && w > 0.3;
   }
   function disposeObject(o) { o.traverse((n) => { if (n.geometry) n.geometry.dispose(); }); }
-  return { THREE, part, box, cyl, sph, tor, lathe, rbox, plane, mergeMulti, matFor, matList, makeEnv, floorTex, humanoid, animateHuman, disposeMats, disposeObject, getEnv: () => env };
+  return { quality, THREE, part, box, cyl, sph, tor, lathe, rbox, plane, mergeMulti, matFor, matList, makeEnv, floorTex, humanoid, animateHuman, disposeMats, disposeObject, getEnv: () => env };
 }

@@ -7,8 +7,8 @@ export function market(K) {
   const shade = (c, k) => (Math.round(((c >> 16) & 255) * k) << 16) | (Math.round(((c >> 8) & 255) * k) << 8) | Math.round((c & 255) * k);
   const hash = (a, b = 0) => { let h = (a * 374761393 + b * 668265263) | 0; h = (h ^ (h >> 13)) * 1274126177 | 0; return ((h ^ (h >> 16)) >>> 0) / 4294967296; };
   /** يرصّ منتجات متنوعة (علب/كراتين/زجاجات/أكياس) على رف: a0..a1 طول الرف (محور a)، التحويل لإحداثيات الواجهة بدالة put. */
-  const stock = (parts, put, a0, a1, y, depth, seed) => { let a = a0 + 0.06; let i = 0; while (a < a1 - 0.25) { const r = hash(seed, i++); const kind = Math.floor(r * 4); const c = PAL[Math.floor(hash(seed + 3, i) * PAL.length)]; const w = 0.2 + hash(seed + 9, i) * 0.12; const hh = 0.18 + hash(seed + 5, i) * 0.14;
-      const n = hash(seed + 1, i) < 0.25 ? 2 : 1;
+  const stock = (parts, put, a0, a1, y, depth, seed) => { let a = a0 + 0.06; let i = 0; while (a < a1 - 0.25) { const r = hash(seed, i++); const kind = Math.floor(r * 4); const c = PAL[Math.floor(hash(seed + 3, i) * PAL.length)]; const w = (0.2 + hash(seed + 9, i) * 0.12) * (K.quality === 'low' ? 1.9 : 1); const hh = 0.18 + hash(seed + 5, i) * 0.14;
+      const n = K.quality !== 'low' && hash(seed + 1, i) < 0.25 ? 2 : 1;
       for (let k = 0; k < n; k++) { const dd = -depth * 0.25 + k * depth * 0.5; if (kind === 0) parts.push(put(box, a + w / 2, y, dd, w, hh, depth * 0.42, c, 'gloss'), put(box, a + w / 2, y + hh * 0.5, dd, w + 0.005, hh * 0.22, depth * 0.43, 0xffffff, 'gloss'));
         else if (kind === 1) parts.push(put(cyl, a + w / 2, y, dd, Math.min(0.08, w / 2), hh * 0.95, 0, c, 'gloss', 8), put(cyl, a + w / 2, y + hh * 0.95, dd, Math.min(0.08, w / 2) * 0.96, 0.02, 0, 0xdddddd, 'metal', 8));
         else if (kind === 2) parts.push(put(cyl, a + w / 2, y, dd, 0.045, hh * 0.7, 0, shade(c, 0.9), 'glass', 7), put(cyl, a + w / 2, y + hh * 0.7, dd, 0.018, hh * 0.3, 0, c, 'gloss', 6));
