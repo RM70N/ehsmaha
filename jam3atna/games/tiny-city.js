@@ -3,6 +3,7 @@
 import { genCity, entState, lightState, roadAt, blockAt, COLORS, CITY, CITY_SIZE, buildingLabel } from '../shared/city-sim.js';
 import { createStage, addLights, kit, h, fmtTime, esc } from '../shared/three-kit.js';
 import { sfx, ambience, stopAmb } from '../shared/audio.js';
+import { createCityArt, DISTRICT_NAME } from './city/city-arch.js';
 
 const HALF = CITY_SIZE / 2;
 const ENT_NAME = { car: 'سيارة', person: 'شخص', prop: 'غرض', bus: 'باص', van: 'سيارة توصيل', service: 'سيارة خدمات', mailbox: 'صندوق بريد', bench: 'كرسي حديقة', hydrant: 'صنبور حريق', billboard: 'لوحة إعلانات', parkedbike: 'دراجة واقفة', kiosk: 'كشك' };
@@ -10,8 +11,9 @@ const ENT_NAME = { car: 'سيارة', person: 'شخص', prop: 'غرض', bus: 'ب
 export function mount(ctx) {
   const { THREE, el, net, isHost } = ctx; const K = kit(THREE);
   const stage = createStage(THREE, el, { fov: 42 }); const { scene, camera } = stage;
-  scene.background = new THREE.Color(0x0d0820); scene.fog = new THREE.Fog(0x0d0820, 170, 380);
-  const lights = addLights(THREE, stage, { amb: 0.62, int: 1.0, size: 80 });
+  stage.renderer.toneMapping = THREE.ACESFilmicToneMapping; stage.renderer.toneMappingExposure = 0.95; const art = createCityArt(THREE, stage.renderer, stage.level);
+  const lights = addLights(THREE, stage, { amb: 0.55, int: 1.0, size: 80 });
+  let todMode = (new URLSearchParams(location.search).get('tod')) || 'morning'; const applyTod = () => { const t = art.applyTod(todMode, scene, lights, stage.renderer); S_base.sun = t.sun[1]; S_base.hemi = t.hemi[2]; }; const S_base = { sun: 1, hemi: 0.62 };
   const S = { world: null, t0: 0, ents: new Map(), bld: new Map(), actors: new Map(), pauses: [], round: null, sel: null, score: 0, done: false, lights: [], seed: 0, final: false, fx: [], rainOn: false, changed: new Map() };
   const cam = { tx: 0, tz: 0, yaw: 0.7, pitch: 0.95, dist: 150, g: null, auto: isHost };
   let disposed = false; const timers = new Set(); const later = (ms, fn) => { const t = setTimeout(() => { timers.delete(t); if (!disposed) fn(); }, ms); timers.add(t); };
@@ -22,12 +24,14 @@ export function mount(ctx) {
     <div class="g-mission" id="c-mission" hidden></div><div class="g-spacer"></div>
     <div class="g-confirm" id="c-confirm" hidden><span id="c-sel"></span><button class="j3-btn j3-btn-main j3-btn-sm" id="c-yes">تأكيد</button><button class="j3-btn j3-btn-quiet" id="c-no">إلغاء</button></div>
     <div class="g-bottom"><button class="g-btn" id="c-reset" aria-label="إعادة تمركز الكاميرا"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>تمركز</button>
+      <button class="g-btn" id="c-t" aria-label="وقت اليوم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span id="c-tl"></span></button>
       <button class="g-btn" id="c-q" aria-label="جودة الرسومات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 18V9M10 18V5M16 18v-7M22 18v-4"/></svg><span id="c-ql"></span></button></div>`;
   const $ = (s) => hud.querySelector(s);
   const board = h('div', 'g-board'); const feed = h('div', 'g-feed'); const flash = h('div', 'g-flash'); el.append(feed, flash); if (isHost) el.appendChild(board);
   const QL = { low: 'خفيفة', medium: 'متوسطة', high: 'عالية' }; stage.onQuality = (l) => { $('#c-ql').textContent = QL[l]; };
   $('#c-q').onclick = () => { const o = ['low', 'medium', 'high']; stage.setQuality(o[(o.indexOf(stage.level) + 1) % 3], true); sfx.tap(); };
   $('#c-reset').onclick = () => { flyTo(0, 0, 120, 0.7, 0.95, 0.7); sfx.tap(); };
+  const TL = { morning: 'صباح', sunset: 'غروب', night: 'ليل' }; $('#c-tl').textContent = TL[todMode] || 'صباح'; $('#c-t').onclick = () => { const o = ['morning', 'sunset', 'night']; todMode = o[(o.indexOf(todMode) + 1) % 3]; $('#c-tl').textContent = TL[todMode]; applyTod(); sfx.tap(); };
   $('#c-no').onclick = () => select(null);
   $('#c-yes').onclick = () => { if (!S.sel || !S.round || S.done) return; net.g({ k: 'pick', id: S.sel.id, round: S.round.round }); sfx.tap(); select(null); };
   function banner(text, sub) { const b = h('div', 'g-banner', `<div>${esc(text)}${sub ? `<small>${esc(sub)}</small>` : ''}</div>`); el.appendChild(b); later(1900, () => b.remove()); }
@@ -82,23 +86,18 @@ export function mount(ctx) {
   }
   function buildWorld(seed) {
     const world = S.world = genCity(seed); S.seed = seed; const p = [];
-    p.push(K.box(CITY_SIZE + 30, 0.4, CITY_SIZE + 30, 0x140c28, 0, -0.35, 0), K.box(CITY_SIZE, 0.2, CITY_SIZE, 0x241b3d, 0, -0.1, 0));
-    for (let i = 0; i < CITY.N; i++) for (let j = 0; j < CITY.N; j++) p.push(K.rbox(CITY.BLOCK, 0.3, CITY.BLOCK, 0x443a70, blockAt(i), 0.02, blockAt(j), 0, 1.2));
-    for (let i = 0; i <= CITY.N; i++) for (let k = -HALF + 3; k < HALF - 2; k += 4) { if (Math.abs(((k + HALF) % (CITY.BLOCK + CITY.ROAD)) - CITY.ROAD / 2) < CITY.ROAD / 2 + 1) continue; p.push(K.box(0.18, 0.02, 1.8, 0x8f84c4, roadAt(i), 0.02, k), K.box(1.8, 0.02, 0.18, 0x8f84c4, k, 0.02, roadAt(i))); }
-    for (let i = 0; i <= CITY.N; i++) for (let j = 0; j <= CITY.N; j++) for (let s = -3; s <= 3; s++) { const o = CITY.ROAD / 2 + 0.9; p.push(K.box(0.5, 0.02, 1.3, 0xe7e2f7, roadAt(i) + s, 0.02, roadAt(j) - o), K.box(0.5, 0.02, 1.3, 0xe7e2f7, roadAt(i) + s, 0.02, roadAt(j) + o), K.box(1.3, 0.02, 0.5, 0xe7e2f7, roadAt(i) - o, 0.02, roadAt(j) + s), K.box(1.3, 0.02, 0.5, 0xe7e2f7, roadAt(i) + o, 0.02, roadAt(j) + s)); }
-    // أشجار وأعمدة إنارة على الأرصفة
-    for (let i = 0; i < CITY.N; i++) for (let j = 0; j < CITY.N; j++) for (const [sx, sz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) { const x = blockAt(i) + sx * (CITY.BLOCK / 2 - 0.7), z = blockAt(j) + sz * (CITY.BLOCK / 2 - 0.7); if ((i + j + sx) % 2) p.push(K.cyl(0.12, 0.16, 1.2, 0x6b4a2f, x, 0.75, z, 6), K.sph(0.8, 0x2fae82, x, 1.9, z, 1, 1.15, 1)); else p.push(K.cyl(0.07, 0.09, 3.4, 0x6b6490, x, 1.85, z, 6), K.box(0.7, 0.08, 0.14, 0x6b6490, x - sx * 0.3, 3.5, z), K.sph(0.16, 0xffe9a8, x - sx * 0.6, 3.42, z)); }
+    scene.add(art.groundParts({ CITY, roadAt, blockAt, CITY_SIZE })); applyTod();
     // سكة القطار المرتفعة (يمر عليها القطار في حدث «مرور قطار»)
-    const tz = roadAt(2) + 2.6; p.push(K.box(CITY_SIZE + 24, 0.4, 2.2, 0x3a3358, 0, 7.5, tz)); for (let x = -HALF; x <= HALF; x += PITCH_) p.push(K.cyl(0.4, 0.5, 7.4, 0x3a3358, x + 0.2, 3.7, tz, 8));
+    const tz = roadAt(2) + 2.6; p.push(K.box(CITY_SIZE + 24, 0.4, 2.2, 0x8a8f94, 0, 7.5, tz)); for (let x = -HALF; x <= HALF; x += PITCH_) p.push(K.cyl(0.4, 0.5, 7.4, 0x8a8f94, x + 0.2, 3.7, tz, 8));
     const base = K.mesh(p, { cast: false }); scene.add(base);
-    for (const b of world.buildings) { const m = buildingMesh(b); m.userData.pick = { id: b.id, kind: 'b', label: buildingLabel(b), h: Math.max(b.h, 1.5) + 2 }; scene.add(m); S.bld.set(b.id, m); }
+    for (const b of world.buildings) { const m = art.buildingMesh(b); m.userData.pick = { id: b.id, kind: 'b', label: buildingLabel(b), h: Math.max(b.h, 1.5) + 2 }; scene.add(m); S.bld.set(b.id, m); }
     for (const e of world.ents) addEnt(e);
     // لمبات الإشارات: كرتان لكل تقاطع (محور شمال-جنوب، محور شرق-غرب) بثلاث مواد مشتركة
     const mats = { g: new THREE.MeshBasicMaterial({ color: 0x34d399 }), r: new THREE.MeshBasicMaterial({ color: 0xef4444 }), y: new THREE.MeshBasicMaterial({ color: 0xf5c451 }) }; S.lmat = mats; const bulb = new THREE.SphereGeometry(0.34, 8, 6); const poles = [];
-    for (let i = 0; i <= CITY.N; i++) for (let j = 0; j <= CITY.N; j++) { const o = CITY.ROAD / 2 + 0.5; const a = new THREE.Mesh(bulb, mats.r), b2 = new THREE.Mesh(bulb, mats.r); a.position.set(roadAt(i) + o, 3.6, roadAt(j) - o); b2.position.set(roadAt(i) - o, 3.6, roadAt(j) - o - 0.01); b2.position.z = roadAt(j) + o; scene.add(a, b2); S.lights.push({ i, j, ns: a, ew: b2 }); poles.push(K.cyl(0.08, 0.1, 3.4, 0x2b2540, a.position.x, 1.7, a.position.z, 6), K.cyl(0.08, 0.1, 3.4, 0x2b2540, b2.position.x, 1.7, b2.position.z, 6), K.box(0.5, 0.9, 0.5, 0x17131f, a.position.x, 3.6, a.position.z), K.box(0.5, 0.9, 0.5, 0x17131f, b2.position.x, 3.6, b2.position.z)); }
+    for (let i = 0; i <= CITY.N; i++) for (let j = 0; j <= CITY.N; j++) { const o = CITY.ROAD / 2 + 0.5; const a = new THREE.Mesh(bulb, mats.r), b2 = new THREE.Mesh(bulb, mats.r); a.position.set(roadAt(i) + o, 3.6, roadAt(j) - o); b2.position.set(roadAt(i) - o, 3.6, roadAt(j) - o - 0.01); b2.position.z = roadAt(j) + o; scene.add(a, b2); S.lights.push({ i, j, ns: a, ew: b2 }); poles.push(K.cyl(0.08, 0.1, 3.4, 0x5a6068, a.position.x, 1.7, a.position.z, 6), K.cyl(0.08, 0.1, 3.4, 0x5a6068, b2.position.x, 1.7, b2.position.z, 6), K.box(0.5, 0.9, 0.5, 0x2a2f36, a.position.x, 3.6, a.position.z), K.box(0.5, 0.9, 0.5, 0x2a2f36, b2.position.x, 3.6, b2.position.z)); }
     scene.add(K.mesh(poles, { cast: false }));
     // القطار + المطر + رقعة الظلام (مخفية حتى يقع الحدث)
-    const tr = []; for (let c = 0; c < 4; c++) tr.push(K.rbox(7.4, 2.6, 2.0, c ? 0x8b5cf6 : 0xf5c451, -c * 7.9, 9.1, tz, 0, 0.5), K.box(6.2, 0.8, 2.06, 0x9fd3ff, -c * 7.9, 9.5, tz)); S.train = K.mesh(tr); S.train.visible = false; scene.add(S.train);
+    const tr = []; for (let c = 0; c < 4; c++) tr.push(K.rbox(7.4, 2.6, 2.0, c ? 0x294b70 : 0xe8873a, -c * 7.9, 9.1, tz, 0, 0.5), K.box(6.2, 0.8, 2.06, 0x9fd3ff, -c * 7.9, 9.5, tz)); S.train = K.mesh(tr); S.train.visible = false; scene.add(S.train);
     const rg = new THREE.BufferGeometry(); const N = 700; const rp = new Float32Array(N * 3); for (let i = 0; i < N; i++) { rp[i * 3] = (Math.random() - 0.5) * CITY_SIZE; rp[i * 3 + 1] = Math.random() * 60; rp[i * 3 + 2] = (Math.random() - 0.5) * CITY_SIZE; } rg.setAttribute('position', new THREE.BufferAttribute(rp, 3)); S.rain = new THREE.Points(rg, new THREE.PointsMaterial({ color: 0xbfd9ff, size: 0.5, transparent: true, opacity: 0.55 })); S.rain.visible = false; scene.add(S.rain);
     S.dark = new THREE.Mesh(new THREE.BoxGeometry(HALF, 26, HALF), new THREE.MeshBasicMaterial({ color: 0x05030a, transparent: true, opacity: 0, depthWrite: false })); S.dark.visible = false; S.dark.renderOrder = 3; scene.add(S.dark);
     // حلقة التحديد + منارة الكشف
@@ -171,7 +170,7 @@ export function mount(ctx) {
     if (ev.type === 'rain') { S.rain.visible = true; lights.sun.intensity = 0.55; lights.hemi.intensity = 0.48; }
     if (ev.type === 'train') S.train.visible = true;
     if (ev.type === 'jam') S.pauses.push({ t0: ev.t0, dur: ev.dur / 1000, ids: new Set(ev.ids) }); }
-  function endEvent(ev) { if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = 1.0; lights.hemi.intensity = 0.62; } if (ev.type === 'train') S.train.visible = false; }
+  function endEvent(ev) { if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = S_base.sun; lights.hemi.intensity = S_base.hemi; } if (ev.type === 'train') S.train.visible = false; }
 
   // ------------------------------------------------------------ رسائل الخادم
   function clearActors() { S.actors.forEach((m) => { scene.remove(m); m.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }); S.actors.clear(); }
@@ -233,7 +232,7 @@ export function mount(ctx) {
   stage.start();
   return {
     onMsg, onRoom: drawBoard,
-    unmount() { disposed = true; timers.forEach(clearTimeout); stopAmb(); stage.dispose(); hud.remove(); board.remove(); feed.remove(); flash.remove(); el.querySelectorAll('.g-end,.g-banner,.g-count').forEach((n) => n.remove()); },
+    unmount() { disposed = true; timers.forEach(clearTimeout); stopAmb(); stage.dispose(); art.dispose(); hud.remove(); board.remove(); feed.remove(); flash.remove(); el.querySelectorAll('.g-end,.g-banner,.g-count').forEach((n) => n.remove()); },
     debug: () => Object.assign(stage.info(), { ents: S.ents.size, actors: S.actors.size, round: S.round && S.round.round }),
     _S: S, _cam: cam, _stage: stage,
   };
