@@ -31,6 +31,7 @@ on:
       - ehsemha-responsive-fixes.css
       - windows-app/**
       - windows-launch-campaign/**
+      - jam3atna/**
       - revival-system/**
       - dhmx-welcome/**
       - som3h-10k/**
@@ -80,6 +81,7 @@ jobs:
           cp -r subathon _site/subathon
           cp -r windows-app _site/windows-app
           cp -r windows-launch-campaign _site/windows-launch-campaign
+          cp -r jam3atna _site/jam3atna
           # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
           mkdir -p _site/about-experience
           cp -r about-experience/previews-sq about-experience/posters _site/about-experience/
