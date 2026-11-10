@@ -5,7 +5,7 @@ import { levelY } from '../../shared/prop-sim.js';
 import { common } from './assets/common.js';
 
 const ceil = (map) => (map.theme && map.theme.ceil) || 0xf5f7f8;
-const WALLMOUNT = new Set(['window', 'winCurtain', 'clock', 'painting', 'sign', 'doorNum', 'tv', 'poster2', 'mirror', 'menu', 'board', 'vent', 'shelfw', 'pictureFrame']);
+const WALLMOUNT = new Set(['window', 'winCurtain', 'clock', 'painting', 'sign', 'doorNum', 'tv', 'poster2', 'mirror', 'menu', 'board', 'vent', 'shelfw', 'pictureFrame', 'panel', 'sconce']);
 
 export async function loadAssets(K, mapId) {
   let mod = null; try { mod = await import(`./assets/${mapId}.js`); } catch (e) { mod = null; }
