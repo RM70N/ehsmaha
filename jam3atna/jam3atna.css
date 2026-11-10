@@ -236,9 +236,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .g-flash{position:absolute;inset:0;pointer-events:none;background:#fff;opacity:0}
 .g-flash.on{animation:g-fl .5s ease-out}
 @keyframes g-fl{from{opacity:.6}to{opacity:0}}
-.g-stick{position:absolute;inset-inline-start:max(18px,env(safe-area-inset-left));bottom:calc(26px + var(--safe-b));width:132px;height:132px;border-radius:50%;background:rgba(12,7,26,.5);border:2px solid var(--line2);touch-action:none}
+.g-stick{position:absolute;left:max(18px,env(safe-area-inset-left));bottom:calc(26px + var(--safe-b));width:132px;height:132px;border-radius:50%;background:rgba(12,7,26,.5);border:2px solid var(--line2);touch-action:none}
 .g-stick i{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px;border-radius:50%;background:var(--acc);border:2px solid #fff;pointer-events:none}
-.g-actions{position:absolute;inset-inline-end:max(14px,env(safe-area-inset-right));bottom:calc(22px + var(--safe-b));display:grid;grid-template-columns:auto auto;gap:10px;align-items:end;justify-items:end}
+.g-actions{position:absolute;right:max(14px,env(safe-area-inset-right));direction:ltr;bottom:calc(22px + var(--safe-b));display:grid;grid-template-columns:auto auto;gap:10px;align-items:end;justify-items:end}
 .g-wait{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;background:rgba(5,3,10,.92)}
 .g-wait h3{font-size:clamp(24px,6vw,40px);margin:0 0 8px;font-weight:900}.g-wait p{color:var(--muted);font-size:17px;margin:0;line-height:1.8}
 .g-end{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:12px;padding:20px 14px calc(22px + var(--safe-b));pointer-events:none;background:linear-gradient(180deg,transparent 35%,rgba(5,3,10,.92) 78%)}
@@ -253,6 +253,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 .g-quality{position:absolute;inset-inline-end:12px;bottom:calc(12px + var(--safe-b))}
 .g-rotate{display:none;position:absolute;inset:0;z-index:5;place-items:center;text-align:center;background:rgba(5,3,10,.96);padding:24px;font-weight:800;font-size:19px;line-height:1.9}
 
+@media (max-height:480px){.g-mission{font-size:14px;padding:7px 12px;line-height:1.5;max-width:56%}.g-chip{min-height:36px;font-size:14px}.g-stick{width:112px;height:112px;bottom:calc(14px + var(--safe-b))}.g-btn{min-width:56px;min-height:56px}.g-btn.is-main{min-width:72px;min-height:72px}.g-rank{max-height:30dvh}}
 /* ---------- تجاوب ---------- */
 @media (max-width:860px){
   .j3-hero{grid-template-columns:1fr;text-align:center}.j3-hero-copy{display:grid;justify-items:center}.j3-cta{justify-content:center}
