@@ -78,12 +78,12 @@ export class Jam3atnaServer {
     return {
       t: 'room', code: room.code, game: room.game, phase: room.phase, hostId: room.hostId, settings: room.settings,
       min: this._min(room.game), max: g.max,
-      players: [...room.players.values()].filter((p) => !p.isHost || p.plays).map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, ready: p.ready, on: !!p.ws, score: p.score })),
+      players: [...room.players.values()].filter((p) => !p.isHost || p.plays).map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, ready: true, on: !!p.ws, score: p.score })),
       hostOn: !!(room.players.get(room.hostId) || {}).ws,
     };
   }
   _min(game) { return (this.cfg.min && this.cfg.min[game]) || GAMES[game].min; }
-  pushRoom(room) { this.broadcast(room, this._roomView(room)); }
+  pushRoom(room) { this.broadcast(room, this._roomView(room)); this._checkFull(room); }
 
   _failJoin(ws, code) {
     const a = this.joinFails.get(ws.j.ip) || []; a.push(Date.now()); this.joinFails.set(ws.j.ip, a.filter((t) => Date.now() - t < 60000));
@@ -157,16 +157,7 @@ export class Jam3atnaServer {
         const t = room.players.get(String(m.id)); if (t && !t.isHost) this._removePlayer(room, t, 'kicked');
         break;
       }
-      case 'start': {
-        if (!isHost || room.phase !== 'lobby') break; // الضغط مرتين: الثانية تُتجاهل لأن الحالة تغيّرت
-        const active = [...room.players.values()].filter((p) => !p.isHost || p.plays);
-        if (active.length < this._min(room.game)) { this.sendTo(me, { t: 'error', code: 'need_players', min: this._min(room.game) }); break; }
-        room.phase = 'playing';
-        for (const p of active) { p.score = 0; p.ready = false; }
-        room.inst = new GAMES[room.game].Game(this, room, Object.assign({}, this.cfg[room.game] || {}));
-        this.pushRoom(room); room.inst.start();
-        break;
-      }
+      case 'start': { if (!isHost || room.phase !== 'lobby') break; this._startRoom(room, me); break; }
       case 'cancel': if (isHost) this._closeRoom(room, 'cancelled'); break;
       case 'again': {
         if (!isHost || room.phase !== 'ended') break;
@@ -182,7 +173,7 @@ export class Jam3atnaServer {
   }
 
   _mkPlayer(ws, name, avatar) {
-    return { id: crypto.randomBytes(5).toString('hex'), token: crypto.randomBytes(18).toString('base64url'), name, avatar, ready: false, score: 0, ws, isHost: false, dropTimer: null, joinedAt: Date.now() };
+    return { id: crypto.randomBytes(5).toString('hex'), token: crypto.randomBytes(18).toString('base64url'), name, avatar, ready: true, score: 0, ws, isHost: false, dropTimer: null, joinedAt: Date.now() };
   }
 
   _attach(ws, room, p, rejoin) {
@@ -192,7 +183,7 @@ export class Jam3atnaServer {
     clearTimeout(p.dropTimer); p.dropTimer = null; p.ws = ws; ws.j.room = room.code; ws.j.pid = p.id;
     if (p.id === room.hostId) { clearTimeout(room.hostTimer); room.hostTimer = null; }
     this._send(ws, { t: 'joined', code: room.code, you: { id: p.id, token: p.token, host: p.id === room.hostId, plays: !!p.plays, name: p.name }, now: Date.now(), rejoin });
-    this.pushRoom(room);
+    this.pushRoom(room); if (room.autoEnds) this._send(ws, { t: 'countdown', ends: room.autoEnds, now: Date.now() });
     if (rejoin && room.inst && room.phase !== 'lobby') room.inst.onRejoin(p);
   }
 
@@ -220,7 +211,27 @@ export class Jam3atnaServer {
     this.pushRoom(room);
   }
 
+  /** بدء المباراة (يدويًا من المضيف أو تلقائيًا عند اكتمال العدد). */
+  _startRoom(room, me) {
+    if (room.phase !== 'lobby') return; this._clearAuto(room);
+    const active = [...room.players.values()].filter((p) => !p.isHost || p.plays);
+    if (active.length < this._min(room.game)) { if (me) this.sendTo(me, { t: 'error', code: 'need_players', min: this._min(room.game) }); return; }
+    room.phase = 'playing';
+    for (const p of active) { p.score = 0; p.ready = false; }
+    room.inst = new GAMES[room.game].Game(this, room, Object.assign({}, this.cfg[room.game] || {}));
+    this.pushRoom(room); room.inst.start();
+  }
+  _clearAutoSilent(room) { if (room.autoTimer) { clearTimeout(room.autoTimer); room.autoTimer = null; } }
+  _clearAuto(room) { if (room.autoTimer) { clearTimeout(room.autoTimer); room.autoTimer = null; room.autoEnds = null; this.broadcast(room, { t: 'countdown', ends: null }); } }
+  /** عند اكتمال العدد بالكامل: عدّاد 5 ثوانٍ ثم يبدأ الراوند تلقائيًا؛ ينقص العدد = يلغى العدّاد. */
+  _checkFull(room) {
+    if (room.phase !== 'lobby') return this._clearAuto(room);
+    const n = [...room.players.values()].filter((p) => !p.isHost || p.plays).length; const full = n >= GAMES[room.game].max && n >= this._min(room.game);
+    if (full && !room.autoTimer) { const ms = this.cfg.autoStartMs == null ? 5000 : this.cfg.autoStartMs; room.autoEnds = Date.now() + ms; this.broadcast(room, { t: 'countdown', ends: room.autoEnds, now: Date.now() }); room.autoTimer = setTimeout(() => { room.autoTimer = null; room.autoEnds = null; this._startRoom(room, null); }, ms); }
+    else if (!full && room.autoTimer) this._clearAuto(room);
+  }
   _closeRoom(room, why) {
+    this._clearAutoSilent(room);
     if (room.phase === 'closed') return;
     room.phase = 'closed'; clearTimeout(room.hostTimer);
     if (room.inst) { try { room.inst.stop(); } catch (e) {} room.inst = null; }

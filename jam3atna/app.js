@@ -189,10 +189,8 @@ function viewLobby() {
     const me = room.players.find((p) => p.id === st.me.id) || { name: '', ready: false, avatar: '0' };
     main.innerHTML = `<div class="j3-join">
       <div class="j3-panel j3-okbox"><span class="tick">${IC.check}</span><h1 class="j3-h2" style="margin:0">دخلت الغرفة يا ${esc(me.name)}</h1><p class="j3-sub" style="margin:0">${esc(g.name)} · غرفة <b dir="ltr">${esc(room.code)}</b></p>
-        <button type="button" class="j3-btn j3-btn-main j3-ready" id="j3-ready" aria-pressed="${me.ready}">${me.ready ? 'جاهز — ننتظر المضيف' : 'أنا جاهز'}</button></div>
-      <div class="j3-panel"><div class="j3-count"><b>${n}</b><span>من ${room.max} لاعب${room.hostOn ? '' : ' · المضيف انقطع، ننتظره'}</span></div><ul class="j3-players">${playersHtml(room, false)}</ul></div>
+        <p class="j3-sub" style="margin:6px 0 0;font-weight:800">ننتظر المضيف يبدأ الجولة...</p></div>      <div class="j3-panel"><div class="j3-count"><b>${n}</b><span>من ${room.max} لاعب${room.hostOn ? '' : ' · المضيف انقطع، ننتظره'}</span></div><ul class="j3-players">${playersHtml(room, false)}</ul></div>
       <button type="button" class="j3-btn j3-btn-quiet" id="j3-leave">اطلع من الغرفة</button></div>`;
-    $('#j3-ready').onclick = () => { sfx.ready(); net.send({ t: 'ready', v: !me.ready }); };
     $('#j3-leave').onclick = () => { net.send({ t: 'leave' }); };
   }
 }
@@ -220,11 +218,20 @@ async function mountGame() {
   }
   st.loading = false;
 }
-function unmountGame() { if (st.inst) { try { st.inst.unmount(); } catch (e) { console.error(e); } st.inst = null; } st.gq = []; gameEl.hidden = true; gameEl.innerHTML = ''; }
+function unmountGame() { stopCountdown(); if (st.inst) { try { st.inst.unmount(); } catch (e) { console.error(e); } st.inst = null; } st.gq = []; gameEl.hidden = true; gameEl.innerHTML = ''; }
 function leaveRoom() { net.send({ t: st.me && st.me.host ? 'cancel' : 'leave' }); }
 function resetToHub(msg) { unmountGame(); st.room = null; st.me = null; saveSession(null); net.session = null; if (msg) toast(msg, 4200); if (location.hash && location.hash !== '#/') history.replaceState(null, '', location.pathname + location.search.replace(/[?&]r=[^&]*/, '')); viewHub(); }
 
 // ------------------------------------------------------------------ رسائل الخادم
+// عدّاد اكتمال العدد: رقم ضخم بمنتصف الشاشة ثم يبدأ الراوند تلقائيًا
+let cdTimer = null, cdEl = null, cdLast = -1;
+function stopCountdown() { clearInterval(cdTimer); cdTimer = null; cdLast = -1; if (cdEl) { cdEl.remove(); cdEl = null; } }
+net.on('countdown', (m) => {
+  stopCountdown(); if (!m.ends) return;
+  cdEl = document.createElement('div'); cdEl.className = 'j3-cd'; cdEl.setAttribute('role', 'status'); cdEl.setAttribute('aria-live', 'assertive'); cdEl.innerHTML = '<small>اكتمل العدد — تبدأ الجولة بعد</small><b></b>'; document.body.appendChild(cdEl);
+  const tick = () => { const left = Math.max(0, Math.ceil((m.ends - net.now()) / 1000)); if (left !== cdLast) { cdLast = left; if (cdEl) { cdEl.querySelector('b').textContent = left; cdEl.classList.remove('is-pop'); void cdEl.offsetWidth; cdEl.classList.add('is-pop'); } if (left > 0) sfx.count(); else sfx.go(); } if (left <= 0) setTimeout(stopCountdown, 600); };
+  tick(); cdTimer = setInterval(tick, 150);
+});
 net.on('joined', (m) => { st.me = m.you; if (!m.rejoin) sfx.join(); });
 net.on('you', (m) => { if (!st.me) return; const was = !!st.me.plays; st.me.plays = !!m.plays; if (m.name) st.me.name = m.name; if (was && !st.me.plays && st.inst) { unmountGame(); mountGame(); } else if (st.room && st.room.phase === 'lobby') viewLobby(); });
 net.on('room', (m) => {

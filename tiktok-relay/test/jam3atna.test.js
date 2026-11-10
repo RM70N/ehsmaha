@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import fs from 'node:fs';
 import { WebSocket } from 'ws';
-import { Jam3atnaServer } from '../src/jam3atna/server.js';
+import { Jam3atnaServer, GAMES } from '../src/jam3atna/server.js';
 import { genCity, uniqueFindables, lightState, CITY, roadAt } from '../src/jam3atna/shared/city-sim.js';
 import { MAPS, MAP_IDS, genLayout, KINDS, PROP } from '../src/jam3atna/shared/prop-sim.js';
 import { CityGame } from '../src/jam3atna/city-game.js';
@@ -334,4 +334,20 @@ test('المضيف يلعب: يدخل تلقائيًا كلاعب، يبدأ م�
     host.send({ t: 'hostquit' }); await host.wait((m) => m.t === 'you' && m.plays === false); await sleep(80);
     assert.equal(room.phase, 'playing'); assert.equal(room.players.get(room.hostId).plays, false); assert.ok(host.log.some((m) => m.t === 'g' && m.d.k === 'round'), 'يتحول لشاشة مشاهدة');
   } finally { await b.close(); }
+});
+
+test('اكتمال العدد: عدّاد 5 ثوانٍ يبدأ الراوند تلقائيًا، ونقص العدد يلغيه، والمضيف يبدأ يدويًا بدون زر جاهز', async () => {
+  const oldMax = GAMES.city.max; GAMES.city.max = 3; const b = await boot({ min: { city: 2 }, autoStartMs: 400, city: { introMs: 50, revealMs: 50, timeScale: 0.2 } });
+  try {
+    const host = await b.conn(); host.send({ t: 'create', game: 'city' }); const jd = await host.wait((m) => m.t === 'joined'); const room = b.j.rooms.get(jd.code);
+    const mk = async (n) => { const c = await b.conn(); c.send({ t: 'join', code: jd.code, name: n }); await c.wait((m) => m.t === 'joined'); return c; };
+    const a = await mk('أحمد'); const bb = await mk('بدر');
+    assert.equal(host.last('room').players.every((p) => p.ready), true, 'كل اللاعبين جاهزون تلقائيًا بدون زر');
+    const c3 = await mk('جاسم'); const cd = await host.wait((m) => m.t === 'countdown' && m.ends); assert.ok(cd.ends - cd.now <= 400 + 50);
+    c3.send({ t: 'leave' }); const off = await host.wait((m) => m.t === 'countdown' && m.ends === null); assert.equal(room.phase, 'lobby'); await sleep(500); assert.equal(room.phase, 'lobby', 'لا يبدأ بعد إلغاء العدّاد');
+    await mk('جاسم2'); await host.wait((m) => m.t === 'countdown' && m.ends && m.ends > cd.ends); await sleep(700); assert.equal(room.phase, 'playing', 'بدأ تلقائيًا عند اكتمال العدد');
+  } finally { GAMES.city.max = oldMax; await b.close(); }
+  // بدء يدوي بدون اكتمال العدد ولا ضغط «جاهز»
+  const b2 = await boot({ min: { city: 2 } });
+  try { const { host, r } = await b2.room('city', 2); host.send({ t: 'start' }); await sleep(100); assert.equal(r.phase, 'playing'); } finally { await b2.close(); }
 });
