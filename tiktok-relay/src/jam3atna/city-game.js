@@ -80,15 +80,18 @@ export class CityGame {
   _slot(target, text) { return { target, text, ok: false, wrong: 0, pts: 0, locked: false, at: 0 }; }
 
   _ambient(r) {
-    const kinds = ['blackout', 'rain', 'train', 'jam'];
+    const kinds = ['blackout', 'rain', 'train', 'jam', 'rush', 'convoy', 'festival', 'market', 'closure'];
     const type = pick(kinds); const at = Math.round(2000 + crypto.randomInt(6000));
     const ev = { type, at: r.startAt + at, dur: 9000 };
     if (type === 'blackout') { ev.qx = crypto.randomInt(2); ev.qz = crypto.randomInt(2); }
     if (type === 'rain') ev.dur = 16000;
-    if (type === 'jam') {
+    if (type === 'convoy') { ev.dur = 10000; ev.road = crypto.randomInt(CITY.N + 1); ev.axis = crypto.randomInt(2); }
+    if (type === 'festival' || type === 'market') ev.dur = 14000;
+    if (type === 'rush') ev.dur = 12000;
+    if (type === 'jam' || type === 'closure' || type === 'rush') { const wd = type === 'rush' ? 1 : 0;
       const i = 1 + crypto.randomInt(CITY.N - 1), j = 1 + crypto.randomInt(CITY.N - 1);
       ev.i = i; ev.j = j; ev.dur = CITY.CYCLE * 1000; // مدة = دورة إشارة كاملة حتى تبقى السيارات متوافقة مع الإشارات بعدها
-      ev.ids = this.world.ents.filter((e) => e.t === 'car' && e.loop && i >= e.loop[0] && i <= e.loop[2] && j >= e.loop[1] && j <= e.loop[3]).map((e) => e.id);
+      ev.ids = this.world.ents.filter((e) => e.t === 'car' && e.loop && i + wd >= e.loop[0] && i - wd <= e.loop[2] && j + wd >= e.loop[1] && j - wd <= e.loop[3]).map((e) => e.id);
       ev.t0 = this.simT(ev.at);
     }
     return ev;

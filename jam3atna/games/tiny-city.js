@@ -3,7 +3,9 @@
 import { genCity, entState, lightState, roadAt, blockAt, COLORS, CITY, CITY_SIZE, buildingLabel } from '../shared/city-sim.js';
 import { createStage, addLights, kit, h, fmtTime, esc } from '../shared/three-kit.js';
 import { sfx, ambience, stopAmb } from '../shared/audio.js';
-import { createCityArt, DISTRICT_NAME } from './city/city-arch.js';
+import { createCityArt, DISTRICT_NAME, DISTRICT_GRID } from './city/city-arch.js';
+import { createCrowd } from './city/crowd.js';
+import { createEventFx } from './city/events-fx.js';
 
 const HALF = CITY_SIZE / 2;
 const ENT_NAME = { car: 'سيارة', person: 'شخص', prop: 'غرض', bus: 'باص', van: 'سيارة توصيل', service: 'سيارة خدمات', mailbox: 'صندوق بريد', bench: 'كرسي حديقة', hydrant: 'صنبور حريق', billboard: 'لوحة إعلانات', parkedbike: 'دراجة واقفة', kiosk: 'كشك' };
@@ -42,12 +44,13 @@ export function mount(ctx) {
   // ------------------------------------------------------------ بناء المدينة
   function carMesh(e) {
     const c = COLORS[e.color].hex, dark = 0x17131f, glass = 0x9fd3ff; const p = [];
-    const wheels = (zs, w) => zs.forEach((z) => [-1, 1].forEach((sx) => p.push(K.cyl(0.36, 0.36, 0.26, dark, sx * w, 0.36, z, 10, 0, Math.PI / 2))));
+    const Wl = []; const wheels = (zs, w) => zs.forEach((z) => Wl.push([z, w]));
     if (e.sub === 'bus') { p.push(K.rbox(2.1, 2.0, 6.4, c, 0, 1.45, 0, 0, 0.3), K.box(2.14, 0.7, 5.6, glass, 0, 1.75, 0), K.box(1.7, 0.5, 0.1, glass, 0, 1.7, 3.2)); wheels([-2.1, 2.1], 1.0); }
     else if (e.sub === 'van') { p.push(K.rbox(1.9, 1.7, 4.0, c, 0, 1.25, -0.2, 0, 0.25), K.rbox(1.8, 1.0, 1.2, c, 0, 0.9, 2.2, 0, 0.2), K.box(1.6, 0.55, 0.1, glass, 0, 1.55, 1.82), K.box(1.2, 0.5, 0.06, 0xffffff, 0.96, 1.4, -0.4, Math.PI / 2)); wheels([-1.3, 1.9], 0.9); }
     else if (e.sub === 'service') { p.push(K.rbox(1.9, 1.0, 4.2, c, 0, 0.95, 0, 0, 0.25), K.rbox(1.7, 0.8, 1.6, c, 0, 1.7, 0.6, 0, 0.2), K.box(1.5, 0.5, 0.1, glass, 0, 1.75, 1.42), K.box(1.0, 0.18, 0.3, 0xf59e0b, 0, 2.2, 0.6), K.box(1.6, 0.5, 1.6, 0x57534e, 0, 1.5, -1.2)); wheels([-1.4, 1.4], 0.9); }
     else { p.push(K.rbox(1.8, 0.75, 4.0, c, 0, 0.8, 0, 0, 0.3), K.rbox(1.6, 0.7, 2.0, c, 0, 1.45, -0.15, 0, 0.3), K.box(1.45, 0.48, 0.08, glass, 0, 1.5, 0.87), K.box(1.45, 0.48, 0.08, glass, 0, 1.5, -1.17), K.box(1.64, 0.4, 1.5, glass, 0, 1.5, -0.15)); wheels([-1.25, 1.25], 0.86); p.push(K.box(0.4, 0.16, 0.06, 0xfff3b0, -0.55, 0.85, 2.01), K.box(0.4, 0.16, 0.06, 0xfff3b0, 0.55, 0.85, 2.01), K.box(0.4, 0.16, 0.06, 0xef4444, -0.55, 0.85, -2.01), K.box(0.4, 0.16, 0.06, 0xef4444, 0.55, 0.85, -2.01)); }
-    return K.mesh(p);
+    const body = K.mesh(p); body.userData.axles = Wl.map(([z, w]) => { const g = new THREE.Group(); g.position.set(0, 0.36, z); const inner = K.mesh([K.cyl(0.36, 0.36, 0.26, dark, -w, 0, 0, 12, 0, Math.PI / 2), K.cyl(0.36, 0.36, 0.26, dark, w, 0, 0, 12, 0, Math.PI / 2), K.box(0.05, 0.5, 0.08, 0xcfd3d6, -w - 0.14, 0, 0), K.box(0.05, 0.5, 0.08, 0xcfd3d6, w + 0.14, 0, 0), K.box(0.05, 0.08, 0.5, 0xcfd3d6, -w - 0.14, 0, 0), K.box(0.05, 0.08, 0.5, 0xcfd3d6, w + 0.14, 0, 0)]); g.add(inner); body.add(g); return { g, inner, z }; });
+    return body;
   }
   function personMesh(e) {
     const c = COLORS[e.color].hex; const y = e.sit ? -0.28 : 0; const p = [K.cyl(0.26, 0.3, 0.7, c, 0, 0.95 + y, 0, 10), K.sph(0.27, 0xf6c9a0, 0, 1.55 + y, 0), K.sph(0.3, c, 0, 0.62 + y, 0, 1, 0.5, 1)];
@@ -92,6 +95,8 @@ export function mount(ctx) {
     const base = K.mesh(p, { cast: false }); scene.add(base);
     for (const b of world.buildings) { const m = art.buildingMesh(b); m.userData.pick = { id: b.id, kind: 'b', label: buildingLabel(b), h: Math.max(b.h, 1.5) + 2 }; scene.add(m); S.bld.set(b.id, m); }
     for (const e of world.ents) addEnt(e);
+    S.ambient = art.createAmbient(world, scene);
+    S.crowd = createCrowd(THREE, scene, { world, CITY, blockAt, roadAt, lightState, DISTRICT_GRID, seed }); S.fx2 = createEventFx(THREE, scene, art, { world, CITY, roadAt, blockAt, CITY_SIZE, DISTRICT_GRID, crowd: S.crowd });
     // لمبات الإشارات: كرتان لكل تقاطع (محور شمال-جنوب، محور شرق-غرب) بثلاث مواد مشتركة
     const mats = { g: new THREE.MeshBasicMaterial({ color: 0x34d399 }), r: new THREE.MeshBasicMaterial({ color: 0xef4444 }), y: new THREE.MeshBasicMaterial({ color: 0xf5c451 }) }; S.lmat = mats; const bulb = new THREE.SphereGeometry(0.34, 8, 6); const poles = [];
     for (let i = 0; i <= CITY.N; i++) for (let j = 0; j <= CITY.N; j++) { const o = CITY.ROAD / 2 + 0.5; const a = new THREE.Mesh(bulb, mats.r), b2 = new THREE.Mesh(bulb, mats.r); a.position.set(roadAt(i) + o, 3.6, roadAt(j) - o); b2.position.set(roadAt(i) - o, 3.6, roadAt(j) - o - 0.01); b2.position.z = roadAt(j) + o; scene.add(a, b2); S.lights.push({ i, j, ns: a, ew: b2 }); poles.push(K.cyl(0.08, 0.1, 3.4, 0x5a6068, a.position.x, 1.7, a.position.z, 6), K.cyl(0.08, 0.1, 3.4, 0x5a6068, b2.position.x, 1.7, b2.position.z, 6), K.box(0.5, 0.9, 0.5, 0x2a2f36, a.position.x, 3.6, a.position.z), K.box(0.5, 0.9, 0.5, 0x2a2f36, b2.position.x, 3.6, b2.position.z)); }
@@ -106,7 +111,7 @@ export function mount(ctx) {
   }
   const PITCH_ = CITY.BLOCK + CITY.ROAD;
   function addEnt(e, actor) {
-    const m = e.t === 'car' ? carMesh(e) : e.t === 'person' ? (actor ? K.character(COLORS[e.color].hex, { hat: e.hat, scale: 1.3 }) : personMesh(e)) : propMesh(e);
+    const m = e.t === 'car' ? carMesh(e) : e.t === 'person' ? (actor || (e.kf && !e.sit) ? K.character(COLORS[e.color].hex, { hat: e.hat, scale: 1.3 }) : personMesh(e)) : propMesh(e);
     m.userData.pick = { id: e.id, kind: e.t, label: ENT_NAME[e.sub] || ENT_NAME[e.t], h: e.t === 'car' ? 3 : e.t === 'person' ? 3 : 4, r: e.t === 'car' ? 2.6 : 1.4 }; m.userData.e = e;
     if (!e.kf && !actor) { m.position.set(e.x, 0.17, e.z); m.rotation.y = e.rot || 0; }
     if (actor && e.marker) { const ar = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.1, 4), new THREE.MeshBasicMaterial({ color: 0xffffff })); ar.rotation.x = Math.PI; ar.position.y = 3.4; m.add(ar); m.userData.arrow = ar; }
@@ -150,7 +155,10 @@ export function mount(ctx) {
   const simT = () => (net.now() - S.t0) / 1000;
   stage.onFrame = (dt, t) => {
     if (!S.world) { camUpdate(dt); return; } const st = simT(); const now = net.now();
-    S.ents.forEach((m) => { const e = m.userData.e; if (!e.kf) return; const s = entState(e, st, S.pauses); m.position.set(s.x, 0.17 + (e.t === 'person' && s.moving ? Math.abs(Math.sin(st * 8 + e.phase)) * 0.12 : 0), s.z); m.rotation.y = s.rot; });
+    S.ents.forEach((m) => { const e = m.userData.e; if (!e.kf) return; const s = entState(e, st, S.pauses); const px = m.position.x, pz = m.position.z, pr = m.rotation.y; m.position.set(s.x, 0.17 + (e.t === 'person' && !m.userData.rig && s.moving ? Math.abs(Math.sin(st * 8 + e.phase)) * 0.12 : 0), s.z); m.rotation.y = s.rot;
+      const dist = Math.hypot(s.x - px, s.z - pz); if (m.userData.rig) K.animate(m, dt, dt > 0 ? dist / dt : 0);
+      if (m.userData.axles && dt > 0 && dist < 5) { let dr = s.rot - pr; while (dr > Math.PI) dr -= 6.283; while (dr < -Math.PI) dr += 6.283; const steer = Math.max(-0.5, Math.min(0.5, dr / dt * 0.45)); m.userData.spin = (m.userData.spin || 0) + dist / 0.36; for (const a of m.userData.axles) { a.inner.rotation.x = m.userData.spin; if (a.z > 0) a.g.rotation.y += (steer - a.g.rotation.y) * Math.min(1, dt * 10); } } });
+    if (S.crowd) S.crowd.update(st, dt); if (S.ambient) S.ambient.update(st); if (S.fx2) S.fx2.update(now, t, dt);
     for (const L of S.lights) { const ls = lightState(L.i, L.j, st); L.ns.material = ls === 'ns' ? S.lmat.g : ls === 'y' ? S.lmat.y : S.lmat.r; L.ew.material = ls === 'ew' ? S.lmat.g : ls === 'y' ? S.lmat.y : S.lmat.r; }
     S.actors.forEach((m) => { const a = m.userData.net; if (!a) return; const k = Math.min(1, dt * 9); const px = m.position.x, pz = m.position.z; m.position.x += (a.x - px) * k; m.position.z += (a.z - pz) * k; m.position.y = 0.17; m.visible = !!a.vis; let dr = a.rot - m.rotation.y; while (dr > Math.PI) dr -= 6.283; while (dr < -Math.PI) dr += 6.283; m.rotation.y += dr * k; if (m.userData.rig) K.animate(m, dt, Math.hypot(m.position.x - px, m.position.z - pz) / Math.max(dt, 0.001)); if (m.userData.arrow) m.userData.arrow.position.y = 3.4 + Math.sin(t * 5) * 0.25; });
     if (S.sel) { S.ring.position.set(S.sel.m.position.x, 0.4, S.sel.m.position.z); S.ring.rotation.z = t * 2; if (!S.sel.m.visible) select(null); }
@@ -164,13 +172,13 @@ export function mount(ctx) {
     if (S.round && !S.done) { const left = S.round.endAt - now; const tm = $('#c-timer'); tm.textContent = fmtTime(left); const low = left < 10000 && left > 0; if (low !== tm.classList.contains('is-low')) tm.classList.toggle('is-low', low); if (low && Math.floor(left / 1000) !== S.lastBeep) { S.lastBeep = Math.floor(left / 1000); sfx.low(); } }
     camUpdate(dt);
   };
-  const EV = { blackout: ['انقطعت الكهرباء!', 'جزء من المدينة صار ظلام'], rain: ['بدأ المطر', 'الرؤية صارت أصعب شوي'], train: ['قطار يمر!', 'ممكن يغطي عليك لثواني'], jam: ['زحمة مفاجئة!', 'السيارات واقفة بالتقاطع'] };
+  const EV = { blackout: ['انقطعت الكهرباء!', 'جزء من المدينة صار ظلام'], rain: ['بدأ المطر', 'الرؤية صارت أصعب شوي'], train: ['قطار يمر!', 'ممكن يغطي عليك لثواني'], jam: ['زحمة مفاجئة!', 'السيارات واقفة بالتقاطع'], rush: ['ساعة الذروة!', 'ازدحام كبير في وسط المدينة'], convoy: ['موكب يمر!', 'مركبات مميزة تعبر أحد الشوارع'], festival: ['مهرجان المدينة!', 'الناس يتجمعون في الساحة'], market: ['سوق نشط!', 'حركة كبيرة في المنطقة التجارية'], closure: ['إغلاق شارع!', 'السيارات تنتظر عند التقاطع'] };
   function startEvent(ev) { banner(EV[ev.type][0], EV[ev.type][1]); sfx.event();
     if (ev.type === 'blackout') { S.dark.position.set((ev.qx ? 1 : -1) * HALF / 2, 13, (ev.qz ? 1 : -1) * HALF / 2); S.dark.visible = true; S.darkOn = true; }
     if (ev.type === 'rain') { S.rain.visible = true; lights.sun.intensity = 0.55; lights.hemi.intensity = 0.48; }
     if (ev.type === 'train') S.train.visible = true;
-    if (ev.type === 'jam') S.pauses.push({ t0: ev.t0, dur: ev.dur / 1000, ids: new Set(ev.ids) }); }
-  function endEvent(ev) { if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = S_base.sun; lights.hemi.intensity = S_base.hemi; } if (ev.type === 'train') S.train.visible = false; }
+    if (S.fx2) S.fx2.start(ev); if (ev.type === 'jam' || ev.type === 'rush' || ev.type === 'closure') S.pauses.push({ t0: ev.t0, dur: ev.dur / 1000, ids: new Set(ev.ids) }); }
+  function endEvent(ev) { if (S.fx2) S.fx2.end(ev); if (ev.type === 'blackout') S.darkOn = false; if (ev.type === 'rain') { S.rain.visible = false; lights.sun.intensity = S_base.sun; lights.hemi.intensity = S_base.hemi; } if (ev.type === 'train') S.train.visible = false; }
 
   // ------------------------------------------------------------ رسائل الخادم
   function clearActors() { S.actors.forEach((m) => { scene.remove(m); m.traverse((o) => { if (o.geometry) o.geometry.dispose(); }); }); S.actors.clear(); }
@@ -232,7 +240,7 @@ export function mount(ctx) {
   stage.start();
   return {
     onMsg, onRoom: drawBoard,
-    unmount() { disposed = true; timers.forEach(clearTimeout); stopAmb(); stage.dispose(); art.dispose(); hud.remove(); board.remove(); feed.remove(); flash.remove(); el.querySelectorAll('.g-end,.g-banner,.g-count').forEach((n) => n.remove()); },
+    unmount() { disposed = true; timers.forEach(clearTimeout); stopAmb(); stage.dispose(); art.dispose(); if (S.crowd) S.crowd.dispose(); if (S.ambient) S.ambient.dispose(); if (S.fx2) S.fx2.dispose(); hud.remove(); board.remove(); feed.remove(); flash.remove(); el.querySelectorAll('.g-end,.g-banner,.g-count').forEach((n) => n.remove()); },
     debug: () => Object.assign(stage.info(), { ents: S.ents.size, actors: S.actors.size, round: S.round && S.round.round }),
     _S: S, _cam: cam, _stage: stage,
   };
