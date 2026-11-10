@@ -37,6 +37,7 @@ export const sfx = {
   event: () => { tone(300, 0.4, 'sine', 0.12, 0, 600); },
   // المتنكر
   scoot: () => noise(0.07, 0.07, 500, 0, 3),
+  step: (kind, vol = 1) => { const f = { tile: [2200, 0.05], vinyl: [1800, 0.045], epoxy: [2600, 0.05], wood: [900, 0.06], carpet: [380, 0.035], marble: [3000, 0.055], concrete: [700, 0.05], grass: [500, 0.04], court: [1400, 0.06] }[kind] || [1500, 0.05]; noise(0.06, f[1] * vol, f[0], 0, 1.4); },
   swap: () => { noise(0.22, 0.12, 1800, 0, 2); tone(300, 0.2, 'sine', 0.1, 0, 900); },
   inspect: () => { tone(900, 0.05, 'square', 0.08); noise(0.12, 0.1, 2600); },
   reveal: () => { noise(0.3, 0.18, 900); tone(200, 0.4, 'sawtooth', 0.1, 0, 800); tone(1200, 0.3, 'sine', 0.14, 0.25); },

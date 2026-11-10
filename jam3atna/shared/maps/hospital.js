@@ -3,8 +3,8 @@ import { mapBuilder } from '../prop-core.js';
 
 export function hospital() {
   const b = mapBuilder({
-    id: 'hospital', name: 'المستشفى', line: 'كل شيء طبيعي... إلا اللي متخبي بين الأغراض!', w: 56, d: 36, gate: { x: -17, z: 16.4, lv: 0 },
-    theme: { sky: 0xdfeaf2, fog: 0xdfeaf2, fogN: 55, fogF: 150, sun: 0xffffff, sunI: 0.95, amb: 0.8, ambSky: 0xeaf6ff, ambGround: 0x9fb3c2, wall: 0xf1f5f7, trim: 0x7fc4d6, base: 0xb9d6df, ground: 0x9db2bd },
+    id: 'hospital', ready: true, name: 'المستشفى', line: 'كل شيء طبيعي... إلا اللي متخبي بين الأغراض!', w: 56, d: 36, gate: { x: -17, z: 16.4, lv: 0 },
+    theme: { sky: 0xdfeaf2, fog: 0xdfeaf2, fogN: 55, fogF: 150, sun: 0xfff6ea, sunI: 0.8, amb: 0.5, ambSky: 0xe6f1fb, ambGround: 0x6f7f8c, fillI: 0.45, step: 'tile', wall: 0xe3eaee, trim: 0x7fc4d6, base: 0xb9d6df, ground: 0x9db2bd },
     ambience: 'hospital', music: [262, 330, 392],
     tour: [[-17, 16, 2.4, -17, 6, 1.1], [-12, 5, 2.6, 6, 0.5, 1.4], [8, 0.5, 2.8, -12, -2, 1.4], [-21, -4, 3.2, -21, -15, 1.0]],
   });
@@ -48,7 +48,7 @@ export function hospital() {
   b.solid('cabinet', -27.3, -10, 0.8, 2.4, { h: 1.7 }); b.solid('cabinet', -27.3, -6.2, 0.8, 2.0, { h: 1.7 });
   b.prop('ivstand', -26.6, -13.0, 0); b.prop('ivstand', -21.6, -12.6, 0); b.prop('medcart', -19.5, -8.4, 0.2); b.prop('medcart', -14.2, -6.2, -0.4);
   b.prop('wheelch', -24.6, -5.0, 0.5); b.prop('trashm', -13.2, -4.2, 0); b.prop('sidetblm', -23.0, -8.4, 0); b.prop('supplybox', -26.8, -3.9, 0.2); b.prop('lockerm', -13.0, -10.4, Math.PI / 2);
-  b.deco('sign', -20, -3.2, { text: 'الطوارئ', y: 2.9, c: 0xd94f4f }); b.label('الطوارئ', -20, -3.4, 3.1, 0, '#fecaca');
+  b.deco('sign', -20, -2.7, { text: 'الطوارئ', y: 2.75, c: 0xd94f4f }); b.label('الطوارئ', -20, -2.5, 3.1, 0, '#fecaca');
   b.deco('rug', -20, -9.5, { w: 6, d: 4, c: 0xd9e8f2, c2: 0xc2d7e6 });
 
   // ---------- المختبر
@@ -57,14 +57,14 @@ export function hospital() {
   b.solid('fridge', -10.9, -17.2, 1.2, 0.9, { h: 1.9, c: 0xe8f1f6 }); b.solid('fridge', -9.5, -17.2, 1.2, 0.9, { h: 1.9, c: 0xe8f1f6 });
   b.solid('shelf', -11.4, -6.2, 0.6, 3.2, { h: 2.0, c: 0xc9d9e0 }); b.solid('shelf', -2, -17.4, 3.4, 0.6, { h: 2.0, c: 0xc9d9e0 });
   b.prop('supplybox', -1.0, -5.5, 0); b.prop('monitor', -3.0, -5.0, 0); b.prop('trashm', -10.8, -4.1, 0); b.prop('plant', -0.9, -14.0, 0); b.prop('sidetblm', -1.0, -8.4, 0); b.prop('lockerm', -4.8, -16.9, 0);
-  b.deco('sign', -6, -3.2, { text: 'المختبر', y: 2.9, c: 0x2f9f93 }); b.label('المختبر', -6, -3.4, 3.1, 0, '#c7fff6');
+  b.deco('sign', -6, -2.7, { text: 'المختبر', y: 2.75, c: 0x2f9f93 }); b.label('المختبر', -6, -2.5, 3.1, 0, '#c7fff6');
 
   // ---------- الصيدلية
   b.solid('shelf', 5, -17.4, 8.6, 0.6, { h: 2.2, c: 0xe3e8e0, med: true }); b.solid('shelf', 3.3, -13.2, 3.0, 0.7, { h: 2.0, c: 0xe3e8e0, med: true }); b.solid('shelf', 7.7, -13.2, 3.0, 0.7, { h: 2.0, c: 0xe3e8e0, med: true });
   b.solid('shelf', 3.3, -10.0, 3.0, 0.7, { h: 2.0, c: 0xe3e8e0, med: true }); b.solid('shelf', 7.7, -10.0, 3.0, 0.7, { h: 2.0, c: 0xe3e8e0, med: true });
   b.solid('counter', 6.7, -5.9, 5.4, 1.1, { h: 1.1, c: 0x7fc4d6 }); b.deco('screen', 5.2, -5.9, { y: 1.15, w: 0.8, anim: 'blink', c: 0xa3ffcf }); b.deco('screen', 8.0, -5.9, { y: 1.15, w: 0.8, c: 0x7fe0ff });
   b.prop('supplybox', 1.3, -16.6, 0); b.prop('supplybox', 9.2, -16.6, 0.2); b.prop('trashm', 9.3, -4.3, 0); b.prop('sidetblm', 1.3, -7.6, 0); b.prop('plant', 9.2, -8.0, 0); b.prop('lockerm', 1.2, -13.0, 0);
-  b.deco('sign', 1.8, -3.2, { text: 'صيدلية', y: 2.9, c: 0x4f9f4f }); b.label('الصيدلية', 1.8, -3.4, 3.1, 0, '#d6ffd6');
+  b.deco('sign', 1.8, -2.7, { text: 'صيدلية', y: 2.75, c: 0x4f9f4f }); b.label('الصيدلية', 1.8, -2.5, 3.1, 0, '#d6ffd6');
 
   // ---------- غرفة العمليات
   b.solid('optable', 19, -10.5, 1.3, 2.7, { h: 1.0, c: 0x9fc9c4 }); b.deco('oplight', 19, -10.5, { y: 3.1 });
@@ -72,7 +72,7 @@ export function hospital() {
   [14.4, 18.2, 22.0].forEach((x) => b.solid('cabinet', x, -17.4, 2.2, 0.7, { h: 1.7, c: 0xd9e5ea }));
   b.prop('monitor', 16.4, -14.6, 0); b.prop('monitor', 21.8, -14.6, 0); b.prop('ivstand', 13.4, -7.2, 0); b.prop('ivstand', 24.6, -7.2, 0); b.prop('medcart', 14.2, -12.8, 0.3);
   b.prop('trashm', 26.8, -4.4, 0); b.prop('sidetblm', 26.4, -9.0, 0); b.prop('supplybox', 26.6, -15.6, 0.3); b.prop('lockerm', 11.0, -16.5, 0);
-  b.deco('sign', 19, -3.2, { text: 'غرفة العمليات', y: 2.9, c: 0xd94f4f }); b.label('العمليات', 19, -3.4, 3.1, 0, '#fecaca');
+  b.deco('sign', 19, -2.7, { text: 'غرفة العمليات', y: 2.75, c: 0xd94f4f }); b.label('العمليات', 19, -2.5, 3.1, 0, '#fecaca');
 
   // ---------- غرف المرضى (تختلف بالترتيب)
   const pr = [
@@ -81,18 +81,18 @@ export function hospital() {
   pr.forEach((r) => {
     b.solid('hbed', r.bx, 12.6, 1.15, 2.4, { h: 0.9, c: 0xa7d3e8 });
     b.solid('wardrobe', r.side === 'w' ? r.x1 - 0.6 : r.x0 + 0.6, r.side === 'n' ? 5.4 : 6.0, 0.8, 1.7, { h: 2.0, c: 0xd9c49b });
-    b.prop('sidetblm', r.bx + 1.3, 17.2, 0); b.prop('wchair', r.bx - 1.6, 11.4, Math.PI / 2 * (r.side === 'w' ? 1 : -1)); b.prop('lockerm', r.bx - 1.9, 17.3, 0);
+    b.prop('sidetblm', r.bx + 1.3, 17.2, 0); b.prop('wchair', r.bx - 1.6, 11.4, Math.PI / 2 * (r.side === 'w' ? 1 : -1)); b.prop('lockerm', { 0.6: -1.3, 9.0: 7.1, 16.5: 19.9 }[r.bx], 17.3, 0);
     b.deco('tv', r.tv === 'e' ? r.x1 - 0.25 : r.x0 + 0.25, 11, { y: 1.9, rot: r.tv === 'e' ? -Math.PI / 2 : Math.PI / 2, anim: 'tv' });
     b.deco('window', r.bx - 1.0, 17.8, { w: 2.2, h: 1.5, y: 1.2 }); b.deco('winCurtain', r.bx - 1.0, 17.7, { w: 2.6 });
     b.deco('rug', r.bx, 8.4, { w: 3.2, d: 2.2, c: 0xb0cfe0, c2: 0x9bbdd3 });
-    b.deco('doorNum', r.x0 + (r.x1 - r.x0 === 9 ? (r === pr[0] ? 4.5 : r === pr[1] ? 4.5 : 4.5) : 4.5), 3.2, { text: String(r.n) }); b.label('غرفة ' + r.n, (r.x0 + (r === pr[0] ? 4.5 : r === pr[1] ? 4.5 : 4.5)), 3.4, 3.0, 0, '#ffffff');
+    b.label('غرفة ' + r.n, r.x0 + 4.5, 2.5, 3.0, 0, '#ffffff');
   });
   b.prop('plant', 11.2, 4.4, 0); b.prop('trashm', 2.4, 4.4, 0); b.prop('supplybox', 20.2, 4.4, 0); b.prop('medcart', 14.5, 4.6, 0.5);
   // ---------- المستودع
   [5.4, 8.8, 12.2].forEach((z) => b.solid('shelf', 27.3, z, 0.7, 2.8, { h: 2.1, c: 0x9aa5ad }));
   b.prop('supplybox', 22.2, 16.8, 0); b.prop('supplybox', 23.2, 16.8, 0.2); b.prop('supplybox', 22.0, 15.8, 0.1); b.prop('wheelch', 22.4, 6.2, 0.4); b.prop('wheelch', 22.4, 7.4, -0.3);
   b.prop('ivstand', 23.8, 4.6, 0); b.prop('ivstand', 24.6, 4.6, 0); b.prop('medcart', 24.6, 14.6, 0.2); b.prop('trashm', 22.0, 11.6, 0); b.prop('lockerm', 26.4, 16.8, 0);
-  b.deco('sign', 24.5, 3.2, { text: 'مستودع', y: 2.9, c: 0x7a8791 }); b.label('المستودع', 24.5, 3.4, 3.1, 0, '#e5e7eb');
+  b.deco('sign', 24.5, 2.7, { text: 'مستودع', y: 2.75, c: 0x7a8791 }); b.label('المستودع', 24.5, 2.5, 3.1, 0, '#e5e7eb');
 
   // ---------- الممر
   b.row('wchair', -15.2, -2.3, 3, 1.0, 0, 0); b.row('wchair', 5.6, -2.3, 3, 1.0, 0, 0); b.row('wchair', 24.6, -2.3, 2, 1.0, 0, 0);

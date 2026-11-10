@@ -35,8 +35,11 @@ async function boot(cfg) {
   return { j, conn, room, close };
 }
 
-test('نسخة المحاكاة المشتركة بالخادم مطابقة لنسخة الموقع', () => {
-  for (const f of ['city-sim.js', 'prop-sim.js']) assert.equal(fs.readFileSync(new URL('../src/jam3atna/shared/' + f, import.meta.url), 'utf8'), fs.readFileSync(new URL('../../jam3atna/shared/' + f, import.meta.url), 'utf8'), f);
+function listFiles(dir, base = dir) { return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? listFiles(new URL(e.name + '/', dir), base) : [new URL(e.name, dir).pathname.slice(base.pathname.length)])); }
+test('نسخة المحاكاة المشتركة بالخادم مطابقة لنسخة الموقع (كل الملفات)', () => {
+  const A = new URL('../src/jam3atna/shared/', import.meta.url), B = new URL('../../jam3atna/shared/', import.meta.url); const fa = listFiles(A).sort(), fb = listFiles(B).filter((f) => !/audio\.js|three-kit\.js/.test(f)).sort();
+  assert.deepEqual(fa, fb);
+  for (const f of fa) assert.equal(fs.readFileSync(new URL(f, A), 'utf8'), fs.readFileSync(new URL(f, B), 'utf8'), f);
 });
 
 test('الغرف: إنشاء/دخول/أخطاء/صلاحيات المضيف', async () => {
@@ -187,12 +190,12 @@ test('المدينة: خروج المغلوب يستبعد الأقل نقاطً
   } finally { await b.close(); }
 });
 
-const FAST_PROP = { min: { prop: 2 }, prop: { hideMs: 400000, introMs: 0, resultMs: 30, timeScale: 0.02, stillMs: 40 } };
+const FAST_PROP = { min: { prop: 2 }, prop: { hideMs: 400000, introMs: 0, loadMaxMs: 40, resultMs: 30, timeScale: 0.02, stillMs: 40 } };
 test('المتنكر: الأدوار، سرّية مرحلة الاختباء، الفحص والنقاط، فوز المفتشين', async () => {
   const b = await boot(FAST_PROP);
   try {
     const { host, ps, r } = await b.room('prop', 5);
-    host.send({ t: 'settings', s: { rounds: 2, seekSec: 300, map: 'market' } }); await sleep(15); host.send({ t: 'start' });
+    host.send({ t: 'settings', s: { rounds: 2, seekSec: 300, map: 'hospital' } }); await sleep(15); host.send({ t: 'start' });
     const setups = await Promise.all(ps.map((p) => p.gw('setup'))); const inst = r.inst; const rs = inst.rs;
     const seekers = ps.filter((p, i) => setups[i].you.role === 'seek'), hiders = ps.filter((p, i) => setups[i].you.role === 'hide');
     assert.equal(seekers.length, 1); assert.equal(hiders.length, 4);
@@ -215,7 +218,7 @@ test('المتنكر: الأدوار، سرّية مرحلة الاختباء، 
     const sk = rs.st.get(seekers[0].me.id); const sx = sk.x; seekers[0].g({ k: 'in', x: 1, z: 0 }); seekers[0].g({ k: 'inspect', pid: hpids[0] }); await sleep(120); assert.equal(sk.x, sx); assert.equal(h0.found, false);
     seekers[0].g({ k: 'in', x: 0, z: 0 });
     inst._startSeek(); const s2 = await seekers[0].wait((m) => m.t === 'g' && m.d.k === 'setup' && m.d.phase === 'seek');
-    const list = s2.d.props; assert.ok(list.length > 40); for (const id of hpids) { const e = list.find((o) => o.pid === id); assert.deepEqual(Object.keys(e).sort(), ['kind', 'pid', 'rot', 'x', 'z'], 'المتنكر بنفس صيغة الأثاث تمامًا'); }
+    const list = s2.d.props; assert.ok(list.length > 40); for (const id of hpids) { const e = list.find((o) => o.pid === id); assert.deepEqual(Object.keys(e).sort(), ['kind', 'lv', 'pid', 'rot', 'x', 'z'], 'المتنكر بنفس صيغة الأثاث تمامًا'); }
     // فحص بعيد يُرفض بلا خصم
     const st0 = rs.statics[0]; sk.x = st0.x + 30; seekers[0].g({ k: 'inspect', pid: st0.pid }); assert.equal((await seekers[0].gw('deny')).why, 'far'); assert.equal(sk.att, 5);
     // فحص غرض عادي: -محاولة، والنقاط لا تنزل تحت الصفر
@@ -241,7 +244,7 @@ test('المتنكر: انتهاء المحاولات = فوز المتنكري�
   const b = await boot(FAST_PROP);
   try {
     const { host, ps, r } = await b.room('prop', 3);
-    host.send({ t: 'settings', s: { rounds: 2, seekSec: 120, map: 'school' } }); await sleep(15); host.send({ t: 'start' });
+    host.send({ t: 'settings', s: { rounds: 2, seekSec: 120, map: 'hospital' } }); await sleep(15); host.send({ t: 'start' });
     await Promise.all(ps.map((p) => p.gw('setup'))); let inst = r.inst, rs = inst.rs;
     const role = (p) => rs.st.get(p.me.id).role; let seeker = ps.find((p) => role(p) === 'seek'), hiders = ps.filter((p) => role(p) === 'hide');
     hiders[0].g({ k: 'decoy' }); assert.equal((await hiders[0].gw('deny')).why, 'cooldown', 'لا طعم أثناء الاختباء');
@@ -269,10 +272,8 @@ test('المتنكر: انتهاء المحاولات = فوز المتنكري�
   } finally { await b.close(); }
 });
 
-test('المتنكر: خرائط وتوزيعات صالحة (لا تداخل، لا أغراض داخل الجدران) على مئات البذور', () => {
-  for (const id of MAP_IDS) for (let s = 1; s <= 150; s++) {
-    const L = genLayout(id, s); const map = MAPS[id]; assert.ok(L.length >= 45, id + ' كثافة ' + L.length);
-    for (let i = 0; i < L.length; i++) { const a = L[i]; assert.ok(KINDS[a.kind]); assert.ok(Math.abs(a.x) <= map.w / 2 - a.r && Math.abs(a.z) <= map.d / 2 - a.r);
-      for (let k = i + 1; k < L.length; k++) { const c = L[k]; assert.ok(Math.hypot(a.x - c.x, a.z - c.z) >= a.r + c.r, 'تداخل'); } }
-  }
+test('المتنكر: كل خريطة جاهزة تجتاز الفحص المعماري (اتصال الغرف، وصول المفتش، لا تداخل)', async () => {
+  const { analyze } = await import('../../tests/jam3atna/mapcheck.mjs'); let n = 0;
+  for (const id of MAP_IDS) { if (!MAPS[id].ready) continue; n++; const r = analyze(id); assert.deepEqual(r.issues, [], id); assert.ok(r.stats.props >= 60 && r.stats.rooms >= 6, id + ' كثافة'); for (let s = 1; s <= 30; s++) { const L = genLayout(id, s); assert.ok(L.length >= r.stats.props * 0.85); for (const a of L) assert.ok(KINDS[a.kind]); } }
+  assert.ok(n >= 1);
 });

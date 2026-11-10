@@ -268,3 +268,20 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
   .j3 *,.j3 *::before,.j3 *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
   .j3-in>*,.j3-hero-art,.j3-code b{opacity:1;transform:none}
 }
+
+/* ---------- مين المتنكر: مقدمة الخريطة، لوحة الإعدادات ---------- */
+.g-intro{position:absolute;inset:0;display:grid;place-items:end center;padding:0 16px calc(18vh + var(--safe-b));pointer-events:none;background:linear-gradient(180deg,rgba(5,3,10,.55),transparent 40%,transparent 55%,rgba(5,3,10,.7));transition:opacity .6s}
+.g-intro.out{opacity:0}
+.gi-card{text-align:center;animation:gi-in .9s var(--ease) both;max-width:min(640px,100%)}
+.gi-card small{display:block;font-weight:800;color:var(--acc2);font-size:15px;letter-spacing:.04em;margin-bottom:4px}
+.gi-card h2{margin:0;font-size:clamp(40px,10vw,84px);font-weight:900;line-height:1.1;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.gi-card p{margin:10px 0 12px;font-size:clamp(16px,3.8vw,24px);font-weight:700;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7);text-wrap:balance}
+.gi-card span{display:inline-block;padding:7px 16px;border-radius:999px;background:rgba(12,7,26,.8);border:1px solid var(--acc);font-weight:800;font-size:14.5px}
+@keyframes gi-in{from{opacity:0;transform:translateY(24px) scale(.96)}to{opacity:1;transform:none}}
+.g-gear{position:absolute;left:12px;top:calc(60px + var(--safe-t));min-width:42px;min-height:42px;width:42px;height:42px;padding:0;border-radius:12px}
+.g-panel{position:absolute;left:12px;top:calc(108px + var(--safe-t));width:min(260px,70vw);padding:14px;border-radius:16px;background:rgba(12,7,26,.94);border:1px solid var(--line2);display:grid;gap:12px;font-weight:800;font-size:14px;z-index:6}
+.g-panel[hidden]{display:none}
+.g-panel input[type=range]{width:100%;accent-color:var(--glow)}
+.g-qrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.g-qrow span{flex:1 0 100%}
+.g-qrow button{flex:1;min-height:38px;border-radius:10px;border:1px solid var(--line);background:var(--deep);font-weight:800;font-size:13px;color:var(--muted)}
+.g-qrow button[aria-pressed=true]{background:var(--glow);color:#fff;border-color:var(--pale)}

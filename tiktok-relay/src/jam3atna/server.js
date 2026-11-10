@@ -13,7 +13,7 @@ export const GAMES = {
 };
 const SETTING_RULES = {
   city: { rounds: [3, 4, 5, 6, 7], missionSec: [30, 45, 60], knockout: [true, false] },
-  prop: { rounds: [2, 3, 4, 5, 6], seekSec: [120, 180, 240, 300], map: ['rotate', 'market', 'school', 'palace', 'funland'] },
+  prop: { rounds: [2, 3, 4, 5, 6], seekSec: [120, 180, 240, 300], map: ['rotate', 'hospital', 'house', 'school', 'market', 'hotel', 'funland'] },
 };
 
 function cleanName(v) {
