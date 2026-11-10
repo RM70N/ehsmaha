@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'; import fs from 'node:fs'; import { 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const THREE = new URL('../bridge/fixtures/three-r128/build/three.min.js', import.meta.url).pathname;
 let pass = 0, fail = 0; const ok = (name, c, extra = '') => { c ? pass++ : fail++; console.log((c ? 'PASS ' : 'FAIL ') + name + (extra ? '  ' + extra : '')); };
-const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.15 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.12 } });
+const d = await startDev(0, { min: { city: 2, prop: 2 }, city: { introMs: 1200, revealMs: 1200, memorizeMs: 500, timeScale: 0.4 }, prop: { hideMs: 90000, introMs: 300, resultMs: 1500, timeScale: 0.12 } });
 const base = `http://127.0.0.1:${d.port}/jam3atna/`, srv = `srv=ws://127.0.0.1:${d.port}/jam3atna/ws`;
 const b = await chromium.launch({ args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] }); const errs = [];
 const mk = async (vp, mobile) => { const c = await b.newContext({ viewport: vp, isMobile: mobile, hasTouch: mobile }); await c.route(/three(\.min)?\.js/, (r) => r.fulfill({ body: fs.readFileSync(THREE), contentType: 'text/javascript' })); const p = await c.newPage(); p.on('pageerror', (e) => errs.push(String(e).slice(0, 300))); p.on('console', (m) => { if (m.type() === 'error' && !/favicon|fonts\.g/.test(m.text())) errs.push('console: ' + m.text().slice(0, 200)); }); return p; };
