@@ -404,7 +404,7 @@ T('security: جلسات/قفل/حظر IP/نسخ احتياطي/سلسلة الت
   for (const v of ['sessions', 'logins', 'locks', 'backups']) assert.equal((await o.get(`/api/views/security/${v}`)).status, 200);
 });
 T('settings: كل إعداد بحدوده + إصدارات + تراجع + افتراضي', async () => {
-  const sets = { sessionIdleMinutes: 45, sessionMaxHours: 10, loginFreeFails: 4, loginMaxLockSec: 600, loginIpMax: 30, healthIntervalSec: 90, healthRetentionDays: 3 };
+  const sets = { sessionIdleMinutes: 45, sessionMaxHours: 10, loginFreeFails: 4, loginMaxLockSec: 600, loginGlobalFails: 40, loginIpMax: 30, healthIntervalSec: 90, healthRetentionDays: 3 };
   for (const [k, v] of Object.entries(sets)) { await step(`settings.set_${k}`, { value: v }, { check: () => assert.equal(env.svc.settings.get(k), v) }); await step(`settings.set_${k}`, { value: 100000 }, { expect: 422 }); }
   const v = env.svc.settings.all().version; assert.ok(v >= 7);
   await step('settings.rollback', { version: 1 }, { check: () => assert.equal(env.svc.settings.get('sessionIdleMinutes'), 30) });
@@ -419,7 +419,7 @@ T('audit: كل التقارير + تراجع + بحث وتصدير', async () =>
   const c = await step('audit.export_csv', {}); assert.ok(c.download.text.includes('players.adjust_xp')); await step('audit.export_json', {});
   const ch = await step('audit.verify_chain', {}); assert.equal(ch.data.ok, true);
   const last = env.svc.audit.list({ where: { action: 'settings.set_loginMaxLockSec', status: 'success' }, limit: 1 })[0];
-  await step('audit.undo_operation', { auditId: last.id }, { check: () => assert.equal(env.svc.settings.get('loginMaxLockSec'), 900) });
+  await step('audit.undo_operation', { auditId: last.id }, { check: () => assert.equal(env.svc.settings.get('loginMaxLockSec'), 300) });
   await step('audit.undo_operation', { auditId: 'bogus' }, { expect: 404 });
   const list = await o.get('/api/audit?q=sara&status=success'); assert.ok(list.json.total >= 3); assert.ok(list.json.rows.every((x) => x.status === 'success'));
   const byTarget = await o.get('/api/audit?section=players&status=failed'); assert.ok(byTarget.json.rows.length >= 1);
@@ -431,6 +431,17 @@ T('health: فحوصات حقيقية للخدمات المُهيّأة وغير 
   const one = await step('health.run_check', { service: 'firestore' }); assert.ok(one.data.ms >= 0);
   await step('health.uptime_report', {}); await step('health.latency_report', {}); await step('health.export_incidents', {});
   await step('health.bot_snapshot', {}, { expect: 503, note: 'BOT_HEALTH_URL غير مضبوط' });
+  // بوت «حي» وهمي: /health + API الداخلية (x-api-key) — مسار النجاح لـbot_snapshot وفحوصات bot/botApi
+  const http = await import('node:http'); const seen = [];
+  const botSrv = http.createServer((req, res) => { seen.push([req.url, req.headers['x-api-key']]); res.setHeader('content-type', 'application/json'); if (req.url === '/health') return res.end(JSON.stringify({ ready: true, ping: 42, uptime: 1234 })); if (req.url === '/api/discord/admin/stats') return res.end(JSON.stringify({ data: { registeredUsers: 3 } })); res.statusCode = 404; res.end('{}'); });
+  await new Promise((r) => botSrv.listen(0, '127.0.0.1', r)); const bu = `http://127.0.0.1:${botSrv.address().port}`;
+  env.cfg.bot.healthUrl = bu + '/health'; env.cfg.bot.apiBase = bu; env.cfg.bot.apiKey = 'bot-secret-key';
+  const bs = await step('health.bot_snapshot', {}); assert.equal(bs.data.ping, 42); assert.equal(bs.data.uptime, 1234);
+  const all2 = await step('health.run_all', {}); const by2 = Object.fromEntries(all2.data.map((x) => [x.id, x.status])); assert.equal(by2.bot, 'up'); assert.equal(by2.botApi, 'up');
+  assert.ok(seen.some(([u, k]) => u === '/api/discord/admin/stats' && k === 'bot-secret-key'), 'مفتاح البوت يُرسل من الخادم فقط');
+  const ov = await o.get('/api/overview'); assert.ok(!JSON.stringify(ov.json).includes('bot-secret-key'), 'المفتاح لا يظهر في رد اللوحة');
+  const overBot = ov.json.workspaces.find((w) => w.id === 'discord').metrics.find((m) => m.id === 'botHealth'); assert.equal(overBot.status, 'ok'); assert.equal(overBot.value.ping, 42);
+  botSrv.close(); env.cfg.bot.healthUrl = ''; env.cfg.bot.apiBase = ''; env.cfg.bot.apiKey = '';
   const td = await step('health.test_discord_token', {}); assert.match(td.message, /احسمها/);
   await step('health.prune_history', { days: 7 });
   assert.equal((await o.get('/api/views/health/now')).status, 200);

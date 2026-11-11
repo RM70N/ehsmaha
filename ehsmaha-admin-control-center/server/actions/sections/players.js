@@ -14,7 +14,7 @@ const stateOf = (u) => ({ disabled: !!u.disabled, tokensValidAfter: u.tokensVali
 async function loadPlayerAuth(p, ctx) {
   const pl = await findPlayer(ctx.fb, p.username);
   const au = await authUser(ctx, pl.uid);
-  return { pl, ...stateOf(au), name: pl.username, uid: pl.uid };
+  return { ...stateOf(au), name: pl.username, uid: pl.uid }; // لا نُعيد مستند اللاعب (بريد/بيانات شخصية) للواجهة أو التدقيق
 }
 
 async function banExecute(p, ctx, before, { until }) {

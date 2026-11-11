@@ -51,16 +51,18 @@ export function createLoginGuard({ store, cfg, settings }) {
   const accCol = store.col('loginState');
   const log = store.col('loginLog');
   const ipBlocks = store.col('ipBlocks');
-  const L = new Proxy({}, { get: (_, k) => (settings ? { ipMax: settings.get('loginIpMax'), freeFails: settings.get('loginFreeFails'), maxLockSec: settings.get('loginMaxLockSec'), ipWindowMin: cfg.loginRate.ipWindowMin }[k] : cfg.loginRate[k]) });
+  const L = new Proxy({}, { get: (_, k) => (settings ? { ipMax: settings.get('loginIpMax'), freeFails: settings.get('loginFreeFails'), maxLockSec: settings.get('loginMaxLockSec'), globalFails: settings.get('loginGlobalFails'), ipWindowMin: cfg.loginRate.ipWindowMin }[k] : cfg.loginRate[k]) });
 
+  // القفل التصاعدي لكل (حساب + IP): فشل مهاجم من عنوانه لا يقفل المالك الحقيقي من عنوان آخر.
+  // وقفل عام للحساب فقط عند فشل متتالٍ كبير من عدة عناوين (هجوم موزَّع) أو بقفل يدوي من المالك.
+  const pairKey = (accountKey, ip) => `${accountKey}:${sha256('ip:' + ip).slice(0, 16)}`;
   function check(accountKey, ip) {
     const t = now();
     if (ipBlocks.get(sha256('block:' + ip))) throw E.forbidden('الوصول غير مسموح');
     const ipk = sha256('ip:' + ip);
     const r = ipCol.get(ipk);
     if (r && t - r.windowStart < L.ipWindowMin * 60_000 && r.count >= L.ipMax) throw E.rateLimited(Math.ceil((r.windowStart + L.ipWindowMin * 60_000 - t) / 1000));
-    const st = accCol.get(accountKey);
-    if (st && st.lockedUntil > t) throw E.rateLimited(Math.ceil((st.lockedUntil - t) / 1000));
+    for (const k of [accountKey, pairKey(accountKey, ip)]) { const st = accCol.get(k); if (st && st.lockedUntil > t) throw E.rateLimited(Math.ceil((st.lockedUntil - t) / 1000)); }
   }
   function record(accountKey, ip, ok, ua, reason) {
     const t = now();
@@ -69,11 +71,15 @@ export function createLoginGuard({ store, cfg, settings }) {
     const fresh = !r || t - r.windowStart >= L.ipWindowMin * 60_000;
     ipCol.set(ipk, { windowStart: fresh ? t : r.windowStart, count: fresh ? 1 : r.count + 1 });
     if (['owner', 'admin'].includes(accountKey)) {
-      if (ok) accCol.set(accountKey, { fails: 0, lockedUntil: 0 });
+      const pk = pairKey(accountKey, ip);
+      if (ok) { accCol.set(pk, { fails: 0, lockedUntil: 0 }); const g = accCol.get(accountKey); if (!g || !g.manual) accCol.set(accountKey, { fails: 0, lockedUntil: g?.lockedUntil > t ? g.lockedUntil : 0, manual: g?.manual }); }
       else {
-        const fails = (accCol.get(accountKey)?.fails || 0) + 1;
+        const fails = (accCol.get(pk)?.fails || 0) + 1;
         const lock = fails > L.freeFails ? Math.min(L.maxLockSec, 2 ** (fails - L.freeFails)) : 0;
-        accCol.set(accountKey, { fails, lockedUntil: lock ? t + lock * 1000 : 0, lastFailAt: t });
+        accCol.set(pk, { fails, lockedUntil: lock ? t + lock * 1000 : 0, lastFailAt: t });
+        const g = accCol.get(accountKey) || { fails: 0, lockedUntil: 0 };
+        const gf = (g.fails || 0) + 1;
+        accCol.set(accountKey, { ...g, fails: gf, lockedUntil: gf >= L.globalFails && !g.manual ? t + L.maxLockSec * 1000 : g.lockedUntil || 0, lastFailAt: t });
       }
     }
     log.set(`${t}-${Math.random().toString(36).slice(2, 7)}`, { ts: t, account: accountKey, ok, reason: reason || null, ip: maskIp(ip), device: deviceLabel(ua) });
@@ -81,6 +87,7 @@ export function createLoginGuard({ store, cfg, settings }) {
   return {
     check, record,
     recent: (limit = 100, where) => log.list({ orderBy: 'ts', limit, where }),
+    blocked(accountKey, ip, ua, reason = 'locked') { const t = now(); log.set(`${t}-${Math.random().toString(36).slice(2, 7)}`, { ts: t, account: accountKey, ok: false, reason, ip: maskIp(ip), device: deviceLabel(ua) }); },
     lock(accountKey, ms) { accCol.set(accountKey, { fails: 0, lockedUntil: now() + ms, manual: true }); },
     unlock(accountKey) { accCol.set(accountKey, { fails: 0, lockedUntil: 0 }); },
     state: (accountKey) => accCol.get(accountKey) || { fails: 0, lockedUntil: 0 },

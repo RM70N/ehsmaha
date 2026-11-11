@@ -66,6 +66,10 @@ test('انتهاء الجلسة بالخمول يُرجع SESSION_EXPIRED ويُ
   for (const s of env.svc.store.col('sessions').list({ limit: 50 })) env.svc.store.col('sessions').merge(s.id, { lastSeen: Date.now() - 3 * 3600_000 });
   const r = await c.get('/api/me'); assert.equal(r.status, 401); assert.equal(r.json.code, 'SESSION_EXPIRED');
   assert.equal((await c.get('/api/me')).status, 401);
+  // الدخول بعد انتهاء الجلسة ينجح من أول محاولة (الكوكي القديم المنتهي لا يعطّله)
+  const c2 = client(env.base); await c2.login('admin');
+  for (const x of env.svc.store.col('sessions').list({ limit: 50 })) env.svc.store.col('sessions').merge(x.id, { lastSeen: Date.now() - 3 * 3600_000 });
+  assert.equal((await c2.login('admin')).status, 200); assert.equal((await c2.get('/api/me')).status, 200);
 });
 
 test('تدوير الجلسة عند الدخول: الكوكي القديم يبطل', async () => {
@@ -99,4 +103,29 @@ test('حظر IP يمنع الدخول', async () => {
   const c = client(e2.base); const x = await c.raw('POST', '/api/auth/login', { account: 'owner', password: PW.owner }); assert.equal(x.status, 403);
   e2.svc.loginGuard.unblockIp('127.0.0.1'); assert.equal((await client(e2.base).login('owner')).status, 200);
   await e2.close();
+});
+
+test('قفل الحساب لكل IP: فشل مهاجم لا يقفل المالك من عنوان آخر، والقفل العام يتطلب فشلاً موزَّعاً كبيراً', async () => {
+  const e2 = await startEnv({ firebase: false, discord: false, botDb: false }); const g = e2.svc.loginGuard; e2.svc.settings.set('loginFreeFails', 2, 't');
+  for (let i = 0; i < 6; i++) g.record('owner', '198.51.100.7', false, 'ua', 'bad_password');
+  assert.throws(() => g.check('owner', '198.51.100.7'), (e) => e.code === 'RATE_LIMITED');
+  assert.doesNotThrow(() => g.check('owner', '203.0.113.50'), 'عنوان آخر غير مقفل');
+  e2.svc.settings.set('loginGlobalFails', 10, 't');
+  for (let i = 0; i < 10; i++) g.record('owner', `192.0.2.${i}`, false, 'ua', 'bad_password');
+  assert.throws(() => g.check('owner', '203.0.113.50'), (e) => e.code === 'RATE_LIMITED', 'هجوم موزَّع يقفل الحساب مؤقتاً');
+  g.unlock('owner'); assert.doesNotThrow(() => g.check('owner', '203.0.113.50'));
+  await e2.close();
+});
+
+test('تكرار الدخول الفاشل وطلبات الأدمن المرفوضة يرفعان تنبيهاً واحداً بلا تكرار', async () => {
+  const e2 = await startEnv({ firebase: false, discord: false, botDb: false });
+  try {
+    const c = client(e2.base);
+    for (let i = 0; i < 8; i++) await c.raw('POST', '/api/auth/login', { account: 'admin', password: 'x' + i });
+    const al = e2.svc.alerts.list({ where: { key: 'security:login-failures' }, limit: 5 }); assert.equal(al.length, 1); assert.ok(al[0].count >= 1);
+    e2.svc.loginGuard.unlock('admin'); for (const k of ['admin']) e2.svc.store.col('loginState').deleteWhere({});
+    const a = client(e2.base); e2.svc.store.col('loginIp').deleteWhere({}); assert.equal((await a.login('admin')).status, 200);
+    for (let i = 0; i < 6; i++) await a.run('security.block_ip', { ip: '1.2.3.4' });
+    assert.equal(e2.svc.alerts.list({ where: { key: 'security:denied:ADMIN' }, limit: 5 }).length, 1);
+  } finally { await e2.close(); }
 });

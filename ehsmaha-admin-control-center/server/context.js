@@ -54,7 +54,7 @@ export async function createServices(cfg, o = {}) {
     guildId: () => cfg.discord.guildId, now: () => Date.now()
   });
   svc.buildCtx = buildCtx;
-  svc.engine = createEngine({ registry, perms, store, audit, caps, buildCtx });
+  svc.engine = createEngine({ registry, perms, store, audit, caps, buildCtx, alerts: svc.alerts });
   svc.scheduledPosts = createScheduledPosts(svc);
   svc.scheduler = createScheduler(svc);
   return svc;

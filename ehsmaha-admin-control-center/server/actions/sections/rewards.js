@@ -19,7 +19,7 @@ async function loadFrame(p, ctx) {
   const frameName = await frameExists(ctx, p.frameId); if (!frameName) throw E.notFound('إطار غير موجود في كتالوج الموقع (مدمج/إضافي)');
   const pl = await findPlayer(ctx.fb, p.username); if (!pl.levelKeys.length) throw E.notFound('لا يوجد مفتاح خبرة لهذا اللاعب');
   const owned = {}; for (const k of pl.levelKeys) { const s = await lv(ctx, k).get(); owned[k] = s.exists ? s.data().ownedFrames || [] : []; }
-  return { pl, uid: pl.uid, name: pl.username, keys: pl.levelKeys, frameName, owned };
+  return { uid: pl.uid, name: pl.username, keys: pl.levelKeys, frameName, owned };
 }
 const ledger = (ctx) => ctx.store.col('frameGrants');
 

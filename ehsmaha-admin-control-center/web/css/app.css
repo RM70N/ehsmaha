@@ -155,7 +155,8 @@ textarea.input { min-height: 96px; resize: vertical; }
 .tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-m); background: var(--surface); }
 table.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
 .tbl th { text-align: start; font-size: 12px; color: var(--muted); font-weight: 700; padding: 11px 14px; background: var(--surface-2); border-bottom: 1px solid var(--line); white-space: nowrap; position: sticky; top: 0; }
-.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; max-width: 380px; overflow-wrap: anywhere; }
+.tbl td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; max-width: 380px; overflow-wrap: break-word; }
+.tbl td .mono { overflow-wrap: anywhere; }
 .tbl tr:last-child td { border-bottom: none; } .tbl tbody tr:hover td { background: rgba(139,92,246,.05); }
 .tbl tbody tr.clickable { cursor: pointer; }
 .meta-line { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--faint); margin-top: 10px; }
@@ -224,7 +225,7 @@ pre.json { background: var(--bg); border: 1px solid var(--line); border-radius: 
   .side { position: fixed; inset-block: 0; inset-inline-start: 0; width: min(86vw, 320px); transform: translateX(100%); transition: transform .22s ease; box-shadow: var(--shadow); }
   .side.open { transform: none; } .scrim-side.open { display: block; position: fixed; inset: 0; background: rgba(4,4,8,.6); z-index: 25; }
   .menu-btn { display: inline-flex; } .gsearch { width: auto; flex: 1; } .content { padding: 16px 14px 60px; }
-  .crumbs .hide-m { display: none; }
+  .hide-m { display: none !important; }
   .shell.mini .nav-item span, .shell.mini .nav-group, .shell.mini .brand-name { display: revert; }
   .shell.mini .nav-item { justify-content: flex-start; padding: 9px 12px; }
 }

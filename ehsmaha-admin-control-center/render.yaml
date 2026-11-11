@@ -1,0 +1,26 @@
+# Blueprint نشر اللوحة كخدمة مستقلة (غير خدمة البوت والموقع)
+services:
+  - type: web
+    name: ehsmaha-admin-control-center
+    runtime: node
+    plan: starter            # القرص الدائم يتطلب خطة مدفوعة
+    buildCommand: npm ci --omit=dev
+    startCommand: node server/index.js
+    healthCheckPath: /api/auth/state
+    disk:
+      name: admin-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - { key: NODE_ENV, value: production }
+      - { key: TRUST_PROXY, value: "true" }
+      - { key: ADMIN_STORE_PATH, value: /var/data/admin.sqlite }
+      - { key: PUBLIC_ORIGIN, sync: false }
+      - { key: OWNER_PASSWORD_HASH, sync: false }
+      - { key: ADMIN_PASSWORD_HASH, sync: false }
+      - { key: FIREBASE_SERVICE_ACCOUNT, sync: false }
+      - { key: DISCORD_BOT_TOKEN, sync: false }
+      - { key: DISCORD_APPLICATION_ID, sync: false }
+      - { key: DISCORD_GUILD_ID, sync: false }
+      - { key: BOT_DATABASE_URL, sync: false }
+      - { key: BOT_HEALTH_URL, sync: false }

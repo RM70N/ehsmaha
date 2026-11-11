@@ -6,6 +6,7 @@ export const SETTING_DEFS = {
   sessionMaxHours: { label: 'أقصى عمر للجلسة (ساعات)', min: 1, max: 72, ownerOnly: true },
   loginFreeFails: { label: 'محاولات الدخول الفاشلة قبل القفل', min: 1, max: 10, ownerOnly: true },
   loginMaxLockSec: { label: 'أقصى مدة قفل بعد الفشل (ثوانٍ)', min: 30, max: 3600, ownerOnly: true },
+  loginGlobalFails: { label: 'فشل متتالٍ من عدة عناوين يقفل الحساب مؤقتاً', min: 10, max: 200, ownerOnly: true },
   loginIpMax: { label: 'أقصى محاولات دخول لكل IP في النافذة', min: 5, max: 200, ownerOnly: true },
   healthIntervalSec: { label: 'فترة فحص صحة الخدمات (ثوانٍ)', min: 30, max: 3600 },
   healthRetentionDays: { label: 'مدة الاحتفاظ بسجل الفحوصات (أيام)', min: 1, max: 30 }
@@ -15,7 +16,7 @@ export function createSettings({ store, cfg }) {
   const col = store.col('settings');
   const defaults = {
     sessionIdleMinutes: cfg.session.idleMinutes, sessionMaxHours: cfg.session.maxHours, loginFreeFails: cfg.loginRate.freeFails,
-    loginMaxLockSec: cfg.loginRate.maxLockSec, loginIpMax: cfg.loginRate.ipMax, healthIntervalSec: cfg.healthIntervalSec, healthRetentionDays: 7
+    loginMaxLockSec: cfg.loginRate.maxLockSec, loginGlobalFails: cfg.loginRate.globalFails, loginIpMax: cfg.loginRate.ipMax, healthIntervalSec: cfg.healthIntervalSec, healthRetentionDays: 7
   };
   const doc = () => col.get('app') || { version: 0, values: {}, history: [] };
   return {

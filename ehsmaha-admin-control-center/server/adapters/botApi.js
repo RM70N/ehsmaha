@@ -16,8 +16,8 @@ export function createBotApi(cfg) {
     } finally { clearTimeout(t); }
   }
   return {
-    healthConfigured: !!b.healthUrl,
-    apiConfigured: !!(b.apiBase && b.apiKey),
+    get healthConfigured() { return !!b.healthUrl; },
+    get apiConfigured() { return !!(b.apiBase && b.apiKey); },
     health: () => (b.healthUrl ? get(b.healthUrl) : Promise.resolve({ ok: false, status: 0, error: 'لم يُضبط BOT_HEALTH_URL' })),
     api: (path) => (b.apiBase && b.apiKey ? get(b.apiBase.replace(/\/$/, '') + '/api/discord' + path, { 'x-api-key': b.apiKey }) : Promise.resolve({ ok: false, status: 0, error: 'لم يُضبط BOT_API_BASE_URL/BOT_API_KEY' }))
   };

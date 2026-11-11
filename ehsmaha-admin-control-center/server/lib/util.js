@@ -17,6 +17,7 @@ export function stable(v) {
   return '{' + Object.keys(v).sort().map((k) => JSON.stringify(k) + ':' + stable(v[k])).join(',') + '}';
 }
 
+const maskEmail = (e) => { const [a, b] = String(e).split('@'); return b ? `${a.slice(0, 2)}***@${b}` : '***'; };
 const SECRET_KEY = /(token|secret|password|passwd|api[-_]?key|private[-_]?key|service[-_]?account|authorization|cookie)/i;
 // يحجب أي حقل يشبه سراً قبل التسجيل أو الإرسال للمتصفح
 export function scrub(v, depth = 0) {
@@ -25,7 +26,7 @@ export function scrub(v, depth = 0) {
   if (typeof v === 'object') {
     if (typeof v.toMillis === 'function') return v.toMillis();
     const out = {};
-    for (const [k, val] of Object.entries(v)) out[k] = SECRET_KEY.test(k) ? '«محجوب»' : scrub(val, depth + 1);
+    for (const [k, val] of Object.entries(v)) out[k] = SECRET_KEY.test(k) ? '«محجوب»' : /e-?mail/i.test(k) && typeof val === 'string' ? maskEmail(val) : scrub(val, depth + 1);
     return out;
   }
   if (typeof v === 'string' && v.length > 2000) return v.slice(0, 2000) + '…';

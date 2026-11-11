@@ -52,11 +52,11 @@ async function logout() { try { await post('/api/auth/logout'); } catch { /* */ 
 const WS_LABEL = { website: 'التحكم بالموقع', discord: 'ديسكورد والبوت', control: 'مركز التحكم' };
 function shell(ws, activeSec, crumbs, build) {
   const mini = localStorage.getItem('ecc-mini') === '1';
-  const groups = ws === 'control' ? [['control']] : [[ws], ['control']];
+  const groups = ws === 'control' ? [['website'], ['discord'], ['control']] : [[ws], ['control']];
   const items = (w) => me.sections.filter((s) => s.workspace === w);
   app.innerHTML = `<div class="shell ${mini ? 'mini' : ''}" id="shell"><aside class="side" id="side" aria-label="القائمة الجانبية"><div class="side-head"><div class="brand-mark">${icon('shield')}</div><div class="brand-name">EHSEMHA</div></div>
     <nav class="side-nav"><a class="nav-item" href="#/hub">${icon('hubi')}<span>مركز القيادة</span></a><a class="nav-item" href="#/overview" ${activeSec === '_overview' ? 'aria-current="page"' : ''}>${icon('activity')}<span>المؤشرات</span></a>
-    ${groups.map(([w]) => `<div class="nav-group">${WS_LABEL[w === 'control' ? 'control' : w]}</div>${items(w).map((s) => `<a class="nav-item" href="#/s/${s.id}" ${activeSec === s.id ? 'aria-current="page"' : ''} title="${esc(s.label)}">${icon(s.icon)}<span>${esc(s.label)}</span>${s.actionCount ? `<span class="cnt">${s.actionCount}</span>` : ''}</a>`).join('')}`).join('')}
+    ${groups.filter(([w]) => items(w).length).map(([w]) => `<div class="nav-group">${WS_LABEL[w]}</div>${items(w).map((s) => `<a class="nav-item" href="#/s/${s.id}" ${activeSec === s.id ? 'aria-current="page"' : ''} title="${esc(s.label)}">${icon(s.icon)}<span>${esc(s.label)}</span>${s.actionCount ? `<span class="cnt">${s.actionCount}</span>` : ''}</a>`).join('')}`).join('')}
     ${items('control').length === 0 && ws !== 'control' ? '' : ''}</nav></aside><div class="scrim-side" id="ss"></div>
     <div class="main"><header class="top"><button class="btn ghost icon menu-btn" id="mb" aria-label="القائمة">${icon('menu')}</button><button class="btn ghost icon hide-m" id="mini" aria-label="طيّ القائمة">${icon('menu')}</button>
       <div class="crumbs"><a href="#/hub" class="hide-m">الرئيسية</a><span class="hide-m">/</span>${crumbs.map((c, i) => (i < crumbs.length - 1 ? `<a href="${c[1]}" class="hide-m">${esc(c[0])}</a><span class="hide-m">/</span>` : `<b>${esc(c[0])}</b>`)).join('')}</div><div class="grow"></div>
@@ -103,7 +103,7 @@ window.addEventListener('hashchange', route);
 
 setAuthLost((msg) => { me = null; renderLogin(msg); });
 (async () => {
-  try { await boot(); route(); }
+  try { const st = await get('/api/auth/state'); if (!st.authenticated) return renderLogin(); await boot(); route(); }
   catch { renderLogin(); }
 })();
 

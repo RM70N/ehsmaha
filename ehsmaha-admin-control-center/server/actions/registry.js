@@ -6,10 +6,10 @@ const SNOWFLAKE = /^\d{16,21}$/;
 export function fieldToZod(f) {
   let s;
   switch (f.type) {
-    case 'number': s = z.coerce.number({ invalid_type_error: `${f.label}: رقم غير صحيح` }).finite(); if (f.min != null) s = s.min(f.min); if (f.max != null) s = s.max(f.max); break;
-    case 'integer': s = z.coerce.number({ invalid_type_error: `${f.label}: رقم غير صحيح` }).int(`${f.label}: يجب أن يكون عدداً صحيحاً`); if (f.min != null) s = s.min(f.min, `${f.label}: الحد الأدنى ${f.min}`); if (f.max != null) s = s.max(f.max, `${f.label}: الحد الأقصى ${f.max}`); break;
+    case 'number': s = z.coerce.number({ error: `${f.label}: رقم غير صحيح` }).finite(); if (f.min != null) s = s.min(f.min); if (f.max != null) s = s.max(f.max); break;
+    case 'integer': s = z.coerce.number({ error: `${f.label}: رقم غير صحيح` }).int(`${f.label}: يجب أن يكون عدداً صحيحاً`); if (f.min != null) s = s.min(f.min, `${f.label}: الحد الأدنى ${f.min}`); if (f.max != null) s = s.max(f.max, `${f.label}: الحد الأقصى ${f.max}`); break;
     case 'boolean': s = z.union([z.boolean(), z.enum(['true', 'false']).transform((v) => v === 'true')]); break;
-    case 'select': s = z.enum((f.options || []).map((o) => String(o.value)), { errorMap: () => ({ message: `${f.label}: قيمة غير مسموحة` }) }); break;
+    case 'select': s = z.enum((f.options || []).map((o) => String(o.value)), { error: `${f.label}: قيمة غير مسموحة` }); break;
     case 'multiselect': s = z.array(z.string().max(100)).max(100); break;
     case 'snowflake': s = z.string().regex(SNOWFLAKE, `${f.label}: معرّف ديسكورد غير صالح`); break;
     case 'datetime': s = z.union([z.string().min(1), z.number()]).transform((v, ctx) => { const t = typeof v === 'number' ? v : Date.parse(v); if (!Number.isFinite(t)) { ctx.addIssue({ code: 'custom', message: `${f.label}: تاريخ غير صالح` }); return z.NEVER; } return t; }); break;

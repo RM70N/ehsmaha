@@ -67,7 +67,7 @@ function resultView(res, descriptor) {
 
 export function openAction(descriptor, { onDone, prefill = {} } = {}) {
   const key = newKey(); let dirty = false; let busy = false;
-  const form = document.createElement('form'); form.noValidate = false; form.autocomplete = 'off';
+  const form = document.createElement('form'); form.noValidate = false; form.autocomplete = 'off'; form.id = `af-${key}`;
   const [dl, dk] = DANGER[descriptor.danger] || DANGER.low;
   const needsConfirm = descriptor.kind !== 'read' && descriptor.danger !== 'low';
   form.innerHTML = `<p class="muted">${esc(descriptor.description)}</p>${descriptor.fields.map(fieldHtml).join('')}<div class="field ${descriptor.reasonRequired || (needsConfirm && descriptor.kind !== 'read') ? '' : 'hidden'}" data-f="_reason"><label for="f-_reason">${descriptor.reasonRequired ? 'سبب العملية *' : 'سبب العملية (اختياري)'}</label><input class="input" id="f-_reason" name="_reason" maxlength="500" placeholder="يُسجَّل في سجل التدقيق" ${descriptor.reasonRequired ? 'required minlength="3"' : ''}><div class="err" data-err></div></div><div data-confirm class="hidden"></div><div data-out></div>`;
@@ -75,6 +75,7 @@ export function openAction(descriptor, { onDone, prefill = {} } = {}) {
   for (const [k, v] of Object.entries(prefill)) { const el = form.elements[k]; if (el) el.value = v; }
 
   const submit = btn(descriptor.kind === 'read' ? 'عرض' : needsConfirm ? 'متابعة للتأكيد' : 'تنفيذ', { cls: descriptor.danger === 'critical' || descriptor.danger === 'high' ? 'danger' : 'primary', ic: descriptor.kind === 'read' ? 'eye' : 'bolt', type: 'submit' });
+  submit.setAttribute('form', form.id); // الزر في تذييل النافذة خارج النموذج
   const cancel = btn('إغلاق', { cls: 'ghost', onClick: () => m.close() });
   const m = modal({ title: descriptor.label, body: form, footer: [cancel, submit], dirty: () => dirty && !done, wide: descriptor.kind === 'read' });
   fillLookups(form, descriptor);
@@ -92,7 +93,7 @@ export function openAction(descriptor, { onDone, prefill = {} } = {}) {
       const foot = [btn('إغلاق', { cls: '', onClick: () => m.close(true) })];
       if (res.undoAvailable && res.auditId) foot.unshift(btn('تراجع عن العملية', { cls: 'danger', ic: 'history', onClick: async (e) => { if (!confirm('هل تريد التراجع عن هذه العملية؟')) return; setBusy(e.currentTarget, true, 'جارٍ التراجع…'); try { const u = await post(`/api/audit/${res.auditId}/undo`); toast(u.message || 'تم التراجع', 'ok'); onDone?.(); m.close(true); } catch (err) { toast(err.message, 'bad'); setBusy(e.currentTarget, false); } } }));
       m.setFooter(foot);
-      $('[data-confirm]', form).classList.add('hidden'); form.querySelectorAll('input,select,textarea').forEach((el) => { el.disabled = true; });
+      for (const ch of [...form.children]) if (!ch.hasAttribute('data-out')) ch.classList.add('hidden'); // نُبقي النتيجة فقط
       toast(res.status === 'saved_pending_apply' ? 'حُفظت — لكنها تحتاج تطبيقاً من البوت' : descriptor.kind === 'read' ? 'تم' : 'نُفِّذت وتم التحقق منها', res.status === 'saved_pending_apply' ? 'warn' : 'ok');
       onDone?.(res);
     } catch (e) {

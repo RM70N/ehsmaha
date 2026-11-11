@@ -54,7 +54,7 @@ export function client(base) {
     get csrf() { return csrf; },
     async raw(method, url, body, headers = {}) {
       const res = await fetch(base + url, { method, headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(cookie ? { cookie } : {}), ...(csrf && method !== 'GET' ? { 'x-csrf-token': csrf } : {}), ...headers }, body: body !== undefined ? JSON.stringify(body) : undefined, redirect: 'manual' });
-      const sc = res.headers.get('set-cookie'); if (sc) cookie = sc.split(';')[0].startsWith('ecc_sid=') && sc.includes('Expires=Thu, 01 Jan 1970') ? '' : sc.split(';')[0];
+      for (const sc of res.headers.getSetCookie()) { if (!sc.startsWith('ecc_sid=')) continue; cookie = /Expires=Thu, 01 Jan 1970/.test(sc) ? '' : sc.split(';')[0]; }
       const text = await res.text(); let json = null; try { json = JSON.parse(text); } catch { /* */ }
       return { status: res.status, json, text, headers: res.headers };
     },

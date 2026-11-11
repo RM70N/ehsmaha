@@ -26,12 +26,12 @@ export function loadConfig(env = process.env) {
       maxHours: num(env.SESSION_MAX_HOURS, 12),
       cookieName: prod ? '__Host-ecc_sid' : 'ecc_sid'
     },
-    loginRate: { ipMax: num(env.LOGIN_IP_MAX, 20), ipWindowMin: num(env.LOGIN_IP_WINDOW_MIN, 15), freeFails: num(env.LOGIN_FREE_FAILS, 3), maxLockSec: num(env.LOGIN_MAX_LOCK_SEC, 900) },
+    loginRate: { ipMax: num(env.LOGIN_IP_MAX, 20), ipWindowMin: num(env.LOGIN_IP_WINDOW_MIN, 15), freeFails: num(env.LOGIN_FREE_FAILS, 3), maxLockSec: num(env.LOGIN_MAX_LOCK_SEC, 300), globalFails: num(env.LOGIN_GLOBAL_FAILS, 25) },
     storePath: env.ADMIN_STORE_PATH || path.join(root, 'data', 'admin.sqlite'),
     firebase: {
       projectId: env.FIREBASE_PROJECT_ID || 'streamgame-180b8',
       serviceAccount: env.FIREBASE_SERVICE_ACCOUNT || '',
-      databaseURL: env.FIREBASE_DATABASE_URL || 'https://streamgame-180b8-default-rtdb.firebaseio.com',
+      databaseURL: env.FIREBASE_DATABASE_URL || 'https://streamgame-180b8-default-rtdb.europe-west1.firebasedatabase.app',
       emulator: !!(env.FIRESTORE_EMULATOR_HOST || env.FIREBASE_AUTH_EMULATOR_HOST)
     },
     discord: {

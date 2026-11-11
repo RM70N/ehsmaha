@@ -12,7 +12,7 @@ export function apiRouter(svc) {
   const r = express.Router();
   const { cfg, sessions, loginGuard, verifier, perms, registry, engine, audit, caps, store } = svc;
   const metaOf = (req) => ({ requestId: req.id, ip: req.ip, device: req.get('user-agent') });
-  const need = (req) => { if (!req.auth) throw E.unauthenticated(); return req.auth; };
+  const need = (req) => { if (!req.auth) throw (req.sessionExpired ? E.sessionExpired() : E.unauthenticated()); return req.auth; };
   const cookieOpts = () => ({ httpOnly: true, secure: cfg.prod, sameSite: 'strict', path: '/', maxAge: cfg.session.maxHours * 3600_000 });
 
   // ---------- المصادقة ----------
@@ -21,10 +21,12 @@ export function apiRouter(svc) {
     const password = req.body?.password;
     const ip = req.ip;
     const known = Object.hasOwn(ACCOUNTS, accountKey);
-    loginGuard.check(known ? accountKey : '_unknown', ip);
+    const alertFails = () => { const n = loginGuard.recent(200).filter((x) => !x.ok && Date.now() - x.ts < 15 * 60_000).length; if (n >= 5) svc.alerts.raise({ key: 'security:login-failures', severity: 'warning', source: 'security', title: 'محاولات دخول فاشلة متكررة', message: `${n} محاولة خلال 15 دقيقة` }); };
+    try { loginGuard.check(known ? accountKey : '_unknown', ip); } catch (e) { if (e.code === 'RATE_LIMITED' || e.code === 'FORBIDDEN') { loginGuard.blocked(known ? accountKey : '_unknown', ip, req.get('user-agent'), e.code === 'FORBIDDEN' ? 'ip_blocked' : 'locked'); alertFails(); } throw e; }
     const ok = known && (await verifier.verify(accountKey, password));
     if (!ok) {
       loginGuard.record(known ? accountKey : '_unknown', ip, false, req.get('user-agent'), known ? 'bad_password' : 'unknown_account');
+      alertFails();
       audit.append({ actor: known ? ACCOUNTS[accountKey].id : 'ANONYMOUS', actorName: known ? ACCOUNTS[accountKey].display : '—', section: 'security', action: 'auth.login', label: 'تسجيل دخول', status: 'failed', error: 'BAD_CREDENTIALS', requestId: req.id, ip: maskIp(req.ip) });
       throw new AppError(401, 'BAD_CREDENTIALS', 'بيانات الدخول غير صحيحة');
     }
@@ -53,7 +55,7 @@ export function apiRouter(svc) {
     const a = need(req);
     const sections = registry.sections().filter((s) => perms.canSeeSection(a, s.id)).map((s) => ({
       id: s.id, label: s.label, workspace: s.workspace, icon: s.icon, description: s.description || '', ownerOnly: !!s.ownerOnly,
-      views: registry.viewsOf(s.id).map((v) => ({ id: v.id, label: v.label, search: !!v.search, placeholder: v.placeholder, columns: v.columns, available: !(v.requires || []).some((c) => !caps[c]().ok), unavailableReason: ((v.requires || []).map((c) => caps[c]()).find((c) => !c.ok) || {}).reason || null, ownerOnly: !!v.ownerOnly })).filter((v) => a.role === 'owner' || !v.ownerOnly),
+      views: registry.viewsOf(s.id).map((v) => ({ id: v.id, label: v.label, chart: v.chart || null, search: !!v.search, placeholder: v.placeholder, columns: v.columns, available: !(v.requires || []).some((c) => !caps[c]().ok), unavailableReason: ((v.requires || []).map((c) => caps[c]()).find((c) => !c.ok) || {}).reason || null, ownerOnly: !!v.ownerOnly })).filter((v) => a.role === 'owner' || !v.ownerOnly),
       actionCount: registry.actionsOf(s.id).filter((x) => !x.hidden && perms.canRunAction(a, x.id)).length
     }));
     const workspaces = ['website', 'discord', 'control'].filter((w) => sections.some((s) => s.workspace === w));

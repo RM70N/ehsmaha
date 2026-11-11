@@ -32,7 +32,7 @@ export function createApp(svc) {
       const s = sessions.resolve(token);
       if (s) req.auth = { accountId: s.account, role: s.role, display: s.role === 'owner' ? 'المالك' : 'الأدمن', sessionId: s.id, csrf: s.csrf, createdAt: s.createdAt };
       next();
-    } catch (e) { res.clearCookie(cfg.session.cookieName, { path: '/' }); next(e); }
+    } catch (e) { if (e.code === 'SESSION_EXPIRED') { req.sessionExpired = true; return next(); } next(e); } // الدخول بعد انتهاء الجلسة يجب أن ينجح من أول مرة
   });
 
   // CSRF: كل طلب يغيّر حالة يحتاج ترويسة مطابقة لرمز الجلسة + فحص Origin (ومع SameSite=Strict)
@@ -45,7 +45,7 @@ export function createApp(svc) {
       if (!ok) return next(E.csrf());
     }
     if (req.path === '/auth/login') return next(); // قبل وجود جلسة (محمي بـOrigin + SameSite + حدّ المحاولات)
-    if (!req.auth) return next(E.unauthenticated());
+    if (!req.auth) return next(req.sessionExpired ? E.sessionExpired() : E.unauthenticated());
     if (!safeEqual(req.get('x-csrf-token'), req.auth.csrf)) return next(E.csrf());
     next();
   });

@@ -26,7 +26,7 @@ export function explain(err) {
   return { status: 500, code: 'INTERNAL', message: 'تعذّر تنفيذ العملية بسبب خطأ غير متوقع' };
 }
 
-export function createEngine({ registry, perms, store, audit, caps, buildCtx }) {
+export function createEngine({ registry, perms, store, audit, caps, buildCtx, alerts }) {
   const idem = store.col('idem');
   const inflight = new Set();
 
@@ -45,6 +45,8 @@ export function createEngine({ registry, perms, store, audit, caps, buildCtx }) 
     // 1+2) الصلاحية — تُفرض هنا بغضّ النظر عن الواجهة
     if (!perms.canRunAction(auth, act.id)) {
       record({ ...base, status: 'denied', error: 'FORBIDDEN', target: null });
+      // طلبات مشبوهة: تكرار الرفض من نفس الحساب (طلبات يدوية تتجاوز الواجهة) يرفع تنبيهاً واحداً بلا تكرار
+      try { if (audit.count({ actor: auth.accountId, status: 'denied', ts: { gte: now() - 10 * 60_000 } }) >= 5) alerts?.raise({ key: `security:denied:${auth.accountId}`, severity: 'warning', source: 'security', title: `محاولات متكررة مرفوضة من ${auth.display}`, message: 'طلبات إجراءات بلا صلاحية خلال 10 دقائق' }); } catch { /* */ }
       throw E.forbidden();
     }
     // 3) المدخلات
