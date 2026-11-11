@@ -46,6 +46,7 @@ const DIRS = [
   'about-experience/posters',
   'windows-app',
   'windows-launch-campaign',
+  'jam3atna',
 ];
 
 module.exports = { ROOT_FILES, DIRS };

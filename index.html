@@ -3975,7 +3975,7 @@ body.hlob-home #top-right-cluster{top:11px;right:16px;}
 #pg-home .hlob-streamer .hlob-btn{align-self:flex-start;margin-top:auto;}
 #pg-home .hlob-streamer-art{flex:1 1 320px;min-height:200px;max-height:300px;position:relative;}
 #pg-home .hlob-streamer-art svg{width:100%;height:100%;display:block;}
-#pg-home .hlob-tiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;}
+#pg-home .hlob-tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;}
 #pg-home .hlob-tile{--hv:0;text-align:right;display:flex;flex-direction:column;padding:0;border-radius:16px;border:1px solid rgba(167,139,255,.16);background:#120a24;color:#EDE9FF;cursor:pointer;overflow:hidden;transition:border-color .25s,transform .12s;}
 #pg-home .hlob-tile:hover,#pg-home .hlob-tile:focus-visible{--hv:1;border-color:rgba(196,176,255,.55);}
 #pg-home .hlob-tile:active{transform:scale(.985);}
@@ -3989,7 +3989,7 @@ body.hlob-home #top-right-cluster{top:11px;right:16px;}
 @media (min-width:720px) and (max-width:1099px){
   #pg-home .hlob-tiles{grid-template-columns:repeat(6,minmax(0,1fr));}
   #pg-home .hlob-tile{grid-column:span 3;}
-  #pg-home .hlob-tile:last-child{grid-column:span 6;}
+  #pg-home .hlob-tile:last-child{grid-column:span 3;}
 }
 @media (max-width:719px){
   #pg-home .hlob-tiles{grid-template-columns:1fr;}
@@ -8466,24 +8466,10 @@ setTimeout(function () {
 <div class="msg-banner-backdrop" id="msg-banner-backdrop" onclick="msgBannerBackdropClick()"></div>
 
 <!-- ====== PERSONAL MESSAGE BANNER ====== -->
-<div class="msg-banner pos-top" id="msg-personal-banner">
-  <div class="msg-banner-icon">💬</div>
-  <div class="msg-banner-body">
-    <div class="msg-banner-label">رسالة خاصة</div>
-    <div class="msg-banner-text" id="msg-personal-banner-text">—</div>
-  </div>
-  <button class="msg-banner-close" onclick="personalMessageDismiss()">✕</button>
-</div>
+<div class="msg-banner pos-top" id="msg-personal-banner"><div class="msg-banner-text" id="msg-personal-banner-text">—</div></div>
 
 <!-- ====== BROADCAST MESSAGE BANNER ====== -->
-<div class="msg-banner pos-top" id="msg-broadcast-banner">
-  <div class="msg-banner-icon">📣</div>
-  <div class="msg-banner-body">
-    <div class="msg-banner-label">إعلان</div>
-    <div class="msg-banner-text" id="msg-broadcast-banner-text">—</div>
-  </div>
-  <button class="msg-banner-close" onclick="broadcastMessageDismiss()">✕</button>
-</div>
+<div class="msg-banner pos-top" id="msg-broadcast-banner"><div class="msg-banner-text" id="msg-broadcast-banner-text">—</div></div>
 
 <!-- ====== STORE NEW-PRODUCT ANNOUNCEMENT BANNER ====== -->
 <div class="msg-banner pos-top" id="msg-storenew-banner">
@@ -9655,6 +9641,7 @@ function landingCtaClick(){
           <button type="button" class="hlob-tile" onclick="topnavGoSection('party')"><span class="hlob-tile-art" aria-hidden="true"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><rect x="58" y="12" width="84" height="52" rx="6" fill="#2a1b4d" stroke="#3b2870" stroke-width="2"/><text x="100" y="39" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="24" fill="#C4B0FF">؟</text><g><circle cx="38" cy="80" r="7" fill="#C4B0FF"/><path d="M27 98 a11 10 0 0 1 22 0 z" fill="#C4B0FF"/></g><g style="transform:translateY(calc(var(--hv,0) * -7px));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><circle cx="76" cy="88" r="7" fill="#A78BFF"/><path d="M65 106 a11 10 0 0 1 22 0 z" fill="#A78BFF"/></g><g><circle cx="124" cy="88" r="7" fill="#EC4899"/><path d="M113 106 a11 10 0 0 1 22 0 z" fill="#EC4899"/></g><g style="transform:translateY(calc(var(--hv,0) * -7px));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><circle cx="162" cy="80" r="7" fill="#C4B0FF"/><path d="M151 98 a11 10 0 0 1 22 0 z" fill="#C4B0FF"/></g></svg></span><span class="hlob-tile-body"><span class="hlob-tile-name">جمعات</span><span class="hlob-tile-desc">مع أصدقائك في غرفة واحدة.</span><span class="hlob-tile-go">افتح<svg class="hlob-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></span></button>
           <button type="button" class="hlob-tile" onclick="show('wordle-mode-select')"><span class="hlob-tile-art" aria-hidden="true"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g><rect x="152" y="22" width="28" height="28" rx="6" fill="#34D399"/><text x="166" y="37" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="15" fill="#0b0518">ك</text></g><g><rect x="118" y="22" width="28" height="28" rx="6" fill="#4b5563"/><text x="132" y="37" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="15" fill="#0b0518">ل</text></g><g style="transform-box:fill-box;transform-origin:center;transform:scaleY(calc(1 - var(--hv,0) * 1.9));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><rect x="84" y="22" width="28" height="28" rx="6" fill="#F59E0B"/><text x="98" y="37" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="15" fill="#0b0518">م</text></g><g><rect x="50" y="22" width="28" height="28" rx="6" fill="#34D399"/><text x="64" y="37" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="15" fill="#0b0518">ا</text></g><g><rect x="16" y="22" width="28" height="28" rx="6" fill="#4b5563"/><text x="30" y="37" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="900" font-size="15" fill="#0b0518">ت</text></g><g><rect x="152" y="60" width="28" height="28" rx="6" fill="none" stroke="#3b2870" stroke-width="2"/></g><g><rect x="118" y="60" width="28" height="28" rx="6" fill="none" stroke="#3b2870" stroke-width="2"/></g><g><rect x="84" y="60" width="28" height="28" rx="6" fill="none" stroke="#3b2870" stroke-width="2"/></g><g><rect x="50" y="60" width="28" height="28" rx="6" fill="none" stroke="#3b2870" stroke-width="2"/></g><g><rect x="16" y="60" width="28" height="28" rx="6" fill="none" stroke="#3b2870" stroke-width="2"/></g></svg></span><span class="hlob-tile-body"><span class="hlob-tile-name">وردل</span><span class="hlob-tile-desc">خمّن الكلمة العربية. تلعبها ستريمر أو فردي.</span><span class="hlob-tile-go">العب وردل<svg class="hlob-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></span></button>
           <button type="button" class="hlob-tile" onclick="show('ahsemha-home')"><span class="hlob-tile-art" aria-hidden="true"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><g><rect x="140" y="10" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="164" y="23" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٢٠٠</text></g><g><rect x="84" y="10" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="108" y="23" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٢٠٠</text></g><g><rect x="28" y="10" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="52" y="23" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٢٠٠</text></g><g><rect x="140" y="40" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="164" y="53" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٤٠٠</text></g><g style="transform:translateY(calc(var(--hv,0) * -5px));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><rect x="84" y="40" width="48" height="24" rx="5" fill="#7C3AED" stroke="#C4B0FF"/><text x="108" y="53" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#fff">٤٠٠</text></g><g><rect x="28" y="40" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="52" y="53" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٤٠٠</text></g><g><rect x="140" y="70" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="164" y="83" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٦٠٠</text></g><g><rect x="84" y="70" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="108" y="83" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٦٠٠</text></g><g><rect x="28" y="70" width="48" height="24" rx="5" fill="#2a1b4d" stroke="#3b2870"/><text x="52" y="83" text-anchor="middle" dominant-baseline="central" font-family="Cairo,sans-serif" font-weight="800" font-size="11" fill="#C4B0FF">٦٠٠</text></g><rect x="132" y="98" width="56" height="8" rx="4" fill="#A78BFF"/><rect x="12" y="98" width="40" height="8" rx="4" fill="#EC4899"/></svg></span><span class="hlob-tile-body"><span class="hlob-tile-name">الفئات</span><span class="hlob-tile-desc">اختر فئات، سوّوا فريقين، وابدأوا التحدي.</span><span class="hlob-tile-go">ابدأ<svg class="hlob-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></span></button>
+          <button type="button" class="hlob-tile" id="hlob-tile-jam3atna" onclick="openJam3atna()"><span class="hlob-tile-art" aria-hidden="true"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><ellipse cx="100" cy="92" rx="70" ry="10" fill="#7C3AED" opacity=".18"/><polygon points="100,34 150,58 100,82 50,58" fill="#2a1b4d"/><polygon points="50,58 100,82 100,92 50,68" fill="#1c1234"/><polygon points="150,58 100,82 100,92 150,68" fill="#22163f"/><g style="transform:translateY(calc(var(--hv,0) * -4px));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><polygon points="100,26 134,42 100,58 66,42" fill="#7C3AED"/><polygon points="66,42 100,58 100,64 66,48" fill="#4c1d95"/><polygon points="134,42 100,58 100,64 134,48" fill="#5b21b6"/><ellipse cx="100" cy="42" rx="14" ry="7" fill="none" stroke="#EDE9FF" stroke-width="2" stroke-dasharray="5 4"/><circle cx="100" cy="42" r="3" fill="#fff"/></g><g fill="#120a24" stroke-width="1.6"><rect x="18" y="62" width="14" height="24" rx="3" stroke="#EC4899"/><rect x="168" y="62" width="14" height="24" rx="3" stroke="#34D399"/><rect x="93" y="84" width="14" height="22" rx="3" stroke="#F5C451"/></g><path d="M32 66 Q52 40 70 44M168 66 Q148 40 130 44" fill="none" stroke="#C4B0FF" stroke-width="1.6" stroke-dasharray="3 5" stroke-linecap="round"/></svg></span><span class="hlob-tile-body"><span class="hlob-tile-name">جمعتنا</span><span class="hlob-tile-desc">ألعاب جماعية 3D، كل واحد يدخل من جواله بالكود.</span><span class="hlob-tile-go">ادخل<svg class="hlob-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></span></button>
           <button type="button" class="hlob-tile" id="hlob-tile-winapp" onclick="openWindowsApp()"><span class="hlob-tile-art" aria-hidden="true"><svg viewBox="0 0 200 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><rect x="38" y="10" width="124" height="74" rx="8" fill="#1c1234" stroke="#3b2870" stroke-width="2"/><rect x="38" y="10" width="124" height="14" rx="8" fill="#2a1b4d"/><circle cx="50" cy="17" r="3" fill="#EC4899"/><circle cx="60" cy="17" r="3" fill="#A78BFF"/><circle cx="70" cy="17" r="3" fill="#34D399"/><g style="transform:translateY(calc(var(--hv,0) * 4px));transition:transform .6s cubic-bezier(.2,.8,.2,1)"><path d="M100 36 V62 M88 52 L100 64 L112 52" fill="none" stroke="#C4B0FF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g><rect x="84" y="84" width="32" height="8" fill="#2a1b4d"/><rect x="66" y="92" width="68" height="6" rx="3" fill="#3b2870"/><rect x="72" y="70" width="56" height="6" rx="3" fill="#7C3AED"/></svg></span><span class="hlob-tile-body"><span class="hlob-tile-name">تطبيق احسمها</span><span class="hlob-tile-desc">حمّل احسمها لويندوز وخل ألعابك على سطح مكتبك.</span><span class="hlob-tile-go">حمّل<svg class="hlob-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></span></span></button>
         </div>
       </div>
@@ -19311,11 +19298,18 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'doubleWinEnabled', type: 'toggle', label: 'تفعيل مضاعفة الفوز للإجابة الأولى المضبوطة', hint: 'أول متابع يجاوب السعر بالضبط من أول محاولة يأخذ نقطتين بدل نقطة', default: false }
     ]
   },
+  harfnajat: {
+    name: 'حرف النجاة',
+    fields: [
+      { key: 'answerSeconds', type: 'number', label: 'وقت الإجابة لكل لاعب (بالثواني)', hint: 'الحالي: 20', default: 20, min: 5, max: 600 },
+    ]
+  },
   countrywar: {
     name: 'الدول',
     fields: [
       { key: 'spinMinMs', type: 'number', label: 'أقل مدة للف الروليت (بالميلي ثانية)', hint: 'الحالي: 4000', default: 4000, min: 1000, max: 15000 },
       { key: 'spinRandomMs', type: 'number', label: 'مدة عشوائية إضافية للف (بالميلي ثانية)', hint: 'الحالي: 1500', default: 1500, min: 0, max: 10000 },
+      { key: 'turnSeconds', type: 'number', label: 'مدة دور اللاعب لاختيار دولة (بالثواني، 0 = بدون وقت)', hint: 'الحالي: 15 — إذا انتهى الوقت دون اختيار يروح دوره ويلف الدور على غيره', default: 15, min: 0, max: 3600 },
       { key: 'allianceEnabled', type: 'toggle', label: 'تفعيل تحالف مؤقت', hint: 'فرصة عشوائية تربط دولتين كتحالف — ما يقدر أحد يقصي الثانية طول ما التحالف قائم', default: false },
       { key: 'goldenCountryEnabled', type: 'toggle', label: 'تفعيل دولة محصّنة ذهبية', hint: 'دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها', default: false },
       { key: 'endgameMultiplierEnabled', type: 'toggle', label: 'تفعيل مضاعفة الخطر بالنهاية', hint: 'في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)', default: false },
@@ -19823,6 +19817,11 @@ function sevtUpdateEventTabVisibility() {
 }
 
 // يفتح صفحة فعالية "سباق الأكواد". داخل تطبيق سطح المكتب (file://) نفتح نسخة الموقع.
+// قسم «جمعتنا»: صفحة مستقلة (jam3atna/) — نقطة الربط الوحيدة مع الموقع الرئيسي.
+function openJam3atna() {
+  const base = /^https?:$/.test(location.protocol) ? '/' : 'https://ehsmaha.com/';
+  location.href = base + 'jam3atna/';
+}
 function openWindowsApp() {
   const base = /^https?:$/.test(location.protocol) ? '/' : 'https://ehsmaha.com/';
   location.href = base + 'windows-app.html';
@@ -33882,6 +33881,22 @@ function addHzChatMsg(user, text) {
 .rd-lens-tag{position:absolute;top:1.4cqw;right:2.4cqw;font-size:2.8cqw;font-weight:700;letter-spacing:.2cqw;color:rgba(227,195,106,.75);}
 
 /* ===== شبكة الدول (حرب الدول) ===== */
+/* مؤقت الدور جنب منشور القرعة + اختفاء الدول المُقصاة وتحريك الباقي */
+.cw-timer{position:absolute;z-index:4;left:2.5%;top:17%;height:66%;aspect-ratio:1/1;container-type:size;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:scale(.8);pointer-events:none;transition:opacity .3s ease,transform .3s cubic-bezier(.16,1,.3,1);}
+.cw-timer.show{opacity:1;transform:none;animation:cwTimerIn .5s cubic-bezier(.16,1,.3,1);}
+.cw-timer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.cw-timer-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7;}
+.cw-timer-ring{fill:none;stroke:#E3C36A;stroke-width:7;stroke-linecap:round;stroke-dasharray:276.46;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(227,195,106,.6));transition:stroke .3s ease;}
+.cw-timer-num{position:relative;font-size:36cqmin;text-shadow:0 2px 8px rgba(0,0,0,.6);font-weight:900;line-height:1;color:#F6EBD0;font-variant-numeric:tabular-nums;}
+.cw-timer-lbl{position:relative;font-size:11cqmin;font-weight:700;color:#C9B7E8;margin-top:1cqmin;}
+.cw-timer.low .cw-timer-ring{stroke:#f43f5e;filter:drop-shadow(0 0 8px rgba(244,63,94,.8));}
+.cw-timer.low .cw-timer-num{color:#fecaca;animation:cwTimerPulse .5s ease-in-out infinite alternate;}
+@keyframes cwTimerIn{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes cwTimerPulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+.rd-cgrid{position:relative;}
+.rd-ccard.cw-ghost{position:absolute;margin:0;pointer-events:none;z-index:3;animation:cwGhostOut .45s cubic-bezier(.4,0,.2,1) forwards;}
+@keyframes cwGhostOut{0%{transform:scale(1);opacity:1;filter:none}40%{transform:scale(1.12);opacity:1;filter:saturate(.4)}100%{transform:scale(.2) rotate(-8deg);opacity:0;filter:grayscale(1)}}
+@media (prefers-reduced-motion:reduce){.cw-timer.show,.cw-timer.low .cw-timer-num,.rd-ccard.cw-ghost{animation:none}.rd-ccard.cw-ghost{opacity:0}}
 .rd-cgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:min-content;gap:1.8cqw;align-content:center;overflow-y:auto;overflow-x:hidden;}
 .rd-ccard{position:relative;border-radius:2.6cqw;padding:1.8cqw .6cqw;display:flex;flex-direction:column;align-items:center;gap:1cqw;background:#1a0d33;border:.4cqw solid rgba(227,195,106,.16);cursor:pointer;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
 /* شريحة العلم مستطيلة 3:2 لا مربّعة: الأعلام كلها أفقية، فالمربّع كان يحصر
@@ -47552,6 +47567,11 @@ function drawClearCanvas() {
                 <div class="rd-beam l"></div>
                 <div class="rd-beam r"></div>
                 <div class="rd-scan"></div>
+                <div class="cw-timer" id="cw-timer" aria-live="off" aria-label="مؤقت الدور">
+                  <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="cw-timer-bg" cx="50" cy="50" r="44"/><circle class="cw-timer-ring" id="cw-timer-ring" cx="50" cy="50" r="44"/></svg>
+                  <div class="cw-timer-num" id="cw-timer-num">15</div>
+                  <div class="cw-timer-lbl">ثانية</div>
+                </div>
                 <div class="rd-lens-tag">منشور القرعة</div>
               </div>
               <div class="cw-turn-banner" id="cw-turn-banner">
@@ -47632,6 +47652,9 @@ let CW_SPIN_RANDOM_MS = 1500;          // overridden per-round from moderator se
 let cwAllianceEnabled = false;         // مود إضافي: تحالف مؤقت يحمي دولتين من إقصاء بعضهما
 let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
+let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
+let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
 let cwGoldenCountryName = null;
 let cwGoldenCountrySaved = false;      // هل استُهلكت حمايتها بالفعل
@@ -48055,6 +48078,8 @@ function startCountryWarRound() {
   CW_SPIN_MIN_MS = modGetSetting('countrywar', 'spinMinMs', 4000);
   CW_SPIN_RANDOM_MS = modGetSetting('countrywar', 'spinRandomMs', 1500);
   cwAllianceEnabled = modGetSetting('countrywar', 'allianceEnabled', false);
+  cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
+  cwTurnTimerUid = null; cwGridRoundSeq++;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
   cwRevivalEnabled = modGetSetting('countrywar', 'revivalEnabled', true);
@@ -48147,22 +48172,30 @@ function cwFlagFallback(img) {
 // ==================== COUNTRIES GRID RENDER ====================
 function renderCWCountriesGrid() {
   const grid = document.getElementById('cw-countries-grid');
+  // لقطة المواضع القديمة (للتحريك السلس): الدول المُقصاة تختفي بالكامل والباقي يتقارب بدون فراغات
+  const prev = new Map(); const sameRound = grid.dataset.cwRound === String(cwGridRoundSeq); grid.dataset.cwRound = String(cwGridRoundSeq);
+  if (sameRound) grid.querySelectorAll('.rd-ccard:not(.cw-ghost)').forEach(el => { const r = el.getBoundingClientRect(); prev.set(el.id, { el: el, r: r, html: el.innerHTML, cls: el.className }); });
+  grid.querySelectorAll('.cw-ghost').forEach(g => g.remove());
   grid.innerHTML = '';
-  // ابني الشبكة من الدول الموزعة فعلياً باللعبة (نشطة + مُقصاة)
-  const allInGame = [...cwActiveCountries.map(c => c.name), ...cwEliminatedNames];
-  let __cwCardIdx = 0;
-  cwCountryBank.filter(c => allInGame.includes(c.name)).forEach(c => {
-    const eliminated = cwEliminatedNames.has(c.name);
+  // نعرض الدول الباقية فقط
+  const activeNames = new Set(cwActiveCountries.map(c => c.name));
+  let __cwCardIdx = 0; const nowIds = new Set();
+  cwCountryBank.filter(c => activeNames.has(c.name)).forEach(c => {
     const card = document.createElement('div');
-    card.className = 'rd-ccard' + (eliminated ? ' eliminated' : '');
-    card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_');
+    card.className = 'rd-ccard';
+    card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_'); nowIds.add(card.id);
     card.innerHTML = `<div class="rd-ccard-aim"></div><div class="rd-chip" style="background:${rdGrad(__cwCardIdx)}">${cwFlagImg(c)}</div><div class="rd-cname">${esc(c.name)}</div>`;
     __cwCardIdx++;
-    if (!eliminated) {
-      card.onclick = () => cwStreamerEliminate(c.name);
-    }
+    card.onclick = () => cwStreamerEliminate(c.name);
     grid.appendChild(card);
   });
+  if (prev.size && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const ng = grid.getBoundingClientRect();
+    // الباقي ينزلق لمكانه الجديد (FLIP)
+    grid.querySelectorAll('.rd-ccard').forEach(el => { const p = prev.get(el.id); if (!p) return; const r = el.getBoundingClientRect(); const dx = p.r.left - r.left, dy = p.r.top - r.top; if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return; el.style.transition = 'none'; el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transition = 'transform .45s cubic-bezier(.16,1,.3,1)'; el.style.transform = ''; })); });
+    // المُقصاة: نسخة شبحية بمكانها القديم تتلاشى ثم تُزال
+    prev.forEach((p, id) => { if (nowIds.has(id)) return; const g = document.createElement('div'); g.className = p.cls.replace('eliminated', '') + ' cw-ghost'; g.innerHTML = p.html; g.style.left = (p.r.left - ng.left + grid.scrollLeft) + 'px'; g.style.top = (p.r.top - ng.top + grid.scrollTop) + 'px'; g.style.width = p.r.width + 'px'; g.style.height = p.r.height + 'px'; grid.appendChild(g); setTimeout(() => g.remove(), 520); });
+  }
   cwUpdateStageHead();
   // مرآة لوحة المالك فقط (إضافي، best-effort، مخنوقة). هذي دالة رسم بحتة
   // تُستدعى بعد كل تغيّر فعلي على cwActiveCountries (بداية راوند، انضمام وسط
@@ -48282,6 +48315,39 @@ function cwUpdateStageHead() {
   const n = document.getElementById('cw-round-num');
   if (n) n.textContent = rdAr(cwEliminatedNames.size + 1);
 }
+
+// ==================== مؤقت دور اللاعب (الإعدادات المتقدمة: turnSeconds) ====================
+// يبدأ العدّ لحظة يُعيَّن صاحب الدور (cwTurnUid) ويتوقف عند أي إقصاء/إنهاء. لو انتهى الوقت دون اختيار
+// يروح دوره ويلف الدور تلقائياً على غيره. يتجمّد أثناء أنيميشن الإنعاش.
+function cwTurnTimerTick() {
+  const el = document.getElementById('cw-timer'); if (!el) return;
+  const now = Date.now(); const dt = now - (cwTurnTimerLast || now); cwTurnTimerLast = now;
+  const on = cwGameStatus === 'active' && cwTurnUid && cwTurnSeconds > 0 && !cwSpinning;
+  if (!on) { if (cwTurnTimerUid !== null) cwTurnTimerUid = null; el.classList.remove('show', 'low'); const n0 = document.getElementById('cw-timer-num'); if (n0 && cwTurnSeconds > 0) n0.textContent = String(cwTurnSeconds); const r0 = document.getElementById('cw-timer-ring'); if (r0) r0.style.strokeDashoffset = '0'; return; }
+  if (cwTurnTimerUid !== cwTurnUid) { cwTurnTimerUid = cwTurnUid; cwTurnDeadline = now + cwTurnSeconds * 1000; el.classList.remove('low'); }
+  if (isGamePausedForRevival('cw')) { cwTurnDeadline += dt; }
+  const left = Math.max(0, cwTurnDeadline - now); const frac = left / (cwTurnSeconds * 1000);
+  el.classList.add('show'); el.classList.toggle('low', left <= 5000 && cwTurnSeconds > 5);
+  const num = document.getElementById('cw-timer-num'); const secs = Math.ceil(left / 1000); if (num && num.textContent !== String(secs)) { num.textContent = String(secs); if (left <= 5000 && left > 0 && cwTurnSeconds > 5) { try { sfx.tick(soundManager.gain('cw_tick')); } catch (e) {} } }
+  const ring = document.getElementById('cw-timer-ring'); if (ring) ring.style.strokeDashoffset = String(276.46 * (1 - frac));
+  if (left <= 0) cwTurnTimeout();
+}
+function cwTurnTimeout() {
+  if (!cwTurnUid || cwGameStatus !== 'active') return;
+  const u = cwParticipants.get(cwTurnUid); const nm = u ? (u.nickname || u.uniqueId) : cwTurnUid;
+  cwTurnUid = null; cwTurnTimerUid = null; cwDoubleElimActivated = false; cwDoubleElimArmed = false; cwDoubleElimEliminationsThisTurn = 0;
+  const result = document.getElementById('cw-spin-result'); if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — راح دوره!'; result.className = 'cw-spin-result show'; }
+  const banner = document.getElementById('cw-turn-banner'); if (banner) banner.className = 'cw-turn-banner';
+  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — يلف الدور على غيره');
+  try { sfx.click(soundManager.gain('cw_spin_start')); } catch (e) {}
+  drawCWWheel(0);
+  setTimeout(function cwAutoSpinRetry() {
+    if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning || cwTurnUid) return;
+    if (isGamePausedForRevival('cw')) { setTimeout(cwAutoSpinRetry, 600); return; }
+    spinCountryWarWheel();
+  }, 1600);
+}
+setInterval(cwTurnTimerTick, 150);
 
 function cwStreamerEliminate(countryName) {
   if (cwGameStatus !== 'active' || !cwTurnUid) { toast('⚠️ انتظر دور اللف أولاً'); return; }
@@ -75393,6 +75459,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     <div class="api-section">
       <div class="field-hint" style="margin-bottom:0;font-size:13px;">اربط بثك مرة وحدة من الصفحة الرئيسية (زر «ابدأ بثاً سريعاً») — الألعاب كلها تقرأ شات بثك تلقائياً، سواء تيك توك أو تويتش أو كيك أو يوتيوب. لو انقطع البث تتوقف المهلة وتُحفظ الحالة. اللعبة ثلاثية الأبعاد وتحتاج متصفحاً يدعم WebGL.</div>
     </div>
+    <div id="mod-advanced-harfnajat"></div>
     <button class="btn-primary" id="btn-harfnajat-launch" onclick="launchHarfNajat()">ابدأ اللعبة</button>
     <div class="status-msg" id="harfnajat-status"></div>
   </div>
@@ -75497,7 +75564,8 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     try { contestNoteActivity(); } catch (e) {}
     var lu = $(TAG + '-live-user'); if (lu) lu.textContent = '@' + streamer;
     active = true; ready = false; queue = []; users.clear(); kwCache = ''; kwAt = 0; downSince = 0;
-    var f = frame(); f.onload = onFrameLoad; f.src = SRC;
+    var ans = 20; try { ans = Math.max(5, Math.min(600, Math.round(Number(modGetSetting('harfnajat', 'answerSeconds', 20)) || 20))); } catch (e) {}
+    var f = frame(); f.onload = onFrameLoad; f.src = SRC + '&ans=' + ans;
     show(TAG);
     try { homeRegisterGameListener(TAG, handleEvent); } catch (e) {}
     setStatus('', '');
@@ -75515,6 +75583,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
   window.launchHarfNajat = launch;
   window.goSetupHarfNajat = function () {
     show('setup-' + TAG);
+    try { modInitAdvancedSection('harfnajat'); } catch (e) {}
     try { var h = $('hnj-hero'); if (h && !h.querySelector('svg') && window.__hlobArt && window.__hlobArt.harfnajat) h.insertAdjacentHTML('afterbegin', window.__hlobArt.harfnajat('#FF5A1F')); } catch (e) {}
   };
   window.harfnajatHandleEvent = handleEvent;
@@ -86500,5 +86569,764 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <link rel="stylesheet" href="/ehsemha-responsive-fixes.css">
 <link rel="stylesheet" href="/ehsemha-perf.css">
 <script src="/ehsemha-perf.js" defer></script>
+<style id="ehm-owner-messages-css">
+/* ==========================================================================
+   EHSEMHA — Owner Messages Redesign  (v1)
+   Two independent visual identities:
+     1) ehm-owner-signal-*    → أعلى الشاشة  — EHSEMHA SIGNAL STRIP
+     2) ehm-owner-imperial-*  → منتصف الشاشة — EHSEMHA IMPERIAL TRANSMISSION
+   كل الأسماء بنطاق مستقل لتفادي أي تضارب مع CSS الموقع.
+   ========================================================================== */
+:root{
+  --ehm-owner-ink:#07040D;
+  --ehm-owner-deep:#170B2D;
+  --ehm-owner-royal:#5B21B6;
+  --ehm-owner-glow:#7C3AED;
+  --ehm-owner-light:#A78BFA;
+  --ehm-owner-text:#F8F7FC;
+  --ehm-owner-font:'Cairo','Tajawal',system-ui,'Segoe UI',Tahoma,sans-serif;
+  /* ارتفاع الهيدر: عدّله حسب هيدر الموقع الفعلي */
+  --ehm-owner-signal-top:80px;
+}
+
+/* ربط الدمج: نخفي بانرَي المالك القديمين فقط (الوظائف والكلاسات تبقى تعمل) */
+html.ehm-owner-on #msg-personal-banner,
+html.ehm-owner-on #msg-broadcast-banner{display:none !important}
+/* الخلفية المشتركة تُخفى فقط حين تكون الرسالة الوسطية للمالك هي المستهلك الوحيد */
+html.ehm-owner-hide-shared-backdrop #msg-banner-backdrop{display:none !important}
+
+/* ==========================================================================
+   1) SIGNAL STRIP
+   ========================================================================== */
+.ehm-owner-signal-stack{
+  position:fixed;left:0;right:0;
+  top:calc(env(safe-area-inset-top,0px) + var(--ehm-owner-signal-top));
+  display:flex;justify-content:center;padding:0 12px;box-sizing:border-box;
+  pointer-events:none;direction:rtl;
+}
+.ehm-owner-signal-stack[data-kind="personal"]{z-index:9998;margin-top:var(--ehm-owner-shift,0px)}
+.ehm-owner-signal-stack[data-kind="broadcast"]{z-index:100002}
+
+.ehm-owner-signal{
+  --ehm-edge:#6d4fc2;
+  position:relative;width:min(940px,100%);pointer-events:auto;isolation:isolate;
+  direction:rtl;color:var(--ehm-owner-text);font-family:var(--ehm-owner-font);
+  -webkit-tap-highlight-color:transparent;
+}
+.ehm-owner-signal[hidden]{display:none}
+.ehm-owner-signal-reveal{
+  position:relative;display:grid;min-height:58px;
+  grid-template-columns:auto 12px minmax(0,1fr) auto;
+}
+/* ---- الهيكل ---- */
+.ehm-owner-signal-frame{position:absolute;inset:0;pointer-events:none;z-index:0}
+.ehm-owner-signal-frame i{position:absolute;display:block}
+.ehm-owner-signal-shell,.ehm-owner-signal-edge{
+  inset:0;
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,30px 100%,22px calc(100% - 8px),0 calc(100% - 8px),0 16px);
+}
+.ehm-owner-signal-shell{background:linear-gradient(100deg,#5a43a3 0%,#241c3d 26%,#17122a 62%,#46327f 100%)}
+.ehm-owner-signal-edge{background:linear-gradient(100deg,#c4b5fd,#7C3AED 45%,#a78bfa);opacity:0;transition:opacity .28s ease}
+.ehm-owner-signal:hover .ehm-owner-signal-edge{opacity:.75}
+.ehm-owner-signal-plate{
+  inset:1px;
+  clip-path:polygon(16px 0,100% 0,100% calc(100% - 16px),calc(100% - 16px) 100%,30px 100%,22px calc(100% - 8px),0 calc(100% - 8px),0 16px);
+  background:
+    repeating-linear-gradient(90deg,rgba(255,255,255,.018) 0 1px,transparent 1px 4px),
+    linear-gradient(180deg,#14101f 0%,#0b0813 100%);
+}
+.ehm-owner-signal-slat{ /* شريحة متداخلة خلف زر الإغلاق */
+  top:1px;bottom:1px;left:18px;width:104px;
+  background:linear-gradient(90deg,rgba(124,58,237,.16),rgba(124,58,237,0));
+  clip-path:polygon(0 0,100% 0,72% 100%,0 100%);
+}
+.ehm-owner-signal-rail{ /* المسار الضوئي */
+  top:1px;right:0;left:16px;height:2px;transform-origin:right center;opacity:.55;
+  background:linear-gradient(270deg,#ddd6fe,#A78BFA 18%,#7C3AED 55%,rgba(124,58,237,0));
+}
+.ehm-owner-signal-rail::after{
+  content:"";position:absolute;top:0;right:0;width:16%;height:100%;opacity:0;
+  background:linear-gradient(270deg,transparent,#fff,transparent);
+}
+.ehm-owner-signal.is-idle .ehm-owner-signal-rail::after{animation:ehm-owner-signal-sheen 8s linear infinite}
+@keyframes ehm-owner-signal-sheen{
+  0%{transform:translateX(0);opacity:0}6%{opacity:.7}30%{opacity:.7}36%{opacity:0;transform:translateX(-520%)}100%{transform:translateX(-520%);opacity:0}
+}
+.ehm-owner-signal-ticks{ /* خطوط متوازية دقيقة */
+  bottom:5px;right:24px;width:46px;height:3px;transform-origin:right center;opacity:.7;
+  background:repeating-linear-gradient(115deg,#A78BFA 0 2px,transparent 2px 6px);
+}
+.ehm-owner-signal-under{
+  left:8%;right:8%;bottom:-7px;height:7px;opacity:.85;
+  background:radial-gradient(ellipse at 50% 0,rgba(124,58,237,.5),transparent 70%);
+}
+/* ---- وحدة تعريف المرسل ---- */
+.ehm-owner-signal-id{
+  position:relative;z-index:1;margin:1px 1px 1px 0;
+  display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:150px;
+  padding:9px 24px 9px 30px;
+  background:linear-gradient(90deg,#08050f,#1d1140 58%,#2c1869);
+  clip-path:polygon(18px 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,0 100%);
+}
+.ehm-owner-signal-lamp{
+  display:block;width:4px;height:4px;background:#C4B5FD;margin-bottom:2px;
+  box-shadow:8px 0 0 #3b2a66,16px 0 0 #3b2a66;
+}
+.ehm-owner-signal.is-idle .ehm-owner-signal-lamp{animation:ehm-owner-signal-lamp 3.2s steps(1) infinite}
+@keyframes ehm-owner-signal-lamp{
+  0%{box-shadow:8px 0 0 #3b2a66,16px 0 0 #3b2a66}34%{box-shadow:8px 0 0 #A78BFA,16px 0 0 #3b2a66}67%{box-shadow:8px 0 0 #3b2a66,16px 0 0 #A78BFA}
+}
+.ehm-owner-signal-tag{font-size:10.5px;font-weight:700;letter-spacing:.05em;color:#B8A6F5;line-height:1.2}
+.ehm-owner-signal-sender{font-size:15px;font-weight:900;line-height:1.25;color:var(--ehm-owner-text);white-space:nowrap}
+.ehm-owner-signal-sep{
+  position:relative;z-index:1;display:block;
+  background:linear-gradient(105deg,transparent 38%,rgba(167,139,250,.6) 39%,rgba(167,139,250,.6) 44%,transparent 45%,transparent 58%,rgba(255,255,255,.14) 59%,rgba(255,255,255,.14) 61%,transparent 62%);
+}
+/* ---- النص ---- */
+.ehm-owner-signal-body{position:relative;z-index:1;min-width:0;padding:10px 14px 12px}
+.ehm-owner-signal-label{
+  display:flex;align-items:center;gap:7px;margin-bottom:3px;
+  font-size:11px;font-weight:800;letter-spacing:.04em;color:var(--ehm-owner-light);line-height:1.3;
+}
+.ehm-owner-signal-label::before{content:"";width:6px;height:6px;background:var(--ehm-owner-glow);transform:rotate(45deg);flex:none}
+.ehm-owner-signal-textwrap{position:relative;max-height:min(34vh,210px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5B21B6 transparent;padding-bottom:2px}
+.ehm-owner-signal-text{
+  position:relative;z-index:1;font-size:16px;font-weight:700;line-height:1.7;color:var(--ehm-owner-text);
+  white-space:pre-wrap;overflow-wrap:anywhere;unicode-bidi:plaintext;text-align:start;
+}
+.ehm-owner-signal-glint{
+  position:absolute;inset:0 -10% 0 -10%;pointer-events:none;opacity:0;z-index:0;
+  background:linear-gradient(270deg,transparent 30%,rgba(167,139,250,.35) 50%,transparent 70%);
+}
+.ehm-owner-signal-text a,.ehm-owner-imperial-text a{
+  color:#C4B5FD;text-decoration:underline;text-underline-offset:3px;direction:ltr;unicode-bidi:isolate;overflow-wrap:anywhere;
+}
+/* ---- زر الإغلاق ---- */
+.ehm-owner-signal-close,.ehm-owner-imperial-close{
+  position:relative;z-index:2;border:0;background:none;padding:0;margin:0;cursor:pointer;
+  color:var(--ehm-owner-light);display:grid;place-items:center;touch-action:manipulation;-webkit-tap-highlight-color:transparent;
+}
+.ehm-owner-signal-close{width:56px;min-height:48px;align-self:center;height:100%}
+.ehm-owner-signal-close>i,.ehm-owner-imperial-close>i{
+  position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;
+  border:1px solid rgba(167,139,250,.55);background:#120b20;transform:rotate(45deg);
+  transition:background-color .18s ease,border-color .18s ease,transform .18s ease;
+}
+.ehm-owner-signal-close svg,.ehm-owner-imperial-close svg{position:relative;width:12px;height:12px;transition:transform .22s cubic-bezier(.2,.8,.2,1),color .18s}
+.ehm-owner-signal-close:hover>i,.ehm-owner-imperial-close:hover>i{background:var(--ehm-owner-glow);border-color:#ddd6fe}
+.ehm-owner-signal-close:hover svg,.ehm-owner-imperial-close:hover svg{transform:rotate(90deg);color:#fff}
+.ehm-owner-signal-close:active>i,.ehm-owner-imperial-close:active>i{transform:rotate(45deg) scale(.86)}
+.ehm-owner-signal-close:focus-visible,.ehm-owner-imperial-close:focus-visible{outline:2px solid #ddd6fe;outline-offset:-4px;border-radius:8px}
+/* ---- مؤشر المدة ---- */
+.ehm-owner-signal-timer{position:absolute;z-index:2;left:34px;right:30px;bottom:3px;height:2px;background:rgba(167,139,250,.14);overflow:hidden}
+.ehm-owner-signal-timer[hidden]{display:none}
+.ehm-owner-signal-timer i{display:block;height:100%;transform-origin:right center;background:linear-gradient(270deg,#ddd6fe,#7C3AED)}
+/* ---- جوال: يُعاد ترتيب الوحدات (لا يُنسخ تصميم الكمبيوتر) ---- */
+@media (max-width:640px){
+  .ehm-owner-signal-stack{padding:0 8px}
+  .ehm-owner-signal-reveal{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id close" "body body"}
+  .ehm-owner-signal-id{grid-area:id;flex-direction:row;align-items:center;gap:9px;min-width:0;padding:7px 14px 7px 20px;clip-path:polygon(0 0,100% 0,100% 100%,16px 100%)}
+  .ehm-owner-signal-lamp{margin:0 0 0 4px}
+  .ehm-owner-signal-sender{font-size:13.5px}
+  .ehm-owner-signal-sep{display:none}
+  .ehm-owner-signal-close{grid-area:close;width:52px;height:44px;min-height:44px}
+  .ehm-owner-signal-body{grid-area:body;padding:8px 14px 12px;border-top:1px solid rgba(167,139,250,.14)}
+  .ehm-owner-signal-text{font-size:15.5px}
+  .ehm-owner-signal-slat{display:none}
+  .ehm-owner-signal-timer{left:22px;right:22px}
+  .ehm-owner-signal-ticks{display:none}
+}
+
+/* ==========================================================================
+   2) IMPERIAL TRANSMISSION
+   ========================================================================== */
+.ehm-owner-imperial{
+  --ehm-panel-clip:polygon(0 30px,30px 0,calc(50% - 72px) 0,calc(50% - 58px) 12px,calc(50% + 58px) 12px,calc(50% + 72px) 0,calc(100% - 16px) 0,100% 16px,100% calc(100% - 30px),calc(100% - 30px) 100%,calc(50% + 96px) 100%,calc(50% + 82px) calc(100% - 10px),calc(50% - 82px) calc(100% - 10px),calc(50% - 96px) 100%,16px 100%,0 calc(100% - 16px));
+  position:fixed;inset:0;display:grid;place-items:center;box-sizing:border-box;overflow:hidden;
+  padding:max(58px,env(safe-area-inset-top)) max(56px,env(safe-area-inset-right)) max(26px,env(safe-area-inset-bottom)) max(56px,env(safe-area-inset-left));
+  direction:rtl;color:var(--ehm-owner-text);font-family:var(--ehm-owner-font);
+}
+.ehm-owner-imperial[data-kind="personal"]{z-index:9998}
+.ehm-owner-imperial[data-kind="broadcast"]{z-index:100002}
+.ehm-owner-imperial[hidden]{display:none}
+/* الطبقة 1: الخلفية السينمائية (بدون blur) */
+.ehm-owner-imperial-scene{
+  position:absolute;inset:0;
+  background:
+    radial-gradient(ellipse 62% 52% at 50% 50%,rgba(91,33,182,.36),rgba(23,11,45,0) 72%),
+    radial-gradient(ellipse 130% 105% at 50% 50%,rgba(7,4,13,.58),rgba(7,4,13,.88));
+}
+.ehm-owner-imperial-grid{
+  position:absolute;left:50%;top:50%;width:min(1000px,130vw);height:min(600px,86vh);transform:translate(-50%,-50%);
+  background-image:linear-gradient(rgba(167,139,250,.075) 1px,transparent 1px),linear-gradient(90deg,rgba(167,139,250,.075) 1px,transparent 1px);
+  background-size:38px 38px;
+  -webkit-mask-image:radial-gradient(closest-side,#000 15%,transparent 100%);mask-image:radial-gradient(closest-side,#000 15%,transparent 100%);
+}
+.ehm-owner-imperial-flash{position:absolute;inset:0;opacity:0;background:radial-gradient(ellipse 55% 45% at 50% 50%,rgba(167,139,250,.55),rgba(124,58,237,.18) 55%,transparent 80%)}
+.ehm-owner-imperial-streak{
+  position:absolute;left:calc(50% + var(--x));top:calc(50% + var(--y));width:var(--w);height:1px;margin-left:calc(var(--w) / -2);
+  background:linear-gradient(90deg,transparent,#A78BFA,transparent);opacity:0;
+}
+.ehm-owner-imperial.is-lite .ehm-owner-imperial-streak,
+.ehm-owner-imperial.is-lite .ehm-owner-imperial-grid,
+.ehm-owner-imperial.is-lite .ehm-owner-imperial-sweep{display:none}
+
+.ehm-owner-imperial-stage{position:relative;width:min(680px,100%);max-height:100%;margin:0 auto}
+
+/* الطبقة 2: الهيكل الخارجي — أجنحة، خطوط، عُقد */
+.ehm-owner-imperial-wing{position:absolute;top:16%;bottom:16%;width:46px;z-index:0}
+.ehm-owner-imperial-wing i{position:absolute;display:block;background:linear-gradient(90deg,#150a30,#2a1858 62%,#4c35a0)}
+.ehm-owner-imperial-wing-r{right:-38px}
+.ehm-owner-imperial-wing-r i:nth-child(1){left:0;top:0;height:36%;width:100%;clip-path:polygon(0 0,84% 0,100% 28%,100% 100%,0 100%)}
+.ehm-owner-imperial-wing-r i:nth-child(2){left:0;top:41%;height:20%;width:70%;background:linear-gradient(90deg,#150a30,#2a1858);clip-path:polygon(0 0,100% 0,84% 100%,0 100%)}
+.ehm-owner-imperial-wing-r i:nth-child(3){left:0;top:66%;height:34%;width:92%;clip-path:polygon(0 0,100% 0,100% 72%,86% 100%,0 100%)}
+.ehm-owner-imperial-wing-l{left:-38px}
+.ehm-owner-imperial-wing-l i:nth-child(1){right:0;top:0;height:20%;width:64%;background:linear-gradient(270deg,#150a30,#2e1b62);clip-path:polygon(16% 0,100% 0,100% 100%,0 100%)}
+.ehm-owner-imperial-wing-l i:nth-child(2){
+  right:0;top:25%;height:46%;width:100%;
+  background:repeating-linear-gradient(0deg,transparent 0 7px,rgba(7,4,13,.7) 7px 9px),linear-gradient(270deg,#150a30,#2a1858 62%,#5b43b0);
+  clip-path:polygon(0 12%,100% 0,100% 100%,0 88%);
+}
+.ehm-owner-imperial-wing-l i:nth-child(3){right:0;top:76%;height:24%;width:80%;clip-path:polygon(0 0,100% 0,100% 100%,22% 100%)}
+.ehm-owner-imperial-line{position:absolute;height:1px;z-index:0;background:linear-gradient(90deg,transparent,#A78BFA 10%,#7C3AED 50%,#A78BFA 90%,transparent)}
+.ehm-owner-imperial-line-t{left:-34px;right:-34px;top:-10px}
+.ehm-owner-imperial-line-b{left:14%;right:-34px;bottom:-10px;transform-origin:right center}
+.ehm-owner-imperial-node{
+  position:absolute;width:6px;height:6px;margin:-3px;background:#C4B5FD;transform:rotate(45deg);z-index:2;
+  box-shadow:0 0 7px rgba(167,139,250,.85);
+}
+.ehm-owner-imperial-node-1{right:-34px;top:-10px}
+.ehm-owner-imperial-node-2{left:-34px;top:-10px}
+.ehm-owner-imperial-node-3{right:-34px;bottom:-10px}
+.ehm-owner-imperial-node-4{left:14%;bottom:-10px}
+.ehm-owner-imperial-node-5{right:-38px;top:16%}
+.ehm-owner-imperial-node-6{left:-38px;bottom:16%}
+.ehm-owner-imperial.is-idle .ehm-owner-imperial-node-2,
+.ehm-owner-imperial.is-idle .ehm-owner-imperial-node-4{animation:ehm-owner-imperial-twinkle 4.6s ease-in-out infinite}
+.ehm-owner-imperial.is-idle .ehm-owner-imperial-node-4{animation-delay:-2.3s}
+@keyframes ehm-owner-imperial-twinkle{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* الطبقة 3: لوحة الرسالة */
+.ehm-owner-imperial-panelwrap{position:relative;z-index:1}
+.ehm-owner-imperial-panel{position:relative}
+.ehm-owner-imperial-shell,.ehm-owner-imperial-edge{position:absolute;inset:0;clip-path:var(--ehm-panel-clip)}
+.ehm-owner-imperial-shell{background:linear-gradient(135deg,#6d4fc2,#2a1860 30%,#1a0e3a 60%,#7c5ad0)}
+.ehm-owner-imperial-edgewrap{position:absolute;inset:0;pointer-events:none}
+.ehm-owner-imperial-edge{background:linear-gradient(135deg,#ede9fe,#A78BFA 40%,#7C3AED);opacity:.0}
+.ehm-owner-imperial-plate{
+  position:absolute;inset:1.5px;clip-path:var(--ehm-panel-clip);overflow:hidden;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 0,rgba(124,58,237,.34),transparent 72%),
+    repeating-linear-gradient(135deg,rgba(167,139,250,.04) 0 2px,transparent 2px 10px),
+    linear-gradient(180deg,#1f1040 0%,#150a2d 55%,#0d061f 100%);
+}
+.ehm-owner-imperial-sweep{
+  position:absolute;top:0;bottom:0;left:0;width:38%;opacity:0;transform:translateX(280%) skewX(-16deg);
+  background:linear-gradient(90deg,transparent,rgba(221,214,254,.3),transparent);
+}
+.ehm-owner-imperial-brk{position:absolute;width:16px;height:16px;border:0 solid rgba(167,139,250,.5);pointer-events:none;z-index:1}
+.ehm-owner-imperial-brk-1{right:22px;top:20px;border-top-width:1px;border-right-width:1px}
+.ehm-owner-imperial-brk-2{right:22px;bottom:20px;border-bottom-width:1px;border-right-width:1px}
+.ehm-owner-imperial-brk-3{left:22px;bottom:20px;border-bottom-width:1px;border-left-width:1px}
+.ehm-owner-imperial-content{position:relative;z-index:2;padding:56px 50px 24px}
+.ehm-owner-imperial-title{
+  margin:0;text-align:center;font-weight:900;line-height:1.4;color:var(--ehm-owner-text);
+  font-size:clamp(18px,3.2vw,25px);letter-spacing:.01em;
+}
+.ehm-owner-imperial-divider{display:flex;align-items:center;justify-content:center;gap:10px;margin:10px auto 14px;width:min(74%,380px)}
+.ehm-owner-imperial-divider::before,.ehm-owner-imperial-divider::after{content:"";flex:1;height:1px;transform-origin:center}
+.ehm-owner-imperial-divider::before{background:linear-gradient(270deg,rgba(167,139,250,.8),transparent)}
+.ehm-owner-imperial-divider::after{background:linear-gradient(90deg,rgba(167,139,250,.8),transparent)}
+.ehm-owner-imperial-divider i{width:7px;height:7px;border:1px solid #A78BFA;background:#7C3AED;transform:rotate(45deg);flex:none}
+.ehm-owner-imperial-textwrap{
+  max-height:min(40vh,320px);overflow-y:auto;overscroll-behavior:contain;padding:0 6px 2px;
+  scrollbar-width:thin;scrollbar-color:#5B21B6 transparent;
+}
+.ehm-owner-imperial-text{
+  font-size:clamp(17px,2.5vw,21px);font-weight:700;line-height:1.95;color:var(--ehm-owner-text);
+  white-space:pre-wrap;overflow-wrap:anywhere;unicode-bidi:plaintext;text-align:start;
+}
+.ehm-owner-imperial.is-short .ehm-owner-imperial-text{text-align:center}
+.ehm-owner-imperial-foot{display:flex;align-items:center;gap:14px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(167,139,250,.16)}
+.ehm-owner-imperial-chip{display:flex;align-items:center;gap:8px;flex:none;font-size:13px;font-weight:800;color:#C4B5FD;white-space:nowrap}
+.ehm-owner-imperial-chip i{width:13px;height:14px;background:linear-gradient(135deg,#C4B5FD,#7C3AED);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.ehm-owner-imperial-timer{flex:1;height:3px;background:rgba(167,139,250,.14);overflow:hidden;min-width:30px}
+.ehm-owner-imperial-timer i{display:block;height:100%;transform-origin:right center;background:linear-gradient(270deg,#ddd6fe,#7C3AED)}
+.ehm-owner-imperial-timer.is-static{background:repeating-linear-gradient(90deg,rgba(167,139,250,.5) 0 3px,transparent 3px 9px)}
+.ehm-owner-imperial-timer.is-static i{display:none}
+.ehm-owner-imperial-close{position:absolute;z-index:3;top:12px;left:30px;width:48px;height:48px}
+
+/* الطبقة 4: النواة البصرية */
+.ehm-owner-imperial-core{position:absolute;z-index:3;left:50%;top:-50px;width:100px;height:100px;margin-left:-50px;pointer-events:none}
+.ehm-owner-imperial-core svg{width:100%;height:100%;overflow:visible;display:block}
+.ehm-owner-imperial-core .ring{transform-box:fill-box;transform-origin:center}
+.ehm-owner-imperial.is-idle .ehm-owner-imperial-core .ring-a{animation:ehm-owner-imperial-spin 26s linear infinite}
+.ehm-owner-imperial.is-idle .ehm-owner-imperial-core .ring-b{animation:ehm-owner-imperial-spin 18s linear infinite reverse}
+@keyframes ehm-owner-imperial-spin{to{transform:rotate(360deg)}}
+
+@media (max-width:620px){
+  .ehm-owner-imperial{padding:max(52px,env(safe-area-inset-top)) max(34px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(34px,env(safe-area-inset-left));
+    --ehm-panel-clip:polygon(0 20px,20px 0,calc(50% - 58px) 0,calc(50% - 46px) 10px,calc(50% + 46px) 10px,calc(50% + 58px) 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 20px),calc(100% - 20px) 100%,calc(50% + 70px) 100%,calc(50% + 60px) calc(100% - 8px),calc(50% - 60px) calc(100% - 8px),calc(50% - 70px) 100%,12px 100%,0 calc(100% - 12px))}
+  .ehm-owner-imperial-wing{width:28px;top:18%;bottom:18%}
+  .ehm-owner-imperial-wing-r{right:-22px}.ehm-owner-imperial-wing-l{left:-22px}
+  .ehm-owner-imperial-line-t,.ehm-owner-imperial-line-b{left:-16px;right:-16px}
+  .ehm-owner-imperial-line-b{left:12%}
+  .ehm-owner-imperial-node-1,.ehm-owner-imperial-node-3{right:-16px}
+  .ehm-owner-imperial-node-2{left:-16px}
+  .ehm-owner-imperial-node-5{right:-22px}.ehm-owner-imperial-node-6{left:-22px}
+  .ehm-owner-imperial-core{width:80px;height:80px;margin-left:-40px;top:-42px}
+  .ehm-owner-imperial-content{padding:46px 20px 18px}
+  .ehm-owner-imperial-close{top:8px;left:16px}
+  .ehm-owner-imperial-title{padding:0 34px}
+  .ehm-owner-imperial-brk{display:none}
+  .ehm-owner-imperial-foot{gap:10px}
+}
+@media (max-height:520px){
+  .ehm-owner-imperial{padding-top:max(46px,env(safe-area-inset-top));padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .ehm-owner-imperial-core{width:68px;height:68px;margin-left:-34px;top:-36px}
+  .ehm-owner-imperial-content{padding-top:36px;padding-bottom:12px}
+  .ehm-owner-imperial-textwrap{max-height:30vh}
+  .ehm-owner-imperial-divider{margin:6px auto 8px}
+  .ehm-owner-imperial-foot{margin-top:8px;padding-top:8px}
+  .ehm-owner-signal-textwrap{max-height:28vh}
+}
+@media (prefers-reduced-motion:reduce){
+  .ehm-owner-signal *,.ehm-owner-imperial *{animation:none !important;transition:none !important}
+}
+
+</style>
+<script id="ehm-owner-messages-js">
+/* ==========================================================================
+   EHSEMHA — Owner Messages Redesign: render + motion layer  (v1)
+   طبقة عرض مستقلة: لا تغيّر Firebase ولا دوال الإرسال ولا قواعد العرض.
+   API:   EHMOwnerMessages.show({kind,position,text,durationMode,durationSec})
+          EHMOwnerMessages.hide(kind)
+          EHMOwnerMessages.attach()   ← يربط الطبقة بالدوال الأصلية (انظر INTEGRATION.md)
+   ========================================================================== */
+(function (global) {
+  'use strict';
+  if (global.EHMOwnerMessages) return;
+
+  var DOC = document;
+  var EASE_OUT = 'cubic-bezier(.16,1,.3,1)';
+  var EASE_IN = 'cubic-bezier(.5,0,.9,.4)';
+  var EXIT_S = 520, EXIT_I = 640;          // مدد الخروج
+  var INTRO_S = 580, INTRO_I = 1100;       // مدد الدخول
+  var NS_SVG = 'http://www.w3.org/2000/svg';
+
+  var mqReduce = global.matchMedia ? global.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var LITE = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
+             (navigator.deviceMemory && navigator.deviceMemory <= 2);
+
+  var cur = { personal: null, broadcast: null };   // النسخة المعروضة لكل نوع
+  var pool = {};                                    // نسخ معاد استخدامها
+  var closeHandlers = { personal: null, broadcast: null };
+  var stacks = {};
+
+  /* ---------------------------------------------------------------- helpers */
+  function h(tag, cls, html) {
+    var e = DOC.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+  function q(root, sel) { return root.querySelector(sel); }
+
+  var URL_RE = /(https?:\/\/[^\s<>"'،؛]+)/gi;
+  function fillText(node, text) {           // نص المالك كما هو حرفيًا + روابط آمنة
+    node.textContent = '';
+    String(text == null ? '' : text).split(URL_RE).forEach(function (part, i) {
+      if (!part) return;
+      if (i % 2 === 1) {
+        var trail = '', m = part.match(/[.,;:!?)\]}،؛؟]+$/);
+        if (m) { trail = m[0]; part = part.slice(0, -trail.length); }
+        var a = h('a'); a.href = part; a.target = '_blank'; a.rel = 'noopener noreferrer nofollow'; a.textContent = part;
+        node.appendChild(a);
+        if (trail) node.appendChild(DOC.createTextNode(trail));
+      } else node.appendChild(DOC.createTextNode(part));
+    });
+  }
+  function anim(inst, el, kf, opt) {
+    if (!el) return null;
+    var a = el.animate(kf, Object.assign({ easing: EASE_OUT, fill: 'backwards' }, opt));
+    inst.anims.push(a);
+    return a;
+  }
+  function clearAnims(inst) {
+    inst.anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+    inst.anims.length = 0;
+    if (inst.timerAnim) { try { inst.timerAnim.cancel(); } catch (e) {} inst.timerAnim = null; }
+  }
+  function clearTimers(inst) {
+    for (var k in inst.t) { clearTimeout(inst.t[k]); }
+    inst.t = {};
+  }
+
+  /* ----------------------------------------------------------------- builders */
+  var X_SVG = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="square" fill="none"/></svg>';
+
+  function getStack(kind) {
+    if (stacks[kind]) return stacks[kind];
+    var s = h('div', 'ehm-owner-signal-stack'); s.setAttribute('data-kind', kind);
+    DOC.body.appendChild(s);
+    return (stacks[kind] = s);
+  }
+
+  function buildSignal(kind) {
+    var root = h('div', 'ehm-owner-signal');
+    root.hidden = true; root.setAttribute('role', 'status'); root.setAttribute('aria-live', 'polite'); root.setAttribute('data-kind', kind);
+    root.innerHTML =
+      '<div class="ehm-owner-signal-reveal">' +
+        '<div class="ehm-owner-signal-frame" aria-hidden="true">' +
+          '<i class="ehm-owner-signal-shell"></i><i class="ehm-owner-signal-edge"></i><i class="ehm-owner-signal-plate"></i>' +
+          '<i class="ehm-owner-signal-slat"></i><i class="ehm-owner-signal-rail"></i><i class="ehm-owner-signal-ticks"></i>' +
+        '</div>' +
+        '<div class="ehm-owner-signal-id"><span class="ehm-owner-signal-lamp"></span><span class="ehm-owner-signal-tag"></span><b class="ehm-owner-signal-sender">إدارة احسمها</b></div>' +
+        '<i class="ehm-owner-signal-sep" aria-hidden="true"></i>' +
+        '<div class="ehm-owner-signal-body"><div class="ehm-owner-signal-label"></div>' +
+          '<div class="ehm-owner-signal-textwrap"><i class="ehm-owner-signal-glint"></i><div class="ehm-owner-signal-text" dir="auto"></div></div></div>' +
+        '<button type="button" class="ehm-owner-signal-close" aria-label="إغلاق الرسالة"><i></i>' + X_SVG + '</button>' +
+        '<div class="ehm-owner-signal-timer" hidden><i></i></div>' +
+      '</div><i class="ehm-owner-signal-under" aria-hidden="true"></i><i class="ehm-owner-signal-spark" aria-hidden="true" style="position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;opacity:0;background:linear-gradient(90deg,transparent,#C4B5FD,transparent);pointer-events:none"></i>';
+    getStack(kind).appendChild(root);
+    var inst = { kind: kind, design: 'signal', root: root, state: 'hidden', anims: [], t: {}, timerAnim: null, introDone: false, exitMs: EXIT_S, introMs: INTRO_S };
+    inst.q = {
+      reveal: q(root, '.ehm-owner-signal-reveal'), rail: q(root, '.ehm-owner-signal-rail'), ticks: q(root, '.ehm-owner-signal-ticks'),
+      id: q(root, '.ehm-owner-signal-id'), sep: q(root, '.ehm-owner-signal-sep'), label: q(root, '.ehm-owner-signal-label'),
+      textwrap: q(root, '.ehm-owner-signal-textwrap'), text: q(root, '.ehm-owner-signal-text'), glint: q(root, '.ehm-owner-signal-glint'),
+      close: q(root, '.ehm-owner-signal-close'), timer: q(root, '.ehm-owner-signal-timer'), timerFill: q(root, '.ehm-owner-signal-timer i'),
+      tag: q(root, '.ehm-owner-signal-tag'), spark: q(root, '.ehm-owner-signal-spark'), under: q(root, '.ehm-owner-signal-under')
+    };
+    inst.q.close.addEventListener('click', function () { userClose(inst.kind); });
+    return inst;
+  }
+
+  function buildCore() {
+    var svg = DOC.createElementNS(NS_SVG, 'svg');
+    svg.setAttribute('viewBox', '-50 -50 100 100'); svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML =
+      '<defs>' +
+        '<radialGradient id="ehmc-g" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#C4B5FD" stop-opacity=".95"/><stop offset=".45" stop-color="#7C3AED" stop-opacity=".9"/><stop offset="1" stop-color="#170B2D"/></radialGradient>' +
+        '<radialGradient id="ehmc-halo" cx="50%" cy="50%" r="50%"><stop offset=".5" stop-color="#7C3AED" stop-opacity=".35"/><stop offset="1" stop-color="#7C3AED" stop-opacity="0"/></radialGradient>' +
+      '</defs>' +
+      '<circle r="49" fill="url(#ehmc-halo)"/>' +
+      '<g class="ring ring-a" fill="none" stroke="#A78BFA" stroke-width="2.2" stroke-linecap="round"><circle r="44" stroke-dasharray="62 30"/></g>' +
+      '<g class="ring ring-b" fill="none" stroke="#7C3AED" stroke-width="3" stroke-dasharray="2 7.2"><circle r="34"/></g>' +
+      '<polygon points="0,-27 23.4,-13.5 23.4,13.5 0,27 -23.4,13.5 -23.4,-13.5" fill="#12092a" stroke="#C4B5FD" stroke-width="1.4"/>' +
+      '<polygon points="0,-19 16.5,-9.5 16.5,9.5 0,19 -16.5,9.5 -16.5,-9.5" fill="url(#ehmc-g)"/>' +
+      '<path d="M0-8 8 0 0 8-8 0Z" fill="#F8F7FC"/><path d="M0-3 3 0 0 3-3 0Z" fill="#7C3AED"/>';
+    return svg;
+  }
+
+  function buildImperial(kind) {
+    var root = h('div', 'ehm-owner-imperial' + (LITE ? ' is-lite' : ''));
+    root.hidden = true; root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'رسالة من إدارة احسمها'); root.setAttribute('data-kind', kind);
+    var streaks = [['-300px', '-120px', '170px'], ['260px', '-150px', '130px'], ['-340px', '40px', '120px'], ['310px', '70px', '190px'], ['-200px', '170px', '150px'], ['150px', '190px', '110px']]
+      .map(function (s) { return '<i class="ehm-owner-imperial-streak" style="--x:' + s[0] + ';--y:' + s[1] + ';--w:' + s[2] + '"></i>'; }).join('');
+    root.innerHTML =
+      '<div class="ehm-owner-imperial-scene"><i class="ehm-owner-imperial-grid"></i>' + streaks + '<i class="ehm-owner-imperial-flash"></i></div>' +
+      '<div class="ehm-owner-imperial-stage">' +
+        '<div class="ehm-owner-imperial-wing ehm-owner-imperial-wing-r" aria-hidden="true"><i></i><i></i><i></i></div>' +
+        '<div class="ehm-owner-imperial-wing ehm-owner-imperial-wing-l" aria-hidden="true"><i></i><i></i><i></i></div>' +
+        '<i class="ehm-owner-imperial-line ehm-owner-imperial-line-t"></i><i class="ehm-owner-imperial-line ehm-owner-imperial-line-b"></i>' +
+        '<i class="ehm-owner-imperial-node ehm-owner-imperial-node-1"></i><i class="ehm-owner-imperial-node ehm-owner-imperial-node-2"></i>' +
+        '<i class="ehm-owner-imperial-node ehm-owner-imperial-node-3"></i><i class="ehm-owner-imperial-node ehm-owner-imperial-node-4"></i>' +
+        '<i class="ehm-owner-imperial-node ehm-owner-imperial-node-5"></i><i class="ehm-owner-imperial-node ehm-owner-imperial-node-6"></i>' +
+        '<div class="ehm-owner-imperial-panelwrap"><div class="ehm-owner-imperial-panel">' +
+          '<i class="ehm-owner-imperial-shell"></i><div class="ehm-owner-imperial-edgewrap"><i class="ehm-owner-imperial-edge"></i></div>' +
+          '<div class="ehm-owner-imperial-plate"><i class="ehm-owner-imperial-sweep"></i></div>' +
+          '<i class="ehm-owner-imperial-brk ehm-owner-imperial-brk-1"></i><i class="ehm-owner-imperial-brk ehm-owner-imperial-brk-2"></i><i class="ehm-owner-imperial-brk ehm-owner-imperial-brk-3"></i>' +
+          '<div class="ehm-owner-imperial-content">' +
+            '<h2 class="ehm-owner-imperial-title"></h2><div class="ehm-owner-imperial-divider" aria-hidden="true"><i></i></div>' +
+            '<div class="ehm-owner-imperial-textwrap"><div class="ehm-owner-imperial-text" dir="auto"></div></div>' +
+            '<div class="ehm-owner-imperial-foot"><span class="ehm-owner-imperial-chip"><i></i>إدارة احسمها</span><div class="ehm-owner-imperial-timer"><i></i></div></div>' +
+          '</div>' +
+          '<button type="button" class="ehm-owner-imperial-close" aria-label="إغلاق الرسالة"><i></i>' + X_SVG + '</button>' +
+        '</div></div>' +
+        '<div class="ehm-owner-imperial-core"></div>' +
+      '</div>';
+    q(root, '.ehm-owner-imperial-core').appendChild(buildCore());
+    DOC.body.appendChild(root);
+    var inst = { kind: kind, design: 'imperial', root: root, state: 'hidden', anims: [], t: {}, timerAnim: null, introDone: false, exitMs: EXIT_I, introMs: INTRO_I };
+    inst.q = {
+      scene: q(root, '.ehm-owner-imperial-scene'), grid: q(root, '.ehm-owner-imperial-grid'), flash: q(root, '.ehm-owner-imperial-flash'),
+      streaks: [].slice.call(root.querySelectorAll('.ehm-owner-imperial-streak')),
+      wingR: q(root, '.ehm-owner-imperial-wing-r'), wingL: q(root, '.ehm-owner-imperial-wing-l'),
+      lineT: q(root, '.ehm-owner-imperial-line-t'), lineB: q(root, '.ehm-owner-imperial-line-b'),
+      nodes: [].slice.call(root.querySelectorAll('.ehm-owner-imperial-node')),
+      panelwrap: q(root, '.ehm-owner-imperial-panelwrap'), edgewrap: q(root, '.ehm-owner-imperial-edgewrap'), edge: q(root, '.ehm-owner-imperial-edge'),
+      sweep: q(root, '.ehm-owner-imperial-sweep'), core: q(root, '.ehm-owner-imperial-core'),
+      content: q(root, '.ehm-owner-imperial-content'), title: q(root, '.ehm-owner-imperial-title'), divider: q(root, '.ehm-owner-imperial-divider'),
+      textwrap: q(root, '.ehm-owner-imperial-textwrap'), text: q(root, '.ehm-owner-imperial-text'), foot: q(root, '.ehm-owner-imperial-foot'),
+      timer: q(root, '.ehm-owner-imperial-timer'), timerFill: q(root, '.ehm-owner-imperial-timer i'), close: q(root, '.ehm-owner-imperial-close')
+    };
+    inst.q.close.addEventListener('click', function () { userClose(inst.kind); });
+    root.addEventListener('click', function (e) {   // النقر على الخلفية يغلق (كالسلوك الحالي)
+      if (e.target === root || e.target === inst.q.scene || e.target.parentNode === inst.q.scene) userClose(inst.kind);
+    });
+    return inst;
+  }
+
+  function getInst(kind, design) {
+    var key = kind + ':' + design;
+    return pool[key] || (pool[key] = design === 'signal' ? buildSignal(kind) : buildImperial(kind));
+  }
+
+  /* ----------------------------------------------------------------- content */
+  function setContent(i, o) {
+    var pub = i.kind === 'broadcast';
+    var text = o.text == null ? '' : String(o.text);
+    fillText(i.q.text, text);
+    if (i.design === 'signal') {
+      i.q.tag.textContent = pub ? 'رسالة رسمية' : 'رسالة خاصة';
+      i.q.label.textContent = pub ? 'إعلان رسمي' : 'رسالة خاصة لك';
+    } else {
+      i.q.title.textContent = pub ? 'رسالة من إدارة احسمها' : 'رسالة خاصة لك';
+      i.root.setAttribute('aria-label', i.q.title.textContent);
+      i.root.classList.toggle('is-short', text.length <= 80 && text.indexOf('\n') < 0);
+    }
+    i.q.textwrap.scrollTop = 0;
+  }
+
+  /* ------------------------------------------------------------------- intro */
+  function introSignal(i) {
+    var Q = i.q, D = 580;
+    anim(i, Q.rail, [
+      { transform: 'scaleX(0)', opacity: 1, offset: 0 },
+      { transform: 'scaleX(1)', opacity: 1, offset: .2 },
+      { transform: 'scaleX(1)', opacity: .55, offset: 1 }], { duration: D, easing: 'linear' });
+    anim(i, Q.reveal, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 120, duration: 260 });
+    anim(i, Q.id, [{ transform: 'translateX(46px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { delay: 120, duration: 260 });
+    anim(i, Q.sep, [{ transform: 'scaleY(0)' }, { transform: 'none' }], { delay: 240, duration: 150 });
+    anim(i, Q.ticks, [{ transform: 'scaleX(0)' }, { transform: 'none' }], { delay: 260, duration: 220 });
+    anim(i, Q.close, [{ transform: 'scale(.5)', opacity: 0 }, { transform: 'none', opacity: 1 }], { delay: 300, duration: 180 });
+    anim(i, Q.label, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 380, duration: 180 });
+    anim(i, Q.text, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 400, duration: 180 });
+    anim(i, Q.glint, [{ transform: 'translateX(70%)', opacity: 0 }, { opacity: .9, offset: .4 }, { transform: 'translateX(-70%)', opacity: 0 }], { delay: 380, duration: 200, easing: 'linear' });
+    anim(i, Q.timer, [{ opacity: 0 }, { opacity: 1 }], { delay: 480, duration: 100 });
+    i.t.intro = setTimeout(function () { i.introDone = true; i.root.classList.add('is-idle'); }, D);
+  }
+
+  function introImperial(i) {
+    var Q = i.q, lite = i.root.classList.contains('is-lite');
+    // 0–160 Background Reaction
+    anim(i, Q.scene, [{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing: 'linear' });
+    anim(i, Q.flash, [{ opacity: 0 }, { opacity: .85, offset: .35 }, { opacity: 0 }], { duration: 200, easing: 'linear', fill: 'none' });
+    if (!lite) {
+      anim(i, Q.grid, [{ opacity: 0 }, { opacity: 1 }], { delay: 80, duration: 320, easing: 'linear' });
+      Q.streaks.forEach(function (s, n) {
+        anim(i, s, [{ opacity: 0, transform: 'scaleX(0)' }, { opacity: .9, transform: 'scaleX(1)', offset: .45 }, { opacity: 0, transform: 'scaleX(1.2)' }], { delay: 20 + n * 35, duration: 340, easing: 'linear', fill: 'none' });
+      });
+    }
+    // 40–400 Core expansion
+    anim(i, Q.core, [
+      { transform: 'scale(.08) rotate(-120deg)', opacity: 0, offset: 0 },
+      { transform: 'scale(.42) rotate(-90deg)', opacity: 1, offset: .33, easing: EASE_OUT },
+      { transform: 'scale(1) rotate(0deg)', opacity: 1, offset: 1 }], { delay: 40, duration: 360, easing: 'linear' });
+    // 360–640 panel opens from its axis; 400–700 mechanical assembly
+    anim(i, Q.panelwrap, [{ clipPath: 'inset(50% 0 50% 0)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 360, duration: 290 });
+    anim(i, Q.wingR, [{ transform: 'translateX(130px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { delay: 400, duration: 300 });
+    anim(i, Q.wingL, [{ transform: 'translateX(-130px)', opacity: 0 }, { transform: 'none', opacity: 1 }], { delay: 400, duration: 300 });
+    anim(i, Q.lineT, [{ transform: 'scaleX(0)' }, { transform: 'none' }], { delay: 520, duration: 170 });
+    anim(i, Q.lineB, [{ transform: 'scaleX(0)' }, { transform: 'none' }], { delay: 620, duration: 170 });
+    Q.nodes.forEach(function (n, k) {
+      anim(i, n, [{ opacity: 0, transform: 'rotate(45deg) scale(0)' }, { opacity: 1, transform: 'rotate(45deg) scale(1.6)', offset: .6 }, { opacity: 1, transform: 'rotate(45deg) scale(1)' }], { delay: 650 + k * 25, duration: 160, easing: 'ease-out' });
+    });
+    // 700–850 Energy sweep (يمين → يسار) + إضاءة الحواف
+    if (!lite) anim(i, Q.sweep, [{ transform: 'translateX(280%) skewX(-16deg)', opacity: 1 }, { transform: 'translateX(-130%) skewX(-16deg)', opacity: 1 }], { delay: 700, duration: 150, easing: 'linear', fill: 'both' });
+    anim(i, Q.edgewrap, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 700, duration: 150, easing: 'linear' });
+    anim(i, Q.edge, [{ opacity: 0 }, { opacity: .95, offset: .45 }, { opacity: .32 }], { delay: 700, duration: 360, easing: 'ease-out', fill: 'both' });
+    // 850–1050 Message reveal: العنوان ثم النص
+    anim(i, Q.title, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 850, duration: 140 });
+    anim(i, Q.divider, [{ transform: 'scaleX(0)', opacity: 0 }, { transform: 'none', opacity: 1 }], { delay: 880, duration: 150 });
+    anim(i, Q.text, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { delay: 940, duration: 180 });
+    anim(i, Q.foot, [{ opacity: 0 }, { opacity: 1 }], { delay: 1000, duration: 100, easing: 'linear' });
+    anim(i, Q.close, [{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { delay: 700, duration: 200 });
+    i.t.intro = setTimeout(function () { i.introDone = true; i.root.classList.add('is-idle'); }, 1100);
+  }
+
+  function introSimple(i) {          // تقليل الحركة: ظهور هادئ فقط
+    anim(i, i.root, [{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: 'linear' });
+    i.introDone = true;
+  }
+
+  /* -------------------------------------------------------------------- exit */
+  function exitSignal(i) {
+    var Q = i.q, F = { fill: 'forwards' };
+    i.root.classList.remove('is-idle');
+    anim(i, Q.label, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ duration: 120, easing: 'linear' }, F));
+    anim(i, Q.text, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ duration: 120, easing: 'linear' }, F));
+    anim(i, Q.id, [{ transform: 'none', opacity: 1 }, { transform: 'translateX(40px)', opacity: 0 }], Object.assign({ delay: 60, duration: 200, easing: EASE_IN }, F));
+    [Q.sep, Q.ticks, Q.close, Q.timer].forEach(function (e) { anim(i, e, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ delay: 70, duration: 110, easing: 'linear' }, F)); });
+    anim(i, Q.reveal, [{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(47% 0 47% 0)' }], Object.assign({ delay: 140, duration: 230, easing: EASE_IN }, F));
+    anim(i, Q.spark, [{ opacity: 0 }, { opacity: 1 }], Object.assign({ delay: 330, duration: 60, easing: 'linear' }, F));
+    anim(i, Q.under, [{ opacity: .85 }, { opacity: 0 }], Object.assign({ delay: 200, duration: 200, easing: 'linear' }, F));
+    anim(i, i.root, [{ transform: 'scaleX(1)', opacity: 1 }, { transform: 'scaleX(0)', opacity: 0 }], Object.assign({ delay: 390, duration: 130, easing: EASE_IN }, F));
+  }
+
+  function exitImperial(i) {
+    var Q = i.q, F = { fill: 'forwards' };
+    i.root.classList.remove('is-idle');
+    [Q.title, Q.divider, Q.text, Q.foot, Q.close].forEach(function (e, n) { anim(i, e, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ delay: n * 12, duration: 130, easing: 'linear' }, F)); });
+    anim(i, Q.edge, [{ opacity: .32 }, { opacity: 0 }], Object.assign({ delay: 60, duration: 160, easing: 'linear' }, F));
+    Q.nodes.forEach(function (n) { anim(i, n, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ delay: 100, duration: 140, easing: 'linear' }, F)); });
+    anim(i, Q.wingR, [{ transform: 'none', opacity: 1 }, { transform: 'translateX(100px)', opacity: 0 }], Object.assign({ delay: 150, duration: 260, easing: EASE_IN }, F));
+    anim(i, Q.wingL, [{ transform: 'none', opacity: 1 }, { transform: 'translateX(-100px)', opacity: 0 }], Object.assign({ delay: 190, duration: 260, easing: EASE_IN }, F));
+    anim(i, Q.lineT, [{ transform: 'none', opacity: 1 }, { transform: 'scaleX(0)', opacity: 0 }], Object.assign({ delay: 170, duration: 200, easing: EASE_IN }, F));
+    anim(i, Q.lineB, [{ transform: 'none', opacity: 1 }, { transform: 'scaleX(0)', opacity: 0 }], Object.assign({ delay: 150, duration: 200, easing: EASE_IN }, F));
+    anim(i, Q.panelwrap, [{ clipPath: 'inset(0 0 0 0)' }, { clipPath: 'inset(50% 0 50% 0)' }], Object.assign({ delay: 230, duration: 230, easing: EASE_IN }, F));
+    anim(i, Q.core, [{ transform: 'scale(1) rotate(0deg)', opacity: 1 }, { transform: 'scale(.1) rotate(140deg)', opacity: 0 }], Object.assign({ delay: 300, duration: 270, easing: EASE_IN }, F));
+    anim(i, Q.scene, [{ opacity: 1 }, { opacity: 0 }], Object.assign({ delay: 380, duration: 250, easing: 'linear' }, F));
+  }
+
+  function quickFade(i, ms) {
+    anim(i, i.root, [{ opacity: 1 }, { opacity: 0 }], { duration: ms, easing: 'linear', fill: 'forwards' });
+  }
+
+  /* ------------------------------------------------------------ show / hide */
+  function scheduleTimer(i, o, introMs) {
+    clearTimeout(i.t.auto);
+    if (i.timerAnim) { try { i.timerAnim.cancel(); } catch (e) {} i.timerAnim = null; }
+    var timed = o.durationMode !== 'permanent';
+    if (i.design === 'signal') i.q.timer.hidden = !timed;
+    else i.q.timer.classList.toggle('is-static', !timed);
+    if (!timed) return;
+    var total = Math.max(1200, (Number(o.durationSec) > 0 ? Number(o.durationSec) : 7) * 1000);
+    var begin = Math.max(400, total - i.exitMs);       // الخروج البصري ينتهي مع نهاية المدة الأصلية
+    i.t.auto = setTimeout(function () { hide(i.kind); }, begin);
+    i.timerAnim = i.q.timerFill.animate([{ transform: 'scaleX(1)' }, { transform: 'scaleX(0)' }],
+      { duration: Math.max(200, begin - introMs), delay: introMs, easing: 'linear', fill: 'both' });
+  }
+
+  function show(o) {
+    o = o || {};
+    var kind = o.kind === 'broadcast' ? 'broadcast' : 'personal';
+    var design = o.position === 'center' ? 'imperial' : 'signal';
+    var prev = cur[kind];
+    if (prev && prev.design !== design) finalize(prev);             // تبديل الموضع: إخفاء فوري للتصميم الآخر
+    var i = getInst(kind, design);
+    if (i.state === 'exiting') finalize(i);
+    var again = i.state === 'shown';
+    setContent(i, o);
+    cur[kind] = i;
+    if (again) {                                                    // رسالة جديدة فوق نفس التصميم: لا نعيد الافتتاحية كاملة
+      i.anims.forEach(function (a) { try { a.cancel(); } catch (e) {} }); i.anims.length = 0;
+      if (!mqReduce.matches) anim(i, i.q.text, [{ clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 220 });
+      scheduleTimer(i, o, 0);
+    } else {
+      i.state = 'shown'; i.introDone = false; i.root.hidden = false;
+      if (mqReduce.matches) introSimple(i); else if (i.design === 'signal') introSignal(i); else introImperial(i);
+      scheduleTimer(i, o, mqReduce.matches ? 0 : i.introMs);
+    }
+    layout();
+    syncSharedBackdrop();
+  }
+
+  function hide(kind, instant) {
+    var i = cur[kind];
+    if (!i || i.state !== 'shown') return;
+    if (instant) return finalize(i);
+    i.state = 'exiting';
+    clearTimers(i); clearAnims(i);
+    var ms;
+    if (mqReduce.matches) { quickFade(i, 140); ms = 140; }
+    else if (!i.introDone) { quickFade(i, 200); ms = 200; }        // أُغلقت أثناء الافتتاحية
+    else { (i.design === 'signal' ? exitSignal : exitImperial)(i); ms = i.exitMs; }
+    i.root.classList.remove('is-idle');
+    i.t.fin = setTimeout(function () { finalize(i); }, ms + 40);
+    layout();
+  }
+
+  function finalize(i) {
+    clearTimers(i); clearAnims(i);
+    i.root.classList.remove('is-idle');
+    i.root.hidden = true; i.state = 'hidden'; i.introDone = false;
+    if (cur[i.kind] === i) cur[i.kind] = null;
+    layout();
+    syncSharedBackdrop();
+  }
+
+  function userClose(kind) {
+    var fn = closeHandlers[kind];
+    hide(kind);                       // يستجيب فورًا دون انتظار أي أنيميشن
+    if (typeof fn === 'function') { try { fn(); } catch (e) { if (global.console) console.error(e); } }
+  }
+
+  /* ------------------------------------------------- stacking (خاصة + عامة) */
+  function layout() {
+    var b = cur.broadcast, p = stacks.personal;
+    if (!p) return;
+    var shift = (b && b.design === 'signal' && b.state === 'shown') ? b.root.offsetHeight + 8 : 0;
+    var pc = cur.personal;
+    p.style.setProperty('--ehm-owner-shift', (pc && pc.design === 'signal' && shift) ? shift + 'px' : '0px');
+  }
+  if (global.addEventListener) global.addEventListener('resize', layout, { passive: true });
+
+  /* الخلفية المشتركة msg-banner-backdrop يستخدمها أيضًا إعلان الستريمر: لا نخفيها إلا إذا كان مستهلكها الوحيد رسالة مالك وسطية */
+  function syncSharedBackdrop() {
+    var ours = (cur.personal && cur.personal.design === 'imperial') || (cur.broadcast && cur.broadcast.design === 'imperial');
+    var sevt = DOC.getElementById('sevt-announce-banner');
+    var sevtOn = !!(sevt && sevt.classList.contains('visible'));
+    DOC.documentElement.classList.toggle('ehm-owner-hide-shared-backdrop', !!ours && !sevtOn);
+  }
+
+  /* --------------------------------------------------------- Esc للرسالة الوسطية */
+  DOC.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || e.defaultPrevented) return;
+    var t = (cur.broadcast && cur.broadcast.design === 'imperial' && cur.broadcast.state === 'shown') ? 'broadcast'
+          : (cur.personal && cur.personal.design === 'imperial' && cur.personal.state === 'shown') ? 'personal' : null;
+    if (t) userClose(t);
+  });
+
+  /* ------------------------------------------------------------ دمج مع الموقع */
+  var attached = false;
+  function attach(opts) {
+    if (attached) return; attached = true;
+    opts = opts || {};
+    var map = [
+      { kind: 'personal', el: 'msg-personal-banner', text: 'msg-personal-banner-text', show: 'personalMessageShow', dismiss: 'personalMessageDismiss' },
+      { kind: 'broadcast', el: 'msg-broadcast-banner', text: 'msg-broadcast-banner-text', show: 'broadcastMessageShow', dismiss: 'broadcastMessageDismiss' }
+    ];
+    DOC.documentElement.classList.add('ehm-owner-on');
+    map.forEach(function (m) {
+      var banner = DOC.getElementById(m.el);
+      closeHandlers[m.kind] = function () { if (typeof global[m.dismiss] === 'function') global[m.dismiss](); };
+      var orig = global[m.show];
+      if (typeof orig === 'function') {
+        global[m.show] = function (data) {
+          var r = orig.apply(this, arguments);                 // السلوك الأصلي أولًا دون أي تعديل
+          try { if (data) show({ kind: m.kind, position: data.position, text: data.text, durationMode: data.durationMode, durationSec: data.durationSec }); }
+          catch (e) { if (global.console) console.error('[EHM owner]', e); }
+          return r;
+        };
+      }
+      if (banner && global.MutationObserver) {
+        new MutationObserver(function () {
+          var vis = banner.classList.contains('visible');
+          if (!vis) { hide(m.kind); return; }
+          var c = cur[m.kind];
+          if (!c || c.state !== 'shown') {                    // احتياط: إن لم تُلتقط الدالة، نعرض من الـ DOM
+            var tn = DOC.getElementById(m.text);
+            show({ kind: m.kind, position: banner.classList.contains('pos-center') ? 'center' : 'top', text: tn ? tn.textContent : '', durationMode: 'permanent' });
+          }
+        }).observe(banner, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+    var sevt = DOC.getElementById('sevt-announce-banner');
+    if (sevt && global.MutationObserver) new MutationObserver(syncSharedBackdrop).observe(sevt, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  global.EHMOwnerMessages = {
+    version: '1.0.0',
+    show: show,
+    hide: function (kind, instant) { hide(kind, instant); },
+    hideAll: function () { hide('personal', true); hide('broadcast', true); },
+    isVisible: function (kind) { return !!(cur[kind] && cur[kind].state === 'shown'); },
+    configure: function (c) { if (c && c.closeHandlers) Object.assign(closeHandlers, c.closeHandlers); },
+    attach: attach
+  };
+})(window);
+EHMOwnerMessages.attach();
+</script>
 </body>
 </html>
