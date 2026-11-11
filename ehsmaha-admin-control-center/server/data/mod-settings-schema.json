@@ -1,0 +1,1127 @@
+{
+ "extractedFrom": "index.html#MOD_SETTINGS_SCHEMA + .gcard[data-tag]",
+ "games": {
+  "bomb": {
+   "name": "القنبلة المتحركة",
+   "fields": [
+    {
+     "key": "times",
+     "type": "numberArray",
+     "label": "مدة العد لكل تمريرة (بالثواني)",
+     "hint": "من الأولى إلى السادسة — كل قيمة أقل أو تساوي اللي قبلها عادة",
+     "length": 6,
+     "default": [
+      15,
+      12,
+      10,
+      7,
+      5,
+      4
+     ],
+     "min": 1,
+     "max": 60
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "sniper": {
+   "name": "القناص",
+   "fields": [
+    {
+     "key": "gridSize",
+     "type": "number",
+     "label": "عدد المربعات في الشبكة",
+     "hint": "الحالي: 50",
+     "default": 50,
+     "min": 1,
+     "max": 100
+    },
+    {
+     "key": "cellCapacity",
+     "type": "number",
+     "label": "عدد اللاعبين المسموح بنفس المربع",
+     "hint": "الحالي: 2",
+     "default": 2,
+     "min": 1,
+     "max": 50
+    },
+    {
+     "key": "ammoSniper",
+     "type": "number",
+     "label": "عدد طلقات القناص",
+     "hint": "الحالي: 25",
+     "default": 25,
+     "min": 1,
+     "max": 99
+    },
+    {
+     "key": "ammoBomb",
+     "type": "number",
+     "label": "عدد استخدامات القنبلة",
+     "hint": "الحالي: 6 — تضرب 4 مربعات متجاورة",
+     "default": 6,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "key": "ammoNuke",
+     "type": "number",
+     "label": "عدد استخدامات النووية",
+     "hint": "الحالي: 4 — تضرب 6 مربعات",
+     "default": 4,
+     "min": 0,
+     "max": 30
+    },
+    {
+     "key": "shieldEnabled",
+     "type": "toggle",
+     "label": "تفعيل الدرع الواقي",
+     "hint": "3 مربعات عشوائية فيها درع — يمتص ضربة واحدة فقط لمن يختبئ فيها",
+     "default": false
+    },
+    {
+     "key": "goldenZoneEnabled",
+     "type": "toggle",
+     "label": "تفعيل منطقة الانفجار الذهبية",
+     "hint": "منطقة عشوائية — القضاء عليها من فيها يمنحه نقاط/مفاجأة إضافية",
+     "default": false
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "hz": {
+   "name": "ضربة الحظ",
+   "fields": [
+    {
+     "key": "gridSize",
+     "type": "number",
+     "label": "عدد صناديق الحظ في الشبكة",
+     "hint": "الحالي: 60",
+     "default": 60,
+     "min": 1,
+     "max": 100
+    },
+    {
+     "key": "maxClicks",
+     "type": "number",
+     "label": "عدد الضغطات المسموحة للستريمر",
+     "hint": "الحالي: 15 — بعد ما تخلص كل الباقين ناجين وفايزين!",
+     "default": 15,
+     "min": 1,
+     "max": 100
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "crownsteal": {
+   "name": "سرقة التاج",
+   "fields": [
+    {
+     "key": "holdDuration",
+     "type": "number",
+     "label": "مدة حمل التاج للفوز (بالثواني)",
+     "hint": "الحالي: 5",
+     "default": 5,
+     "min": 2,
+     "max": 30
+    },
+    {
+     "key": "maxStealAttempts",
+     "type": "number",
+     "label": "عدد محاولات السرقة لكل لاعب",
+     "hint": "الحالي: 2",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "key": "immunityEnabled",
+     "type": "toggle",
+     "label": "تفعيل الحماية المؤقتة",
+     "hint": "فرصة عشوائية لحامل التاج تمنع السرقة لمدة قصيرة",
+     "default": false
+    },
+    {
+     "key": "speedupEnabled",
+     "type": "toggle",
+     "label": "تفعيل تسارع السرقة",
+     "hint": "كل ما انسرق التاج أكثر، مدة الحمل المطلوبة للفوز تقل قليلاً (يزيد التوتر)",
+     "default": false
+    }
+   ]
+  },
+  "lastletter": {
+   "name": "آخر حرف",
+   "fields": [
+    {
+     "key": "turnSeconds",
+     "type": "number",
+     "label": "مدة دور اللاعب (بالثواني)",
+     "hint": "الحالي: 10",
+     "default": 10,
+     "min": 3,
+     "max": 60
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "box": {
+   "name": "الصندوق العشوائي",
+   "fields": [
+    {
+     "key": "boxCount",
+     "type": "number",
+     "label": "عدد الصناديق بكل دور",
+     "hint": "الحالي: 3 (إقصاءان + حصانة) — تتوزع المحتويات تلقائياً كل ما زاد العدد",
+     "default": 3,
+     "min": 3,
+     "max": 9
+    },
+    {
+     "key": "timeLimit",
+     "type": "number",
+     "label": "مدة اختيار الصندوق (بالثواني)",
+     "hint": "الحالي: 15",
+     "default": 15,
+     "min": 5,
+     "max": 60
+    },
+    {
+     "key": "goldenBoxEnabled",
+     "type": "toggle",
+     "label": "تفعيل الصندوق الذهبي والصندوق الإقصاء الثنائي",
+     "hint": "فرصة 60% كل دور تضيف صندوق ذهبي (جائزة مضاعفة) وصندوق إقصاء ثنائي (يقصي شخصين) بدل صندوقين عاديين",
+     "default": false
+    },
+    {
+     "key": "doubleImmunityEnabled",
+     "type": "toggle",
+     "label": "تفعيل ظهور صندوقين حصانة",
+     "hint": "فرصة عشوائية كل دور يكون فيه صندوقا حصانة بدل صندوق واحد",
+     "default": false
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "whoami": {
+   "name": "من أنا؟",
+   "fields": [
+    {
+     "key": "maxAttempts",
+     "type": "number",
+     "label": "عدد المحاولات لكل متابع",
+     "hint": "الحالي: 3",
+     "default": 3,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "key": "hintOnFailEnabled",
+     "type": "toggle",
+     "label": "تفعيل تلميح إضافي بعد محاولة فاشلة",
+     "hint": "يحتاج الستريمر يكتب تلميح ثاني عند إنشاء اللعبة",
+     "default": false
+    },
+    {
+     "key": "timerEnabled",
+     "type": "toggle",
+     "label": "تفعيل وقت محدد للراوند",
+     "hint": "إذا خلص الوقت بدون إجابة صحيحة، ينتهي الراوند بدون فائز",
+     "default": false
+    },
+    {
+     "key": "timerSeconds",
+     "type": "number",
+     "label": "مدة الراوند (بالثواني) — إذا الوقت مفعّل",
+     "hint": "الحالي: 30",
+     "default": 30,
+     "min": 10,
+     "max": 120
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "أول إجابة صحيحة تأخذ نقطتين بلوحة المتصدرين بدل نقطة واحدة",
+     "default": false
+    }
+   ]
+  },
+  "ig": {
+   "name": "خمن الصورة",
+   "fields": [
+    {
+     "key": "timerEnabled",
+     "type": "toggle",
+     "label": "تفعيل وقت محدد للراوند",
+     "hint": "إذا خلص الوقت بدون إجابة صحيحة، ينتهي الراوند بدون فائز وتنكشف الإجابة",
+     "default": false
+    },
+    {
+     "key": "timerSeconds",
+     "type": "number",
+     "label": "مدة الراوند (بالثواني) — إذا الوقت مفعّل",
+     "hint": "الحالي: 25",
+     "default": 25,
+     "min": 8,
+     "max": 90
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "أول متابع يخمّن صح يأخذ نقطتين بلوحة المتصدرين بدل نقطة واحدة",
+     "default": false
+    }
+   ]
+  },
+  "priceguess": {
+   "name": "تخمين السعر",
+   "fields": [
+    {
+     "key": "maxAttempts",
+     "type": "number",
+     "label": "عدد المحاولات لكل متابع",
+     "hint": "الحالي: 2",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "key": "doubleWinEnabled",
+     "type": "toggle",
+     "label": "تفعيل مضاعفة الفوز للإجابة الأولى المضبوطة",
+     "hint": "أول متابع يجاوب السعر بالضبط من أول محاولة يأخذ نقطتين بدل نقطة",
+     "default": false
+    }
+   ]
+  },
+  "harfnajat": {
+   "name": "حرف النجاة",
+   "fields": [
+    {
+     "key": "answerSeconds",
+     "type": "number",
+     "label": "وقت الإجابة لكل لاعب (بالثواني)",
+     "hint": "الحالي: 20",
+     "default": 20,
+     "min": 5,
+     "max": 600
+    }
+   ]
+  },
+  "countrywar": {
+   "name": "الدول",
+   "fields": [
+    {
+     "key": "spinMinMs",
+     "type": "number",
+     "label": "أقل مدة للف الروليت (بالميلي ثانية)",
+     "hint": "الحالي: 4000",
+     "default": 4000,
+     "min": 1000,
+     "max": 15000
+    },
+    {
+     "key": "spinRandomMs",
+     "type": "number",
+     "label": "مدة عشوائية إضافية للف (بالميلي ثانية)",
+     "hint": "الحالي: 1500",
+     "default": 1500,
+     "min": 0,
+     "max": 10000
+    },
+    {
+     "key": "turnSeconds",
+     "type": "number",
+     "label": "مدة دور اللاعب لاختيار دولة (بالثواني، 0 = بدون وقت)",
+     "hint": "الحالي: 15 — إذا انتهى الوقت دون اختيار يروح دوره ويلف الدور على غيره",
+     "default": 15,
+     "min": 0,
+     "max": 3600
+    },
+    {
+     "key": "allianceEnabled",
+     "type": "toggle",
+     "label": "تفعيل تحالف مؤقت",
+     "hint": "فرصة عشوائية تربط دولتين كتحالف — ما يقدر أحد يقصي الثانية طول ما التحالف قائم",
+     "default": false
+    },
+    {
+     "key": "goldenCountryEnabled",
+     "type": "toggle",
+     "label": "تفعيل دولة محصّنة ذهبية",
+     "hint": "دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها",
+     "default": false
+    },
+    {
+     "key": "endgameMultiplierEnabled",
+     "type": "toggle",
+     "label": "تفعيل مضاعفة الخطر بالنهاية",
+     "hint": "في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)",
+     "default": false
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "reverseword": {
+   "name": "عكس الكلمة",
+   "fields": [
+    {
+     "key": "maxAttempts",
+     "type": "number",
+     "label": "عدد المحاولات لكل متابع (0 = بدون حد)",
+     "hint": "الحالي: بدون حد",
+     "default": 0,
+     "min": 0,
+     "max": 10
+    },
+    {
+     "key": "timerSeconds",
+     "type": "number",
+     "label": "مدة الراوند (بالثواني، 0 = بدون وقت)",
+     "hint": "الحالي: بدون وقت",
+     "default": 0,
+     "min": 0,
+     "max": 120
+    },
+    {
+     "key": "luckyPlayerEnabled",
+     "type": "toggle",
+     "label": "تفعيل لاعب محظوظ",
+     "hint": "لاعب عشوائي يأخذ محاولة إضافية (يحتاج تفعيل حد المحاولات)",
+     "default": false
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "الفائز يأخذ نقطتين بلوحة المتصدرين بدل نقطة واحدة",
+     "default": false
+    }
+   ]
+  },
+  "letterscramble": {
+   "name": "ترتيب الحروف",
+   "fields": [
+    {
+     "key": "minLength",
+     "type": "number",
+     "label": "أقل عدد حروف مسموح للكلمة",
+     "hint": "الحالي: 3",
+     "default": 3,
+     "min": 2,
+     "max": 15
+    },
+    {
+     "key": "maxLength",
+     "type": "number",
+     "label": "أكثر عدد حروف مسموح للكلمة",
+     "hint": "الحالي: 10",
+     "default": 10,
+     "min": 2,
+     "max": 20
+    },
+    {
+     "key": "timerSeconds",
+     "type": "number",
+     "label": "مدة الراوند (بالثواني، 0 = بدون وقت)",
+     "hint": "الحالي: بدون وقت",
+     "default": 0,
+     "min": 0,
+     "max": 120
+    },
+    {
+     "key": "letterHintEnabled",
+     "type": "toggle",
+     "label": "تفعيل تلميح موضع حرف",
+     "hint": "يكشف مكان حرف واحد عشوائي بعد مدة معيّنة",
+     "default": false
+    },
+    {
+     "key": "hintAfterSeconds",
+     "type": "number",
+     "label": "مدة ظهور التلميح (بالثواني) — إذا مفعّل",
+     "hint": "الحالي: 10",
+     "default": 10,
+     "min": 3,
+     "max": 60
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "الفائز يأخذ نقطتين بلوحة المتصدرين بدل نقطة واحدة",
+     "default": false
+    }
+   ]
+  },
+  "roulette": {
+   "name": "دائرة الإقصاء",
+   "fields": [
+    {
+     "key": "spinMinMs",
+     "type": "number",
+     "label": "أقل مدة للف الروليت (بالميلي ثانية)",
+     "hint": "الحالي: 4000",
+     "default": 4000,
+     "min": 1000,
+     "max": 15000
+    },
+    {
+     "key": "spinRandomMs",
+     "type": "number",
+     "label": "مدة عشوائية إضافية للف (بالميلي ثانية)",
+     "hint": "الحالي: 1500",
+     "default": 1500,
+     "min": 0,
+     "max": 10000
+    },
+    {
+     "key": "immunityEnabled",
+     "type": "toggle",
+     "label": "تفعيل حصانة عشوائية",
+     "hint": "لاعب عشوائي واحد ينجو من أول محاولة إقصاء له بكل راوند",
+     "default": false
+    },
+    {
+     "key": "doubleElimEnabled",
+     "type": "toggle",
+     "label": "تفعيل إقصاء مزدوج",
+     "hint": "فرصة عشوائية 30% كل لفة تسمح بإقصاء لاعبين بدل واحد (منشن اثنين)",
+     "default": false
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "timer": {
+   "name": "لعبة التوقيت",
+   "fields": [
+    {
+     "key": "maxSeconds",
+     "type": "number",
+     "label": "أقصى مدة للراوند (بالثواني)",
+     "hint": "الحالي: 30",
+     "default": 30,
+     "min": 5,
+     "max": 120
+    },
+    {
+     "key": "goldenZoneEnabled",
+     "type": "toggle",
+     "label": "تفعيل منطقة ذهبية",
+     "hint": "منطقة عشوائية من الوقت (0.3 ثانية) — الوقوف فيها يفوز فوراً بغض النظر عن القرب من الوقت السري",
+     "default": false
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "الفائز (الأقرب للوقت السري أو المنطقة الذهبية) يأخذ نقطتين دائماً",
+     "default": false
+    }
+   ]
+  },
+  "main": {
+   "name": "اوجد الكلمة",
+   "fields": [
+    {
+     "key": "minLength",
+     "type": "number",
+     "label": "أقل عدد حروف مسموح للكلمة السرية",
+     "hint": "الحالي: 2",
+     "default": 2,
+     "min": 2,
+     "max": 15
+    },
+    {
+     "key": "maxLength",
+     "type": "number",
+     "label": "أكثر عدد حروف مسموح للكلمة السرية",
+     "hint": "الحالي: 10",
+     "default": 10,
+     "min": 2,
+     "max": 20
+    },
+    {
+     "key": "timerSeconds",
+     "type": "number",
+     "label": "مدة الراوند (بالثواني، 0 = بدون وقت)",
+     "hint": "الحالي: بدون وقت",
+     "default": 0,
+     "min": 0,
+     "max": 180
+    },
+    {
+     "key": "letterHintEnabled",
+     "type": "toggle",
+     "label": "تفعيل تلميح موضع حرف",
+     "hint": "يكشف مكان حرف واحد عشوائي من الكلمة السرية بعد مدة معيّنة",
+     "default": false
+    },
+    {
+     "key": "hintAfterSeconds",
+     "type": "number",
+     "label": "مدة ظهور التلميح (بالثواني) — إذا مفعّل",
+     "hint": "الحالي: 15",
+     "default": 15,
+     "min": 3,
+     "max": 90
+    },
+    {
+     "key": "speedBonusEnabled",
+     "type": "toggle",
+     "label": "تفعيل نقاط مكافأة",
+     "hint": "أول متابع يخمّن الكلمة بالضبط من أول محاولة له يأخذ نقطتين بدل نقطة",
+     "default": false
+    }
+   ]
+  },
+  "chairs": {
+   "name": "الكرسي المتحرك",
+   "fields": [
+    {
+     "key": "spinMinMs",
+     "type": "number",
+     "unitDivisor": 1000,
+     "unitStep": 0.1,
+     "label": "أقل مدة لدوران الدائرة (بالثواني)",
+     "hint": "كم أقل وقت ممكن تدور فيه الدائرة قبل ما تبدأ تبطئ وتوقف — الحالي: 8",
+     "default": 8000,
+     "min": 1000,
+     "max": 15000
+    },
+    {
+     "key": "spinRandomMs",
+     "type": "number",
+     "unitDivisor": 1000,
+     "unitStep": 0.1,
+     "label": "مدة عشوائية إضافية للدوران (بالثواني)",
+     "hint": "وقت إضافي عشوائي يُضاف فوق الحد الأدنى، عشان كل دورة تحس بمدة مختلفة شوي — الحالي: 3",
+     "default": 3000,
+     "min": 0,
+     "max": 10000
+    },
+    {
+     "key": "chairReductionPercent",
+     "type": "number",
+     "label": "نسبة عدد الكراسي من الجدول الأصلي (%)",
+     "hint": "مثلاً 70 = تقليل عدد الكراسي 30% لزيادة الصعوبة (كل جولة كراسيها أقل من العادة). 100 = بدون تغيير — لا يؤثر على الجولة الأخيرة (شخصان، كرسي واحد) ولا ينزل عن كرسي واحد. الحالي: 100",
+     "default": 100,
+     "min": 10,
+     "max": 100
+    },
+    {
+     "key": "immunityEnabled",
+     "type": "toggle",
+     "label": "تفعيل حصانة عشوائية",
+     "hint": "لاعب عشوائي واحد بكل جولة ينجو تلقائياً حتى لو ما أخذ كرسي",
+     "default": false
+    },
+    {
+     "key": "goldenChairEnabled",
+     "type": "toggle",
+     "label": "تفعيل الكرسي الذهبي",
+     "hint": "فرصة عشوائية كل جولة تخلي أحد الكراسي ذهبي — من يحجزه يفوز بنقطتين بدل نقطة بلوحة المتصدرين",
+     "default": false
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    }
+   ]
+  },
+  "findball": {
+   "name": "اعثر على الكورة",
+   "fields": [
+    {
+     "key": "shuffleMinMs",
+     "type": "number",
+     "unitDivisor": 1000,
+     "unitStep": 0.1,
+     "label": "أقل مدة خلط الأكواب بالجولة الأولى (بالثواني)",
+     "hint": "الحالي: 6 — تقل تلقائياً مع كل جولة جديدة",
+     "default": 6000,
+     "min": 1500,
+     "max": 15000
+    },
+    {
+     "key": "shuffleSpeedupPercent",
+     "type": "number",
+     "label": "نسبة تسريع الخلط كل جولة (%)",
+     "hint": "مثلاً 15 = كل جولة جديدة تصير مدة الخلط أسرع بـ15% من اللي قبلها. الحالي: 15",
+     "default": 15,
+     "min": 0,
+     "max": 50
+    },
+    {
+     "key": "shuffleMinFloorMs",
+     "type": "number",
+     "unitDivisor": 1000,
+     "unitStep": 0.1,
+     "label": "أقل حد لمدة الخلط مهما زادت الجولات (بالثواني)",
+     "hint": "يمنع اللعبة تصير مستحيلة بالجولات المتأخرة — الحالي: 1.8",
+     "default": 1800,
+     "min": 500,
+     "max": 8000
+    },
+    {
+     "key": "swapCount",
+     "type": "number",
+     "label": "عدد مرات تبديل الأكواب بالجولة الأولى",
+     "hint": "الحالي: 6 — يزيد قليلاً مع الجولات",
+     "default": 6,
+     "min": 3,
+     "max": 20
+    },
+    {
+     "key": "revivalEnabled",
+     "type": "toggle",
+     "label": "تفعيل إنعاش عبر هدايا تيك توك",
+     "hint": "أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث",
+     "default": true
+    },
+    {
+     "key": "revivalMaxUses",
+     "type": "number",
+     "label": "عدد مرات الانعاش المسموحة لكل شخص بالراوند",
+     "hint": "الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد",
+     "default": 2,
+     "min": 1,
+     "max": 10
+    },
+    {
+     "key": "guessTimerEnabled",
+     "type": "toggle",
+     "label": "تفعيل وقت محدد للتخمين",
+     "hint": "إذا خلص الوقت ولم يخمّن المشارك، يُقصى تلقائياً حتى لو كان سيختار صح",
+     "default": true
+    },
+    {
+     "key": "guessTimerSeconds",
+     "type": "number",
+     "label": "مدة التخمين (بالثواني) — إذا الوقت مفعّل",
+     "hint": "الحالي: 10",
+     "default": 10,
+     "min": 3,
+     "max": 60
+    }
+   ]
+  }
+ },
+ "cards": [
+  {
+   "tag": "cannon",
+   "name": "المدفع البشري"
+  },
+  {
+   "tag": "cr",
+   "name": "سباق الشات"
+  },
+  {
+   "tag": "ev",
+   "name": "التصويت بالإقصاء"
+  },
+  {
+   "tag": "main",
+   "name": "اوجد الكلمة"
+  },
+  {
+   "tag": "guessword",
+   "name": "خمّن الموضوع"
+  },
+  {
+   "tag": "sniper",
+   "name": "القناص"
+  },
+  {
+   "tag": "battery",
+   "name": "الزر المشحون"
+  },
+  {
+   "tag": "rou",
+   "name": "دائرة الإقصاء"
+  },
+  {
+   "tag": "tmr",
+   "name": "لعبة التوقيت"
+  },
+  {
+   "tag": "bomb",
+   "name": "القنبلة المتحركة"
+  },
+  {
+   "tag": "ll",
+   "name": "آخر حرف"
+  },
+  {
+   "tag": "wai",
+   "name": "من أنا؟"
+  },
+  {
+   "tag": "rw",
+   "name": "عكس الكلمة"
+  },
+  {
+   "tag": "pgs",
+   "name": "تخمين السعر"
+  },
+  {
+   "tag": "cs",
+   "name": "سرقة التاج"
+  },
+  {
+   "tag": "lsc",
+   "name": "ترتيب الحروف"
+  },
+  {
+   "tag": "cw",
+   "name": "الدول"
+  },
+  {
+   "tag": "box",
+   "name": "الصندوق العشوائي"
+  },
+  {
+   "tag": "chairs",
+   "name": "الكرسي المتحرك"
+  },
+  {
+   "tag": "findball",
+   "name": "اعثر على الكورة"
+  },
+  {
+   "tag": "wr",
+   "name": "سباق الكلمات السريع"
+  },
+  {
+   "tag": "draw",
+   "name": "خمن الرسمة"
+  },
+  {
+   "tag": "tug",
+   "name": "شد الحبل"
+  },
+  {
+   "tag": "rlgl",
+   "name": "الضوء الأخضر · الضوء الأحمر"
+  },
+  {
+   "tag": "maze",
+   "name": "المتاهة"
+  },
+  {
+   "tag": "tt10",
+   "name": "توب 10"
+  },
+  {
+   "tag": "glz",
+   "name": "الطريق الزجاجي"
+  },
+  {
+   "tag": "volcanic-lands",
+   "name": "الأراضي البركانية"
+  },
+  {
+   "tag": "hz",
+   "name": "ضربة الحظ"
+  },
+  {
+   "tag": "ig",
+   "name": "خمن الصورة"
+  },
+  {
+   "tag": "roulette3d",
+   "name": "الروليت الروسي"
+  },
+  {
+   "tag": "xo",
+   "name": "إكس أو"
+  },
+  {
+   "tag": "ek",
+   "name": "اكذب عليّ"
+  },
+  {
+   "tag": "almeezan",
+   "name": "الميزان"
+  },
+  {
+   "tag": "wesh",
+   "name": "وش تغيّر؟"
+  },
+  {
+   "tag": "hq",
+   "name": "حلّها قبلي"
+  },
+  {
+   "tag": "latatayeh",
+   "name": "لا تطيّحه"
+  },
+  {
+   "tag": "harfnajat",
+   "name": "حرف النجاة"
+  },
+  {
+   "tag": "callcenter",
+   "name": "انصب علي"
+  },
+  {
+   "tag": "oneletter",
+   "name": "تحدي الحرف الواحد"
+  },
+  {
+   "tag": "guesscountry",
+   "name": "توقع الدولة"
+  },
+  {
+   "tag": "timersolo",
+   "name": "لعبة التوقيت"
+  },
+  {
+   "tag": "memorybuttons",
+   "name": "حفظ الأزرار"
+  },
+  {
+   "tag": "gwsolo",
+   "name": "خمّن الموضوع"
+  },
+  {
+   "tag": "findballsolo",
+   "name": "اعثر على الكورة"
+  },
+  {
+   "tag": "describechar",
+   "name": "وصف الشخصية"
+  },
+  {
+   "tag": "countrywarparty",
+   "name": "الدول"
+  },
+  {
+   "tag": "fastans",
+   "name": "أسرع جواب"
+  },
+  {
+   "tag": "pdraw",
+   "name": "خمن الرسمة"
+  },
+  {
+   "tag": "ptop10",
+   "name": "توب 10"
+  }
+ ],
+ "frames": [
+  {
+   "id": "anime01",
+   "name": "تنين النار"
+  },
+  {
+   "id": "anime02",
+   "name": "فينيق اللهب"
+  },
+  {
+   "id": "anime03",
+   "name": "أميرة الورد"
+  },
+  {
+   "id": "anime04",
+   "name": "الكريستال الجليدي"
+  },
+  {
+   "id": "anime05",
+   "name": "الذئب الرعدي"
+  },
+  {
+   "id": "anime06",
+   "name": "الأسد الذهبي"
+  },
+  {
+   "id": "anime07",
+   "name": "النمر الذهبي"
+  },
+  {
+   "id": "anime08",
+   "name": "مجرة الكواكب"
+  },
+  {
+   "id": "anime09",
+   "name": "زمرد الغابة"
+  },
+  {
+   "id": "anime10",
+   "name": "البرق البنفسجي"
+  },
+  {
+   "id": "anime11",
+   "name": "واحة الصحراء"
+  },
+  {
+   "id": "anime12",
+   "name": "لؤلؤة المحيط"
+  },
+  {
+   "id": "anime13",
+   "name": "الصقر الذهبي"
+  },
+  {
+   "id": "anime14",
+   "name": "كريستال الأميرة"
+  },
+  {
+   "id": "anime15",
+   "name": "الماس الفضي"
+  },
+  {
+   "id": "saudi",
+   "name": "السعودية"
+  },
+  {
+   "id": "kuwait",
+   "name": "الكويت"
+  },
+  {
+   "id": "bahrain",
+   "name": "البحرين"
+  },
+  {
+   "id": "uae",
+   "name": "الإمارات"
+  },
+  {
+   "id": "qatar",
+   "name": "قطر"
+  },
+  {
+   "id": "oman",
+   "name": "عُمان"
+  },
+  {
+   "id": "ehsmahaOwner",
+   "name": "احسمها"
+  }
+ ],
+ "badges": [
+  "new",
+  "update",
+  "none",
+  "maintenance"
+ ]
+}
