@@ -112,6 +112,9 @@ function buildConfig() {
   const ownerDiscordId = (process.env.OWNER_DISCORD_ID || '944639301528977420').trim();
   if (!isSnowflake(ownerDiscordId)) problems.push(`- OWNER_DISCORD_ID لازم يكون معرّف حساب ديسكورد صالح (أرقام فقط) — القيمة الحالية: "${ownerDiscordId.slice(0, 30)}"`);
 
+  const streamAnnounceChannelId = (process.env.STREAM_ANNOUNCE_CHANNEL_ID || '1552252935377780777').trim();
+  if (!isSnowflake(streamAnnounceChannelId)) problems.push(`- STREAM_ANNOUNCE_CHANNEL_ID لازم يكون معرّف روم صالح — القيمة الحالية: "${streamAnnounceChannelId.slice(0, 30)}"`);
+
   let numeric = {};
   try {
     numeric = {
@@ -169,6 +172,9 @@ function buildConfig() {
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     ownerDiscordId,
+    // الإعلان التلقائي عن الستريمرز المسجلين (services/streamerAnnouncer): الروم الرسمي ثابت بالـID (ما نبحث بالاسم)
+    streamAnnounceChannelId,
+    streamAnnouncerEnabled: !/^(false|0|no|off)$/i.test(String(process.env.STREAM_ANNOUNCER || 'true').trim()),
     // OWNER_AI=off يوقف نظام تنفيذ أوامر المالك باللغة الطبيعية (مفعّل افتراضياً)
     ownerAiEnabled: !/^(false|0|no|off)$/i.test(String(process.env.OWNER_AI || 'true').trim()),
     siteUrl,
