@@ -33876,15 +33876,13 @@ function addHzChatMsg(user, text) {
 
 /* ===== شبكة الدول (حرب الدول) ===== */
 /* مؤقت الدور جنب منشور القرعة + اختفاء الدول المُقصاة وتحريك الباقي */
-.cw-lens-wrap{display:flex;align-items:stretch;gap:2.4cqw;}
-.cw-lens-wrap .rd-lens{flex:1 1 auto;min-width:0;}
-.cw-timer{position:relative;flex:0 0 auto;align-self:stretch;aspect-ratio:1/1;container-type:size;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:4cqw;background:linear-gradient(180deg,#150a2c,#20103f 50%,#150a2c);border:.5cqw solid rgba(227,195,106,.28);box-shadow:inset 0 0 6cqw rgba(0,0,0,.7);opacity:.35;transform:scale(.96);transition:opacity .3s ease,transform .3s cubic-bezier(.16,1,.3,1);}
+.cw-timer{position:absolute;z-index:4;left:2.5%;top:17%;height:66%;aspect-ratio:1/1;container-type:size;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transform:scale(.8);pointer-events:none;transition:opacity .3s ease,transform .3s cubic-bezier(.16,1,.3,1);}
 .cw-timer.show{opacity:1;transform:none;animation:cwTimerIn .5s cubic-bezier(.16,1,.3,1);}
-.cw-timer svg{position:absolute;inset:7%;width:86%;height:86%;transform:rotate(-90deg);}
+.cw-timer svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
 .cw-timer-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7;}
 .cw-timer-ring{fill:none;stroke:#E3C36A;stroke-width:7;stroke-linecap:round;stroke-dasharray:276.46;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(227,195,106,.6));transition:stroke .3s ease;}
-.cw-timer-num{position:relative;font-size:34cqmin;font-weight:900;line-height:1;color:#F6EBD0;font-variant-numeric:tabular-nums;}
-.cw-timer-lbl{position:relative;font-size:10cqmin;font-weight:700;color:#C9B7E8;margin-top:2cqmin;}
+.cw-timer-num{position:relative;font-size:36cqmin;text-shadow:0 2px 8px rgba(0,0,0,.6);font-weight:900;line-height:1;color:#F6EBD0;font-variant-numeric:tabular-nums;}
+.cw-timer-lbl{position:relative;font-size:11cqmin;font-weight:700;color:#C9B7E8;margin-top:1cqmin;}
 .cw-timer.low .cw-timer-ring{stroke:#f43f5e;filter:drop-shadow(0 0 8px rgba(244,63,94,.8));}
 .cw-timer.low .cw-timer-num{color:#fecaca;animation:cwTimerPulse .5s ease-in-out infinite alternate;}
 @keyframes cwTimerIn{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
@@ -47556,7 +47554,6 @@ function drawClearCanvas() {
               <div class="rd-head-side"><span class="rd-head-lbl">الجولة</span><span class="rd-num-pink" id="cw-round-num">1</span></div>
             </div>
             <div class="rd-body">
-              <div class="cw-lens-wrap">
               <div class="rd-lens">
                 <div class="rd-lens-view"><div class="rd-lens-track" id="cw-lens-track"></div></div>
                 <div class="rd-lens-vig"></div>
@@ -47564,13 +47561,12 @@ function drawClearCanvas() {
                 <div class="rd-beam l"></div>
                 <div class="rd-beam r"></div>
                 <div class="rd-scan"></div>
-                <div class="rd-lens-tag">منشور القرعة</div>
-              </div>
                 <div class="cw-timer" id="cw-timer" aria-live="off" aria-label="مؤقت الدور">
                   <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="cw-timer-bg" cx="50" cy="50" r="44"/><circle class="cw-timer-ring" id="cw-timer-ring" cx="50" cy="50" r="44"/></svg>
                   <div class="cw-timer-num" id="cw-timer-num">15</div>
                   <div class="cw-timer-lbl">ثانية</div>
                 </div>
+                <div class="rd-lens-tag">منشور القرعة</div>
               </div>
               <div class="cw-turn-banner" id="cw-turn-banner">
                 <div class="cw-turn-title">الدور على</div>
