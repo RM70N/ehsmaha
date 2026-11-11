@@ -19303,6 +19303,7 @@ const MOD_SETTINGS_SCHEMA = {
     fields: [
       { key: 'spinMinMs', type: 'number', label: 'أقل مدة للف الروليت (بالميلي ثانية)', hint: 'الحالي: 4000', default: 4000, min: 1000, max: 15000 },
       { key: 'spinRandomMs', type: 'number', label: 'مدة عشوائية إضافية للف (بالميلي ثانية)', hint: 'الحالي: 1500', default: 1500, min: 0, max: 10000 },
+      { key: 'turnSeconds', type: 'number', label: 'مدة دور اللاعب لاختيار دولة (بالثواني، 0 = بدون وقت)', hint: 'الحالي: 15 — إذا انتهى الوقت دون اختيار يروح دوره ويلف الدور على غيره', default: 15, min: 0, max: 3600 },
       { key: 'allianceEnabled', type: 'toggle', label: 'تفعيل تحالف مؤقت', hint: 'فرصة عشوائية تربط دولتين كتحالف — ما يقدر أحد يقصي الثانية طول ما التحالف قائم', default: false },
       { key: 'goldenCountryEnabled', type: 'toggle', label: 'تفعيل دولة محصّنة ذهبية', hint: 'دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها', default: false },
       { key: 'endgameMultiplierEnabled', type: 'toggle', label: 'تفعيل مضاعفة الخطر بالنهاية', hint: 'في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)', default: false },
@@ -33874,6 +33875,24 @@ function addHzChatMsg(user, text) {
 .rd-lens-tag{position:absolute;top:1.4cqw;right:2.4cqw;font-size:2.8cqw;font-weight:700;letter-spacing:.2cqw;color:rgba(227,195,106,.75);}
 
 /* ===== شبكة الدول (حرب الدول) ===== */
+/* مؤقت الدور جنب منشور القرعة + اختفاء الدول المُقصاة وتحريك الباقي */
+.cw-lens-wrap{display:flex;align-items:stretch;gap:2.4cqw;}
+.cw-lens-wrap .rd-lens{flex:1 1 auto;min-width:0;}
+.cw-timer{position:relative;flex:0 0 auto;align-self:stretch;aspect-ratio:1/1;container-type:size;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:4cqw;background:linear-gradient(180deg,#150a2c,#20103f 50%,#150a2c);border:.5cqw solid rgba(227,195,106,.28);box-shadow:inset 0 0 6cqw rgba(0,0,0,.7);opacity:.35;transform:scale(.96);transition:opacity .3s ease,transform .3s cubic-bezier(.16,1,.3,1);}
+.cw-timer.show{opacity:1;transform:none;animation:cwTimerIn .5s cubic-bezier(.16,1,.3,1);}
+.cw-timer svg{position:absolute;inset:7%;width:86%;height:86%;transform:rotate(-90deg);}
+.cw-timer-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7;}
+.cw-timer-ring{fill:none;stroke:#E3C36A;stroke-width:7;stroke-linecap:round;stroke-dasharray:276.46;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(227,195,106,.6));transition:stroke .3s ease;}
+.cw-timer-num{position:relative;font-size:34cqmin;font-weight:900;line-height:1;color:#F6EBD0;font-variant-numeric:tabular-nums;}
+.cw-timer-lbl{position:relative;font-size:10cqmin;font-weight:700;color:#C9B7E8;margin-top:2cqmin;}
+.cw-timer.low .cw-timer-ring{stroke:#f43f5e;filter:drop-shadow(0 0 8px rgba(244,63,94,.8));}
+.cw-timer.low .cw-timer-num{color:#fecaca;animation:cwTimerPulse .5s ease-in-out infinite alternate;}
+@keyframes cwTimerIn{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+@keyframes cwTimerPulse{from{transform:scale(1)}to{transform:scale(1.18)}}
+.rd-cgrid{position:relative;}
+.rd-ccard.cw-ghost{position:absolute;margin:0;pointer-events:none;z-index:3;animation:cwGhostOut .45s cubic-bezier(.4,0,.2,1) forwards;}
+@keyframes cwGhostOut{0%{transform:scale(1);opacity:1;filter:none}40%{transform:scale(1.12);opacity:1;filter:saturate(.4)}100%{transform:scale(.2) rotate(-8deg);opacity:0;filter:grayscale(1)}}
+@media (prefers-reduced-motion:reduce){.cw-timer.show,.cw-timer.low .cw-timer-num,.rd-ccard.cw-ghost{animation:none}.rd-ccard.cw-ghost{opacity:0}}
 .rd-cgrid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:min-content;gap:1.8cqw;align-content:center;overflow-y:auto;overflow-x:hidden;}
 .rd-ccard{position:relative;border-radius:2.6cqw;padding:1.8cqw .6cqw;display:flex;flex-direction:column;align-items:center;gap:1cqw;background:#1a0d33;border:.4cqw solid rgba(227,195,106,.16);cursor:pointer;transition:opacity .35s ease,transform .35s cubic-bezier(.16,1,.3,1);}
 /* شريحة العلم مستطيلة 3:2 لا مربّعة: الأعلام كلها أفقية، فالمربّع كان يحصر
@@ -47537,6 +47556,7 @@ function drawClearCanvas() {
               <div class="rd-head-side"><span class="rd-head-lbl">الجولة</span><span class="rd-num-pink" id="cw-round-num">1</span></div>
             </div>
             <div class="rd-body">
+              <div class="cw-lens-wrap">
               <div class="rd-lens">
                 <div class="rd-lens-view"><div class="rd-lens-track" id="cw-lens-track"></div></div>
                 <div class="rd-lens-vig"></div>
@@ -47545,6 +47565,12 @@ function drawClearCanvas() {
                 <div class="rd-beam r"></div>
                 <div class="rd-scan"></div>
                 <div class="rd-lens-tag">منشور القرعة</div>
+              </div>
+                <div class="cw-timer" id="cw-timer" aria-live="off" aria-label="مؤقت الدور">
+                  <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="cw-timer-bg" cx="50" cy="50" r="44"/><circle class="cw-timer-ring" id="cw-timer-ring" cx="50" cy="50" r="44"/></svg>
+                  <div class="cw-timer-num" id="cw-timer-num">15</div>
+                  <div class="cw-timer-lbl">ثانية</div>
+                </div>
               </div>
               <div class="cw-turn-banner" id="cw-turn-banner">
                 <div class="cw-turn-title">الدور على</div>
@@ -47624,6 +47650,8 @@ let CW_SPIN_RANDOM_MS = 1500;          // overridden per-round from moderator se
 let cwAllianceEnabled = false;         // مود إضافي: تحالف مؤقت يحمي دولتين من إقصاء بعضهما
 let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
+let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
 let cwGoldenCountryName = null;
 let cwGoldenCountrySaved = false;      // هل استُهلكت حمايتها بالفعل
@@ -48047,6 +48075,8 @@ function startCountryWarRound() {
   CW_SPIN_MIN_MS = modGetSetting('countrywar', 'spinMinMs', 4000);
   CW_SPIN_RANDOM_MS = modGetSetting('countrywar', 'spinRandomMs', 1500);
   cwAllianceEnabled = modGetSetting('countrywar', 'allianceEnabled', false);
+  cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
+  cwTurnTimerUid = null;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
   cwRevivalEnabled = modGetSetting('countrywar', 'revivalEnabled', true);
@@ -48139,22 +48169,30 @@ function cwFlagFallback(img) {
 // ==================== COUNTRIES GRID RENDER ====================
 function renderCWCountriesGrid() {
   const grid = document.getElementById('cw-countries-grid');
+  // لقطة المواضع القديمة (للتحريك السلس): الدول المُقصاة تختفي بالكامل والباقي يتقارب بدون فراغات
+  const prev = new Map(); const gr = grid.getBoundingClientRect();
+  grid.querySelectorAll('.rd-ccard:not(.cw-ghost)').forEach(el => { const r = el.getBoundingClientRect(); prev.set(el.id, { el: el, r: r, html: el.innerHTML, cls: el.className }); });
+  grid.querySelectorAll('.cw-ghost').forEach(g => g.remove());
   grid.innerHTML = '';
-  // ابني الشبكة من الدول الموزعة فعلياً باللعبة (نشطة + مُقصاة)
-  const allInGame = [...cwActiveCountries.map(c => c.name), ...cwEliminatedNames];
-  let __cwCardIdx = 0;
-  cwCountryBank.filter(c => allInGame.includes(c.name)).forEach(c => {
-    const eliminated = cwEliminatedNames.has(c.name);
+  // نعرض الدول الباقية فقط
+  const activeNames = new Set(cwActiveCountries.map(c => c.name));
+  let __cwCardIdx = 0; const nowIds = new Set();
+  cwCountryBank.filter(c => activeNames.has(c.name)).forEach(c => {
     const card = document.createElement('div');
-    card.className = 'rd-ccard' + (eliminated ? ' eliminated' : '');
-    card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_');
+    card.className = 'rd-ccard';
+    card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_'); nowIds.add(card.id);
     card.innerHTML = `<div class="rd-ccard-aim"></div><div class="rd-chip" style="background:${rdGrad(__cwCardIdx)}">${cwFlagImg(c)}</div><div class="rd-cname">${esc(c.name)}</div>`;
     __cwCardIdx++;
-    if (!eliminated) {
-      card.onclick = () => cwStreamerEliminate(c.name);
-    }
+    card.onclick = () => cwStreamerEliminate(c.name);
     grid.appendChild(card);
   });
+  if (prev.size && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const ng = grid.getBoundingClientRect();
+    // الباقي ينزلق لمكانه الجديد (FLIP)
+    grid.querySelectorAll('.rd-ccard').forEach(el => { const p = prev.get(el.id); if (!p) return; const r = el.getBoundingClientRect(); const dx = p.r.left - r.left, dy = p.r.top - r.top; if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return; el.style.transition = 'none'; el.style.transform = 'translate(' + dx + 'px,' + dy + 'px)'; requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transition = 'transform .45s cubic-bezier(.16,1,.3,1)'; el.style.transform = ''; })); });
+    // المُقصاة: نسخة شبحية بمكانها القديم تتلاشى ثم تُزال
+    prev.forEach((p, id) => { if (nowIds.has(id)) return; const g = document.createElement('div'); g.className = p.cls.replace('eliminated', '') + ' cw-ghost'; g.innerHTML = p.html; g.style.left = (p.r.left - ng.left + grid.scrollLeft) + 'px'; g.style.top = (p.r.top - ng.top + grid.scrollTop) + 'px'; g.style.width = p.r.width + 'px'; g.style.height = p.r.height + 'px'; grid.appendChild(g); setTimeout(() => g.remove(), 520); });
+  }
   cwUpdateStageHead();
   // مرآة لوحة المالك فقط (إضافي، best-effort، مخنوقة). هذي دالة رسم بحتة
   // تُستدعى بعد كل تغيّر فعلي على cwActiveCountries (بداية راوند، انضمام وسط
@@ -48274,6 +48312,39 @@ function cwUpdateStageHead() {
   const n = document.getElementById('cw-round-num');
   if (n) n.textContent = rdAr(cwEliminatedNames.size + 1);
 }
+
+// ==================== مؤقت دور اللاعب (الإعدادات المتقدمة: turnSeconds) ====================
+// يبدأ العدّ لحظة يُعيَّن صاحب الدور (cwTurnUid) ويتوقف عند أي إقصاء/إنهاء. لو انتهى الوقت دون اختيار
+// يروح دوره ويلف الدور تلقائياً على غيره. يتجمّد أثناء أنيميشن الإنعاش.
+function cwTurnTimerTick() {
+  const el = document.getElementById('cw-timer'); if (!el) return;
+  const now = Date.now(); const dt = now - (cwTurnTimerLast || now); cwTurnTimerLast = now;
+  const on = cwGameStatus === 'active' && cwTurnUid && cwTurnSeconds > 0 && !cwSpinning;
+  if (!on) { if (cwTurnTimerUid !== null) cwTurnTimerUid = null; el.classList.remove('show', 'low'); const n0 = document.getElementById('cw-timer-num'); if (n0 && cwTurnSeconds > 0) n0.textContent = String(cwTurnSeconds); const r0 = document.getElementById('cw-timer-ring'); if (r0) r0.style.strokeDashoffset = '0'; return; }
+  if (cwTurnTimerUid !== cwTurnUid) { cwTurnTimerUid = cwTurnUid; cwTurnDeadline = now + cwTurnSeconds * 1000; el.classList.remove('low'); }
+  if (isGamePausedForRevival('cw')) { cwTurnDeadline += dt; }
+  const left = Math.max(0, cwTurnDeadline - now); const frac = left / (cwTurnSeconds * 1000);
+  el.classList.add('show'); el.classList.toggle('low', left <= 5000 && cwTurnSeconds > 5);
+  const num = document.getElementById('cw-timer-num'); const secs = Math.ceil(left / 1000); if (num && num.textContent !== String(secs)) { num.textContent = String(secs); if (left <= 5000 && left > 0 && cwTurnSeconds > 5) { try { sfx.tick(soundManager.gain('cw_tick')); } catch (e) {} } }
+  const ring = document.getElementById('cw-timer-ring'); if (ring) ring.style.strokeDashoffset = String(276.46 * (1 - frac));
+  if (left <= 0) cwTurnTimeout();
+}
+function cwTurnTimeout() {
+  if (!cwTurnUid || cwGameStatus !== 'active') return;
+  const u = cwParticipants.get(cwTurnUid); const nm = u ? (u.nickname || u.uniqueId) : cwTurnUid;
+  cwTurnUid = null; cwTurnTimerUid = null; cwDoubleElimActivated = false; cwDoubleElimArmed = false; cwDoubleElimEliminationsThisTurn = 0;
+  const result = document.getElementById('cw-spin-result'); if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — راح دوره!'; result.className = 'cw-spin-result show'; }
+  const banner = document.getElementById('cw-turn-banner'); if (banner) banner.className = 'cw-turn-banner';
+  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — يلف الدور على غيره');
+  try { sfx.click(soundManager.gain('cw_spin_start')); } catch (e) {}
+  drawCWWheel(0);
+  setTimeout(function cwAutoSpinRetry() {
+    if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning || cwTurnUid) return;
+    if (isGamePausedForRevival('cw')) { setTimeout(cwAutoSpinRetry, 600); return; }
+    spinCountryWarWheel();
+  }, 1600);
+}
+setInterval(cwTurnTimerTick, 150);
 
 function cwStreamerEliminate(countryName) {
   if (cwGameStatus !== 'active' || !cwTurnUid) { toast('⚠️ انتظر دور اللف أولاً'); return; }
