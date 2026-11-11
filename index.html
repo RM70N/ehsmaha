@@ -19298,6 +19298,12 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'doubleWinEnabled', type: 'toggle', label: 'تفعيل مضاعفة الفوز للإجابة الأولى المضبوطة', hint: 'أول متابع يجاوب السعر بالضبط من أول محاولة يأخذ نقطتين بدل نقطة', default: false }
     ]
   },
+  harfnajat: {
+    name: 'حرف النجاة',
+    fields: [
+      { key: 'answerSeconds', type: 'number', label: 'وقت الإجابة لكل لاعب (بالثواني)', hint: 'الحالي: 20', default: 20, min: 5, max: 600 },
+    ]
+  },
   countrywar: {
     name: 'الدول',
     fields: [
@@ -75453,6 +75459,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     <div class="api-section">
       <div class="field-hint" style="margin-bottom:0;font-size:13px;">اربط بثك مرة وحدة من الصفحة الرئيسية (زر «ابدأ بثاً سريعاً») — الألعاب كلها تقرأ شات بثك تلقائياً، سواء تيك توك أو تويتش أو كيك أو يوتيوب. لو انقطع البث تتوقف المهلة وتُحفظ الحالة. اللعبة ثلاثية الأبعاد وتحتاج متصفحاً يدعم WebGL.</div>
     </div>
+    <div id="mod-advanced-harfnajat"></div>
     <button class="btn-primary" id="btn-harfnajat-launch" onclick="launchHarfNajat()">ابدأ اللعبة</button>
     <div class="status-msg" id="harfnajat-status"></div>
   </div>
@@ -75557,7 +75564,8 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
     try { contestNoteActivity(); } catch (e) {}
     var lu = $(TAG + '-live-user'); if (lu) lu.textContent = '@' + streamer;
     active = true; ready = false; queue = []; users.clear(); kwCache = ''; kwAt = 0; downSince = 0;
-    var f = frame(); f.onload = onFrameLoad; f.src = SRC;
+    var ans = 20; try { ans = Math.max(5, Math.min(600, Math.round(Number(modGetSetting('harfnajat', 'answerSeconds', 20)) || 20))); } catch (e) {}
+    var f = frame(); f.onload = onFrameLoad; f.src = SRC + '&ans=' + ans;
     show(TAG);
     try { homeRegisterGameListener(TAG, handleEvent); } catch (e) {}
     setStatus('', '');
@@ -75575,6 +75583,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
   window.launchHarfNajat = launch;
   window.goSetupHarfNajat = function () {
     show('setup-' + TAG);
+    try { modInitAdvancedSection('harfnajat'); } catch (e) {}
     try { var h = $('hnj-hero'); if (h && !h.querySelector('svg') && window.__hlobArt && window.__hlobArt.harfnajat) h.insertAdjacentHTML('afterbegin', window.__hlobArt.harfnajat('#FF5A1F')); } catch (e) {}
   };
   window.harfnajatHandleEvent = handleEvent;
