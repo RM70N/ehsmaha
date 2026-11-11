@@ -227,6 +227,7 @@ function shutdown(signal, webServer) {
   force.unref();
   liveStreams.stopPolling();
   require('./services/liveBoard').stopAll();
+  require('./services/streamerAnnouncer')._reset();
   clearInterval(shutdown.selfPingTimer);
   require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()

@@ -98,6 +98,22 @@ module.exports = {
       }))
       .catch((err) => logger.error('تعذّر تشغيل نظام راوندات الألعاب', { error: err }));
 
+    // الإعلان التلقائي عن بثوث الستريمرز المسجلين (يشتغل تلقائياً بعد جاهزية قاعدة البيانات؛ يعتمد على onChange بتاع /بث)
+    if (ctx.config.streamAnnouncerEnabled) {
+      Promise.resolve(ctx.dbReady)
+        .then((ok) => {
+          if (ok === false) return logger.error('إعلانات الستريمرز: قاعدة البيانات غير جاهزة — النظام موقوف');
+          const announcer = require('../services/streamerAnnouncer').init({
+            liveStreams,
+            store: require('../database/streamerAnnouncements'),
+            getClient: () => ctx.client,
+            channelId: ctx.config.streamAnnounceChannelId
+          });
+          return announcer.start();
+        })
+        .catch((err) => logger.error('تعذّر تشغيل إعلانات الستريمرز', { error: err }));
+    }
+
     // مهام المالك (services/ownerAI) اللي انقطعت بإعادة التشغيل: نعلّمها ونبلّغ المالك بالنتيجة الجزئية
     Promise.resolve(ctx.dbReady)
       .then((ok) => ok !== false && require('../services/ownerAI').recoverInterrupted(client))
