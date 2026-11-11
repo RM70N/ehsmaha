@@ -47646,6 +47646,7 @@ let CW_SPIN_RANDOM_MS = 1500;          // overridden per-round from moderator se
 let cwAllianceEnabled = false;         // مود إضافي: تحالف مؤقت يحمي دولتين من إقصاء بعضهما
 let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
+let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
 let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
 let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
@@ -48072,7 +48073,7 @@ function startCountryWarRound() {
   CW_SPIN_RANDOM_MS = modGetSetting('countrywar', 'spinRandomMs', 1500);
   cwAllianceEnabled = modGetSetting('countrywar', 'allianceEnabled', false);
   cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
-  cwTurnTimerUid = null;
+  cwTurnTimerUid = null; cwGridRoundSeq++;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
   cwRevivalEnabled = modGetSetting('countrywar', 'revivalEnabled', true);
@@ -48166,8 +48167,8 @@ function cwFlagFallback(img) {
 function renderCWCountriesGrid() {
   const grid = document.getElementById('cw-countries-grid');
   // لقطة المواضع القديمة (للتحريك السلس): الدول المُقصاة تختفي بالكامل والباقي يتقارب بدون فراغات
-  const prev = new Map(); const gr = grid.getBoundingClientRect();
-  grid.querySelectorAll('.rd-ccard:not(.cw-ghost)').forEach(el => { const r = el.getBoundingClientRect(); prev.set(el.id, { el: el, r: r, html: el.innerHTML, cls: el.className }); });
+  const prev = new Map(); const sameRound = grid.dataset.cwRound === String(cwGridRoundSeq); grid.dataset.cwRound = String(cwGridRoundSeq);
+  if (sameRound) grid.querySelectorAll('.rd-ccard:not(.cw-ghost)').forEach(el => { const r = el.getBoundingClientRect(); prev.set(el.id, { el: el, r: r, html: el.innerHTML, cls: el.className }); });
   grid.querySelectorAll('.cw-ghost').forEach(g => g.remove());
   grid.innerHTML = '';
   // نعرض الدول الباقية فقط
