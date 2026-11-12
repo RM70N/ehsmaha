@@ -8,6 +8,7 @@
 
 const ROOT_FILES = [
   'ehsemha-perf.js',
+  'fs-failover.js',
   'ehsemha-perf.css',
   'index.html',
   'roulette3d.html',
