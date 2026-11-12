@@ -49,7 +49,7 @@ function nowPlaying(snap) {
   });
   embed.setAuthor({ name: ended ? 'MUSIC · احسمها' : 'NOW PLAYING · الآن يعمل' });
   if (!t) {
-    embed.setDescription('انتهت قائمة التشغيل. اطلب أغنية جديدة بـ`/اغنية` قبل ما أطلع من الروم.');
+    embed.setDescription('انتهت قائمة التشغيل. اطلب أغنية جديدة بـ`!اغنية` قبل ما أطلع من الروم.');
   } else {
     const pos = Math.min(snap.positionSec, t.duration || snap.positionSec);
     const icon = snap.status === 'paused' ? '⏸️' : snap.status === 'playing' ? '▶️' : '⏳';
@@ -142,7 +142,7 @@ function queuePayload(snap, page = 0) {
     e.setFooter(null);
     return e;
   });
-  if (!items.length) head.setDescription(`${head.data.description}\n\nالقائمة فاضية — اطلب أغنية بـ\`/اغنية\`.`);
+  if (!items.length) head.setDescription(`${head.data.description}\n\nالقائمة فاضية — اطلب أغنية بـ\`!اغنية\`.`);
 
   const row = new ActionRowBuilder().addComponents(
     btn(`qp:${p - 1}`, { emoji: '◀️', label: 'السابق', disabled: p <= 0 }),

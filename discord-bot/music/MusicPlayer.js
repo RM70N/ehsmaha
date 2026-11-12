@@ -526,7 +526,7 @@ class MusicPlayer {
     }
   }
 
-  /** ينقل اللوحة لقناة نص جديدة (أمر /موسيقى): يرسل لوحة جديدة ويحذف القديمة. */
+  /** ينقل اللوحة لقناة نص جديدة (أمر !موسيقى): يرسل لوحة جديدة ويحذف القديمة. */
   async movePanel(channel) {
     if (this.destroyed) return false;
     const old = this.panelMessage;

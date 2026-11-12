@@ -666,7 +666,7 @@ test('الصلاحيات: عضو خارج الروم/بروم مختلف لا ي
   assert.match(text(adm.log.find(([k]) => k === 'reply')[1]), /للمشرفين فقط/);
   delete process.env.MUSIC_ADMIN_ONLY;
 
-  // الأوامر المشتركة (/تخطي /ايقاف /قائمة /موسيقى)
+  // الأوامر المشتركة (!تخطي !ايقاف !قائمة !موسيقى)
   const rq = await controls.runCommand('قائمة', { guild: env.guild, member: outside, textChannel: env.textChannel });
   assert.match(text(rq.payload), /قائمة الانتظار/);
   const rs = await controls.runCommand('تخطي', { guild: env.guild, member: outside, textChannel: env.textChannel });

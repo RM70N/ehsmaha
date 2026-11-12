@@ -1,6 +1,6 @@
 'use strict';
 
-// التحكم: أزرار اللوحة + قائمة اختيار البحث + منطق الأوامر المشترك بين Slash (/اغنية…) و!prefix.
+// التحكم: أزرار اللوحة + قائمة اختيار البحث + منطق أوامر !prefix (اغنية/قائمة/تخطي/ايقاف/موسيقى).
 // كل ضغطة تتحقق من العضو (بنفس الروم الصوتي للجلسة) — عضو خارج الروم ما يقدر يتحكم أبداً.
 
 const eb = require('../utils/embedBuilder');
@@ -32,7 +32,7 @@ async function adminOnlyBlocked(member, ...names) {
 /** يتحقق أن العضو يقدر يتحكم بجلسة السيرفر. يرجع {session} أو {error: payload}. */
 async function guard({ guild, member }, actionKey) {
   const session = getManager().getSession(guild.id);
-  if (!session) return { error: embeds.notice('ما فيه جلسة موسيقى نشطة الحين — ابدأ بـ`/اغنية`.') };
+  if (!session) return { error: embeds.notice('ما فيه جلسة موسيقى نشطة الحين — ابدأ بـ`!اغنية`.') };
   const vc = member && member.voice && member.voice.channel;
   if (!vc) return { error: embeds.notice('ادخل الروم الصوتي أول عشان تتحكم بالموسيقى.', '🎧 ادخل الروم') };
   if (vc.id !== session.voiceChannelId) {
@@ -161,7 +161,7 @@ async function runCommand(name, { guild, member, textChannel, args = '' }) {
   try {
     switch (name) {
       case 'اغنية': {
-        if (!String(args).trim()) return { payload: embeds.notice('اكتب اسم الأغنية أو الرابط: `/اغنية اسم الأغنية`', '🎵 اسم الأغنية؟') };
+        if (!String(args).trim()) return { payload: embeds.notice('اكتب اسم الأغنية أو الرابط: `!اغنية اسم الأغنية`', '🎵 اسم الأغنية؟') };
         const r = await manager.requestPlay({ guild, member, textChannel, input: args });
         return { payload: r.payload, kind: r.kind };
       }
@@ -185,7 +185,7 @@ async function runCommand(name, { guild, member, textChannel, args = '' }) {
       }
       case 'موسيقى': {
         const session = manager.getSession(guild.id);
-        if (!session) return { payload: embeds.notice('ما فيه جلسة موسيقى نشطة — ابدأ بـ`/اغنية`.') };
+        if (!session) return { payload: embeds.notice('ما فيه جلسة موسيقى نشطة — ابدأ بـ`!اغنية`.') };
         await session.movePanel(textChannel).catch(() => {});
         const s = session.stats;
         const snap = session.snapshot();

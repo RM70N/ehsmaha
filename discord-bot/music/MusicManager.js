@@ -114,9 +114,9 @@ class MusicManager {
     const s = this.searches.get(token);
     if (!s || s.expiresAt < Date.now()) {
       this.searches.delete(token);
-      return { kind: 'error', payload: embeds.notice('انتهت صلاحية نتائج البحث — ابحث من جديد بـ`/اغنية`.') };
+      return { kind: 'error', payload: embeds.notice('انتهت صلاحية نتائج البحث — ابحث من جديد بـ`!اغنية`.') };
     }
-    if (s.userId !== member.id) return { kind: 'error', payload: embeds.notice('هذي نتائج بحث شخص ثاني — ابحث بنفسك بـ`/اغنية`.') };
+    if (s.userId !== member.id) return { kind: 'error', payload: embeds.notice('هذي نتائج بحث شخص ثاني — ابحث بنفسك بـ`!اغنية`.') };
     const track = s.results[index];
     if (!track) return { kind: 'error', payload: embeds.notice('اختيار غير صالح.') };
     const ctx = this.checkUserContext({ guild, member });
