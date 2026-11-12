@@ -35,17 +35,17 @@ export default {
   id: 'analytics', workspace: 'website', label: 'التحليلات والتقارير', icon: 'chart', adminDefault: true, description: 'تقارير حقيقية من بيانات الموقع الفعلية، مع أرشيف قابل للرجوع',
   views: [
     {
-      id: 'growth', label: 'نمو الحسابات (آخر 30 يوماً)', requires: ['firebase'], source: 'Firestore users.createdAt (count)', chart: { type: 'bar', x: 'day', y: 'users' },
+      id: 'growth', cacheSec: 900, label: 'نمو الحسابات (آخر 30 يوماً)', requires: ['firebase'], source: 'Firestore users.createdAt (count)', chart: { type: 'bar', x: 'day', y: 'users' },
       columns: [{ key: 'day', label: 'اليوم' }, { key: 'users', label: 'حسابات جديدة' }],
       async fetch(q, ctx) { const T = ctx.fb.Timestamp; const start = new Date(); start.setUTCHours(0, 0, 0, 0); const days = Array.from({ length: 30 }, (_, i) => new Date(start.getTime() - (29 - i) * DAY)); const rows = await Promise.all(days.map(async (d) => ({ id: dayKey(d), day: dayKey(d), users: await count(ctx.fb.db().collection('users').where('createdAt', '>=', T.fromDate(d)).where('createdAt', '<', T.fromDate(new Date(+d + DAY)))) }))); return { rows, meta: { total: rows.reduce((a, r) => a + r.users, 0) } }; }
     },
     {
-      id: 'activity', label: 'نشاط اللاعبين (آخر 14 يوماً)', requires: ['firebase'], source: 'Firestore levels.updatedAt (count)', chart: { type: 'line', x: 'day', y: 'players' },
+      id: 'activity', cacheSec: 900, label: 'نشاط اللاعبين (آخر 14 يوماً)', requires: ['firebase'], source: 'Firestore levels.updatedAt (count)', chart: { type: 'line', x: 'day', y: 'players' },
       columns: [{ key: 'day', label: 'اليوم' }, { key: 'players', label: 'لاعبون نشطون' }],
       async fetch(q, ctx) { const T = ctx.fb.Timestamp; const start = new Date(); start.setUTCHours(0, 0, 0, 0); const days = Array.from({ length: 14 }, (_, i) => new Date(start.getTime() - (13 - i) * DAY)); const rows = await Promise.all(days.map(async (d) => ({ id: dayKey(d), day: dayKey(d), players: await count(ctx.fb.db().collection('levels').where('updatedAt', '>=', T.fromDate(d)).where('updatedAt', '<', T.fromDate(new Date(+d + DAY)))) }))); return { rows }; }
     },
     {
-      id: 'top', label: 'أعلى 25 لاعباً خبرة', requires: ['firebase'], source: 'Firestore levels (xp)',
+      id: 'top', cacheSec: 900, label: 'أعلى 25 لاعباً خبرة', requires: ['firebase'], source: 'Firestore levels (xp)',
       columns: [{ key: 'rank', label: '#' }, { key: 'key', label: 'اللاعب' }, { key: 'xp', label: 'الخبرة' }, { key: 'level', label: 'اللفل' }, { key: 'roundsPlayed', label: 'الجولات' }],
       async fetch(q, ctx) { return { rows: (await topLevels(ctx, 25)).map((d, i) => ({ id: d.id, rank: i + 1, key: d.id, xp: d.data().xp || 0, level: d.data().level || 1, roundsPlayed: d.data().roundsPlayed || 0 })) }; }
     },

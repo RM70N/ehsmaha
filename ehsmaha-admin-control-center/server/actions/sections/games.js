@@ -58,7 +58,7 @@ export default {
   id: 'games', workspace: 'website', label: 'إدارة الألعاب', icon: 'gamepad', adminDefault: true, description: 'إعدادات الألعاب، الصيانة والشارات، وإحصائيات اللعب',
   views: [
     {
-      id: 'catalog', label: 'فهرس الألعاب', requires: ['firebase'], search: true, source: 'gameBadges + MOD_SETTINGS_SCHEMA',
+      id: 'catalog', cacheSec: 600, label: 'فهرس الألعاب', requires: ['firebase'], search: true, source: 'gameBadges + MOD_SETTINGS_SCHEMA',
       columns: [{ key: 'name', label: 'اللعبة' }, { key: 'tag', label: 'الوسم', mono: true }, { key: 'badge', label: 'الحالة/الشارة' }, { key: 'hasSettings', label: 'إعدادات قابلة للتعديل' }, { key: 'version', label: 'إصدار الإعدادات' }],
       async fetch(q, ctx) {
         const [bs, cur] = await Promise.all([ctx.fb.db().collection('gameBadges').get(), ctx.fb.rtdb().ref('opsConfig/current').get()]);
@@ -92,7 +92,7 @@ export default {
       }
     },
     {
-      id: 'playstats', label: 'أكثر الألعاب لعباً (عينة أعلى 500 لاعب)', requires: ['firebase'], source: 'Firestore levels.gamesPlayCount (عينة)',
+      id: 'playstats', cacheSec: 1800, label: 'أكثر الألعاب لعباً (عينة أعلى 500 لاعب)', requires: ['firebase'], source: 'Firestore levels.gamesPlayCount (عينة)',
       columns: [{ key: 'game', label: 'اللعبة' }, { key: 'plays', label: 'مرات اللعب' }, { key: 'players', label: 'اللاعبون' }],
       async fetch(q, ctx) {
         const snap = await ctx.fb.db().collection('levels').orderBy('xp', 'desc').limit(500).get();

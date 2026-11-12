@@ -560,7 +560,7 @@ T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطا
     // ما يعتمد Firestore فقط: رسالة واضحة (503) بلا نجاح مزيّف
     r = await run('shop.set_price', { productId: 'prod1', price: 999 }); assert.equal(r.status, 503); assert.equal(r.json.code, 'FIRESTORE_QUOTA'); assert.match(r.json.message, /حصة Firestore/);
     const ov = await o.get('/api/overview'); assert.match(JSON.stringify(ov.json), /حصة Firestore اليومية مستنفدة/);
-  } finally { env.svc.fb.db = realDb; }
+  } finally { env.svc.fb.db = realDb; env.svc.fb.noteOk(); }
   assert.equal((await g('shopProducts/prod1')).data().price, 175, 'لم يتغير شيء في Firestore');
 });
 
@@ -585,4 +585,17 @@ T('كل زر: الأدمن بلا صلاحية → 403 من الخادم حتى 
   for (const act of env.svc.registry.actions()) { const r = await a.run(act.id, {}); if (r.status !== 403) bad.push(`${act.id}:${r.status}`); (results[act.id] ||= { id: act.id, runs: [] }).adminDenied = r.status === 403 ? 'ok' : 'FAIL'; }
   assert.deepEqual(bad, [], 'كل إجراء يجب أن يُرفض');
   const unauth = client(env.base); for (const id of ['players.ban_permanent', 'server.kick', 'automod.toggle_links']) assert.equal((await unauth.run(id, {})).status, 401);
+});
+
+T('ذاكرة العروض: القراءة الثانية لا تصل Firestore، والكتابة تُبطلها', async () => {
+  const path = '/api/views/shop/products';
+  assert.equal((await o.get(path)).status, 200);
+  const realDb = fb.db; let reads = 0;
+  fb.db = function () { reads++; return realDb.call(fb); };
+  try {
+    const second = await o.get(path);
+    assert.equal(second.json.cached, true); assert.equal(reads, 0, 'لا قراءة من Firestore');
+    env.svc.viewCache.clearSection('shop');
+    const third = await o.get(path); assert.ok(!third.json.cached); assert.ok(reads > 0);
+  } finally { fb.db = realDb; }
 });

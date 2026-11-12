@@ -53,7 +53,9 @@ export function loadConfig(env = process.env) {
     },
     siteUrl: env.SITE_URL || 'https://ehsmaha.com',
     bridgeHealthUrl: env.BRIDGE_HEALTH_URL || '',
-    healthIntervalSec: num(env.HEALTH_INTERVAL_SEC, 60),
+    healthIntervalSec: num(env.HEALTH_INTERVAL_SEC, 180),
+    viewCacheSec: num(env.VIEW_CACHE_SEC, 90),
+    firestoreHealthMinutes: num(env.FIRESTORE_HEALTH_MINUTES, 15),
     schedulerIntervalSec: num(env.SCHEDULER_INTERVAL_SEC, 30),
     startBackground: bool(env.START_BACKGROUND, true)
   };

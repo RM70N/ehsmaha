@@ -43,7 +43,7 @@ test('كل عملية تُسجَّل في التدقيق بالحقول المط
   const r = await owner.run('settings.set_healthIntervalSec', { value: 120 }); assert.equal(r.status, 200);
   const a = env.svc.audit.get(r.json.auditId);
   for (const k of ['actor', 'actorName', 'action', 'section', 'ts', 'status', 'requestId', 'hash', 'prevHash']) assert.ok(a[k] !== undefined, k);
-  assert.equal(a.status, 'success'); assert.equal(a.before.prev, 60); assert.equal(a.after.value, 120);
+  assert.equal(a.status, 'success'); assert.equal(a.before.prev, 180); assert.equal(a.after.value, 120);
 });
 
 test('التراجع (Undo) يعكس العملية عبر نفس المحرك ولا يتكرر', async () => {

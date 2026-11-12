@@ -68,6 +68,7 @@ export function createApp(svc) {
     if (err?.type === 'entity.parse.failed') err = E.invalid('JSON غير صالح');
     if (err?.type === 'entity.too.large') err = E.invalid('حجم الطلب كبير');
     const ex = explain(err);
+    if (ex.code === 'FIRESTORE_QUOTA') svc.fb.noteError?.(err);
     if (ex.status === 500) log.error('request failed', { path: req.path, error: err }); else if (ex.status >= 502) log.warn('upstream unavailable', { path: req.path, code: ex.code });
     res.status(ex.status).json({ ok: false, code: ex.code, message: ex.message, requestId: req.id, ...(err instanceof AppError ? err.extra : {}) });
   });

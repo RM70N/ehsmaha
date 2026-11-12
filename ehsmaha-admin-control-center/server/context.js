@@ -17,6 +17,7 @@ import { createAlerts } from './services/alerts.js';
 import { createHealth } from './services/health.js';
 import { createScheduler } from './services/scheduler.js';
 import { createSettings } from './services/settings.js';
+import { createViewCache } from './services/viewCache.js';
 import { createScheduledPosts } from './services/scheduledPosts.js';
 
 export async function createServices(cfg, o = {}) {
@@ -57,7 +58,8 @@ export async function createServices(cfg, o = {}) {
     guildId: () => cfg.discord.guildId, now: () => Date.now()
   });
   svc.buildCtx = buildCtx;
-  svc.engine = createEngine({ registry, perms, store, audit, caps, buildCtx, alerts: svc.alerts });
+  svc.viewCache = createViewCache({ defaultTtlSec: cfg.viewCacheSec });
+  svc.engine = createEngine({ registry, perms, store, audit, caps, buildCtx, alerts: svc.alerts, onWrite: (sec) => { svc.viewCache.clearSection(sec); }, onQuota: (e) => fb.noteError?.(e) });
   svc.scheduledPosts = createScheduledPosts(svc);
   svc.scheduler = createScheduler(svc);
   return svc;

@@ -29,7 +29,7 @@ export function explain(err) {
   return { status: 500, code: 'INTERNAL', message: 'تعذّر تنفيذ العملية بسبب خطأ غير متوقع' };
 }
 
-export function createEngine({ registry, perms, store, audit, caps, buildCtx, alerts }) {
+export function createEngine({ registry, perms, store, audit, caps, buildCtx, alerts, onWrite, onQuota }) {
   const idem = store.col('idem');
   const inflight = new Set();
 
@@ -93,6 +93,7 @@ export function createEngine({ registry, perms, store, audit, caps, buildCtx, al
       verified = act.verify ? await act.verify(p, ctx, before, result) : { ok: true };
     } catch (e) {
       const ex = explain(e);
+      if (ex.code === 'FIRESTORE_QUOTA') onQuota?.(e);
       const a = record({ ...base, status: 'failed', target: safeTarget(act, p), before: scrub(before), params: scrub(p), error: ex.code, errorMessage: ex.message, reason: cleanReason || undefined, ms: Date.now() - t0 });
       if (idemId) idem.del(idemId); // الفشل لا يحجز المفتاح: تُسمح إعادة المحاولة (والعمليات الحساسة ذرّية/مفتاحية داخلياً)
       if (ex.status === 500) log.error('action failed', { action: act.id, error: e }); else log.warn('action rejected', { action: act.id, code: ex.code });
@@ -106,6 +107,7 @@ export function createEngine({ registry, perms, store, audit, caps, buildCtx, al
       throw E.verifyFailed(msg, { auditId: a && a.id });
     }
 
+    if (!isRead) onWrite?.(act.section); // الكتابة تُبطل ذاكرة عروض القسم فيظهر التغيير فوراً
     const pending = result.pending || verified.pending || null; // محفوظة لكن لم يطبّقها النظام الحي بعد
     const status = pending ? 'saved_pending_apply' : 'success';
     const undo = result.undo || verified.undo || null;

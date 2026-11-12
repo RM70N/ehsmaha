@@ -45,7 +45,11 @@ export function createHealth(svc) {
   return {
     ids: Object.keys(CHECKS),
     runOne,
-    async runAll() { return Promise.all(Object.keys(CHECKS).map(runOne)); },
+    // الفحص الدوري يُقلّل Firestore: لا يفحصه أكثر من مرة كل firestoreHealthMinutes ما دام سليماً (الفحص اليدوي يتجاوز ذلك)
+    async runAll({ force = false } = {}) {
+      const mins = cfg.firestoreHealthMinutes;
+      return Promise.all(Object.keys(CHECKS).map((id) => { const l = latest.get(id); return !force && id === 'firestore' && l && l.status === 'up' && now() - l.checkedAt < mins * 60_000 ? l : runOne(id); }));
+    },
     latest: () => Object.keys(CHECKS).map((id) => latest.get(id) || { id, label: CHECKS[id].label, status: CHECKS[id].configured() ? 'unknown' : 'unconfigured', checkedAt: null }),
     history: (id, sinceMs = now() - 24 * 3600_000, limit = 500) => hist.list({ where: { id, ts: { gte: sinceMs } }, orderBy: 'ts', dir: 'asc', limit }),
     incidents: (limit = 50) => hist.list({ where: { status: 'down' }, orderBy: 'ts', limit }),

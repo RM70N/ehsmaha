@@ -2,7 +2,7 @@
 // (لا أرقام قديمة تُعرض كحديثة، ولا أرقام ثابتة).
 import { now } from '../lib/util.js';
 
-const TTL = 20_000;
+const TTL = 90_000; // توفير حصة Firestore: المؤشرات تُحسب مرة كل 90 ثانية على الأكثر
 const cache = new Map();
 
 async function metric(id, label, source, fn, ttl = TTL) {

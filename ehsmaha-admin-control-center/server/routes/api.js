@@ -86,8 +86,19 @@ export function apiRouter(svc) {
     if (!v || !perms.canSeeSection(a, v.section) || (v.ownerOnly && a.role !== 'owner')) throw E.notFound('العرض غير موجود');
     for (const c of v.requires || []) { const k = caps[c](); if (!k.ok) throw E.unavailable(k.reason, { capability: c }); }
     const started = Date.now();
-    const out = await v.fetch({ q: String(req.query.q || '').slice(0, 200), cursor: req.query.cursor, page: req.query.page, pageSize: req.query.pageSize, filters: req.query }, { ...svc.buildCtx(a) });
-    res.json({ ok: true, rows: scrub(out.rows), total: out.total ?? null, nextCursor: out.nextCursor ?? null, meta: scrub(out.meta) || null, source: v.source || null, updatedAt: Date.now(), ms: Date.now() - started });
+    // ذاكرة مؤقتة لعروض Firestore (توفير الحصة): ?fresh=1 يتجاوزها، والكتابة الناجحة في القسم تُبطلها
+    const ttl = v.cacheSec ?? ((v.requires || []).includes('firebase') ? svc.viewCache.defaultTtlSec : 0);
+    const key = `${v.fullId}|${req.query.q || ''}|${req.query.cursor || ''}|${req.query.page || ''}|${req.query.pageSize || ''}`;
+    if (ttl && !req.query.fresh) { const hit = svc.viewCache.get(key, ttl); if (hit) return res.json(hit); }
+    let out;
+    try { out = await v.fetch({ q: String(req.query.q || '').slice(0, 200), cursor: req.query.cursor, page: req.query.page, pageSize: req.query.pageSize, filters: req.query }, { ...svc.buildCtx(a) }); }
+    catch (e) {
+      if (ttl && (e.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(e.message || '')))) { svc.fb.noteError?.(e); const st = svc.viewCache.get(key, ttl, { allowStale: true }); if (st) return res.json({ ...st, meta: { ...(st.meta || {}), note: 'حصة Firestore مستنفدة — يُعرض آخر نسخة محفوظة (قد تكون قديمة)' } }); }
+      throw e;
+    }
+    const payload = { ok: true, rows: scrub(out.rows), total: out.total ?? null, nextCursor: out.nextCursor ?? null, meta: scrub(out.meta) || null, source: v.source || null, updatedAt: Date.now(), ms: Date.now() - started };
+    if (ttl) svc.viewCache.set(key, payload, v.section, ttl);
+    res.json(payload);
   }));
 
   // ---------- سجل التدقيق (قراءة/تصدير فقط) ----------
