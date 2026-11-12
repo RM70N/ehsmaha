@@ -19,8 +19,14 @@ export const tsMs = (t) => (t == null ? null : typeof t === 'number' ? t : t.toM
 export const isQuota = (e) => !!e && (e.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(e.message || '')));
 
 // بحث اللاعب عبر Firebase Auth فقط (حصة منفصلة عن Firestore): بريد أو UID أو اسم العرض
+export function indexPlayer(fb, uid, username, extra = {}) {
+  try { if (fb.playerIndex && uid && username) fb.playerIndex.set(uid, { uid, username, lower: normUsername(username), ...extra, at: Date.now() }); } catch { /* الفهرس تحسين فقط */ }
+}
+export const indexList = (fb) => { try { return fb.playerIndex ? fb.playerIndex.list({ limit: 20000, orderBy: 'updated_at' }) : []; } catch { return []; } };
 async function findPlayerViaAuth(fb, raw) {
   const q = String(raw || '').trim(); const auth = fb.auth(); let u = null;
+  const hit = indexList(fb).find((r) => r.lower === normUsername(q) || r.uid === q);
+  if (hit) { try { u = await auth.getUser(hit.uid); } catch { /* */ } if (u) return { uid: u.uid, user: { username: hit.username, usernameLower: hit.lower, email: u.email }, username: hit.username, usernameLower: hit.lower, levelKeys: [levelsKey(hit.username)].filter(Boolean), viaAuth: true }; }
   try {
     if (q.includes('@')) u = await auth.getUserByEmail(q);
     else if (/^[A-Za-z0-9]{20,40}$/.test(q) || q.startsWith('p-')) u = await auth.getUser(q);
@@ -88,15 +94,16 @@ async function findPlayerFs(fb, raw) {
   if (isDocId(q)) {
     const idx = await db.collection('usernames').doc(q).get();
     const uid = idx.exists && idx.data().uid;
-    if (uid) { const s = await db.collection('users').doc(uid).get(); if (s.exists) return pack(uid, s.data()); }
+    if (uid) { const s = await db.collection('users').doc(uid).get(); if (s.exists) return pack(fb, uid, s.data()); }
   }
   const byLower = await db.collection('users').where('usernameLower', '==', q).limit(1).get();
-  if (!byLower.empty) return pack(byLower.docs[0].id, byLower.docs[0].data());
+  if (!byLower.empty) return pack(fb, byLower.docs[0].id, byLower.docs[0].data());
   const rawTrim = String(raw).trim();
-  if (isDocId(rawTrim)) { const s = await db.collection('users').doc(rawTrim).get(); if (s.exists) return pack(rawTrim, s.data()); }
+  if (isDocId(rawTrim)) { const s = await db.collection('users').doc(rawTrim).get(); if (s.exists) return pack(fb, rawTrim, s.data()); }
   throw E.notFound('لا يوجد لاعب مسجّل بهذا اليوزرنيم أو المعرّف');
 }
-function pack(uid, user) {
+function pack(fb, uid, user) {
+  indexPlayer(fb, uid, user.username || user.usernameLower, { tiktok: user.linkedTiktokUsername || null });
   const siteKey = levelsKey(user.username || user.usernameLower);
   const tkKey = levelsKey(user.linkedTiktokUsername);
   return { uid, user, username: user.username || user.usernameLower || uid, usernameLower: user.usernameLower || normUsername(user.username), levelKeys: [...new Set([siteKey, tkKey].filter(Boolean))] };

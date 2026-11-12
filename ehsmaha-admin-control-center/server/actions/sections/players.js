@@ -1,6 +1,6 @@
 import { E } from '../../lib/errors.js';
 import { normUsername, now } from '../../lib/util.js';
-import { findPlayer, readLevel, levelRef, TS, isQuota, playerSummary, tsMs, pageSize } from '../siteHelpers.js';
+import { indexPlayer, indexList, findPlayer, readLevel, levelRef, TS, isQuota, playerSummary, tsMs, pageSize } from '../siteHelpers.js';
 
 async function searchFs(q, ctx) {
   const db = ctx.fb.db();
@@ -19,6 +19,7 @@ async function searchFs(q, ctx) {
     docs = (await qq.get()).docs.map((d) => [d.id, d.data()]);
   }
   const rows = await Promise.all(docs.map(async ([uid, u]) => {
+    indexPlayer(ctx.fb, uid, u.username || u.usernameLower, { tiktok: u.linkedTiktokUsername || null });
     const lv = await readLevel(ctx.fb, (u.username || u.usernameLower || '').toLowerCase()).catch(() => null);
     return { id: uid, username: u.username || u.usernameLower, uid, level: lv?.level ?? null, xp: lv?.xp ?? 0, roundsPlayed: lv?.roundsPlayed ?? 0, linkedTiktok: u.linkedTiktokUsername || '—', createdAt: tsMs(u.createdAt), state: '—' };
   }));
@@ -28,10 +29,31 @@ async function searchFs(q, ctx) {
 
 // بديل عند نفاد حصة Firestore: Firebase Auth (حصة منفصلة) — بريد/اسم عرض/UID + حالة الحساب (معطّل أم لا)
 async function searchAuth(q, ctx) {
-  const term = normUsername(q.q); const auth = ctx.fb.auth(); let users = [];
-  if (term) { let token; do { const r = await auth.listUsers(1000, token); users.push(...r.users.filter((u) => `${u.displayName || ''} ${u.email || ''} ${u.uid}`.toLowerCase().includes(term))); token = r.pageToken; } while (token && users.length < 25); }
-  else users = (await auth.listUsers(pageSize(q), q.cursor || undefined)).users;
-  return { rows: users.slice(0, pageSize(q)).map((u) => ({ id: u.uid, username: u.displayName || (u.email || '').split('@')[0] || u.uid, uid: u.uid, level: '—', xp: '—', roundsPlayed: '—', linkedTiktok: u.email ? `${u.email.slice(0, 2)}***@${u.email.split('@')[1]}` : '—', createdAt: Date.parse(u.metadata.creationTime) || null, state: u.disabled ? '⛔ معطّل (محظور)' : '✅ نشط' })), nextCursor: null, meta: { note: 'Firestore غير متاح (حصة مستنفدة) — النتائج من Firebase Auth. يمكن الحظر/رفع الحظر/سحب الجلسات بالبريد أو UID.' } };
+  const term = normUsername(q.q); const auth = ctx.fb.auth(); const lim = pageSize(q);
+  const idx = indexList(ctx.fb); const byUid = new Map(idx.map((r) => [r.uid, r]));
+  const rows = new Map(); const mk = (o) => ({ level: '—', xp: '—', roundsPlayed: '—', linkedTiktok: '—', createdAt: null, state: '—', ...o });
+  if (term) {
+    // 1) يوزر الموقع نفسه: مفاتيح levels في RTDB (= يوزر اللاعب) ببحث بادئة بلا فهرس
+    try {
+      const r = await ctx.fb.rtdb().ref('levels').orderByKey().startAt(term).endAt(term + '\uf8ff').limitToFirst(lim).get();
+      r.forEach((c) => { const v = c.val() || {}; const known = idx.find((x) => x.lower === c.key); rows.set('k:' + c.key, mk({ id: known?.uid || 'k:' + c.key, username: known?.username || c.key, uid: known?.uid || null, level: v.level ?? null, xp: v.xp ?? 0, roundsPlayed: v.roundsPlayed ?? 0, linkedTiktok: known?.tiktok || '—' })); });
+    } catch { /* */ }
+    // 2) الفهرس المحلي (يوزر الموقع ← uid) بالاحتواء
+    for (const r of idx) if (r.lower.includes(term) && !rows.has('k:' + r.lower)) rows.set('i:' + r.uid, mk({ id: r.uid, username: r.username, uid: r.uid, linkedTiktok: r.tiktok || '—' }));
+    // 3) البريد أو UID (يحتاج Auth)
+    try {
+      let u = null;
+      if (q.q.includes('@')) u = await auth.getUserByEmail(String(q.q).trim()).catch(() => null);
+      else if (/^[A-Za-z0-9]{20,40}$/.test(String(q.q).trim()) || String(q.q).trim().startsWith('p-')) u = await auth.getUser(String(q.q).trim()).catch(() => null);
+      if (u) { const k = byUid.get(u.uid); rows.set('a:' + u.uid, mk({ id: u.uid, username: k?.username || `(اسم الحساب: ${u.displayName || (u.email || '').split('@')[0] || u.uid})`, uid: u.uid, linkedTiktok: u.email ? `${u.email.slice(0, 2)}***@${u.email.split('@')[1]}` : '—', createdAt: Date.parse(u.metadata.creationTime) || null, state: u.disabled ? '⛔ معطّل (محظور)' : '✅ نشط' })); }
+    } catch { /* */ }
+    // حالة الحساب لمن عُرف uid
+    await Promise.all([...rows.values()].filter((r) => r.uid && r.state === '—').map(async (r) => { try { const u = await auth.getUser(r.uid); r.state = u.disabled ? '⛔ معطّل (محظور)' : '✅ نشط'; r.createdAt = Date.parse(u.metadata.creationTime) || null; } catch { /* */ } }));
+  } else {
+    const users = (await auth.listUsers(lim, q.cursor || undefined)).users;
+    for (const u of users) { const k = byUid.get(u.uid); rows.set('a:' + u.uid, mk({ id: u.uid, username: k?.username || `(اسم الحساب: ${u.displayName || (u.email || '').split('@')[0] || u.uid})`, uid: u.uid, linkedTiktok: u.email ? `${u.email.slice(0, 2)}***@${u.email.split('@')[1]}` : '—', createdAt: Date.parse(u.metadata.creationTime) || null, state: u.disabled ? '⛔ معطّل (محظور)' : '✅ نشط' })); }
+  }
+  return { rows: [...rows.values()].slice(0, lim), nextCursor: null, meta: { note: `Firestore غير متاح (حصة مستنفدة) — البحث بيوزر الموقع من RTDB (levels) والفهرس المحلي (${idx.length} لاعباً)، وبالبريد/UID من Firebase Auth. يكتمل الفهرس تلقائياً كلما عمل Firestore.` } };
 }
 
 const USER = { name: 'username', label: 'يوزرنيم اللاعب أو معرّف الحساب', type: 'text', required: true, max: 120, placeholder: 'مثال: ahmed_1' };
