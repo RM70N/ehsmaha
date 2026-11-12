@@ -12,6 +12,7 @@ const eb = require('../utils/embedBuilder');
 const respond = require('../utils/respond');
 const rateLimiter = require('../utils/rateLimiter');
 const usageStats = require('../utils/usageStats');
+const commandControl = require('../services/commandControl');
 const customId = require('../utils/customId');
 const { missingChannelPerms } = require('../utils/permissions');
 const { GENERIC } = require('../utils/errors');
@@ -59,6 +60,14 @@ async function handleCommand(interaction, ctx) {
       { embeds: [eb.warning('هذا الأمر لم يعد متاحاً — جرّب `/مساعدة` لقائمة الأوامر الحالية.')] },
       { ephemeral: true }
     );
+  }
+
+  // ضوابط الإدارة (تعطيل/تقييد برتبة أو قناة) — قبل معدّل الاستخدام. المالك والأوامر الأساسية مستثناة.
+  const control = commandControl.isAllowed(interaction);
+  if (!control.allowed) {
+    usageStats.denied(interaction.commandName);
+    logger.info('أمر مرفوض بضوابط الإدارة', { command: interaction.commandName, reason: control.reason, userId: interaction.user.id });
+    return respond.send(interaction, { embeds: [eb.warning(control.message)] }, { ephemeral: true });
   }
 
   const cooldownMs = (command.options && command.options.cooldownMs) ?? ctx.config.commandCooldownMs;
@@ -117,7 +126,7 @@ module.exports = {
         return await interaction.reply({ content: 'هذا النوع من التفاعل غير مدعوم.', flags: MessageFlags.Ephemeral });
       }
     } catch (err) {
-      usageStats.error();
+      usageStats.error(interaction.commandName, err && (err.code || err.name));
       logger.error('خطأ غير متوقع أثناء معالجة تفاعل', {
         type: interaction.type,
         command: interaction.commandName,

@@ -98,6 +98,19 @@ module.exports = {
       }))
       .catch((err) => logger.error('تعذّر تشغيل نظام راوندات الألعاب', { error: err }));
 
+    // خدمات لوحة الإدارة: ضوابط الأوامر، حدود الحماية، أسباب التكتات، وإحصاءات الأوامر الدائمة (تحمّلها من القاعدة)
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => {
+        if (ok === false) return undefined;
+        return Promise.all([
+          require('../services/commandControl').init(),
+          require('../services/autoModLimits').init(),
+          require('../services/tickets').loadReasons().catch((err) => logger.warn('تعذّر تحميل أسباب التكتات من القاعدة (ملف الإعدادات)', { error: err && err.message })),
+          require('../utils/usageStats').start()
+        ]);
+      })
+      .catch((err) => logger.error('تعذّر تشغيل خدمات لوحة الإدارة', { error: err }));
+
     // الإعلان التلقائي عن بثوث الستريمرز المسجلين (يشتغل تلقائياً بعد جاهزية قاعدة البيانات؛ يعتمد على onChange بتاع /بث)
     if (ctx.config.streamAnnouncerEnabled) {
       Promise.resolve(ctx.dbReady)
