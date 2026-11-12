@@ -531,6 +531,39 @@ T('botcontrol: التطبيق الحي في البوت + أوامر/حماية/�
   botRun('DELETE FROM streamer_announcements');
 });
 
+// ================= نفاد حصة Firestore: ما زال التحكم ممكناً عبر Auth وRTDB =================
+T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطارات/الرسائل تعمل عبر Auth وRTDB، والباقي يفشل برسالة واضحة', async () => {
+  const realDb = env.svc.fb.db; const quota = () => { const e = new Error('8 RESOURCE_EXHAUSTED: Quota exceeded.'); e.code = 8; throw e; };
+  env.svc.fb.db = quota; (await import('../../server/services/overview.js')).clearOverviewCache();
+  const run = (id, params) => o.run(id, params, { reason: 'اختبار نفاد الحصة' });
+  try {
+    // بحث اللاعبين من Auth
+    const v = await o.get('/api/views/players/search?q=sara'); assert.equal(v.status, 200); assert.ok(v.json.rows.some((r) => r.uid === 'p-sara' && r.state.includes('نشط'))); assert.match(v.json.meta.note, /Firebase Auth/);
+    // حظر/رفع حظر بالبريد (Auth فقط)
+    let r = await run('players.ban_permanent', { username: 'khalid@example.com' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await auth.getUser('p-khalid')).disabled, true);
+    assert.ok((await o.get('/api/views/players/search?q=khalid')).json.rows.some((x) => x.state.includes('معطّل')));
+    r = await run('players.unban', { username: 'p-khalid' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await auth.getUser('p-khalid')).disabled, false);
+    r = await run('players.force_logout', { username: 'sara@example.com' }); assert.equal(r.status, 200);
+    // خبرة عبر RTDB
+    r = await run('players.adjust_xp', { username: 'sara@example.com', delta: 25 }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.match(r.json.message, /RTDB/); assert.equal((await rt.ref('levels/sara/xp').get()).val(), 25);
+    r = await run('players.reset_xp', { username: 'sara@example.com' }); assert.equal(r.status, 200); assert.equal((await rt.ref('levels/sara/xp').get()).val(), 0);
+    // إطارات عبر RTDB
+    r = await run('rewards.grant_frame', { username: 'sara@example.com', frameId: 'anime05' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.ok(((await rt.ref('levels/sara/ownedFrames').get()).val() || []).includes('anime05'));
+    r = await run('rewards.revoke_frame', { username: 'sara@example.com', frameId: 'anime05' }); assert.equal(r.status, 200); assert.ok(!((await rt.ref('levels/sara/ownedFrames').get()).val() || []).includes('anime05'));
+    // رسائل
+    r = await run('players.send_message', { username: 'sara@example.com', text: 'رسالة بلا Firestore', position: 'top', durationMode: 'timed' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/personal/sara').get()).val().text, 'رسالة بلا Firestore');
+    r = await run('messages.publish', { text: 'إعلان بلا Firestore', position: 'center', durationSec: 10 }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/broadcast/text').get()).val(), 'إعلان بلا Firestore');
+    r = await run('messages.clear', {}); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/broadcast').get()).exists(), false);
+    // RTDB أصلاً: الأكواد وإعدادات الألعاب
+    r = await run('codes.stop', { code: 'كود شغال' }); assert.equal(r.status, 200, JSON.stringify(r.json)); await run('codes.reactivate', { code: 'كود شغال' });
+    r = await run('games.set_setting', { setting: 'sniper.ammoSniper', value: '30' }); assert.equal(r.status, 200, JSON.stringify(r.json));
+    // ما يعتمد Firestore فقط: رسالة واضحة (503) بلا نجاح مزيّف
+    r = await run('shop.set_price', { productId: 'prod1', price: 999 }); assert.equal(r.status, 503); assert.equal(r.json.code, 'FIRESTORE_QUOTA'); assert.match(r.json.message, /حصة Firestore/);
+    const ov = await o.get('/api/overview'); assert.match(JSON.stringify(ov.json), /حصة Firestore اليومية مستنفدة/);
+  } finally { env.svc.fb.db = realDb; }
+  assert.equal((await g('shopProducts/prod1')).data().price, 175, 'لم يتغير شيء في Firestore');
+});
+
 // ================= فحوصات شاملة على كل زر =================
 T('تغطية: كل إجراء في السجل جُرّب فعلاً (ما عدا الخفية التي تُختبر بالتراجع)', async () => {
   const hidden = new Set(['commands.restore_permission', 'access.restore_snapshot']);

@@ -1,17 +1,17 @@
 import { E } from '../../lib/errors.js';
 import { now, isDocId } from '../../lib/util.js';
-import { findPlayer, tsMs, pageSize } from '../siteHelpers.js';
+import { findPlayer, tsMs, pageSize, levelRef, ADD, RM, TS, isQuota } from '../siteHelpers.js';
 import { SNAP } from '../../data/siteSnapshot.js';
 
 const BUILTIN = SNAP.frames;
-const lv = (ctx, k) => ctx.fb.db().collection('levels').doc(k);
+const lv = (ctx, k) => levelRef(ctx.fb, k);
 const U = { name: 'username', label: 'يوزرنيم اللاعب', type: 'text', required: true, max: 120 };
 const FRAME = { name: 'frameId', label: 'معرّف الإطار', type: 'text', required: true, max: 120, help: 'مثل anime01 — أو معرّف إطار خاص من framesCatalogExtra' };
 
 export async function frameExists(ctx, id) {
   if (BUILTIN.some((f) => f.id === id)) return BUILTIN.find((f) => f.id === id).name;
   if (!isDocId(id)) return null;
-  for (const c of ['framesCatalogExtra', 'framesCatalog']) { const s = await ctx.fb.db().collection(c).doc(id).get(); if (s.exists) return s.data().name || id; }
+  try { for (const c of ['framesCatalogExtra', 'framesCatalog']) { const s = await ctx.fb.db().collection(c).doc(id).get(); if (s.exists) return s.data().name || id; } } catch (e) { if (!isQuota(e)) throw e; }
   const r = await ctx.fb.rtdb().ref('framesCatalogExtra/' + id).get().catch(() => null); // الموقع يخزّن الإطار الخاص بـRTDB أحياناً
   return r && r.exists() ? r.val().name || id : null;
 }
@@ -54,7 +54,7 @@ export default {
       fields: [U, FRAME], target: (p) => `${p.username} ← ${p.frameId}`, load: loadFrame,
       async execute(p, ctx, b) {
         if (Object.values(b.owned).some((a) => a.includes(p.frameId))) throw E.conflict('اللاعب يملك هذا الإطار مسبقاً — لا حاجة للمنح');
-        for (const k of b.keys) await lv(ctx, k).set({ ownedFrames: ctx.fb.FieldValue.arrayUnion(p.frameId) }, { merge: true });
+        for (const k of b.keys) await lv(ctx, k).set({ ownedFrames: ADD(p.frameId) }, { merge: true });
         ledger(ctx).set(`${b.uid}-${p.frameId}-${now()}`, { uid: b.uid, username: b.name, frameId: p.frameId, frameName: b.frameName, op: 'grant', by: ctx.actor.id, reason: ctx.reason || '', at: now() });
         return { message: `مُنح «${b.frameName}» لـ${b.name}`, undo: { action: 'rewards.revoke_frame', params: { username: b.name, frameId: p.frameId } } };
       },
@@ -66,7 +66,7 @@ export default {
       fields: [U, FRAME], target: (p) => `${p.username} ✕ ${p.frameId}`,
       async load(p, ctx) { const b = await loadFrame(p, ctx); if (!Object.values(b.owned).some((a) => a.includes(p.frameId))) throw E.conflict('اللاعب لا يملك هذا الإطار'); return b; },
       async execute(p, ctx, b) {
-        for (const k of b.keys) { const s = (await lv(ctx, k).get()).data() || {}; const patch = { ownedFrames: ctx.fb.FieldValue.arrayRemove(p.frameId), levelFrames: ctx.fb.FieldValue.arrayRemove(p.frameId) }; if (s.activeFrame === p.frameId) { patch.activeFrame = ''; patch.activeFrameAt = now(); } await lv(ctx, k).set(patch, { merge: true }); }
+        for (const k of b.keys) { const s = (await lv(ctx, k).get()).data() || {}; const patch = { ownedFrames: RM(p.frameId), levelFrames: RM(p.frameId) }; if (s.activeFrame === p.frameId) { patch.activeFrame = ''; patch.activeFrameAt = now(); } await lv(ctx, k).set(patch, { merge: true }); }
         ledger(ctx).set(`${b.uid}-${p.frameId}-${now()}`, { uid: b.uid, username: b.name, frameId: p.frameId, frameName: b.frameName, op: 'revoke', by: ctx.actor.id, reason: ctx.reason, at: now() });
         return { message: `سُحب «${b.frameName}» من ${b.name}`, undo: { action: 'rewards.grant_frame', params: { username: b.name, frameId: p.frameId } } };
       },
@@ -80,7 +80,7 @@ export default {
       async execute(p, ctx, b) {
         const results = [];
         for (const u of b.list) {
-          try { const pl = await findPlayer(ctx.fb, u); const owned = []; for (const k of pl.levelKeys) owned.push(...(((await lv(ctx, k).get()).data()?.ownedFrames) || [])); if (owned.includes(p.frameId)) { results.push({ username: u, result: 'skipped', note: 'يملكه مسبقاً' }); continue; } for (const k of pl.levelKeys) await lv(ctx, k).set({ ownedFrames: ctx.fb.FieldValue.arrayUnion(p.frameId) }, { merge: true }); ledger(ctx).set(`${pl.uid}-${p.frameId}-${now()}`, { uid: pl.uid, username: pl.username, frameId: p.frameId, frameName: b.frameName, op: 'grant', by: ctx.actor.id, reason: ctx.reason, at: now(), bulk: true }); results.push({ username: u, result: 'granted', uid: pl.uid, keys: pl.levelKeys }); }
+          try { const pl = await findPlayer(ctx.fb, u); const owned = []; for (const k of pl.levelKeys) owned.push(...(((await lv(ctx, k).get()).data()?.ownedFrames) || [])); if (owned.includes(p.frameId)) { results.push({ username: u, result: 'skipped', note: 'يملكه مسبقاً' }); continue; } for (const k of pl.levelKeys) await lv(ctx, k).set({ ownedFrames: ADD(p.frameId) }, { merge: true }); ledger(ctx).set(`${pl.uid}-${p.frameId}-${now()}`, { uid: pl.uid, username: pl.username, frameId: p.frameId, frameName: b.frameName, op: 'grant', by: ctx.actor.id, reason: ctx.reason, at: now(), bulk: true }); results.push({ username: u, result: 'granted', uid: pl.uid, keys: pl.levelKeys }); }
           catch (e) { results.push({ username: u, result: 'failed', note: e.message }); }
         }
         return { message: `منح ${results.filter((r) => r.result === 'granted').length} · تخطّي ${results.filter((r) => r.result === 'skipped').length} · فشل ${results.filter((r) => r.result === 'failed').length}`, detail: results, _r: results };

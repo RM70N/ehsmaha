@@ -36,7 +36,11 @@ export function createScheduledPosts(svc) {
 // الكتابة بمسارَي الموقع (Firestore + RTDB الاحتياطي) تماماً كما يفعل ownerSendBroadcastMessage
 export async function publishSiteBroadcast(fb, { text, position = 'center', durationSec = 10, sentBy = 'لوحة الإدارة' }) {
   const base = { text, position, durationMode: 'timed', durationSec, sentBy };
-  await fb.db().collection('broadcastMessages').doc('current').set({ ...base, sentAt: fb.FieldValue.serverTimestamp() });
-  try { await fb.rtdb().ref('ownerMessages/broadcast').set({ ...base, sentAt: fb.ServerValue.TIMESTAMP }); } catch { /* مسار احتياطي اختياري */ }
-  return { ok: true };
+  // مسارا الموقع: Firestore + RTDB. إن نفدت حصة Firestore يكفي نجاح RTDB (الموقع يستمع للاثنين — نفس منطق ownerSendBroadcastMessage)
+  const [f, r] = await Promise.allSettled([
+    (async () => fb.db().collection('broadcastMessages').doc('current').set({ ...base, sentAt: fb.FieldValue.serverTimestamp() }))(),
+    (async () => fb.rtdb().ref('ownerMessages/broadcast').set({ ...base, sentAt: fb.ServerValue.TIMESTAMP }))()
+  ]);
+  if (f.status === 'rejected' && r.status === 'rejected') throw f.reason;
+  return { ok: true, firestore: f.status === 'fulfilled', rtdb: r.status === 'fulfilled' };
 }

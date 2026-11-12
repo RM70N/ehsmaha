@@ -1,6 +1,6 @@
 import { E } from '../../lib/errors.js';
 import { now, normUsername } from '../../lib/util.js';
-import { tsMs, pageSize } from '../siteHelpers.js';
+import { tsMs, pageSize, isQuota } from '../siteHelpers.js';
 import { publishSiteBroadcast } from '../../services/scheduledPosts.js';
 
 const bc = (ctx) => ctx.fb.db().collection('broadcastMessages').doc('current');
@@ -10,7 +10,12 @@ const TXT = { name: 'text', label: 'نص الإعلان', type: 'textarea', requ
 const saved = (ctx) => ctx.store.col('savedAnnouncements');
 const sched = (ctx) => ctx.store.col('scheduledPosts');
 
-async function verifyBroadcast(p, ctx) { const d = (await bc(ctx).get()).data(); return { ok: !!d && d.text === p.text, after: { text: d?.text, position: d?.position } }; }
+// قراءة الإعلان الحالي: Firestore ثم RTDB (عند نفاد الحصة)
+async function currentBroadcast(ctx) {
+  try { const s = await bc(ctx).get(); if (s.exists) return s.data(); } catch (e) { if (!isQuota(e)) throw e; }
+  const r = await ctx.fb.rtdb().ref('ownerMessages/broadcast').get(); return r.exists() ? r.val() : null;
+}
+async function verifyBroadcast(p, ctx) { const d = await currentBroadcast(ctx); return { ok: !!d && d.text === p.text, after: { text: d?.text, position: d?.position } }; }
 
 export default {
   id: 'messages', workspace: 'website', label: 'الرسائل والإعلانات', icon: 'megaphone', adminDefault: true, description: 'إعلان للجميع داخل الموقع، الجدولة، ومكتبة الإعلانات المحفوظة',
@@ -41,15 +46,15 @@ export default {
       id: 'publish', label: 'نشر إعلان للجميع داخل الموقع', icon: 'send', group: 'النشر', danger: 'medium', reversible: true, requires: ['firebase'],
       description: 'يكتب في broadcastMessages/current + ownerMessages/broadcast (نفس مسار رسالة المالك) فيراه كل من هو داخل الموقع لحظياً', effect: 'يظهر الإعلان فوراً لكل الزوار الحاليين',
       fields: [TXT, POS, SEC], target: (p) => p.text.slice(0, 40),
-      async load(p, ctx) { const s = await bc(ctx).get(); return s.exists ? { text: s.data().text, position: s.data().position } : null; },
+      async load(p, ctx) { const d = await currentBroadcast(ctx); return d ? { text: d.text, position: d.position } : null; },
       async execute(p, ctx) { await publishSiteBroadcast(ctx.fb, { ...p, sentBy: ctx.actor.display + ' (لوحة الإدارة)' }); return { message: 'نُشر الإعلان', undo: { action: 'messages.clear', params: {} } }; },
       verify: verifyBroadcast
     },
     {
       id: 'clear', label: 'إيقاف الإعلان المنشور', icon: 'stop', group: 'النشر', danger: 'medium', reversible: false, requires: ['firebase'], description: 'حذف broadcastMessages/current وموازيه في RTDB', effect: 'يختفي الإعلان لمن لم يره بعد',
-      fields: [], load: async (p, ctx) => { const s = await bc(ctx).get(); if (!s.exists) throw E.conflict('لا يوجد إعلان منشور'); return { text: s.data().text }; },
-      async execute(p, ctx) { await bc(ctx).delete(); try { await ctx.fb.rtdb().ref('ownerMessages/broadcast').remove(); } catch { /* */ } return { message: 'أُزيل الإعلان' }; },
-      verify: async (p, ctx) => ({ ok: !(await bc(ctx).get()).exists, after: { exists: false } })
+      fields: [], load: async (p, ctx) => { const d = await currentBroadcast(ctx); if (!d) throw E.conflict('لا يوجد إعلان منشور'); return { text: d.text }; },
+      async execute(p, ctx) { const [f, r] = await Promise.allSettled([(async () => bc(ctx).delete())(), (async () => ctx.fb.rtdb().ref('ownerMessages/broadcast').remove())()]); if (f.status === 'rejected' && r.status === 'rejected') throw f.reason; return { message: 'أُزيل الإعلان' }; },
+      verify: async (p, ctx) => ({ ok: !(await currentBroadcast(ctx)), after: { exists: false } })
     },
     {
       id: 'save', label: 'حفظ إعلان في المكتبة', icon: 'save', group: 'المكتبة', danger: 'low', reversible: true, requires: ['store'], description: 'يحفظ نصاً قابلاً لإعادة النشر لاحقاً', effect: 'يُضاف لمكتبة الإعلانات',

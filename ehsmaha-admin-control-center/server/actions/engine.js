@@ -16,7 +16,9 @@ const FIREBASE_MSGS = {
   5: 'العنصر غير موجود', 7: 'رفضت قواعد/صلاحيات Firebase العملية', 14: 'Firestore غير متاح حالياً', 4: 'انتهت مهلة Firestore'
 };
 
+export const QUOTA_MSG = 'حصة Firestore اليومية لمشروع الموقع مستنفدة (تتجدد يومياً، أو رقِّ المشروع إلى Blaze). ما زالت متاحة عبر Auth وRTDB: حظر/رفع حظر اللاعبين، الخبرة، الإطارات، الرسائل والإعلانات، الأكواد، إعدادات الألعاب.';
 export function explain(err) {
+  if (err && (err.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(err.message || '')))) return { status: 503, code: 'FIRESTORE_QUOTA', message: QUOTA_MSG };
   if (err instanceof AppError) return { status: err.status, code: err.code, message: err.message };
   const code = err && (err.code ?? err.errorInfo?.code);
   if (err && err.code === 'DISCORD_API') return { status: err.status === 403 ? 403 : err.status === 404 ? 404 : 502, code: 'DISCORD_API', message: err.message };

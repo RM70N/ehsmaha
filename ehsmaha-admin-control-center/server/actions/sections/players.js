@@ -1,6 +1,38 @@
 import { E } from '../../lib/errors.js';
 import { normUsername, now } from '../../lib/util.js';
-import { findPlayer, readLevel, levelFromXp, playerSummary, tsMs, pageSize } from '../siteHelpers.js';
+import { findPlayer, readLevel, levelRef, TS, isQuota, playerSummary, tsMs, pageSize } from '../siteHelpers.js';
+
+async function searchFs(q, ctx) {
+  const db = ctx.fb.db();
+  const term = normUsername(q.q);
+  let docs = [];
+  if (term) {
+    const exact = await findPlayer(ctx.fb, term).catch(() => null);
+    const pre = await db.collection('users').where('usernameLower', '>=', term).where('usernameLower', '<', term + '').limit(pageSize(q)).get();
+    const seen = new Map();
+    if (exact) seen.set(exact.uid, exact.user);
+    for (const d of pre.docs) seen.set(d.id, d.data());
+    docs = [...seen.entries()];
+  } else {
+    let qq = db.collection('users').orderBy('usernameLower').limit(pageSize(q));
+    if (q.cursor) qq = qq.startAfter(String(q.cursor));
+    docs = (await qq.get()).docs.map((d) => [d.id, d.data()]);
+  }
+  const rows = await Promise.all(docs.map(async ([uid, u]) => {
+    const lv = await readLevel(ctx.fb, (u.username || u.usernameLower || '').toLowerCase()).catch(() => null);
+    return { id: uid, username: u.username || u.usernameLower, uid, level: lv?.level ?? null, xp: lv?.xp ?? 0, roundsPlayed: lv?.roundsPlayed ?? 0, linkedTiktok: u.linkedTiktokUsername || '—', createdAt: tsMs(u.createdAt), state: '—' };
+  }));
+  const last = docs.length ? docs[docs.length - 1][1].usernameLower : null;
+  return { rows, nextCursor: !term && docs.length >= pageSize(q) ? last : null };
+}
+
+// بديل عند نفاد حصة Firestore: Firebase Auth (حصة منفصلة) — بريد/اسم عرض/UID + حالة الحساب (معطّل أم لا)
+async function searchAuth(q, ctx) {
+  const term = normUsername(q.q); const auth = ctx.fb.auth(); let users = [];
+  if (term) { let token; do { const r = await auth.listUsers(1000, token); users.push(...r.users.filter((u) => `${u.displayName || ''} ${u.email || ''} ${u.uid}`.toLowerCase().includes(term))); token = r.pageToken; } while (token && users.length < 25); }
+  else users = (await auth.listUsers(pageSize(q), q.cursor || undefined)).users;
+  return { rows: users.slice(0, pageSize(q)).map((u) => ({ id: u.uid, username: u.displayName || (u.email || '').split('@')[0] || u.uid, uid: u.uid, level: '—', xp: '—', roundsPlayed: '—', linkedTiktok: u.email ? `${u.email.slice(0, 2)}***@${u.email.split('@')[1]}` : '—', createdAt: Date.parse(u.metadata.creationTime) || null, state: u.disabled ? '⛔ معطّل (محظور)' : '✅ نشط' })), nextCursor: null, meta: { note: 'Firestore غير متاح (حصة مستنفدة) — النتائج من Firebase Auth. يمكن الحظر/رفع الحظر/سحب الجلسات بالبريد أو UID.' } };
+}
 
 const USER = { name: 'username', label: 'يوزرنيم اللاعب أو معرّف الحساب', type: 'text', required: true, max: 120, placeholder: 'مثال: ahmed_1' };
 
@@ -35,29 +67,9 @@ export default {
   views: [
     {
       id: 'search', label: 'بحث عن لاعب', requires: ['firebase'], search: true, placeholder: 'يوزرنيم كامل أو بدايته أو معرّف الحساب',
-      columns: [{ key: 'username', label: 'اللاعب' }, { key: 'uid', label: 'المعرّف', mono: true }, { key: 'level', label: 'اللفل' }, { key: 'xp', label: 'الخبرة' }, { key: 'roundsPlayed', label: 'الجولات' }, { key: 'linkedTiktok', label: 'تيك توك' }, { key: 'createdAt', label: 'التسجيل', type: 'date' }],
+      columns: [{ key: 'username', label: 'اللاعب' }, { key: 'uid', label: 'المعرّف', mono: true }, { key: 'level', label: 'اللفل' }, { key: 'xp', label: 'الخبرة' }, { key: 'roundsPlayed', label: 'الجولات' }, { key: 'linkedTiktok', label: 'تيك توك' }, { key: 'createdAt', label: 'التسجيل', type: 'date' }, { key: 'state', label: 'حالة الحساب' }],
       async fetch(q, ctx) {
-        const db = ctx.fb.db();
-        const term = normUsername(q.q);
-        let docs = [];
-        if (term) {
-          const exact = await findPlayer(ctx.fb, term).catch(() => null);
-          const pre = await db.collection('users').where('usernameLower', '>=', term).where('usernameLower', '<', term + '').limit(pageSize(q)).get();
-          const seen = new Map();
-          if (exact) seen.set(exact.uid, exact.user);
-          for (const d of pre.docs) seen.set(d.id, d.data());
-          docs = [...seen.entries()];
-        } else {
-          let qq = db.collection('users').orderBy('usernameLower').limit(pageSize(q));
-          if (q.cursor) qq = qq.startAfter(String(q.cursor));
-          docs = (await qq.get()).docs.map((d) => [d.id, d.data()]);
-        }
-        const rows = await Promise.all(docs.map(async ([uid, u]) => {
-          const lv = await readLevel(ctx.fb, (u.username || u.usernameLower || '').toLowerCase()).catch(() => null);
-          return { id: uid, username: u.username || u.usernameLower, uid, level: lv?.level ?? null, xp: lv?.xp ?? 0, roundsPlayed: lv?.roundsPlayed ?? 0, linkedTiktok: u.linkedTiktokUsername || '—', createdAt: tsMs(u.createdAt) };
-        }));
-        const last = docs.length ? docs[docs.length - 1][1].usernameLower : null;
-        return { rows, nextCursor: !term && docs.length >= pageSize(q) ? last : null };
+        try { return await searchFs(q, ctx); } catch (e) { if (!isQuota(e)) throw e; return searchAuth(q, ctx); }
       }
     },
     {
@@ -117,16 +129,9 @@ export default {
         return { uid: pl.uid, name: pl.username, key, xp: Number(lv?.xp) || 0, level: lv?.level ?? 1 };
       },
       async execute(p, ctx, b) {
-        const ref = ctx.fb.db().collection('levels').doc(b.key);
-        const out = await ctx.fb.db().runTransaction(async (tx) => {
-          const s = await tx.get(ref);
-          const cur = Number(s.exists ? s.data().xp : 0) || 0;
-          const next = Math.max(0, cur + p.delta);
-          tx.set(ref, { xp: next, level: levelFromXp(next), updatedAt: ctx.fb.FieldValue.serverTimestamp() }, { merge: true });
-          return { cur, next };
-        });
-        ctx.store.col('xpLedger').set(`${b.key}-${now()}`, { key: b.key, uid: b.uid, delta: out.next - out.cur, from: out.cur, to: out.next, reason: ctx.reason, by: ctx.actor.id, at: now() });
-        return { message: `تم تعديل خبرة ${b.name}: ${out.cur} ← ${out.next}`, after: { xp: out.next }, undo: out.next !== out.cur ? { action: 'players.adjust_xp', params: { username: b.name, delta: out.cur - out.next } } : undefined, _next: out.next };
+        const out = await levelRef(ctx.fb, b.key).adjustXp(p.delta);
+        ctx.store.col('xpLedger').set(`${b.key}-${now()}`, { key: b.key, uid: b.uid, delta: out.next - out.cur, from: out.cur, to: out.next, reason: ctx.reason, by: ctx.actor.id, at: now(), via: out.via });
+        return { message: `تم تعديل خبرة ${b.name}: ${out.cur} ← ${out.next}${out.via === 'rtdb' ? ' (عبر RTDB لأن حصة Firestore مستنفدة)' : ''}`, after: { xp: out.next, via: out.via }, undo: out.next !== out.cur ? { action: 'players.adjust_xp', params: { username: b.name, delta: out.cur - out.next } } : undefined, _next: out.next };
       },
       async verify(p, ctx, b, r) { const lv = await readLevel(ctx.fb, b.key); const ok = Number(lv?.xp) === r._next; return { ok, after: { xp: lv?.xp, level: lv?.level }, message: 'قيمة الخبرة المقروءة بعد الكتابة لا تطابق المتوقعة' }; }
     },
@@ -135,7 +140,7 @@ export default {
       description: 'إعادة الخبرة إلى 0 واللفل إلى 1 (يمكن التراجع باستعادة القيمة السابقة)', effect: 'تُمحى خبرة اللاعب الحالية بالكامل (تُحفظ قيمتها السابقة للتراجع)',
       fields: [USER], target: (p) => p.username,
       async load(p, ctx) { const pl = await findPlayer(ctx.fb, p.username); const key = pl.levelKeys[0]; if (!key) throw E.notFound('لا يوجد سجل خبرة'); const lv = await readLevel(ctx.fb, key); if (!lv) throw E.notFound('لا يوجد سجل خبرة لهذا اللاعب'); return { uid: pl.uid, name: pl.username, key, xp: Number(lv.xp) || 0, level: lv.level ?? 1 }; },
-      async execute(p, ctx, b) { await ctx.fb.db().collection('levels').doc(b.key).set({ xp: 0, level: 1, updatedAt: ctx.fb.FieldValue.serverTimestamp() }, { merge: true }); ctx.store.col('xpLedger').set(`${b.key}-${now()}`, { key: b.key, uid: b.uid, delta: -b.xp, from: b.xp, to: 0, reason: ctx.reason, by: ctx.actor.id, at: now() }); return { message: `تم تصفير خبرة ${b.name} (كانت ${b.xp})`, undo: b.xp > 0 ? { action: 'players.adjust_xp', params: { username: b.name, delta: b.xp } } : undefined }; },
+      async execute(p, ctx, b) { await levelRef(ctx.fb, b.key).set({ xp: 0, level: 1, updatedAt: TS }); ctx.store.col('xpLedger').set(`${b.key}-${now()}`, { key: b.key, uid: b.uid, delta: -b.xp, from: b.xp, to: 0, reason: ctx.reason, by: ctx.actor.id, at: now() }); return { message: `تم تصفير خبرة ${b.name} (كانت ${b.xp})`, undo: b.xp > 0 ? { action: 'players.adjust_xp', params: { username: b.name, delta: b.xp } } : undefined }; },
       async verify(p, ctx, b) { const lv = await readLevel(ctx.fb, b.key); return { ok: Number(lv?.xp) === 0, after: { xp: lv?.xp, level: lv?.level } }; }
     },
     {
@@ -154,11 +159,12 @@ export default {
       async load(p, ctx) { const pl = await findPlayer(ctx.fb, p.username); return { uid: pl.uid, name: pl.username, lower: pl.usernameLower }; },
       async execute(p, ctx, b) {
         const base = { text: p.text, position: p.position, durationMode: p.durationMode, sentBy: ctx.actor.display };
-        await ctx.fb.db().collection('personalMessages').doc(b.lower).set({ ...base, sentAt: ctx.fb.FieldValue.serverTimestamp() });
-        try { await ctx.fb.rtdb().ref('ownerMessages/personal/' + b.lower.replace(/[.#$[\]/%]/g, (c) => '%' + c.charCodeAt(0).toString(16))).set({ ...base, sentAt: ctx.fb.ServerValue.TIMESTAMP }); } catch { /* المسار الاحتياطي اختياري */ }
-        return { message: `أُرسلت الرسالة إلى ${b.name}` };
+        const rk = b.lower.replace(/[.#$[\]/%]/g, (c) => '%' + c.charCodeAt(0).toString(16));
+        const [f, r] = await Promise.allSettled([(async () => ctx.fb.db().collection('personalMessages').doc(b.lower).set({ ...base, sentAt: ctx.fb.FieldValue.serverTimestamp() }))(), (async () => ctx.fb.rtdb().ref('ownerMessages/personal/' + rk).set({ ...base, sentAt: ctx.fb.ServerValue.TIMESTAMP }))()]);
+        if (f.status === 'rejected' && r.status === 'rejected') throw f.reason;
+        return { message: `أُرسلت الرسالة إلى ${b.name}${f.status === 'rejected' ? ' (عبر RTDB لأن حصة Firestore مستنفدة)' : ''}`, _rk: rk };
       },
-      async verify(p, ctx, b) { const s = await ctx.fb.db().collection('personalMessages').doc(b.lower).get(); return { ok: s.exists && s.data().text === p.text, after: { text: s.data()?.text } }; }
+      async verify(p, ctx, b, r) { let t = null; try { const s = await ctx.fb.db().collection('personalMessages').doc(b.lower).get(); t = s.exists ? s.data().text : null; } catch (e) { if (!isQuota(e)) throw e; } if (t == null) t = (await ctx.fb.rtdb().ref('ownerMessages/personal/' + r._rk).get()).val()?.text ?? null; return { ok: t === p.text, after: { text: t } }; }
     },
     {
       id: 'add_note', label: 'إضافة ملاحظة إدارية', icon: 'note', group: 'السجلات', danger: 'low', requires: ['firebase', 'store'],

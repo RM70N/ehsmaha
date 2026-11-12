@@ -11,7 +11,7 @@ async function metric(id, label, source, fn, ttl = TTL) {
   const t = now();
   let m;
   try { const value = await fn(); m = { id, label, source, status: 'ok', value, updatedAt: t }; }
-  catch (e) { m = { id, label, source, status: 'unavailable', reason: String(e.code === 'FIREBASE_UNAVAILABLE' || e.code === 'BOT_DB_UNAVAILABLE' || e.code === 'DISCORD_UNAVAILABLE' ? e.message : e.message || e).slice(0, 140), updatedAt: t }; }
+  catch (e) { const quota = e && (e.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(e.message || ''))); m = { id, label, source, status: 'unavailable', reason: quota ? 'حصة Firestore اليومية مستنفدة — تتجدد يومياً' : String(e.code === 'FIREBASE_UNAVAILABLE' || e.code === 'BOT_DB_UNAVAILABLE' || e.code === 'DISCORD_UNAVAILABLE' ? e.message : e.message || e).slice(0, 140), updatedAt: t }; }
   if (m.status === 'ok') cache.set(id, { at: t, m }); else cache.delete(id);
   return m;
 }
