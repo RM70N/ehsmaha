@@ -37,6 +37,7 @@ const logger = require('../utils/logger');
 const { loadConfig } = require('../config');
 const { checkAdminPermission } = require('../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../utils/permissions');
+const db = require('../database/botDb');
 const { logModeration } = require('../utils/moderation');
 const aiAssistant = require('./aiAssistant');
 
@@ -59,7 +60,49 @@ const RESERVE_STALE_MS = 2 * 60 * 1000; // تكت محجوز بدون قناة (
   }
 })();
 
-const reasonByValue = (v) => reasons.find((r) => r.value === v) || null;
+// ---------------- أسباب التكتات لكل سيرفر ----------------
+// جدول ticket_reasons (تُدار من /admin-control). فاضي لسيرفر = ملف config/ticketReasons.js (السلوك القديم).
+const reasonsCache = new Map(); // guildId -> [{value,label,description,emoji}]
+const reasonsFor = (guildId) => {
+  const custom = guildId && reasonsCache.get(guildId);
+  return custom && custom.length ? custom : reasons;
+};
+const reasonByValue = (v, guildId) => reasonsFor(guildId).find((r) => r.value === v) || null;
+
+async function loadReasons() {
+  const rows = await db.query('SELECT * FROM ticket_reasons WHERE enabled = 1 ORDER BY guild_id, position, reason_key');
+  reasonsCache.clear();
+  for (const r of rows) {
+    if (!reasonsCache.has(r.guild_id)) reasonsCache.set(r.guild_id, []);
+    reasonsCache.get(r.guild_id).push({ value: r.reason_key, label: r.label, description: r.description || undefined, emoji: r.emoji || undefined });
+  }
+  return rows.length;
+}
+
+function validateReasonList(list) {
+  if (!Array.isArray(list) || list.length > 25) throw Object.assign(new Error('الأسباب لازم تكون مصفوفة من 0 إلى 25 سبب.'), { code: 'INVALID_INPUT' });
+  const seen = new Set();
+  return list.map((r, i) => {
+    if (!r || typeof r.value !== 'string' || !/^[a-z0-9_-]{1,50}$/i.test(r.value)) throw Object.assign(new Error(`قيمة سبب غير صالحة: ${r && r.value}`), { code: 'INVALID_INPUT' });
+    if (seen.has(r.value)) throw Object.assign(new Error(`قيمة سبب مكررة: ${r.value}`), { code: 'INVALID_INPUT' });
+    if (typeof r.label !== 'string' || !r.label.trim() || r.label.length > 100) throw Object.assign(new Error(`عنوان السبب "${r.value}" لازم يكون 1-100 حرف.`), { code: 'INVALID_INPUT' });
+    if (r.description && String(r.description).length > 100) throw Object.assign(new Error(`وصف السبب "${r.value}" أطول من 100 حرف.`), { code: 'INVALID_INPUT' });
+    if (r.emoji && String(r.emoji).length > 32) throw Object.assign(new Error(`إيموجي السبب "${r.value}" طويل.`), { code: 'INVALID_INPUT' });
+    seen.add(r.value);
+    return { value: r.value, label: r.label.trim(), description: r.description ? String(r.description) : null, emoji: r.emoji ? String(r.emoji) : null, enabled: r.enabled === false ? 0 : 1, position: Number.isInteger(r.position) ? r.position : i };
+  });
+}
+
+/** يستبدل أسباب سيرفر بالكامل (قائمة فاضية = الرجوع لملف الإعدادات). يرجّع الأسباب الفعّالة من القاعدة. */
+async function setReasons(guildId, list) {
+  const clean = validateReasonList(list);
+  await db.run('DELETE FROM ticket_reasons WHERE guild_id = ?', [guildId]);
+  for (const r of clean) {
+    await db.run('INSERT INTO ticket_reasons (guild_id, reason_key, label, description, emoji, position, enabled) VALUES (?, ?, ?, ?, ?, ?, ?)', [guildId, r.value, r.label, r.description, r.emoji, r.position, r.enabled]);
+  }
+  await loadReasons();
+  return { source: reasonsCache.get(guildId) && reasonsCache.get(guildId).length ? 'database' : 'config', reasons: reasonsFor(guildId) };
+}
 
 // ---------------- أدوات ----------------
 async function getSupportRoleIds(guild) {
@@ -93,7 +136,7 @@ function parseTopic(channel) {
   const m = TOPIC_RE.exec(String((channel && channel.topic) || ''));
   if (!m) return null;
   const label = m[2].trim();
-  const reason = reasons.find((r) => r.label === label);
+  const reason = reasonsFor(channel && channel.guild && channel.guild.id).find((r) => r.label === label);
   return { discordId: m[1], reason: reason ? reason.value : 'other' };
 }
 
@@ -188,7 +231,7 @@ async function onOpen(interaction, panelId) {
     .setMinValues(1)
     .setMaxValues(1)
     .addOptions(
-      reasons.map((r) => {
+      reasonsFor(interaction.guildId).map((r) => {
         const o = { label: r.label, value: r.value };
         if (r.description) o.description = r.description;
         if (r.emoji) o.emoji = r.emoji;
@@ -205,7 +248,7 @@ async function onOpen(interaction, panelId) {
 async function onReason(interaction, panelId) {
   if (!(await respond.deferUpdate(interaction))) return;
   const guild = interaction.guild;
-  const reason = reasonByValue(interaction.values && interaction.values[0]);
+  const reason = reasonByValue(interaction.values && interaction.values[0], interaction.guildId);
   if (!reason) return respond.send(interaction, { embeds: [eb.warning('سبب غير معروف — افتح التكت من جديد.')], components: [] });
 
   const originChannelId = interaction.channelId; // قناة اللوحة (القائمة ظهرت فيها)
@@ -398,6 +441,80 @@ function scheduleDeletion(channel, ticketId, delayMs) {
   if (typeof t.unref === 'function') t.unref();
 }
 
+
+// ---------------- نواة الإغلاق (مشتركة: زر التأكيد + /admin-control) ----------------
+async function performClose({ guild, ticket, closedById, closerLabel }) {
+  const ticketId = ticket.id;
+  const config = loadConfig();
+  const closed = await store.tickets.close(ticketId, closedById, config.ticketCloseMode);
+  if (!closed) return { ok: false, code: 'ALREADY_CLOSED' };
+
+  const channel = await fetchChannel(guild, ticket.channel_id);
+  await logModeration({
+    guildId: guild.id,
+    action: 'ticket_close',
+    targetId: ticket.discord_id,
+    moderatorId: closedById,
+    channelId: ticket.channel_id,
+    reason: ticket.reason,
+    details: { ticketId, mode: config.ticketCloseMode }
+  });
+
+  // ملخص المحادثة لقناة أخبار الأدمن — **قبل** الأرشفة/الحذف. فشله ما يوقف الإغلاق.
+  await aiAssistant
+    .reportTicketClosed({ guild, channel, ticket, closedById })
+    .catch((err) => logger.warn('🤖 خطأ بملخص التكت', { ticketId, error: err }));
+
+  let notes = [];
+  let channelState = 'missing';
+  if (channel) {
+    if (config.ticketCloseMode === 'delete') {
+      await channel
+        .send({ embeds: [eb.warning(`تم إغلاق التكت بواسطة ${closerLabel} 🔒\n🗑️ القناة بتنحذف بعد **${config.ticketDeleteDelaySeconds}** ثانية.`, '🔒 تم الإغلاق')] })
+        .catch(() => {});
+      scheduleDeletion(channel, ticketId, config.ticketDeleteDelaySeconds * 1000);
+      channelState = 'deleting';
+    } else {
+      notes = await archiveChannel(guild, channel, ticket);
+      await channel
+        .send({ embeds: [eb.info(`تم إغلاق التكت بواسطة ${closerLabel} 🔒\nالقناة صارت للقراءة فقط ومؤرشفة.`, '🔒 تم الإغلاق')] })
+        .catch(() => {});
+      channelState = 'archived';
+    }
+  }
+  return { ok: true, notes, channelState, mode: config.ticketCloseMode, channelId: ticket.channel_id };
+}
+
+/** إغلاق تكت بالرقم (من /admin-control): نفس منطق زر التأكيد. لا يغلق مغلقاً ولا يخمّن. */
+async function closeTicketById({ client, ticketId, closedBy }) {
+  const ticket = await store.tickets.get(ticketId);
+  if (!ticket) return { ok: false, code: 'NOT_FOUND' };
+  if (ticket.status !== 'open') return { ok: false, code: 'ALREADY_CLOSED', ticket };
+  const guild = client.guilds.cache.get(ticket.guild_id);
+  if (!guild) return { ok: false, code: 'GUILD_UNAVAILABLE' };
+  const res = await performClose({ guild, ticket, closedById: closedBy, closerLabel: 'الإدارة' });
+  if (!res.ok) return res;
+  return { ...res, ticket: await store.tickets.get(ticketId) };
+}
+
+/** نشر لوحة التكتات بقناة (نفس منطق /دعم) — لا ينشئ لوحة مكررة لنفس القناة */
+async function publishPanel({ guild, channel, content, createdBy }) {
+  const existing = await db.query('SELECT id FROM ticket_panels WHERE guild_id = ? AND channel_id = ?', [guild.id, channel.id]);
+  if (existing.length) return { ok: false, code: 'PANEL_EXISTS', panelId: Number(existing[0].id) };
+  const panelId = await store.tickets.createPanel({ guildId: guild.id, channelId: channel.id, content, createdBy });
+  let message;
+  try {
+    message = await channel.send(panelMessage(panelId, content));
+  } catch (err) {
+    await store.tickets.deletePanel(panelId).catch(() => {});
+    logger.error('تعذّر نشر لوحة الدعم', { guildId: guild.id, channelId: channel.id, code: err && err.code });
+    return { ok: false, code: 'SEND_FAILED' };
+  }
+  await store.tickets.setPanelMessage(panelId, message.id);
+  await logModeration({ guildId: guild.id, action: 'ticket_panel', moderatorId: createdBy, channelId: channel.id, details: { panelId, messageId: message.id } });
+  return { ok: true, panelId, messageId: message.id };
+}
+
 // ---------------- 4) تأكيد/إلغاء الإغلاق ----------------
 async function onCloseConfirm(interaction, confirmed) {
   if (!(await respond.deferUpdate(interaction))) return;
@@ -409,41 +526,9 @@ async function onCloseConfirm(interaction, confirmed) {
   if (!(await canManageTicket(interaction, ticket))) {
     return respond.send(interaction, { embeds: [eb.error('غير مصرّح لك بإغلاق هذا التكت.', '⛔ غير مصرّح')], components: [] });
   }
-  const config = loadConfig();
-  const closed = await store.tickets.close(ticketId, interaction.user.id, config.ticketCloseMode);
-  if (!closed) return respond.send(interaction, { embeds: [eb.info('هذا التكت مغلق مسبقاً 🔒')], components: [] });
-
-  const guild = interaction.guild;
-  const channel = await fetchChannel(guild, ticket.channel_id);
-  await logModeration({
-    guildId: guild.id,
-    action: 'ticket_close',
-    targetId: ticket.discord_id,
-    moderatorId: interaction.user.id,
-    channelId: ticket.channel_id,
-    reason: ticket.reason,
-    details: { ticketId, mode: config.ticketCloseMode }
-  });
-
-  // ملخص المحادثة لقناة أخبار الأدمن — **قبل** الأرشفة/الحذف. فشله ما يوقف الإغلاق.
-  await aiAssistant
-    .reportTicketClosed({ guild, channel, ticket, closedById: interaction.user.id })
-    .catch((err) => logger.warn('🤖 خطأ بملخص التكت', { ticketId, error: err }));
-
-  let notes = [];
-  if (channel) {
-    if (config.ticketCloseMode === 'delete') {
-      await channel
-        .send({ embeds: [eb.warning(`تم إغلاق التكت بواسطة ${interaction.user} 🔒\n🗑️ القناة بتنحذف بعد **${config.ticketDeleteDelaySeconds}** ثانية.`, '🔒 تم الإغلاق')] })
-        .catch(() => {});
-      scheduleDeletion(channel, ticketId, config.ticketDeleteDelaySeconds * 1000);
-    } else {
-      notes = await archiveChannel(guild, channel, ticket);
-      await channel
-        .send({ embeds: [eb.info(`تم إغلاق التكت بواسطة ${interaction.user} 🔒\nالقناة صارت للقراءة فقط ومؤرشفة.`, '🔒 تم الإغلاق')] })
-        .catch(() => {});
-    }
-  }
+  const res = await performClose({ guild: interaction.guild, ticket, closedById: interaction.user.id, closerLabel: String(interaction.user) });
+  if (!res.ok) return respond.send(interaction, { embeds: [eb.info('هذا التكت مغلق مسبقاً 🔒')], components: [] });
+  const notes = res.notes;
   return respond.send(interaction, {
     embeds: [eb.success(`تم إغلاق التكت #${ticketId}${notes.length ? `\n⚠️ ملاحظة: ${[...new Set(notes)].join('، ')}` : ''}`, '🔒 تم الإغلاق')],
     components: []
@@ -480,6 +565,11 @@ async function handleComponent(interaction, args) {
 
 module.exports = {
   SUPPORT_ROLES_KEY,
+  reasonsFor,
+  loadReasons,
+  setReasons,
+  closeTicketById,
+  publishPanel,
   TICKET_BOT_PERMS,
   panelMessage,
   handleComponent,

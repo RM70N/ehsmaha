@@ -651,7 +651,7 @@
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField
+    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, Timestamp
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
@@ -710,6 +710,9 @@
     rtdbOnDisconnect,
     rtdbQuery, rtdbLimitToLast, rtdbOrderByChild, rtdbStartAt
   };
+  // تحويل تلقائي إلى Realtime Database عند انتهاء حصة Firestore (انظر fs-failover.js)
+  // استيراد ديناميكي: لو تعذّر تحميل الملف يشتغل الموقع بالسلوك القديم بدل ما ينكسر
+  try { const m = await import('/fs-failover.js'); m.installFsFailover(window.__fb, { Timestamp }); } catch (e) { console.warn('fs-failover disabled', e); }
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 <style>
@@ -24973,9 +24976,9 @@ function kickBridgeOpenWS(usernameOrLink, onEvent, onOpen, onClose) {
 // بنفس شكل رسالة شات تيك توك بالضبط — فالكلمة المفتاحية تدخل اللاعب، وباقي
 // رسائله (أرقام/إجابات) يلعب فيها طبيعي. بدون Firebase بالمسار (صفر حصة).
 // الرومات الخاصة مرفوضة من البوت (لازم روم عام يشوفه @everyone).
-// رابط خدمة ehsmaha-discord-bot بـRender (يتغيّر لو انتقلت الخدمة لحساب جديد —
-// انسخه من صفحة الخدمة: "Available at your primary URL")
-const DISCORD_RELAY_SERVER_URL = 'https://ehsmaha-discord-bot-a9ly.onrender.com';
+// رابط بوت احسمها على الاستضافة (bot-hosting) — يتغيّر لو انتقل البوت لاستضافة/حساب جديد —
+// انسخه من صفحة النشر بالاستضافة
+const DISCORD_RELAY_SERVER_URL = 'https://x443nbyn3g.apps.bot-hosting.cloud';
 // آخر سبب فشل ربط (يطلع للستريمر بالتنبيه بدل رسالة عامة)
 let discordRelayLastError = null;
 // آخر رسالة وصلت من كل روم + الرسائل اللي وصلت: لما ينقطع الاتصال (أشهرها: طلع
