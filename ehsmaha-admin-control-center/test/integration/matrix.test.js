@@ -550,6 +550,11 @@ T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطا
     // إطارات عبر RTDB
     r = await run('rewards.grant_frame', { username: 'sara@example.com', frameId: 'anime05' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.ok(((await rt.ref('levels/sara/ownedFrames').get()).val() || []).includes('anime05'));
     r = await run('rewards.revoke_frame', { username: 'sara@example.com', frameId: 'anime05' }); assert.equal(r.status, 200); assert.ok(!((await rt.ref('levels/sara/ownedFrames').get()).val() || []).includes('anime05'));
+    // لاعب غير موجود في Auth لكن له سجل levels في RTDB: الرسائل/الخبرة تعمل بالاسم، والحظر يطلب UID بوضوح
+    await rt.ref('levels/mshari').set({ xp: 100, level: 1 });
+    r = await run('players.send_message', { username: 'mshari', text: 'test', position: 'center', durationMode: 'permanent' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/personal/mshari/text').get()).val(), 'test');
+    r = await run('players.adjust_xp', { username: 'mshari', delta: 5 }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('levels/mshari/xp').get()).val(), 105);
+    r = await run('players.ban_permanent', { username: 'mshari' }); assert.equal(r.status, 404); assert.match(r.json.message, /UID/);
     // رسائل
     r = await run('players.send_message', { username: 'sara@example.com', text: 'رسالة بلا Firestore', position: 'top', durationMode: 'timed' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/personal/sara').get()).val().text, 'رسالة بلا Firestore');
     r = await run('messages.publish', { text: 'إعلان بلا Firestore', position: 'center', durationSec: 10 }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('ownerMessages/broadcast/text').get()).val(), 'إعلان بلا Firestore');

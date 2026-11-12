@@ -26,7 +26,17 @@ async function findPlayerViaAuth(fb, raw) {
     else if (/^[A-Za-z0-9]{20,40}$/.test(q) || q.startsWith('p-')) u = await auth.getUser(q);
   } catch (e) { if (e.code !== 'auth/user-not-found' && e.code !== 'auth/invalid-uid') throw e; }
   if (!u) { const lower = normUsername(q); let token; do { const r = await auth.listUsers(1000, token); u = r.users.find((x) => normUsername(x.displayName) === lower || (x.email || '').split('@')[0].toLowerCase() === lower); token = r.pageToken; } while (!u && token); }
-  if (!u) throw E.notFound('Firestore غير متاح (الحصة مستنفدة) ولم يُعثر على الحساب في Firebase Auth — جرّب البريد الإلكتروني أو معرّف الحساب (UID)');
+  if (!u) {
+    // احتياط RTDB (نفس مسارات الموقع): pendingUsernames/{lower} ثم levels/{key}
+    const lower = normUsername(q); const rt = fb.rtdb();
+    try { const ps = await rt.ref('pendingUsernames/' + lower).get(); const uid = ps.exists() && ps.val()?.uid; if (uid) { try { u = await auth.getUser(uid); } catch { /* */ } } } catch { /* */ }
+    if (!u) {
+      const key = levelsKey(q); let lv = null;
+      try { const r = await rt.ref('levels/' + key).get(); lv = r.exists() ? r.val() : null; } catch { /* */ }
+      if (lv) return { uid: null, soft: true, user: { username: q, usernameLower: lower }, username: q, usernameLower: lower, levelKeys: [key], viaAuth: true };
+      throw E.notFound('Firestore غير متاح (الحصة مستنفدة) ولم يُعثر على اللاعب في Auth ولا RTDB — جرّب البريد الإلكتروني أو معرّف الحساب (UID)');
+    }
+  }
   const username = u.displayName || (u.email || '').split('@')[0] || u.uid; const lower = normUsername(username);
   return { uid: u.uid, user: { username, usernameLower: lower, email: u.email }, username, usernameLower: lower, levelKeys: [levelsKey(username)].filter(Boolean), viaAuth: true };
 }
@@ -65,8 +75,11 @@ export function levelRef(fb, key) {
 }
 
 // يجد لاعباً مسجّلاً: فهرس usernames ثم استعلام usernameLower ثم uid مباشر (ثم Firebase Auth إن نفدت حصة Firestore)
-export async function findPlayer(fb, raw) {
-  try { return await findPlayerFs(fb, raw); } catch (e) { if (!isQuota(e)) throw e; return findPlayerViaAuth(fb, raw); }
+export async function findPlayer(fb, raw, { needUid = false } = {}) {
+  let pl;
+  try { pl = await findPlayerFs(fb, raw); } catch (e) { if (!isQuota(e)) throw e; pl = await findPlayerViaAuth(fb, raw); }
+  if (needUid && !pl.uid) throw E.notFound('هذه العملية تحتاج حساب Firebase للاعب (حصة Firestore مستنفدة ولم يُعثر على UID) — أدخل البريد الإلكتروني أو الـUID');
+  return pl;
 }
 async function findPlayerFs(fb, raw) {
   const q = normUsername(raw);

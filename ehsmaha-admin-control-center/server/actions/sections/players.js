@@ -44,7 +44,7 @@ const punishments = (ctx) => ctx.store.col('punishments');
 const stateOf = (u) => ({ disabled: !!u.disabled, tokensValidAfter: u.tokensValidAfterTime || null });
 
 async function loadPlayerAuth(p, ctx) {
-  const pl = await findPlayer(ctx.fb, p.username);
+  const pl = await findPlayer(ctx.fb, p.username, { needUid: true });
   const au = await authUser(ctx, pl.uid);
   return { ...stateOf(au), name: pl.username, uid: pl.uid }; // لا نُعيد مستند اللاعب (بريد/بيانات شخصية) للواجهة أو التدقيق
 }
@@ -171,7 +171,7 @@ export default {
       description: 'ملاحظة داخلية تظهر للمسؤولين فقط في قاعدة اللوحة (لا تُكتب في الموقع)', effect: 'تُحفظ ملاحظة مرتبطة بالاعب في سجل المسؤولين',
       fields: [USER, { name: 'note', label: 'الملاحظة', type: 'textarea', required: true, max: 1000 }], target: (p) => p.username,
       async load(p, ctx) { const pl = await findPlayer(ctx.fb, p.username); return { uid: pl.uid, name: pl.username }; },
-      async execute(p, ctx, b) { const id = `${b.uid}-${now()}`; ctx.store.col('playerNotes').set(id, { uid: b.uid, username: b.name, note: p.note, by: ctx.actor.id, at: now() }); return { message: 'تمت إضافة الملاحظة', _id: id }; },
+      async execute(p, ctx, b) { const id = `${b.uid || b.name}-${now()}`; ctx.store.col('playerNotes').set(id, { uid: b.uid || null, username: b.name, note: p.note, by: ctx.actor.id, at: now() }); return { message: 'تمت إضافة الملاحظة', _id: id }; },
       async verify(p, ctx, b, r) { const n = ctx.store.col('playerNotes').get(r._id); return { ok: !!n && n.note === p.note, after: { note: n?.note } }; }
     },
     {
@@ -181,7 +181,7 @@ export default {
       async execute(p, ctx) {
         const pl = await findPlayer(ctx.fb, p.username);
         const levels = {}; for (const k of pl.levelKeys) levels[k] = await readLevel(ctx.fb, k);
-        const au = await ctx.fb.auth().getUser(pl.uid).catch(() => null);
+        const au = pl.uid ? await ctx.fb.auth().getUser(pl.uid).catch(() => null) : null;
         const data = { player: playerSummary(pl), authState: au ? { disabled: au.disabled, lastSignIn: au.metadata.lastSignInTime, created: au.metadata.creationTime } : null, levels, punishments: punishments(ctx).list({ where: { uid: pl.uid }, limit: 100 }), notes: ctx.store.col('playerNotes').list({ where: { uid: pl.uid }, limit: 100 }) };
         return { message: 'جاهز للتنزيل', data, download: { filename: `player-${pl.usernameLower}.json`, mime: 'application/json', text: JSON.stringify(data, null, 2) } };
       }
