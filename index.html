@@ -651,7 +651,7 @@
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField
+    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, Timestamp
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
@@ -710,6 +710,9 @@
     rtdbOnDisconnect,
     rtdbQuery, rtdbLimitToLast, rtdbOrderByChild, rtdbStartAt
   };
+  // تحويل تلقائي إلى Realtime Database عند انتهاء حصة Firestore (انظر fs-failover.js)
+  // استيراد ديناميكي: لو تعذّر تحميل الملف يشتغل الموقع بالسلوك القديم بدل ما ينكسر
+  try { const m = await import('/fs-failover.js'); m.installFsFailover(window.__fb, { Timestamp }); } catch (e) { console.warn('fs-failover disabled', e); }
   window.dispatchEvent(new Event('fb-ready'));
 </script>
 <style>
