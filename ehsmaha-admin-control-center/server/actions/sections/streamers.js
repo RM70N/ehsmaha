@@ -1,6 +1,10 @@
 import { E } from '../../lib/errors.js';
 import { now, normUsername, isDocId } from '../../lib/util.js';
-import { tsMs, pageSize } from '../siteHelpers.js';
+import { tsMs, pageSize, isQuota } from '../siteHelpers.js';
+
+// الموقع يدمج مصدرين للنشطين: Firestore activeStreamers + RTDB fsMirror/activeStreamers (بث مربوط). اللوحة تقرأ/تنهي الاثنين.
+async function rtActive(ctx) { try { const r = await ctx.fb.rtdb().ref('fsMirror/activeStreamers').get(); const v = r.exists() ? r.val() || {} : {}; return Object.entries(v).map(([k, x]) => ({ k, ...(x || {}) })); } catch { return []; } }
+async function fsActive(ctx) { try { const snap = await ctx.fb.db().collection('activeStreamers').limit(200).get(); return { docs: snap.docs, quota: false }; } catch (e) { if (!isQuota(e)) throw e; return { docs: [], quota: true }; } }
 
 // بوابة الربط الفعلية: tiktok-server يقرأ bridgeStreamers/{معرّف}.enabled ويرفض الاتصال لو === false
 const bridge = (ctx, id) => ctx.fb.db().collection('bridgeStreamers').doc(id);
@@ -27,7 +31,12 @@ export default {
     {
       id: 'active', label: 'الستريمرز النشطون الآن (activeStreamers)', requires: ['firebase'], source: 'Firestore activeStreamers',
       columns: [{ key: 'id', label: 'الوسم (gameTag)', mono: true }, { key: 'name', label: 'الستريمر' }, { key: 'platform', label: 'المنصة' }, { key: 'uid', label: 'UID', mono: true }, { key: 'since', label: 'منذ', type: 'date' }],
-      async fetch(q, ctx) { const snap = await ctx.fb.db().collection('activeStreamers').limit(200).get(); return { rows: snap.docs.map((d) => { const v = d.data(); return { id: d.id, name: v.username || v.name || v.streamer || '—', platform: v.platform || '—', uid: v.uid || '—', since: tsMs(v.startedAt || v.updatedAt || v.createdAt) }; }), total: snap.size }; }
+      async fetch(q, ctx) {
+        const [fs, rt] = await Promise.all([fsActive(ctx), rtActive(ctx)]);
+        const rows = fs.docs.map((d) => { const v = d.data(); return { id: d.id, name: v.username || v.name || v.streamer || '—', platform: v.platform || '—', uid: v.uid || '—', since: tsMs(v.startedAt || v.updatedAt || v.createdAt) }; });
+        for (const x of rt) if (x.username) rows.push({ id: x.k, name: x.username, platform: x.platform || 'RTDB (بث مربوط)', uid: x.uid || '—', since: tsMs(x.startedAt || x.updatedAt || x.t) });
+        return { rows, total: rows.length, meta: fs.quota ? { note: 'Firestore غير متاح (حصة مستنفدة) — المعروض من RTDB فقط (البث المربوط).' } : null };
+      }
     },
     {
       id: 'applications', label: 'طلبات الانضمام (قراءة)', requires: ['firebase'], source: 'Firestore streamerApplications',
@@ -80,9 +89,26 @@ export default {
       id: 'clear_active', label: 'إنهاء جلسة ستريمر نشطة عالقة', icon: 'stop', group: 'الجلسات', danger: 'medium', reversible: false, reasonRequired: true, requires: ['firebase'],
       description: 'يحذف مستند activeStreamers/{gameTag} (يختفي من قائمة الستريمرز النشطين — كما يفعل الموقع عند إغلاق الصفحة)', effect: 'يُزال الستريمر من قائمة النشطين الآن؛ إن كان بثه فعلياً شغّالاً سيعود بتحديثه التالي',
       fields: [{ name: 'gameTag', label: 'الوسم (gameTag) من جدول النشطين', type: 'text', required: true, max: 200 }], target: (p) => p.gameTag,
-      async load(p, ctx) { if (!isDocId(p.gameTag)) throw E.invalid('وسم غير صالح'); const s = await ctx.fb.db().collection('activeStreamers').doc(p.gameTag).get(); if (!s.exists) throw E.notFound('لا توجد جلسة نشطة بهذا الوسم'); return s.data(); },
-      async execute(p, ctx) { await ctx.fb.db().collection('activeStreamers').doc(p.gameTag).delete(); return { message: 'أُنهيت الجلسة العالقة' }; },
-      verify: async (p, ctx) => ({ ok: !(await ctx.fb.db().collection('activeStreamers').doc(p.gameTag).get()).exists, after: { exists: false } })
+      async load(p, ctx) {
+        if (!/^[A-Za-z0-9_\-.]{1,200}$/.test(p.gameTag)) throw E.invalid('وسم غير صالح');
+        let fsData = null; try { const s = await ctx.fb.db().collection('activeStreamers').doc(p.gameTag).get(); if (s.exists) fsData = s.data(); } catch (e) { if (!isQuota(e)) throw e; }
+        const rt = (await rtActive(ctx)).filter((x) => x.k === p.gameTag || x.username === p.gameTag);
+        if (!fsData && !rt.length) throw E.notFound('لا توجد جلسة نشطة بهذا الوسم (Firestore/RTDB)');
+        return { ...(fsData || {}), _rtKeys: rt.map((x) => x.k) };
+      },
+      async execute(p, ctx, b) {
+        const jobs = [(async () => ctx.fb.db().collection('activeStreamers').doc(p.gameTag).delete())(), ...(b._rtKeys || []).map((k) => ctx.fb.rtdb().ref('fsMirror/activeStreamers/' + k).remove())];
+        const res = await Promise.allSettled(jobs);
+        const bad = res.filter((r) => r.status === 'rejected');
+        const fsFailed = res[0].status === 'rejected';
+        if (bad.length && !(fsFailed && isQuota(res[0].reason) && (b._rtKeys || []).length && bad.length === 1)) throw bad[0].reason;
+        return { message: 'أُنهيت الجلسة العالقة' + (fsFailed ? ' (RTDB فقط — حصة Firestore مستنفدة)' : '') };
+      },
+      verify: async (p, ctx, b) => {
+        let gone = true; try { gone = !(await ctx.fb.db().collection('activeStreamers').doc(p.gameTag).get()).exists; } catch (e) { if (!isQuota(e)) throw e; }
+        for (const k of b._rtKeys || []) if ((await ctx.fb.rtdb().ref('fsMirror/activeStreamers/' + k).get()).exists()) gone = false;
+        return { ok: gone, after: { exists: !gone } };
+      }
     },
     {
       id: 'add_note', label: 'إضافة ملاحظة على ستريمر', icon: 'note', group: 'السجلات', danger: 'low', requires: ['store'],

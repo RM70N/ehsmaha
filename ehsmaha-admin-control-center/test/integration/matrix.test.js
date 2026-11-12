@@ -562,6 +562,10 @@ T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطا
     // RTDB أصلاً: الأكواد وإعدادات الألعاب
     r = await run('codes.stop', { code: 'كود شغال' }); assert.equal(r.status, 200, JSON.stringify(r.json)); await run('codes.reactivate', { code: 'كود شغال' });
     r = await run('games.set_setting', { setting: 'sniper.ammoSniper', value: '30' }); assert.equal(r.status, 200, JSON.stringify(r.json));
+    // الستريمر النشط (بث مربوط في RTDB fsMirror): يظهر ويُنهى بلا Firestore
+    await rt.ref('fsMirror/activeStreamers/link_u1').set({ username: 'streamer_x', platform: 'tiktok', t: Date.now() });
+    assert.ok((await o.get('/api/views/streamers/active?fresh=1')).json.rows.some((x) => x.id === 'link_u1'));
+    r = await run('streamers.clear_active', { gameTag: 'link_u1' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('fsMirror/activeStreamers/link_u1').get()).exists(), false);
     // ما يعتمد Firestore فقط: رسالة واضحة (503) بلا نجاح مزيّف
     r = await run('shop.set_price', { productId: 'prod1', price: 999 }); assert.equal(r.status, 503); assert.equal(r.json.code, 'FIRESTORE_QUOTA'); assert.match(r.json.message, /حصة Firestore/);
     const ov = await o.get('/api/overview'); assert.match(JSON.stringify(ov.json), /حصة Firestore اليومية مستنفدة/);
