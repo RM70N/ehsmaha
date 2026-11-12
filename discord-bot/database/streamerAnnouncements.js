@@ -107,9 +107,36 @@ const events = {
     const r = await db.run("UPDATE streamer_announcement_events SET status = 'unknown', error_code = 'interrupted' WHERE status = 'sending' AND announced_at < ?", [now() - olderThanMs]);
     return r.changes;
   },
+  /** ملخص للوحة: عدد الحلقات المفتوحة وتوزيع الحالات */
+  async counts() {
+    const open = await db.query('SELECT COUNT(*) AS n FROM streamer_announcement_events WHERE ended_at IS NULL');
+    const rows = await db.query('SELECT status, COUNT(*) AS n FROM streamer_announcement_events GROUP BY status');
+    const byStatus = {};
+    for (const r of rows) byStatus[r.status] = Number(r.n);
+    return { open: Number(open[0].n), byStatus };
+  },
   async purgeOlderThan(ms) {
     await db.run('DELETE FROM streamer_announcement_events WHERE ended_at IS NOT NULL AND ended_at < ?', [now() - ms]);
   }
 };
 
-module.exports = { PLATFORMS, streamers, events };
+// روم الإعلانات: إعداد بجدول guild_config (المفتاح streamer_announce_channel) — يتقدم على متغير البيئة
+const CHANNEL_KEY = 'streamer_announce_channel';
+const settings = {
+  async getAnnounceChannel() {
+    const rows = await db.query('SELECT value FROM guild_config WHERE key = ? ORDER BY updated_at DESC LIMIT 1', [CHANNEL_KEY]);
+    if (!rows.length) return null;
+    try {
+      const v = JSON.parse(rows[0].value);
+      return /^\d{17,20}$/.test(String(v)) ? String(v) : null;
+    } catch {
+      return null;
+    }
+  },
+  async setAnnounceChannel(guildId, channelId, by) {
+    await require('./botStore').guildConfig.set(guildId, CHANNEL_KEY, String(channelId), by);
+    return settings.getAnnounceChannel();
+  }
+};
+
+module.exports = { PLATFORMS, streamers, events, settings, CHANNEL_KEY };

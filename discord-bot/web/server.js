@@ -123,6 +123,9 @@ function createApp({ client, config }) {
     })
   });
   roundsWeb.mount(app);
+
+  // قناة التحكم الإدارية للوحة الإدارة الخارجية (مصادقة بـx-admin-key، 503 لو غير مفعّلة) — راجع ADMIN-CONTROL-API.md
+  app.use('/admin-control', require('../services/adminControl').createAdminControlRouter({ getConfig: () => config }));
   app.locals.roundsWeb = roundsWeb;
 
   app.use((req, res) => res.status(404).json({ ok: false, error: { code: 'NOT_FOUND', message: 'المسار غير موجود' } }));

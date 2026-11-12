@@ -134,6 +134,9 @@ npm start                 # البوت
 | `LOG_LEVEL` | الاثنين | — | `error` / `warn` / `info` / `debug` |
 | `BOT_STATE_BACKUP` | البوت | — | `auto` (افتراضي): على Render يحفظ قاعدة البوت سحابياً (Firestore عبر الـAPI) بعد كل تعديل ويسترجعها بعد كل تحديث · `on` / `off` |
 | `DATABASE_URL` | البوت | — | (اختياري) PostgreSQL بدل SQLite والحفظ السحابي |
+| `ADMIN_CONTROL_KEY` | البوت | — | مفتاح قناة التحكم الإدارية `/admin-control/*` (32+ حرف، مستقل عن `API_KEY`). بدونه القناة مغلقة (503) والبوت يشتغل كما هو |
+| `ADMIN_CONTROL_ALLOWED_IPS` | البوت | — | (اختياري) قائمة IP مسموحة للقناة مفصولة بفاصلة |
+| `ADMIN_CACHE_TTL_SECONDS` | البوت | — | مدة كاش صلاحيات المشرفين (افتراضي 600) |
 | `DATABASE_SSL` | البوت | — | تلقائي؛ `true`/`false` لفرضه |
 | `SQLITE_PATH` | البوت | — | محلياً فقط (افتراضي `./data/bot.sqlite`) |
 | `STREAM_WEBHOOK_SECRET` | البوت | — | سر Webhook البث (32+ حرف). بدونه الـWebhook مقفل و`/بث` يعتمد على المزامنة فقط |
@@ -158,6 +161,16 @@ base64 -w0 service-account.json   # الصق الناتج بقيمة FIREBASE_SE
 > ⚠️ هذا المفتاح يعطي صلاحية كاملة على قاعدة البيانات — لا ترفعه للمستودع ولا تشاركه.
 
 ---
+
+## 🛰️ قناة التحكم الإدارية و PostgreSQL
+
+- **قناة `/admin-control/*`**: واجهة آمنة للوحة الإدارة الخارجية (تعطيل/تقييد الأوامر، إعادة تحميل الخدمات، حدود الحماية، أسباب التكتات، روم إعلانات الستريمرز…). موثّقة بالكامل مع أمثلة curl بـ [`ADMIN-CONTROL-API.md`](./ADMIN-CONTROL-API.md). خاملة حتى تحط `ADMIN_CONTROL_KEY`.
+- **PostgreSQL**: حط `DATABASE_URL=postgres://user:pass@host:5432/db` (يُفعَّل SSL تلقائياً للمضيفين البعيدين) وتتطبّق الـmigrations (001–013) تلقائياً عند التشغيل. بدونه يستخدم SQLite المحلي.
+- **نقل بيانات SQLite → PostgreSQL** (آمن للتكرار، ما يحذف شي، يطبع عدد الصفوف قبل/بعد):
+
+```bash
+DATABASE_URL=postgres://... node scripts/migrate-sqlite-to-postgres.js --sqlite ./data/bot.sqlite   # أضف --dry للتجربة بدون كتابة
+```
 
 ## 📝 تسجيل الأوامر
 
