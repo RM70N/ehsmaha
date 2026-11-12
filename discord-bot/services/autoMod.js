@@ -14,6 +14,7 @@
 
 const { Collection, PermissionFlagsBits } = require('discord.js');
 const cfg = require('../config/autoMod');
+const limits = require('./autoModLimits');
 const store = require('../database/botStore');
 const logger = require('../utils/logger');
 const eb = require('../utils/embedBuilder');
@@ -100,7 +101,8 @@ function trackSpam(message, now = Date.now()) {
     tracker.set(key, t);
   }
   const content = String(message.content || '').trim().toLowerCase();
-  t.hits = t.hits.filter((h) => now - h.at <= Math.max(cfg.spam.windowMs, cfg.spam.duplicateWindowMs));
+  const lim = limits.effective(message.guild.id); // قاعدة البيانات ← البيئة ← الافتراضي
+  t.hits = t.hits.filter((h) => now - h.at <= Math.max(lim.windowMs, cfg.spam.duplicateWindowMs));
   t.hits.push({ at: now, id: message.id, channelId: message.channel.id });
   if (t.hits.length > 50) t.hits.splice(0, t.hits.length - 50);
 
@@ -110,10 +112,10 @@ function trackSpam(message, now = Date.now()) {
   t.last = content || null;
   t.lastAt = now;
 
-  const inWindow = t.hits.filter((h) => now - h.at <= cfg.spam.windowMs);
+  const inWindow = t.hits.filter((h) => now - h.at <= lim.windowMs);
   let reason = null;
-  if (inWindow.length >= cfg.spam.maxMessages) reason = 'rate';
-  else if (t.dup >= cfg.spam.duplicateCount) reason = 'duplicate';
+  if (inWindow.length >= lim.maxMessages) reason = 'rate';
+  else if (t.dup >= lim.duplicateCount) reason = 'duplicate';
   if (!reason) return { spam: false };
 
   const messages = (reason === 'rate' ? inWindow : t.hits.slice(-t.dup)).map(({ id, channelId }) => ({ id, channelId }));
@@ -164,8 +166,8 @@ const invalidate = (guildId) => guildCache.delete(guildId);
 const recentPunish = new Map(); // guild:user:type → آخر عقوبة (منع التصعيد المتلاحق)
 const permWarned = new Map(); // guild:perm → آخر تحذير بالسجل
 
-function durationFor(count) {
-  const levels = cfg.escalationMs;
+function durationFor(count, guildId) {
+  const levels = limits.effective(guildId).escalationMs;
   return levels[Math.min(Math.max(count, 1), levels.length) - 1];
 }
 
@@ -241,7 +243,7 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
   } catch (err) {
     logger.error('تعذّر تسجيل المخالفة — كتم بالمستوى الأول', { guildId: guild.id, userId: member.id, type, error: err });
   }
-  const durationMs = durationFor(count);
+  const durationMs = durationFor(count, guild.id);
   // AUTO-BAN: نقطة توسعة معلّقة — لو cfg.autoBanAfter رقم وcount >= cfg.autoBanAfter
   // تقدر تضيف هنا: await member.ban({ reason: ... }) مع نفس الفحوصات والسجل.
 
@@ -273,7 +275,7 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
         `**السبب:** ${TYPE_AR[type]}`,
         timedOut ? `**مدة الكتم:** ${formatDurationAr(durationMs)}` : '**الإجراء:** حذف الرسالة',
         `**رقم المخالفة (${type === 'link' ? 'روابط' : 'سبام'}):** ${count}`,
-        count < cfg.escalationMs.length ? `⚠️ المخالفة الجاية مدتها ${formatDurationAr(durationFor(count + 1))}.` : '⚠️ وصلت الحد الأقصى — كل مخالفة جاية كتم 24 ساعة.',
+        count < limits.effective(guild.id).escalationMs.length ? `⚠️ المخالفة الجاية مدتها ${formatDurationAr(durationFor(count + 1, guild.id))}.` : '⚠️ وصلت الحد الأقصى — كل مخالفة جاية كتم 24 ساعة.',
         'ehsmaha.com'
       ]
     })]

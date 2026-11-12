@@ -30,8 +30,9 @@ const DEFAULTS = Object.freeze({
 
 const keyOf = (platform, normalized) => `${platform}:${normalized}`;
 
-function createAnnouncer({ liveStreams, store, getClient, channelId, settings = {}, resolver = linkResolver, now = Date.now }) {
+function createAnnouncer({ liveStreams, store, getClient, channelId: initialChannelId, settings = {}, resolver = linkResolver, now = Date.now }) {
   const cfg = { ...DEFAULTS, ...settings };
+  let channelId = initialChannelId; // روم الإعلانات: القاعدة (guild_config) ثم البيئة — يتغيّر بدون إعادة تشغيل عبر setChannel
   const registry = new Map(); // key -> [records]
   const tracked = new Map(); // key -> { phase:'confirming'|'live', event, confirmTimer, absentTimer, retryTimer }
   const unresolvedAt = new Map();
@@ -64,7 +65,11 @@ function createAnnouncer({ liveStreams, store, getClient, channelId, settings = 
   // ---------------- السجل ----------------
   async function loadRegistry() {
     const rows = await store.streamers.listEnabled();
-    registry.clear();
+    if (store.settings && typeof store.settings.getAnnounceChannel === 'function') {
+      const override = await store.settings.getAnnounceChannel().catch(() => null);
+      if (override) channelId = override;
+    }
+    registry.clear(); // بدون await بين المسح والتعبئة: ما فيه لحظة يكون فيها السجل فاضي
     for (const r of rows) {
       const k = keyOf(r.platform, r.normalized_username);
       if (!registry.has(k)) registry.set(k, []);
@@ -73,19 +78,23 @@ function createAnnouncer({ liveStreams, store, getClient, channelId, settings = 
     return rows.length;
   }
 
+  async function doBootstrap() {
+    await loadRegistry();
+    await store.events.settleStuckSending().catch(() => 0);
+    adopted = new Map();
+    for (const ev of await store.events.listOpen()) {
+      const k = keyOf(ev.platform, ev.normalized_username);
+      if (!registry.has(k) || now() - ev.last_seen_at > cfg.restartToleranceMs) await store.events.close(ev.id, now());
+      else adopted.set(k, ev);
+    }
+    ready = true;
+    logger.info('📣 إعلانات الستريمرز: جاهزة', { registered: registry.size, adoptedOpenSessions: adopted.size, channelId });
+    evaluate();
+  }
+
   async function bootstrap(attempt = 0) {
     try {
-      await loadRegistry();
-      await store.events.settleStuckSending().catch(() => 0);
-      adopted = new Map();
-      for (const ev of await store.events.listOpen()) {
-        const k = keyOf(ev.platform, ev.normalized_username);
-        if (!registry.has(k) || now() - ev.last_seen_at > cfg.restartToleranceMs) await store.events.close(ev.id, now());
-        else adopted.set(k, ev);
-      }
-      ready = true;
-      logger.info('📣 إعلانات الستريمرز: جاهزة', { registered: registry.size, adoptedOpenSessions: adopted.size, channelId });
-      evaluate();
+      await doBootstrap();
     } catch (err) {
       // القاعدة غير متاحة: ما نفترض إن الستريمرز غير مسجلين ولا ننشر — نعيد المحاولة بتباعد
       ready = false;
@@ -294,6 +303,57 @@ function createAnnouncer({ liveStreams, store, getClient, channelId, settings = 
     if (open) await store.events.close(open.id, now()).catch(() => {});
   }
 
+  /**
+   * إعادة تحميل التسجيل من القاعدة بدون إعادة تشغيل (تعديل من لوحة الإدارة).
+   * ما يتكرر إعلان بث جارٍ: الحلقات المتتبَّعة/المتبنّاة تبقى كما هي، والمحذوف تُقفل حلقته بدون إعلان.
+   * @returns {Promise<{registered:number, tracked:number, adopted:number}>}
+   */
+  async function reload() {
+    if (!started) throw new Error('المحرّك غير مشغّل');
+    if (!ready) {
+      clear(loadTimer);
+      loadTimer = null;
+      await doBootstrap(); // القاعدة كانت معطلة بالإقلاع — نكمل التهيئة الكاملة
+    } else {
+      await loadRegistry();
+      for (const ev of await store.events.listOpen()) {
+        const k = keyOf(ev.platform, ev.normalized_username);
+        if (registry.has(k)) continue;
+        dropTracked(k);
+        adopted.delete(k);
+        await store.events.close(ev.id, now());
+      }
+      evaluate();
+    }
+    return { registered: registry.size, tracked: tracked.size, adopted: adopted.size };
+  }
+
+  /** تغيير روم الإعلانات فوراً (التحقق من نوع الروم والصلاحيات مسؤولية المستدعي) */
+  function setChannel(id) {
+    channelId = String(id);
+  }
+
+  async function status() {
+    let counts = { open: null, byStatus: {} };
+    try {
+      counts = await store.events.counts();
+    } catch {
+      /* القاعدة معطلة: نعرض الباقي */
+    }
+    return {
+      ready,
+      started,
+      channelId,
+      registered: registry.size,
+      tracked: tracked.size,
+      adopted: adopted.size,
+      openEpisodes: counts.open,
+      failedAnnouncements: (counts.byStatus.failed || 0) + (counts.byStatus.unknown || 0),
+      announcedSinceBoot: stats.announced,
+      failedSinceBoot: stats.failed
+    };
+  }
+
   function start() {
     if (started) return;
     started = true;
@@ -316,7 +376,7 @@ function createAnnouncer({ liveStreams, store, getClient, channelId, settings = 
     for (const key of [...tracked.keys()]) dropTracked(key);
   }
 
-  return { start, stop, register, unregister, evaluate, stats, _internal: { registry, tracked, adopted, bootstrap, isReady: () => ready, cfg } };
+  return { start, stop, register, unregister, evaluate, reload, setChannel, status, stats, _internal: { registry, tracked, adopted, bootstrap, isReady: () => ready, cfg } };
 }
 
 // ---------------- كائن وحيد للعملية ----------------
