@@ -18,7 +18,13 @@ export function createHealth(svc) {
     bot: { label: 'بوت ديسكورد', run: async () => { const r = await botApi.health(); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status); return { ms: r.ms, detail: r.json }; }, configured: () => botApi.healthConfigured },
     botDb: { label: 'قاعدة بيانات البوت', run: () => botDb.ping(), configured: () => botDb.available },
     botControl: { label: 'قناة التحكم داخل البوت', run: async () => { const r = await svc.botControl.status(); if (!r.detail?.ready) throw new Error('البوت غير جاهز'); return { ms: 0, detail: { ping: r.detail.ping } }; }, configured: () => svc.botControl.configured },
-    botApi: { label: 'API البوت الداخلي', run: async () => { const r = await botApi.api('/admin/stats'); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status); return { ms: r.ms, detail: r.json && (r.json.data || r.json) }; }, configured: () => botApi.apiConfigured },
+    // طبقة API مدمجة داخل عملية البوت على 127.0.0.1 (غير منشورة للخارج عمداً): عند عدم ضبط BOT_API_KEY تُفحص عبر /health العام (قاعدة البوت + الجلسات الحيّة)
+    botApi: { label: 'API البوت الداخلي', run: async () => {
+      if (botApi.apiConfigured) { const r = await botApi.api('/admin/stats'); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status); return { ms: r.ms, detail: r.json && (r.json.data || r.json) }; }
+      const r = await botApi.health(); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status);
+      if (r.json && r.json.db && r.json.db !== 'postgres' && r.json.db !== 'sqlite') throw new Error('قاعدة البوت: ' + r.json.db);
+      return { ms: r.ms, detail: { mode: 'مدمجة داخل البوت (فحص عبر /health)', db: r.json && r.json.db, liveSessions: r.json && r.json.liveSessions } };
+    }, configured: () => botApi.apiConfigured || botApi.healthConfigured },
     streamBridge: { label: 'خدمة ربط البث', run: async () => { const c = new AbortController(); const tm = setTimeout(() => c.abort(), 8000); try { const t = Date.now(); const r = await fetch(cfg.bridgeHealthUrl, { signal: c.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return { ms: Date.now() - t }; } finally { clearTimeout(tm); } }, configured: () => !!cfg.bridgeHealthUrl },
     adminStore: { label: 'قاعدة اللوحة', run: async () => { store.ping(); return { ms: 0 }; }, configured: () => true }
   };
