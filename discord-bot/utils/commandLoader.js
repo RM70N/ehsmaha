@@ -67,8 +67,6 @@ function loadCommands(commandsDir = DEFAULT_COMMANDS_DIR) {
     buttons.set('ownerai', (...args) => require('../services/ownerAI').onButton(...args));
     // أزرار إدارة راوندات الألعاب للمضيف (بدء / طرد / إلغاء) — الانضمام ما يكون إلا برابط الراوند
     buttons.set('rd', (...args) => require('../services/discordRounds/command').onRoundButton(...args));
-    // أزرار/قوائم الموسيقى — أوامرها بالبادئة (!اغنية…) فقط وما لها أوامر Slash
-    buttons.set('mu', (interaction, args) => require('../music/MusicControls').onComponent(interaction, args));
   }
 
   return { commands, buttons, definitions };
