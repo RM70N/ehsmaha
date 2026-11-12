@@ -2071,6 +2071,14 @@ async function viewTab(body, sec, v) {
   $('#vx', wrap).addEventListener('click', () => { if (!st.rows.length) return toast('لا توجد بيانات للتصدير', 'warn'); download(`${key}.csv`, 'text/csv', toCsv(v.columns, st.rows)); });
   $$('[data-mode]', wrap).forEach((b) => b.addEventListener('click', () => { st.mode = b.dataset.mode; localStorage.setItem('ecc-mode:' + key, st.mode); $$('[data-mode]', wrap).forEach((x) => x.setAttribute('aria-pressed', String(x === b))); if (st.data) paint(); }));
   run();
+  if (key === 'streamers.active') { // تحديث لحظي هادئ لقائمة الستريمرز النشطين (كل 12 ثانية، فقط والتبويب ظاهر)
+    const tick = async () => {
+      if (!wrap.isConnected) { clearInterval(iv); return; }
+      if (document.hidden || document.querySelector('.drawer, [role="dialog"]')) return;
+      try { const d = await get(`/api/views/${sec.id}/${v.id}?q=${encodeURIComponent(st.q)}&fresh=1`); st.data = d; st.rows = d.rows || []; paint(); } catch { /* يُعاد في الدورة التالية */ }
+    };
+    const iv = setInterval(tick, 12000);
+  }
 }
 function toCsv(cols, rows) {
   const e = (x) => { const s = plain(x); return /[",\n]/.test(s) || /^[=+\-@]/.test(s) ? '"' + (/^[=+\-@]/.test(s) ? "'" : '') + s.replace(/"/g, '""') + '"' : s; };

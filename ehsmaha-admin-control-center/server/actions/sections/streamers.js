@@ -1,8 +1,19 @@
 import { E } from '../../lib/errors.js';
 import { now, normUsername, isDocId } from '../../lib/util.js';
-import { tsMs, pageSize, isQuota } from '../siteHelpers.js';
+import { tsMs, pageSize, isQuota, indexPlayer, indexList } from '../siteHelpers.js';
+import players from './players.js';
 
 // الموقع يدمج مصدرين للنشطين: Firestore activeStreamers + RTDB fsMirror/activeStreamers (بث مربوط). اللوحة تقرأ/تنهي الاثنين.
+const handleOf = (x) => String(x || '').replace(/^@/, '').trim();
+const streamUrl = (platform, handle) => { const h = handleOf(handle); if (!h) return null; const pl = String(platform || 'tiktok').toLowerCase(); return pl.includes('twitch') ? `https://www.twitch.tv/${h}` : pl.includes('kick') ? `https://kick.com/${h}` : pl.includes('youtube') ? `https://www.youtube.com/@${h}/live` : `https://www.tiktok.com/@${h}/live`; };
+// يوزر الموقع من uid: الفهرس المحلي ثم Firestore users/{uid} (وإلا نرجع uid نفسه ليعمل الحظر/الرسائل به)
+async function siteName(ctx, uid) {
+  if (!uid) return null;
+  const hit = indexList(ctx.fb).find((r) => r.uid === uid); if (hit) return hit.username;
+  try { const s = await ctx.fb.db().collection('users').doc(uid).get(); if (s.exists) { const u = s.data(); const n = u.username || u.usernameLower; if (n) { indexPlayer(ctx.fb, uid, n, { tiktok: u.linkedTiktokUsername || null }); return n; } } } catch (e) { if (!isQuota(e)) throw e; }
+  try { const a = await ctx.fb.auth().getUser(uid); if (a.displayName) return a.displayName; } catch { /* */ }
+  return null;
+}
 async function rtActive(ctx) { try { const r = await ctx.fb.rtdb().ref('fsMirror/activeStreamers').get(); const v = r.exists() ? r.val() || {} : {}; return Object.entries(v).map(([k, x]) => ({ k, ...(x || {}) })); } catch { return []; } }
 async function fsActive(ctx) { try { const snap = await ctx.fb.db().collection('activeStreamers').limit(200).get(); return { docs: snap.docs, quota: false }; } catch (e) { if (!isQuota(e)) throw e; return { docs: [], quota: true }; } }
 
@@ -14,7 +25,7 @@ async function loadBridge(p, ctx) { const id = idOf(p.streamer); const s = await
 const stamp = (ctx) => ({ updatedAt: ctx.fb.FieldValue.serverTimestamp(), updatedBy: 'admin-center:' + ctx.actor.id });
 const verifyEnabled = (want) => async (p, ctx, b) => { const s = await bridge(ctx, b.id).get(); const en = s.exists ? s.data().enabled !== false : true; return { ok: en === want, after: { enabled: en }, message: 'حالة بوابة الربط في Firestore لم تتغير' }; };
 
-export default {
+const def = {
   id: 'streamers', workspace: 'website', label: 'إدارة الستريمرز', icon: 'broadcast', adminDefault: true, description: 'بوابة ربط البث، الجلسات النشطة، والملاحظات',
   views: [
     {
@@ -29,13 +40,20 @@ export default {
       }
     },
     {
-      id: 'active', label: 'الستريمرز النشطون الآن (activeStreamers)', requires: ['firebase'], source: 'Firestore activeStreamers',
-      columns: [{ key: 'id', label: 'الوسم (gameTag)', mono: true }, { key: 'name', label: 'الستريمر' }, { key: 'platform', label: 'المنصة' }, { key: 'uid', label: 'UID', mono: true }, { key: 'since', label: 'منذ', type: 'date' }],
+      id: 'active', cacheSec: 0, label: 'الستريمرز النشطون الآن (activeStreamers)', requires: ['firebase'], source: 'Firestore activeStreamers',
+      columns: [{ key: 'name', label: 'الستريمر (بثه)' }, { key: 'siteUsername', label: 'يوزر الموقع' }, { key: 'platform', label: 'المنصة' }, { key: 'game', label: 'اللعبة' }, { key: 'source', label: 'المصدر' }, { key: 'since', label: 'منذ', type: 'date' }, { key: 'streamUrl', label: 'رابط البث' }, { key: 'uid', label: 'UID', mono: true }, { key: 'id', label: 'الوسم', mono: true }],
       async fetch(q, ctx) {
         const [fs, rt] = await Promise.all([fsActive(ctx), rtActive(ctx)]);
-        const rows = fs.docs.map((d) => { const v = d.data(); return { id: d.id, name: v.username || v.name || v.streamer || '—', platform: v.platform || '—', uid: v.uid || '—', since: tsMs(v.startedAt || v.updatedAt || v.createdAt) }; });
-        for (const x of rt) if (x.username) rows.push({ id: x.k, name: x.username, platform: x.platform || 'RTDB (بث مربوط)', uid: x.uid || '—', since: tsMs(x.startedAt || x.updatedAt || x.t) });
-        return { rows, total: rows.length, meta: fs.quota ? { note: 'Firestore غير متاح (حصة مستنفدة) — المعروض من RTDB فقط (البث المربوط).' } : null };
+        const raw = [];
+        for (const d of fs.docs) { const v = d.data(); raw.push({ id: d.id, handle: handleOf(v.username || v.name || v.streamer), platform: v.platform || null, uid: v.uid || null, since: tsMs(v.startedAt || v.updatedAt || v.createdAt), game: v.gameName || v.game || d.id, src: 'Firestore' }); }
+        for (const x of rt) if (x.username) raw.push({ id: x.k, handle: handleOf(x.username), platform: x.platform || null, uid: x.uid || null, since: tsMs(x.startedAtMs || x.updatedAtMs || x.startedAt || x.updatedAt || x.t), game: x.gameName || x.gameTag || 'ربط البث', src: 'RTDB (مباشر)' });
+        const seen = new Set(); const rows = [];
+        for (const r of raw) {
+          const key = r.uid ? 'u:' + r.uid : 'h:' + r.handle; if (seen.has(key)) continue; seen.add(key);
+          const site = await siteName(ctx, r.uid);
+          rows.push({ id: r.id, name: r.handle || '—', username: site || r.uid || r.handle, siteUsername: site || '—', platform: r.platform || 'tiktok', uid: r.uid || '—', game: r.game, source: r.src, since: r.since, streamUrl: streamUrl(r.platform, r.handle) || '—' });
+        }
+        return { rows, total: rows.length, meta: { note: (fs.quota ? 'Firestore غير متاح (حصة مستنفدة) — المعروض من RTDB (البث المربوط لحظياً). ' : '') + 'اضغط على الستريمر لفتح خياراته: رسالة · حظر · فك حظر · رابط البث.' } };
       }
     },
     {
@@ -128,3 +146,21 @@ export default {
     }
   ]
 };
+
+// ---- إجراءات الستريمر المباشرة (تظهر عند الضغط على اسمه في «الستريمرز النشطون»): تعيد استعمال إجراءات اللاعبين نفسها ----
+const pick = (id) => players.actions.find((a) => a.id === id);
+const clone = (id, nid, label, group) => ({ ...pick(id), id: nid, label, group });
+def.actions.push(
+  clone('send_message', 'message_streamer', 'إرسال رسالة للستريمر (داخل الموقع)', 'التواصل مع الستريمر'),
+  clone('ban_temporary', 'ban_streamer_temp', 'حظر الستريمر مؤقتاً', 'العقوبات'),
+  clone('ban_permanent', 'ban_streamer', 'حظر الستريمر نهائياً', 'العقوبات'),
+  clone('unban', 'unban_streamer', 'فك حظر الستريمر', 'العقوبات'),
+  {
+    id: 'open_stream', label: 'الانتقال إلى بث الستريمر', icon: 'broadcast', group: 'التواصل مع الستريمر', kind: 'read', danger: 'low', requires: [],
+    description: 'يعيد رابط بث الستريمر المباشر (TikTok/Twitch/Kick/YouTube) لتفتحه', effect: 'قراءة فقط',
+    fields: [{ name: 'streamer', label: 'اسم الستريمر على المنصة', type: 'text', required: true, max: 120 }, { name: 'platform', label: 'المنصة', type: 'select', options: [{ value: 'tiktok', label: 'TikTok' }, { value: 'twitch', label: 'Twitch' }, { value: 'kick', label: 'Kick' }, { value: 'youtube', label: 'YouTube' }], default: 'tiktok', required: true }],
+    target: (p) => p.streamer,
+    async execute(p) { const url = streamUrl(p.platform, p.streamer); if (!url) throw E.invalid('اسم غير صالح'); return { message: `رابط البث: ${url}`, data: { url } }; }
+  }
+);
+export default def;

@@ -79,6 +79,17 @@ T('players: خبرة، فك ربط، رسائل، ملاحظات، تصدير', 
 
 // ================= الستريمرز =================
 T('streamers: بوابة الربط (enabled) + مؤقت + سجل', async () => {
+  // الستريمر النشط: بث مربوط لحظياً من RTDB → صف بيوزر الموقع، ومنه رسالة/حظر/فك حظر/رابط البث
+  await rt.ref('fsMirror/activeStreamers/link_p-khalid').set({ username: '@khalid_live', platform: 'tiktok', uid: 'p-khalid', gameTag: 'link', updatedAtMs: Date.now() });
+  const act = (await o.get('/api/views/streamers/active')).json.rows.find((x) => x.uid === 'p-khalid');
+  assert.ok(act, 'الصف ظهر'); assert.equal(act.name, 'khalid_live'); assert.equal(act.streamUrl, 'https://www.tiktok.com/@khalid_live/live'); assert.ok(act.username);
+  await step('streamers.message_streamer', { username: act.username, text: 'مرحباً أيها الستريمر', position: 'top', durationMode: 'timed' }, { check: async () => assert.equal((await rt.ref('ownerMessages/personal/' + String(act.username).toLowerCase()).get()).val()?.text, 'مرحباً أيها الستريمر') });
+  await step('streamers.ban_streamer_temp', { username: act.username, hours: 1 }, { check: async () => assert.equal((await auth.getUser('p-khalid')).disabled, true) });
+  await step('streamers.unban_streamer', { username: act.username }, { check: async () => assert.equal((await auth.getUser('p-khalid')).disabled, false) });
+  await step('streamers.ban_streamer', { username: act.username }, { check: async () => assert.equal((await auth.getUser('p-khalid')).disabled, true) });
+  await step('streamers.unban_streamer', { username: 'p-khalid' }, { check: async () => assert.equal((await auth.getUser('p-khalid')).disabled, false) });
+  const os = await step('streamers.open_stream', { streamer: 'khalid_live', platform: 'tiktok' }, {}); assert.match(os.message, /tiktok\.com\/@khalid_live\/live/);
+  await rt.ref('fsMirror/activeStreamers/link_p-khalid').remove();
   await step('streamers.bridge_disable', { streamer: 'streamer_one' }, { check: async () => assert.equal((await g('bridgeStreamers/streamer_one')).data().enabled, false) });
   await step('streamers.bridge_disable', { streamer: 'streamer_one' }, { expect: 409 });
   await step('streamers.bridge_enable', { streamer: 'streamer_one' }, { check: async () => assert.equal((await g('bridgeStreamers/streamer_one')).data().enabled, true) });
