@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { startEnv, client, emulatorUp, GUILD } from '../helpers/env.js';
 import { resetEmulators, seedSite, seedEvent } from '../helpers/seed.js';
+import { startBotControlMock, CONTROL_KEY } from '../helpers/botControlMock.js';
 
 const up = await emulatorUp();
 const results = {};
@@ -493,6 +494,41 @@ T('access: كل إجراءات صلاحيات الأدمن', async () => {
   await step('access.revoke_admin_sessions', {}); await step('access.view_effective', {});
   assert.equal((await o.get('/api/views/access/matrix')).status, 200); assert.equal((await o.get('/api/access/matrix')).status, 200);
   await a.login('admin');
+});
+
+// ================= قناة التحكم داخل البوت (/admin-control) =================
+T('botcontrol: التطبيق الحي في البوت + أوامر/حماية/تكتات/ستريمرات (التحقق من البوت)', async () => {
+  const bot = await startBotControlMock({ discordState: M }); env.cfg.bot.controlBase = bot.url; env.cfg.bot.controlKey = CONTROL_KEY; const B = bot.S; botRun('DELETE FROM streamer_announcements');
+  try {
+    // ستريمرات: مع القناة تُطبَّق حياً (success وليس pending) وتُستدعى reload مرة واحدة
+    await step('dstreamers.add', { platform: 'tiktok', username: 'live_one' }, { check: () => { assert.equal(botSql('SELECT * FROM streamer_announcements').length, 1); assert.deepEqual(B.reloads, ['streamers']); assert.ok(B.calls.at(-1).idem, 'مفتاح عدم التكرار يُرسل للبوت'); } });
+    await step('dstreamers.reload_now', {}, { check: () => assert.equal(B.reloads.length, 2) });
+    B.reloadReturnsUnverified = true; await step('dstreamers.disable', { platform: 'tiktok', username: 'live_one' }, { pending: true }); B.reloadReturnsUnverified = false;
+    await step('dstreamers.remove', { platform: 'tiktok', username: 'live_one' });
+    await step('admins.add_user', { id: U.ahmed }, { check: () => assert.ok(B.reloads.includes('adminPermissions')) }); await step('admins.remove_user', { id: U.ahmed });
+    await step('dstreamers.set_channel', { channelId: CH2 }, { check: () => assert.equal(B.channelId, CH2) }); await step('dstreamers.set_channel', { channelId: 'abc' }, { expect: 422 });
+    // أوامر داخل البوت
+    await step('commands.bot_disable', { name: 'بث' }, { check: () => assert.equal(B.cmds[0].disabled, true) });
+    await step('commands.bot_disable', { name: 'بث' }, { expect: 409 }); await step('commands.bot_disable', { name: 'مساعدة' }, { expect: 422, note: 'أمر محمي' });
+    await step('commands.bot_enable', { name: 'بث' }, { check: () => assert.equal(B.cmds[0].disabled, false) });
+    const rs = await step('commands.bot_restrict', { name: 'بث', roles: R.mod, allowedChannels: '', blockedChannels: CH }, { check: () => assert.deepEqual(B.cmds[0].restrictions, { allowedRoleIds: [R.mod], allowedChannelIds: [], blockedChannelIds: [CH] }) });
+    await step('commands.bot_restrict', { name: 'بث', roles: 'xyz' }, { expect: 422 });
+    assert.equal((await o.post(`/api/audit/${rs.auditId}/undo`)).status, 200); assert.deepEqual(B.cmds[0].restrictions.allowedRoleIds, []);
+    const us = await step('commands.bot_usage', { days: 7 }); assert.equal(us.data[0].uses, 12);
+    const v = await o.get('/api/views/commands/inbot'); assert.equal(v.status, 200); assert.ok(v.json.rows.some((r) => r.name === '/مساعدة' && r.state.includes('محمي')));
+    // الحماية والتكتات
+    await step('automod.get_limits', {}); await step('automod.set_limits', { spamMaxMessages: 4, spamWindowSeconds: 9, spamDuplicates: 2, escalationMinutes: '5,15' }, { check: () => { assert.equal(B.limits.maxMessages, 4); assert.deepEqual(B.limits.escalationMs, [300000, 900000]); } });
+    await step('automod.set_limits', { spamMaxMessages: 99, spamWindowSeconds: 9, spamDuplicates: 2 }, { expect: 422 });
+    await step('tickets.set_reasons', { reasons: 'billing|الفواتير|💳\nbug|مشكلة تقنية' }, { check: () => assert.equal(B.reasons.length, 2) }); await step('tickets.set_reasons', { reasons: 'bad line' }, { expect: 422 });
+    await step('tickets.close_ticket', { ticketId: 42 }, { check: () => assert.equal(B.tickets[42].status, 'closed') }); await step('tickets.close_ticket', { ticketId: 42 }, { expect: 409 }); await step('tickets.close_ticket', { ticketId: 7 }, { expect: 404 });
+    await step('tickets.post_panel', { channelId: CH, content: 'افتح تكت' }, { check: () => assert.ok([...M.messages.values()].some((m) => m.content === 'افتح تكت')) }); await step('tickets.post_panel', { channelId: CH, content: 'افتح تكت' }, { expect: 409 });
+    const st = await step('health.bot_control_status', {}); assert.equal(st.data.ready, true);
+    const hc = await env.svc.health.runOne('botControl'); assert.equal(hc.status, 'up');
+    // مفتاح خاطئ ← رفض حقيقي (لا نجاح مزيّف)
+    env.cfg.bot.controlKey = 'z'.repeat(40); await step('commands.bot_usage', { days: 7 }, { expect: 502 }); await step('dstreamers.reload_now', {}, { expect: 502 }); env.cfg.bot.controlKey = CONTROL_KEY;
+    assert.ok(!JSON.stringify((await o.get('/api/overview')).json).includes(CONTROL_KEY), 'مفتاح التحكم لا يظهر للمتصفح');
+  } finally { env.cfg.bot.controlBase = ''; env.cfg.bot.controlKey = ''; await bot.close(); }
+  botRun('DELETE FROM streamer_announcements');
 });
 
 // ================= فحوصات شاملة على كل زر =================

@@ -46,7 +46,10 @@ export function loadConfig(env = process.env) {
       sqlitePath: env.BOT_SQLITE_PATH || '',
       apiBase: env.BOT_API_BASE_URL || '',
       apiKey: env.BOT_API_KEY || '',
-      healthUrl: env.BOT_HEALTH_URL || ''
+      healthUrl: env.BOT_HEALTH_URL || '',
+      // قناة التحكم الإدارية داخل البوت (/admin-control) — المفتاح مستقل عن BOT_API_KEY ويبقى في الخادم
+      controlKey: env.ADMIN_CONTROL_KEY || '',
+      controlBase: env.BOT_CONTROL_URL || env.BOT_API_BASE_URL || ''
     },
     siteUrl: env.SITE_URL || 'https://ehsmaha.com',
     bridgeHealthUrl: env.BRIDGE_HEALTH_URL || '',

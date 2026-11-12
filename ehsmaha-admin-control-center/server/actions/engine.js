@@ -21,6 +21,7 @@ export function explain(err) {
   const code = err && (err.code ?? err.errorInfo?.code);
   if (err && err.code === 'DISCORD_API') return { status: err.status === 403 ? 403 : err.status === 404 ? 404 : 502, code: 'DISCORD_API', message: err.message };
   if (err && (err.code === 'DISCORD_UNAVAILABLE' || err.code === 'DISCORD_NO_GUILD' || err.code === 'BOT_DB_UNAVAILABLE' || err.code === 'FIREBASE_UNAVAILABLE')) return { status: 503, code: err.code, message: err.message };
+  if (err && String(err.code || '').startsWith('BOT_CONTROL')) return { status: err.status || 502, code: err.code, message: err.message };
   if (err && err.code === 'DISCORD_NETWORK') return { status: 502, code: err.code, message: err.message };
   if (FIREBASE_MSGS[code]) return { status: 502, code: String(code), message: FIREBASE_MSGS[code] };
   return { status: 500, code: 'INTERNAL', message: 'تعذّر تنفيذ العملية بسبب خطأ غير متوقع' };

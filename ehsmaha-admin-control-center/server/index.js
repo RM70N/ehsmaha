@@ -19,6 +19,7 @@ const svc = await createServices(cfg);
 if (!svc.verifier.configured.owner || !svc.verifier.configured.admin) {
   log.error('كلمات مرور الحسابين غير مُهيّأة (OWNER_PASSWORD_HASH / ADMIN_PASSWORD_HASH) — لن يعمل الدخول للحساب الناقص', svc.verifier.configured);
 }
+await svc.discord.autoDetectGuild?.().then((g) => g && log.info('Discord guild auto-detected', { guildId: g })).catch((e) => log.warn('guild auto-detect failed', { error: e }));
 const app = createApp(svc);
 const server = app.listen(cfg.port, () => log.info('EHSEMHA Admin Control Center', { port: cfg.port, env: cfg.env, firebase: svc.fb.available, discord: svc.discord.available, botDb: svc.botDb.available }));
 svc.scheduler.start();

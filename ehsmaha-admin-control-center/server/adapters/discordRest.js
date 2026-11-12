@@ -54,7 +54,9 @@ export function createDiscord(cfg) {
   const need = (id) => { if (!G(id)) { const e = new Error('لم يُضبط DISCORD_GUILD_ID'); e.code = 'DISCORD_NO_GUILD'; e.status = 503; throw e; } return G(id); };
 
   return {
-    available, reason, guildId: d.guildId, appId: d.appId, req,
+    available, reason, get guildId() { return d.guildId; }, appId: d.appId, req,
+    // إن لم يُضبط DISCORD_GUILD_ID واعتُمد البوت في سيرفر واحد فقط نعتمده تلقائياً (لا تخمين مع أكثر من سيرفر)
+    async autoDetectGuild() { if (!available || d.guildId) return d.guildId || null; const gs = await req('GET', '/users/@me/guilds', { retries: 1 }); if (Array.isArray(gs) && gs.length === 1) d.guildId = gs[0].id; return d.guildId || null; },
     me: () => req('GET', '/users/@me'),
     guild: (id) => req('GET', `/guilds/${need(id)}`, { query: { with_counts: true } }),
     channels: (id) => req('GET', `/guilds/${need(id)}/channels`),

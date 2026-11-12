@@ -5,6 +5,7 @@ import { createFirebase } from './adapters/firebase.js';
 import { createDiscord } from './adapters/discordRest.js';
 import { createBotDb } from './adapters/botDb.js';
 import { createBotApi } from './adapters/botApi.js';
+import { createBotControl } from './adapters/botControl.js';
 import { scanBotCommands } from './adapters/botRegistry.js';
 import { createRegistry } from './actions/registry.js';
 import { createEngine } from './actions/engine.js';
@@ -25,6 +26,7 @@ export async function createServices(cfg, o = {}) {
   const discord = o.discord || createDiscord(cfg);
   const botDb = o.botDb || (await createBotDb(cfg));
   const botApi = o.botApi || createBotApi(cfg);
+  const botControl = o.botControl || createBotControl(cfg);
   const botCommands = o.botCommands || (() => scanBotCommands(cfg.bot.dir));
   const registry = createRegistry(sectionDefs);
   const perms = createPermissions({ store, registry });
@@ -40,16 +42,17 @@ export async function createServices(cfg, o = {}) {
     discordGuild: () => (!discord.available ? { ok: false, reason: discord.reason } : discord.guildId ? { ok: true } : { ok: false, reason: 'لم يُضبط DISCORD_GUILD_ID' }),
     botDb: () => (botDb.available ? { ok: true } : { ok: false, reason: botDb.reason || 'قاعدة البوت غير متاحة' }),
     botHealth: () => (botApi.healthConfigured ? { ok: true } : { ok: false, reason: 'لم يُضبط BOT_HEALTH_URL' }),
+    botControl: () => (botControl.configured ? { ok: true } : { ok: false, reason: botControl.reason }),
     botApi: () => (botApi.apiConfigured ? { ok: true } : { ok: false, reason: 'لم يُضبط BOT_API_BASE_URL/BOT_API_KEY' }),
     botSource: () => { const r = botCommands(); return r.available ? { ok: true } : { ok: false, reason: r.reason }; },
     store: () => ({ ok: true })
   };
 
-  const svc = { settings, cfg, store, audit, fb, discord, botDb, botApi, botCommands, registry, perms, sessions, loginGuard, verifier, caps };
+  const svc = { settings, cfg, store, audit, fb, discord, botDb, botApi, botControl, botCommands, registry, perms, sessions, loginGuard, verifier, caps };
   svc.alerts = createAlerts(svc);
   svc.health = createHealth(svc);
   const buildCtx = (auth) => ({
-    fb, discord, botDb, botApi, botCommands, store, cfg, audit, alerts: svc.alerts, registry,
+    fb, discord, botDb, botApi, botControl, botCommands, store, cfg, audit, alerts: svc.alerts, registry,
     engine: () => svc.engine, perms, settings, loginGuard, sessionsApi: sessions, healthApi: svc.health, botApi, sessionId: auth.sessionId, actor: { id: auth.accountId, display: auth.display, role: auth.role },
     guildId: () => cfg.discord.guildId, now: () => Date.now()
   });

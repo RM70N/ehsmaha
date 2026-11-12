@@ -59,3 +59,18 @@
 ## 6) الخدمات الخلفية
 
 فحص صحة دوري (الفترة قابلة للتعديل) · رفع الحظر المؤقت للاعبين والستريمرز عند انتهائه (مع التحقق وتنبيه عند الفشل) · نشر الإعلانات المجدولة بحجز ذرّي (`scheduled→publishing`) يمنع النشر المزدوج.
+
+## 7) قناة التحكم داخل البوت `/admin-control` (PR #166 في المستودع)
+
+عند ضبط `ADMIN_CONTROL_KEY` (نفس قيمة البوت) و`BOT_API_BASE_URL` تتحول بنود «يتطلب إعادة تشغيل/≤10د» إلى **تطبيق فوري** بتأكيد `verified` من البوت:
+
+| الإجراء | المسار في البوت |
+|---|---|
+| ستريمرات/مشرفو البوت (بعد كتابة القاعدة) | `POST /streamers/reload` · `POST /reload {adminPermissions}` |
+| تعطيل/تفعيل/تقييد أمر داخل البوت | `POST /commands/:name/disable|enable` · `PUT /commands/:name/restrictions` |
+| استخدام الأوامر الدائم | `GET /usage` |
+| حدود السبام | `GET/PUT /automod/limits` |
+| أسباب التكتات / إغلاق / لوحة | `GET/PUT /tickets/reasons` · `POST /tickets/:id/close` · `POST /tickets/panel` |
+| روم إعلانات البث | `PUT /streamers/channel` |
+
+كل طلب كتابة يحمل `x-idempotency-key`؛ والمفتاح لا يغادر الخادم. بدون القناة تبقى السلوكيات السابقة (محفوظ + «بانتظار التطبيق»).

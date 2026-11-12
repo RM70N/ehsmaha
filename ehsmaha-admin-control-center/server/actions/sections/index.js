@@ -15,4 +15,8 @@ import control from './control.js';
 import integration from './integration.js';
 
 // القسم يظهر في الواجهة بالترتيب أدناه. adminDefault = ما يراه الأدمن قبل أي تخصيص من المالك.
-export const sectionDefs = [players, streamers, games, events, rewards, shop, codes, messages, analytics, dserver, dmembers, dcommands, ...botsys, ...control, integration];
+import { extra } from './dbotcontrol.js';
+const all = [players, streamers, games, events, rewards, shop, codes, messages, analytics, dserver, dmembers, dcommands, ...botsys, ...control, integration];
+// دمج إجراءات قناة التحكم داخل البوت في أقسامها
+for (const [id, x] of Object.entries(extra)) { const sec = all.find((d) => d.id === id); sec.actions = [...(sec.actions || []), ...(x.actions || [])]; sec.views = [...(sec.views || []), ...(x.views || [])]; }
+export const sectionDefs = all;

@@ -17,6 +17,7 @@ export function createHealth(svc) {
     discordApi: { label: 'Discord API', run: () => discord.ping(), configured: () => discord.available },
     bot: { label: 'بوت ديسكورد', run: async () => { const r = await botApi.health(); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status); return { ms: r.ms, detail: r.json }; }, configured: () => botApi.healthConfigured },
     botDb: { label: 'قاعدة بيانات البوت', run: () => botDb.ping(), configured: () => botDb.available },
+    botControl: { label: 'قناة التحكم داخل البوت', run: async () => { const r = await svc.botControl.status(); if (!r.detail?.ready) throw new Error('البوت غير جاهز'); return { ms: 0, detail: { ping: r.detail.ping } }; }, configured: () => svc.botControl.configured },
     botApi: { label: 'API البوت الداخلي', run: async () => { const r = await botApi.api('/admin/stats'); if (!r.ok) throw new Error(r.error || 'HTTP ' + r.status); return { ms: r.ms, detail: r.json && (r.json.data || r.json) }; }, configured: () => botApi.apiConfigured },
     streamBridge: { label: 'خدمة ربط البث', run: async () => { const c = new AbortController(); const tm = setTimeout(() => c.abort(), 8000); try { const t = Date.now(); const r = await fetch(cfg.bridgeHealthUrl, { signal: c.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return { ms: Date.now() - t }; } finally { clearTimeout(tm); } }, configured: () => !!cfg.bridgeHealthUrl },
     adminStore: { label: 'قاعدة اللوحة', run: async () => { store.ping(); return { ms: 0 }; }, configured: () => true }

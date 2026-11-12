@@ -199,6 +199,10 @@
 | تفاصيل أمر (خيارات/صلاحيات/ملف) | `POST /api/actions/commands/command_detail/run` | قراءة ملفات البوت | قراءة فقط (لا تغيير) |
 | تصدير سجل الأوامر (JSON) | `POST /api/actions/commands/export_registry/run` | قراءة ملفات البوت | قراءة فقط (لا تغيير) |
 | فحص صلاحيات البوت مقابل متطلبات الأوامر | `POST /api/actions/commands/bot_permissions_check/run` | قراءة ملفات البوت + Discord REST | قراءة فقط (لا تغيير) |
+| تعطيل أمر داخل البوت (دون إلغاء تسجيله) | `POST /api/actions/commands/bot_disable/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| إعادة تفعيل أمر معطّل داخل البوت | `POST /api/actions/commands/bot_enable/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| تقييد أمر برتب ورومات محددة | `POST /api/actions/commands/bot_restrict/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| استخدام الأوامر وأخطاؤها (دائم) | `POST /api/actions/commands/bot_usage/run` | — | قراءة فقط (لا تغيير) |
 
 ## الحماية التلقائية `automod`
 
@@ -216,6 +220,8 @@
 | إزالة قناة من الاستثناءات | `POST /api/actions/automod/remove_channel_exempt/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 | تصفير مخالفات عضو | `POST /api/actions/automod/reset_violations/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 | عرض مخالفات عضو | `POST /api/actions/automod/member_violations/run` | Bot DB Adapter + Discord REST | قراءة فقط (لا تغيير) |
+| عرض حدود السبام الفعّالة | `POST /api/actions/automod/get_limits/run` | — | قراءة فقط (لا تغيير) |
+| تعديل حدود السبام والتصعيد | `POST /api/actions/automod/set_limits/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 
 ## التكتات والدعم `tickets`
 
@@ -229,6 +235,9 @@
 | تحديد صاحب أسلوب المساعد الذكي | `POST /api/actions/tickets/set_ai_style_owner/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 | تحديد قناة ملخص أخبار الإدارة | `POST /api/actions/tickets/set_admin_news_channel/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 | مسح أمثلة أسلوب المساعد المحفوظة | `POST /api/actions/tickets/clear_ai_style_examples/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| تعديل أسباب فتح التكت | `POST /api/actions/tickets/set_reasons/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| إغلاق تكت | `POST /api/actions/tickets/close_ticket/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| نشر لوحة التكتات في روم | `POST /api/actions/tickets/post_panel/run` |  + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 
 ## نظام الترحيب `welcome`
 
@@ -269,6 +278,8 @@
 | تغيير المنصة المرتبطة | `POST /api/actions/dstreamers/set_platform/run` | Bot DB Adapter + Discord REST | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح — ⚠️ محفوظ لكن يُطبَّقه البوت بعد إعادة التشغيل (يظهر بحالة «معلّق») |
 | فحص حالة ربط الستريمر | `POST /api/actions/dstreamers/check_link/run` | Bot DB Adapter + Discord REST | قراءة فقط (لا تغيير) |
 | سجل إشعارات البث المرسلة | `POST /api/actions/dstreamers/notification_log/run` | Bot DB Adapter + Discord REST | قراءة فقط (لا تغيير) |
+| تطبيق قائمة الستريمرات في البوت الآن | `POST /api/actions/dstreamers/reload_now/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| تغيير روم إعلانات البث | `POST /api/actions/dstreamers/set_channel/run` | — | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 
 ## قاعدة بيانات البوت `botdb`
 
@@ -363,6 +374,7 @@
 | لقطة حالة البوت (Ping/Uptime) | `POST /api/actions/health/bot_snapshot/run` | Bot /health | قراءة فقط (لا تغيير) |
 | اختبار اتصال Discord وصحة التوكن | `POST /api/actions/health/test_discord_token/run` | Discord REST | قراءة فقط (لا تغيير) |
 | حذف سجل الفحوصات القديم | `POST /api/actions/health/prune_history/run` | قاعدة اللوحة | تحقق ضمني بالمعاملة/القراءة داخل التنفيذ |
+| حالة البوت من قناة التحكم (خدمات داخلية) | `POST /api/actions/health/bot_control_status/run` | — | قراءة فقط (لا تغيير) |
 
 ## مركز التنبيهات `alerts`
 
@@ -439,6 +451,7 @@
 - `commands.registry` — سجل الأوامر ← ملفات discord-bot/commands (قراءة فقط) + Discord API
 - `commands.discord` — المسجّل فعلياً عند Discord ← Discord API /applications/{id}/commands
 - `commands.disabled` — الأوامر المعطّلة من اللوحة
+- `commands.inbot` — حالة الأوامر داخل البوت (استخدام 7 أيام) ← GET /admin-control/commands (حيّ من البوت)
 - `automod.status` — حالة الحماية والاستثناءات ← قاعدة البوت: guild_settings + auto_mod_exemptions
 - `automod.violations` — آخر المخالفات ← قاعدة البوت: auto_mod_violations
 - `tickets.open` — التكتات المفتوحة ← قاعدة البوت: tickets
