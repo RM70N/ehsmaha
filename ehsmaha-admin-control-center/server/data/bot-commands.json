@@ -1,0 +1,960 @@
+{
+ "at": "2026-11-12T10:18:38.282Z",
+ "commands": [
+  {
+   "name": "اضافة_رتبة_ادارية",
+   "description": "👑 (Administrator فقط) يضيف رتبة لقائمة الرتب الإدارية بالبوت",
+   "options": [
+    {
+     "type": "Role",
+     "name": "رتبة",
+     "description": "الرتبة",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": "PermissionFlagsBits.Administrator",
+   "file": "commands/admin/adminRoles.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "administrator",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "ازالة_رتبة_ادارية",
+   "description": "👑 (Administrator فقط) يزيل رتبة من قائمة الرتب الإدارية بالبوت",
+   "options": [
+    {
+     "type": "Role",
+     "name": "رتبة",
+     "description": "الرتبة",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": "PermissionFlagsBits.Administrator",
+   "file": "commands/admin/adminRoles.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "administrator",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "ادمن_احصائيات",
+   "description": "🛡️ (للإدارة) إحصائيات استخدام البوت والموقع",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/admin/adminStats.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "اضافة_ادمن",
+   "description": "👑 (Administrator فقط) يضيف عضو كأدمن بالبوت",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": "PermissionFlagsBits.Administrator",
+   "file": "commands/admin/adminUsers.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "administrator",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "ازالة_ادمن",
+   "description": "👑 (Administrator فقط) يزيل عضو من أدمن البوت",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": "PermissionFlagsBits.Administrator",
+   "file": "commands/admin/adminUsers.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "administrator",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "عرض_الرتب",
+   "description": "🛡️ (للإدارة) يعرض رتب السيرفر وعدد أعضائها ويميّز الرتب الإدارية",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/admin/rolesList.js",
+   "dir": "admin",
+   "category": "الإدارة",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "قناة_اخبار_الادمن",
+   "description": "🛡️ (للإدارة) القناة اللي يوصلها ملخص المساعد الذكي لكل تكت ينقفل",
+   "options": [
+    {
+     "type": "Channel",
+     "name": "قناة",
+     "description": "قناة أخبار الأدمن",
+     "required": false
+    },
+    {
+     "type": "Boolean",
+     "name": "تعطيل",
+     "description": "يوقف إرسال ملخصات التكتات",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/ai/adminNews.js",
+   "dir": "ai",
+   "category": "الذكاء الاصطناعي",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "SendMessages",
+    "EmbedLinks",
+    "AttachFiles"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "اسلوب_المساعد",
+   "description": "🎨 (للإدارة) المساعد الذكي يتعلم أسلوبك بالكلام مع اللاعبين ويرد مثلك",
+   "options": [
+    {
+     "type": "String",
+     "name": "إجراء",
+     "description": "وش تبي تسوي؟",
+     "required": false,
+     "choices": [
+      {
+       "name": "📊 الحالة",
+       "value": "status"
+      },
+      {
+       "name": "✅ تشغيل التعلّم",
+       "value": "on"
+      },
+      {
+       "name": "⏸️ إيقاف التعلّم",
+       "value": "off"
+      },
+      {
+       "name": "🗑️ مسح كل اللي تعلّمه",
+       "value": "clear"
+      }
+     ]
+    },
+    {
+     "type": "User",
+     "name": "المالك",
+     "description": "مين يتعلم المساعد أسلوبه (لمالك السيرفر فقط)",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/ai/aiStyle.js",
+   "dir": "ai",
+   "category": "الذكاء الاصطناعي",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "حالة_الحماية",
+   "description": "🛡️ (للإدارة) حالة الحماية التلقائية من الروابط والسبام",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تفعيل_حماية_روابط",
+   "description": "🛡️ (للإدارة) يفعّل الحماية من الروابط",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تعطيل_حماية_روابط",
+   "description": "🛡️ (للإدارة) يعطّل الحماية من الروابط",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تفعيل_حماية_سبام",
+   "description": "🛡️ (للإدارة) يفعّل الحماية من السبام",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تعطيل_حماية_سبام",
+   "description": "🛡️ (للإدارة) يعطّل الحماية من السبام",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "مخالفات_عضو",
+   "description": "🛡️ (للإدارة) مخالفات عضو (روابط وسبام) وآخر الإجراءات",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تصفير_مخالفات",
+   "description": "🛡️ (للإدارة) يصفّر عدّاد مخالفات عضو",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "نوع",
+     "description": "أي عدّاد",
+     "required": true,
+     "choices": [
+      {
+       "name": "روابط",
+       "value": "link"
+      },
+      {
+       "name": "سبام",
+       "value": "spam"
+      },
+      {
+       "name": "الكل",
+       "value": "all"
+      }
+     ]
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "اضافة_رابط_مسموح",
+   "description": "🛡️ (للإدارة) يسمح بنطاق معيّن (مثل youtube.com) للكل",
+   "options": [
+    {
+     "type": "String",
+     "name": "رابط",
+     "description": "الرابط أو النطاق — مثال: youtube.com",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "استثناء_روابط",
+   "description": "🛡️ (للإدارة) رتبة يُسمح لأعضائها بإرسال الروابط",
+   "options": [
+    {
+     "type": "Role",
+     "name": "رتبة",
+     "description": "الرتبة",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "استثناء_قناة_روابط",
+   "description": "🛡️ (للإدارة) قناة يُسمح فيها بالروابط (مثل شير المحتوى)",
+   "options": [
+    {
+     "type": "Channel",
+     "name": "قناة",
+     "description": "القناة",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/automod/autoMod.js",
+   "dir": "automod",
+   "category": "الحماية التلقائية",
+   "access": "admin",
+   "botPermissions": [
+    "ManageMessages",
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "الردود_التلقائية",
+   "description": "🛡️ (للإدارة) إضافة وحذف ردود تلقائية (مثل: السلام عليكم ← وعليكم السلام)",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/autoreply/autoReply.js",
+   "dir": "autoreply",
+   "category": "الأوامر العامة",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "احداث",
+   "description": "يعرض الفعاليات والبطولات النشطة حالياً في احسمها",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/events/events.js",
+   "dir": "events",
+   "category": "الفعاليات",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "العاب",
+   "description": "🎮 ألعاب ديسكورد: روليت الإقصاء، لعبة الدول، لعبة القناص… وطريقة لعب كل وحدة",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/games/games.js",
+   "dir": "games",
+   "category": "الألعاب",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "مساعدة",
+   "description": "يعرض كل أوامر البوت وطريقة استخدامها",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/help/help.js",
+   "dir": "help",
+   "category": "الأوامر العامة",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "المتصدرين",
+   "description": "يعرض قائمة أعلى اللاعبين في احسمها",
+   "options": [
+    {
+     "type": "String",
+     "name": "نوع",
+     "description": "نوع الترتيب (الافتراضي: عام)",
+     "required": false,
+     "choices": [
+      {
+       "name": "عام",
+       "value": "global"
+      },
+      {
+       "name": "أسبوعي",
+       "value": "weekly"
+      }
+     ]
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/leaderboard/leaderboard.js",
+   "dir": "leaderboard",
+   "category": "الإحصائيات",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "طرد",
+   "description": "🛡️ (للإدارة) طرد عضو من السيرفر",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو المراد طرده",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "سبب",
+     "description": "سبب الطرد",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/kick.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [
+    "KickMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "كتم",
+   "description": "🛡️ (للإدارة) كتم عضو مؤقتاً (Timeout) — حتى 28 يوم",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو المراد كتمه",
+     "required": true
+    },
+    {
+     "type": "Integer",
+     "name": "المدة",
+     "description": "رقم صحيح موجب",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "الوحدة",
+     "description": "وحدة المدة",
+     "required": true,
+     "choices": []
+    },
+    {
+     "type": "String",
+     "name": "السبب",
+     "description": "سبب الكتم (اختياري)",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/mute.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [
+    "ModerateMembers"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "مسح",
+   "description": "🛡️ (للإدارة) يحذف آخر الرسائل من قناة (حتى 500 رسالة)",
+   "options": [
+    {
+     "type": "Channel",
+     "name": "قناة",
+     "description": "القناة المراد مسح رسائلها",
+     "required": true
+    },
+    {
+     "type": "Integer",
+     "name": "عدد",
+     "description": "عدد الرسائل (1 - 500)",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/purge.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "ReadMessageHistory",
+    "ManageMessages"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تحذير",
+   "description": "🛡️ (للإدارة) تحذير عضو ومنحه رتبة تحذير",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو المراد تحذيره",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "سبب",
+     "description": "سبب التحذير",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "رتبة_التحذير",
+     "description": "رتبة التحذير اللي تبي تعطيها للعضو",
+     "required": true,
+     "choices": [
+      {
+       "name": "تحذير1",
+       "value": "w1"
+      },
+      {
+       "name": "تحذير2",
+       "value": "w2"
+      },
+      {
+       "name": "تحذير3",
+       "value": "w3"
+      }
+     ]
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/warn.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [
+    "ManageRoles"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "حذف_تحذير",
+   "description": "🛡️ (للإدارة) يحذف تحذير معيّن من سجل عضو",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    },
+    {
+     "type": "Integer",
+     "name": "رقم_التحذير",
+     "description": "رقم التحذير كما يظهر بـ/سجل_تحذيرات",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/warnDelete.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "سجل_تحذيرات",
+   "description": "🛡️ (للإدارة) يعرض كل تحذيرات عضو",
+   "options": [
+    {
+     "type": "User",
+     "name": "عضو",
+     "description": "العضو",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/moderation/warnLog.js",
+   "dir": "moderation",
+   "category": "الإشراف",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "بروفايل",
+   "description": "يعرض بروفايل أي لاعب في احسمها باليوزرنيم",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/profile/profile.js",
+   "dir": "profile",
+   "category": "الملفات الشخصية",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": true
+  },
+  {
+   "name": "احسمها",
+   "description": "يعرض رابط موقع احسمها ونبذة عن المنصة",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/site/site.js",
+   "dir": "site",
+   "category": "الأوامر العامة",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "الموقع",
+   "description": "يعرض رابط موقع احسمها ونبذة عن المنصة",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/site/site.js",
+   "dir": "site",
+   "category": "الأوامر العامة",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "احصائيات",
+   "description": "يعرض الإحصائيات التفصيلية لأي لاعب في احسمها باليوزرنيم",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/stats/stats.js",
+   "dir": "stats",
+   "category": "الإحصائيات",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": true
+  },
+  {
+   "name": "اضافة",
+   "description": "➕ (للمالك) تسجيل ستريمر للإعلان التلقائي عن بثه",
+   "options": [],
+   "subcommands": [
+    {
+     "name": "ستريمر",
+     "description": "تسجيل ستريمر: أول ما يربط بثه بأحسمها يتنشر رابط بثه برووم الإعلانات",
+     "options": [
+      {
+       "type": "String",
+       "name": "يوزر",
+       "description": "يوزر الستريمر (مع @ أو بدونه)",
+       "required": true
+      },
+      {
+       "type": "String",
+       "name": "المنصة",
+       "description": "المنصة اللي يبث عليها",
+       "required": true,
+       "choices": []
+      }
+     ],
+     "group": false
+    }
+   ],
+   "defaultPermission": null,
+   "file": "commands/streams/addStreamer.js",
+   "dir": "streams",
+   "category": "الستريمرز والبثوث",
+   "access": "owner",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "بث",
+   "description": "يعرض الستريمرز اللي يبثون الآن على احسمها لحظياً (نفس قسم البثوث بلوحة المالك)",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/streams/live.js",
+   "dir": "streams",
+   "category": "الستريمرز والبثوث",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "ازالة",
+   "description": "➖ (للمالك) إيقاف الإعلان التلقائي عن ستريمر",
+   "options": [],
+   "subcommands": [
+    {
+     "name": "ستريمر",
+     "description": "إيقاف الإعلان التلقائي عن بث هذا الستريمر",
+     "options": [
+      {
+       "type": "String",
+       "name": "يوزر",
+       "description": "يوزر الستريمر (مع @ أو بدونه)",
+       "required": true
+      },
+      {
+       "type": "String",
+       "name": "المنصة",
+       "description": "المنصة اللي سجّلته عليها",
+       "required": true,
+       "choices": []
+      }
+     ],
+     "group": false
+    }
+   ],
+   "defaultPermission": null,
+   "file": "commands/streams/removeStreamer.js",
+   "dir": "streams",
+   "category": "الستريمرز والبثوث",
+   "access": "owner",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "دعم",
+   "description": "🛡️ (للإدارة) ينشر لوحة تذاكر الدعم بقناة",
+   "options": [
+    {
+     "type": "Channel",
+     "name": "قناة",
+     "description": "القناة اللي تنحط فيها لوحة الدعم",
+     "required": true
+    },
+    {
+     "type": "String",
+     "name": "رسالة",
+     "description": "نص اللوحة (اكتب \\\\n لسطر جديد)",
+     "required": true
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/tickets/support.js",
+   "dir": "tickets",
+   "category": "التكتات",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "SendMessages",
+    "EmbedLinks"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "اعداد_رتب_الدعم",
+   "description": "🛡️ (للإدارة) يحدد رتب فريق الدعم اللي تشوف التكتات (حتى 5 رتب)",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/tickets/supportRoles.js",
+   "dir": "tickets",
+   "category": "التكتات",
+   "access": "admin",
+   "botPermissions": [],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "قناة_الترحيب",
+   "description": "🛡️ (للإدارة) يحدد قناة الترحيب بالأعضاء الجدد (بطاقة + منشن)",
+   "options": [
+    {
+     "type": "Channel",
+     "name": "قناة",
+     "description": "قناة بطاقة الترحيب",
+     "required": false
+    },
+    {
+     "type": "Channel",
+     "name": "قناة_الرسالة",
+     "description": "(اختياري) قناة ثانية لرسالة المنشن — الافتراضي نفس القناة",
+     "required": false
+    },
+    {
+     "type": "Boolean",
+     "name": "تعطيل",
+     "description": "يوقف الترحيب بالسيرفر",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/welcome/welcome.js",
+   "dir": "welcome",
+   "category": "الترحيب",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "SendMessages",
+    "AttachFiles"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تخصيص_رسالة_الترحيب",
+   "description": "🛡️ (للإدارة) يخصص نص رسالة الترحيب — {يوزر} يصير منشن للعضو",
+   "options": [
+    {
+     "type": "String",
+     "name": "نص",
+     "description": "مثال: نورت السيرفر يا {يوزر}! 🎉 (اكتب \\\\n لسطر جديد)",
+     "required": false
+    },
+    {
+     "type": "Boolean",
+     "name": "افتراضي",
+     "description": "يرجّع النص الافتراضي",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/welcome/welcome.js",
+   "dir": "welcome",
+   "category": "الترحيب",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "SendMessages",
+    "AttachFiles"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "تجربة_الترحيب",
+   "description": "🛡️ (للإدارة) يرسل ترحيب تجريبي باسمك بقناة الترحيب",
+   "options": [],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/welcome/welcome.js",
+   "dir": "welcome",
+   "category": "الترحيب",
+   "access": "admin",
+   "botPermissions": [
+    "ViewChannel",
+    "SendMessages",
+    "AttachFiles"
+   ],
+   "hasAutocomplete": false
+  },
+  {
+   "name": "الفائزين",
+   "description": "لوحة الفائزين — أكثر المتابعين فوزاً بكل الستريمرز أو ببث ستريمر محدد",
+   "options": [
+    {
+     "type": "String",
+     "name": "ستريمر",
+     "description": "اسم الستريمر (اتركه فاضي لعرض كل الستريمرز)",
+     "required": false
+    }
+   ],
+   "subcommands": [],
+   "defaultPermission": null,
+   "file": "commands/winners/winners.js",
+   "dir": "winners",
+   "category": "الإحصائيات",
+   "access": "public",
+   "botPermissions": [],
+   "hasAutocomplete": true
+  }
+ ],
+ "unparsed": [
+  "commands/games/countries.js",
+  "commands/games/roulette.js",
+  "commands/games/sniper.js"
+ ]
+}

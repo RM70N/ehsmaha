@@ -107,9 +107,14 @@ function parseFile(src) {
   return cmds;
 }
 
+const SNAP = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'data', 'bot-commands.json');
 export function scanBotCommands(botDir) {
   const dir = path.join(botDir, 'commands');
-  if (!fs.existsSync(dir)) return { available: false, reason: 'مجلد أوامر البوت غير موجود (BOT_DIR)', commands: [] };
+  if (!fs.existsSync(dir)) {
+    // لا ملفات بوت على هذا الخادم (مثل Render): لقطة مولَّدة وقت الإصدار من ملفات البوت (scripts/snapshot-bot-commands.js)
+    if (process.env.BOT_COMMANDS_SNAPSHOT !== '0') try { const j = JSON.parse(fs.readFileSync(SNAP, 'utf8')); if (j.commands?.length) return { available: true, reason: '', commands: j.commands, unparsed: j.unparsed || [], snapshot: { at: j.at, count: j.commands.length } }; } catch { /* */ }
+    return { available: false, reason: 'مجلد أوامر البوت غير موجود (BOT_DIR) ولا توجد لقطة محفوظة', commands: [] };
+  }
   const commands = [];
   const unparsed = [];
   for (const f of walk(dir)) {

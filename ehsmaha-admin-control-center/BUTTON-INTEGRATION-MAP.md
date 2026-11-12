@@ -36,6 +36,11 @@
 | إضافة ملاحظة على ستريمر | `POST /api/actions/streamers/add_note/run` | قاعدة اللوحة | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
 | سجل عمليات الستريمر | `POST /api/actions/streamers/streamer_log/run` | قاعدة اللوحة | قراءة فقط (لا تغيير) |
 | تصدير حالة الستريمرز (JSON) | `POST /api/actions/streamers/export_streamers/run` | Firebase Admin (Firestore/RTDB/Auth) | قراءة فقط (لا تغيير) |
+| إرسال رسالة للستريمر (داخل الموقع) | `POST /api/actions/streamers/message_streamer/run` | Firebase Admin (Firestore/RTDB/Auth) | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| حظر الستريمر مؤقتاً | `POST /api/actions/streamers/ban_streamer_temp/run` | Firebase Admin (Firestore/RTDB/Auth) | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| حظر الستريمر نهائياً | `POST /api/actions/streamers/ban_streamer/run` | Firebase Admin (Firestore/RTDB/Auth) | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| فك حظر الستريمر | `POST /api/actions/streamers/unban_streamer/run` | Firebase Admin (Firestore/RTDB/Auth) | إعادة قراءة المصدر ومطابقتها للمطلوب؛ عدم التطابق = فشل لا نجاح |
+| الانتقال إلى بث الستريمر | `POST /api/actions/streamers/open_stream/run` | — | قراءة فقط (لا تغيير) |
 
 ## إدارة الألعاب `games`
 

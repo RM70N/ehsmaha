@@ -1,3 +1,4 @@
+process.env.BOT_COMMANDS_SNAPSHOT = "0"; // الاختبارات تحاكي غياب ملفات البوت
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startEnv, client } from './helpers/env.js';
