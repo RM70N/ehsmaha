@@ -172,6 +172,10 @@ base64 -w0 service-account.json   # الصق الناتج بقيمة FIREBASE_SE
 DATABASE_URL=postgres://... node scripts/migrate-sqlite-to-postgres.js --sqlite ./data/bot.sqlite   # أضف --dry للتجربة بدون كتابة
 ```
 
+## 🎵 نظام الموسيقى
+
+أوامر بالبادئة `!` فقط (ما تظهر بقائمة `/`): `!اغنية` (اسم أو رابط YouTube/Spotify) · `!قائمة` · `!تخطي` · `!ايقاف` · `!موسيقى` — لوحة تحكم بأزرار، قائمة انتظار لكل سيرفر، وأوضاع تكرار/عشوائي. التفاصيل والمتغيرات و**تنبيه حجب YouTube لعناوين الاستضافات** بملف [`MUSIC-SYSTEM.md`](./MUSIC-SYSTEM.md). يحتاج ffmpeg على الخادم.
+
 ## 📝 تسجيل الأوامر
 
 ```bash

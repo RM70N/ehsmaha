@@ -68,7 +68,7 @@ require('./services/adminControl').runtime.setContext(ctx); // سياق قناة
 // auto: نسأل ديسكورد وش المفعّل بالبورتال ونطلبه فقط — ولو رفض، نرجع بدونها
 // بدل ما يطيح البوت كامل.
 function createClient({ members, content }) {
-  const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages];
+  const intents = [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildVoiceStates]; // VoiceStates: نظام الموسيقى (غير مميّز — بدون موافقة)
   if (members) intents.push(GatewayIntentBits.GuildMembers);
   if (content) intents.push(GatewayIntentBits.MessageContent);
   return new Client({
@@ -233,6 +233,7 @@ function shutdown(signal, webServer) {
   clearInterval(shutdown.selfPingTimer);
   require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()
+    .then(() => require('./music/MusicManager').getManager().destroyAll('shutdown').catch(() => {})) // يطلع من الرومات الصوتية ويرجّع اسم البوت
     .then(() => require('./services/discordRounds').shutdown()) // يحفظ الراوندات ويقفل اتصالات اللعب (WebSocket) قبل إيقاف الخادم
     .then(() => webServer && new Promise((r) => webServer.close(r)))
     .then(() => ctx.client && ctx.client.destroy())
