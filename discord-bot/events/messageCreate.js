@@ -20,7 +20,6 @@ const aiAssistant = require('../services/aiAssistant');
 const aiStyle = require('../services/aiStyle');
 const discordRelay = require('../services/discordRelay');
 const ownerAI = require('../services/ownerAI');
-const musicEvents = require('../music/MusicEvents');
 const logger = require('../utils/logger');
 
 let started = false;
@@ -39,13 +38,6 @@ module.exports = {
       discordRelay.handleMessage(message);
     } catch (err) {
       logger.warn('ربط ديسكورد: تعذّر تمرير رسالة', { channelId: message.channelId, error: err });
-    }
-
-    // أوامر الموسيقى بالبادئة (!اغنية !قائمة !تخطي !ايقاف !موسيقى) — music/MusicEvents. أي رسالة ثانية ترجع false فوراً.
-    try {
-      if (await musicEvents.handleMessage(message)) return;
-    } catch (err) {
-      logger.error('🎵 خطأ بأمر موسيقى (بادئة)', { guildId: message.guild.id, error: err });
     }
 
     // تحكم المالك باللغة الطبيعية (services/ownerAI): منشن مباشر للبوت من حساب المالك فقط ← خطة
