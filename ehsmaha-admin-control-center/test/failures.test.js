@@ -65,7 +65,7 @@ test('انقطاع قاعدة البوت: 503 واضح وليس خطأ داخل�
 test('تعطّل Firebase أثناء العملية: خطأ حقيقي مسجَّل بلا كتابة جزئية ولا نجاح', async () => {
   const env = await startEnv({ discord: false, botDb: false, firebase: true }); const o = client(env.base); await o.login('owner');
   const boom = () => { const e = new Error('14 UNAVAILABLE: No connection established'); e.code = 14; throw e; };
-  env.svc.fb.db = boom; env.svc.fb.auth = boom;
+  env.svc.fb.rawDb = boom; env.svc.fb.auth = boom;
   const r = await o.run('players.ban_permanent', { username: 'someone' }); assert.equal(r.status, 502); assert.match(r.json.message, /Firestore|متاح/); assert.equal(r.json.ok, false);
   assert.equal(env.svc.audit.list({ where: { action: 'players.ban_permanent', status: 'failed' }, limit: 2 }).length, 1);
   assert.equal(env.svc.store.col('punishments').count(), 0, 'لم يُسجَّل عقاب وهمي');

@@ -24,6 +24,7 @@ export async function createServices(cfg, o = {}) {
   const store = o.store || createStore(cfg.storePath);
   const audit = createAudit(store);
   const fb = o.fb || createFirebase(cfg);
+  fb.pendingStore = store.col('fsPending'); // كتابات نُفّذت على نسخة RTDB أثناء نفاد الحصة وتنتظر الترحيل إلى Firestore
   fb.playerIndex = store.col('playerIndex'); // فهرس محلي uid↔يوزر الموقع (يُبنى كلما قرأت اللوحة Firestore) — يُستعمل عند نفاد الحصة
   const discord = o.discord || createDiscord(cfg);
   const botDb = o.botDb || (await createBotDb(cfg));

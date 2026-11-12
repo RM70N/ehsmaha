@@ -51,29 +51,41 @@ async function findPlayerViaAuth(fb, raw) {
 const marker = (o) => !!o && typeof o === 'object' && '_op' in o;
 export const ADD = (v) => ({ _op: 'add', v }); export const RM = (v) => ({ _op: 'rm', v }); export const TS = { _op: 'ts' };
 export function levelRef(fb, key) {
+  const path = 'levels/' + key;
+  const mw = (d) => fb.mirror().mirrorWrite({ k: 'merge', p: path, d }); // نسخة fsMirror (يقرؤها الموقع عند نفاد حصته)
   return {
     async get() {
-      try { const s = await fb.db().collection('levels').doc(key).get(); return { exists: s.exists, data: () => s.data(), via: 'firestore' }; }
-      catch (e) { if (!isQuota(e)) throw e; const r = await fb.rtdb().ref('levels/' + key).get(); const v = r.exists() ? r.val() : null; return { exists: !!v, data: () => v || undefined, via: 'rtdb' }; }
+      try { const s = await fb.rawDb().collection('levels').doc(key).get(); return { exists: s.exists, data: () => s.data(), via: 'firestore' }; }
+      catch (e) {
+        if (!isQuota(e)) throw e; fb.noteError?.(e);
+        const r = await fb.rtdb().ref('levels/' + key).get(); const v = r.exists() ? r.val() : null;
+        if (v) return { exists: true, data: () => v, via: 'rtdb' };
+        try { const m = await fb.mirror().mirrorGetDoc(path); if (m.exists) return { exists: true, data: () => m.data(), via: 'rtdb' }; } catch { /* */ }
+        return { exists: false, data: () => undefined, via: 'rtdb' };
+      }
     },
     async set(patch) {
       const conv = (v) => (!marker(v) ? v : v._op === 'add' ? fb.FieldValue.arrayUnion(v.v) : v._op === 'rm' ? fb.FieldValue.arrayRemove(v.v) : fb.FieldValue.serverTimestamp());
-      try { await fb.db().collection('levels').doc(key).set(Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, conv(v)])), { merge: true }); return 'firestore'; }
+      const data = Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, conv(v)]));
+      try { await fb.rawDb().collection('levels').doc(key).set(data, { merge: true }); await mw(data); return 'firestore'; }
       catch (e) {
-        if (!isQuota(e)) throw e;
+        if (!isQuota(e)) throw e; fb.noteError?.(e);
         await fb.rtdb().ref('levels/' + key).transaction((cur) => { const o = { ...(cur || {}) }; for (const [k, v] of Object.entries(patch)) { if (marker(v)) { if (v._op === 'ts') o[k] = Date.now(); else { const a = Array.isArray(o[k]) ? o[k].slice() : []; const i = a.indexOf(v.v); if (v._op === 'add' && i < 0) a.push(v.v); if (v._op === 'rm' && i >= 0) a.splice(i, 1); o[k] = a; } } else o[k] = v; } return o; });
+        await mw(data); fb.mirror().queue({ k: 'merge', p: path, d: data });
         return 'rtdb';
       }
     },
     // تعديل الخبرة بمعاملة ذرّية (لا تنزل عن 0) + إعادة حساب اللفل
     async adjustXp(delta) {
       try {
-        const ref = fb.db().collection('levels').doc(key);
-        const out = await fb.db().runTransaction(async (tx) => { const s = await tx.get(ref); const cur = Number(s.exists ? s.data().xp : 0) || 0; const next = Math.max(0, cur + delta); tx.set(ref, { xp: next, level: levelFromXp(next), updatedAt: fb.FieldValue.serverTimestamp() }, { merge: true }); return { cur, next }; });
+        const ref = fb.rawDb().collection('levels').doc(key);
+        const out = await fb.rawDb().runTransaction(async (tx) => { const s = await tx.get(ref); const cur = Number(s.exists ? s.data().xp : 0) || 0; const next = Math.max(0, cur + delta); tx.set(ref, { xp: next, level: levelFromXp(next), updatedAt: fb.FieldValue.serverTimestamp() }, { merge: true }); return { cur, next }; });
+        await mw({ xp: out.next, level: levelFromXp(out.next), updatedAt: fb.FieldValue.serverTimestamp() });
         return { ...out, via: 'firestore' };
       } catch (e) {
-        if (!isQuota(e)) throw e; let r = { cur: 0, next: 0 };
+        if (!isQuota(e)) throw e; fb.noteError?.(e); let r = { cur: 0, next: 0 };
         await fb.rtdb().ref('levels/' + key).transaction((cur) => { const o = { ...(cur || {}) }; const c = Number(o.xp) || 0; const n = Math.max(0, c + delta); r = { cur: c, next: n }; o.xp = n; o.level = levelFromXp(n); o.updatedAt = Date.now(); return o; });
+        const dd = { xp: r.next, level: levelFromXp(r.next), updatedAt: fb.FieldValue.serverTimestamp() }; await mw(dd); fb.mirror().queue({ k: 'merge', p: path, d: dd });
         return { ...r, via: 'rtdb' };
       }
     }

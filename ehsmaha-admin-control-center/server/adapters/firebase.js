@@ -3,6 +3,7 @@ import { initializeApp, cert, deleteApp } from 'firebase-admin/app';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { getDatabase, ServerValue } from 'firebase-admin/database';
+import { createFsFacade, wrapFieldValue } from './fsMirror.js';
 const now = () => Date.now();
 
 function parseServiceAccount(raw) {
@@ -37,19 +38,28 @@ export function createFirebase(cfg) {
   // الحصة تتجدد يومياً (منتصف الليل بتوقيت المحيط الهادئ).
   const quota = { until: 0, since: 0, trips: 0 };
   const quotaErr = () => { const e = new Error('8 RESOURCE_EXHAUSTED: Quota exceeded (قاطع اللوحة: نجرّب لاحقاً)'); e.code = 8; return e; };
+  let facade = null;
   const api = {
     get available() { return state.available; },
     quota,
     noteError(e) { if (e && (e.code === 8 || /RESOURCE_EXHAUSTED|Quota exceeded/i.test(String(e.message || ''))) && now() >= quota.until) { if (!quota.since) quota.since = now(); quota.until = now() + 15 * 60_000; quota.trips++; } },
     noteOk() { quota.until = 0; quota.since = 0; },
     get reason() { return state.reason; },
-    FieldValue, Timestamp, ServerValue,
-    db() { need(); if (now() < quota.until) throw quotaErr(); return getFirestore(state.app); },
+    FieldValue: wrapFieldValue(FieldValue), rawFieldValue: FieldValue, Timestamp, ServerValue,
+    pendingStore: null, // يُضبط من context (جدول fsPending في قاعدة اللوحة)
+    async replayPending() { return api.mirror().replayPending(); },
+    pendingCount() { return api.mirror().pendingCount(); },
+    // Firestore الحقيقي (يرمي خطأ الحصة عندما يكون القاطع مفعّلاً) — للاستعمال الداخلي والاختبار
+    rawDb() { need(); if (now() < quota.until) throw quotaErr(); return getFirestore(state.app); },
+    // واجهة Firestore مع تحويل تلقائي لنسخة fsMirror في RTDB عند نفاد الحصة (نفس تنسيق fs-failover.js بالموقع)
+    db() { need(); return (facade ||= createFsFacade(api)); },
+    get inMirror() { return now() < quota.until; },
+    mirror() { need(); facade ||= createFsFacade(api); return facade; },
     auth() { need(); return getAuth(state.app); },
     rtdb() { need(); return getDatabase(state.app); },
     withTimeout,
     // فحوصات حقيقية بزمن استجابة فعلي — لا نجاح بلا قراءة فعلية
-    async pingFirestore() { const t = Date.now(); try { await withTimeout(api.db().collection('config').doc('homeStats').get(), 6000, 'Firestore'); } catch (e) { api.noteError(e); throw e; } api.noteOk(); return { ok: true, ms: Date.now() - t }; },
+    async pingFirestore() { const t = Date.now(); try { await withTimeout(api.rawDb().collection('config').doc('homeStats').get(), 6000, 'Firestore'); } catch (e) { api.noteError(e); throw e; } api.noteOk(); api.replayPending().catch(() => {}); return { ok: true, ms: Date.now() - t }; },
     async pingRtdb() { const t = Date.now(); await withTimeout(api.rtdb().ref('opsConfig/current').limitToFirst(1).get(), 6000, 'RTDB'); return { ok: true, ms: Date.now() - t }; },
     async pingAuth() { const t = Date.now(); await withTimeout(api.auth().listUsers(1), 6000, 'Auth'); return { ok: true, ms: Date.now() - t }; },
     async close() { if (state.app) await deleteApp(state.app).catch(() => {}); }

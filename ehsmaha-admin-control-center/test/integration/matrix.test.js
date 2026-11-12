@@ -36,7 +36,7 @@ const T = (name, fn) => test(name, { skip: !up && 'محاكيات Firebase غي�
 test.before(async () => {
   if (!up) return;
   await resetEmulators();
-  env = await startEnv(); ({ fb } = env.svc); db = fb.db(); rt = fb.rtdb(); auth = fb.auth(); M = env.mock.S;
+  env = await startEnv(); ({ fb } = env.svc); db = fb.rawDb(); rt = fb.rtdb(); auth = fb.auth(); M = env.mock.S;
   await seedSite(fb); await seedEvent(fb);
   o = client(env.base); a = client(env.base); await o.login('owner'); await a.login('admin');
   env.svc.registry.actions(); ctx.reg = env.svc.registry;
@@ -544,8 +544,9 @@ T('botcontrol: التطبيق الحي في البوت + أوامر/حماية/�
 
 // ================= نفاد حصة Firestore: ما زال التحكم ممكناً عبر Auth وRTDB =================
 T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطارات/الرسائل تعمل عبر Auth وRTDB، والباقي يفشل برسالة واضحة', async () => {
-  const realDb = env.svc.fb.db; const quota = () => { const e = new Error('8 RESOURCE_EXHAUSTED: Quota exceeded.'); e.code = 8; throw e; };
-  env.svc.fb.db = quota; (await import('../../server/services/overview.js')).clearOverviewCache();
+  const realDb = env.svc.fb.rawDb; const quota = () => { const e = new Error('8 RESOURCE_EXHAUSTED: Quota exceeded.'); e.code = 8; throw e; };
+  await o.get('/api/views/shop/products?fresh=1'); await new Promise((r) => setTimeout(r, 400)); // يزرع النسخة (fsMirror) من Firestore قبل نفاد الحصة
+  env.svc.fb.rawDb = quota; (await import('../../server/services/overview.js')).clearOverviewCache();
   const run = (id, params) => o.run(id, params, { reason: 'اختبار نفاد الحصة' });
   try {
     // بحث اللاعبين من Auth
@@ -577,11 +578,18 @@ T('quota: حصة Firestore مستنفدة ← الحظر/الخبرة/الإطا
     await rt.ref('fsMirror/activeStreamers/link_u1').set({ username: 'streamer_x', platform: 'tiktok', t: Date.now() });
     assert.ok((await o.get('/api/views/streamers/active?fresh=1')).json.rows.some((x) => x.id === 'link_u1'));
     r = await run('streamers.clear_active', { gameTag: 'link_u1' }); assert.equal(r.status, 200, JSON.stringify(r.json)); assert.equal((await rt.ref('fsMirror/activeStreamers/link_u1').get()).exists(), false);
-    // ما يعتمد Firestore فقط: رسالة واضحة (503) بلا نجاح مزيّف
-    r = await run('shop.set_price', { productId: 'prod1', price: 999 }); assert.equal(r.status, 503); assert.equal(r.json.code, 'FIRESTORE_QUOTA'); assert.match(r.json.message, /حصة Firestore/);
-    const ov = await o.get('/api/overview'); assert.match(JSON.stringify(ov.json), /حصة Firestore اليومية مستنفدة/);
-  } finally { env.svc.fb.db = realDb; env.svc.fb.noteOk(); }
-  assert.equal((await g('shopProducts/prod1')).data().price, 175, 'لم يتغير شيء في Firestore');
+    // كان يفشل (503): الآن يُنفَّذ على نسخة fsMirror في RTDB (نفس تنسيق الموقع) ويُرحَّل لـFirestore عند عودته
+    r = await run('shop.set_price', { productId: 'prod1', price: 999 }); assert.equal(r.status, 200, JSON.stringify(r.json));
+    assert.equal((await rt.ref('fsMirror/shopProducts/prod1/price').get()).val(), 999, 'كُتب في نسخة RTDB');
+    assert.equal((await g('shopProducts/prod1')).data().price, 175, 'Firestore لم يتغير بعد');
+    assert.ok(env.svc.store.col('fsPending').count() >= 1, 'العملية في طابور الترحيل');
+    assert.equal((await o.get('/api/views/shop/products?fresh=1')).json.rows.find((x) => x.id === 'prod1')?.price, 999, 'القراءة من النسخة تُظهر القيمة الجديدة');
+    // الأقسام التي لا نسخة لها (users) تبقى بالبدائل: Auth/RTDB
+    const ov = await o.get('/api/overview'); assert.match(JSON.stringify(ov.json), /حصة Firestore اليومية مستنفدة|users/);
+  } finally { env.svc.fb.rawDb = realDb; env.svc.fb.noteOk(); }
+  const rep = await env.svc.fb.replayPending(); assert.ok(rep.replayed >= 1, JSON.stringify(rep));
+  assert.equal((await g('shopProducts/prod1')).data().price, 999, 'رُحِّلت العملية إلى Firestore بعد عودته');
+  assert.equal(env.svc.store.col('fsPending').count(), 0);
 });
 
 // ================= فحوصات شاملة على كل زر =================
@@ -610,12 +618,12 @@ T('كل زر: الأدمن بلا صلاحية → 403 من الخادم حتى 
 T('ذاكرة العروض: القراءة الثانية لا تصل Firestore، والكتابة تُبطلها', async () => {
   const path = '/api/views/shop/products';
   assert.equal((await o.get(path)).status, 200);
-  const realDb = fb.db; let reads = 0;
-  fb.db = function () { reads++; return realDb.call(fb); };
+  const realDb = fb.rawDb; let reads = 0;
+  fb.rawDb = function () { reads++; return realDb.call(fb); };
   try {
     const second = await o.get(path);
     assert.equal(second.json.cached, true); assert.equal(reads, 0, 'لا قراءة من Firestore');
     env.svc.viewCache.clearSection('shop');
     const third = await o.get(path); assert.ok(!third.json.cached); assert.ok(reads > 0);
-  } finally { fb.db = realDb; }
+  } finally { fb.rawDb = realDb; }
 });

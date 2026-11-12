@@ -93,10 +93,10 @@ T('نافذة بتغييرات غير محفوظة تطلب تأكيد الإغ�
 });
 
 T('حالات الخطأ والتحميل: مصدر غير متاح يظهر بسببه (لا أرقام قديمة)', async () => {
-  const { ctx, page } = await open('desktop', 'owner'); const real = env.svc.fb.db; clearOverviewCache();
-  env.svc.fb.db = () => { const e = new Error('14 UNAVAILABLE'); e.code = 14; throw e; };
+  const { ctx, page } = await open('desktop', 'owner'); const real = env.svc.fb.rawDb; clearOverviewCache();
+  env.svc.fb.rawDb = () => { const e = new Error('14 UNAVAILABLE'); e.code = 14; throw e; };
   try { await page.goto(env.base + '/#/s/players/search'); await page.waitForSelector('.state.err'); assert.match(await page.textContent('.state.err'), /\S/);
-    await page.goto(env.base + '/#/overview'); await page.reload(); await page.waitForFunction(() => document.querySelectorAll('.ro.na').length >= 3, null, { timeout: 15000 }); } finally { env.svc.fb.db = real; }
+    await page.goto(env.base + '/#/overview'); await page.reload(); await page.waitForFunction(() => document.querySelectorAll('.ro.na').length >= 3, null, { timeout: 15000 }); } finally { env.svc.fb.rawDb = real; }
   await ctx.close();
 });
 
