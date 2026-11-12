@@ -1,4 +1,6 @@
 import path from 'node:path';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
@@ -14,8 +16,15 @@ export function createApp(svc) {
   app.disable('x-powered-by');
   if (cfg.trustProxy) app.set('trust proxy', 1);
 
+  // الواجهة ملف HTML واحد (CSS + JS + خطوط مضمّنة): نسمح بسكربتاتها المضمّنة **بالبصمة SHA-256 فقط** (أي سكربت آخر محظور)،
+  // والأنماط المضمّنة (لا تنفّذ شيفرة)، والخطوط data:.
+  const scriptHashes = [];
+  try {
+    const html = fs.readFileSync(path.join(cfg.root, 'web', 'index.html'), 'utf8');
+    for (const m of html.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>([\s\S]*?)<\/script>/gi)) if (!/type="application\/json"/i.test(m[1])) scriptHashes.push(`'sha256-${crypto.createHash('sha256').update(m[2]).digest('base64')}'`);
+  } catch { /* بدون واجهة */ }
   app.use(helmet({
-    contentSecurityPolicy: { useDefaults: false, directives: { 'default-src': ["'self'"], 'script-src': ["'self'"], 'style-src': ["'self'"], 'img-src': ["'self'", 'data:', 'https:'], 'font-src': ["'self'"], 'connect-src': ["'self'"], 'object-src': ["'none'"], 'base-uri': ["'none'"], 'form-action': ["'self'"], 'frame-ancestors': ["'none'"] } },
+    contentSecurityPolicy: { useDefaults: false, directives: { 'default-src': ["'self'"], 'script-src': ["'self'", ...scriptHashes], 'style-src': ["'self'", "'unsafe-inline'"], 'img-src': ["'self'", 'data:', 'https:'], 'font-src': ["'self'", 'data:'], 'connect-src': ["'self'"], 'object-src': ["'none'"], 'base-uri': ["'none'"], 'form-action': ["'self'"], 'frame-ancestors': ["'none'"] } },
     crossOriginEmbedderPolicy: false, referrerPolicy: { policy: 'no-referrer' },
     hsts: cfg.prod ? { maxAge: 31536000, includeSubDomains: true } : false
   }));

@@ -93,7 +93,7 @@ test('كلمات المرور لا تُسجَّل في سجل التدقيق و�
 test('رؤوس الأمان وCSP موجودة', async () => {
   const r = await fetch(env.base + '/'); const csp = r.headers.get('content-security-policy');
   assert.match(csp, /script-src 'self'/); assert.match(csp, /frame-ancestors 'none'/); assert.equal(r.headers.get('x-powered-by'), null);
-  const html = await r.text(); assert.ok(!/<script(?![^>]*src)/i.test(html), 'لا سكربت مضمّن'); assert.ok(!/ style="/i.test(html));
+  const html = await r.text(); assert.match(csp, /script-src 'self' 'sha256-/, 'السكربت المضمّن بالبصمة فقط'); assert.ok(!/script-src[^;]*unsafe-inline/.test(csp), 'لا unsafe-inline للسكربتات'); assert.ok(/<script type="module">/.test(html));
 });
 
 test('حظر IP يمنع الدخول', async () => {
