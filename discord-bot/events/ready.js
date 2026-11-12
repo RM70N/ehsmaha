@@ -89,6 +89,11 @@ module.exports = {
       .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
       .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
+    // الموسيقى: لو انطفى البوت وهو شغّال أغنية، اسمه بالسيرفر يرجع للأصل
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => ok !== false && require('../music/MusicManager').getManager().restoreNicknames(client))
+      .catch((err) => logger.warn('🎵 تعذّر استرجاع اسم البوت', { error: err && err.message }));
+
     // راوندات الألعاب (/دول /روليت /قناص): المدير + استعادة الراوندات الحية بعد إعادة التشغيل
     Promise.resolve(ctx.dbReady)
       .then((ok) => require('../services/discordRounds').init({
