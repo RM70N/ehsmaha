@@ -8,6 +8,7 @@
 
 const ROOT_FILES = [
   'ehsemha-perf.js',
+  'fs-failover.js',
   'ehsemha-perf.css',
   'index.html',
   'roulette3d.html',
@@ -39,6 +40,7 @@ const DIRS = [
   'som3h-10k',
   'blhh-5k',
   'c7-welcome',
+  'batmish',
   'owner-studio',
   'ops',
   'subathon',

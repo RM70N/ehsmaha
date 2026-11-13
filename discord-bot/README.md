@@ -134,6 +134,9 @@ npm start                 # البوت
 | `LOG_LEVEL` | الاثنين | — | `error` / `warn` / `info` / `debug` |
 | `BOT_STATE_BACKUP` | البوت | — | `auto` (افتراضي): على Render يحفظ قاعدة البوت سحابياً (Firestore عبر الـAPI) بعد كل تعديل ويسترجعها بعد كل تحديث · `on` / `off` |
 | `DATABASE_URL` | البوت | — | (اختياري) PostgreSQL بدل SQLite والحفظ السحابي |
+| `ADMIN_CONTROL_KEY` | البوت | — | مفتاح قناة التحكم الإدارية `/admin-control/*` (32+ حرف، مستقل عن `API_KEY`). بدونه القناة مغلقة (503) والبوت يشتغل كما هو |
+| `ADMIN_CONTROL_ALLOWED_IPS` | البوت | — | (اختياري) قائمة IP مسموحة للقناة مفصولة بفاصلة |
+| `ADMIN_CACHE_TTL_SECONDS` | البوت | — | مدة كاش صلاحيات المشرفين (افتراضي 600) |
 | `DATABASE_SSL` | البوت | — | تلقائي؛ `true`/`false` لفرضه |
 | `SQLITE_PATH` | البوت | — | محلياً فقط (افتراضي `./data/bot.sqlite`) |
 | `STREAM_WEBHOOK_SECRET` | البوت | — | سر Webhook البث (32+ حرف). بدونه الـWebhook مقفل و`/بث` يعتمد على المزامنة فقط |
@@ -158,6 +161,16 @@ base64 -w0 service-account.json   # الصق الناتج بقيمة FIREBASE_SE
 > ⚠️ هذا المفتاح يعطي صلاحية كاملة على قاعدة البيانات — لا ترفعه للمستودع ولا تشاركه.
 
 ---
+
+## 🛰️ قناة التحكم الإدارية و PostgreSQL
+
+- **قناة `/admin-control/*`**: واجهة آمنة للوحة الإدارة الخارجية (تعطيل/تقييد الأوامر، إعادة تحميل الخدمات، حدود الحماية، أسباب التكتات، روم إعلانات الستريمرز…). موثّقة بالكامل مع أمثلة curl بـ [`ADMIN-CONTROL-API.md`](./ADMIN-CONTROL-API.md). خاملة حتى تحط `ADMIN_CONTROL_KEY`.
+- **PostgreSQL**: حط `DATABASE_URL=postgres://user:pass@host:5432/db` (يُفعَّل SSL تلقائياً للمضيفين البعيدين) وتتطبّق الـmigrations (001–013) تلقائياً عند التشغيل. بدونه يستخدم SQLite المحلي.
+- **نقل بيانات SQLite → PostgreSQL** (آمن للتكرار، ما يحذف شي، يطبع عدد الصفوف قبل/بعد):
+
+```bash
+DATABASE_URL=postgres://... node scripts/migrate-sqlite-to-postgres.js --sqlite ./data/bot.sqlite   # أضف --dry للتجربة بدون كتابة
+```
 
 ## 📝 تسجيل الأوامر
 
@@ -334,6 +347,18 @@ https://discord.com/oauth2/authorize?client_id=1552260327008247879&scope=bot%20a
 
 ### 🎮 الألعاب
 `/العاب` يعرض كل ألعاب ديسكورد المتوفرة (بنفس تصميم `/مساعدة`). القائمة من **`config/games.js`** — أي لعبة تنضاف هناك تظهر تلقائياً بدون تعديل كود الأمر.
+
+#### 📣 الإعلان التلقائي عن بثوث الستريمرز (`/اضافة ستريمر` · `/ازالة ستريمر`)
+
+للمالك فقط (`OWNER_DISCORD_ID`، والتحقق داخل الكود). تسجّل ستريمر (يوزر + منصة TikTok/Twitch/YouTube/Kick) مرة وحدة، وبعدها كل ما **يربط بثه بأحسمها** ينتشر برووم الإعلانات `1552252935377780777` (`STREAM_ANNOUNCE_CHANNEL_ID`): **"حياكم ستريمر يبث احسمها @everyone"** + Embed برابط البث وزر "شاهد البث الآن".
+
+- **المحرّك:** `services/streamerAnnouncer.js` يشترك بـ`liveStreams.onChange()` (نفس مصدر `/بث`، بدون Polling جديد)؛ المحفّز ظهور جلسة الحساب (ربط أو لعب) — مستقل عن بدء أي لعبة. المفتاح `platform:normalizedUsername` (مطابقة دقيقة).
+- **منع التكرار:** كل ظهور = "حلقة بث" محفوظة بقاعدة البيانات (`streamer_announcement_events`، فهرس فريد جزئي: حلقة مفتوحة واحدة لكل حساب) + حجز ذرّي للإرسال. تغيير لعبة، تحديثات متكررة، Webhook + مزامنة، انقطاع أقل من 3 دقائق، إعادة تشغيل البوت (آخر ظهور خلال 30 دقيقة) ← بدون إعلان جديد. بث جديد بعد انتهاء السابق ← إعلان جديد.
+- **الرابط:** يُبنى فقط بعد التحقق من صيغة الحساب لكل منصة (`services/streamLinkResolver.js`)، أو يؤخذ من بيانات الجلسة لو https بنطاق المنصة ولنفس الحساب. ما فيه رابط مؤكد ← ما ينرسل شي.
+- **دليل "يبث الآن":** جلسة الموقع نفسها (الربط الناجح بغرفة البث) + تثبيت 8 ثوانٍ. ما فيه تحقق مستقل من المنصات (يحتاج مفاتيح API)، ويمكن توصيله عبر `setLiveVerifier()`.
+- **الأعطال:** الروم ناقص الصلاحيات/غير موجود ← تسجيل واضح بدون روم بديل · بدون `Mention Everyone` ← يرسل بدون @everyone ويسجّل المشكلة · فشل مؤكد من ديسكورد ← إعادة محدودة بتباعد · نتيجة غير واضحة (مهلة) ← بدون إعادة · القاعدة معطلة ← ما ينشر ولا يفقد التسجيلات ويعيد المحاولة.
+- **الملفات:** `commands/streams/addStreamer.js`، `removeStreamer.js`، `services/streamerAnnouncer.js`، `streamAnnouncementFormatter.js`، `streamLinkResolver.js`، `database/streamerAnnouncements.js`، `database/migrations/009_streamer_announcements.sql`، الاختبارات `tests/streamerAnnouncer.test.js`.
+- **صلاحيات البوت بالروم:** View Channel · Send Messages · Embed Links · Mention Everyone. `STREAM_ANNOUNCER=off` يوقف النظام.
 
 #### 🎮 راوندات الألعاب (`/روليت` · `/دول` · `/قناص`)
 

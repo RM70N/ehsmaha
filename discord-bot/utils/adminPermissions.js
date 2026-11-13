@@ -19,13 +19,17 @@ const eb = require('./embedBuilder');
 const respond = require('./respond');
 const logger = require('./logger');
 
-const CACHE_TTL_MS = 10 * 60 * 1000;
+// مدة الكاش: ADMIN_CACHE_TTL_SECONDS (الافتراضي 600 = 10 دقائق، المسموح 5 ثواني – 24 ساعة)
+function cacheTtlMs() {
+  const n = Number.parseInt(process.env.ADMIN_CACHE_TTL_SECONDS, 10);
+  return (Number.isInteger(n) && n >= 5 && n <= 86400 ? n : 600) * 1000;
+}
 const cache = new Map(); // guildId -> { roles:Set, users:Set, loadedAt }
 const loading = new Map(); // guildId -> Promise (منع قراءتين متزامنتين لنفس السيرفر)
 
 async function loadGuild(guildId) {
   const hit = cache.get(guildId);
-  if (hit && Date.now() - hit.loadedAt < CACHE_TTL_MS) return hit;
+  if (hit && Date.now() - hit.loadedAt < cacheTtlMs()) return hit;
   if (loading.has(guildId)) return loading.get(guildId);
   const p = (async () => {
     try {
@@ -47,6 +51,20 @@ async function loadGuild(guildId) {
 
 function invalidate(guildId) {
   cache.delete(guildId);
+}
+
+/** إبطال كاش كل السيرفرات وإعادة تحميلها من القاعدة (من /admin-control/reload) ← عدد الأعضاء والرتب المحمّلة */
+async function reloadAll(guildIds = []) {
+  cache.clear();
+  const ids = [...new Set(guildIds.map(String))];
+  let roles = 0;
+  let users = 0;
+  for (const id of ids) {
+    const e = await loadGuild(id);
+    roles += e.roles.size;
+    users += e.users.size;
+  }
+  return { guilds: ids.length, roles, users };
 }
 
 // مالك السيرفر أو Administrator الفعلي — المستوى الأعلى (يدير صلاحيات الأدمن نفسها)
@@ -125,4 +143,4 @@ function invalidateAll() {
   cache.clear();
 }
 
-module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, loadGuild, denyPayload, withStorageNotice };
+module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, reloadAll, loadGuild, denyPayload, withStorageNotice };

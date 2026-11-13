@@ -24,6 +24,7 @@ on:
       - desktop-auth.html
       - windows-app.html
       - ehsemha-perf.js
+      - fs-failover.js
       - ehsemha-perf.css
       - link-device.html
       - desktop-link.js
@@ -37,6 +38,7 @@ on:
       - som3h-10k/**
       - blhh-5k/**
       - c7-welcome/**
+      - batmish/**
       - owner-studio/**
       - ops/**
       - subathon/**
@@ -70,12 +72,13 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html desktop-auth.html windows-app.html link-device.html desktop-link.js desktop-app-ui.js ehsemha-responsive-fixes.css ehsemha-perf.js ehsemha-perf.css code-race-banner.png discord-logo.png CNAME _site/
+          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html ws-diag.html desktop-auth.html windows-app.html link-device.html desktop-link.js desktop-app-ui.js ehsemha-responsive-fixes.css ehsemha-perf.js fs-failover.js ehsemha-perf.css code-race-banner.png discord-logo.png CNAME _site/
           cp -r revival-system _site/revival-system
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k
           cp -r blhh-5k _site/blhh-5k
           cp -r c7-welcome _site/c7-welcome
+          cp -r batmish _site/batmish
           cp -r owner-studio _site/owner-studio
           cp -r ops _site/ops
           cp -r subathon _site/subathon

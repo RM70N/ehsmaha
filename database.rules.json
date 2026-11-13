@@ -710,7 +710,7 @@
       "config": {
         ".read": true,
         "$id": {
-          ".write": "auth != null"
+          ".write": "auth != null && (auth.token.email === 'malshaifan1@gmail.com' || $id === 'homeStats')"
         }
       },
       "contentReports": {
@@ -1050,7 +1050,7 @@
       "usernames": {
         ".read": true,
         "$id": {
-          ".write": "auth != null"
+          ".write": "auth != null && ((!data.exists() && newData.child('uid').val() === auth.uid) || auth.token.email === 'malshaifan1@gmail.com')"
         }
       },
       "users": {

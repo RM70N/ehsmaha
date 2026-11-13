@@ -58,6 +58,8 @@ const ctx = {
   messageContentIntent: false
 };
 
+require('./services/adminControl').runtime.setContext(ctx); // سياق قناة التحكم الإدارية (الأوامر + العميل)
+
 // ---- العميل ----
 // Guilds + GuildMessages تكفي للأوامر وعدّ رسائل السبام. الـIntents المميزة
 // (Privileged — تُفعَّل من Developer Portal → Bot):
@@ -227,6 +229,7 @@ function shutdown(signal, webServer) {
   force.unref();
   liveStreams.stopPolling();
   require('./services/liveBoard').stopAll();
+  require('./services/streamerAnnouncer')._reset();
   clearInterval(shutdown.selfPingTimer);
   require('./services/discordRelay').closeAll(); // اتصالات SSE المفتوحة تمنع إغلاق الخادم
   Promise.resolve()
@@ -235,6 +238,7 @@ function shutdown(signal, webServer) {
     .then(() => ctx.client && ctx.client.destroy())
     .then(() => stateBackup.shutdown()) // آخر نسخة احتياطية قبل ما يطفي (عبر الـAPI المدمجة — لسا شغالة)
     .then(() => embeddedApi && embeddedApi.stop())
+    .then(() => require('./utils/usageStats').stop()) // آخر دفعة إحصاءات للقاعدة قبل إغلاقها
     .then(() => botDb.close())
     .catch((err) => logger.error('خطأ أثناء الإيقاف', { error: err }))
     .finally(() => process.exit(0));

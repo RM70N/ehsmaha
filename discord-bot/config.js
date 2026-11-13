@@ -112,6 +112,12 @@ function buildConfig() {
   const ownerDiscordId = (process.env.OWNER_DISCORD_ID || '944639301528977420').trim();
   if (!isSnowflake(ownerDiscordId)) problems.push(`- OWNER_DISCORD_ID لازم يكون معرّف حساب ديسكورد صالح (أرقام فقط) — القيمة الحالية: "${ownerDiscordId.slice(0, 30)}"`);
 
+  if (process.env.ADMIN_CONTROL_KEY && String(process.env.ADMIN_CONTROL_KEY).trim().length < 32) {
+    problems.push('- ADMIN_CONTROL_KEY قصير — لازم 32 حرف عشوائي على الأقل (أو احذف المتغير لتعطيل قناة التحكم)');
+  }
+  const streamAnnounceChannelId = (process.env.STREAM_ANNOUNCE_CHANNEL_ID || '1552252935377780777').trim();
+  if (!isSnowflake(streamAnnounceChannelId)) problems.push(`- STREAM_ANNOUNCE_CHANNEL_ID لازم يكون معرّف روم صالح — القيمة الحالية: "${streamAnnounceChannelId.slice(0, 30)}"`);
+
   let numeric = {};
   try {
     numeric = {
@@ -169,6 +175,12 @@ function buildConfig() {
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     ownerDiscordId,
+    // الإعلان التلقائي عن الستريمرز المسجلين (services/streamerAnnouncer): الروم الرسمي ثابت بالـID (ما نبحث بالاسم)
+    streamAnnounceChannelId,
+    // قناة التحكم الإدارية /admin-control (لوحة EHSEMHA Admin Control Center): بدون ADMIN_CONTROL_KEY (32+ حرف) = مغلقة (503)
+    adminControlKey: (process.env.ADMIN_CONTROL_KEY || '').trim() || null,
+    adminControlAllowedIps: Object.freeze(readList('ADMIN_CONTROL_ALLOWED_IPS')),
+    streamAnnouncerEnabled: !/^(false|0|no|off)$/i.test(String(process.env.STREAM_ANNOUNCER || 'true').trim()),
     // OWNER_AI=off يوقف نظام تنفيذ أوامر المالك باللغة الطبيعية (مفعّل افتراضياً)
     ownerAiEnabled: !/^(false|0|no|off)$/i.test(String(process.env.OWNER_AI || 'true').trim()),
     siteUrl,
