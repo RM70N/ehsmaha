@@ -65,7 +65,7 @@ export class BatmishAccess {
   async check(uid) {
     if (!uid) return { allowed: false, reason: 'unauthenticated' };
     const su = await this.siteUserOf(uid);
-    if (su) return { allowed: true, reason: 'ok', streamerId: su, via: 'account' };
+    if (su) return { allowed: true, reason: 'ok', streamerId: this.streamerId, via: 'account' };   // حساب الموقع mish = نفس الشخص صاحب بث _zvd4
     let pin = await this.pinnedUid();
     if (!pin && this.autoClaim && this.hasLiveSession(uid)) {
       await this.store.setPin({ uid, at: Date.now(), by: 'autoclaim' });

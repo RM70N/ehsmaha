@@ -277,10 +277,10 @@ console.log('== 11b) حساب احسمها mish');
   ok(!!(await until(() => btn(M.page), 25000)), 'حساب mish بمجرد الدخول (بدون ربط بث): يظهر الزر');
   if (!(await btn(M.page))) console.log('  DEBUG', JSON.stringify(await M.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/access', { headers: { Authorization: 'Bearer ' + t } }); return { u: typeof currentUsername !== 'undefined' ? currentUsername : null, st: Batmish.controller.state, linked: Batmish.controller.clientLinked(), api: r.status, body: await r.json() }; })));
   const info = await M.page.evaluate(() => ({ s: Batmish.STREAMER, v: Batmish.VIA }));
-  ok(info.s === 'mish' && info.v === 'account', 'الخادم أكّد mish عبر الحساب', info);
+  ok(info.s === '_zvd4' && info.v === 'account', 'الخادم أكّد حساب mish ويعرضه باسم _zvd4', info);
   await M.page.evaluate(() => document.getElementById('batmish-launch').click());
   const txt = await until(async () => M.page.evaluate(() => { const r = document.getElementById('batmish-root'); return r && r.classList.contains('is-open') ? r.innerText : ''; }), 15000);
-  ok(!!txt && /@mish/i.test(txt) && !/ربط البث|الربط مؤكد/.test(txt), 'لوحة mish تفتح باسمه ولا تدّعي ربط بث', (txt || '').slice(0, 300));
+  ok(!!txt && /@_zvd4/i.test(txt) && !/ربط البث|الربط مؤكد/.test(txt), 'لوحة mish تفتح باسمه ولا تدّعي ربط بث', (txt || '').slice(0, 300));
   await M.ctx.close();
 }
 console.log('== 12) أخطاء الصفحة');

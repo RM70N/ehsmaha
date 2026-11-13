@@ -425,7 +425,7 @@ test('البوابة: ستريمران بث (_zvd4 وother) — لكل واحد 
 test('البوابة: حساب احسمها المسمّى (mish) يفتح اللوحة بمجرد الدخول بدون بث، والخادم يتحقق من uid الحساب', async () => {
   const names = { mish: 'uM' };
   const acc = new BatmishAccess({ store: new MemoryStore(), resolveUid: async (n) => names[n] || '' });
-  assert.deepEqual(await acc.check('uM'), { allowed: true, reason: 'ok', streamerId: 'mish', via: 'account' });
+  assert.deepEqual(await acc.check('uM'), { allowed: true, reason: 'ok', streamerId: '_zvd4', via: 'account' });
   assert.equal((await acc.check('uOther')).allowed, false, 'حساب آخر لا يفتح');
   assert.equal((await acc.check('uOther')).reason, 'not_bound');
   // _zvd4 ما تأثر: يحتاج تثبيت + بث
