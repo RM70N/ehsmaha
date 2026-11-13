@@ -178,10 +178,31 @@ ok(await Z2.page.evaluate(() => modGetSetting('harfnajat', 'answerSeconds', 20))
 console.log('== 7) أقسام العرض الأخرى + الصوت');
 for (const v of ['settings', 'round', 'players', 'stream', 'balance', 'av', 'auto']) {
   await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(500);
-  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-fp').length, comms: !!document.querySelector('.bm-comms'), ana: !!document.querySelector('.bm-ana') }));
+  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-fp').length, comms: !!document.querySelector('#bm-stream-live'), ana: !!document.querySelector('.bm-ana') }));
   if (!(info.fields > 0 || (v === 'stream' && info.comms))) info.dump = await Z2.page.evaluate(() => ({ view: window.Batmish.ui._dash.view, h: document.querySelector('#bm-view').innerHTML.slice(0, 260), err: document.querySelector('#bm-view .bm-pagehead h2') && document.querySelector('#bm-view .bm-pagehead h2').textContent }));
   ok(info.fields > 0 || (v === 'stream' && info.comms) || (v === 'balance' && info.ana), `قسم ${v}: ` + (info.fields ? info.fields + ' إعداد' : 'حالة «غير موصول» صادقة'), info);
 }
+// تغطية الألعاب: كل بطاقات الموقع ظاهرة، والمجهّز منها بإعدادات حقيقية ≥ 27 (بما فيها الروليت الروسي وحرب الدول)
+const cov = await Z2.page.evaluate(() => { const g = window.Batmish.ui._dash.games; return { all: g.length, wired: g.filter((x) => x.fields > 0).map((x) => x.tag) }; });
+ok(cov.all >= 50 && cov.wired.length >= 27 && ['roulette3d', 'countrywar', 'memorybuttons', 'guesscountry', 'findballsolo', 'timersolo', 'countrywarparty'].every((t) => cov.wired.includes(t)), 'كل ألعاب الموقع ظاهرة والمجهّز منها بإعدادات حقيقية ' + cov.wired.length, cov);
+// إحصائيات البث: أحداث حقيقية بنفس شكل أحداث الجسر تمر عبر نفس الخطّاف الذي يغذّي الألعاب
+await Z2.page.evaluate(() => {
+  window.__origTk = homeConnections.tiktok;
+  homeConnections.tiktok = { ws: { readyState: 1, close() {} }, username: '_zvd4', attempts: 0, timer: null };
+  window.Batmish.stats.reset();
+  const U = (id, n) => ({ uniqueId: id, nickname: n });
+  homeDispatchToGameListeners({ messages: [
+    { type: 'WebcastRoomUserSeqMessage', viewerCount: 120 }, { type: 'WebcastRoomUserSeqMessage', viewerCount: 95 },
+    { type: 'WebcastChatMessage', comment: 'مرحبا يا بطل', user: U('a1', 'سارة') }, { type: 'WebcastChatMessage', comment: 'اوجد الكلمة', user: U('a2', 'خالد') }, { type: 'WebcastChatMessage', comment: 'تعليق ثاني', user: U('a1', 'سارة') },
+    { type: 'WebcastGiftMessage', giftName: 'Rose', diamondCount: 1, repeatCount: 3, user: U('a3', 'نورة') }, { type: 'WebcastGiftMessage', giftName: 'Lion', diamondCount: 29999, repeatCount: 1, user: U('a2', 'خالد') },
+    { type: 'WebcastSocialMessage', displayType: 'follow', user: U('a4', 'ماجد') }, { type: 'WebcastLikeMessage', likeCount: 5, totalLikeCount: 777, user: U('a1', 'سارة') } ] });
+});
+await Z2.page.click('.bm-nav-item[data-nav="stream"]'); await sleep(1500);
+const st = await Z2.page.evaluate(() => { const t = document.querySelector('#bm-stream-live').innerText; return { t, s: window.Batmish.stats.snapshot() }; });
+ok(st.s.comments === 3 && st.s.chatters === 2 && st.s.gifts === 4 && st.s.diamonds === 30002 && st.s.follows === 1 && st.s.likes === 777 && st.s.viewers === 95 && st.s.peak === 120, 'إحصائيات البث تُحسب بدقة من أحداث الجسر', st.s);
+ok(/مرحبا يا بطل/.test(st.t) && /سارة/.test(st.t) && /Lion/.test(st.t), 'نصوص التعليقات والهدايا الحقيقية تظهر في اللوحة', st.t.slice(0, 200));
+ok(!/الجمهور والتفاعل/.test(await Z2.page.evaluate(() => document.querySelector('.bm-rail, .bm-nav, #batmish-root').innerText)), 'قسم «الجمهور والتفاعل» محذوف');
+await Z2.page.evaluate(() => { homeConnections.tiktok = window.__origTk; window.Batmish.stats.reset(); });
 await Z2.page.screenshot({ path: SHOTS + '/08-section.png' });
 await Z2.page.click('.bm-nav-item[data-nav="av"]'); await sleep(400);
 await Z2.page.evaluate(() => { for (const k of ['__site.muteEffects', '__site.reduceEffects']) { const c = document.querySelector('[data-k="' + k + '"]'); c.checked = true; c.dispatchEvent(new Event('input', { bubbles: true })); } });

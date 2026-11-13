@@ -19253,7 +19253,10 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'holdDuration', type: 'number', label: 'مدة حمل التاج للفوز (بالثواني)', hint: 'الحالي: 5', default: 5, min: 2, max: 30 },
       { key: 'maxStealAttempts', type: 'number', label: 'عدد محاولات السرقة لكل لاعب', hint: 'الحالي: 2', default: 2, min: 1, max: 10 },
       { key: 'immunityEnabled', type: 'toggle', label: 'تفعيل الحماية المؤقتة', hint: 'فرصة عشوائية لحامل التاج تمنع السرقة لمدة قصيرة', default: false },
-      { key: 'speedupEnabled', type: 'toggle', label: 'تفعيل تسارع السرقة', hint: 'كل ما انسرق التاج أكثر، مدة الحمل المطلوبة للفوز تقل قليلاً (يزيد التوتر)', default: false }
+      { key: 'speedupEnabled', type: 'toggle', label: 'تفعيل تسارع السرقة', hint: 'كل ما انسرق التاج أكثر، مدة الحمل المطلوبة للفوز تقل قليلاً (يزيد التوتر)', default: false },
+      { key: 'immunityDuration', type: 'number', label: "مدة الحماية المؤقتة (بالثواني)", hint: "الحالي: 2 — إذا «الحماية» مفعّلة", default: 2, min: 1, max: 15 },
+      { key: 'speedupStep', type: 'number', unitDivisor: 10, unitStep: 0.1, label: 'مقدار تقليل مدة الحمل لكل سرقة (بالثواني)', hint: 'الحالي: 0.5 — إذا «التسارع» مفعّل', default: 5, min: 0, max: 50 },
+      { key: 'speedupMin', type: 'number', label: "أقل مدة حمل مع التسارع (بالثواني)", hint: "الحالي: 2", default: 2, min: 1, max: 30 }
     ]
   },
   lastletter: {
@@ -19316,7 +19319,9 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'goldenCountryEnabled', type: 'toggle', label: 'تفعيل دولة محصّنة ذهبية', hint: 'دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها', default: false },
       { key: 'endgameMultiplierEnabled', type: 'toggle', label: 'تفعيل مضاعفة الخطر بالنهاية', hint: 'في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)', default: false },
       { key: 'revivalEnabled', type: 'toggle', label: 'تفعيل إنعاش عبر هدايا تيك توك', hint: 'أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث', default: true },
-      { key: 'revivalMaxUses', type: 'number', label: 'عدد مرات الانعاش المسموحة لكل شخص بالراوند', hint: 'الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد', default: 2, min: 1, max: 10 }
+      { key: 'revivalMaxUses', type: 'number', label: 'عدد مرات الانعاش المسموحة لكل شخص بالراوند', hint: 'الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد', default: 2, min: 1, max: 10 },
+      { key: 'endgameMultiplierChance', type: 'number', label: "فرصة الإقصاء المزدوج لصاحب الدور (٪)", hint: "الحالي: 50 — 100 = كل صاحب دور يقدر يقصي دولتين (يتطلب تفعيل «مضاعفة الخطر بالنهاية»)", default: 50, min: 0, max: 100 },
+      { key: 'endgameMultiplierFrom', type: 'number', label: "يبدأ الإقصاء المزدوج لما تبقى هذا العدد من الدول أو أقل", hint: "الحالي: 3 — ارفعه (مثلاً 50) ليشمل كل مراحل اللعب", default: 3, min: 2, max: 50 }
     ]
   },
   reverseword: {
@@ -19413,6 +19418,58 @@ const MOD_SETTINGS_SCHEMA = {
     name: 'توب 10',
     fields: [
       { key: 'totalRounds', type: 'number', label: 'عدد الجولات', hint: 'الحالي: 3 — تُطبَّق عند بدء لعبة جديدة', default: 3, min: 1, max: 10 }
+    ]
+  },
+  roulette3d: {
+    name: 'الروليت الروسي',
+    fields: [
+      { key: 'minP', type: 'number', label: "الحد الأدنى للمشاركين", hint: "لا تبدأ المباراة قبل اكتمال هذا العدد. الحالي: 2", default: 2, min: 2, max: 30 },
+      { key: 'maxP', type: 'number', label: "الحد الأقصى للمشاركين", hint: "الحالي: 12", default: 12, min: 2, max: 24 },
+      { key: 'regTime', type: 'number', label: "مدة التسجيل (بالثواني)", hint: "٠ = تبدأ يدوياً. الحالي: 45", default: 45, min: 0, max: 600 },
+      { key: 'decTime', type: 'number', label: "مدة اتخاذ القرار (بالثواني)", hint: "الحالي: 15", default: 15, min: 5, max: 60 },
+      { key: 'passes', type: 'number', label: "مرات الامتناع لكل لاعب", hint: "«لا تطلق» تستهلك امتناعاً واحداً. الحالي: 2", default: 2, min: 0, max: 9 },
+      { key: 'earnPass', type: 'toggle', label: "كسب امتناع جديد بالشجاعة", hint: "من ينجو من «أطلق» مرتين يكسب امتناعاً إضافياً", default: true },
+      { key: 'tgtUses', type: 'number', label: "عدد مرات «أطلق على شخص» لكل لاعب", hint: "الحالي: 1 — كم مرة يقدر اللاعب يختار شخصاً ويطلق عليه", default: 1, min: 1, max: 5 },
+      { key: 'tgtGuaranteed', type: 'toggle', label: "الإطلاق على شخص = إصابة مضمونة", hint: "إيقاف (الافتراضي): الإطلاق على شخص يخضع لنفس الحظ. تشغيل: يصيب دائماً", default: false },
+      { key: 'tgtTwo', type: 'toggle', label: "الإطلاق على شخصين", hint: "إيقاف (الافتراضي): شخص واحد. تشغيل: يختار شخصين ويُطلق عليهما بالتتابع", default: false }
+    ]
+  },
+  guesscountry: {
+    name: 'خمن الدولة',
+    fields: [
+      { key: 'totalSeconds', type: 'number', label: "مدة التخمين (بالثواني)", hint: "الحالي: 30", default: 30, min: 10, max: 180 },
+      { key: 'maxAttempts', type: 'number', label: "عدد المحاولات", hint: "الحالي: 3", default: 3, min: 1, max: 10 }
+    ]
+  },
+  timersolo: {
+    name: 'التوقيت (فردي)',
+    fields: [
+      { key: 'maxSeconds', type: 'number', label: "أقصى مدة للعدّاد (بالثواني)", hint: "الحالي: 30", default: 30, min: 5, max: 120 }
+    ]
+  },
+  memorybuttons: {
+    name: 'أزرار الذاكرة',
+    fields: [
+      { key: 'startLength', type: 'number', label: "طول التسلسل في البداية", hint: "الحالي: 3", default: 3, min: 1, max: 8 },
+      { key: 'maxLevel', type: 'number', label: "المستوى الذي يعني الفوز الكامل", hint: "الحالي: 15", default: 15, min: 3, max: 40 },
+      { key: 'flashMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "مدة إضاءة كل زر (بالثواني)", hint: "الحالي: 0.6 — أقل = أصعب", default: 600, min: 150, max: 2000 },
+      { key: 'gapMs', type: 'number', unitDivisor: 1000, unitStep: 0.05, label: "الفاصل بين الأزرار (بالثواني)", hint: "الحالي: 0.25", default: 250, min: 50, max: 1500 }
+    ]
+  },
+  countrywarparty: {
+    name: 'حرب الدول (جماعي)',
+    fields: [
+      { key: 'turnSeconds', type: 'number', label: "مدة دور اللاعب (بالثواني)", hint: "الحالي: 15", default: 15, min: 5, max: 120 }
+    ]
+  },
+  findballsolo: {
+    name: 'اعثر على الكورة (فردي)',
+    fields: [
+      { key: 'shuffleMinMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "أقل مدة خلط بالجولة الأولى (بالثواني)", hint: "الحالي: 6", default: 6000, min: 1500, max: 15000 },
+      { key: 'shuffleSpeedupPercent', type: 'number', label: "نسبة تسريع الخلط كل جولة (%)", hint: "الحالي: 15", default: 15, min: 0, max: 50 },
+      { key: 'shuffleMinFloorMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "أقل مدة خلط ممكنة (بالثواني)", hint: "الحالي: 1.8", default: 1800, min: 500, max: 6000 },
+      { key: 'swapCount', type: 'number', label: "عدد تبديلات الأكواب", hint: "الحالي: 6", default: 6, min: 2, max: 20 },
+      { key: 'guessTimerSeconds', type: 'number', label: "مدة التخمين (بالثواني)", hint: "الحالي: 10", default: 10, min: 3, max: 60 }
     ]
   }
 };
@@ -26132,6 +26189,7 @@ function homeHasActiveConnection() {
 // المعرّف بنفس الشكل الخام اللي تتوقعه كل لعبة اليوم عبر extractUser)،
 // ثم توزّع نفس الحدث لكل لعبة مسجّلة حالياً.
 function homeDispatchToGameListeners(evt) {
+  if (window.__bmStreamTap) { try { window.__bmStreamTap(evt); } catch (e) {} } // BATMISH: إحصائيات البث (تعمل فقط لحساب مصرّح له)
   if (CONN_DIAG_ON) { try { connDiagObserveEvent(evt); } catch (e) {} }
   // ملاحظة مهمة: لا نجرّد بادئة المنصة من uniqueId هنا. النسخة السابقة كانت
   // تجرّدها، فتُلغي بالضبط الحماية التي يبنيها platformConnect ويصير
@@ -47688,6 +47746,7 @@ let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
 let cwGoldenCountryName = null;
 let cwGoldenCountrySaved = false;      // هل استُهلكت حمايتها بالفعل
+let cwDoubleElimChance = 50, cwDoubleElimFrom = 3; // BATMISH: فرصة (٪) وعتبة عدد الدول المتبقية للإقصاء المزدوج
 let cwDoubleElimEnabled = false;       // مود إضافي: في آخر 3 دول، صاحب الدور يقدر يقصي دولتين بنفس الدور
 let cwDoubleElimArmed = false;         // متاح هالدور (يُحدَّد عشوائياً كل ما دخلنا آخر 3 دول)
 let cwDoubleElimActivated = false;     // صاحب الدور كتب "قصي الثنائي" وفعّلها فعلياً
@@ -48112,6 +48171,8 @@ function startCountryWarRound() {
   cwTurnTimerUid = null; cwGridRoundSeq++;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
+  cwDoubleElimChance = Number(modGetSetting('countrywar', 'endgameMultiplierChance', 50));
+  cwDoubleElimFrom = Number(modGetSetting('countrywar', 'endgameMultiplierFrom', 3));
   cwRevivalEnabled = modGetSetting('countrywar', 'revivalEnabled', true);
   cwRevivalMaxUses = modGetSetting('countrywar', 'revivalMaxUses', 2);
   cwAlliancePair = null;
@@ -48287,7 +48348,7 @@ function spinCountryWarWheel() {
       cwDoubleElimEliminationsThisTurn = 0;
       cwDoubleElimActivated = false;
       // مود إضافي: في آخر 3 دول، فرصة عشوائية 50% يُمنح صاحب الدور "قصي ثنائي"
-      cwDoubleElimArmed = cwDoubleElimEnabled && cwActiveCountries.length <= 3 && Math.random() < 0.5;
+      cwDoubleElimArmed = cwDoubleElimEnabled && cwActiveCountries.length <= cwDoubleElimFrom && Math.random() * 100 < cwDoubleElimChance;
 
       const result = document.getElementById('cw-spin-result');
       result.textContent = `🎯 الدور على ${winnerNickname}!`;
@@ -49092,9 +49153,9 @@ let csImmunityEnabled = false;   // مود إضافي: فرصة حماية مؤ�
 let csSpeedupEnabled = false;    // مود إضافي: مدة الحمل تقل كل ما زادت محاولات السرقة
 let csImmuneUntil = 0;           // performance.now() timestamp — حامل التاج محمي حتى هذا الوقت
 const CS_IMMUNITY_CHANCE = 0.25;    // فرصة تفعيل الحماية عند إمساك التاج
-const CS_IMMUNITY_DURATION = 2;     // ثوانٍ حماية عند تفعيلها
-const CS_SPEEDUP_STEP = 0.5;        // ثانية تُخصم من مدة الحمل لكل سرقة ناجحة
-const CS_SPEEDUP_MIN = 2;           // أقل مدة حمل ممكنة مع التسارع
+let CS_IMMUNITY_DURATION = 2;     // ثوانٍ حماية عند تفعيلها
+let CS_SPEEDUP_STEP = 0.5;        // ثانية تُخصم من مدة الحمل لكل سرقة ناجحة
+let CS_SPEEDUP_MIN = 2;           // أقل مدة حمل ممكنة مع التسارع
 
 function goSetupCrownSteal() { show('setup-crownsteal'); modInitAdvancedSection('crownsteal'); }
 
@@ -49396,6 +49457,9 @@ function startCrownStealRound() {
   CS_HOLD_DURATION = modGetSetting('crownsteal', 'holdDuration', 5);
   CS_MAX_STEAL_ATTEMPTS = modGetSetting('crownsteal', 'maxStealAttempts', 2);
   csImmunityEnabled = modGetSetting('crownsteal', 'immunityEnabled', false);
+  CS_IMMUNITY_DURATION = modGetSetting('crownsteal', 'immunityDuration', 2);
+  CS_SPEEDUP_STEP = modGetSetting('crownsteal', 'speedupStep', 5) / 10;
+  CS_SPEEDUP_MIN = modGetSetting('crownsteal', 'speedupMin', 2);
   csSpeedupEnabled = modGetSetting('crownsteal', 'speedupEnabled', false);
   csImmuneUntil = 0;
 
@@ -52596,15 +52660,20 @@ let findballSoloActive = false;
 let findballSoloGuessable = false;
 let findballSoloTimerInterval = null;
 let findballSoloTimeLeft = 0;
-const FINDBALLSOLO_GUESS_TIMER_SECONDS = 10;
-const FINDBALLSOLO_SHUFFLE_MIN_MS = 6000;
-const FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = 15;
-const FINDBALLSOLO_SHUFFLE_FLOOR_MS = 1800;
-const FINDBALLSOLO_SWAP_COUNT = 6;
+let FINDBALLSOLO_GUESS_TIMER_SECONDS = 10;
+let FINDBALLSOLO_SHUFFLE_MIN_MS = 6000;
+let FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = 15;
+let FINDBALLSOLO_SHUFFLE_FLOOR_MS = 1800;
+let FINDBALLSOLO_SWAP_COUNT = 6;
 
 function goSetupFindballSolo() { show('setup-findballsolo'); }
 
 function findballSoloStart() {
+  FINDBALLSOLO_GUESS_TIMER_SECONDS = modGetSetting('findballsolo', 'guessTimerSeconds', 10);
+  FINDBALLSOLO_SHUFFLE_MIN_MS = modGetSetting('findballsolo', 'shuffleMinMs', 6000);
+  FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = modGetSetting('findballsolo', 'shuffleSpeedupPercent', 15);
+  FINDBALLSOLO_SHUFFLE_FLOOR_MS = modGetSetting('findballsolo', 'shuffleMinFloorMs', 1800);
+  FINDBALLSOLO_SWAP_COUNT = modGetSetting('findballsolo', 'swapCount', 6);
   findballSoloClearTimer();
   findballSoloRoundNum = 0;
   findballSoloLastWinningSlot = null;
@@ -54614,8 +54683,8 @@ const GC_DATA = [
 ];
 
 const GC_SEEN_KEY = 'gc_seen_currencies';
-const GC_TOTAL_SECONDS = 30;
-const GC_MAX_ATTEMPTS = 3;
+let GC_TOTAL_SECONDS = 30;
+let GC_MAX_ATTEMPTS = 3;
 
 let gcCurrent = null;
 let gcAttemptsUsed = 0;
@@ -54670,6 +54739,8 @@ function gcCheckAnswer(input, data) {
 }
 
 function gcStart() {
+  GC_TOTAL_SECONDS = modGetSetting('guesscountry', 'totalSeconds', 30);
+  GC_MAX_ATTEMPTS = modGetSetting('guesscountry', 'maxAttempts', 3);
   gcCurrent = gcPickNextCurrency();
   gcAttemptsUsed = 0;
   gcTimeLeft = GC_TOTAL_SECONDS;
@@ -54780,7 +54851,7 @@ function goSetupGuessCountry() { show('setup-guesscountry'); }
 <!-- ====== TIMER SOLO — GAME LOGIC ====== -->
 <script>
 // ==================== SOLO GAME: لعبة التوقيت ====================
-const TS_MAX_SECONDS = 30;
+let TS_MAX_SECONDS = 30;
 const TS_SEEN_KEY = 'ts_seen_times';
 
 let tsSecretTime = 0;   // secret target, decimal seconds (0.1 - 29.9)
@@ -54817,6 +54888,7 @@ function tsPickNextSecretTime() {
 function goSetupTimerSolo() { show('setup-timersolo'); }
 
 function tsStart() {
+  TS_MAX_SECONDS = modGetSetting('timersolo', 'maxSeconds', 30);
   tsSecretTime = tsPickNextSecretTime();
   tsElapsed = 0;
   tsRunning = false;
@@ -54889,10 +54961,10 @@ function tsQuit() {
 <script>
 // ==================== SOLO GAME: حفظ الأزرار ====================
 const MB_GRID_SIZE = 9;
-const MB_START_LENGTH = 3;
-const MB_MAX_LEVEL = 15;   // reaching this level = full win
-const MB_FLASH_MS = 600;
-const MB_GAP_MS = 250;
+let MB_START_LENGTH = 3;
+let MB_MAX_LEVEL = 15;   // reaching this level = full win
+let MB_FLASH_MS = 600;
+let MB_GAP_MS = 250;
 
 let mbSequence = [];       // array of button indices (0-8), grows by 1 each level
 let mbPlayerStep = 0;      // how many of mbSequence the player has correctly repeated so far
@@ -54915,6 +54987,10 @@ function mbBuildGrid() {
 }
 
 function mbStart() {
+  MB_START_LENGTH = modGetSetting('memorybuttons', 'startLength', 3);
+  MB_MAX_LEVEL = modGetSetting('memorybuttons', 'maxLevel', 15);
+  MB_FLASH_MS = modGetSetting('memorybuttons', 'flashMs', 600);
+  MB_GAP_MS = modGetSetting('memorybuttons', 'gapMs', 250);
   mbSequence = [];
   for (let i = 0; i < MB_START_LENGTH; i++) mbSequence.push(Math.floor(Math.random() * MB_GRID_SIZE));
   mbLevel = 1;
@@ -55283,11 +55359,12 @@ function pcwRenderCountriesGrid() {
   });
 }
 
-const PCW_TURN_SECONDS = 15;
+let PCW_TURN_SECONDS = 15;
 let pcwTimerInterval = null;
 let pcwTimerDeadline = 0;
 
 function pcwStartTimer() {
+  PCW_TURN_SECONDS = modGetSetting('countrywarparty', 'turnSeconds', 15);
   pcwStopTimer();
   pcwTimerDeadline = Date.now() + PCW_TURN_SECONDS * 1000;
   const numEl = document.getElementById('pcw-timer-num');
@@ -74859,6 +74936,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if(typeof homeHasActiveConnection==='function'&&(!homeHasActiveConnection()||!streamerUser)){ setStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)'); return; }
     var minP=num(TAG+'-min',2,2,30), maxP=Math.max(minP,num(TAG+'-max',12,2,24));
     pendingCfg={keyword:(($(TAG+'-join-kw')||{}).value||'دخول').trim()||'دخول',minP:minP,maxP:maxP,regTime:num(TAG+'-reg',45,0,600),decTime:num(TAG+'-dec',15,5,60),passes:num(TAG+'-passes',2,0,9),demo:false};
+    /* BATMISH: قيم اللوحة تغلب قيم صفحة الإعداد (وإن لم تُضبط تبقى قيم الصفحة) */
+    pendingCfg.minP = modGetSetting('roulette3d', 'minP', pendingCfg.minP);
+    pendingCfg.maxP = Math.max(pendingCfg.minP, modGetSetting('roulette3d', 'maxP', pendingCfg.maxP));
+    pendingCfg.regTime = modGetSetting('roulette3d', 'regTime', pendingCfg.regTime);
+    pendingCfg.decTime = modGetSetting('roulette3d', 'decTime', pendingCfg.decTime);
+    pendingCfg.passes = modGetSetting('roulette3d', 'passes', pendingCfg.passes);
+    pendingCfg.earnPass = modGetSetting('roulette3d', 'earnPass', true);
+    pendingCfg.tgtUses = modGetSetting('roulette3d', 'tgtUses', 1);
+    pendingCfg.tgtGuaranteed = modGetSetting('roulette3d', 'tgtGuaranteed', false);
+    pendingCfg.tgtTwo = modGetSetting('roulette3d', 'tgtTwo', false);
     if(typeof ownerRegisterActiveStreamer==='function') ownerRegisterActiveStreamer(TAG,streamerUser,(typeof gamePlatform==='object'?gamePlatform[TAG]:'tiktok'),'الروليت الروسي');
     if(typeof contestNoteActivity==='function') contestNoteActivity();
     if(typeof scoreCurrentStreamer!=='undefined'){ try{ scoreCurrentStreamer=streamerUser; }catch(e){} }

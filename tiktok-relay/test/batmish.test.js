@@ -462,10 +462,12 @@ test('تخزين BATMISH المرن: نفاد حصة Firestore لا يعطّل �
   const svc = new BatmishService({ store: st });
   await svc.getState('u1');                                         // بدون مستند: يرجع الافتراضي
   await svc.applyChanges('u1', 'bomb', { revivalMaxUses: 4 });
+  await new Promise((r) => setTimeout(r, 30));
   fsF.on = true;                                                    // نفدت حصة Firestore
   const s1 = await svc.getState('u1');
   assert.ok(s1 && typeof s1.rev === 'number', 'القراءة تعمل رغم فشل Firestore');
   await svc.applyChanges('u1', 'bomb', { revivalMaxUses: 5 }, { baseRev: s1.rev });   // كتابة تذهب لـRTDB
+  await new Promise((r) => setTimeout(r, 30));                      // المخزن البطيء يكمل بالخلفية
   fsF.on = false;                                                   // Firestore رجع (ببيانات أقدم)
   const s2 = await svc.getState('u1');
   assert.equal(s2.config.bomb.revivalMaxUses, 5, 'تُعتمد النسخة الأحدث');

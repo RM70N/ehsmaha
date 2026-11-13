@@ -804,3 +804,14 @@ select.bm-input{appearance:none;-webkit-appearance:none;padding-inline-end:40px;
 .bm .mono,.bm .bm-num{unicode-bidi:isolate}
 /* زر الاتصال العائم للموقع (eh-connect-dock) يستخدم أسفل الوسط؛ نرفع زرنا فوقه على الشاشات الضيقة */
 @media (max-width:960px){.bm-launch{left:10px;bottom:max(148px,calc(env(safe-area-inset-bottom) + 140px))}}
+
+/* إحصائيات البث */
+.bm .bm-sgrid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-top:16px;align-items:start}
+.bm .bm-scol{display:flex;flex-direction:column;gap:16px}
+.bm .bm-sl-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 8px;font-size:14px}
+.bm .bm-sl{list-style:none;margin:0;padding:0 18px 14px;max-height:360px;overflow:auto}
+.bm .bm-sl li{display:flex;gap:10px;justify-content:space-between;padding:8px 0;border-top:1px solid var(--bm-line,rgba(143,180,230,.14));font-size:13.5px}
+.bm .bm-sl li b{color:#fff;flex:0 0 auto;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bm .bm-sl li span{color:var(--bm-silver);text-align:start;min-width:0;overflow-wrap:anywhere}
+.bm .bm-sl-e{margin:0;padding:6px 18px 16px;color:#7184a1;font-size:13px}
+@media (max-width:860px){.bm .bm-sgrid{grid-template-columns:1fr}}

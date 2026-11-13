@@ -165,7 +165,7 @@ function errMsg(e) {
 const Transport = { request: (m, p, b, o) => B.controller.request(m, p, b, o) };
 const ConfigurationService = {
   call(method, path, body, opt) {
-    return Transport.request(method, path, body, opt).then(r => {
+    return Transport.request(method, path, body, opt || (method === 'GET' ? undefined : { timeout: 30000 })).then(r => {
       if (r.status >= 200 && r.status < 300) return r.body;
       const e = new Error((r.body && r.body.error) || 'http_' + r.status); e.status = r.status; e.code = r.body && r.body.error; e.detail = r.body && r.body.detail; e.rev = r.body && r.body.rev; throw e;
     });
@@ -381,7 +381,7 @@ const BatmishSettingsPanel = {
 /* ---------------------- الهيدر والتنقل ---------------------- */
 const NAV = [
   ['cmd', 'نظرة عامة', 'مركز القيادة', 'cmd', 'الأساسي'], ['db', 'أرشيف كامل', 'قاعدة الألعاب', 'db'], ['settings', 'كل المعاملات', 'إعدادات الألعاب', 'settings'],
-  ['round', 'الأوقات والمحاولات', 'التحكم بالجولات', 'round', 'العمليات'], ['players', 'قواعد اللاعبين', 'تجربة اللاعبين', 'players'], ['stream', 'الجمهور والتفاعل', 'تفاعل البث', 'stream'],
+  ['round', 'الأوقات والمحاولات', 'التحكم بالجولات', 'round', 'العمليات'], ['players', 'قواعد اللاعبين', 'تجربة اللاعبين', 'players'], ['stream', 'إحصائيات البث', 'أرقام البث الحية', 'stream'],
   ['balance', 'النقاط والتوازن', 'موازنة الألعاب', 'balance'], ['av', 'الصوت والحركة', 'الصوت والمرئيات', 'av'], ['auto', 'سلوكيات تلقائية', 'الأتمتة', 'auto'],
   ['presets', 'مجموعاتك المحفوظة', 'المجموعات', 'presets', 'المحفوظات'], ['history', 'سجل التعديلات', 'السجل', 'history']
 ];
@@ -529,7 +529,7 @@ const BatmishCommandCenter = {
     const Q = [
       ['db', 'قاعدة الألعاب', 'أرشيف كل الألعاب وإعداداتها', canN + ' لعبة', 'c5 tall sq-a hot', ''], ['round', 'التحكم بالجولات', 'مدد وعدّادات ومحاولات الجولات', cnt(['round']) + ' إعداد', 'c4 tall sq-b', ''], ['players', 'تجربة اللاعبين', 'الإنعاش وعدد المرات المسموحة', cnt(['players']) + ' إعداد', 'c3 tall sq-c', ''],
       ['settings', 'إعدادات الألعاب', 'كل الإعدادات في مكان واحد', tf + ' إعداد', 'c3 sq-d', ''], ['balance', 'موازنة الألعاب', 'النقاط والصعوبة والموازنة', cnt(['scoring', 'balance', 'difficulty']) + ' إعداد', 'c4 sq-e', ''], ['av', 'الصوت والمرئيات', 'مستوى الصوت وكثافة المؤثرات', d.countTag('__site') + ' إعداد', 'c5 sq-a hot', ''],
-      ['stream', 'تفاعل البث', 'تفاعل جمهور البث', 'غير موصول بعد', 'c4 sq-c dim', 'warn'], ['auto', 'الأتمتة', 'سلوكيات تلقائية قابلة للضبط', d.autoFields().length + ' سلوك', 'c4 sq-b', ''], ['presets', 'المجموعات', 'مجموعات محفوظة', presetsN + ' محفوظة', 'c2 sq-d', ''], ['history', 'السجل', 'سجل وتراجع', 'السجل الكامل', 'c2 sq-e', '']
+      ['stream', 'إحصائيات البث', 'مشاهدون وتعليقات وهدايا حيّة', (B.stats.snapshot().linked ? 'مباشر' : 'غير مربوط'), 'c4 sq-c', (B.stats.snapshot().linked ? '' : 'warn')], ['auto', 'الأتمتة', 'سلوكيات تلقائية قابلة للضبط', d.autoFields().length + ' سلوك', 'c4 sq-b', ''], ['presets', 'المجموعات', 'مجموعات محفوظة', presetsN + ' محفوظة', 'c2 sq-d', ''], ['history', 'السجل', 'سجل وتراجع', 'السجل الكامل', 'c2 sq-e', '']
     ];
     const quick = '<div class="bm-quick">' + Q.map((q, i) => {
       const n = NAV_BY[q[0]], cls = q[4];
@@ -608,6 +608,7 @@ class Dashboard {
       '<div class="bm-savebar bm-plate" id="bm-savebar"><div class="bm-savebar-in"><div class="msg" id="bm-savebar-msg"></div><div class="act" id="bm-savebar-act"></div></div></div></main>' +
       BatmishMobileNavigation.html() + '<div class="bm-toasts" id="bm-toasts" aria-live="polite"></div>';
     document.body.appendChild(r); this.root = r;
+    this._stT = setInterval(() => { if (this.view === 'stream' && this.root.classList.contains('is-open')) { const c = $('#bm-stream-live', this.root); if (c) c.innerHTML = this.streamHtml(); } }, 1000);
     r.addEventListener('click', e => this.onClick(e)); r.addEventListener('input', e => this.onInput(e)); r.addEventListener('change', e => this.onChange(e));
     r.addEventListener('keydown', e => this.onKey(e));
     let raf = 0;
@@ -704,12 +705,27 @@ class Dashboard {
     return this.pageHead({ eyebrow: 'مراقبة اللاعبين', title: 'تجربة اللاعبين' }, '', 'ما يخص اللاعبين: الإنعاش وإعادة الانضمام وعدد المرات المسموحة. الشاشة أدناه رسم توضيحي للمخطط.') + mon + kp + this.fieldsByGame(rows);
   }
   vStream() {
-    const wave = '<div class="wave"><svg viewBox="0 0 600 90" preserveAspectRatio="none"><path class="flat" d="M0 45H600"/><path d="M0 45H180l8-26 10 52 10-40 8 14H600" opacity=".25"/></svg></div>';
-    const dish = '<div class="dish"><svg viewBox="0 0 230 200"><path d="M60 170h110M115 170v-54"/><path d="M70 116a64 64 0 0 1 90-62l-18 38z"/><circle cx="118" cy="88" r="3" fill="currentColor"/><g class="wv"><path d="M150 60a60 60 0 0 1 36 40"/></g><g class="wv"><path d="M164 44a84 84 0 0 1 52 60"/></g><g class="wv"><path d="M178 28a108 108 0 0 1 66 78"/></g></svg></div>';
-    return this.pageHead({ eyebrow: 'قنوات التواصل', title: 'تفاعل البث' }, '', 'واجهة اتصالات البث. هنا ستظهر إعدادات تفاعل الجمهور فور ربطها بمنطق الألعاب.') +
-      '<div class="bm-comms bm-plate"><i class="bm-glow"></i><div><span class="bm-tag t-warn">في الانتظار · لا قنوات موصولة</span><h3 style="margin:14px 0 6px;font-family:var(--bm-f-ar);font-size:22px">لا توجد إعدادات تفاعل موصولة بعد</h3><p class="bm-sub" style="margin:0;max-width:56ch">لا توجد حاليًا إعدادات تفاعل (رسائل بداية الجولة وغيرها) موصولة بمنطق الألعاب، فنعرض ذلك بصراحة بدل تزييف إعدادات لا تعمل.</p>' + wave +
-      '<div class="bm-chan"><span class="bm-tag t-ok">' + (B.VIA === 'account' ? 'الحساب' : 'الربط') + ' · @' + STREAMER + '</span><span class="bm-tag">الشات · غير موصول</span><span class="bm-tag">رسائل الجولة · غير موصولة</span></div></div>' + dish + '</div>' +
-      '<div class="bm-note">' + ic('info') + '<div>الإنعاش عبر الهدايا يظهر حاليًا ضمن <b>تجربة اللاعبين</b> لأنه موصول فعليًا بمنطق الألعاب.</div></div>';
+    return this.pageHead({ eyebrow: 'مراقبة البث المباشر', title: 'إحصائيات البث' }, '', 'أرقام بثك الحية: المشاهدون والتعليقات والهدايا والمتابعون والإعجابات، من نفس أحداث البث التي تغذّي الألعاب.') +
+      '<div id="bm-stream-live">' + this.streamHtml() + '</div>' +
+      '<div class="bm-note">' + ic('info') + '<div>الأرقام تُجمَّع على هذا الجهاز من لحظة ربط البث وفتح الموقع، وتتصفّر عند تغيير البث. هي ليست سجلاً رسمياً من تيك توك، والألماس تقديري (قيمة الهدية × التكرار).</div></div>';
+  }
+  streamHtml() {
+    const S = B.stats.snapshot(), nf = n => (n == null ? '—' : Number(n).toLocaleString('ar-EG'));
+    const dur = ms => { const m = Math.floor(ms / 60000), h = Math.floor(m / 60); return (h ? h + ' س ' : '') + (m % 60) + ' د'; };
+    const kpi = (v, l, en) => '<div class="bm-kpi bm-plate"><i class="bm-glow"></i><div class="v">' + v + '</div><div class="l"><span class="en">' + en + '</span>' + l + '</div></div>';
+    const tags = '<div class="bm-chan" style="margin-bottom:16px"><span class="bm-tag ' + (S.linked ? 't-ok' : 't-warn') + '">' + (S.linked ? 'البث متصل' : 'البث غير مربوط') + (S.user ? ' · @' + esc(S.user) + '' : '') + '</span>' +
+      (S.linked ? '<span class="bm-tag">مدة الجلسة · ' + dur(S.uptime) + '</span>' + '<span class="bm-tag">' + (S.lastEvent ? 'آخر حدث قبل ' + Math.max(0, Math.round((Date.now() - S.lastEvent) / 1000)) + ' ث' : 'بانتظار أول حدث') + '</span>' : '') + '</div>';
+    if (!S.linked && !S.comments && !S.gifts && S.viewers == null) return tags + this.empty('warn', 'البث غير مربوط', 'اربط بثك من الصفحة الرئيسية (ابدأ بثاً سريعاً) وستظهر هنا الأرقام فور وصول أحداث البث.');
+    const kpis = '<div class="bm-kpis">' + kpi(nf(S.viewers), 'المشاهدون الآن', 'VIEWERS') + kpi(nf(S.peak), 'ذروة المشاهدين', 'PEAK') + kpi(nf(S.comments), 'التعليقات', 'COMMENTS') + kpi(nf(S.perMin), 'تعليق في آخر دقيقة', 'PER MIN') +
+      kpi(nf(S.chatters), 'معلّقون مختلفون', 'CHATTERS') + kpi(nf(S.gifts), 'الهدايا', 'GIFTS') + kpi(nf(S.diamonds), 'الألماس (تقديري)', 'DIAMONDS') + kpi(nf(S.follows), 'متابعون جدد', 'FOLLOWS') + kpi(nf(S.likes), 'الإعجابات', 'LIKES') + (S.shares ? kpi(nf(S.shares), 'مشاركات', 'SHARES') : '') + '</div>';
+    let spark = '';
+    if (S.vs.length > 1) { const mx = Math.max(1, ...S.vs), mn = Math.min(...S.vs), W = 600, H = 70, pts = S.vs.map((v, i) => (i / (S.vs.length - 1) * W).toFixed(1) + ',' + (H - 6 - (mx === mn ? .5 : (v - mn) / (mx - mn)) * (H - 12)).toFixed(1)).join(' '); spark = this.panel('<div class="bm-sl-h"><b>المشاهدون خلال الجلسة</b><span class="mono">' + nf(mn) + ' – ' + nf(mx) + '</span></div><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:80px;direction:ltr"><polyline points="' + pts + '" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--bm-elec-hi)"/></svg>'); }
+    const list = (title, rows, fn, emptyT) => this.panel('<div class="bm-sl-h"><b>' + title + '</b></div>' + (rows.length ? '<ul class="bm-sl">' + rows.map(fn).join('') + '</ul>' : '<p class="bm-sl-e">' + emptyT + '</p>'));
+    const cmt = list('آخر التعليقات', S.recent, r => '<li><b>' + esc(r.name) + '</b><span>' + esc(r.text) + '</span></li>', 'لا تعليقات بعد.');
+    const gf = list('آخر الهدايا', S.recentGifts, r => '<li><b>' + esc(r.name) + '</b><span>' + esc(r.gift) + (r.cnt > 1 ? ' × ' + r.cnt : '') + '</span></li>', 'لا هدايا بعد.');
+    const tc = list('أكثر المعلّقين', S.topChatters, r => '<li><b>' + esc(r.name) + '</b><span class="mono">' + nf(r.n) + ' تعليق</span></li>', '—');
+    const tg = list('أكثر المهدين', S.topGifters, r => '<li><b>' + esc(r.name) + '</b><span class="mono">' + nf(r.n) + ' ألماسة</span></li>', '—');
+    return tags + kpis + spark + '<div class="bm-sgrid">' + cmt + '<div class="bm-scol">' + gf + tc + tg + '</div></div>';
   }
   vBalance() {
     const sm = this.sm, games = this.games, rows = this.fieldsOf(['scoring', 'balance', 'difficulty']);
