@@ -19548,6 +19548,9 @@ async function modSaveSettings(tag) {
 let modLiveSettings = {}; // gameTag -> { key: value } — kept fresh via onSnapshot per game
 
 function modGetSetting(tag, key, fallback) {
+  // BATMISH: تخصيص الستريمر المصرّح له (يُحمَّل من الخادم بعد التحقق من الصلاحية) يتقدّم على الإعدادات المتقدمة العادية.
+  // لغيره window.__batmishOverlay غير معرّفة أو ترجع undefined فلا يتغيّر أي سلوك.
+  if (typeof window.__batmishOverlay === 'function') { try { const bv = window.__batmishOverlay(tag, key); if (bv !== undefined) return bv; } catch (e) {} }
   const gameSettings = modLiveSettings[tag];
   if (!gameSettings || gameSettings[key] === undefined) return fallback;
   return gameSettings[key];
@@ -23950,7 +23953,11 @@ function tiktokCleanUsername(raw) {
 
 function tiktokBridgeWsUrlAt(index, username) {
   const raw = (username || '').trim().replace(/^@/, '');
-  return `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent(tiktokCleanUsername(raw) || raw)}`;
+  const clean = tiktokCleanUsername(raw) || raw;
+  let url = `${TIKTOK_BRIDGE_SERVERS[index]}?u=${encodeURIComponent(clean)}`;
+  // BATMISH: لحساب _zvd4 فقط نرفق توكن الحساب الحالي ليسجّل الخادم جلسة بث موثَّقة (بوابة اللوحة). بقية اليوزرات: لا شيء يتغيّر.
+  try { if (String(clean).toLowerCase() === '_zvd4' && typeof currentUser !== 'undefined' && currentUser && currentUser.accessToken) url += '&t=' + encodeURIComponent(currentUser.accessToken); } catch (e) {}
+  return url;
 }
 
 function tiktokBridgeWsUrl(username) {
@@ -86549,6 +86556,7 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/dhmx-welcome/dhmx-welcome-integration.js"></script>
 <script src="/som3h-10k/som3h-10k-integration.js"></script>
 <script src="/blhh-5k/blhh-5k-integration.js"></script>
+<script src="/batmish/batmish-core.js" defer></script>
 <script src="/ops/ops-games.js"></script>
 <script src="/ops/ops-core.js"></script>
 <script src="/ops/ops-tournament-site.js"></script>

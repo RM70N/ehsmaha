@@ -40,8 +40,9 @@ export class BatmishService {
     }
   }
 
-  async _commit(uid, doc, baseRev) {
-    doc.rev = (doc.rev || 0) + 1;
+  // bump=false للمجموعات المحفوظة: rev يعدّ تغييرات الإعدادات الفعلية فقط (لا يتعارض مع الحفظ من واجهة مفتوحة)
+  async _commit(uid, doc, bump = true) {
+    if (bump) doc.rev = (doc.rev || 0) + 1;
     doc.updatedAt = this.now();
     if (doc.history.length > MAX_HISTORY) doc.history = doc.history.slice(-MAX_HISTORY);
     await this.store.save(uid, doc);
@@ -152,7 +153,7 @@ export class BatmishService {
       const snapshot = clean || clone(doc.config[tag] || {});
       const p = { id: newId(this.now), tag, name: nm, values: snapshot, createdAt: this.now(), updatedAt: this.now() };
       doc.presets[p.id] = p;
-      await this._commit(uid, doc);
+      await this._commit(uid, doc, false);
       return clone(p);
     });
   }
@@ -168,7 +169,7 @@ export class BatmishService {
       }
       if (values !== undefined) p.values = validateValues(p.tag, values);
       p.updatedAt = this.now();
-      await this._commit(uid, doc);
+      await this._commit(uid, doc, false);
       return clone(p);
     });
   }
@@ -183,7 +184,7 @@ export class BatmishService {
       while (mine.some((q) => q.name.toLowerCase() === nm.toLowerCase())) nm = p.name + ' COPY ' + (i++);
       const c = { id: newId(this.now), tag: p.tag, name: nm.slice(0, 40), values: clone(p.values), createdAt: this.now(), updatedAt: this.now() };
       doc.presets[c.id] = c;
-      await this._commit(uid, doc);
+      await this._commit(uid, doc, false);
       return clone(c);
     });
   }
@@ -194,7 +195,7 @@ export class BatmishService {
       if (!p) throw new NotFoundError('preset');
       delete doc.presets[id];
       if (doc.defaultPresets[p.tag] === id) delete doc.defaultPresets[p.tag];
-      await this._commit(uid, doc);
+      await this._commit(uid, doc, false);
       return { ok: true };
     });
   }
@@ -204,7 +205,7 @@ export class BatmishService {
       const p = doc.presets[id];
       if (!p) throw new NotFoundError('preset');
       doc.defaultPresets[p.tag] = id;
-      await this._commit(uid, doc);
+      await this._commit(uid, doc, false);
       return { ok: true, tag: p.tag, id };
     });
   }
