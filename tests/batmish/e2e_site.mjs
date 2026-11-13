@@ -107,39 +107,37 @@ const O2 = await newCtx('O2'); await open(O2.page);
 ok(!(await btn(O2.page)), 'زائر بدون تسجيل: لا زر');
 await O2.ctx.close();
 
-console.log('== 3) فتح اللوحة والتعديل');
-if (process.env.DBG) { console.log(await Z.page.evaluate(() => { const r = e => { const x = document.querySelector(e); if (!x) return null; const b = x.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.top), Math.round(b.right), Math.round(b.bottom)]; }; return { launch: r('#batmish-launch'), dock: r('.eh-connect-dock'), dockBtn: r('.eh-connect-dock button') }; })); await Z.page.screenshot({ path: SHOTS + '/dbg.png' }); }
+console.log('== 3) فتح اللوحة (التصميم الجديد) والتعديل');
 await Z.page.click('#batmish-launch');
 await Z.page.waitForSelector('#batmish-root.is-open', { timeout: 8000 });
-await Z.page.waitForSelector('.bm-hero h1', { timeout: 8000 });
-await sleep(900);
+await Z.page.waitForSelector('.bm-hero-body h1', { timeout: 8000 });
+await sleep(2300);
 await Z.page.screenshot({ path: SHOTS + '/02-command-center.png' });
-const cc = await Z.page.evaluate(() => ({ h1: document.querySelector('.bm-hero h1').textContent, tiles: document.querySelectorAll('.bm-tile').length, nav: document.querySelectorAll('.bm-nav button').length, sub: document.querySelector('.bm-hero h2').textContent, tag: document.querySelector('.bm-hero p').textContent }));
-ok(cc.h1 === 'BATMISH' && /DARK KNIGHT/.test(cc.sub) && /YOUR STREAM/.test(cc.tag), 'الصفحة الرئيسية: العناوين الصحيحة', cc);
-ok(cc.tiles === 10 && cc.nav === 11, 'عشر بطاقات وصول سريع و11 قسماً بالقائمة', cc);
-await Z.page.click('.bm-nav button[data-nav="games"]');
-await sleep(500);
-const games = await Z.page.evaluate(() => ({ cards: document.querySelectorAll('.bm-gcard').length, can: document.querySelectorAll('.bm-gcard:not(.is-off)').length, hidden: document.querySelectorAll('.gcard[data-tag]').length }));
+const cc = await Z.page.evaluate(() => ({ h1: document.querySelector('.bm-hero-body h1').textContent, sub: document.querySelector('.bm-hero-body h2').textContent, qc: document.querySelectorAll('.bm-qc').length, nav: document.querySelectorAll('.bm-nav-item').length }));
+ok(cc.h1 === 'BATMISH' && /الفارس المظلم/.test(cc.sub), 'الصفحة الرئيسية: الشعار والعنوان الفرعي بالعربي', cc);
+ok(cc.qc === 10 && cc.nav === 11, 'عشر بطاقات وصول سريع و11 قسماً بالقائمة', cc);
+await Z.page.click('.bm-nav-item[data-nav="db"]');
+await sleep(700);
+const games = await Z.page.evaluate(() => ({ cards: document.querySelectorAll('.bm-gc').length, can: document.querySelectorAll('.bm-gc[data-game]').length }));
 ok(games.can >= 17 && games.cards >= games.can, 'كل الألعاب تُكتشف من سجل الموقع (قابلة للتخصيص: ' + games.can + ' من ' + games.cards + ')', games);
 await Z.page.screenshot({ path: SHOTS + '/03-games.png' });
-await Z.page.click('[data-game="harfnajat"]');
-await sleep(500);
-await Z.page.fill('input.bm-numin[data-n]', '45');
-await sleep(200);
+await Z.page.click('.bm-gc[data-game="harfnajat"]');
+await sleep(700);
+await Z.page.fill('input[data-n]', '45');
+await sleep(250);
 const st1 = await Z.page.evaluate(() => ({ bar: document.getElementById('bm-savebar').classList.contains('is-on'), s: document.getElementById('bm-status').getAttribute('data-s') }));
 ok(st1.bar && st1.s === 'dirty', 'تعديل قيمة: يظهر شريط الحفظ وحالة غير محفوظ', st1);
-await Z.page.fill('input.bm-numin[data-n]', '2');
-await sleep(150);
-ok(await Z.page.evaluate(() => document.querySelector('.bm-field.is-bad') !== null && /بين/.test(document.querySelector('[data-err]').textContent)), 'قيمة خارج المدى: رسالة خطأ ويمنع الحفظ');
+await Z.page.fill('input[data-n]', '2');
+await sleep(200);
+ok(await Z.page.evaluate(() => document.querySelector('.bm-fp.is-bad') !== null && /بين/.test(document.querySelector('[data-err]').textContent)), 'قيمة خارج المدى: رسالة خطأ ويمنع الحفظ');
 ok(await Z.page.evaluate(() => document.querySelector('[data-act="save"]').disabled), 'زر الحفظ معطّل مع قيمة غير صالحة');
-await Z.page.fill('input.bm-numin[data-n]', '45');
-await sleep(100);
+await Z.page.fill('input[data-n]', '45');
+await sleep(200);
 await Z.page.screenshot({ path: SHOTS + '/04-game-settings.png' });
 await Z.page.click('[data-act="save"]');
 await until(() => Z.page.evaluate(() => document.getElementById('bm-status').getAttribute('data-s') === 'saved'), 6000);
 const applied = await Z.page.evaluate(() => modGetSetting('harfnajat', 'answerSeconds', 20));
 ok(applied === 45, 'بعد الحفظ: modGetSetting يرجّع 45 (يقرأها اللعب من الراوند التالي)', applied);
-const sv = await fetch(API + '/__bind', { method: 'POST', body: JSON.stringify({ uid: uidZ }) });
 await Z.page.screenshot({ path: SHOTS + '/05-saved.png' });
 
 console.log('== 4) العزل بين الحسابات');
@@ -159,69 +157,113 @@ ok(after === 45, 'القيمة المحفوظة 45 تُحمَّل من الخا�
 console.log('== 6) المجموعات والسجل');
 await Z2.page.click('#batmish-launch');
 await Z2.page.waitForSelector('#batmish-root.is-open');
-await sleep(800);
-await Z2.page.click('.bm-nav button[data-nav="presets"]');
-await sleep(400);
-await Z2.page.selectOption('[data-presettag]', 'harfnajat');
+await sleep(2300);
+await Z2.page.click('.bm-nav-item[data-nav="presets"]');
+await sleep(500);
+await Z2.page.click('[data-ptag="harfnajat"]');
+await sleep(300);
 await Z2.page.fill('#bm-pname', 'FAST ROUND');
 await Z2.page.click('[data-act="newpreset"]');
-ok(!!(await until(() => Z2.page.evaluate(() => /FAST ROUND/.test(document.querySelector('.bm-list') ? document.querySelector('.bm-list').textContent : '')), 5000)), 'إنشاء مجموعة FAST ROUND');
+ok(!!(await until(() => Z2.page.evaluate(() => /FAST ROUND/.test(document.querySelector('.bm-view').textContent)), 5000)), 'إنشاء مجموعة FAST ROUND');
 await Z2.page.screenshot({ path: SHOTS + '/06-presets.png' });
-await Z2.page.click('.bm-nav button[data-nav="history"]');
-await sleep(700);
-const hist = await Z2.page.evaluate(() => document.querySelectorAll('.bm-list .bm-row').length);
+await Z2.page.click('.bm-nav-item[data-nav="history"]');
+await sleep(800);
+const hist = await Z2.page.evaluate(() => document.querySelectorAll('.bm-tle').length);
 ok(hist >= 1, 'سجل التعديلات يعرض التعديل المحفوظ', hist);
 await Z2.page.screenshot({ path: SHOTS + '/07-history.png' });
 await Z2.page.click('[data-revert]');
 await sleep(900);
 ok(await Z2.page.evaluate(() => modGetSetting('harfnajat', 'answerSeconds', 20)) === 20, 'التراجع عن التعديل يرجّع القيمة 20');
 
-console.log('== 7) أقسام العرض الأخرى');
-for (const v of ['advanced', 'round', 'players', 'stream', 'balance', 'av', 'auto']) {
-  await Z2.page.click(`.bm-nav button[data-nav="${v}"]`); await sleep(350);
-  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-field').length, empty: !!document.querySelector('.bm-empty') }));
-  ok(info.fields > 0 || (v === 'stream' && info.empty), `قسم ${v}: ` + (info.fields ? info.fields + ' إعداد' : 'حالة فارغة صادقة'), info);
+console.log('== 7) أقسام العرض الأخرى + الصوت');
+for (const v of ['settings', 'round', 'players', 'stream', 'balance', 'av', 'auto']) {
+  await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(500);
+  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-fp').length, comms: !!document.querySelector('.bm-comms') }));
+  ok(info.fields > 0 || (v === 'stream' && info.comms), `قسم ${v}: ` + (info.fields ? info.fields + ' إعداد' : 'حالة «غير موصول» صادقة'), info);
 }
 await Z2.page.screenshot({ path: SHOTS + '/08-section.png' });
-// الصوت: كتم + مستوى
-await Z2.page.click('.bm-nav button[data-nav="av"]'); await sleep(300);
-await Z2.page.evaluate(() => { const c = document.querySelector('[data-k="__site.muteEffects"]'); c.checked = true; c.dispatchEvent(new Event('input', { bubbles: true })); const r = document.querySelector('[data-k="__site.reduceEffects"]'); r.checked = true; r.dispatchEvent(new Event('input', { bubbles: true })); });
+await Z2.page.click('.bm-nav-item[data-nav="av"]'); await sleep(400);
+await Z2.page.evaluate(() => { for (const k of ['__site.muteEffects', '__site.reduceEffects']) { const c = document.querySelector('[data-k="' + k + '"]'); c.checked = true; c.dispatchEvent(new Event('input', { bubbles: true })); } });
+await sleep(200);
 await Z2.page.click('[data-act="save"]');
 await until(() => Z2.page.evaluate(() => document.getElementById('bm-status').getAttribute('data-s') === 'saved'), 6000);
 const fx = await Z2.page.evaluate(async () => { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(); o.connect(ctx.destination); return { muted: Batmish.effects.muted, patched: Batmish.effects.patched, gain: ctx.__bmMaster ? ctx.__bmMaster.gain.value : null, reduce: document.body.classList.contains('bm-reduce-fx') }; });
 ok(fx.muted && fx.patched && fx.gain === 0 && fx.reduce, 'كتم المؤثرات + تخفيف الحركة يُطبَّقان مركزياً (صوت WebAudio وCSS)', fx);
 
-console.log('== 8) فقدان ربط البث → اختفاء فوري');
+console.log('== 8) لغة الواجهة: كل الأزرار والأقسام بالعربي');
+const latin = new Set();
+for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'balance', 'av', 'auto', 'presets', 'history']) {
+  await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(450);
+  const bad = await Z2.page.evaluate(() => {
+    const out = [];
+    const ok = (t) => !/[A-Za-z]{3,}/.test(t.replace(/BATMISH|WebAudio|iframe|3D|@[\w.]+|FAST ROUND|CLASSIC NIGHT|DARK CHALLENGE|COMMUNITY NIGHT/gi, ''));
+    document.querySelectorAll('#batmish-root button, #batmish-root h1, #batmish-root h2, #batmish-root h3, #batmish-root h4, #batmish-root h5, #batmish-root .bm-tag, #batmish-root .bm-chip, #batmish-root .bm-nav-txt, #batmish-root .bm-eyebrow, #batmish-root label').forEach((e) => { const t = (e.innerText || '').trim(); if (t && !ok(t)) out.push(t.slice(0, 40)); });
+    return out;
+  });
+  bad.forEach((b) => latin.add(v + ': ' + b));
+}
+ok(latin.size === 0, 'لا نصوص إنجليزية ظاهرة في الأزرار والأقسام والعناوين', [...latin].slice(0, 12));
+await Z2.page.click('.bm-nav-item[data-nav="cmd"]'); await sleep(300);
+const navTxt = await Z2.page.evaluate(() => [...document.querySelectorAll('.bm-nav-item .ar')].map((e) => e.textContent));
+ok(navTxt.length === 11 && navTxt.every((t) => /[\u0600-\u06FF]/.test(t)), 'أسماء الأقسام الـ11 بالعربي', navTxt);
+
+console.log('== 9) اختبار كل زر');
+let clicked = 0, problems = [];
+for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'balance', 'av', 'auto', 'presets', 'history']) {
+  await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(500);
+  const n = await Z2.page.evaluate(() => document.querySelectorAll('#bm-view button:not([disabled]), #bm-savebar button:not([disabled])').length);
+  for (let i = 0; i < n; i++) {
+    try {
+      const info = await Z2.page.evaluate((idx) => {
+        const bs = [...document.querySelectorAll('#bm-view button:not([disabled]), #bm-savebar button:not([disabled])')]; const b = bs[idx]; if (!b) return null;
+        if (b.getAttribute('data-nav') && b.getAttribute('data-nav') !== undefined && false) return null;
+        b.scrollIntoView({ block: 'center' }); b.click();
+        return { act: b.getAttribute('data-act') || b.getAttribute('data-nav') || b.getAttribute('data-game') || b.getAttribute('data-presetact') || b.className.split(' ')[0] };
+      }, i);
+      if (!info) continue; clicked++;
+      await sleep(60);
+      const m = await Z2.page.evaluate(() => { const mod = document.querySelector('.bm-modal'); if (!mod) return false; const no = mod.querySelector('[data-no]'); if (no) no.click(); return true; });
+      if (m) await sleep(50);
+      const alive = await Z2.page.evaluate(() => !!document.querySelector('#batmish-root.is-open'));
+      if (!alive) { problems.push(v + '#' + i + ' ' + info.act + ' أغلق اللوحة'); break; }
+      // أرجع للقسم لو الزر نقلنا
+      await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(120);
+    } catch (e) { problems.push(v + '#' + i + ': ' + String(e.message).slice(0, 60)); }
+  }
+}
+ok(clicked > 100 && problems.length === 0, 'نُقر ' + clicked + ' زراً عبر كل الأقسام بلا أخطاء ولا إغلاق غير متوقع', problems.slice(0, 6));
+
+console.log('== 10) فقدان ربط البث → اختفاء فوري');
 await Z2.page.evaluate(() => { window.__bmWs.close(); });
-ok(!!(await until(async () => !(await btn(Z2.page)) && !(await Z2.page.evaluate(() => !!document.getElementById('batmish-root'))), 6000)), 'عند إغلاق اتصال البث: يختفي الزر وتُغلق اللوحة');
+ok(!!(await until(async () => !(await btn(Z2.page)) && !(await Z2.page.evaluate(() => { const r = document.getElementById('batmish-root'); return !!r && r.classList.contains('is-open'); })), 6000)), 'عند إغلاق اتصال البث: يختفي الزر وتُغلق اللوحة');
 ok(await Z2.page.evaluate(() => modGetSetting('harfnajat', 'answerSeconds', 20)) === 20 && await Z2.page.evaluate(() => Batmish.resolver.active === false), 'التخصيص النشط يُمسح عند فقدان الصلاحية');
 const afterDrop = await Z2.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); return (await fetch(Batmish.controller.relay() + '/batmish/overlay', { headers: { Authorization: 'Bearer ' + t } })).status; });
 ok(afterDrop === 403, 'الخادم نفسه يرفض بعد فقدان الربط (403)', afterDrop);
 
-console.log('== 9) الجوال');
+console.log('== 11) الجوال');
 await linkStream(Z2.page, '_zvd4');
 await until(() => btn(Z2.page), 8000);
 await Z2.page.setViewportSize({ width: 390, height: 844 });
 await sleep(300);
 await Z2.page.click('#batmish-launch');
 await Z2.page.waitForSelector('#batmish-root.is-open');
-await sleep(900);
+await sleep(2300);
 await Z2.page.screenshot({ path: SHOTS + '/09-mobile-cmd.png' });
-const mob = await Z2.page.evaluate(() => ({ sw: document.getElementById('batmish-root').scrollWidth, cw: document.getElementById('batmish-root').clientWidth, menu: getComputedStyle(document.querySelector('.bm-menu')).display }));
-ok(mob.sw <= mob.cw + 1 && mob.menu !== 'none', 'جوال: لا تمرير أفقي، وزر القائمة ظاهر', mob);
-await Z2.page.click('.bm-menu'); await sleep(500);
+const mob = await Z2.page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, rw: document.getElementById('bm-main').scrollWidth, rc: document.getElementById('bm-main').clientWidth, nav: !!document.querySelector('.bm-mnav') && getComputedStyle(document.querySelector('.bm-mnav')).display !== 'none' }));
+ok(mob.rw <= mob.rc + 1 && mob.nav, 'جوال: لا تمرير أفقي داخل اللوحة، والتنقل السفلي ظاهر', mob);
+await Z2.page.click('.bm-mnav [data-act="menu"]'); await sleep(600);
 await Z2.page.screenshot({ path: SHOTS + '/10-mobile-nav.png' });
-await Z2.page.click('.bm-nav button[data-nav="games"]'); await sleep(400);
-await Z2.page.click('[data-game="whoami"]'); await sleep(500);
-await Z2.page.evaluate(() => { const n = document.querySelector('input.bm-numin[data-n]'); n.value = '15'; n.dispatchEvent(new Event('input', { bubbles: true })); });
-await sleep(400);
-const bar = await Z2.page.evaluate(() => { const b = document.querySelector('[data-act="save"]').getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: innerHeight, w: b.width, left: b.left, right: b.right, vw: innerWidth }; });
+await Z2.page.click('.bm-nav-item[data-nav="db"]'); await sleep(600);
+await Z2.page.click('.bm-gc[data-game="whoami"]'); await sleep(600);
+await Z2.page.evaluate(() => { const n = document.querySelector('input[data-n]'); n.value = '15'; n.dispatchEvent(new Event('input', { bubbles: true })); });
+await sleep(500);
+const bar = await Z2.page.evaluate(() => { const b = document.querySelector('[data-act="save"]').getBoundingClientRect(); return { top: b.top, bottom: b.bottom, h: innerHeight, left: b.left, right: b.right, vw: innerWidth }; });
 ok(bar.bottom <= bar.h && bar.top >= 0 && bar.left >= 0 && bar.right <= bar.vw, 'جوال: زر الحفظ ظاهر داخل الشاشة', bar);
-const ov = await Z2.page.evaluate(() => { const r = document.getElementById('bm-scroll'); return { sw: r.scrollWidth, cw: r.clientWidth }; });
+const ov = await Z2.page.evaluate(() => { const r = document.getElementById('bm-main'); return { sw: r.scrollWidth, cw: r.clientWidth }; });
 ok(ov.sw <= ov.cw + 1, 'جوال: صفحة اللعبة بلا تمرير أفقي', ov);
 await Z2.page.screenshot({ path: SHOTS + '/11-mobile-game.png' });
 
-console.log('== 10) أخطاء الصفحة');
+console.log('== 12) أخطاء الصفحة');
 const real = errors.filter(e => !/webgl/i.test(e));
 ok(real.length === 0, 'لا أخطاء JavaScript', real.slice(0, 5));
 await browser.close();

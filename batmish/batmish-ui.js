@@ -1,737 +1,928 @@
-/* BATMISH UI — لوحة تحكم ستريمر واحد. تُحمَّل فقط بعد موافقة الخادم على الوصول.
-   المكونات (كلها داخل هذا الملف، منفصلة المسؤوليات):
-   ValidationService · ConfigurationService · SettingsManager · PresetManager · HistoryManager · GameRegistry · Dashboard
-   لا يحتوي أي كتالوج إعدادات ثابت: الإعدادات والقيم الافتراضية والمدى تأتي من الخادم (/batmish/bootstrap). */
+/* BATMISH UI — تصميم «Gotham Noir» (منسوخ من النموذج المعتمد) موصول بالخادم الحقيقي عبر B.controller.request.
+   يُحمَّل فقط بعد موافقة الخادم على الوصول. لا كتالوج ثابت هنا: الإعدادات والقيم الافتراضية من /batmish/bootstrap. */
 (function () {
-  'use strict';
-  var B = window.Batmish;
-  if (!B || B.ui) return;
+'use strict';
+const B = window.Batmish;
+if (!B || B.ui) return;
+const STREAMER = B.STREAMER;
+let GAMES = {};
+const CATEGORIES = ['round', 'players', 'difficulty', 'scoring', 'interaction', 'balance', 'audiovisual', 'advanced'];
+const TABS = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED']; /* مفاتيح داخلية فقط؛ تُعرض بالعربية عبر TAB_AR */
+const TAB_AR = { GENERAL: 'عام', GAMEPLAY: 'اللعب', PLAYERS: 'اللاعبون', DIFFICULTY: 'الصعوبة', SCORING: 'النقاط', ADVANCED: 'متقدم' };
+const CAT_INFO = {
+  round: ['', 'توقيت الجولة'], players: ['', 'قواعد اللاعبين'], difficulty: ['', 'الصعوبة'],
+  scoring: ['', 'النقاط'], balance: ['', 'الموازنة'], interaction: ['', 'التفاعل'], audiovisual: ['', 'الصوت والمرئيات'], advanced: ['', 'متقدم']
+};
+const AUTO_RE = /^(timerEnabled|turnSeconds|answerSeconds|timerSeconds|timeLimit|maxSeconds|hintAfterSeconds|holdDuration|revival.*|speedupEnabled|chairReductionPercent|shuffleSpeedupPercent)$/;
 
-  /* ============================================================ أدوات */
-  var ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return ESC[c]; }); }
-  function $(sel, root) { return (root || document).querySelector(sel); }
-  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
-  function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-  function clone(o) { return o === undefined ? undefined : JSON.parse(JSON.stringify(o)); }
-  function ago(ts) {
-    var d = Math.max(0, Date.now() - ts), m = Math.round(d / 60000);
-    if (m < 1) return 'الآن'; if (m < 60) return 'قبل ' + m + ' دقيقة'; var h = Math.round(m / 60); if (h < 24) return 'قبل ' + h + ' ساعة';
-    return 'قبل ' + Math.round(h / 24) + ' يوم';
-  }
-  function fmtVal(f, v) {
-    if (f && f.type === 'toggle') return v ? 'تشغيل' : 'إيقاف';
-    if (Array.isArray(v)) return v.join(' / ');
-    return String(v) + (f && f.unit ? f.unit : '');
-  }
+/* ---------- تصنيف الألعاب (يحدد شخصية البطاقة) ---------- */
+const ARCH = {
+  guess: { en: 'تخمين', ar: 'تخمين' }, word: { en: 'كلمات', ar: 'كلمات' }, speed: { en: 'سرعة', ar: 'سرعة' },
+  elim: { en: 'إقصاء', ar: 'إقصاء' }, luck: { en: 'حظ', ar: 'حظ' }, info: { en: 'معلومات', ar: 'معلومات' }
+};
+const ARCH_OF = { bomb: 'elim', sniper: 'elim', chairs: 'elim', hz: 'luck', box: 'luck', roulette: 'luck', whoami: 'guess', ig: 'guess', findball: 'guess',
+  lastletter: 'word', harfnajat: 'word', letterscramble: 'word', main: 'word', timer: 'speed', crownsteal: 'speed', reverseword: 'speed', priceguess: 'info', countrywar: 'info', __site: 'info' };
 
-  var ICONS = {
-    cmd: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 8v8M8.5 10v4M15.5 10v4"/>',
-    games: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
-    adv: '<path d="M4 7h8M16 7h4M4 17h3M11 17h9M4 12h13M21 12h-1"/><circle cx="14" cy="7" r="2"/><circle cx="9" cy="17" r="2"/><circle cx="19" cy="12" r="1.2"/>',
-    round: '<path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v4h-4"/><path d="M12 8v4l2.5 1.5"/>',
-    players: '<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.6-3.4 2.9-5 5.5-5s4.9 1.6 5.5 5"/><circle cx="17" cy="9.5" r="2.4"/><path d="M16.5 14.3c2.4 0 3.8 1.3 4.3 4"/>',
-    stream: '<circle cx="12" cy="12" r="2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/>',
-    balance: '<path d="M12 4v16M7 20h10M5 8h14"/><path d="M5 8l-2.5 6a3 3 0 0 0 5 0z"/><path d="M19 8l-2.5 6a3 3 0 0 0 5 0z"/>',
-    av: '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 10.5v3"/>',
-    auto: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>',
-    presets: '<path d="M6 4h12v17l-6-4.2L6 21z"/>',
-    history: '<path d="M4 12a8 8 0 1 0 2.5-5.8"/><path d="M4 4.5V8h3.5"/><path d="M12 8v4.2l2.8 1.8"/>',
-    x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', reset: '<path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 18v-5h5"/>',
-    copy: '<rect x="8" y="8" width="11" height="12"/><path d="M5 16V4h10"/>', trash: '<path d="M5 7h14M9 7V4.5h6V7M7 7l1 13h8l1-13M10 11v6M14 11v6"/>',
-    star: '<path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3 7.2 18.9l1-5.4-4-3.8 5.4-.7z"/>', save: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
-    menu: '<path d="M4 7h16M4 12h16M4 17h16"/>', back: '<path d="M9 5l7 7-7 7"/>', warn: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>', edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
-    lock: '<rect x="5" y="11" width="14" height="9"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', play: '<path d="M7 5l12 7-12 7z"/>'
-  };
-  function ic(n) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (ICONS[n] || '') + '</svg>'; }
+/* ---------- أيقونات النظام (SVG مخصص، نفس الشبكة 24 ونفس السماكة) ---------- */
+const BAT_PATH = 'M100 31 L103 23 L108 9 L112 25 C120 24 126 28 132 26 C150 12 178 14 194 30 C186 32 180 38 178 49 C172 43 164 43 160 53 C154 47 146 49 142 61 C136 55 126 55 118 67 C114 73 110 81 100 95 C90 81 86 73 82 67 C74 55 64 55 58 61 C54 49 46 47 40 53 C36 43 28 43 22 49 C20 38 14 32 6 30 C22 14 50 12 68 26 C74 28 80 24 88 25 L92 9 L97 23 Z';
+const BAT_SVG = '<svg viewBox="0 0 200 100" aria-hidden="true" focusable="false"><path d="' + BAT_PATH + '"/></svg>';
+const ICONS = {
+  cmd: '<path d="M12 3.2l7.8 4.4v8.8L12 20.8l-7.8-4.4V7.6z"/><path d="M12 9.4l1 .9 1.9-1.4-.4 2.6 1.6.7-1.9.7L12 15l-2.2-2.4-1.9-.7 1.6-.7-.4-2.6 1.9 1.4z" fill="currentColor" stroke="none"/>',
+  db: '<path d="M4 7.5L12 3l8 4.5v9L12 21l-8-4.5z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
+  settings: '<path d="M5 4v16M12 4v16M19 4v16"/><path d="M3 9h4v3H3zM10 13h4v3h-4zM17 7h4v3h-4z" fill="currentColor" fill-opacity=".25"/>',
+  round: '<circle cx="12" cy="12.5" r="7.5"/><path d="M12 12.5l3.6-3.6M9.5 3h5M12 3v2.2M12 17.6v1.4M6.4 12.5H5M19 12.5h-1.4"/>',
+  players: '<circle cx="12" cy="8" r="3.1"/><path d="M6.2 19.5c.5-3.6 2.8-5.4 5.8-5.4s5.3 1.8 5.8 5.4"/><circle cx="5.2" cy="10" r="2"/><circle cx="18.8" cy="10" r="2"/><path d="M2.2 17.5c.2-2 1.2-3.2 3-3.5M21.8 17.5c-.2-2-1.2-3.2-3-3.5"/>',
+  stream: '<circle cx="12" cy="12" r="1.8" fill="currentColor"/><path d="M8.2 8.2a5.4 5.4 0 0 0 0 7.6M15.8 8.2a5.4 5.4 0 0 1 0 7.6M5.4 5.4a9.4 9.4 0 0 0 0 13.2M18.6 5.4a9.4 9.4 0 0 1 0 13.2"/>',
+  balance: '<path d="M12 4v16M7.5 20h9M4.5 7.5h15"/><path d="M4.5 7.5L2.2 13.5a2.9 2.9 0 0 0 4.6 0zM19.5 7.5l-2.3 6a2.9 2.9 0 0 0 4.6 0z"/>',
+  av: '<path d="M3.5 10v4M7.5 7v10M11.5 4v16M15.5 8v8M19.5 10.5v3"/>',
+  auto: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M13 7.5L9 12.7h3L11 16.5l4-5.2h-3z" fill="currentColor" stroke="none"/>',
+  presets: '<path d="M5 3.5h10l4 4V20.5H5z"/><path d="M14.5 3.5v4.5H19M8.5 12h7M8.5 15.5h7M8.5 8.5h3"/>',
+  history: '<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 3.8v4.4h4.4"/><path d="M12 7.6V12l3 1.9"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>', check: '<path d="M4.5 12.5l5 5L19.5 7"/>', reset: '<path d="M4 12a8 8 0 1 1 2.5 5.8"/><path d="M4 18.5V13h5.5"/>',
+  copy: '<rect x="8" y="8" width="11.5" height="12"/><path d="M5 16V4h10.5"/>', trash: '<path d="M4.5 7h15M9 7V4h6v3M6.5 7l1 13h9l1-13M10.2 10.5v6M13.8 10.5v6"/>',
+  star: '<path d="M12 3.5l2.5 5.3 5.7.8-4.2 4 1 5.7L12 16.5l-5 2.8 1-5.7-4.2-4 5.7-.8z"/>', save: '<path d="M4.5 4h11.5l3.5 3.5V20h-15z"/><path d="M8 4v5h7V4M8 20v-6.5h8V20"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h10"/>', back: '<path d="M9 5l7 7-7 7"/>', warn: '<path d="M12 3.5l9.5 16.5h-19z"/><path d="M12 10v5M12 17.2v.6"/>', edit: '<path d="M4 20h4.2L19.5 8.7l-4.2-4.2L4 15.8z"/><path d="M13 6.8l4.2 4.2"/>',
+  play: '<path d="M7 4.5l12 7.5-12 7.5z"/>', search: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5"/>', grid: '<rect x="4" y="4" width="6.5" height="6.5"/><rect x="13.5" y="4" width="6.5" height="6.5"/><rect x="4" y="13.5" width="6.5" height="6.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5"/>',
+  list: '<path d="M4 6h16M4 12h16M4 18h16"/><path d="M4 6h1.5M4 12h1.5M4 18h1.5" stroke-width="3"/>', dense: '<rect x="4" y="4" width="4" height="4"/><rect x="10" y="4" width="4" height="4"/><rect x="16" y="4" width="4" height="4"/><rect x="4" y="10" width="4" height="4"/><rect x="10" y="10" width="4" height="4"/><rect x="16" y="10" width="4" height="4"/><rect x="4" y="16" width="4" height="4"/><rect x="10" y="16" width="4" height="4"/><rect x="16" y="16" width="4" height="4"/>',
+  minus: '<path d="M6 12h12"/>', plus: '<path d="M6 12h12M12 6v12"/>', chev: '<path d="M6 9l6 6 6-6"/>', info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.6"/>',
+  more: '<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>',
+  link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/>',
+  eye: '<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/>',
+  bolt: '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>', shield: '<path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/>',
+  gift: '<rect x="4" y="9" width="16" height="11"/><path d="M3 9h18M12 9v11M12 9c-3 0-4.5-1-4.5-2.5S9 4 12 9c3-5 4.5-3.5 4.5-2S15 9 12 9z"/>', skull: '<path d="M5 11a7 7 0 0 1 14 0v4l-2 1v3.5h-3V17h-4v2.5H7V16l-2-1z"/><circle cx="9.3" cy="11.5" r="1.4"/><circle cx="14.7" cy="11.5" r="1.4"/>',
+  heart: '<path d="M12 20S4 14.8 4 9.2A4.2 4.2 0 0 1 12 7.4a4.2 4.2 0 0 1 8 1.8C20 14.8 12 20 12 20z"/>'
+};
+function ic(n, cls) { return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (ICONS[n] || '') + '</svg>'; }
+/* رموز الألعاب */
+const GLYPH = {
+  bomb: '<circle cx="10.5" cy="14.5" r="6.5"/><path d="M15 9.6c1.4-2.2 3-2.8 4.6-2.2"/><path d="M20.4 3.2v2.2M22.6 5.6h-2.2M21.8 3.9l-1.4 1.5M19 3.9l1.4 1.5"/><path d="M7 14.2a3.6 3.6 0 0 1 2.4-2.6"/>',
+  sniper: '<circle cx="12" cy="12" r="6.5"/><path d="M12 2.5v6M12 15.5v6M2.5 12h6M15.5 12h6"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  hz: '<rect x="4" y="4" width="16" height="16"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="9" cy="15" r="1.1" fill="currentColor"/><circle cx="15" cy="15" r="1.1" fill="currentColor"/>',
+  crownsteal: '<path d="M3.5 19h17M4.5 19L3.5 8.5l5 4 3.5-6.5 3.5 6.5 5-4-1 10.5z"/>',
+  lastletter: '<rect x="3.5" y="4.5" width="9" height="9"/><rect x="11.5" y="10.5" width="9" height="9"/><path d="M6.5 9h3M14.5 15h3"/>',
+  box: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M12 12l8-4.5M12 12L4 7.5M12 12v9"/>',
+  whoami: '<circle cx="12" cy="7.5" r="3.4"/><path d="M5 20.5c.7-4 3.5-6.2 7-6.2s6.3 2.2 7 6.2"/><path d="M10.8 6.2c.1-1.3 2.4-1.3 2.4 0 0 1-1.2 1.1-1.2 2"/>',
+  ig: '<rect x="3.5" y="5" width="17" height="14"/><circle cx="9" cy="10.5" r="1.8"/><path d="M3.5 17l5-4.5 4 3.5 3-2.5 5 4"/>',
+  priceguess: '<path d="M3.5 12.5l8.5-8.5H20v8l-8.5 8.5z"/><circle cx="16" cy="8" r="1.4"/>',
+  harfnajat: '<path d="M12 3l7.5 3v6c0 4.6-3.2 7.8-7.5 9-4.3-1.2-7.5-4.4-7.5-9V6z"/><path d="M9.3 15.5L12 8l2.7 7.5M10.2 13h3.6"/>',
+  countrywar: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3.2 2.6 3.2 14.4 0 17M12 3.5c-3.2 2.6-3.2 14.4 0 17"/>',
+  reverseword: '<path d="M4 8h14.5l-3.2-3.2M20 16H5.5l3.2 3.2"/>',
+  letterscramble: '<rect x="3.5" y="4" width="7" height="7"/><rect x="13.5" y="7" width="7" height="7" transform="rotate(10 17 10.5)"/><rect x="5.5" y="14" width="7" height="7" transform="rotate(-8 9 17.5)"/>',
+  roulette: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.2"/><path d="M12 3.5v6.3M12 14.2v6.3M3.5 12h6.3M14.2 12h6.3M6 6l4.4 4.4M13.6 13.6L18 18M18 6l-4.4 4.4M10.4 13.6L6 18"/>',
+  timer: '<circle cx="12" cy="13.5" r="7"/><path d="M12 13.5V9M9.5 3h5M12 3v3.5M18.5 6.5L20 5"/>',
+  main: '<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5.5 5.5M7.8 10.5h5.4"/>',
+  chairs: '<path d="M7 3.5h10l-1.2 8.5H8.2zM8 12v8M16 12v8M6.5 16h11"/>',
+  findball: '<path d="M4.5 6h10l-1.7 12H6.2z"/><circle cx="19" cy="16.5" r="2.2"/><path d="M7 10h5"/>',
+  __site: '<path d="M3.5 10v4M7.5 7v10M11.5 4v16M15.5 8v8M19.5 10.5v3"/>'
+};
+function glyph(tag) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (GLYPH[tag] || GLYPH.main) + '</svg>'; }
 
-  /* ============================================================ BatmishValidationService (تحقق فوري للواجهة؛ الخادم هو المرجع) */
-  var ValidationService = {
-    check: function (f, v) {
-      if (f.type === 'toggle') return typeof v === 'boolean' ? { ok: true, v: v } : { ok: false, msg: 'قيمة غير صالحة' };
-      if (f.type === 'number') {
-        if (typeof v !== 'number' || !isFinite(v)) return { ok: false, msg: 'أدخل رقماً' };
-        if (!Number.isInteger(v)) return { ok: false, msg: 'أدخل رقماً صحيحاً بدون كسور' };
-        if (v < f.min || v > f.max) return { ok: false, msg: 'القيمة لازم تكون بين ' + f.min + ' و ' + f.max };
-        return { ok: true, v: v };
-      }
-      if (f.type === 'numberArray') {
-        if (!Array.isArray(v) || v.length !== f.length) return { ok: false, msg: 'لازم ' + f.length + ' قيم' };
-        for (var i = 0; i < v.length; i++) {
-          if (typeof v[i] !== 'number' || !isFinite(v[i]) || !Number.isInteger(v[i])) return { ok: false, msg: 'كل القيم أرقام صحيحة' };
-          if (v[i] < f.min || v[i] > f.max) return { ok: false, msg: 'كل قيمة بين ' + f.min + ' و ' + f.max };
-          if (f.monotonic === 'desc' && i && v[i] > v[i - 1]) return { ok: false, msg: 'كل قيمة أقل من أو تساوي اللي قبلها' };
-        }
-        return { ok: true, v: v };
-      }
-      return { ok: false, msg: 'نوع غير مدعوم' };
+/* ---------- رسوم خلفية البطاقات (حسب الفئة) ---------- */
+const ART = {
+  guess: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"><circle cx="170" cy="120" r="28"/><circle cx="170" cy="120" r="58"/><circle cx="170" cy="120" r="90"/><circle cx="170" cy="120" r="124" stroke-dasharray="3 8"/><path d="M170 0v250M45 120h255M146 96l48 48M194 96l-48 48" opacity=".6"/><path d="M118 60a80 80 0 0 1 104 0" stroke-width="3" opacity=".7"/></svg>',
+  word: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"><rect x="110" y="30" width="86" height="86"/><rect x="150" y="70" width="86" height="86" transform="rotate(8 193 113)"/><rect x="90" y="96" width="86" height="86" transform="rotate(-6 133 139)"/><g fill="currentColor" stroke="none" font-family="IBM Plex Sans Arabic,Tajawal,serif" font-size="50" opacity=".55"><text x="125" y="92">ح</text><text x="172" y="140">A</text><text x="108" y="162">ب</text></g></svg>',
+  speed: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1.5" vector-effect="non-scaling-stroke"><path d="M30 50h170M90 80h210M10 110h150M120 140h170M60 170h140M150 200h150M20 230h120" opacity=".55"/><path d="M0 270h300" stroke-width="1"/><path d="M10 262v8M40 258v12M70 262v8M100 258v12M130 262v8M160 258v12M190 262v8M220 258v12M250 262v8M280 258v12" stroke-width="1"/><circle cx="200" cy="120" r="46" stroke-dasharray="2 6"/><path d="M200 120V84M200 120l24 14" stroke-width="2"/></svg>',
+  elim: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1.4" vector-effect="non-scaling-stroke"><path d="M170 20l130 224H40z" stroke-dasharray="7 6"/><path d="M170 78l82 142H88z" opacity=".8"/><path d="M170 130v46M170 196v6" stroke-width="5" opacity=".9"/><path d="M60 40l30 30M90 40L60 70" opacity=".5"/></svg>',
+  luck: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"><circle cx="170" cy="130" r="30"/><circle cx="170" cy="130" r="66" stroke-dasharray="2 7"/><circle cx="170" cy="130" r="104"/><circle cx="170" cy="130" r="140" stroke-dasharray="8 10" opacity=".6"/><g fill="currentColor" stroke="none"><circle cx="170" cy="64" r="5"/><circle cx="270" cy="130" r="4"/><circle cx="96" cy="182" r="5"/><circle cx="226" cy="222" r="3.5"/><circle cx="104" cy="52" r="3"/></g></svg>',
+  info: '<svg viewBox="0 0 300 300" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"><rect x="70" y="30" width="150" height="40"/><rect x="70" y="84" width="104" height="40"/><rect x="188" y="84" width="76" height="40"/><rect x="70" y="138" width="190" height="40"/><g fill="currentColor" stroke="none" opacity=".55"><rect x="80" y="44" width="70" height="4"/><rect x="80" y="54" width="40" height="4"/><rect x="80" y="98" width="50" height="4"/><rect x="198" y="98" width="30" height="4"/><rect x="80" y="152" width="110" height="4"/><rect x="80" y="162" width="64" height="4"/></g><path d="M70 200h190M70 214h130M70 228h160" opacity=".5"/></svg>'
+};
+/* رسوم بطاقات الوصول السريع */
+const QART = {
+  db: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.3)"><path d="M220 0v200M280 0v200M340 0v200M400 0v200M160 40h240M160 100h240M160 160h240"/><g fill="rgba(143,180,230,.7)" stroke="none"><circle cx="280" cy="100" r="4"/><circle cx="340" cy="40" r="4"/><circle cx="220" cy="160" r="4"/></g><rect x="260" y="80" width="40" height="40" stroke="rgba(143,180,230,.7)"/></svg>',
+  settings: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.3)"><path d="M250 20v160M310 20v160M370 20v160"/><rect x="238" y="60" width="24" height="16" fill="rgba(143,180,230,.5)"/><rect x="298" y="110" width="24" height="16" fill="rgba(143,180,230,.5)"/><rect x="358" y="80" width="24" height="16" fill="rgba(143,180,230,.5)"/></svg>',
+  round: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.3)"><circle cx="330" cy="100" r="70"/><circle cx="330" cy="100" r="46" stroke-dasharray="3 6"/><path d="M330 100V50M330 100l34 20" stroke="rgba(143,180,230,.8)" stroke-width="2"/><path d="M330 22v10M330 168v10M252 100h10M398 100h-10"/></svg>',
+  players: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="rgba(143,180,230,.25)" stroke="rgba(143,180,230,.4)"><circle cx="270" cy="70" r="14"/><circle cx="320" cy="60" r="14"/><circle cx="370" cy="76" r="14"/><circle cx="296" cy="116" r="14"/><circle cx="346" cy="122" r="14"/><path d="M270 70L320 60 370 76M296 116l24-56M346 122L320 60M296 116l50 6" fill="none"/></svg>',
+  stream: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.35)"><circle cx="330" cy="150" r="30"/><circle cx="330" cy="150" r="60"/><circle cx="330" cy="150" r="90"/><circle cx="330" cy="150" r="120" stroke-dasharray="3 7"/></svg>',
+  balance: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="rgba(143,180,230,.35)" stroke="none"><rect x="240" y="110" width="22" height="70"/><rect x="274" y="70" width="22" height="110"/><rect x="308" y="130" width="22" height="50"/><rect x="342" y="40" width="22" height="140" fill="rgba(229,200,75,.45)"/><rect x="376" y="90" width="22" height="90"/></svg>',
+  av: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="rgba(143,180,230,.4)" stroke="none"><rect x="220" y="90" width="8" height="40"/><rect x="238" y="60" width="8" height="100"/><rect x="256" y="30" width="8" height="160"/><rect x="274" y="70" width="8" height="80"/><rect x="292" y="50" width="8" height="120"/><rect x="310" y="80" width="8" height="60"/><rect x="328" y="40" width="8" height="140"/><rect x="346" y="75" width="8" height="70"/><rect x="364" y="95" width="8" height="30"/></svg>',
+  auto: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.35)"><path d="M250 50h60v50h60M310 100v50h60M250 50v-30"/><rect x="236" y="36" width="28" height="28" fill="rgba(143,180,230,.2)"/><rect x="296" y="86" width="28" height="28" fill="rgba(143,180,230,.2)"/><rect x="356" y="86" width="28" height="28" fill="rgba(143,180,230,.45)"/><rect x="356" y="136" width="28" height="28" fill="rgba(143,180,230,.2)"/></svg>',
+  presets: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.35)"><rect x="262" y="50" width="90" height="110"/><rect x="278" y="36" width="90" height="110"/><rect x="294" y="22" width="90" height="110" fill="rgba(143,180,230,.1)"/></svg>',
+  history: '<svg viewBox="0 0 400 200" preserveAspectRatio="xMaxYMid slice" fill="none" stroke="rgba(143,180,230,.35)"><path d="M220 160h40v-40h40v-50h40v30h40"/><circle cx="260" cy="120" r="5" fill="rgba(143,180,230,.6)"/><circle cx="340" cy="70" r="5" fill="rgba(229,200,75,.8)"/></svg>'
+};
+
+/* ---------- أدوات ---------- */
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC[c]);
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $all = (sel, root) => Array.prototype.slice.call((root || document).querySelectorAll(sel));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const clone = o => o === undefined ? undefined : JSON.parse(JSON.stringify(o));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function ago(ts) {
+  const d = Math.max(0, Date.now() - ts), m = Math.round(d / 60000);
+  if (m < 1) return 'الآن'; if (m < 60) return 'قبل ' + m + ' دقيقة'; const h = Math.round(m / 60); if (h < 24) return 'قبل ' + h + ' ساعة';
+  return 'قبل ' + Math.round(h / 24) + ' يوم';
+}
+function clock(ts) { const d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') + ':' + String(d.getSeconds()).padStart(2, '0'); }
+function dayKey(ts) { const d = new Date(ts), n = new Date(); const diff = Math.round((new Date(n.getFullYear(), n.getMonth(), n.getDate()) - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 864e5); return diff === 0 ? 'اليوم' : diff === 1 ? 'أمس' : d.toISOString().slice(0, 10); }
+function fmtVal(f, v) {
+  if (f && f.type === 'toggle') return v ? 'تشغيل' : 'إيقاف';
+  if (Array.isArray(v)) return v.join(' / ');
+  return String(v) + (f && f.unit ? f.unit : '');
+}
+function fieldOf(tag, key) { const g = GAMES[tag]; if (!g) return null; for (const f of g.fields) if (f.key === key) return f; return null; }
+function shortLabel(f, key) { return f ? f.label.replace(/\s*[—-].*$/, '') : key; }
+function archOf(tag) { return ARCH_OF[tag] || 'info'; }
+function gameTags() { return Object.keys(GAMES).filter(t => t.indexOf('__') !== 0); }
+
+/* =====================================================================
+   [3] الخدمات والمدراء — نفس منطق batmish-ui.js الحالي (تحقق، مسودات، حفظ، تعارض، مجموعات، سجل)
+   ===================================================================== */
+const ValidationService = {
+  check(f, v) {
+    if (f.type === 'toggle') return typeof v === 'boolean' ? { ok: true, v } : { ok: false, msg: 'قيمة غير صالحة' };
+    if (f.type === 'number') {
+      if (typeof v !== 'number' || !isFinite(v)) return { ok: false, msg: 'أدخل رقماً' };
+      if (!Number.isInteger(v)) return { ok: false, msg: 'أدخل رقماً صحيحاً بدون كسور' };
+      if (v < f.min || v > f.max) return { ok: false, msg: 'القيمة لازم تكون بين ' + f.min + ' و ' + f.max };
+      return { ok: true, v };
     }
-  };
-
-  var ERR_AR = {
-    out_of_range: 'القيمة خارج المدى المسموح', invalid_type: 'نوع القيمة غير صحيح', not_integer: 'لازم رقم صحيح', not_descending: 'الترتيب لازم يكون تنازلياً',
-    invalid_length: 'عدد القيم غير صحيح', unknown_setting: 'إعداد غير معروف', unknown_game: 'لعبة غير معروفة', duplicate_name: 'الاسم مستخدم من قبل',
-    invalid_name: 'اسم غير صالح (حتى 40 حرفاً)', too_many_presets: 'وصلت الحد الأقصى للمجموعات لهذي اللعبة', conflict: 'تغيّرت الإعدادات من مكان آخر',
-    forbidden: 'ما عندك صلاحية — تأكد من ربط البث', rate_limited: 'طلبات كثيرة، انتظر قليلاً', not_found: 'غير موجود', already_reverted: 'تم التراجع عنه من قبل', internal: 'خطأ في الخادم'
-  };
-
-  /* ============================================================ BatmishConfigurationService */
-  var ConfigurationService = {
-    call: function (method, path, body) {
-      return B.controller.request(method, path, body).then(function (r) {
-        if (r.status >= 200 && r.status < 300) return r.body;
-        var e = new Error((r.body && r.body.error) || 'http_' + r.status); e.status = r.status; e.code = r.body && r.body.error; e.detail = r.body && r.body.detail; e.rev = r.body && r.body.rev; e.reason = r.body && r.body.reason;
-        throw e;
-      });
-    },
-    bootstrap: function () { return this.call('GET', '/batmish/bootstrap'); },
-    save: function (tag, values, baseRev) { return this.call('POST', '/batmish/config', { tag: tag, values: values, baseRev: baseRev }); },
-    reset: function (tag, key, baseRev) { return this.call('POST', '/batmish/reset', { tag: tag, key: key, baseRev: baseRev }); },
-    preset: function (op, p) { var b = { op: op }; for (var k in p) b[k] = p[k]; return this.call('POST', '/batmish/presets', b); },
-    history: function (tag) { return this.call('GET', '/batmish/history?limit=200' + (tag ? '&tag=' + encodeURIComponent(tag) : '')); },
-    revert: function (id, baseRev) { return this.call('POST', '/batmish/history/revert', { id: id, baseRev: baseRev }); },
-    restoreGame: function (tag, baseRev) { return this.call('POST', '/batmish/history/restore-game', { tag: tag, baseRev: baseRev }); }
-  };
-  function errMsg(e) {
-    if (e && e.offline) return 'ما قدرنا نوصل للخادم. تعديلاتك محفوظة كمسودة على جهازك — جرّب مرة ثانية.';
-    var base = (e && ERR_AR[e.code]) || 'تعذّر تنفيذ العملية';
-    if (e && e.detail && e.detail.min != null) base += ' (' + e.detail.min + ' – ' + e.detail.max + ')';
-    return base;
+    if (f.type === 'numberArray') {
+      if (!Array.isArray(v) || v.length !== f.length) return { ok: false, msg: 'لازم ' + f.length + ' قيم' };
+      for (let i = 0; i < v.length; i++) {
+        if (typeof v[i] !== 'number' || !isFinite(v[i]) || !Number.isInteger(v[i])) return { ok: false, msg: 'كل القيم أرقام صحيحة' };
+        if (v[i] < f.min || v[i] > f.max) return { ok: false, msg: 'كل قيمة بين ' + f.min + ' و ' + f.max };
+        if (f.monotonic === 'desc' && i && v[i] > v[i - 1]) return { ok: false, msg: 'كل قيمة أقل من أو تساوي اللي قبلها' };
+      }
+      return { ok: true, v };
+    }
+    return { ok: false, msg: 'نوع غير مدعوم' };
   }
+};
+const ERR_AR = {
+  out_of_range: 'القيمة خارج المدى المسموح', invalid_type: 'نوع القيمة غير صحيح', not_integer: 'لازم رقم صحيح', not_descending: 'الترتيب لازم يكون تنازلياً',
+  invalid_length: 'عدد القيم غير صحيح', unknown_setting: 'إعداد غير معروف', unknown_game: 'لعبة غير معروفة', duplicate_name: 'الاسم مستخدم من قبل',
+  invalid_name: 'اسم غير صالح (حتى 40 حرفاً)', too_many_presets: 'وصلت الحد الأقصى للمجموعات لهذي اللعبة', conflict: 'تغيّرت الإعدادات من مكان آخر',
+  forbidden: 'ما عندك صلاحية — تأكد من ربط البث', rate_limited: 'طلبات كثيرة، انتظر قليلاً', not_found: 'غير موجود', already_reverted: 'تم التراجع عنه من قبل', internal: 'خطأ في الخادم'
+};
+function errMsg(e) {
+  if (e && e.offline) return 'ما قدرنا نوصل للخادم. تعديلاتك محفوظة كمسودة على جهازك — جرّب مرة ثانية.';
+  let base = (e && ERR_AR[e.code]) || 'تعذّر تنفيذ العملية';
+  if (e && e.detail && e.detail.min != null) base += ' (' + e.detail.min + ' – ' + e.detail.max + ')';
+  return base;
+}
+/* في الدمج الحقيقي: B.controller.request. هنا: MockServer.request */
+const Transport = { request: (m, p, b) => B.controller.request(m, p, b) };
+const ConfigurationService = {
+  call(method, path, body) {
+    return Transport.request(method, path, body).then(r => {
+      if (r.status >= 200 && r.status < 300) return r.body;
+      const e = new Error((r.body && r.body.error) || 'http_' + r.status); e.status = r.status; e.code = r.body && r.body.error; e.detail = r.body && r.body.detail; e.rev = r.body && r.body.rev; throw e;
+    });
+  },
+  bootstrap() { return this.call('GET', '/batmish/bootstrap'); },
+  save(tag, values, baseRev) { return this.call('POST', '/batmish/config', { tag, values, baseRev }); },
+  reset(tag, key, baseRev) { return this.call('POST', '/batmish/reset', { tag, key, baseRev }); },
+  preset(op, p) { return this.call('POST', '/batmish/presets', Object.assign({ op }, p)); },
+  history(tag) { return this.call('GET', '/batmish/history?limit=200' + (tag ? '&tag=' + encodeURIComponent(tag) : '')); },
+  revert(id, baseRev) { return this.call('POST', '/batmish/history/revert', { id, baseRev }); },
+  restoreGame(tag, baseRev) { return this.call('POST', '/batmish/history/restore-game', { tag, baseRev }); }
+};
 
-  /* ============================================================ BatmishSettingsManager */
-  function SettingsManager() {
-    this.games = {}; this.rev = 0; this.config = {}; this.presets = {}; this.defaultPresets = {}; this.drafts = {};
-    this.saveState = 'saved'; this.listeners = []; this.uid = null; this.autosave = false; this.timer = null; this.lastChange = null;
-  }
-  SettingsManager.prototype.on = function (fn) { this.listeners.push(fn); };
-  SettingsManager.prototype.emit = function (what) { for (var i = 0; i < this.listeners.length; i++) { try { this.listeners[i](what); } catch (e) {} } };
-  SettingsManager.prototype.draftKey = function () { return 'batmish:draft:' + (this.uid || 'x'); };
-  SettingsManager.prototype.load = function (boot, uid) {
-    this.games = boot.games; this.uid = uid;
-    this.applyServerState(boot.state);
-    try { var d = JSON.parse(localStorage.getItem(this.draftKey()) || '{}'); this.drafts = this.sanitizeDrafts(d); } catch (e) { this.drafts = {}; }
+class SettingsManager {
+  constructor() { this.games = {}; this.rev = 0; this.config = {}; this.presets = {}; this.defaultPresets = {}; this.drafts = {}; this.saveState = 'saved'; this.listeners = []; this.uid = null; this.autosave = false; this.timer = null; this.lastChange = null; this.lastSaved = []; }
+  on(fn) { this.listeners.push(fn); }
+  emit(w) { this.listeners.forEach(fn => { try { fn(w); } catch (e) {} }); }
+  draftKey() { return 'batmish:draft:' + (this.uid || 'x'); }
+  load(boot, uid) {
+    this.games = boot.games; GAMES = boot.games; this.uid = uid; this.applyServerState(boot.state); try { B.resolver.set(this.rev, clone(this.config), uid); } catch (e) {}
+    try { this.drafts = this.sanitizeDrafts(JSON.parse(localStorage.getItem(this.draftKey()) || '{}')); } catch (e) { this.drafts = {}; }
     try { this.autosave = localStorage.getItem('batmish:autosave') === '1'; } catch (e) {}
     this.saveState = this.dirtyCount() ? 'dirty' : 'saved';
-  };
-  SettingsManager.prototype.applyServerState = function (st) { this.rev = st.rev | 0; this.config = st.config || {}; this.presets = st.presets || {}; this.defaultPresets = st.defaultPresets || {}; this.lastChange = null; };
-  SettingsManager.prototype.sanitizeDrafts = function (d) {
-    var out = {};
-    for (var tag in d) { if (!this.games[tag]) continue; for (var k in d[tag]) { var f = this.field(tag, k); if (f && ValidationService.check(f, d[tag][k]).ok && !same(d[tag][k], this.serverValue(tag, k))) { (out[tag] = out[tag] || {})[k] = d[tag][k]; } } }
+  }
+  applyServerState(st) { this.rev = st.rev | 0; this.config = st.config || {}; this.presets = st.presets || {}; this.defaultPresets = st.defaultPresets || {}; this.lastChange = null; }
+  sanitizeDrafts(d) {
+    const out = {};
+    for (const tag in d) { if (!this.games[tag]) continue; for (const k in d[tag]) { const f = this.field(tag, k); if (f && ValidationService.check(f, d[tag][k]).ok && !same(d[tag][k], this.serverValue(tag, k))) (out[tag] = out[tag] || {})[k] = d[tag][k]; } }
     return out;
-  };
-  SettingsManager.prototype.persistDrafts = function () { try { var k = this.draftKey(); if (this.dirtyCount()) localStorage.setItem(k, JSON.stringify(this.drafts)); else localStorage.removeItem(k); } catch (e) {} };
-  SettingsManager.prototype.field = function (tag, key) { var g = this.games[tag]; if (!g) return null; for (var i = 0; i < g.fields.length; i++) if (g.fields[i].key === key) return g.fields[i]; return null; };
-  SettingsManager.prototype.defaultOf = function (tag, key) { return this.field(tag, key).default; };
-  SettingsManager.prototype.serverValue = function (tag, key) { var c = this.config[tag]; return c && c[key] !== undefined ? c[key] : this.defaultOf(tag, key); };
-  SettingsManager.prototype.value = function (tag, key) { var d = this.drafts[tag]; return d && d[key] !== undefined ? d[key] : this.serverValue(tag, key); };
-  SettingsManager.prototype.isModified = function (tag, key) { return !same(this.value(tag, key), this.defaultOf(tag, key)); };
-  SettingsManager.prototype.isDirty = function (tag, key) { var d = this.drafts[tag]; return !!(d && d[key] !== undefined); };
-  SettingsManager.prototype.dirtyTags = function () { return Object.keys(this.drafts).filter(function (t) { return Object.keys(this.drafts[t]).length; }, this); };
-  SettingsManager.prototype.dirtyCount = function (tag) {
-    var n = 0, tags = tag ? [tag] : Object.keys(this.drafts);
-    for (var i = 0; i < tags.length; i++) n += Object.keys(this.drafts[tags[i]] || {}).length; return n;
-  };
-  SettingsManager.prototype.customizedCount = function (tag) { var c = this.config[tag]; return c ? Object.keys(c).length : 0; };
-  SettingsManager.prototype.totalCustomized = function () { var n = 0; for (var t in this.config) n += Object.keys(this.config[t]).length; return n; };
-  SettingsManager.prototype.setDraft = function (tag, key, v) {
+  }
+  persistDrafts() { try { const k = this.draftKey(); if (this.dirtyCount()) localStorage.setItem(k, JSON.stringify(this.drafts)); else localStorage.removeItem(k); } catch (e) {} }
+  field(tag, key) { const g = this.games[tag]; if (!g) return null; for (const f of g.fields) if (f.key === key) return f; return null; }
+  defaultOf(tag, key) { return this.field(tag, key).default; }
+  serverValue(tag, key) { const c = this.config[tag]; return c && c[key] !== undefined ? c[key] : this.defaultOf(tag, key); }
+  value(tag, key) { const d = this.drafts[tag]; return d && d[key] !== undefined ? d[key] : this.serverValue(tag, key); }
+  isModified(tag, key) { return !same(this.value(tag, key), this.defaultOf(tag, key)); }
+  isDirty(tag, key) { const d = this.drafts[tag]; return !!(d && d[key] !== undefined); }
+  dirtyTags() { return Object.keys(this.drafts).filter(t => Object.keys(this.drafts[t]).length); }
+  dirtyCount(tag) { let n = 0; (tag ? [tag] : Object.keys(this.drafts)).forEach(t => { n += Object.keys(this.drafts[t] || {}).length; }); return n; }
+  customizedCount(tag) { const c = this.config[tag]; return c ? Object.keys(c).length : 0; }
+  totalCustomized() { let n = 0; for (const t in this.config) n += Object.keys(this.config[t]).length; return n; }
+  modifiedCount(tag) { const g = this.games[tag]; if (!g) return 0; return g.fields.filter(f => this.isModified(tag, f.key)).length; }
+  setDraft(tag, key, v) {
     if (same(v, this.serverValue(tag, key))) { if (this.drafts[tag]) { delete this.drafts[tag][key]; if (!Object.keys(this.drafts[tag]).length) delete this.drafts[tag]; } }
     else (this.drafts[tag] = this.drafts[tag] || {})[key] = clone(v);
-    this.persistDrafts();
-    this.setState(this.dirtyCount() ? 'dirty' : 'saved');
+    this.persistDrafts(); this.setState(this.dirtyCount() ? 'dirty' : 'saved');
     if (this.autosave && this.dirtyCount()) this.scheduleAutosave();
-  };
-  SettingsManager.prototype.discard = function (tag) {
-    if (tag) delete this.drafts[tag]; else this.drafts = {};
-    this.persistDrafts(); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); this.emit('drafts');
-  };
-  SettingsManager.prototype.setState = function (s) { if (this.saveState !== s) { this.saveState = s; this.emit('state'); } };
-  SettingsManager.prototype.setAutosave = function (on) { this.autosave = !!on; try { localStorage.setItem('batmish:autosave', on ? '1' : '0'); } catch (e) {} if (on && this.dirtyCount()) this.scheduleAutosave(); this.emit('state'); };
-  SettingsManager.prototype.scheduleAutosave = function () { var self = this; clearTimeout(this.timer); this.timer = setTimeout(function () { self.saveAll(true); }, 1400); };
-  // تطبيق قائمة changes راجعة من الخادم على النسخة المحلية + تحديث تخصيص الألعاب النشط
-  SettingsManager.prototype.applyChanges = function (rev, changes) {
-    for (var i = 0; i < (changes || []).length; i++) {
-      var c = changes[i], def = this.defaultOf(c.tag, c.key);
+  }
+  discard(tag) { if (tag) delete this.drafts[tag]; else this.drafts = {}; this.persistDrafts(); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); this.emit('drafts'); }
+  setState(s) { if (this.saveState !== s) { this.saveState = s; this.emit('state'); } }
+  setAutosave(on) { this.autosave = !!on; try { localStorage.setItem('batmish:autosave', on ? '1' : '0'); } catch (e) {} if (on && this.dirtyCount()) this.scheduleAutosave(); this.emit('state'); }
+  scheduleAutosave() { clearTimeout(this.timer); this.timer = setTimeout(() => this.saveAll(true), 1400); }
+  applyChanges(rev, changes) {
+    (changes || []).forEach(c => {
+      const def = this.defaultOf(c.tag, c.key);
       if (same(c.new, def)) { if (this.config[c.tag]) { delete this.config[c.tag][c.key]; if (!Object.keys(this.config[c.tag]).length) delete this.config[c.tag]; } }
       else (this.config[c.tag] = this.config[c.tag] || {})[c.key] = clone(c.new);
       if (this.drafts[c.tag]) { delete this.drafts[c.tag][c.key]; if (!Object.keys(this.drafts[c.tag]).length) delete this.drafts[c.tag]; }
-    }
-    if (changes && changes.length) { this.rev = rev; this.lastChange = changes[changes.length - 1]; B.resolver.set(this.rev, clone(this.config)); }
-    this.persistDrafts();
-  };
-  SettingsManager.prototype.save = function (tag) {
-    var self = this, d = this.drafts[tag];
-    if (!d || !Object.keys(d).length) return Promise.resolve({ changes: [] });
-    return ConfigurationService.save(tag, clone(d), this.rev).then(function (r) { self.applyChanges(r.rev, r.changes); return r; });
-  };
-  SettingsManager.prototype.saveAll = function (silent) {
-    var self = this, tags = this.dirtyTags();
-    if (!tags.length) return Promise.resolve(true);
-    this.setState('saving');
-    return tags.reduce(function (p, t) { return p.then(function () { return self.save(t); }); }, Promise.resolve()).then(function () {
-      self.setState(self.dirtyCount() ? 'dirty' : 'saved'); self.emit('saved'); return true;
-    }, function (e) {
-      self.setState('error'); self.lastError = e;
-      if (e && e.code === 'conflict') return self.refresh().then(function () { self.setState('dirty'); self.emit('conflict'); return false; });
-      self.emit('error', e); return false;
+      this.lastSaved.push(c.tag + '.' + c.key);
     });
-  };
-  SettingsManager.prototype.refresh = function () {
-    var self = this;
-    return ConfigurationService.bootstrap().then(function (b) { self.games = b.games; self.applyServerState(b.state); self.drafts = self.sanitizeDrafts(self.drafts); self.persistDrafts(); B.resolver.set(self.rev, clone(self.config)); self.emit('refreshed'); });
-  };
-  SettingsManager.prototype.resetGame = function (tag) {
-    var self = this; delete this.drafts[tag]; this.persistDrafts();
-    return ConfigurationService.reset(tag, null, this.rev).then(function (r) { self.applyChanges(r.rev, r.changes); self.setState(self.dirtyCount() ? 'dirty' : 'saved'); return r; });
-  };
-  SettingsManager.prototype.resetKey = function (tag, key) {
-    var self = this;
+    if (changes && changes.length) { this.rev = rev; this.lastChange = changes[changes.length - 1]; try { B.resolver.set(this.rev, clone(this.config)); } catch (e) {} }
+    this.persistDrafts();
+  }
+  save(tag) {
+    const d = this.drafts[tag]; if (!d || !Object.keys(d).length) return Promise.resolve({ changes: [] });
+    return ConfigurationService.save(tag, clone(d), this.rev).then(r => { this.applyChanges(r.rev, r.changes); return r; });
+  }
+  saveAll() {
+    const tags = this.dirtyTags(); if (!tags.length) return Promise.resolve(true);
+    this.setState('saving'); this.lastSaved = [];
+    return tags.reduce((p, t) => p.then(() => this.save(t)), Promise.resolve()).then(() => { this.setState(this.dirtyCount() ? 'dirty' : 'saved'); this.emit('saved'); return true; }, e => {
+      this.setState('error'); this.lastError = e;
+      if (e && e.code === 'conflict') return this.refresh().then(() => { this.setState('dirty'); this.emit('conflict'); return false; });
+      this.emit('error', e); return false;
+    });
+  }
+  refresh() { return ConfigurationService.bootstrap().then(b => { this.games = b.games; GAMES = b.games; this.applyServerState(b.state); try { B.resolver.set(this.rev, clone(this.config)); } catch (e) {} this.drafts = this.sanitizeDrafts(this.drafts); this.persistDrafts(); this.emit('refreshed'); }); }
+  resetGame(tag) { delete this.drafts[tag]; this.persistDrafts(); return ConfigurationService.reset(tag, null, this.rev).then(r => { this.applyChanges(r.rev, r.changes); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); return r; }); }
+  resetKey(tag, key) {
     if (this.isDirty(tag, key) && same(this.serverValue(tag, key), this.defaultOf(tag, key))) { this.setDraft(tag, key, this.defaultOf(tag, key)); return Promise.resolve({ changes: [] }); }
     if (this.isDirty(tag, key)) delete this.drafts[tag][key];
-    if (same(this.serverValue(tag, key), this.defaultOf(tag, key))) { this.persistDrafts(); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); return Promise.resolve({ changes: [] }); }
-    return ConfigurationService.reset(tag, key, this.rev).then(function (r) { self.applyChanges(r.rev, r.changes); self.setState(self.dirtyCount() ? 'dirty' : 'saved'); return r; });
-  };
-  SettingsManager.prototype.effectiveOverrides = function (tag) {
-    var out = {}, g = this.games[tag]; if (!g) return out;
-    for (var i = 0; i < g.fields.length; i++) { var k = g.fields[i].key, v = this.value(tag, k); if (!same(v, g.fields[i].default)) out[k] = clone(v); }
-    return out;
-  };
-
-  /* ============================================================ BatmishPresetManager */
-  function PresetManager(sm) { this.sm = sm; }
-  PresetManager.prototype.forGame = function (tag) { var s = this.sm, out = []; for (var id in s.presets) if (s.presets[id].tag === tag) out.push(s.presets[id]); return out.sort(function (a, b) { return a.createdAt - b.createdAt; }); };
-  PresetManager.prototype.create = function (tag, name, values) { var s = this.sm; return ConfigurationService.preset('create', { tag: tag, name: name, values: values }).then(function (r) { s.presets[r.preset.id] = r.preset; return r.preset; }); };
-  PresetManager.prototype.rename = function (id, name) { var s = this.sm; return ConfigurationService.preset('update', { id: id, name: name }).then(function (r) { s.presets[id] = r.preset; return r.preset; }); };
-  PresetManager.prototype.overwrite = function (id, values) { var s = this.sm; return ConfigurationService.preset('update', { id: id, values: values }).then(function (r) { s.presets[id] = r.preset; return r.preset; }); };
-  PresetManager.prototype.duplicate = function (id) { var s = this.sm; return ConfigurationService.preset('duplicate', { id: id }).then(function (r) { s.presets[r.preset.id] = r.preset; return r.preset; }); };
-  PresetManager.prototype.remove = function (id) { var s = this.sm; return ConfigurationService.preset('delete', { id: id }).then(function () { var t = s.presets[id] && s.presets[id].tag; delete s.presets[id]; if (t && s.defaultPresets[t] === id) delete s.defaultPresets[t]; }); };
-  PresetManager.prototype.setDefault = function (id) { var s = this.sm; return ConfigurationService.preset('default', { id: id }).then(function (r) { s.defaultPresets[r.tag] = id; }); };
-  PresetManager.prototype.apply = function (id) { var s = this.sm; s.discard(s.presets[id] && s.presets[id].tag); return ConfigurationService.preset('apply', { id: id, baseRev: s.rev }).then(function (r) { s.applyChanges(r.rev, r.changes); return r; }); };
-
-  /* ============================================================ BatmishHistoryManager */
-  function HistoryManager(sm) { this.sm = sm; this.items = []; }
-  HistoryManager.prototype.load = function (tag) { var self = this; return ConfigurationService.history(tag).then(function (r) { self.items = r.history || []; return self.items; }); };
-  HistoryManager.prototype.revert = function (id) { var s = this.sm; return ConfigurationService.revert(id, s.rev).then(function (r) { s.applyChanges(r.rev, r.changes); return r; }); };
-  HistoryManager.prototype.restoreGame = function (tag) { var s = this.sm; return ConfigurationService.restoreGame(tag, s.rev).then(function (r) { s.applyChanges(r.rev, r.changes); return r; }); };
-
-  /* ============================================================ BatmishGameRegistry
-     يقرأ سجل الألعاب الفعلي في الصفحة (.gcard[data-tag]: مصدر الحقيقة لبطاقات الستريمر) ويدمجه مع ما يُعلنه الخادم
-     من حقول قابلة للتخصيص. لعبة بلا حقول موصولة بمنطقها تظهر كـ«غير قابلة للتخصيص» وليس لها زر إعدادات. */
-  var GameRegistry = {
-    discover: function (games) {
-      var seen = {}, list = [];
-      $all('.gcard[data-tag]').forEach(function (c) {
-        var tag = c.getAttribute('data-tag'); if (!tag || seen[tag]) return; seen[tag] = 1;
-        var nm = $('.gcard-name', c), ds = $('.gcard-desc', c), sv = $('.gcard-icon svg', c);
-        var g = games[tag];
-        list.push({ tag: tag, name: (nm && nm.textContent.trim()) || (g && g.name) || tag, desc: c.getAttribute('data-short') || (ds && ds.textContent.trim()) || (g && g.desc) || '', icon: sv ? sv.outerHTML : '', category: c.getAttribute('data-category') || '', fields: g ? g.fields.length : 0 });
-      });
-      Object.keys(games).forEach(function (tag) {
-        if (seen[tag] || tag.indexOf('__') === 0) return;
-        list.push({ tag: tag, name: games[tag].name, desc: games[tag].desc || '', icon: '', category: '', fields: games[tag].fields.length });
-      });
-      return list.sort(function (a, b) { return (b.fields > 0) - (a.fields > 0) || 0; });
-    }
-  };
-
-  /* ============================================================ BatmishDashboard */
-  var NAV = [
-    ['cmd', 'مركز القيادة', 'cmd'], ['games', 'كل الألعاب', 'games'], ['advanced', 'الإعدادات المتقدمة', 'adv'], ['round', 'التحكم بالجولات', 'round'],
-    ['players', 'تجربة اللاعبين', 'players'], ['stream', 'تفاعل البث', 'stream'], ['balance', 'موازنة الألعاب', 'balance'],
-    ['av', 'الصوت والمرئيات', 'av'], ['auto', 'الأتمتة', 'auto'], ['presets', 'المجموعات', 'presets'], ['history', 'السجل', 'history']
-  ];
-  var SECTION_INFO = {
-    round: { title: 'التحكم بالجولات', ar: 'مدد الجولات والمحاولات والعدّادات في كل الألعاب', cats: ['round'] },
-    players: { title: 'تجربة اللاعبين', ar: 'ما يخص اللاعبين: الإنعاش وإعادة الانضمام وعدد المرات المسموحة', cats: ['players'] },
-    stream: { title: 'تفاعل البث', ar: 'تفاعل جمهور البث', cats: ['interaction'] },
-    balance: { title: 'موازنة الألعاب', ar: 'نقاط المكافآت، الصعوبة، الحصانة والمضاعفات', cats: ['scoring', 'balance', 'difficulty'] },
-    av: { title: 'الصوت والمرئيات', ar: 'مستوى الصوت والمؤثرات البصرية', tag: '__site' }
-  };
-  var TAB_AR = { GENERAL: 'عام', GAMEPLAY: 'اللعب', PLAYERS: 'اللاعبون', DIFFICULTY: 'الصعوبة', SCORING: 'النقاط', ADVANCED: 'متقدم' };
-  var AUTO_RE = /^(timerEnabled|turnSeconds|answerSeconds|timerSeconds|timeLimit|maxSeconds|hintAfterSeconds|holdDuration|revival.*|speedupEnabled|chairReductionPercent|shuffleSpeedupPercent)$/;
-
-  function Dashboard() {
-    this.sm = new SettingsManager(); this.presets = new PresetManager(this.sm); this.hist = new HistoryManager(this.sm);
-    this.root = null; this.view = 'cmd'; this.arg = null; this.tab = 'GENERAL'; this.games = []; this.ctl = null; this.ready = false; this.errs = {}; this.q = '';
-    this.filter = 'all'; this.histTag = ''; this.presetTag = ''; this.lastFocus = null;
+    if (same(this.serverValue(tag, key), this.defaultOf(tag, key))) { if (this.drafts[tag] && !Object.keys(this.drafts[tag]).length) delete this.drafts[tag]; this.persistDrafts(); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); return Promise.resolve({ changes: [] }); }
+    return ConfigurationService.reset(tag, key, this.rev).then(r => { this.applyChanges(r.rev, r.changes); this.setState(this.dirtyCount() ? 'dirty' : 'saved'); return r; });
   }
+  effectiveOverrides(tag) { const out = {}, g = this.games[tag]; if (!g) return out; g.fields.forEach(f => { const v = this.value(tag, f.key); if (!same(v, f.default)) out[f.key] = clone(v); }); return out; }
+}
+class PresetManager {
+  constructor(sm) { this.sm = sm; }
+  forGame(tag) { return Object.values(this.sm.presets).filter(p => p.tag === tag).sort((a, b) => a.createdAt - b.createdAt); }
+  create(tag, name, values) { return ConfigurationService.preset('create', { tag, name, values }).then(r => (this.sm.presets[r.preset.id] = r.preset)); }
+  rename(id, name) { return ConfigurationService.preset('update', { id, name }).then(r => (this.sm.presets[id] = r.preset)); }
+  overwrite(id, values) { return ConfigurationService.preset('update', { id, values }).then(r => (this.sm.presets[id] = r.preset)); }
+  duplicate(id) { return ConfigurationService.preset('duplicate', { id }).then(r => (this.sm.presets[r.preset.id] = r.preset)); }
+  remove(id) { return ConfigurationService.preset('delete', { id }).then(() => { const t = this.sm.presets[id] && this.sm.presets[id].tag; delete this.sm.presets[id]; if (t && this.sm.defaultPresets[t] === id) delete this.sm.defaultPresets[t]; }); }
+  setDefault(id) { return ConfigurationService.preset('default', { id }).then(r => { this.sm.defaultPresets[r.tag] = id; }); }
+  apply(id) { const s = this.sm; s.discard(s.presets[id] && s.presets[id].tag); return ConfigurationService.preset('apply', { id, baseRev: s.rev }).then(r => { s.applyChanges(r.rev, r.changes); return r; }); }
+}
+class HistoryManager {
+  constructor(sm) { this.sm = sm; this.items = []; }
+  load(tag) { return ConfigurationService.history(tag).then(r => (this.items = r.history || [])); }
+  revert(id) { const s = this.sm; return ConfigurationService.revert(id, s.rev).then(r => { s.applyChanges(r.rev, r.changes); return r; }); }
+  restoreGame(tag) { const s = this.sm; return ConfigurationService.restoreGame(tag, s.rev).then(r => { s.applyChanges(r.rev, r.changes); return r; }); }
+}
 
-  Dashboard.prototype.open = function (ctl) {
-    var self = this; this.ctl = ctl; this.lastFocus = document.activeElement;
-    this.ensureFonts();
-    if (!this.root) this.build();
-    document.body.appendChild(this.root);
-    void this.root.offsetWidth; this.root.classList.add('is-open');
-    this.root.removeAttribute('inert'); this.root.setAttribute('aria-hidden', 'false');
-    document.documentElement.style.overflow = 'hidden';
-    this.go(this.view || 'cmd');
-    var first = $('.bm-nav button[aria-current="page"]', this.root) || $('.bm-nav button', this.root); if (first) first.focus({ preventScroll: true });
-    this.sm.on(function (what) { self.onSm(what); });
-    this.loadAll();
-  };
+/* =====================================================================
+   [4] مكونات الواجهة
+   BatmishAtmosphere · BatmishTacticalControls · BatmishSettingsPanel · BatmishHeader · BatmishNavigation · BatmishMobileNavigation
+   BatmishActivityTimeline · BatmishGameCard · BatmishGameArchive · BatmishGameSettings · BatmishCommandCenter · BatmishDashboard
+   ===================================================================== */
+function rng(seed) { let s = seed >>> 0; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 4294967296; }
 
-  Dashboard.prototype.ensureFonts = function () {
-    if (document.getElementById('batmish-fonts')) return;
-    var l = document.createElement('link'); l.id = 'batmish-fonts'; l.rel = 'stylesheet';
-    l.href = 'https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap';
-    document.head.appendChild(l);
-  };
+const BatmishAtmosphere = {
+  skyline(seed, H, hMin, hMax, fill, wins, detail) {
+    const r = rng(seed); let x = -30, d = 'M-30 ' + H, w3 = '', nw = 0;
+    while (x < 1640) {
+      const w = 36 + Math.floor(r() * 74), h = hMin + Math.floor(r() * (hMax - hMin)), top = H - h, k = r();
+      d += ' L' + x + ' ' + top;
+      if (k < .2 && detail) d += ' L' + (x + w * .5 - 6) + ' ' + top + ' L' + (x + w * .5) + ' ' + (top - 44 - Math.floor(r() * 46)) + ' L' + (x + w * .5 + 6) + ' ' + top;
+      else if (k < .38) d += ' L' + (x + w * .14) + ' ' + top + ' L' + (x + w * .14) + ' ' + (top - 14) + ' L' + (x + w * .86) + ' ' + (top - 14) + ' L' + (x + w * .86) + ' ' + top;
+      else if (k < .5 && detail) d += ' L' + (x + w * .5) + ' ' + top + ' L' + (x + w * .5) + ' ' + (top - 52) + ' L' + (x + w * .5 + 2) + ' ' + (top - 52) + ' L' + (x + w * .5 + 2) + ' ' + top;
+      else if (k < .6) d += ' L' + (x + w * .5) + ' ' + (top - 26);
+      d += ' L' + (x + w) + ' ' + top; x += w;
+      if (wins && nw < wins) {
+        const cols = Math.max(1, Math.floor(w / 14)), rows = Math.min(6, Math.floor(h / 22));
+        for (let cI = 0; cI < cols; cI++) for (let rI = 0; rI < rows; rI++) if (r() < .09 && nw < wins) { nw++; w3 += '<rect class="win" x="' + (x - w + 6 + cI * 14) + '" y="' + (top + 12 + rI * 22) + '" width="3" height="5" fill="' + (r() < .7 ? '#f1deA0' : '#8fb4e6') + '" opacity=".6" style="--d:' + (5 + Math.floor(r() * 8)) + 's;--dl:-' + Math.floor(r() * 9) + 's"/>'; }
+      }
+    }
+    d += ' L1640 ' + H + ' Z';
+    return '<svg viewBox="0 0 1600 ' + H + '" aria-hidden="true"><path d="' + d + '" fill="' + fill + '"/>' + w3 + '</svg>';
+  },
+  html() {
+    if (this._h) return this._h;
+    const r = rng(77); let stars = '';
+    for (let i = 0; i < 56; i++) stars += '<i style="left:' + (r() * 100).toFixed(1) + '%;top:' + (r() * 58).toFixed(1) + '%;--d:' + (3 + r() * 6).toFixed(1) + 's;--dl:-' + (r() * 6).toFixed(1) + 's;width:' + (r() < .15 ? 3 : 2) + 'px;height:' + (r() < .15 ? 3 : 2) + 'px"></i>';
+    const signal = '<svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>' +
+      '<linearGradient id="bmBeam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#cfe0ff" stop-opacity="0"/><stop offset=".55" stop-color="#cfe0ff" stop-opacity=".07"/><stop offset="1" stop-color="#f3e6a8" stop-opacity=".2"/></linearGradient>' +
+      '<radialGradient id="bmDisc"><stop offset="0" stop-color="#f3e6a8" stop-opacity=".34"/><stop offset=".72" stop-color="#e5c84b" stop-opacity=".16"/><stop offset="1" stop-color="#e5c84b" stop-opacity=".06"/></radialGradient></defs>' +
+      '<g class="beam"><path d="M700 900L960 900L1360 330L1030 150Z" fill="url(#bmBeam)"/></g>' +
+      '<circle cx="1190" cy="248" r="150" fill="url(#bmDisc)"/><circle cx="1190" cy="248" r="150" fill="none" stroke="#f3e6a8" stroke-opacity=".22"/><circle cx="1190" cy="248" r="168" fill="none" stroke="#8fb4e6" stroke-opacity=".12" stroke-dasharray="3 9"/>' +
+      '<g transform="translate(1066 190) scale(1.24)"><path d="' + BAT_PATH + '" fill="#080B12" fill-opacity=".72"/></g></svg>';
+    let fog = ''; for (let i = 0; i < 3; i++) fog += '<i style="left:' + (i * 30 - 20) + '%;--d:' + (36 + i * 9) + 's;--dl:-' + (i * 13) + 's"></i>';
+    this._h = '<div class="bm-atmo" aria-hidden="true"><div class="atmo-stars">' + stars + '</div><div class="atmo-signal">' + signal + '</div>' +
+      '<div class="atmo-sk atmo-sk3">' + this.skyline(3, 340, 150, 300, '#101b2f', 0, true) + '</div>' +
+      '<div class="atmo-fog">' + fog + '</div>' +
+      '<div class="atmo-sk atmo-sk2">' + this.skyline(11, 300, 100, 230, '#0b1423', 70, true) + '</div>' +
+      '<div class="atmo-sk atmo-sk1">' + this.skyline(29, 240, 50, 160, '#070b13', 50, true) + '</div>' +
+      '<div class="atmo-grid"></div><div class="atmo-scan"></div><div class="atmo-veil"></div><div class="atmo-corner"></div></div>';
+    return this._h;
+  }
+};
 
-  Dashboard.prototype.loadAll = function () {
-    var self = this, u = B.controller.user();
-    this.ready = false; this.loadError = null; this.render();
-    ConfigurationService.bootstrap().then(function (boot) {
-      self.sm.load(boot, u && u.uid);
-      B.resolver.set(self.sm.rev, clone(self.sm.config), u && u.uid);
-      self.games = GameRegistry.discover(boot.games);
-      self.ready = true;
-      self.hist.load().then(function (items) { self.lastEntry = items[0] || null; if (self.view === 'cmd') self.render(); }, function () {});
-      self.render();
-    }, function (e) { self.loadError = e; self.ready = false; self.render(); });
-  };
+/* ---------------------- عناصر التحكم التكتيكية ---------------------- */
+const BatmishTacticalControls = {
+  pct(f, v) { return f.max > f.min ? Math.max(0, Math.min(100, ((v - f.min) / (f.max - f.min)) * 100)) : 0; },
+  step(f) { const r = f.max - f.min; return r > 200 ? Math.round(r / 100) : 1; },
+  toggle(fk, id, v, small) {
+    return '<label class="bm-tsw' + (small ? ' is-sm' : '') + '"><input type="checkbox" id="' + id + '" data-k="' + fk + '"' + (v ? ' checked' : '') + ' role="switch"><span class="tsw-body"></span><span class="tsw-lbl on">تشغيل</span><span class="tsw-lbl off">إيقاف</span><span class="tsw-knob"><i></i></span></label>';
+  },
+  range(fk, id, f, v) {
+    const st = Math.max(1, Math.round((f.max - f.min) / 160));
+    return '<div class="fp-ctl"><div class="bm-rng" style="--p:' + this.pct(f, v) + '%;--d:' + this.pct(f, f.default) + '%"><span class="trk"></span><span class="fill"></span><span class="tick"></span><span class="dmk"></span>' +
+      '<input type="range" min="' + f.min + '" max="' + f.max + '" step="' + st + '" value="' + esc(v) + '" data-k="' + fk + '" data-r="1" aria-label="' + esc(f.label) + '"><span class="thumb"></span><span class="mn">' + f.min + '</span><span class="mx">' + f.max + '</span></div>' +
+      '<div class="bm-num"><button type="button" data-step="-1" data-k="' + fk + '" aria-label="إنقاص">' + ic('minus') + '</button><input type="number" inputmode="numeric" id="' + id + '" min="' + f.min + '" max="' + f.max + '" step="1" value="' + esc(v) + '" data-k="' + fk + '" data-n="1" aria-label="' + esc(f.label) + '">' + (f.unit ? '<span class="u">' + esc(f.unit) + '</span>' : '') + '<button type="button" data-step="1" data-k="' + fk + '" aria-label="زيادة">' + ic('plus') + '</button></div></div>';
+  },
+  seq(fk, id, f, v) {
+    return '<div class="bm-seq" style="--n:' + v.length + '">' + v.map((x, i) =>
+      '<div class="cell"><div class="col"><i style="--h:' + this.pct(f, x).toFixed(0) + '%"></i></div><input type="number" inputmode="numeric" min="' + f.min + '" max="' + f.max + '" value="' + esc(x) + '" data-k="' + fk + '" data-i="' + i + '" aria-label="' + esc(f.label) + ' ' + (i + 1) + '"' + (i === 0 ? ' id="' + id + '"' : '') + '><span class="nm">#' + (i + 1) + '</span></div>').join('') + '</div>';
+  },
+  /* مزامنة عناصر التحكم مع القيمة (دون لمس الحقل الذي يكتب فيه المستخدم) */
+  sync(row, f, v, active) {
+    if (f.type === 'toggle') { const c = $('input[type=checkbox]', row); if (c && c !== active) c.checked = !!v; return; }
+    if (f.type === 'number') {
+      const rng = $('.bm-rng', row); if (rng) rng.style.setProperty('--p', this.pct(f, v) + '%');
+      const r = $('input[data-r]', row), n = $('input[data-n]', row); if (r && r !== active) r.value = v; if (n && n !== active) n.value = v; return;
+    }
+    $all('.bm-seq .cell', row).forEach((c, i) => { const bar = $('.col i', c), inp = $('input', c); if (bar) bar.style.setProperty('--h', this.pct(f, v[i]).toFixed(0) + '%'); if (inp && inp !== active) inp.value = v[i]; });
+  }
+};
 
-  Dashboard.prototype.onSm = function (what) {
-    if (!this.root) return;
-    this.updateStatus(); this.updateSavebar();
-    if (what === 'conflict') this.toast('تغيّرت الإعدادات من جهاز أو تبويب آخر. حدّثناها، راجع تعديلاتك واحفظ مجدداً.', 'err');
-    if (what === 'saved') this.toast('تم الحفظ. تُطبَّق التعديلات من الراوند التالي.', 'ok');
-    if (what === 'error') this.toast(errMsg(this.sm.lastError), 'err');
-    if (what === 'refreshed') this.render();
-  };
-
-  /* ------------------------------------------------------------ الهيكل */
-  Dashboard.prototype.build = function () {
-    var self = this, r = document.createElement('div');
-    r.className = 'bm'; r.id = 'batmish-root'; r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-label', 'BATMISH Command Center');
-    r.innerHTML =
-      '<div class="bm-bg" aria-hidden="true"><div class="bm-beam"></div>' +
-      '<div class="bm-sky"><svg viewBox="0 0 1200 200" preserveAspectRatio="none"><path fill="currentColor" d="M0 200V132h40V96h28v36h30V70h34v62h24V108h46V60h24V40h14v20h20v72h38V90h36v42h30V76h40v56h24V100h44V54h22v-14h12v14h22v78h30v-36h38v36h26V84h46v48h32V66h30V30h10v36h26v66h36v-30h44v30h30V92h40v40h28V74h34v58h40V104h30v28h36V86h42v46h34V58h28V42h12v16h24v74h30V96h38v36h40V80h32v52h26v-24h44v24h30V68h36v64h34v-30h46v30h28V92h34v40h30V76h28v124z"/></svg></div>' +
-      '<div class="bm-scan"></div></div>' +
-      '<aside class="bm-side" aria-label="BATMISH navigation"><div class="bm-brand">' + B.BAT_SVG + '<div><b>BATMISH</b><small>THE DARK KNIGHT</small></div></div>' +
-      '<nav class="bm-nav">' + NAV.map(function (n) { return '<button type="button" data-nav="' + n[0] + '">' + ic(n[2]) + '<span>' + n[1] + '</span></button>'; }).join('') + '</nav>' +
-      '<div class="bm-side-foot"><span id="bm-foot-user"></span><br>التخصيص: <b id="bm-foot-rev">-</b></div></aside>' +
-      '<main class="bm-main"><header class="bm-top"><button type="button" class="bm-x bm-menu" data-act="menu" aria-label="القائمة">' + ic('menu') + '</button>' +
-      '<div class="bm-crumb" id="bm-crumb"></div><span class="bm-status" id="bm-status" role="status" aria-live="polite"><span class="bm-hide-s" id="bm-status-t"></span></span>' +
-      '<button type="button" class="bm-x" data-act="close" aria-label="إغلاق BATMISH">' + ic('x') + '</button></header>' +
-      '<div class="bm-scroll" id="bm-scroll"><div class="bm-view" id="bm-view"></div></div>' +
-      '<div class="bm-savebar" id="bm-savebar"><div class="bm-panel is-gold"><div class="bm-in"><div class="bm-savebar-msg" id="bm-savebar-msg"></div><div id="bm-savebar-act" class="bm-row-act"></div></div></div></div>' +
-      '<div class="bm-toasts" id="bm-toasts" aria-live="polite"></div></main>';
-    this.root = r;
-    r.addEventListener('click', function (e) { self.onClick(e); });
-    r.addEventListener('input', function (e) { self.onInput(e); });
-    r.addEventListener('change', function (e) { self.onChange(e); });
-    r.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') { if ($('.bm-modal', r)) return; e.preventDefault(); self.requestClose(); }
+/* ---------------------- لوحة إعداد واحد ---------------------- */
+const BatmishSettingsPanel = {
+  html(sm, errs, tag, f) {
+    const v = sm.value(tag, f.key), mod = sm.isModified(tag, f.key), dirty = sm.isDirty(tag, f.key), fk = tag + '.' + f.key, id = 'bmf-' + tag + '-' + f.key, bad = errs[fk];
+    const kind = f.type === 'toggle' ? 'toggle' : f.type === 'number' ? 'range' : 'seq';
+    const head = '<div class="fp-head"><h5 class="fp-name"><label for="' + id + '">' + esc(f.label) + '</label></h5><div class="fp-hint">' + esc(f.hint || '') + '</div></div>';
+    const foot = '<div class="fp-foot"><span class="fp-def">الافتراضي: <b>' + esc(fmtVal(f, f.default)) + '</b></span><span data-state>' + this.stateTag(mod, dirty) + '</span><span class="sp"></span>' +
+      '<button type="button" class="fp-rst" data-resetkey="' + fk + '"' + (mod || dirty ? '' : ' disabled') + '>' + ic('reset') + 'استعادة الأصلي</button></div><div class="fp-err" role="alert" data-err>' + esc(bad || '') + '</div>';
+    let ctl;
+    if (kind === 'toggle') ctl = BatmishTacticalControls.toggle(fk, id, v);
+    else if (kind === 'range') ctl = BatmishTacticalControls.range(fk, id, f, v);
+    else ctl = BatmishTacticalControls.seq(fk, id, f, v);
+    const body = kind === 'toggle' ? '<div class="txt">' + head + foot + '</div>' + ctl : head + ctl + foot;
+    return '<div class="bm-fp bm-plate f-' + kind + (mod || dirty ? ' is-mod' : '') + (dirty ? ' is-dirty' : '') + (bad ? ' is-bad' : '') + '" data-fk="' + fk + '"><i class="bm-glow"></i>' + body + '</div>';
+  },
+  stateTag(mod, dirty) { return dirty ? '<span class="bm-tag t-sig">غير محفوظ</span>' : mod ? '<span class="bm-tag t-elec">مخصص</span>' : ''; },
+  refresh(root, sm, errs, fk) {
+    const i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), f = sm.field(tag, key); if (!f) return;
+    const mod = sm.isModified(tag, key), dirty = sm.isDirty(tag, key), bad = errs[fk], v = sm.value(tag, key);
+    $all('.bm-fp[data-fk="' + fk + '"]', root).forEach(row => {
+      row.classList.toggle('is-mod', mod || dirty); row.classList.toggle('is-dirty', dirty); row.classList.toggle('is-bad', !!bad);
+      $('[data-err]', row).textContent = bad || '';
+      $('[data-state]', row).innerHTML = this.stateTag(mod, dirty);
+      $('[data-resetkey]', row).disabled = !(mod || dirty);
+      if (!bad) BatmishTacticalControls.sync(row, f, v, document.activeElement);
     });
-    document.addEventListener('focusin', this._trap = function (e) { if (self.root && self.root.classList.contains('is-open') && !self.root.contains(e.target) && !e.target.closest('.bm-warp')) { var f = $('.bm-nav button', self.root); if (f) f.focus(); } });
-  };
+  }
+};
 
-  Dashboard.prototype.updateStatus = function () {
-    var s = this.sm, el = $('#bm-status', this.root), t = $('#bm-status-t', this.root); if (!el) return;
-    var map = { saved: ['تم الحفظ', 'saved'], dirty: ['غير محفوظ: ' + s.dirtyCount(), 'dirty'], saving: ['جارٍ الحفظ', 'saving'], error: ['فشل الحفظ', 'error'] }, m = map[s.saveState] || map.saved;
-    el.setAttribute('data-s', m[1]); t.textContent = m[0];
-    var rev = $('#bm-foot-rev', this.root); if (rev) rev.textContent = B.resolver.active ? 'فعّال · إصدار ' + B.resolver.rev : 'متوقف';
-    var us = $('#bm-foot-user', this.root); if (us) us.textContent = '@' + B.STREAMER;
-  };
+/* ---------------------- الهيدر والتنقل ---------------------- */
+const NAV = [
+  ['cmd', 'نظرة عامة', 'مركز القيادة', 'cmd', 'الأساسي'], ['db', 'أرشيف كامل', 'قاعدة الألعاب', 'db'], ['settings', 'كل المعاملات', 'إعدادات الألعاب', 'settings'],
+  ['round', 'الأوقات والمحاولات', 'التحكم بالجولات', 'round', 'العمليات'], ['players', 'قواعد اللاعبين', 'تجربة اللاعبين', 'players'], ['stream', 'الجمهور والتفاعل', 'تفاعل البث', 'stream'],
+  ['balance', 'النقاط والتوازن', 'موازنة الألعاب', 'balance'], ['av', 'الصوت والحركة', 'الصوت والمرئيات', 'av'], ['auto', 'سلوكيات تلقائية', 'الأتمتة', 'auto'],
+  ['presets', 'مجموعاتك المحفوظة', 'المجموعات', 'presets', 'المحفوظات'], ['history', 'سجل التعديلات', 'السجل', 'history']
+];
+const NAV_BY = {}; NAV.forEach(n => { NAV_BY[n[0]] = n; });
+const SECTION_INFO = {
+  round: { cats: ['round'] }, players: { cats: ['players'] }, balance: { cats: ['scoring', 'balance', 'difficulty'] }
+};
 
-  Dashboard.prototype.updateSavebar = function () {
-    var s = this.sm, bar = $('#bm-savebar', this.root); if (!bar) return;
-    var scope = this.view === 'game' ? this.arg : null, n = s.dirtyCount(scope);
-    var bad = this.hasBad(scope);
-    bar.classList.toggle('is-on', n > 0 || s.saveState === 'error' && s.dirtyCount() > 0);
-    var msg = $('#bm-savebar-msg', this.root), act = $('#bm-savebar-act', this.root);
-    var saving = s.saveState === 'saving';
-    msg.innerHTML = (s.saveState === 'error' ? '<b>فشل الحفظ.</b> مسودتك محفوظة على جهازك. ' : '') + (n ? '<b>' + n + '</b> تعديل غير محفوظ. يُطبَّق من <b>الراوند التالي</b>، والراوند الجاري يكمل بإعداداته.' : '');
-    act.innerHTML =
-      '<label class="bm-switch" title="حفظ تلقائي"><input type="checkbox" data-act="autosave"' + (s.autosave ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt">تلقائي</span></label>' +
-      '<button type="button" class="bm-btn is-ghost" data-act="discard"' + (saving ? ' disabled' : '') + '>' + ic('reset') + 'تجاهل التعديلات</button>' +
-      (this.view === 'game' ? '<button type="button" class="bm-btn is-ghost" data-act="savepreset"' + (bad || saving ? ' disabled' : '') + '>' + ic('presets') + 'حفظ كمجموعة</button>' : '') +
-      '<button type="button" class="bm-btn is-primary" data-act="save"' + (bad || saving ? ' disabled' : '') + '>' + ic('save') + (saving ? 'جارٍ الحفظ…' : 'حفظ وتطبيق من الراوند التالي') + '</button>';
-  };
-  Dashboard.prototype.hasBad = function (tag) { for (var k in this.errs) { if (!this.errs[k]) continue; if (!tag || k.indexOf(tag + '.') === 0) return true; } return false; };
+const BatmishHeader = {
+  html() {
+    return '<header class="bm-head"><button type="button" class="bm-btn b-ghost b-icon bm-menu-btn" data-act="menu" aria-label="القائمة">' + ic('menu') + '</button>' +
+      '<div class="bm-brand"><div class="bm-brand-mark bm-plate p-x is-pulse">' + BAT_SVG + '</div><div class="bm-brand-txt"><b>BATMISH</b><i>نظام الفارس المظلم</i></div></div>' +
+      '<div class="bm-crumb"><span class="en" id="bm-crumb-en">نظرة عامة</span><b id="bm-crumb">مركز القيادة</b></div><div class="bm-head-sp"></div>' +
+      '<div class="bm-hmod m-stream bm-plate"><div class="bm-sig"><i></i><i></i><i></i><i></i><i></i></div><div class="lbl"><span class="en">ربط البث</span><b>مربوط</b></div></div>' +
+      '<div class="bm-hmod m-user bm-plate"><div class="lbl"><span class="en">الستريمر</span><b class="mono">@' + STREAMER + '</b></div></div>' +
+      '<div class="bm-save-chip bm-plate" id="bm-status" data-s="saved" role="status" aria-live="polite"><i></i><span id="bm-status-t">تم الحفظ</span></div>' +
+      '<button type="button" class="bm-close bm-plate" data-act="close" aria-label="إغلاق اللوحة">' + ic('x') + '</button></header>';
+  }
+};
+const BatmishNavigation = {
+  html() {
+    let out = '';
+    NAV.forEach((n, i) => {
+      if (n[4]) out += '<div class="bm-rail-lbl">// ' + n[4] + '</div>';
+      out += '<button type="button" class="bm-nav-item" data-nav="' + n[0] + '" style="--i:' + i + '"><span class="bm-nav-bg"></span><span class="bm-node">' + ic(n[3]) + '</span><span class="bm-nav-txt"><span class="en">' + n[1] + '</span><span class="ar">' + n[2] + '</span></span><span class="bm-nav-idx">' + String(i + 1).padStart(2, '0') + '</span></button>';
+    });
+    return '<nav class="bm-rail bm-plate" aria-label="التنقل الرئيسي"><i class="bm-glow"></i><div class="bm-rail-in bm-scroll">' + out + '</div>' +
+      '<div class="bm-rail-foot"><div class="row"><span class="en" style="font-size:9.5px;letter-spacing:0;color:#6f7f98">الستريمر</span><b class="mono">@' + STREAMER + '</b></div><div class="row"><span class="en" style="font-size:9.5px;letter-spacing:0;color:#6f7f98">النظام</span><b id="bm-foot-rev">—</b></div></div></nav>';
+  }
+};
+const BatmishMobileNavigation = {
+  items: [['cmd', 'القيادة', 'cmd'], ['db', 'الألعاب', 'db'], ['settings', 'الإعدادات', 'settings'], ['round', 'الجولات', 'round']],
+  html() {
+    return '<nav class="bm-mnav" aria-label="تنقل الجوال">' + this.items.map(i => '<button type="button" data-nav="' + i[0] + '">' + ic(i[2]) + '<span>' + i[1] + '</span></button>').join('') +
+      '<button type="button" data-act="menu" data-more="1">' + ic('more') + '<span>المزيد</span></button></nav>';
+  }
+};
 
-  Dashboard.prototype.go = function (view, arg) {
-    this.view = view; this.arg = arg == null ? null : arg;
-    if (view === 'game') { this.tab = this._tabFor(arg); }
-    this.root.classList.remove('is-nav');
-    this.render(true);
-    var sc = $('#bm-scroll', this.root); if (sc) sc.scrollTop = 0;
-  };
-  Dashboard.prototype._tabFor = function (tag) {
-    var g = this.sm.games[tag]; if (!g) return 'GENERAL';
-    var order = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED'];
-    for (var i = 0; i < order.length; i++) if (g.fields.some(function (f) { return f.tab === order[i]; })) return order[i];
-    return 'GENERAL';
-  };
+/* ---------------------- سجل النشاط (مراقبة العمليات) ---------------------- */
+const BatmishActivityTimeline = {
+  html(items, sm, gameName, limit) {
+    const rows = items.slice(0, limit || 6).map(e => {
+      const f = sm.field(e.tag, e.key);
+      return '<div class="bm-op"><span class="t">' + clock(e.ts) + '</span><span class="nd"><i></i></span><div class="w"><b>' + esc(gameName(e.tag)) + ' › ' + esc(shortLabel(f, e.key)) + '</b><small>' + ago(e.ts) + (e.preset ? ' · ' + esc(e.preset) : '') + '</small></div><span class="bm-diff"><s>' + esc(fmtVal(f, e.old)) + '</s><em>→</em><i>' + esc(fmtVal(f, e.new)) + '</i></span></div>';
+    }).join('');
+    return '<div class="bm-ops bm-plate"><i class="bm-glow"></i><div class="bm-ops-h"><span class="rec"></span><span>سجل العمليات المباشر</span><span class="sp"></span><span>' + items.length + ' حدث</span></div>' +
+      (rows ? '<div class="bm-ops-l">' + rows + '</div>' : '<div class="bm-empty">' + ic('history') + '<h4>لا توجد عمليات مسجّلة</h4><p>كل تعديل تحفظه يظهر هنا لحظة حدوثه.</p></div>') + '</div>';
+  }
+};
 
-  Dashboard.prototype.crumb = function () {
-    var nm = '';
-    for (var i = 0; i < NAV.length; i++) if (NAV[i][0] === this.view || (this.view === 'game' && NAV[i][0] === 'games')) nm = NAV[i][1];
-    var g = this.view === 'game' ? this.gameInfo(this.arg) : null;
-    return 'BATMISH / <b>' + esc(nm) + '</b>' + (g ? ' / <b style="font-family:var(--bm-ar);letter-spacing:0">' + esc(g.name) + '</b>' : '');
-  };
-  Dashboard.prototype.gameInfo = function (tag) { for (var i = 0; i < this.games.length; i++) if (this.games[i].tag === tag) return this.games[i]; var g = this.sm.games[tag]; return g ? { tag: tag, name: g.name, desc: g.desc, icon: '', fields: g.fields.length } : null; };
-
-  Dashboard.prototype.render = function (animate) {
-    if (!this.root) return;
-    $all('.bm-nav button', this.root).forEach(function (b) {
-      var on = b.getAttribute('data-nav') === this.view || (this.view === 'game' && b.getAttribute('data-nav') === 'games');
-      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
-    }, this);
-    $('#bm-crumb', this.root).innerHTML = this.crumb();
-    var v = $('#bm-view', this.root), html;
-    if (this.loadError) html = this.vError();
-    else if (!this.ready) html = '<div class="bm-games">' + [1, 2, 3, 4, 5, 6].map(function () { return '<div class="bm-skel"></div>'; }).join('') + '</div>';
-    else if (this.view === 'cmd') html = this.vCmd();
-    else if (this.view === 'games') html = this.vGames();
-    else if (this.view === 'game') html = this.vGame(this.arg);
-    else if (this.view === 'advanced') html = this.vAdvanced();
-    else if (this.view === 'auto') html = this.vAuto();
-    else if (this.view === 'presets') html = this.vPresets();
-    else if (this.view === 'history') html = this.vHistory();
-    else html = this.vSection(this.view);
-    v.innerHTML = html;
-    if (animate) { v.classList.remove('is-in'); void v.offsetWidth; v.classList.add('is-in'); $all('.bm-view>*', this.root).forEach(function (el, i) { el.style.setProperty('--i', Math.min(i, 12)); }); }
-    this.updateStatus(); this.updateSavebar();
-    this.syncRanges();
-  };
-
-  /* ------------------------------------------------------------ Views */
-  Dashboard.prototype.panel = function (inner, cls, attrs) { return '<div class="bm-panel ' + (cls || '') + '" ' + (attrs || '') + '><div class="bm-in">' + inner + '</div></div>'; };
-  Dashboard.prototype.empty = function (icon, title, text, extra) { return this.panel('<div class="bm-empty">' + ic(icon) + '<h4>' + esc(title) + '</h4><div>' + text + '</div>' + (extra || '') + '</div>'); };
-
-  Dashboard.prototype.vError = function () {
-    var e = this.loadError, forb = e && (e.status === 403 || e.status === 401);
-    return this.empty(forb ? 'lock' : 'warn', forb ? 'الوصول مرفوض' : 'انقطع الاتصال',
-      forb ? 'الخادم ما أكّد صلاحيتك الآن. تأكد أن بثك مربوط وأنك داخل بحسابك.' : esc(errMsg(e)),
-      '<p style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-act="retry">' + ic('reset') + 'إعادة المحاولة</button></p>');
-  };
-
-  Dashboard.prototype.vCmd = function () {
-    var s = this.sm, cust = this.games.filter(function (g) { return g.fields > 0; }).length;
-    var last = this.lastEntry ? this.fieldLabel(this.lastEntry.tag, this.lastEntry.key) + ' · ' + ago(this.lastEntry.ts) : (s.lastChange ? 'الآن' : 'لا يوجد تعديل بعد');
-    var save = { saved: 'محفوظ', dirty: 'تعديلات غير محفوظة', saving: 'جارٍ الحفظ', error: 'فشل الحفظ' }[s.saveState];
-    var stats = [
-      ['الستريمر', '@' + B.STREAMER, 'is-gold', 'الحساب المصرّح له'],
-      ['ربط البث', 'مربوط', 'is-ok', 'ربط البث مؤكد من الخادم'],
-      ['النظام', B.resolver.active ? 'يعمل' : 'متوقف', B.resolver.active ? 'is-ok' : '', B.resolver.active ? 'التخصيص مفعّل على ألعابك' : 'التخصيص غير محمّل'],
-      ['ألعاب قابلة للتخصيص', '<span class="bm-num">' + cust + '</span>', '', 'من أصل ' + this.games.length + ' لعبة'],
-      ['إعدادات مخصصة', '<span class="bm-num">' + s.totalCustomized() + '</span>', '', 'إعدادات مغيّرة عن الافتراضي'],
-      ['آخر تعديل', esc(last), '', 'آخر تعديل محفوظ'],
-      ['حالة الحفظ', save, s.saveState === 'saved' ? 'is-ok' : 'is-gold', s.dirtyCount() ? s.dirtyCount() + ' تعديل بانتظار الحفظ' : 'كل شيء محفوظ'],
-      ['الراوند التالي', 'إصدار ' + s.rev, 'is-gold', 'القيم المحفوظة تُقرأ عند بداية كل راوند']
-    ];
-    stats[4][2] = s.totalCustomized() ? 'is-gold' : '';
-    var tiles = [
-      ['games', 'إعدادات الألعاب', 'إعدادات كل لعبة على حدة', 'games', cust + ' لعبة'], ['advanced', 'الإعدادات المتقدمة', 'كل الإعدادات المتقدمة في مكان واحد', 'adv', this.totalFields() + ' إعداد'],
-      ['round', 'التحكم بالجولات', 'مدد وعدّادات ومحاولات الجولات', 'round', this.countCats(['round']) + ' إعداد'], ['players', 'تجربة اللاعبين', 'الإنعاش وإعادة الانضمام', 'players', this.countCats(['players']) + ' إعداد'],
-      ['stream', 'تفاعل البث', 'تفاعل جمهور البث', 'stream', this.countCats(['interaction']) ? this.countCats(['interaction']) + ' إعداد' : 'غير موصول بعد'],
-      ['balance', 'موازنة الألعاب', 'النقاط والصعوبة والمضاعفات', 'balance', this.countCats(['scoring', 'balance', 'difficulty']) + ' إعداد'],
-      ['av', 'الصوت والمرئيات', 'الصوت والمؤثرات البصرية', 'av', this.countTag('__site') + ' إعداد'], ['auto', 'الأتمتة', 'سلوكيات تلقائية قابلة للضبط', 'auto', this.autoFields().length + ' سلوك'],
-      ['presets', 'المجموعات المحفوظة', 'مجموعات إعدادات محفوظة لكل لعبة', 'presets', Object.keys(s.presets).length + ' محفوظة'], ['history', 'سجل التعديلات', 'سجل التعديلات والتراجع', 'history', 'سجل كامل']
-    ];
-    return '<section class="bm-hero"><div class="bm-panel is-gold"><div class="bm-in bm-hero-main"><div class="bm-hero-sig"><span class="bm-ring"></span><span class="bm-ring"></span>' + B.BAT_SVG + '</div>' +
-      '<h1>BATMISH</h1><h2>THE DARK KNIGHT CONTROL CENTER</h2><p>YOUR STREAM. YOUR RULES.</p></div></div>' +
-      '<dl class="bm-stat-grid">' + stats.map(function (x) { return '<div class="bm-panel bm-stat"><div class="bm-in"><dt>' + x[0] + '</dt><dd class="' + x[2] + '">' + x[1] + '<small>' + esc(x[3]) + '</small></dd></div></div>'; }).join('') + '</dl></section>' +
-      '<div class="bm-sec"><h3>وصول سريع</h3><span></span></div><div class="bm-tiles">' +
-      tiles.map(function (t) { return '<button type="button" class="bm-tile bm-panel" data-nav="' + t[0] + '"><span class="bm-in"><span class="bm-tile-art"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[t[3]] + '</svg><em>' + t[4] + '</em></span><h4>' + t[1] + '</h4><p>' + t[2] + '</p></span></button>'; }).join('') + '</div>';
-  };
-
-  Dashboard.prototype.totalFields = function () { var n = 0, g = this.sm.games; for (var t in g) if (t.indexOf('__') !== 0) n += g[t].fields.length; return n; };
-  Dashboard.prototype.countTag = function (tag) { var g = this.sm.games[tag]; return g ? g.fields.length : 0; };
-  Dashboard.prototype.countCats = function (cats) { var n = 0, g = this.sm.games; for (var t in g) { if (t.indexOf('__') === 0) continue; g[t].fields.forEach(function (f) { if (cats.indexOf(f.cat) >= 0) n++; }); } return n; };
-  Dashboard.prototype.autoFields = function () { var out = [], g = this.sm.games; for (var t in g) { if (t.indexOf('__') === 0) continue; g[t].fields.forEach(function (f) { if (AUTO_RE.test(f.key)) out.push({ tag: t, f: f }); }); } return out; };
-  Dashboard.prototype.fieldLabel = function (tag, key) { var f = this.sm.field(tag, key), g = this.gameInfo(tag); return (g ? g.name + ' › ' : '') + (f ? f.label.replace(/\s*[—-].*$/, '') : key); };
-
-  Dashboard.prototype.vGames = function () {
-    var self = this, s = this.sm, q = this.q.trim().toLowerCase(), f = this.filter;
-    var list = this.games.filter(function (g) {
-      if (q && g.name.toLowerCase().indexOf(q) < 0 && g.tag.indexOf(q) < 0) return false;
-      if (f === 'custom') return s.customizedCount(g.tag) > 0;
-      if (f === 'can') return g.fields > 0;
+/* ---------------------- بطاقة لعبة + أرشيف + وحدة إعدادات اللعبة ---------------------- */
+const BatmishGameCard = {
+  html(g, sm, idx) {
+    const a = archOf(g.tag), cust = sm.customizedCount(g.tag), dirty = sm.dirtyCount(g.tag), can = g.fields > 0;
+    return '<article class="bm-gc bm-plate a-' + a + (cust ? ' is-custom' : '') + '" ' + (can ? 'tabindex="0" role="button" data-game="' + g.tag + '"' : 'aria-disabled="true"') + ' aria-label="' + esc(g.name) + '" style="--i:' + idx + '"><i class="bm-glow"></i>' +
+      '<div class="gc-art">' + ART[a] + '</div><div class="gc-top"><span class="gc-code">G-' + String(idx + 1).padStart(2, '0') + '</span><span class="bm-tag">' + ARCH[a].en + '</span></div>' +
+      '<div class="gc-glyph">' + glyph(g.tag) + '</div><div class="txt"><h4>' + esc(g.name) + '</h4><p>' + esc(g.desc) + '</p></div>' +
+      '<div class="gc-meta">' + (can ? '<span class="bm-tag">' + g.fields + ' إعداد</span>' : '<span class="bm-tag t-warn">غير قابلة للتخصيص بعد</span>') +
+      (cust ? '<span class="bm-tag t-sig">مخصصة · ' + cust + '</span>' : can ? '<span class="bm-tag t-ok">افتراضية</span>' : '') + (dirty ? '<span class="bm-tag t-elec">غير محفوظ · ' + dirty + '</span>' : '') + '</div>' +
+      (can ? '<div class="gc-cta"><span class="bm-btn b-prime b-sm"><span class="en">تعديل الإعدادات</span>' + ic('back') + '</span></div>' : '') + '</article>';
+  }
+};
+const BatmishGameArchive = {
+  list(d) {
+    const sm = d.sm, q = d.q.trim().toLowerCase();
+    return d.games.filter(g => {
+      if (d.arch !== 'all' && archOf(g.tag) !== d.arch) return false;
+      if (d.status === 'custom' && !sm.customizedCount(g.tag)) return false;
+      if (d.status === 'default' && sm.customizedCount(g.tag)) return false;
+      if (q && (g.name + ' ' + g.desc + ' ' + g.tag).toLowerCase().indexOf(q) < 0) return false;
       return true;
     });
-    return '<div class="bm-tools"><div class="bm-search"><label class="bm-sr" for="bm-q">بحث</label><input id="bm-q" type="search" data-q placeholder="ابحث عن لعبة" value="' + esc(this.q) + '" autocomplete="off"></div>' +
-      '<div class="bm-seg" role="group" aria-label="تصفية">' + [['all', 'الكل'], ['can', 'قابلة للتخصيص'], ['custom', 'مخصصة']].map(function (x) { return '<button type="button" data-filter="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
-      (list.length ? '<div class="bm-games">' + list.map(function (g) { return self.gameCard(g); }).join('') + '</div>' : this.empty('games', 'لا نتائج', 'ما فيه ألعاب تطابق بحثك.'));
-  };
-  Dashboard.prototype.gameCard = function (g) {
-    var s = this.sm, n = s.customizedCount(g.tag), can = g.fields > 0, dirty = s.dirtyCount(g.tag);
-    var badge = !can ? '<span class="bm-badge">غير قابلة للتخصيص بعد</span>' : n ? '<span class="bm-badge is-gold">مخصصة: ' + n + '</span>' : '<span class="bm-badge">افتراضية</span>';
-    return '<article class="bm-panel bm-gcard' + (can ? '' : ' is-off') + '"><div class="bm-in"><div class="bm-gcard-top"><div class="bm-gicon">' + (g.icon || ic('games')) + '</div><div><h4>' + esc(g.name) + '</h4></div></div>' +
-      '<p>' + esc(g.desc) + '</p><div class="bm-badges">' + badge + (can ? '<span class="bm-badge">' + g.fields + ' إعداد</span>' : '') + (dirty ? '<span class="bm-badge is-gold">غير محفوظ: ' + dirty + '</span>' : '') + '</div>' +
-      '<div class="bm-gcard-act">' + (can ? '<button type="button" class="bm-btn is-primary is-sm" data-game="' + esc(g.tag) + '">' + ic('adv') + 'الإعدادات</button><button type="button" class="bm-btn is-ghost is-sm" data-resetgame="' + esc(g.tag) + '"' + (n ? '' : ' disabled') + '>' + ic('reset') + 'إعادة للافتراضي</button>'
-        : '<span class="bm-tag-off" style="font-size:12px;color:var(--bm-mute);line-height:1.7">لا توجد إعدادات موصولة بمنطق هذي اللعبة بعد.</span>') + '</div></div></article>';
-  };
-
-  Dashboard.prototype.vGame = function (tag) {
-    var s = this.sm, g = s.games[tag], gi = this.gameInfo(tag);
-    if (!g) return this.empty('warn', 'اللعبة غير موجودة', 'هذي اللعبة ما فيها إعدادات قابلة للتخصيص.');
-    var self = this, tabs = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED'].filter(function (t) { return g.fields.some(function (f) { return f.tab === t; }); });
-    if (tabs.indexOf(this.tab) < 0) this.tab = tabs[0];
-    var fields = g.fields.filter(function (f) { return f.tab === self.tab; });
-    return '<button type="button" class="bm-btn is-ghost is-sm bm-back" data-nav="games">' + ic('back') + 'كل الألعاب</button>' +
-      '<div class="bm-gh"><div class="bm-gicon">' + ((gi && gi.icon) || ic('games')) + '</div><div><h2>' + esc(g.name === gi.name ? gi.name : (gi.name || g.name)) + '</h2><p>' + esc((gi && gi.desc) || g.desc) + '</p></div></div>' +
-      '<div class="bm-tabs" role="tablist">' + tabs.map(function (t) { var n = g.fields.filter(function (f) { return f.tab === t; }).length, d = g.fields.filter(function (f) { return f.tab === t && s.isDirty(tag, f.key); }).length;
-        return '<button type="button" role="tab" data-tab="' + t + '" aria-selected="' + (t === self.tab) + '">' + TAB_AR[t] + '<sup>' + n + (d ? ' · ' + d + '*' : '') + '</sup></button>'; }).join('') + '</div>' +
-      '<div class="bm-note">كل إعداد هنا موصول بمنطق اللعبة الفعلي. الإعدادات تُقرأ <b>عند بداية كل راوند</b>، فأي حفظ يُطبَّق من الراوند التالي ولا يغيّر راوند جاري.</div>' +
-      '<div class="bm-fields">' + fields.map(function (f) { return self.fieldHtml(tag, f); }).join('') + '</div>';
-  };
-
-  Dashboard.prototype.vSection = function (view) {
-    var info = SECTION_INFO[view], s = this.sm, self = this; if (!info) return '';
-    var rows = [];
-    if (info.tag) { var g = s.games[info.tag]; if (g) rows = [{ tag: info.tag, fields: g.fields }]; }
-    else { for (var t in s.games) { if (t.indexOf('__') === 0) continue; var fl = s.games[t].fields.filter(function (f) { return info.cats.indexOf(f.cat) >= 0; }); if (fl.length) rows.push({ tag: t, fields: fl }); } }
-    var intro = '<div class="bm-note"><b>' + info.title + '</b> — ' + esc(info.ar) + '. ' + (info.tag ? 'يطبّق على ألعاب الصفحة الرئيسية التي تستخدم WebAudio (لا يشمل ألعاب الـ3D داخل نافذة مستقلة).' : 'تعديل أي إعداد هنا هو نفس تعديله من صفحة اللعبة، ويُطبَّق من الراوند التالي.') + '</div>';
-    if (!rows.length) return intro + this.empty(view === 'stream' ? 'stream' : 'warn', 'غير موصول بعد',
-      view === 'stream' ? 'ما فيه إعدادات تفاعل موصولة فعلياً بمنطق الألعاب حالياً، فما نعرضها كأنها تشتغل. إذا حبّيت إعدادات محددة (مثل رسائل بداية الجولة)، أضيفها بدعم برمجي حقيقي داخل كل لعبة أول.' : 'ما فيه إعدادات في هذا القسم.');
-    return intro + rows.map(function (r) {
-      var gi = self.gameInfo(r.tag);
-      return '<div class="bm-group"><h4>' + esc(r.tag === '__site' ? s.games.__site.name : (gi ? gi.name : r.tag)) + '</h4><span>' + r.fields.length + ' إعداد</span>' +
-        (r.tag === '__site' ? '' : '<button type="button" class="bm-btn is-ghost is-sm" data-game="' + esc(r.tag) + '">' + ic('adv') + 'فتح</button>') + '</div>' +
-        '<div class="bm-fields">' + r.fields.map(function (f) { return self.fieldHtml(r.tag, f); }).join('') + '</div>';
+  },
+  grid(d) {
+    const list = this.list(d);
+    return list.length ? '<div class="bm-gamegrid v-' + d.vm + '" id="bm-grid">' + list.map(g => BatmishGameCard.html(g, d.sm, d.games.indexOf(g))).join('') + '</div>'
+      : '<div class="bm-plate bm-box" id="bm-grid"><div class="bm-empty">' + ic('search') + '<h4>لا نتائج مطابقة</h4><p>ما فيه ألعاب تطابق البحث أو التصفية الحالية.</p></div></div>';
+  },
+  html(d) {
+    const sm = d.sm, total = d.games.length, can = d.games.filter(g => g.fields > 0).length, cust = d.games.filter(g => sm.customizedCount(g.tag)).length;
+    const chips = ['all'].concat(Object.keys(ARCH)).map(k => {
+      const n = k === 'all' ? total : d.games.filter(g => archOf(g.tag) === k).length; if (!n && k !== 'all') return '';
+      return '<button type="button" class="bm-chip" data-arch="' + k + '" aria-pressed="' + (d.arch === k) + '">' + (k === 'all' ? 'الكل' : ARCH[k].ar) + '<span class="n">' + n + '</span></button>';
     }).join('');
-  };
-
-  Dashboard.prototype.vAdvanced = function () {
-    var s = this.sm, self = this, q = this.q.trim().toLowerCase(), out = '';
-    var tags = Object.keys(s.games).filter(function (t) { return t.indexOf('__') !== 0; });
-    out += '<div class="bm-tools"><div class="bm-search"><label class="bm-sr" for="bm-q">بحث</label><input id="bm-q" type="search" data-q placeholder="ابحث في كل الإعدادات" value="' + esc(this.q) + '" autocomplete="off"></div></div>';
-    var any = false;
-    tags.forEach(function (t) {
-      var gi = self.gameInfo(t), fl = s.games[t].fields.filter(function (f) { return !q || f.label.toLowerCase().indexOf(q) >= 0 || (gi && gi.name.toLowerCase().indexOf(q) >= 0) || f.key.toLowerCase().indexOf(q) >= 0; });
-      if (!fl.length) return; any = true;
-      out += '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + fl.length + ' إعداد</span></div><div class="bm-fields">' + fl.map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
-    });
-    return any ? out : out + this.empty('adv', 'لا نتائج', 'ما فيه إعدادات تطابق بحثك.');
-  };
-
-  Dashboard.prototype.vAuto = function () {
-    var self = this, s = this.sm, list = this.autoFields(), byGame = {};
-    list.forEach(function (x) { (byGame[x.tag] = byGame[x.tag] || []).push(x.f); });
-    var intro = '<div class="bm-note"><b>السلوكيات التلقائية</b> — هذي السلوكيات التلقائية اللي تنفّذها الألعاب فعلاً (انتهاء الوقت، تمرير الدور، الإنعاش عبر الهدايا، تسريع الخلط…) وتقدر تضبط توقيتها وتفعيلها. ' +
-      'بناء قواعد مخصصة جديدة (إذا حصل X سوّي Y) غير متاح حالياً: ما فيه نقاط ربط آمنة داخل الألعاب تسمح بذلك بدون المساس بمنطق الفوز والإقصاء، فما نعرضه كأنه يشتغل.</div>';
-    return intro + Object.keys(byGame).map(function (t) {
-      var gi = self.gameInfo(t);
-      return '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + byGame[t].length + ' سلوك</span></div><div class="bm-fields">' + byGame[t].map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
+    const st = [['all', 'الكل'], ['custom', 'المعدلة'], ['default', 'الافتراضية']].map(x => '<button type="button" class="bm-chip" data-status="' + x[0] + '" aria-pressed="' + (d.status === x[0]) + '">' + x[1] + '</button>').join('');
+    const vm = [['grid', 'grid', 'شبكة'], ['list', 'list', 'قائمة'], ['compact', 'dense', 'مضغوط']].map(x => '<button type="button" data-vm="' + x[0] + '" aria-pressed="' + (d.vm === x[0]) + '" aria-label="' + x[2] + '" title="' + x[2] + '">' + ic(x[1]) + '</button>').join('');
+    return '<div class="bm-pagehead"><div><span class="bm-eyebrow">أرشيف غوثام التكتيكي</span><h2>أرشيف الألعاب</h2><p>أرشيف الألعاب القابلة للتخصيص. اختر لعبة لتدخل وحدة التحكم الخاصة بها.</p></div></div>' +
+      '<div class="bm-arch-bar bm-plate"><i class="bm-glow"></i><div class="bm-arch-row"><div class="bm-search">' + ic('search') + '<input class="bm-input" data-q type="search" value="' + esc(d.q) + '" placeholder="ابحث باسم اللعبة أو وصفها…" aria-label="بحث في الألعاب" autocomplete="off"><kbd>/</kbd></div>' +
+      '<div class="bm-seg">' + st + '</div><div class="bm-vm" role="group" aria-label="طريقة العرض">' + vm + '</div></div>' +
+      '<div class="bm-arch-row"><div class="bm-chips" role="group" aria-label="التصنيفات">' + chips + '</div></div>' +
+      '<div class="bm-count"><span><b>' + total + '</b> لعبة</span><span><b>' + can + '</b> قابلة للتخصيص</span><span class="y"><b>' + cust + '</b> مخصصة</span></div></div>' + this.grid(d);
+  }
+};
+const BatmishGameSettings = {
+  groups(d, tag) {
+    const sm = d.sm, g = sm.games[tag], fields = g.fields.filter(f => f.tab === d.tab); if (!fields.length) return '';
+    const cats = []; fields.forEach(f => { if (cats.indexOf(f.cat) < 0) cats.push(f.cat); });
+    const adv = d.tab === 'ADVANCED';
+    return cats.map(c => {
+      const fl = fields.filter(f => f.cat === c), key = tag + '.' + d.tab + '.' + c, anyMod = fl.some(f => sm.isModified(tag, f.key) || sm.isDirty(tag, f.key));
+      const coll = key in d.xs ? d.xs[key] : (adv && !anyMod && cats.length > 1 && cats.indexOf(c) > 0);
+      const info = CAT_INFO[c] || [c.toUpperCase(), c];
+      return '<section class="bm-grp cat-' + c + (coll ? ' is-x' : '') + '"><button type="button" class="bm-grp-h" data-grp="' + key + '" aria-expanded="' + (!coll) + '"><span class="bar"></span><span class="en">' + info[0] + '</span><span class="ar">' + info[1] + '</span><span class="ln"></span><span class="cnt">' + fl.length + '</span>' + ic('chev', 'chev') + '</button>' +
+        '<div class="bm-fields">' + fl.map(f => BatmishSettingsPanel.html(sm, d.errs, tag, f)).join('') + '</div></section>';
     }).join('');
-  };
+  },
+  html(d, tag) {
+    const sm = d.sm, g = sm.games[tag], gi = d.gameInfo(tag); if (!g || !gi) return d.empty('warn', 'اللعبة غير موجودة', 'اللعبة غير موجودة في الكتالوج.');
+    const a = archOf(tag), mod = sm.modifiedCount(tag), dirty = sm.dirtyCount(tag), n = g.fields.length;
+    const present = TABS.filter(t => g.fields.some(f => f.tab === t));
+    if (present.indexOf(d.tab) < 0) d.tab = present[0];
+    const segs = g.fields.map(f => '<i class="' + (sm.isDirty(tag, f.key) ? 'un' : sm.isModified(tag, f.key) ? 'on' : '') + '"></i>').join('');
+    const tabs = TABS.map(t => {
+      const cnt = g.fields.filter(f => f.tab === t).length, dd = g.fields.some(f => f.tab === t && sm.isDirty(tag, f.key));
+      return '<button type="button" class="bm-tab" role="tab" data-tab="' + t + '" aria-selected="' + (d.tab === t) + '"' + (cnt ? '' : ' disabled') + '><span class="ar">' + TAB_AR[t] + '</span><span class="n">' + cnt + '</span>' + (dd ? '<span class="d"></span>' : '') + '</button>';
+    }).join('');
+    return '<div class="bm-pagehead" style="margin-bottom:14px;padding-bottom:12px"><button type="button" class="bm-btn b-ghost b-sm" data-nav="db"><span style="display:inline-flex;transform:scaleX(-1)">' + ic('back') + '</span><span class="en">العودة للأرشيف</span></button><div class="act"><button type="button" class="bm-btn b-ghost b-sm" data-resetgame="' + tag + '"' + (sm.customizedCount(tag) ? '' : ' disabled') + '>' + ic('reset') + 'إعادة اللعبة للافتراضي</button></div></div>' +
+      '<section class="bm-gh bm-plate a-' + a + '"><i class="bm-glow"></i><div class="gc-art">' + ART[a] + '</div><div class="glyph">' + glyph(tag) + '</div>' +
+      '<div><span class="bm-eyebrow">وحدة إعدادات اللعبة · ' + ARCH[a].ar + '</span><h2>' + esc(gi.name) + '</h2><p>' + esc(gi.desc) + '</p><div class="tags"><span class="bm-tag">' + n + ' إعداد</span>' + (mod ? '<span class="bm-tag t-sig">مخصصة</span>' : '<span class="bm-tag t-ok">افتراضية</span>') + (dirty ? '<span class="bm-tag t-elec">غير محفوظ · ' + dirty + '</span>' : '') + '</div></div>' +
+      '<div class="side"><div class="bm-meter"><div class="top"><span>المعدّل</span><span><b>' + mod + '</b> / ' + n + '</span></div><div class="bar">' + segs + '</div></div></div></section>' +
+      '<div class="bm-tabs" role="tablist" aria-label="أقسام الإعدادات">' + tabs + '</div>' + this.groups(d, tag);
+  }
+};
 
-  Dashboard.prototype.vPresets = function () {
-    var self = this, s = this.sm, tags = Object.keys(s.games).filter(function (t) { return t.indexOf('__') !== 0; });
-    if (!this.presetTag || tags.indexOf(this.presetTag) < 0) this.presetTag = tags[0];
-    var tag = this.presetTag, list = this.presets.forGame(tag), def = s.defaultPresets[tag];
-    var sel = '<select class="bm-input" data-presettag aria-label="اللعبة">' + tags.map(function (t) { var gi = self.gameInfo(t); return '<option value="' + t + '"' + (t === tag ? ' selected' : '') + '>' + esc(gi ? gi.name : t) + '</option>'; }).join('') + '</select>';
-    var intro = '<div class="bm-note">المجموعة تحفظ تخصيصك للعبة <b>واحدة</b> فقط، وتطبيقها لا يمس إعدادات أي لعبة ثانية. أمثلة أسماء: CLASSIC NIGHT · DARK CHALLENGE · FAST ROUND · COMPETITIVE MODE · COMMUNITY NIGHT.</div>';
-    var form = '<div class="bm-form" style="margin:0 0 18px">' + sel + '<input class="bm-input is-grow" id="bm-pname" maxlength="40" placeholder="اسم المجموعة الجديدة (من إعدادات اللعبة الحالية)" aria-label="اسم المجموعة"><button type="button" class="bm-btn is-primary" data-act="newpreset">' + ic('presets') + 'إنشاء مجموعة</button></div>';
-    var rows = list.length ? '<div class="bm-list">' + list.map(function (p) {
-      var n = Object.keys(p.values).length;
-      return '<div class="bm-panel bm-row"><div class="bm-in"><div class="bm-row-main"><b>' + esc(p.name) + (def === p.id ? ' <span class="bm-badge is-gold">الافتراضية</span>' : '') + '</b><small>' + n + ' إعداد مخصص · ' + ago(p.updatedAt) + '</small></div><div class="bm-row-act">' +
-        '<button type="button" class="bm-btn is-primary is-sm" data-presetact="apply" data-id="' + p.id + '">' + ic('play') + 'تطبيق</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="overwrite" data-id="' + p.id + '">' + ic('save') + 'تحديث</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="rename" data-id="' + p.id + '">' + ic('edit') + 'تسمية</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="duplicate" data-id="' + p.id + '">' + ic('copy') + 'نسخ</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="default" data-id="' + p.id + '"' + (def === p.id ? ' disabled' : '') + '>' + ic('star') + 'افتراضية</button>' +
-        '<button type="button" class="bm-btn is-ghost is-danger is-sm" data-presetact="delete" data-id="' + p.id + '">' + ic('trash') + 'حذف</button></div></div></div>';
-    }).join('') + '</div>' : this.empty('presets', 'لا توجد مجموعات', 'ما أنشأت مجموعات للعبة هذي بعد. عدّل إعداداتها ثم احفظها كمجموعة.');
-    return intro + form + rows;
-  };
+/* ---------------------- مركز القيادة ---------------------- */
+const BatmishCommandCenter = {
+  html(d) {
+    const sm = d.sm, games = d.games, canN = games.filter(g => g.fields > 0).length, custG = games.filter(g => sm.customizedCount(g.tag)).length;
+    const tf = d.totalFields(), cu = sm.totalCustomized(), presetsN = Object.keys(sm.presets).length, last = d.hist.items[0];
+    const frac = tf ? cu / tf : 0, CI = 119.4;
+    const lastTxt = last ? ago(last.ts) : (sm.lastChange ? 'الآن' : 'لا يوجد تعديل');
+    const lastSub = last ? shortLabel(sm.field(last.tag, last.key), last.key) : 'لم يُسجَّل أي تعديل بعد';
+    const segs = games.map(g => '<i class="' + (sm.customizedCount(g.tag) ? 'on' : '') + '"></i>').join('');
+    const unit = (viz, en, big, small) => '<div class="bm-unit"><div class="viz">' + viz + '</div><div class="lbl"><span class="en">' + en + '</span><b>' + big + '</b><small>' + small + '</small></div></div>';
+    const status = '<aside class="bm-status bm-plate"><i class="bm-glow"></i><div class="bm-status-h"><span class="en">حالة النظام</span><span class="bm-tag t-ok">يعمل</span></div>' +
+      unit('<div class="bm-sig" style="height:26px"><i></i><i></i><i></i><i></i><i></i></div>', 'ربط البث', 'مربوط', 'مؤكد من الخادم · @' + STREAMER) +
+      unit('<svg class="bm-ring" viewBox="0 0 46 46"><circle class="bg" cx="23" cy="23" r="19"/><circle class="fg" cx="23" cy="23" r="19" stroke-dasharray="' + CI + '" stroke-dashoffset="' + (CI * (1 - Math.max(frac, .02))).toFixed(1) + '"/></svg><span class="bm-ring-n">' + cu + '</span>', 'الإعدادات النشطة', '<span class="mono">' + cu + ' <span style="font-size:12px;color:#7e8ea8">/ ' + tf + '</span></span>', 'إعدادات مغيّرة عن الافتراضي') +
+      unit('<div class="bm-segs">' + segs + '</div>', 'الألعاب المخصصة', '<span class="mono">' + custG + ' <span style="font-size:12px;color:#7e8ea8">/ ' + canN + '</span></span>', 'ألعاب لها تخصيص نشط') +
+      unit('<div class="bm-cards-stack"><i></i><i></i><i></i></div>', 'المجموعات المحفوظة', presetsN, 'مجموعات محفوظة') +
+      unit('<svg class="bm-pulse-line" viewBox="0 0 54 30"><path d="M0 18h12l4-12 6 22 5-16 4 6h23"/></svg>', 'آخر تعديل', esc(lastTxt), esc(lastSub)) + '</aside>';
+    const hero = '<section class="bm-hero"><div class="bm-hero-main bm-plate"><i class="bm-glow"></i><div class="bm-hero-emblem"><span class="bm-radar"></span><span class="bm-radar r2"></span><span class="bm-radar r3"></span><span class="bm-radar-x"></span><span class="bm-radar-y"></span><span class="bm-radar-sweep"></span>' +
+      '<svg class="bat" viewBox="0 0 200 100"><path d="' + BAT_PATH + '"/></svg></div><div class="bm-hero-body"><span class="bm-eyebrow">غوثام · كهف الخفاش</span><h1>BATMISH</h1><h2>مركز قيادة الفارس المظلم</h2>' +
+      '<div class="bm-welcome">أهلاً بعودتك، <b class="mono">@' + STREAMER + '</b></div><div class="bm-hero-tags"><span class="bm-tag t-ok">الربط مؤكد</span><span class="bm-tag t-elec">إصدار ' + sm.rev + '</span><span class="bm-tag">' + canN + ' لعبة مجهّزة</span></div></div></div>' + status + '</section>';
+    const cnt = c => d.countCats(c);
+    const Q = [
+      ['db', 'قاعدة الألعاب', 'أرشيف كل الألعاب وإعداداتها', canN + ' لعبة', 'c5 tall sq-a hot', ''], ['round', 'التحكم بالجولات', 'مدد وعدّادات ومحاولات الجولات', cnt(['round']) + ' إعداد', 'c4 tall sq-b', ''], ['players', 'تجربة اللاعبين', 'الإنعاش وعدد المرات المسموحة', cnt(['players']) + ' إعداد', 'c3 tall sq-c', ''],
+      ['settings', 'إعدادات الألعاب', 'كل الإعدادات في مكان واحد', tf + ' إعداد', 'c3 sq-d', ''], ['balance', 'موازنة الألعاب', 'النقاط والصعوبة والموازنة', cnt(['scoring', 'balance', 'difficulty']) + ' إعداد', 'c4 sq-e', ''], ['av', 'الصوت والمرئيات', 'مستوى الصوت وكثافة المؤثرات', d.countTag('__site') + ' إعداد', 'c5 sq-a hot', ''],
+      ['stream', 'تفاعل البث', 'تفاعل جمهور البث', 'غير موصول بعد', 'c4 sq-c dim', 'warn'], ['auto', 'الأتمتة', 'سلوكيات تلقائية قابلة للضبط', d.autoFields().length + ' سلوك', 'c4 sq-b', ''], ['presets', 'المجموعات', 'مجموعات محفوظة', presetsN + ' محفوظة', 'c2 sq-d', ''], ['history', 'السجل', 'سجل وتراجع', 'السجل الكامل', 'c2 sq-e', '']
+    ];
+    const quick = '<div class="bm-quick">' + Q.map((q, i) => {
+      const n = NAV_BY[q[0]], cls = q[4];
+      return '<button type="button" class="bm-qc bm-plate ' + cls + '" data-nav="' + q[0] + '"><i class="bm-glow"></i><span class="art">' + QART[q[0]] + '</span><span class="num">' + String(i + 2).padStart(2, '0') + '</span><span class="ico">' + ic(n[3]) + '</span>' +
+        '<h4>' + n[1] + '</h4><p>' + q[2] + '</p><span class="meta"><span class="bm-tag ' + (q[5] === 'warn' ? 't-warn' : '') + '">' + q[3] + '</span></span></button>';
+    }).join('') + '</div>';
+    return hero + '<div class="bm-sec"><h3>وصول سريع</h3><span class="ar"></span></div>' + quick +
+      '<div class="bm-sec"><h3>آخر العمليات</h3><span class="ar"></span><span class="cnt">' + d.hist.items.length + '</span></div>' + BatmishActivityTimeline.html(d.hist.items, sm, t => d.gameName(t), 6);
+  }
+};
 
-  Dashboard.prototype.vHistory = function () {
-    var self = this, s = this.sm, tags = Object.keys(s.games);
-    var items = this.hist.items.filter(function (e) { return !self.histTag || e.tag === self.histTag; });
-    var sel = '<select class="bm-input" data-histtag aria-label="تصفية حسب اللعبة"><option value="">كل الألعاب</option>' + tags.map(function (t) { var gi = self.gameInfo(t); return '<option value="' + t + '"' + (t === self.histTag ? ' selected' : '') + '>' + esc(gi ? gi.name : t) + '</option>'; }).join('') + '</select>';
-    var bar = '<div class="bm-form" style="margin-bottom:18px">' + sel + '<button type="button" class="bm-btn is-ghost" data-act="histrefresh">' + ic('reset') + 'تحديث</button>' +
-      (this.histTag && s.customizedCount(this.histTag) ? '<button type="button" class="bm-btn is-ghost is-danger" data-act="restoregame">' + ic('reset') + 'استرجاع افتراضي اللعبة</button>' : '') + '</div>';
-    var note = '<div class="bm-note">التراجع يرجّع <b>إعداداً</b> لقيمته القديمة للراوندات القادمة فقط. ما يلمس جولات انتهت ولا نتائجها لأن الإعداد يُقرأ عند بداية كل راوند.</div>';
-    var statusAr = { saved: 'محفوظ', reset: 'إعادة للافتراضي', reverted: 'تراجع' };
-    var rows = items.length ? '<div class="bm-list">' + items.map(function (e) {
-      var f = s.field(e.tag, e.key), gi = self.gameInfo(e.tag);
-      return '<div class="bm-panel bm-row"><div class="bm-in"><div class="bm-row-main"><b>' + esc(gi ? gi.name : e.tag) + ' › ' + esc(f ? f.label.replace(/\s*[—-].*$/, '') : e.key) + '</b>' +
-        '<small>' + ago(e.ts) + (e.preset ? ' · مجموعة: ' + esc(e.preset) : '') + ' · <span class="bm-en" style="letter-spacing:.1em">' + (statusAr[e.status] || e.status) + (e.reverted ? ' · تم التراجع عنه لاحقاً' : '') + '</span> · تُطبَّق من الراوند التالي</small></div>' +
-        '<div class="bm-diff"><s>' + esc(fmtVal(f, e.old)) + '</s><span>→</span><i>' + esc(fmtVal(f, e.new)) + '</i></div>' +
-        '<div class="bm-row-act"><button type="button" class="bm-btn is-ghost is-sm" data-revert="' + e.id + '"' + (e.reverted || !f ? ' disabled' : '') + '>' + ic('reset') + 'تراجع</button></div></div></div>';
-    }).join('') + '</div>' : this.empty('history', 'لا توجد تعديلات بعد', 'لسا ما عدّلت أي إعداد. كل تعديل تحفظه يظهر هنا.');
-    return note + bar + rows;
-  };
-
-  /* ------------------------------------------------------------ حقل إعداد */
-  Dashboard.prototype.fieldHtml = function (tag, f) {
-    var s = this.sm, v = s.value(tag, f.key), mod = s.isModified(tag, f.key), dirty = s.isDirty(tag, f.key), id = 'bmf-' + tag + '-' + f.key, fk = tag + '.' + f.key;
-    var bad = this.errs[fk];
-    var ctrl = '';
-    if (f.type === 'toggle') {
-      ctrl = '<label class="bm-switch"><input type="checkbox" id="' + id + '" data-k="' + fk + '"' + (v ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt" data-onoff>' + (v ? 'تشغيل' : 'إيقاف') + '</span></label>';
-    } else if (f.type === 'number') {
-      var step = Math.max(1, Math.round((f.max - f.min) / 160));
-      ctrl = '<div class="bm-ctrl-row"><input class="bm-range" type="range" tabindex="-1" aria-hidden="true" min="' + f.min + '" max="' + f.max + '" step="' + step + '" value="' + esc(v) + '" data-k="' + fk + '" data-r="1">' +
-        '<input class="bm-numin" type="number" inputmode="numeric" id="' + id + '" min="' + f.min + '" max="' + f.max + '" step="1" value="' + esc(v) + '" data-k="' + fk + '" data-n="1" aria-label="' + esc(f.label) + '">' + (f.unit ? '<span class="bm-unit">' + esc(f.unit) + '</span>' : '') + '</div>';
-    } else if (f.type === 'numberArray') {
-      ctrl = '<div class="bm-ctrl-row is-arr">' + v.map(function (x, i) { return '<input class="bm-numin is-s" type="number" inputmode="numeric" min="' + f.min + '" max="' + f.max + '" value="' + esc(x) + '" data-k="' + fk + '" data-i="' + i + '" aria-label="' + esc(f.label) + ' ' + (i + 1) + '">'; }).join('') + '</div>';
-    }
-    return '<div class="bm-panel bm-field' + (mod || dirty ? ' is-mod' : '') + (bad ? ' is-bad' : '') + '" data-fk="' + fk + '"><div class="bm-in"><div><div class="bm-field-label"><label for="' + id + '">' + esc(f.label) + '</label></div><div class="bm-field-hint">' + esc(f.hint || '') + '</div>' +
-      '<div class="bm-field-meta"><span class="bm-badge">الافتراضي: ' + esc(fmtVal(f, f.default)) + '</span>' + (dirty ? '<span class="bm-badge is-gold">غير محفوظ</span>' : mod ? '<span class="bm-badge is-gold">مخصص</span>' : '') +
-      '<button type="button" class="bm-btn is-ghost is-sm" data-resetkey="' + fk + '"' + (mod || dirty ? '' : ' disabled') + '>' + ic('reset') + 'الافتراضي</button></div></div>' +
-      '<div class="bm-ctrl">' + ctrl + '<div class="bm-err" role="alert" data-err>' + esc(bad || '') + '</div></div></div></div>';
-  };
-
-  Dashboard.prototype.refreshField = function (fk) {
-    var i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), s = this.sm, f = s.field(tag, key); if (!f) return;
-    var mod = s.isModified(tag, key), dirty = s.isDirty(tag, key), bad = this.errs[fk];
-    $all('.bm-field[data-fk="' + fk + '"]', this.root).forEach(function (row) {
-      row.classList.toggle('is-mod', mod || dirty); row.classList.toggle('is-bad', !!bad);
-      var er = $('[data-err]', row); if (er) er.textContent = bad || '';
-      var meta = $('.bm-field-meta', row);
-      if (meta) {
-        var old = $all('.bm-badge.is-gold', meta); old.forEach(function (b) { b.remove(); });
-        var btn = $('[data-resetkey]', meta);
-        if (dirty || mod) { var b = document.createElement('span'); b.className = 'bm-badge is-gold'; b.textContent = dirty ? 'غير محفوظ' : 'مخصص'; meta.insertBefore(b, btn); }
-        if (btn) btn.disabled = !(mod || dirty);
-      }
+/* =====================================================================
+   BatmishDashboard — المتحكم الرئيسي (يربط كل المكونات بالمدراء)
+   ===================================================================== */
+class Dashboard {
+  constructor() {
+    this.root = null; this.sm = new SettingsManager(); this.presets = new PresetManager(this.sm); this.hist = new HistoryManager(this.sm);
+    this.ready = false; this.loadError = null; this.games = []; this.view = 'cmd'; this.arg = null; this.tab = 'GENERAL'; this.q = ''; this.arch = 'all'; this.status = 'all';
+    this.vm = 'grid'; try { this.vm = localStorage.getItem('batmish:vm') || 'grid'; } catch (e) {}
+    this.errs = {}; this.xs = {}; this.sq = ''; this.scat = 'all'; this.presetTag = null; this.histTag = ''; this.lastView = null;
+    this.sm.on(w => this.onSm(w));
+  }
+  /* ---------- دورة الحياة ---------- */
+  open() {
+    if (!this.root) this.build();
+    document.body.classList.add('bm-lock');
+    this.root.classList.add('is-open', 'is-booting'); this.root.classList.remove('is-closing');
+    clearTimeout(this._bt); this._bt = setTimeout(() => this.root.classList.remove('is-booting'), 1700);
+    this.render('first'); this.loadAll();
+    setTimeout(() => { const b = $('.bm-nav-item.is-active', this.root); if (b && window.innerWidth > 860) b.focus({ preventScroll: true }); }, 900);
+  }
+  close(o) {
+    if (!this.root || !this.root.classList.contains('is-open')) return;
+    const fin = () => { this.root.classList.remove('is-open', 'is-closing', 'is-nav'); document.body.classList.remove('bm-lock'); if (window.Batmish && Batmish.onClose) Batmish.onClose(); };
+    if (o && o.silent) return fin();
+    this.root.classList.add('is-closing'); setTimeout(fin, 420);
+  }
+  requestClose() {
+    const n = this.sm.dirtyCount();
+    if (!n) return this.close();
+    this.confirm({ title: 'تعديلات غير محفوظة', text: 'عندك ' + n + ' تعديل غير محفوظ. تقدر تغلق اللوحة — المسودة تبقى محفوظة على جهازك لين ترجع.', ok: 'إغلاق', danger: false }).then(y => { if (y) this.close(); });
+  }
+  loadAll() {
+    this.ready = false; this.loadError = null;
+    ConfigurationService.bootstrap().then(boot => {
+      this.sm.load(boot, (B.controller.user() || {}).uid); this.games = this.discover(boot.games); this.ready = true;
+      return this.hist.load().catch(() => []);
+    }).then(() => { this.ready = true; this.render(this._first ? 'soft' : 'first'); this.updateStatus(); this.updateSavebar(); }, e => { this.loadError = e; this.render('soft'); });
+  }
+  discover(games) {
+    // كل ألعاب الموقع: سجل البطاقات الفعلي في الصفحة (.gcard[data-tag]) + ما يعلنه الخادم من حقول موصولة. اللعبة بلا حقول تظهر «غير قابلة للتخصيص بعد».
+    const seen = {}, out = [];
+    $all('.gcard[data-tag]').forEach(c => {
+      const tag = c.getAttribute('data-tag'); if (!tag || seen[tag] || tag.indexOf('__') === 0) return; seen[tag] = 1;
+      const nm = c.querySelector('.gcard-name'), ds = c.querySelector('.gcard-desc'), g = games[tag];
+      out.push({ tag, name: (nm && nm.textContent.trim()) || (g && g.name) || tag, desc: c.getAttribute('data-short') || (ds && ds.textContent.trim()) || (g && g.desc) || '', fields: g ? g.fields.length : 0 });
     });
-    $all('.bm-tabs [data-tab]', this.root).forEach(function () { /* عدّادات التبويبات تتحدّث عند التبديل */ });
-  };
+    Object.keys(games).forEach(t => { if (seen[t] || t.indexOf('__') === 0) return; out.push({ tag: t, name: games[t].name, desc: games[t].desc || '', fields: games[t].fields.length }); });
+    return out.sort((a, b) => (b.fields > 0) - (a.fields > 0));
+  }
+  onSm(w) {
+    if (w === 'state' || w === 'drafts') { this.updateStatus(); this.updateSavebar(); }
+    if (w === 'saved') { this.toast('تم الحفظ — يُطبَّق من الراوند التالي.', 'ok'); this.hist.load(this.histTag).then(() => this.soft(true)); this.updateStatus(); this.updateSavebar(); }
+    if (w === 'conflict') this.toast(errMsg({ code: 'conflict' }) + '. حدّثناها، راجع تعديلاتك.', 'err');
+    if (w === 'error') this.toast(errMsg(this.sm.lastError), 'err');
+    if (w === 'drafts') this.soft();
+  }
+  /* ---------- البناء ---------- */
+  build() {
+    const r = document.createElement('div'); r.className = 'bm'; r.id = 'batmish-root'; r.setAttribute('dir', 'rtl'); r.setAttribute('lang', 'ar'); r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-label', 'BATMISH — لوحة التحكم');
+    r.innerHTML = BatmishAtmosphere.html() + '<div class="bm-boot"><div class="bm-boot-line"></div><div class="bm-boot-txt"><div>&gt; الاتصال بكهف الخفاش ........ تم</div><div>&gt; الستريمر @' + STREAMER + ' ... تم التحقق</div><div>&gt; وحدات الإعدادات ..... تعمل</div><div>&gt; أهلاً بك في غوثام</div></div></div>' +
+      BatmishHeader.html() + BatmishNavigation.html() + '<div class="bm-scrim" data-act="menu"></div>' +
+      '<main class="bm-main bm-scroll" id="bm-main"><div class="bm-view" id="bm-view"></div>' +
+      '<div class="bm-savebar bm-plate" id="bm-savebar"><div class="bm-savebar-in"><div class="msg" id="bm-savebar-msg"></div><div class="act" id="bm-savebar-act"></div></div></div></main>' +
+      BatmishMobileNavigation.html() + '<div class="bm-toasts" id="bm-toasts" aria-live="polite"></div>';
+    document.body.appendChild(r); this.root = r;
+    r.addEventListener('click', e => this.onClick(e)); r.addEventListener('input', e => this.onInput(e)); r.addEventListener('change', e => this.onChange(e));
+    r.addEventListener('keydown', e => this.onKey(e));
+    let raf = 0;
+    r.addEventListener('pointermove', e => {
+      if (raf) return; const x = e.clientX, y = e.clientY, t = e.target; raf = requestAnimationFrame(() => {
+        raf = 0; const at = $('.bm-atmo', r); if (at) { at.style.setProperty('--px', (x / innerWidth * 2 - 1).toFixed(3)); at.style.setProperty('--py', (y / innerHeight * 2 - 1).toFixed(3)); }
+        const pl = t.closest && t.closest('.bm-plate'); if (pl) { const b = pl.getBoundingClientRect(); pl.style.setProperty('--mx', ((x - b.left) / b.width).toFixed(3)); pl.style.setProperty('--my', ((y - b.top) / b.height).toFixed(3)); }
+      });
+    });
+    document.addEventListener('keydown', this._esc = e => { if (e.key !== 'Escape' || !this.root.classList.contains('is-open')) return; if ($('.bm-modal', this.root)) return; if (this.root.classList.contains('is-nav')) { this.root.classList.remove('is-nav'); return; } this.requestClose(); });
+    document.addEventListener('focusin', this._trap = e => { if (this.root.classList.contains('is-open') && !this.root.contains(e.target) && !e.target.closest('.bm-warp')) { const f = $('.bm-nav-item', this.root); if (f) f.focus(); } });
+    if (window.matchMedia && matchMedia('(max-width:860px)').matches) r.classList.add('is-calm');
+  }
+  /* ---------- مساعدات بيانات ---------- */
+  gameInfo(tag) { for (const g of this.games) if (g.tag === tag) return g; const g = this.sm.games[tag]; return g ? { tag, name: g.name, desc: g.desc, fields: g.fields.length } : null; }
+  gameName(tag) { const g = this.gameInfo(tag); return g ? g.name : tag; }
+  totalFields() { let n = 0; for (const t in this.sm.games) if (t.indexOf('__') !== 0) n += this.sm.games[t].fields.length; return n; }
+  countTag(tag) { const g = this.sm.games[tag]; return g ? g.fields.length : 0; }
+  countCats(cats) { let n = 0; for (const t in this.sm.games) { if (t.indexOf('__') === 0) continue; this.sm.games[t].fields.forEach(f => { if (cats.indexOf(f.cat) >= 0) n++; }); } return n; }
+  autoFields() { const out = []; for (const t in this.sm.games) { if (t.indexOf('__') === 0) continue; this.sm.games[t].fields.forEach(f => { if (AUTO_RE.test(f.key)) out.push({ tag: t, f }); }); } return out; }
+  fieldsOf(cats) { const out = []; for (const t in this.sm.games) { if (t.indexOf('__') === 0) continue; const fl = this.sm.games[t].fields.filter(f => cats.indexOf(f.cat) >= 0); if (fl.length) out.push({ tag: t, fields: fl }); } return out; }
+  /* ---------- التنقل والعرض ---------- */
+  go(view, arg) {
+    if (view === 'game') { if (this.view !== 'game' || this.arg !== arg) this.tab = 'GENERAL'; }
+    this.view = view; this.arg = arg || null; this.root.classList.remove('is-nav');
+    if (view === 'history' && this.ready) this.hist.load(this.histTag).then(() => this.render('nav'), () => this.render('nav')); else this.render('nav');
+  }
+  crumb() { const v = this.view === 'game' ? 'db' : this.view, n = NAV_BY[v]; return this.view === 'game' ? ['قاعدة الألعاب', this.gameName(this.arg)] : [n[1], n[2]]; }
+  activeNav() { return this.view === 'game' ? 'db' : this.view; }
+  render(mode) {
+    const main = $('#bm-main', this.root), v = $('#bm-view', this.root); if (!v) return;
+    let html;
+    if (this.loadError) html = this.vError(); else if (!this.ready) html = this.vSkeleton();
+    else { const fn = { cmd: 'vCmd', db: 'vDb', game: 'vGame', settings: 'vSettings', round: 'vRound', players: 'vPlayers', stream: 'vStream', balance: 'vBalance', av: 'vAv', auto: 'vAuto', presets: 'vPresets', history: 'vHistory' }[this.view]; html = this[fn](); }
+    const scroll = main.scrollTop;
+    v.classList.remove('is-in', 'is-flip'); v.innerHTML = html;
+    if (mode === 'nav' || mode === 'first') {
+      Array.prototype.forEach.call(v.children, (el, i) => el.style.setProperty('--i', Math.min(i, 10))); void v.offsetWidth; v.classList.add('is-in'); if (mode === 'nav' && this.lastView && this.lastView !== this.view) v.classList.add('is-flip');
+      main.scrollTop = 0;
+    } else main.scrollTop = scroll;
+    this.lastView = this.view;
+    const act = this.activeNav();
+    $all('.bm-nav-item', this.root).forEach(b => { const on = b.getAttribute('data-nav') === act; if (on && !b.classList.contains('is-active')) { b.classList.add('is-active'); } else if (!on) b.classList.remove('is-active'); b.setAttribute('aria-current', on ? 'page' : 'false'); });
+    $all('.bm-mnav button[data-nav]', this.root).forEach(b => b.classList.toggle('is-active', b.getAttribute('data-nav') === act));
+    const c = this.crumb(); $('#bm-crumb', this.root).textContent = c[1]; $('#bm-crumb-en', this.root).textContent = c[0];
+    this.updateStatus(); this.updateSavebar();
+    if (this.view === 'av') this.updateMixer();
+    this._first = true;
+  }
+  soft(flash) {
+    const keys = this.sm.lastSaved.slice(); this.render('soft');
+    if (flash) keys.forEach(fk => $all('.bm-fp[data-fk="' + fk + '"]', this.root).forEach(el => { el.classList.add('is-flash'); setTimeout(() => el.classList.remove('is-flash'), 1100); }));
+  }
+  panel(inner, cls) { return '<div class="bm-plate bm-box ' + (cls || '') + '"><i class="bm-glow"></i>' + inner + '</div>'; }
+  empty(icon, title, text, extra) { return this.panel('<div class="bm-empty">' + ic(icon) + '<h4>' + esc(title) + '</h4><p>' + text + '</p>' + (extra || '') + '</div>'); }
+  vSkeleton() { return '<div class="bm-pagehead"><div><span class="bm-eyebrow">جارٍ تحميل الوحدات</span><h2>BATMISH</h2></div></div><div class="bm-gamegrid">' + [1, 2, 3, 4, 5, 6].map(() => '<div class="bm-skel"></div>').join('') + '</div>'; }
+  vError() { return this.empty('warn', 'تعذّر الاتصال', errMsg(this.loadError), '<button type="button" class="bm-btn b-prime" data-act="retry">إعادة المحاولة</button>'); }
+  pageHead(en, ar, desc, act) { return '<div class="bm-pagehead"><div><span class="bm-eyebrow">' + en.eyebrow + '</span><h2>' + en.title + '</h2><p>' + desc + '</p></div>' + (act ? '<div class="act">' + act + '</div>' : '') + '</div>'; }
+  fieldsByGame(rows) {
+    return rows.map(r => '<div class="bm-gname"><span class="gl">' + glyph(r.tag) + '</span><h4>' + esc(this.gameName(r.tag)) + '</h4><span class="bm-tag">' + r.fields.length + '</span><span class="ln"></span><button type="button" class="bm-btn b-ghost b-sm" data-game="' + r.tag + '"><span class="en">فتح الوحدة</span></button></div><div class="bm-fields">' +
+      r.fields.map(f => BatmishSettingsPanel.html(this.sm, this.errs, r.tag, f)).join('') + '</div>').join('');
+  }
+  /* ---------- الصفحات ---------- */
+  vCmd() { return BatmishCommandCenter.html(this); }
+  vDb() { return BatmishGameArchive.html(this); }
+  vGame() { return BatmishGameSettings.html(this, this.arg); }
+  vSettings() {
+    const q = this.sq.trim().toLowerCase(), cat = this.scat, rows = [];
+    for (const t in this.sm.games) { if (t.indexOf('__') === 0) continue; const gi = this.gameInfo(t);
+      const fl = this.sm.games[t].fields.filter(f => (cat === 'all' || f.cat === cat) && (!q || (f.label + ' ' + f.hint + ' ' + f.key + ' ' + (gi ? gi.name : '')).toLowerCase().indexOf(q) >= 0)); if (fl.length) rows.push({ tag: t, fields: fl }); }
+    const cats = ['all', 'round', 'players', 'difficulty', 'scoring', 'balance'];
+    const chips = cats.map(c => '<button type="button" class="bm-chip" data-scat="' + c + '" aria-pressed="' + (cat === c) + '">' + (c === 'all' ? 'الكل' : (CAT_INFO[c] || [c, c])[1]) + '</button>').join('');
+    const total = rows.reduce((n, r) => n + r.fields.length, 0);
+    return this.pageHead({ eyebrow: 'مستكشف المعاملات الشامل', title: 'إعدادات الألعاب' }, '', 'كل إعدادات كل الألعاب في مكان واحد، قابلة للبحث والتصفية.') +
+      '<div class="bm-arch-bar bm-plate"><i class="bm-glow"></i><div class="bm-arch-row"><div class="bm-search">' + ic('search') + '<input class="bm-input" data-sq type="search" value="' + esc(this.sq) + '" placeholder="ابحث في الإعدادات…" aria-label="بحث في الإعدادات" autocomplete="off"></div></div><div class="bm-arch-row"><div class="bm-chips">' + chips + '</div></div><div class="bm-count"><span><b>' + total + '</b> معامل</span><span><b>' + rows.length + '</b> لعبة</span></div></div>' +
+      (rows.length ? this.fieldsByGame(rows) : this.empty('search', 'لا معاملات مطابقة', 'ما فيه إعدادات تطابق بحثك.'));
+  }
+  vRound() {
+    const rows = this.fieldsByGame(this.fieldsOf(['round'])), n = this.countCats(['round']);
+    const mods = this.fieldsOf(['round']).reduce((a, r) => a + r.fields.filter(f => this.sm.isModified(r.tag, f.key)).length, 0);
+    const st = [['التجهيز', 'اللعبة جاهزة', 'bolt'], ['بداية الراوند', 'تُقرأ القيم المحفوظة', 'play', 1], ['اللعب', 'الراوند يعمل بقيمه', 'stream'], ['الإقصاء', 'إقصاء اللاعبين', 'skull'], ['النتيجة', 'إعلان الفائز', 'star'], ['التالي', 'حفظ جديد يسري هنا', 'round']];
+    const pipe = '<div class="bm-pipe bm-plate"><i class="bm-glow"></i><div class="bm-pipe-h"><span class="bm-eyebrow">مسار الراوند · لقطة عند البداية</span><span class="bm-tag t-sig">القيم تُثبَّت عند بداية الراوند</span></div><div class="bm-pipe-t" style="--n:' + st.length + '">' +
+      st.map(s => '<div class="bm-stage' + (s[3] ? ' is-key' : '') + '"><span class="nd">' + ic(s[2]) + '</span><b>' + s[0] + '</b><small>' + s[1] + '</small></div>').join('') + '</div></div>';
+    const kp = '<div class="bm-kpis"><div class="bm-kpi bm-plate"><i class="bm-glow"></i><span class="v">' + n + '</span><span class="l"><span class="en">إعدادات الجولة</span>إعداد توقيت وجولات</span></div><div class="bm-kpi bm-plate"><i class="bm-glow"></i><span class="v">' + mods + '</span><span class="l"><span class="en">مخصصة</span>مخصصة حالياً</span></div><div class="bm-kpi bm-plate"><i class="bm-glow"></i><span class="v">' + this.fieldsOf(['round']).length + '</span><span class="l"><span class="en">الألعاب</span>ألعاب لها إعدادات جولة</span></div></div>';
+    return this.pageHead({ eyebrow: 'مراقبة الجولات', title: 'التحكم بالجولات' }, '', 'مدد الجولات والمحاولات والعدّادات. أي حفظ يسري من الراوند التالي ولا يلمس راوندًا جاريًا.') + pipe + kp + rows;
+  }
+  vPlayers() {
+    const rows = this.fieldsOf(['players']); let on = 0, tot = 0, uses = 0, un = 0;
+    rows.forEach(r => r.fields.forEach(f => { if (f.key === 'revivalEnabled') { tot++; if (this.sm.value(r.tag, f.key)) on++; } if (f.key === 'revivalMaxUses') { uses += this.sm.value(r.tag, f.key); un++; } }));
+    const rr = rng(5); let dots = ''; for (let i = 0; i < 14 * 5; i++) { const x = rr(); dots += '<i class="' + (x < .55 ? 'a' : x < .8 ? 'e' : x < .9 ? 'r' : '') + '"></i>'; }
+    const mon = '<div class="bm-mon bm-plate"><i class="bm-glow"></i><div class="screen"><div class="scan"></div><div class="dots">' + dots + '</div><div class="leg"><span>■ في اللعب</span><span>■ مُقصى</span><span>■ مُنعَش</span></div></div><div class="bm-flow">' +
+      [['01', 'يُقصى', 'اللاعب يخرج من الراوند'], ['02', 'هدية', 'يرسل هدية عملات أثناء البث'], ['03', 'يُنعَش', 'يرجع للعبة فوراً'], ['04', 'الحد', 'حتى حد الإنعاش المسموح بالراوند']].map(s => '<div class="st"><span class="mk">' + s[0] + '</span><div><b class="en" style="font-size:12px">' + s[1] + '</b><small>' + s[2] + '</small></div></div>').join('') + '</div></div>';
+    const kp = '<div class="bm-kpis"><div class="bm-kpi bm-plate"><i class="bm-glow"></i><span class="v">' + on + '<small>/' + tot + '</small></span><span class="l"><span class="en">الإنعاش مفعّل</span>ألعاب الإنعاش فيها مفعّل</span></div><div class="bm-kpi bm-plate"><i class="bm-glow"></i><span class="v">' + (un ? (uses / un).toFixed(1) : '—') + '</span><span class="l"><span class="en">متوسط مرات الإنعاش</span>متوسط مرات الإنعاش</span></div></div>';
+    return this.pageHead({ eyebrow: 'مراقبة اللاعبين', title: 'تجربة اللاعبين' }, '', 'ما يخص اللاعبين: الإنعاش وإعادة الانضمام وعدد المرات المسموحة. الشاشة أدناه رسم توضيحي للمخطط.') + mon + kp + this.fieldsByGame(rows);
+  }
+  vStream() {
+    const wave = '<div class="wave"><svg viewBox="0 0 600 90" preserveAspectRatio="none"><path class="flat" d="M0 45H600"/><path d="M0 45H180l8-26 10 52 10-40 8 14H600" opacity=".25"/></svg></div>';
+    const dish = '<div class="dish"><svg viewBox="0 0 230 200"><path d="M60 170h110M115 170v-54"/><path d="M70 116a64 64 0 0 1 90-62l-18 38z"/><circle cx="118" cy="88" r="3" fill="currentColor"/><g class="wv"><path d="M150 60a60 60 0 0 1 36 40"/></g><g class="wv"><path d="M164 44a84 84 0 0 1 52 60"/></g><g class="wv"><path d="M178 28a108 108 0 0 1 66 78"/></g></svg></div>';
+    return this.pageHead({ eyebrow: 'قنوات التواصل', title: 'تفاعل البث' }, '', 'واجهة اتصالات البث. هنا ستظهر إعدادات تفاعل الجمهور فور ربطها بمنطق الألعاب.') +
+      '<div class="bm-comms bm-plate"><i class="bm-glow"></i><div><span class="bm-tag t-warn">في الانتظار · لا قنوات موصولة</span><h3 style="margin:14px 0 6px;font-family:var(--bm-f-ar);font-size:22px">لا توجد إعدادات تفاعل موصولة بعد</h3><p class="bm-sub" style="margin:0;max-width:56ch">لا توجد حاليًا إعدادات تفاعل (رسائل بداية الجولة وغيرها) موصولة بمنطق الألعاب، فنعرض ذلك بصراحة بدل تزييف إعدادات لا تعمل.</p>' + wave +
+      '<div class="bm-chan"><span class="bm-tag t-ok">الربط · @' + STREAMER + '</span><span class="bm-tag">الشات · غير موصول</span><span class="bm-tag">رسائل الجولة · غير موصولة</span></div></div>' + dish + '</div>' +
+      '<div class="bm-note">' + ic('info') + '<div>الإنعاش عبر الهدايا يظهر حاليًا ضمن <b>تجربة اللاعبين</b> لأنه موصول فعليًا بمنطق الألعاب.</div></div>';
+  }
+  vBalance() {
+    const sm = this.sm, games = this.games, rows = this.fieldsOf(['scoring', 'balance', 'difficulty']);
+    const max = Math.max(1, ...games.map(g => g.fields));
+    const bars = games.map(g => { const m = sm.modifiedCount(g.tag); return '<div class="r"><span>' + esc(g.name) + '</span><div class="tr"><i class="' + (m ? 'y' : '') + '" style="width:' + (Math.max(m ? 6 : 0, m / max * 100)) + '%"></i></div><span class="v">' + m + '/' + g.fields + '</span></div>'; }).join('');
+    const cc = {}; let tot = 0; games.forEach(g => sm.games[g.tag].fields.forEach(f => { cc[f.cat] = (cc[f.cat] || 0) + 1; tot++; }));
+    const col = { round: '#8FB4E6', players: '#A39BE0', balance: '#E5C84B', scoring: '#C3CEDF', difficulty: '#5279A9' }; let off = 0; const C = 2 * Math.PI * 54;
+    const arcs = Object.keys(cc).map(k => { const len = cc[k] / tot * C; const s = '<circle cx="75" cy="75" r="54" stroke="' + (col[k] || '#27364A') + '" stroke-dasharray="' + Math.max(0, len - 2).toFixed(1) + ' ' + C.toFixed(1) + '" stroke-dashoffset="' + (-off).toFixed(1) + '"/>'; off += len; return s; }).join('');
+    const leg = Object.keys(cc).map(k => '<div><i style="background:' + (col[k] || '#27364A') + '"></i>' + (CAT_INFO[k] ? CAT_INFO[k][1] : k) + '<b>' + cc[k] + '</b></div>').join('');
+    let tOn = 0, tAll = 0; games.forEach(g => sm.games[g.tag].fields.forEach(f => { if (f.type === 'toggle') { tAll++; if (sm.value(g.tag, f.key)) tOn++; } }));
+    const ana = '<div class="bm-ana"><div class="bm-box bm-plate"><i class="bm-glow"></i><h5>التخصيص حسب اللعبة</h5><div class="bm-hbar">' + bars + '</div></div><div class="bm-box bm-plate"><i class="bm-glow"></i><h5>توزيع المعاملات</h5><div class="bm-donut"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="54" stroke="rgba(169,182,200,.1)"/>' + arcs + '</svg><div class="bm-legend">' + leg + '</div></div>' +
+      '<div class="bm-hbar" style="margin-top:18px"><div class="r" style="grid-template-columns:104px minmax(0,1fr) 46px"><span>المفاتيح المفعّلة</span><div class="tr"><i style="width:' + (tAll ? tOn / tAll * 100 : 0) + '%"></i></div><span class="v">' + tOn + '/' + tAll + '</span></div></div></div></div>';
+    return this.pageHead({ eyebrow: 'وحدة التحليل', title: 'موازنة الألعاب' }, '', 'النقاط والصعوبة والحصانة والمضاعفات، مع قراءة سريعة لمدى تخصيص كل لعبة.') + ana + this.fieldsByGame(rows);
+  }
+  vAv() {
+    const f = this.sm.games.__site.fields, row = f.map(x => BatmishSettingsPanel.html(this.sm, this.errs, '__site', x)).join('');
+    const bars = [...Array(34)].map((_, i) => '<i style="--h:' + (22 + Math.round(Math.abs(Math.sin(i * 1.7) * 78))) + '%;--d:' + (0.7 + (i % 7) * .17).toFixed(2) + 's;animation-delay:-' + ((i % 9) * .13).toFixed(2) + 's"></i>').join('');
+    let vu = ''; for (let i = 0; i < 24; i++) vu += '<i></i>';
+    return this.pageHead({ eyebrow: 'وحدة الصوت والمرئيات', title: 'الصوت والمرئيات' }, '', 'تحكم مركزي بصوت المؤثرات وكثافة الحركة البصرية في ألعاب الصفحة الرئيسية.') +
+      '<div class="bm-mixer bm-plate"><i class="bm-glow"></i><div><span class="bm-eyebrow">ناقل الصوت الرئيسي</span><div class="bm-eq" id="bm-eq" style="margin-top:14px">' + bars + '</div></div><div class="bm-vu" id="bm-vu"><div class="row">' + vu + '</div><div class="vl"><span>-∞</span><span id="bm-vu-n" class="mono">100%</span><span>0dB</span></div></div></div>' +
+      '<div class="bm-note">' + ic('info') + '<div>يغطي ألعاب الصفحة الرئيسية التي تستخدم WebAudio فقط — ليس ألعاب 3D داخل iframe ولا عناصر الفيديو.</div></div><div class="bm-fields">' + row + '</div>';
+  }
+  updateMixer() {
+    const sm = this.sm; if (!sm.games.__site) return; const vol = sm.value('__site', 'masterVolume'), mute = sm.value('__site', 'muteEffects');
+    const eq = $('#bm-eq', this.root), vu = $('#bm-vu', this.root); if (!eq || !vu) return;
+    eq.classList.toggle('is-mute', !!mute); const lvl = mute ? 0 : Math.round(vol / 100 * 24);
+    $all('.row i', vu).forEach((i, k) => { i.className = k < lvl ? (k > 19 ? 'on hot' : 'on') : ''; }); $('#bm-vu-n', this.root).textContent = mute ? 'مكتوم' : vol + '%';
+    eq.style.opacity = mute ? .5 : (.35 + vol / 100 * .65);
+  }
+  vAuto() {
+    const by = {}; this.autoFields().forEach(x => (by[x.tag] = by[x.tag] || []).push(x.f));
+    const tags = Object.keys(by);
+    return this.pageHead({ eyebrow: 'الوحدات الموصولة', title: 'الأتمتة' }, '', 'السلوكيات التلقائية الموجودة فعلاً (مهلات، تمرير الدور، الإنعاش) القابلة للضبط، مرتبة كوحدات متصلة.') +
+      '<div class="bm-note">' + ic('info') + '<div>محرّك قواعد «إذا X فافعل Y» غير مبني بعد — لا توجد نقاط ربط آمنة داخل الألعاب. المعروض هنا سلوكيات حقيقية فقط.</div></div>' +
+      '<div class="bm-chain">' + tags.map(t => '<div class="bm-modw"><span class="nd"></span><div class="bm-mod bm-plate"><i class="bm-glow"></i><div class="bm-mod-h"><span class="gl">' + glyph(t) + '</span><h4>' + esc(this.gameName(t)) + '</h4><span class="bm-tag">' + by[t].length + ' سلوك</span><span class="sp"></span><button type="button" class="bm-btn b-ghost b-sm" data-game="' + t + '"><span class="en">فتح الوحدة</span></button></div><div class="bm-fields">' + by[t].map(f => BatmishSettingsPanel.html(this.sm, this.errs, t, f)).join('') + '</div></div></div>').join('') + '</div>';
+  }
+  vPresets() {
+    const sm = this.sm, tags = this.games.map(g => g.tag); if (!this.presetTag || tags.indexOf(this.presetTag) < 0) this.presetTag = tags[0];
+    const tag = this.presetTag, list = this.presets.forGame(tag), def = sm.defaultPresets[tag];
+    const chips = tags.map(t => { const n = this.presets.forGame(t).length; return '<button type="button" class="bm-chip" data-ptag="' + t + '" aria-pressed="' + (t === tag) + '">' + esc(this.gameName(t)) + '<span class="n">' + n + '</span></button>'; }).join('');
+    const form = '<div class="bm-pbar"><input class="bm-input" id="bm-pname" maxlength="40" placeholder="اسم المجموعة الجديدة (من إعدادات اللعبة المحفوظة)" aria-label="اسم المجموعة" style="flex:1 1 260px"><button type="button" class="bm-btn b-prime" data-act="newpreset">' + ic('presets') + 'إنشاء مجموعة</button></div>';
+    const cards = list.length ? '<div class="bm-pgrid">' + list.map(p => {
+      const ks = Object.keys(p.values), vals = ks.map(k => { const f = sm.field(tag, k); return f && f.type === 'number' ? '<i style="height:' + Math.max(12, BatmishTacticalControls.pct(f, p.values[k])) + '%"></i>' : '<i style="height:' + (f && f.type === 'toggle' ? (p.values[k] ? 100 : 30) : 60) + '%"></i>'; }).join('');
+      return '<div class="bm-pm bm-plate' + (def === p.id ? ' is-def' : '') + '"><i class="bm-glow"></i><h4>' + esc(p.name) + (def === p.id ? '<span class="bm-tag t-sig">الافتراضية</span>' : '') + '</h4><div class="vals">' + (vals || '<span class="m">لا قيم مخصصة</span>') + '</div><div class="m">' + ks.length + ' إعداد مخصص · ' + ago(p.updatedAt) + '</div><div class="acts">' +
+        '<button type="button" class="bm-btn b-prime b-sm" data-presetact="apply" data-id="' + p.id + '">' + ic('play') + 'تطبيق</button>' +
+        [['overwrite', 'save', 'تحديث'], ['rename', 'edit', 'تسمية'], ['duplicate', 'copy', 'نسخ']].map(a => '<button type="button" class="bm-btn b-ghost b-sm" data-presetact="' + a[0] + '" data-id="' + p.id + '">' + ic(a[1]) + a[2] + '</button>').join('') +
+        '<button type="button" class="bm-btn b-ghost b-sm" data-presetact="default" data-id="' + p.id + '"' + (def === p.id ? ' disabled' : '') + '>' + ic('star') + 'افتراضية</button><button type="button" class="bm-btn b-ghost b-danger b-sm b-icon" data-presetact="delete" data-id="' + p.id + '" aria-label="حذف">' + ic('trash') + '</button></div></div>';
+    }).join('') + '</div>' : this.empty('presets', 'لا توجد وحدات إعدادات', 'ما أنشأت مجموعات للعبة هذي بعد. عدّل إعداداتها واحفظها ثم أنشئ مجموعة.');
+    return this.pageHead({ eyebrow: 'محفوظات الإعدادات', title: 'المجموعات' }, '', 'المجموعة تحفظ تخصيصك للعبة واحدة فقط، وتطبيقها لا يمس إعدادات أي لعبة ثانية.') +
+      '<div class="bm-chips bm-scroll" style="margin-bottom:16px;flex-wrap:wrap">' + chips + '</div>' + form + cards;
+  }
+  vHistory() {
+    const sm = this.sm, items = this.hist.items.filter(e => !this.histTag || e.tag === this.histTag);
+    const sel = '<select class="bm-input" data-histtag aria-label="تصفية حسب اللعبة" style="max-width:260px"><option value="">كل الألعاب</option>' + Object.keys(sm.games).map(t => '<option value="' + t + '"' + (t === this.histTag ? ' selected' : '') + '>' + esc(this.gameName(t)) + '</option>').join('') + '</select>';
+    const bar = '<div class="bm-pbar">' + sel + '<button type="button" class="bm-btn b-ghost" data-act="histrefresh">' + ic('reset') + 'تحديث</button>' + (this.histTag && sm.customizedCount(this.histTag) ? '<button type="button" class="bm-btn b-ghost b-danger" data-act="restoregame">' + ic('reset') + 'استرجاع افتراضي اللعبة</button>' : '') + '</div>';
+    const stAr = { saved: 'محفوظ', reset: 'إعادة', reverted: 'تراجع' }; let lastDay = '';
+    const rows = items.map(e => { const f = sm.field(e.tag, e.key), dk = dayKey(e.ts); let h = ''; if (dk !== lastDay) { lastDay = dk; h = '<div class="bm-datehead">' + dk + '<span style="flex:1;max-width:80px;height:1px;background:var(--bm-line-hi)"></span></div>'; }
+      return h + '<div class="bm-tlw' + (e.reverted ? ' is-rev' : '') + '"><span class="nd"></span><div class="bm-tle bm-plate' + (e.reverted ? ' is-rev' : '') + '"><i class="bm-glow"></i><div class="w"><b>' + esc(this.gameName(e.tag)) + ' › ' + esc(shortLabel(f, e.key)) + '</b><small>' + clock(e.ts) + ' · ' + ago(e.ts) + (e.preset ? ' · ' + esc(e.preset) : '') + ' · <span class="en">' + (stAr[e.status] || e.status) + (e.reverted ? ' · تم التراجع عنه لاحقاً' : '') + '</span></small></div>' +
+        '<span class="bm-diff"><s>' + esc(fmtVal(f, e.old)) + '</s><em>→</em><i>' + esc(fmtVal(f, e.new)) + '</i></span><button type="button" class="bm-btn b-ghost b-sm" data-revert="' + e.id + '"' + (e.reverted || !f ? ' disabled' : '') + '>' + ic('reset') + 'تراجع</button></div></div>'; }).join('');
+    return this.pageHead({ eyebrow: 'الخط الزمني للعمليات', title: 'السجل' }, '', 'التراجع يرجّع إعداداً لقيمته القديمة للراوندات القادمة فقط، ولا يلمس جولات انتهت.') + bar +
+      (items.length ? '<div class="bm-tl">' + rows + '</div>' : this.empty('history', 'لا توجد عمليات بعد', 'لسا ما عدّلت أي إعداد. كل تعديل تحفظه يظهر هنا.'));
+  }
 
-  Dashboard.prototype.syncRanges = function () {
-    $all('.bm-range', this.root).forEach(function (r) { var min = +r.min, max = +r.max; r.style.setProperty('--p', (max > min ? ((+r.value - min) / (max - min)) * 100 : 0) + '%'); });
-  };
-
-  /* ------------------------------------------------------------ أحداث */
-  Dashboard.prototype.onInput = function (e) {
-    var t = e.target; if (t.matches('[data-q]')) { this.q = t.value; this.rerenderKeepFocus('[data-q]'); return; }
-    var fk = t.getAttribute && t.getAttribute('data-k'); if (!fk) return;
-    var i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), s = this.sm, f = s.field(tag, key); if (!f) return;
-    var v;
-    if (f.type === 'toggle') { v = !!t.checked; var tx = $('[data-onoff]', t.closest('.bm-switch')); if (tx) tx.textContent = v ? 'تشغيل' : 'إيقاف'; }
-    else if (f.type === 'number') {
-      v = t.value === '' ? NaN : Number(t.value);
-      // مزامنة المنزلق ↔ الرقم
-      var row = t.closest('.bm-field'), other = t.matches('[data-r]') ? $('[data-n]', row) : $('[data-r]', row);
-      if (other && isFinite(v)) other.value = v;
-      this.syncRanges();
-    } else {
-      var inputs = $all('[data-k="' + fk + '"]', t.closest('.bm-field')); v = inputs.map(function (x) { return x.value === '' ? NaN : Number(x.value); });
-    }
-    var r = ValidationService.check(f, v);
-    if (!r.ok) { this.errs[fk] = r.msg; this.refreshField(fk); this.updateSavebar(); return; }
-    delete this.errs[fk];
-    s.setDraft(tag, key, r.v);
-    this.refreshField(fk); this.updateSavebar(); this.updateStatus();
-  };
-  Dashboard.prototype.onChange = function (e) {
-    var t = e.target;
+  /* ---------- الحالة وشريط الحفظ ---------- */
+  updateStatus() {
+    const s = this.sm, el = $('#bm-status', this.root), t = $('#bm-status-t', this.root); if (!el) return;
+    const map = { saved: ['تم الحفظ', 'saved'], dirty: ['غير محفوظ · ' + s.dirtyCount(), 'dirty'], saving: ['جارٍ الحفظ', 'saving'], error: ['فشل الحفظ', 'error'] }, m = map[s.saveState] || map.saved;
+    el.setAttribute('data-s', m[1]); t.textContent = m[0];
+    const rev = $('#bm-foot-rev', this.root); if (rev) rev.textContent = this.ready ? 'فعّال · إصدار ' + s.rev : 'جارٍ التحميل';
+    const dot = $all('.bm-nav-dot', this.root); dot.forEach(d => d.remove());
+    if (s.dirtyCount()) { const tgt = $('.bm-nav-item[data-nav="' + (this.view === 'game' ? 'db' : (this.view === 'cmd' ? 'db' : this.view)) + '"]', this.root); if (tgt) { const d = document.createElement('i'); d.className = 'bm-nav-dot'; tgt.appendChild(d); } }
+  }
+  hasBad(tag) { for (const k in this.errs) { if (!this.errs[k]) continue; if (!tag || k.indexOf(tag + '.') === 0) return true; } return false; }
+  updateSavebar() {
+    const s = this.sm, bar = $('#bm-savebar', this.root); if (!bar) return;
+    const scope = this.view === 'game' ? this.arg : null, n = s.dirtyCount(scope), nAll = s.dirtyCount(), bad = this.hasBad(scope), saving = s.saveState === 'saving';
+    const shown = this.view === 'game' ? n : nAll;
+    bar.classList.toggle('is-on', shown > 0); bar.classList.toggle('is-saving', saving);
+    const msg = $('#bm-savebar-msg', this.root), act = $('#bm-savebar-act', this.root);
+    msg.innerHTML = '<i></i><span>' + (s.saveState === 'error' ? '<b>فشل الحفظ.</b> مسودتك محفوظة على جهازك. ' : '') + '<b>' + shown + '</b> تعديل غير محفوظ. يُطبَّق من <b>الراوند التالي</b>، والراوند الجاري يكمل بإعداداته.</span>';
+    if (act.getAttribute('data-n') === String(shown) + (saving ? 's' : '') + (bad ? 'b' : '') + this.view + s.autosave) return;
+    act.setAttribute('data-n', String(shown) + (saving ? 's' : '') + (bad ? 'b' : '') + this.view + s.autosave);
+    act.innerHTML = '<label class="bm-auto"><span class="bm-tsw is-sm" style="display:block"><input type="checkbox" data-act="autosave"' + (s.autosave ? ' checked' : '') + ' role="switch" aria-label="حفظ تلقائي"><span class="tsw-body"></span><span class="tsw-lbl on">تشغيل</span><span class="tsw-lbl off">إيقاف</span><span class="tsw-knob"><i></i></span></span>حفظ تلقائي</label>' +
+      '<button type="button" class="bm-btn b-ghost" data-act="discard"' + (saving ? ' disabled' : '') + '>' + ic('reset') + 'تجاهل</button>' +
+      (this.view === 'game' ? '<button type="button" class="bm-btn b-ghost" data-act="savepreset"' + (bad || saving ? ' disabled' : '') + '>' + ic('presets') + 'حفظ كمجموعة</button>' : '') +
+      '<button type="button" class="bm-btn b-prime" data-act="save"' + (bad || saving ? ' disabled' : '') + '>' + ic('save') + '<span>' + (saving ? 'جارٍ الحفظ…' : 'حفظ وتطبيق') + '</span></button>';
+  }
+  /* ---------- الأحداث ---------- */
+  applyField(fk, v, active) {
+    const i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), f = this.sm.field(tag, key); if (!f) return;
+    const r = ValidationService.check(f, v);
+    if (!r.ok) { this.errs[fk] = r.msg; BatmishSettingsPanel.refresh(this.root, this.sm, this.errs, fk); this.updateSavebar(); return; }
+    delete this.errs[fk]; this.sm.setDraft(tag, key, r.v);
+    $all('.bm-fp[data-fk="' + fk + '"]', this.root).forEach(row => BatmishTacticalControls.sync(row, f, r.v, active));
+    BatmishSettingsPanel.refresh(this.root, this.sm, this.errs, fk); this.updateSavebar(); this.updateStatus(); if (tag === '__site') this.updateMixer(); this.refreshHeadMeter();
+  }
+  refreshHeadMeter() {
+    if (this.view !== 'game') return; const tag = this.arg, sm = this.sm, g = sm.games[tag]; if (!g) return;
+    const bar = $('.bm-meter .bar', this.root); if (!bar) return;
+    bar.innerHTML = g.fields.map(f => '<i class="' + (sm.isDirty(tag, f.key) ? 'un' : sm.isModified(tag, f.key) ? 'on' : '') + '"></i>').join('');
+    const b = $('.bm-meter .top b', this.root); if (b) b.textContent = sm.modifiedCount(tag);
+    $all('.bm-tab', this.root).forEach(t => { const tb = t.getAttribute('data-tab'), dd = g.fields.some(f => f.tab === tb && sm.isDirty(tag, f.key)); let d = $('.d', t); if (dd && !d) { d = document.createElement('span'); d.className = 'd'; t.appendChild(d); } else if (!dd && d) d.remove(); });
+  }
+  onInput(e) {
+    const t = e.target;
+    if (t.matches('[data-q]')) { this.q = t.value; const g = $('#bm-grid', this.root); if (g) g.outerHTML = BatmishGameArchive.grid(this); const c = $('.bm-count', this.root); return; }
+    if (t.matches('[data-sq]')) { this.sq = t.value; const pos = t.selectionStart; this.soft(); const n = $('[data-sq]', this.root); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) {} } return; }
+    const fk = t.getAttribute && t.getAttribute('data-k'); if (!fk || t.matches('[data-step]')) return;
+    const i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), f = this.sm.field(tag, key); if (!f) return; let v;
+    if (f.type === 'toggle') v = !!t.checked;
+    else if (f.type === 'number') v = t.value === '' ? NaN : Number(t.value);
+    else v = $all('[data-k="' + fk + '"]', t.closest('.bm-fp')).map(x => x.value === '' ? NaN : Number(x.value));
+    this.applyField(fk, v, f.type === 'number' && t.matches('[data-n]') ? t : (f.type === 'numberArray' ? t : (f.type === 'number' ? t : null)));
+  }
+  onChange(e) {
+    const t = e.target;
     if (t.matches('[data-act="autosave"]')) { this.sm.setAutosave(t.checked); return; }
-    if (t.matches('[data-presettag]')) { this.presetTag = t.value; this.render(); return; }
-    if (t.matches('[data-histtag]')) { var self = this; this.histTag = t.value; this.hist.load(this.histTag).then(function () { self.render(); }, function (er) { self.toast(errMsg(er), 'err'); }); return; }
-  };
-  Dashboard.prototype.rerenderKeepFocus = function (sel) {
-    var pos = null, a = document.activeElement; if (a && a.matches && a.matches(sel)) pos = a.selectionStart;
-    this.render(); var n = $(sel, this.root); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} }
-  };
-
-  Dashboard.prototype.onClick = function (e) {
-    var self = this, t = e.target, el;
+    if (t.matches('[data-histtag]')) { this.histTag = t.value; this.hist.load(this.histTag).then(() => this.soft(), er => this.toast(errMsg(er), 'err')); return; }
+    if (t.matches('[data-n]')) { const fk = t.getAttribute('data-k'); BatmishSettingsPanel.refresh(this.root, this.sm, this.errs, fk); }
+  }
+  onKey(e) {
+    if (e.key === '/' && this.view === 'db' && !/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) { e.preventDefault(); const q = $('[data-q]', this.root); if (q) q.focus(); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bm-gc[data-game]')) { e.preventDefault(); this.go('game', e.target.getAttribute('data-game')); return; }
+    if (e.key === 'Enter' && e.target.matches && e.target.matches('#bm-pname')) { this.act('newpreset'); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (this.sm.dirtyCount() && !this.hasBad()) this.act('save'); }
+  }
+  onClick(e) {
+    const t = e.target; let el;
     if ((el = t.closest('[data-nav]'))) { this.go(el.getAttribute('data-nav')); return; }
     if ((el = t.closest('[data-game]'))) { this.go('game', el.getAttribute('data-game')); return; }
-    if ((el = t.closest('[data-tab]'))) { this.tab = el.getAttribute('data-tab'); this.render(); return; }
-    if ((el = t.closest('[data-filter]'))) { this.filter = el.getAttribute('data-filter'); this.render(); return; }
-    if ((el = t.closest('[data-resetkey]'))) { var fk = el.getAttribute('data-resetkey'), i = fk.indexOf('.'); delete this.errs[fk]; this.run(this.sm.resetKey(fk.slice(0, i), fk.slice(i + 1)), 'تمت إعادة الإعداد للافتراضي.').then(function () { self.render(); }); return; }
-    if ((el = t.closest('[data-resetgame]'))) { var tag = el.getAttribute('data-resetgame'); this.confirm({ title: 'إعادة اللعبة للافتراضي', text: 'ترجيع كل إعدادات «' + (this.gameInfo(tag) || {}).name + '» للافتراضي؟ تقدر تتراجع عن أي إعداد من سجل التعديلات.', ok: 'إعادة', danger: true }).then(function (y) { if (y) self.run(self.sm.resetGame(tag), 'رجعت إعدادات اللعبة للافتراضي.').then(function () { self.render(); }); }); return; }
+    if ((el = t.closest('[data-tab]'))) { if (el.disabled) return; this.tab = el.getAttribute('data-tab'); this.render('soft'); const v = $('#bm-view', this.root); v.classList.add('is-in'); return; }
+    if ((el = t.closest('[data-grp]'))) { const k = el.getAttribute('data-grp'), g = el.closest('.bm-grp'); this.xs[k] = !g.classList.contains('is-x'); g.classList.toggle('is-x', this.xs[k]); el.setAttribute('aria-expanded', String(!this.xs[k])); return; }
+    if ((el = t.closest('[data-arch]'))) { this.arch = el.getAttribute('data-arch'); this.soft(); return; }
+    if ((el = t.closest('[data-status]'))) { this.status = el.getAttribute('data-status'); this.soft(); return; }
+    if ((el = t.closest('[data-scat]'))) { this.scat = el.getAttribute('data-scat'); this.soft(); return; }
+    if ((el = t.closest('[data-ptag]'))) { this.presetTag = el.getAttribute('data-ptag'); this.soft(); return; }
+    if ((el = t.closest('[data-vm]'))) { this.vm = el.getAttribute('data-vm'); try { localStorage.setItem('batmish:vm', this.vm); } catch (er) {} this.soft(); return; }
+    if ((el = t.closest('[data-step]'))) {
+      const fk = el.getAttribute('data-k'), i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), f = this.sm.field(tag, key); if (!f) return;
+      let cur = this.sm.value(tag, key); const inp = $('input[data-n]', el.closest('.bm-fp')); if (inp && inp.value !== '' && isFinite(Number(inp.value))) cur = Number(inp.value);
+      const nv = Math.max(f.min, Math.min(f.max, cur + Number(el.getAttribute('data-step')) * BatmishTacticalControls.step(f))); this.applyField(fk, nv, null); return;
+    }
+    if ((el = t.closest('[data-resetkey]'))) {
+      const fk = el.getAttribute('data-resetkey'), i = fk.indexOf('.'); delete this.errs[fk];
+      this.run(this.sm.resetKey(fk.slice(0, i), fk.slice(i + 1)), 'تمت إعادة الإعداد للافتراضي.').then(() => { this.soft(); $all('.bm-fp[data-fk="' + fk + '"]', this.root).forEach(r => { r.classList.add('is-rst'); setTimeout(() => r.classList.remove('is-rst'), 800); }); this.hist.load(this.histTag).catch(() => 0); }); return;
+    }
+    if ((el = t.closest('[data-resetgame]'))) {
+      const tag = el.getAttribute('data-resetgame'); this.confirm({ title: 'إعادة اللعبة للافتراضي', text: 'ترجيع كل إعدادات «' + this.gameName(tag) + '» للافتراضي؟ تقدر تتراجع عن أي إعداد من السجل.', ok: 'إعادة', danger: true }).then(y => { if (y) this.run(this.sm.resetGame(tag), 'تمت إعادة اللعبة للافتراضي.').then(() => { this.errs = {}; return this.hist.load(this.histTag).catch(() => 0); }).then(() => this.soft()); }); return;
+    }
     if ((el = t.closest('[data-presetact]'))) { this.presetAction(el.getAttribute('data-presetact'), el.getAttribute('data-id')); return; }
-    if ((el = t.closest('[data-revert]'))) { this.run(this.hist.revert(el.getAttribute('data-revert')), 'تم التراجع عن التعديل.').then(function () { return self.hist.load(self.histTag); }).then(function () { self.render(); }); return; }
-    if ((el = t.closest('[data-act]'))) { this.act(el.getAttribute('data-act')); }
-  };
-
-  Dashboard.prototype.act = function (a) {
-    var self = this, s = this.sm;
+    if ((el = t.closest('[data-revert]'))) { this.run(this.hist.revert(el.getAttribute('data-revert')), 'تم التراجع عن التعديل.').then(() => this.hist.load(this.histTag)).then(() => this.soft(), () => 0); return; }
+    if ((el = t.closest('[data-act]')) && !el.matches('input')) this.act(el.getAttribute('data-act'));
+  }
+  act(a) {
+    const s = this.sm;
     if (a === 'close') return this.requestClose();
     if (a === 'menu') { this.root.classList.toggle('is-nav'); return; }
     if (a === 'retry') return this.loadAll();
-    if (a === 'discard') { s.discard(this.view === 'game' ? this.arg : null); this.errs = {}; this.render(); return; }
-    if (a === 'save') { s.saveAll().then(function () { self.render(); }); return; }
-    if (a === 'savepreset') { this.prompt({ title: 'حفظ كمجموعة', label: 'اسم المجموعة', value: '' }).then(function (name) {
-      if (name == null) return; var tag = self.arg;
-      self.run(self.presets.create(tag, name, s.effectiveOverrides(tag)), 'تم حفظ المجموعة «' + name + '». (التعديلات غير المحفوظة ضُمّنت فيها لكنها لم تُطبَّق بعد.)'); }); return; }
-    if (a === 'newpreset') { var nm = $('#bm-pname', this.root).value.trim(); if (!nm) { this.toast('اكتب اسماً للمجموعة.', 'err'); return; }
-      this.run(this.presets.create(this.presetTag, nm, s.config[this.presetTag] ? clone(s.config[this.presetTag]) : {}), 'تم إنشاء المجموعة.').then(function () { self.render(); }); return; }
-    if (a === 'histrefresh') { this.hist.load(this.histTag).then(function () { self.render(); }, function (er) { self.toast(errMsg(er), 'err'); }); return; }
-    if (a === 'restoregame') { var tag = this.histTag; this.confirm({ title: 'استرجاع إعدادات اللعبة', text: 'استرجاع إعدادات هذي اللعبة كاملة للافتراضي؟ ما يأثر على جولات انتهت.', ok: 'استرجاع', danger: true }).then(function (y) { if (y) self.run(self.hist.restoreGame(tag), 'تم استرجاع إعدادات اللعبة.').then(function () { return self.hist.load(self.histTag); }).then(function () { self.render(); }); }); }
-  };
-
-  Dashboard.prototype.presetAction = function (op, id) {
-    var self = this, s = this.sm, p = s.presets[id]; if (!p) return;
-    if (op === 'apply') { this.confirm({ title: 'تطبيق المجموعة', text: 'تطبيق «' + p.name + '» يغيّر إعدادات هذي اللعبة فقط، ويسري من الراوند التالي.', ok: 'تطبيق' }).then(function (y) { if (y) self.run(self.presets.apply(id), 'تم تطبيق المجموعة.').then(function () { self.render(); }); }); return; }
-    if (op === 'overwrite') { this.confirm({ title: 'تحديث المجموعة', text: 'استبدال محتوى «' + p.name + '» بإعدادات اللعبة الحالية المحفوظة؟', ok: 'تحديث' }).then(function (y) { if (y) self.run(self.presets.overwrite(id, s.config[p.tag] ? clone(s.config[p.tag]) : {}), 'تم تحديث المجموعة.').then(function () { self.render(); }); }); return; }
-    if (op === 'rename') { this.prompt({ title: 'تسمية المجموعة', label: 'الاسم الجديد', value: p.name }).then(function (n) { if (n != null) self.run(self.presets.rename(id, n), 'تمت التسمية.').then(function () { self.render(); }); }); return; }
-    if (op === 'duplicate') { this.run(this.presets.duplicate(id), 'تم نسخ المجموعة.').then(function () { self.render(); }); return; }
-    if (op === 'default') { this.run(this.presets.setDefault(id), 'صارت المجموعة الافتراضية للعبة.').then(function () { self.render(); }); return; }
-    if (op === 'delete') { this.confirm({ title: 'حذف المجموعة', text: 'حذف «' + p.name + '» نهائياً؟', ok: 'حذف', danger: true }).then(function (y) { if (y) self.run(self.presets.remove(id), 'تم الحذف.').then(function () { self.render(); }); }); }
-  };
-
-  // ينفّذ وعداً مع رسالة نجاح/فشل موحّدة
-  Dashboard.prototype.run = function (p, okMsg) {
-    var self = this;
-    return p.then(function (r) { if (okMsg) self.toast(okMsg, 'ok'); self.updateStatus(); return r; }, function (e) {
-      if (e && e.code === 'conflict') { return self.sm.refresh().then(function () { self.toast(errMsg(e) + '. حدّثناها، أعد المحاولة.', 'err'); }); }
-      if (e && (e.status === 403 || e.status === 401)) { self.toast(errMsg({ code: 'forbidden' }), 'err'); return; }
-      self.toast(errMsg(e), 'err');
+    if (a === 'discard') { s.discard(this.view === 'game' ? this.arg : null); this.errs = {}; this.soft(); return; }
+    if (a === 'save') { s.saveAll(); return; }
+    if (a === 'savepreset') { this.prompt({ title: 'حفظ كمجموعة', label: 'اسم المجموعة', value: '' }).then(name => { if (name == null) return; const tag = this.arg; this.run(this.presets.create(tag, name, s.effectiveOverrides(tag)), 'تم حفظ المجموعة «' + name + '».'); }); return; }
+    if (a === 'newpreset') { const nm = $('#bm-pname', this.root).value.trim(); if (!nm) { this.toast('اكتب اسماً للمجموعة.', 'err'); return; } this.run(this.presets.create(this.presetTag, nm, s.config[this.presetTag] ? clone(s.config[this.presetTag]) : {}), 'تم إنشاء المجموعة.').then(() => this.soft()); return; }
+    if (a === 'histrefresh') { this.hist.load(this.histTag).then(() => this.soft(), er => this.toast(errMsg(er), 'err')); return; }
+    if (a === 'restoregame') { const tag = this.histTag; this.confirm({ title: 'استرجاع إعدادات اللعبة', text: 'استرجاع إعدادات هذي اللعبة كاملة للافتراضي؟ ما يأثر على جولات انتهت.', ok: 'استرجاع', danger: true }).then(y => { if (y) this.run(this.hist.restoreGame(tag), 'تم استرجاع إعدادات اللعبة.').then(() => this.hist.load(this.histTag)).then(() => this.soft(), () => 0); }); }
+  }
+  presetAction(op, id) {
+    const s = this.sm, p = s.presets[id]; if (!p) return;
+    if (op === 'apply') return void this.confirm({ title: 'تطبيق المجموعة', text: 'تطبيق «' + p.name + '» يغيّر إعدادات هذي اللعبة فقط، ويسري من الراوند التالي.', ok: 'تطبيق' }).then(y => { if (y) this.run(this.presets.apply(id), 'تم تطبيق المجموعة.').then(() => this.hist.load().catch(() => 0)).then(() => this.soft()); });
+    if (op === 'overwrite') return void this.confirm({ title: 'تحديث المجموعة', text: 'استبدال محتوى «' + p.name + '» بإعدادات اللعبة الحالية المحفوظة؟', ok: 'تحديث' }).then(y => { if (y) this.run(this.presets.overwrite(id, s.config[p.tag] ? clone(s.config[p.tag]) : {}), 'تم تحديث المجموعة.').then(() => this.soft()); });
+    if (op === 'rename') return void this.prompt({ title: 'تسمية المجموعة', label: 'الاسم الجديد', value: p.name }).then(n => { if (n != null) this.run(this.presets.rename(id, n), 'تمت التسمية.').then(() => this.soft()); });
+    if (op === 'duplicate') return void this.run(this.presets.duplicate(id), 'تم نسخ المجموعة.').then(() => this.soft());
+    if (op === 'default') return void this.run(this.presets.setDefault(id), 'صارت المجموعة الافتراضية للعبة.').then(() => this.soft());
+    if (op === 'delete') this.confirm({ title: 'حذف المجموعة', text: 'حذف «' + p.name + '» نهائياً؟', ok: 'حذف', danger: true }).then(y => { if (y) this.run(this.presets.remove(id), 'تم الحذف.').then(() => this.soft()); });
+  }
+  run(p, okMsg) {
+    return p.then(r => { if (okMsg) this.toast(okMsg, 'ok'); this.updateStatus(); return r; }, e => {
+      if (e && e.code === 'conflict') return this.sm.refresh().then(() => { this.toast(errMsg(e) + '. حدّثناها، أعد المحاولة.', 'err'); });
+      this.toast(errMsg(e), 'err');
     });
-  };
-
-  /* ------------------------------------------------------------ نوافذ حوار + تنبيهات */
-  Dashboard.prototype.modal = function (html) {
-    var m = document.createElement('div'); m.className = 'bm-modal'; m.innerHTML = '<div class="bm-panel is-gold"><div class="bm-in">' + html + '</div></div>';
-    $('.bm-main', this.root).appendChild(m); return m;
-  };
-  Dashboard.prototype.confirm = function (o) {
-    var self = this;
-    return new Promise(function (res) {
-      var m = self.modal('<h4>' + esc(o.title) + '</h4><p>' + esc(o.text) + '</p><div class="bm-modal-act"><button type="button" class="bm-btn ' + (o.danger ? 'is-danger' : 'is-primary') + '" data-ok>' + esc(o.ok || 'موافق') + '</button><button type="button" class="bm-btn is-ghost" data-no>إلغاء</button></div>');
-      var done = function (v) { m.remove(); res(v); };
-      $('[data-ok]', m).addEventListener('click', function () { done(true); }); $('[data-no]', m).addEventListener('click', function () { done(false); });
-      m.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); done(false); } });
+  }
+  /* ---------- حوارات وتنبيهات ---------- */
+  modal(html) { const m = document.createElement('div'); m.className = 'bm-modal'; m.innerHTML = '<div class="bm-dlg bm-plate" role="alertdialog">' + html + '</div>'; this.root.appendChild(m); return m; }
+  confirm(o) {
+    return new Promise(res => {
+      const m = this.modal('<h4>' + esc(o.title) + '</h4><p>' + esc(o.text) + '</p><div class="act"><button type="button" class="bm-btn ' + (o.danger ? 'b-danger' : 'b-prime') + '" data-ok>' + esc(o.ok || 'موافق') + '</button><button type="button" class="bm-btn b-ghost" data-no>إلغاء</button></div>');
+      const done = v => { m.remove(); res(v); };
+      $('[data-ok]', m).addEventListener('click', () => done(true)); $('[data-no]', m).addEventListener('click', () => done(false));
+      m.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } }); m.addEventListener('click', e => { if (e.target === m) done(false); });
       $('[data-no]', m).focus();
     });
-  };
-  Dashboard.prototype.prompt = function (o) {
-    var self = this;
-    return new Promise(function (res) {
-      var m = self.modal('<h4>' + esc(o.title) + '</h4><p><label for="bm-pin">' + esc(o.label) + '</label></p><input id="bm-pin" class="bm-input" maxlength="40" value="' + esc(o.value || '') + '"><div class="bm-modal-act" style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-ok>حفظ</button><button type="button" class="bm-btn is-ghost" data-no>إلغاء</button></div>');
-      var inp = $('#bm-pin', m), done = function (v) { m.remove(); res(v); };
-      $('[data-ok]', m).addEventListener('click', function () { var v = inp.value.trim(); if (v) done(v); else inp.focus(); });
-      $('[data-no]', m).addEventListener('click', function () { done(null); });
-      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('[data-ok]', m).click(); } if (e.key === 'Escape') { e.stopPropagation(); done(null); } });
+  }
+  prompt(o) {
+    return new Promise(res => {
+      const m = this.modal('<h4>' + esc(o.title) + '</h4><p><label for="bm-pin">' + esc(o.label) + '</label></p><input id="bm-pin" class="bm-input" maxlength="40" value="' + esc(o.value || '') + '"><div class="act" style="margin-top:18px"><button type="button" class="bm-btn b-prime" data-ok>حفظ</button><button type="button" class="bm-btn b-ghost" data-no>إلغاء</button></div>');
+      const inp = $('#bm-pin', m), done = v => { m.remove(); res(v); };
+      $('[data-ok]', m).addEventListener('click', () => { const v = inp.value.trim(); if (v) done(v); else inp.focus(); }); $('[data-no]', m).addEventListener('click', () => done(null));
+      m.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } if (e.key === 'Enter') { e.preventDefault(); const v = inp.value.trim(); if (v) done(v); } });
       inp.focus(); inp.select();
     });
-  };
-  Dashboard.prototype.toast = function (text, kind) {
-    var host = $('#bm-toasts', this.root); if (!host) return;
-    var t = document.createElement('div'); t.className = 'bm-toast' + (kind === 'err' ? ' is-err' : kind === 'ok' ? ' is-ok' : ''); t.textContent = text; host.appendChild(t);
-    setTimeout(function () { t.style.transition = 'opacity .4s'; t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 450); }, kind === 'err' ? 6500 : 3200);
-    while (host.children.length > 3) host.removeChild(host.firstChild);
-  };
+  }
+  toast(msg, kind) {
+    const box = $('#bm-toasts', this.root); const t = document.createElement('div'); t.className = 'bm-toast bm-plate' + (kind === 'err' ? ' is-err' : ''); t.setAttribute('role', kind === 'err' ? 'alert' : 'status');
+    t.innerHTML = ic(kind === 'err' ? 'warn' : 'check') + '<span>' + esc(msg) + '</span>'; box.appendChild(t); while (box.children.length > 3) box.removeChild(box.firstChild);
+    setTimeout(() => { t.classList.add('is-out'); setTimeout(() => t.remove(), 400); }, kind === 'err' ? 5200 : 3200);
+  }
+}
 
-  /* ------------------------------------------------------------ إغلاق */
-  Dashboard.prototype.requestClose = function () {
-    var self = this, s = this.sm;
-    if (s.dirtyCount()) {
-      this.confirm({ title: 'تعديلات غير محفوظة', text: 'عندك ' + s.dirtyCount() + ' تعديل غير محفوظ. تحفظها الحين، أو تتركها كمسودة على جهازك للمرة الجاية؟', ok: 'حفظ وإغلاق' }).then(function (y) {
-        if (y) s.saveAll().then(function (ok) { if (ok) self.close(); }); else self.close();
-      });
-    } else this.close();
-  };
-  Dashboard.prototype.close = function (opt) {
-    if (!this.root) return;
-    var r = this.root; r.classList.remove('is-open'); r.setAttribute('aria-hidden', 'true'); r.setAttribute('inert', '');
-    document.documentElement.style.overflow = '';
-    document.removeEventListener('focusin', this._trap);
-    var self = this; setTimeout(function () { if (r.parentNode && !r.classList.contains('is-open')) r.parentNode.removeChild(r); }, 600);
-    this.root = null; this.sm.listeners = [];
-    if (opt && opt.silent) { try { if (typeof toast === 'function') toast('أُغلقت لوحة BATMISH: تأكد من ربط البث. تعديلاتك غير المحفوظة محفوظة كمسودة.'); } catch (e) {} }
-    else if (this.lastFocus && this.lastFocus.focus) { try { this.lastFocus.focus(); } catch (e) {} }
-  };
 
-  var dash = new Dashboard();
-  B.ui = { open: function (ctl) { dash.open(ctl); }, close: function (o) { dash.close(o); }, _dash: dash, _classes: { ValidationService: ValidationService, ConfigurationService: ConfigurationService, SettingsManager: SettingsManager, PresetManager: PresetManager, HistoryManager: HistoryManager, GameRegistry: GameRegistry, Dashboard: Dashboard } };
+/* =====================================================================
+   [5] الربط بالنظام الحقيقي: زر الإطلاق والانتقال والصلاحية في batmish-core.js (BatmishAccessController).
+   هنا فقط واجهة الفتح/الإغلاق. الخادم هو من يقرر الوصول؛ فقدان الصلاحية يغلق اللوحة (close({silent:true})).
+   ===================================================================== */
+const dash = new Dashboard();
+B.onClose = function () { try { const b = B.controller && B.controller.btn; if (b) b.focus({ preventScroll: true }); } catch (e) {} };
+B.ui = { open() { ensureFonts(); dash.open(); }, close(o) { dash.close(o); if (o && o.silent) { try { if (typeof toast === 'function') toast('أُغلقت لوحة BATMISH: تأكد من ربط البث. تعديلاتك غير المحفوظة محفوظة كمسودة.'); } catch (e) {} } }, _dash: dash };
+function ensureFonts() {
+  if (document.getElementById('batmish-fonts')) return;
+  const l = document.createElement('link'); l.id = 'batmish-fonts'; l.rel = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Oxanium:wght@500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap';
+  document.head.appendChild(l);
+}
 })();

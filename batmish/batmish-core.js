@@ -146,7 +146,8 @@
     if (this.btn) return;
     var self = this, b = document.createElement('button');
     b.type = 'button'; b.className = 'bm-launch'; b.id = 'batmish-launch'; b.setAttribute('aria-label', 'BATMISH — لوحة التحكم');
-    b.innerHTML = '<span class="bm-launch-plate"><span class="bm-launch-emblem">' + BAT_SVG + '</span><span class="bm-launch-txt"><b>BATMISH</b><i>COMMAND CENTER</i></span></span>';
+    b.innerHTML = '<span class="bm-launch-plate"></span><svg class="bm-launch-edge" viewBox="0 0 236 62" preserveAspectRatio="none" aria-hidden="true"><path class="base" d="M0 16 L16 0 H196 L206 8 H236 V46 L220 62 H40 L30 54 H0 Z"/><path class="run" pathLength="100" d="M0 16 L16 0 H196 L206 8 H236 V46 L220 62 H40 L30 54 H0 Z"/></svg>' +
+      '<span class="bm-launch-emblem">' + BAT_SVG.replace('<path', '<path fill="currentColor"') + '</span><span class="bm-launch-txt"><b>BATMISH</b><i>مركز القيادة</i></span><span class="bm-launch-screw s1"></span><span class="bm-launch-screw s2"></span>';
     b.addEventListener('click', function () { self.open(b); });
     b.addEventListener('pointerenter', function () { self.loadUi(); }, { once: true });
     document.body.appendChild(b);
@@ -171,13 +172,18 @@
   AccessController.prototype.open = function (fromBtn) {
     var self = this;
     if (this.state !== 'allowed') return;
-    var warp = null;
-    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!reduce) { warp = document.createElement('div'); warp.className = 'bm-warp'; warp.innerHTML = BAT_SVG; document.body.appendChild(warp); void warp.offsetWidth; warp.classList.add('is-run'); }
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches, warp = null;
+    var root = document.getElementById('batmish-root'); if (root && root.classList.contains('is-open')) return;
+    if (!reduce && fromBtn) {
+      var r = fromBtn.getBoundingClientRect(); warp = document.createElement('div'); warp.className = 'bm-warp';
+      warp.style.setProperty('--ox', (r.left + 62) + 'px'); warp.style.setProperty('--oy', (r.top + r.height / 2) + 'px');
+      warp.innerHTML = '<div class="bm-warp-flash"></div><div class="bm-warp-door top"></div><div class="bm-warp-door bot"></div><div class="bm-warp-bat">' + BAT_SVG + '</div>';
+      document.body.appendChild(warp); void warp.offsetWidth; warp.classList.add('is-run');
+    }
     this.loadUi().then(function (ui) {
-      if (self.state !== 'allowed') return;
-      setTimeout(function () { ui.open(self); }, reduce ? 0 : 380);
-    }, function () { if (typeof toast === 'function') toast('تعذّر تحميل واجهة BATMISH. تحقق من الاتصال وحاول مجدداً.'); });
+      if (self.state !== 'allowed') { if (warp && warp.parentNode) warp.parentNode.removeChild(warp); return; }
+      setTimeout(function () { if (self.state === 'allowed') ui.open(); }, reduce || !warp ? 0 : 470);
+    }, function () { if (warp && warp.parentNode) warp.parentNode.removeChild(warp); if (typeof toast === 'function') toast('تعذّر تحميل واجهة BATMISH. تحقق من الاتصال وحاول مجدداً.'); });
     if (warp) setTimeout(function () { if (warp.parentNode) warp.parentNode.removeChild(warp); }, 1150);
   };
 
