@@ -19315,6 +19315,8 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'spinMinMs', type: 'number', label: 'أقل مدة للف الروليت (بالميلي ثانية)', hint: 'الحالي: 4000', default: 4000, min: 1000, max: 15000 },
       { key: 'spinRandomMs', type: 'number', label: 'مدة عشوائية إضافية للف (بالميلي ثانية)', hint: 'الحالي: 1500', default: 1500, min: 0, max: 10000 },
       { key: 'turnSeconds', type: 'number', label: 'مدة دور اللاعب لاختيار دولة (بالثواني، 0 = بدون وقت)', hint: 'الحالي: 15 — إذا انتهى الوقت دون اختيار يروح دوره ويلف الدور على غيره', default: 15, min: 0, max: 3600 },
+      { key: 'turnTimerEnabled', type: 'toggle', label: 'اللعب مع المؤقت', hint: 'مفعّل: لكل لاعب مهلة لاختيار دولته (مدتها من خيار «مدة دور اللاعب»). مطفأ: بلا مؤقت والدور ينتظر اللاعب.', default: true },
+      { key: 'timeoutKickEnabled', type: 'toggle', label: 'طرد من انتهى مؤقته ولم يلعب', hint: 'مفعّل: إذا خلص المؤقت ولم يختر اللاعب دولة يُطرد من الراوند (تُقصى دولته). مطفأ: يروح دوره فقط.', default: true },
       { key: 'allianceEnabled', type: 'toggle', label: 'تفعيل تحالف مؤقت', hint: 'فرصة عشوائية تربط دولتين كتحالف — ما يقدر أحد يقصي الثانية طول ما التحالف قائم', default: false },
       { key: 'goldenCountryEnabled', type: 'toggle', label: 'تفعيل دولة محصّنة ذهبية', hint: 'دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها', default: false },
       { key: 'endgameMultiplierEnabled', type: 'toggle', label: 'تفعيل مضاعفة الخطر بالنهاية', hint: 'في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)', default: false },
@@ -47858,6 +47860,7 @@ let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
 let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
 let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwTimeoutKick = true;   // طرد من خلص مؤقته دون اختيار
 let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
 let cwGoldenCountryName = null;
@@ -48284,6 +48287,8 @@ function startCountryWarRound() {
   CW_SPIN_RANDOM_MS = modGetSetting('countrywar', 'spinRandomMs', 1500);
   cwAllianceEnabled = modGetSetting('countrywar', 'allianceEnabled', false);
   cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
+  if (modGetSetting('countrywar', 'turnTimerEnabled', true) === false) cwTurnSeconds = 0;   // «اللعب مع المؤقت» مطفأ
+  cwTimeoutKick = modGetSetting('countrywar', 'timeoutKickEnabled', true) !== false;
   cwTurnTimerUid = null; cwGridRoundSeq++;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
@@ -48542,11 +48547,17 @@ function cwTurnTimerTick() {
 function cwTurnTimeout() {
   if (!cwTurnUid || cwGameStatus !== 'active') return;
   const u = cwParticipants.get(cwTurnUid); const nm = u ? (u.nickname || u.uniqueId) : cwTurnUid;
+  const timedOutUid = cwTurnUid;
   cwTurnUid = null; cwTurnTimerUid = null; cwDoubleElimActivated = false; cwDoubleElimArmed = false; cwDoubleElimEliminationsThisTurn = 0;
   const result = document.getElementById('cw-spin-result'); if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — راح دوره!'; result.className = 'cw-spin-result show'; }
   const banner = document.getElementById('cw-turn-banner'); if (banner) banner.className = 'cw-turn-banner';
-  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — يلف الدور على غيره');
+  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — ' + (cwTimeoutKick ? 'تم طرده من الراوند' : 'يلف الدور على غيره'));
   try { sfx.click(soundManager.gain('cw_spin_start')); } catch (e) {}
+  if (cwTimeoutKick && timedOutUid && cwParticipants.has(timedOutUid)) {
+    cwKickedDuringRound.add(timedOutUid);   // لا يرجع للراوند نفسه
+    cwRemoveParticipant(timedOutUid);       // تُقصى دولته بنفس منطق الطرد
+    if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — تم طرده من الراوند!'; result.className = 'cw-spin-result show'; }
+  }
   drawCWWheel(0);
   setTimeout(function cwAutoSpinRetry() {
     if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning || cwTurnUid) return;
