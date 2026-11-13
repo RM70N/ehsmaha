@@ -6,7 +6,7 @@
   if (window.Batmish) return;
 
   var STREAMERS = ['_zvd4'];           // يوزرات البث المسموحة (الفحص الحقيقي بالخادم)
-  var SITE_USERS = ['mish'];           // حسابات احسمها المسموحة بمجرد الدخول
+  var SITE_USERS = ['mish', 'mzx'];    // حسابات احسمها المسموحة بمجرد الدخول (mish = صاحب _zvd4، mzx = المالك)
   var STREAMER = STREAMERS[0];          // اليوزر الفعلي بعد تأكيد الخادم
   var RECHECK_MS = 15000;
   var SELF_SRC = (document.currentScript && document.currentScript.src) || '/batmish/batmish-core.js';

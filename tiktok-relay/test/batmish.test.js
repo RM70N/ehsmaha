@@ -472,3 +472,11 @@ test('تخزين BATMISH المرن: نفاد حصة Firestore لا يعطّل �
   rtF.on = true; fsF.on = true;                                     // الاثنان معطّلان → خطأ صريح
   await assert.rejects(() => svc.getState('u1'));
 });
+
+test('البوابة: حساب المالك mzx يفتح اللوحة بإعداداته المنفصلة ويُعرض باسمه، وmish يبقى باسم _zvd4', async () => {
+  const names = { mish: 'uM', mzx: 'uX' };
+  const acc = new BatmishAccess({ store: new MemoryStore(), resolveUid: async (n) => names[n] || '' });
+  assert.deepEqual(await acc.check('uX'), { allowed: true, reason: 'ok', streamerId: 'mzx', via: 'account' });
+  assert.equal((await acc.check('uM')).streamerId, '_zvd4');
+  assert.equal((await acc.check('uRandom')).allowed, false);
+});

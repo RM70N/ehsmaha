@@ -14,7 +14,7 @@ export class BatmishAccess {
     this.streamers = streamers.includes(streamerId) ? streamers : [streamerId, ...streamers];
     this.envPins = { ...envPins }; if (envPinUid) this.envPins[streamerId] = envPinUid;
     this.envPinUid = envPinUid || '';
-    this.siteUsers = siteUsers.slice(); this.resolveUid = resolveUid; this._siteCache = new Map();
+    this.siteUsers = Array.isArray(siteUsers) ? Object.fromEntries(siteUsers.map((n) => [n, streamerId])) : { ...siteUsers }; this.resolveUid = resolveUid; this._siteCache = new Map();
     this.autoClaim = !!autoClaim;
     this.log = log;
     this.sessions = new Set(); // { uid, uniqueId, ws }
@@ -51,8 +51,8 @@ export class BatmishAccess {
 
   // هل uid هو حساب احسمها المسمّى (مثل mish)؟ التحقق من الخادم عبر سجل أسماء المستخدمين، مع كاش قصير.
   async siteUserOf(uid) {
-    if (!this.resolveUid || !this.siteUsers.length) return '';
-    for (const name of this.siteUsers) {
+    if (!this.resolveUid) return '';
+    for (const name of Object.keys(this.siteUsers)) {
       const c = this._siteCache.get(name);
       let u;
       if (c && Date.now() - c.at < 60000) u = c.uid;
@@ -65,7 +65,7 @@ export class BatmishAccess {
   async check(uid) {
     if (!uid) return { allowed: false, reason: 'unauthenticated' };
     const su = await this.siteUserOf(uid);
-    if (su) return { allowed: true, reason: 'ok', streamerId: this.streamerId, via: 'account' };   // حساب الموقع mish = نفس الشخص صاحب بث _zvd4
+    if (su) return { allowed: true, reason: 'ok', streamerId: this.siteUsers[su] || this.streamerId, via: 'account' };   // حساب الموقع mish = نفس الشخص صاحب بث _zvd4
     let pin = await this.pinnedUid();
     if (!pin && this.autoClaim && this.hasLiveSession(uid)) {
       await this.store.setPin({ uid, at: Date.now(), by: 'autoclaim' });
