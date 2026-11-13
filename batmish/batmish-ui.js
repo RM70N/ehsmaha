@@ -391,7 +391,7 @@ const BatmishHeader = {
     return '<header class="bm-head"><button type="button" class="bm-btn b-ghost b-icon bm-menu-btn" data-act="menu" aria-label="القائمة">' + ic('menu') + '</button>' +
       '<div class="bm-brand"><div class="bm-brand-mark bm-plate p-x is-pulse">' + BAT_SVG + '</div><div class="bm-brand-txt"><b>BATMISH</b><i>نظام الفارس المظلم</i></div></div>' +
       '<div class="bm-crumb"><span class="en" id="bm-crumb-en">نظرة عامة</span><b id="bm-crumb">مركز القيادة</b></div><div class="bm-head-sp"></div>' +
-      '<div class="bm-hmod m-stream bm-plate"><div class="bm-sig"><i></i><i></i><i></i><i></i><i></i></div><div class="lbl"><span class="en">ربط البث</span><b>مربوط</b></div></div>' +
+      '<div class="bm-hmod m-stream bm-plate"><div class="bm-sig"><i></i><i></i><i></i><i></i><i></i></div><div class="lbl"><span class="en">' + (B.VIA === 'account' ? 'الحساب' : 'ربط البث') + '</span><b>' + (B.VIA === 'account' ? 'موثّق' : 'مربوط') + '</b></div></div>' +
       '<div class="bm-hmod m-user bm-plate"><div class="lbl"><span class="en">الستريمر</span><b class="mono">@' + STREAMER + '</b></div></div>' +
       '<div class="bm-save-chip bm-plate" id="bm-status" data-s="saved" role="status" aria-live="polite"><i></i><span id="bm-status-t">تم الحفظ</span></div>' +
       '<button type="button" class="bm-close bm-plate" data-act="close" aria-label="إغلاق اللوحة">' + ic('x') + '</button></header>';
@@ -513,14 +513,14 @@ const BatmishCommandCenter = {
     const segs = games.map(g => '<i class="' + (sm.customizedCount(g.tag) ? 'on' : '') + '"></i>').join('');
     const unit = (viz, en, big, small) => '<div class="bm-unit"><div class="viz">' + viz + '</div><div class="lbl"><span class="en">' + en + '</span><b>' + big + '</b><small>' + small + '</small></div></div>';
     const status = '<aside class="bm-status bm-plate"><i class="bm-glow"></i><div class="bm-status-h"><span class="en">حالة النظام</span><span class="bm-tag t-ok">يعمل</span></div>' +
-      unit('<div class="bm-sig" style="height:26px"><i></i><i></i><i></i><i></i><i></i></div>', 'ربط البث', 'مربوط', 'مؤكد من الخادم · @' + STREAMER) +
+      unit('<div class="bm-sig" style="height:26px"><i></i><i></i><i></i><i></i><i></i></div>', B.VIA === 'account' ? 'الحساب' : 'ربط البث', B.VIA === 'account' ? 'موثّق' : 'مربوط', 'مؤكد من الخادم · @' + STREAMER) +
       unit('<svg class="bm-ring" viewBox="0 0 46 46"><circle class="bg" cx="23" cy="23" r="19"/><circle class="fg" cx="23" cy="23" r="19" stroke-dasharray="' + CI + '" stroke-dashoffset="' + (CI * (1 - Math.max(frac, .02))).toFixed(1) + '"/></svg><span class="bm-ring-n">' + cu + '</span>', 'الإعدادات النشطة', '<span class="mono">' + cu + ' <span style="font-size:12px;color:#7e8ea8">/ ' + tf + '</span></span>', 'إعدادات مغيّرة عن الافتراضي') +
       unit('<div class="bm-segs">' + segs + '</div>', 'الألعاب المخصصة', '<span class="mono">' + custG + ' <span style="font-size:12px;color:#7e8ea8">/ ' + canN + '</span></span>', 'ألعاب لها تخصيص نشط') +
       unit('<div class="bm-cards-stack"><i></i><i></i><i></i></div>', 'المجموعات المحفوظة', presetsN, 'مجموعات محفوظة') +
       unit('<svg class="bm-pulse-line" viewBox="0 0 54 30"><path d="M0 18h12l4-12 6 22 5-16 4 6h23"/></svg>', 'آخر تعديل', esc(lastTxt), esc(lastSub)) + '</aside>';
     const hero = '<section class="bm-hero"><div class="bm-hero-main bm-plate"><i class="bm-glow"></i><div class="bm-hero-emblem"><span class="bm-radar"></span><span class="bm-radar r2"></span><span class="bm-radar r3"></span><span class="bm-radar-x"></span><span class="bm-radar-y"></span><span class="bm-radar-sweep"></span>' +
       '<svg class="bat" viewBox="0 0 200 100"><path d="' + BAT_PATH + '"/></svg></div><div class="bm-hero-body"><span class="bm-eyebrow">غوثام · كهف الخفاش</span><h1>BATMISH</h1><h2>مركز قيادة الفارس المظلم</h2>' +
-      '<div class="bm-welcome">أهلاً بعودتك، <b class="mono">@' + STREAMER + '</b></div><div class="bm-hero-tags"><span class="bm-tag t-ok">الربط مؤكد</span><span class="bm-tag t-elec">إصدار ' + sm.rev + '</span><span class="bm-tag">' + canN + ' لعبة مجهّزة</span></div></div></div>' + status + '</section>';
+      '<div class="bm-welcome">أهلاً بعودتك، <b class="mono">@' + STREAMER + '</b></div><div class="bm-hero-tags"><span class="bm-tag t-ok">' + (B.VIA === 'account' ? 'الحساب موثّق' : 'الربط مؤكد') + '</span><span class="bm-tag t-elec">إصدار ' + sm.rev + '</span><span class="bm-tag">' + canN + ' لعبة مجهّزة</span></div></div></div>' + status + '</section>';
     const cnt = c => d.countCats(c);
     const Q = [
       ['db', 'قاعدة الألعاب', 'أرشيف كل الألعاب وإعداداتها', canN + ' لعبة', 'c5 tall sq-a hot', ''], ['round', 'التحكم بالجولات', 'مدد وعدّادات ومحاولات الجولات', cnt(['round']) + ' إعداد', 'c4 tall sq-b', ''], ['players', 'تجربة اللاعبين', 'الإنعاش وعدد المرات المسموحة', cnt(['players']) + ' إعداد', 'c3 tall sq-c', ''],
@@ -704,7 +704,7 @@ class Dashboard {
     const dish = '<div class="dish"><svg viewBox="0 0 230 200"><path d="M60 170h110M115 170v-54"/><path d="M70 116a64 64 0 0 1 90-62l-18 38z"/><circle cx="118" cy="88" r="3" fill="currentColor"/><g class="wv"><path d="M150 60a60 60 0 0 1 36 40"/></g><g class="wv"><path d="M164 44a84 84 0 0 1 52 60"/></g><g class="wv"><path d="M178 28a108 108 0 0 1 66 78"/></g></svg></div>';
     return this.pageHead({ eyebrow: 'قنوات التواصل', title: 'تفاعل البث' }, '', 'واجهة اتصالات البث. هنا ستظهر إعدادات تفاعل الجمهور فور ربطها بمنطق الألعاب.') +
       '<div class="bm-comms bm-plate"><i class="bm-glow"></i><div><span class="bm-tag t-warn">في الانتظار · لا قنوات موصولة</span><h3 style="margin:14px 0 6px;font-family:var(--bm-f-ar);font-size:22px">لا توجد إعدادات تفاعل موصولة بعد</h3><p class="bm-sub" style="margin:0;max-width:56ch">لا توجد حاليًا إعدادات تفاعل (رسائل بداية الجولة وغيرها) موصولة بمنطق الألعاب، فنعرض ذلك بصراحة بدل تزييف إعدادات لا تعمل.</p>' + wave +
-      '<div class="bm-chan"><span class="bm-tag t-ok">الربط · @' + STREAMER + '</span><span class="bm-tag">الشات · غير موصول</span><span class="bm-tag">رسائل الجولة · غير موصولة</span></div></div>' + dish + '</div>' +
+      '<div class="bm-chan"><span class="bm-tag t-ok">' + (B.VIA === 'account' ? 'الحساب' : 'الربط') + ' · @' + STREAMER + '</span><span class="bm-tag">الشات · غير موصول</span><span class="bm-tag">رسائل الجولة · غير موصولة</span></div></div>' + dish + '</div>' +
       '<div class="bm-note">' + ic('info') + '<div>الإنعاش عبر الهدايا يظهر حاليًا ضمن <b>تجربة اللاعبين</b> لأنه موصول فعليًا بمنطق الألعاب.</div></div>';
   }
   vBalance() {
