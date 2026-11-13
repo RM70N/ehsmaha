@@ -1,7 +1,8 @@
 // خادم اختبار BATMISH: نفس وحدات الخادم الحقيقية (بوابة + خدمة + مسارات HTTP + جسر /ws يسجّل جلسات موثَّقة)
 // لكن التحقق من التوكن يفك توكن محاكي Firebase (غير موقّع). يُستخدم فقط مع محاكيات Firebase بالاختبار.
 import http from 'node:http';
-import { MemoryStore } from '../../tiktok-relay/src/batmish/store.js';
+import { MemoryStore, PrefixedStore } from '../../tiktok-relay/src/batmish/store.js';
+import { EventsService } from '../../tiktok-relay/src/batmish/events/service.js';
 import { BatmishService } from '../../tiktok-relay/src/batmish/service.js';
 import { BatmishAccess } from '../../tiktok-relay/src/batmish/access.js';
 import { createBatmishHandler } from '../../tiktok-relay/src/batmish/http.js';
@@ -15,7 +16,7 @@ export async function startBatmishTestServer(port = 0) {
   const siteUsers = new Map(); // اسم حساب احسمها → uid (يحاكي سجل الأسماء؛ المحلّل الحقيقي مغطّى باختبارات accountLookup)
   const access = new BatmishAccess({ store, ownerEmail: 'malshaifan1@gmail.com', resolveUid: async (n) => siteUsers.get(n) || '' });
   const readJsonBody = async (req, limit = 10000) => { let n = 0; const c = []; for await (const x of req) { n += x.length; if (n > limit) throw new Error('الجسم كبير جداً'); c.push(x); } const t = Buffer.concat(c).toString('utf8'); return t ? JSON.parse(t) : {}; };
-  const handler = createBatmishHandler({ verifyToken: decode, service, access, ownerEmail: OWNER, readJsonBody });
+  const handler = createBatmishHandler({ verifyToken: decode, service, eventsService: new EventsService({ store: new PrefixedStore(store, 'ev_') }), access, ownerEmail: OWNER, readJsonBody });
   const bridge = new LegacyBridgeServer({ log: () => {}, isStreamerEnabled: async () => true, verifyToken: decode, onSession: (u, id, ws) => access.registerSession(u, id, ws) });
   bridge.getOrCreateRoom = () => ({ addClient(ws) { ws.send(JSON.stringify({ type: 'bridge_status', state: 'connected' })); }, removeClient() {} });
   const server = http.createServer(async (req, res) => {

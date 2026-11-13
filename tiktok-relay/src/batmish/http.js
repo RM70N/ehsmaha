@@ -3,6 +3,7 @@
 // توكن Firebase صالح + uid مثبَّت + بث مربوط الآن. الهوية تُؤخذ من التوكن فقط، لا من الجسم ولا الرابط.
 import { GAMES, CATEGORIES, TABS, STREAMER_ID, STREAMERS } from './schema.js';
 import { ValidationError } from './validation.js';
+import { handleEvents } from './events/http.js';
 import { ConflictError, NotFoundError } from './service.js';
 
 const ALLOWED_ORIGINS = new Set(['https://ehsmaha.com', 'https://www.ehsmaha.com']);
@@ -36,8 +37,9 @@ const STATUS_BY_CODE = {
   already_reverted: 409, unsupported_type: 400, invalid_uid: 400,
 };
 
-export function createBatmishHandler({ verifyToken, service, access, ownerEmail, limiter = new RateLimiter(), readJsonBody, resolveUid = null, log = () => {} }) {
+export function createBatmishHandler({ verifyToken, service, eventsService = null, access, ownerEmail, limiter = new RateLimiter(), readJsonBody, resolveUid = null, log = () => {} }) {
   const owner = String(ownerEmail || '').toLowerCase();
+  const evLimiter = new RateLimiter({ perMinute: 400 });
 
   function bearer(req) { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; }
 
@@ -54,7 +56,8 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
     try {
       const user = await verifyToken(bearer(req));
       if (!user) { send(401, { error: 'unauthorized' }); return true; }
-      if (!limiter.allow(user.uid)) { send(429, { error: 'rate_limited' }); return true; }
+      // الأحداث الخاصة لها سقف أعلى مستقل (السجل يرسل طلباً لكل حدث) حتى لا تُجوِّع طلبات الإعدادات
+      if (!(path.startsWith('/batmish/events/') ? evLimiter : limiter).allow(user.uid)) { send(429, { error: 'rate_limited' }); return true; }
       const uid = user.uid;
 
       // ---- إدارة التثبيت: للمالك فقط
@@ -101,6 +104,10 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
         const state = await service.getState(uid);
         send(200, { streamerId: gate.streamerId, via: gate.via, games: GAMES, categories: CATEGORIES, tabs: TABS, state });
         return true;
+      }
+      if (eventsService && path.startsWith('/batmish/events/')) {
+        const evBody = req.method === 'POST' ? await readJsonBody(req, 32 * 1024) : null;
+        if (await handleEvents({ method: req.method, path, url, uid, body: evBody, svc: eventsService, send })) return true;
       }
       if (path === '/batmish/overlay' && req.method === 'GET') { send(200, await service.overlay(uid)); return true; }
       if (path === '/batmish/resolve' && req.method === 'GET') { send(200, await service.resolveRound(uid, url.searchParams.get('tag') || '')); return true; }

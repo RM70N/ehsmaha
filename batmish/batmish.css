@@ -804,3 +804,64 @@ select.bm-input{appearance:none;-webkit-appearance:none;padding-inline-end:40px;
 .bm .mono,.bm .bm-num{unicode-bidi:isolate}
 /* زر الاتصال العائم للموقع (eh-connect-dock) يستخدم أسفل الوسط؛ نرفع زرنا فوقه على الشاشات الضيقة */
 @media (max-width:960px){.bm-launch{left:10px;bottom:max(148px,calc(env(safe-area-inset-bottom) + 140px))}}
+
+/* إحصائيات البث */
+.bm .bm-sgrid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-top:16px;align-items:start}
+.bm .bm-scol{display:flex;flex-direction:column;gap:16px}
+.bm .bm-sl-h{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 8px;font-size:14px}
+.bm .bm-sl{list-style:none;margin:0;padding:0 18px 14px;max-height:360px;overflow:auto}
+.bm .bm-sl li{display:flex;gap:10px;justify-content:space-between;padding:8px 0;border-top:1px solid var(--bm-line,rgba(143,180,230,.14));font-size:13.5px}
+.bm .bm-sl li b{color:#fff;flex:0 0 auto;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bm .bm-sl li span{color:var(--bm-silver);text-align:start;min-width:0;overflow-wrap:anywhere}
+.bm .bm-sl-e{margin:0;padding:6px 18px 16px;color:#7184a1;font-size:13px}
+@media (max-width:860px){.bm .bm-sgrid{grid-template-columns:1fr}}
+
+/* ===== SPECIAL EVENTS: واجهة اللوحة ===== */
+.bm .bm-evtabs{display:flex;gap:8px;margin:0 0 18px}
+.bm .bm-evtabs button{all:unset;cursor:pointer;padding:9px 18px;font-size:14px;color:var(--bm-silver);border:1px solid var(--bm-line,rgba(143,180,230,.2));clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.bm .bm-evtabs button.on{color:#fff;background:rgba(143,180,230,.16);border-color:var(--bm-elec-hi,#8fb4e6)}
+.bm .bm-evh{margin:22px 0 12px;font-size:16px;letter-spacing:0}
+.bm .bm-evgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.bm .bm-evgrid2{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;margin-top:18px}
+.bm .bm-evgc,.bm .bm-evc{--cut:16px;--cut2:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;position:relative}
+.bm .bm-evgc.dim,.bm .bm-evc.dim{opacity:.62}
+.bm .bm-evgc .n{font-size:17px;font-weight:700;color:#fff}
+.bm .bm-evgc .m{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--bm-silver)}
+.bm .bm-evgc .s{display:flex;flex-wrap:wrap;gap:6px;min-height:24px}
+.bm .bm-evc .h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bm .bm-evc .h b{font-size:16px;color:#fff}
+.bm .bm-evc p{margin:0;font-size:13px;color:var(--bm-silver);line-height:1.7}
+.bm .bm-evc.on{box-shadow:inset 0 0 0 1px var(--bm-elec-hi,#8fb4e6)}
+.bm .bm-evfs{display:grid;grid-template-columns:1fr;gap:8px;max-height:260px;overflow:auto;padding:2px}
+.bm .bm-evf{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--bm-silver)}
+.bm .bm-evf small{color:#7184a1;font-size:11.5px;line-height:1.5}
+.bm .bm-evf.chk{flex-direction:row;align-items:center;gap:8px}.bm .bm-evf.chk.big{font-size:14px;color:#fff}
+.bm .bm-evbody{padding:4px 18px 16px;display:flex;flex-direction:column;gap:12px}
+.bm .bm-evrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bm .bm-in{background:#060b14;color:#fff;border:1px solid var(--bm-line-hi,rgba(143,180,230,.3));padding:8px 10px;font:inherit;font-size:13.5px;min-width:0;border-radius:0}
+.bm .bm-in:focus{outline:2px solid var(--bm-elec-hi,#8fb4e6);outline-offset:1px}
+.bm .bm-seg{display:flex;flex-wrap:wrap;gap:6px}
+.bm .bm-seg button{all:unset;cursor:pointer;padding:7px 14px;font-size:13px;color:var(--bm-silver);border:1px solid var(--bm-line,rgba(143,180,230,.25))}
+.bm .bm-seg button.on{color:#fff;background:rgba(143,180,230,.2);border-color:var(--bm-elec-hi,#8fb4e6)}
+.bm .bm-btn.bm-btn-p{background:linear-gradient(180deg,#2c4f86,#1d3a66);color:#fff}
+.bm .bm-btn.bm-btn-s{padding:5px 10px;font-size:12px}
+.bm .bm-evtbl{overflow:auto;padding:6px 10px}
+.bm .bm-evtbl table{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
+.bm .bm-evtbl th{text-align:start;color:#7184a1;font-weight:600;padding:10px 8px;border-bottom:1px solid var(--bm-line,rgba(143,180,230,.2))}
+.bm .bm-evtbl td{padding:9px 8px;border-bottom:1px solid rgba(143,180,230,.08);color:var(--bm-silver);vertical-align:top}
+/* ===== عرض الحدث على شاشة اللعبة (خارج اللوحة) ===== */
+#bmev-host{position:fixed;top:14px;inset-inline:0;z-index:2147483200;display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;font-family:Cairo,Tajawal,system-ui,sans-serif}
+.bmev{--bmev-hue:#8fb4e6;min-width:min(360px,92vw);max-width:92vw;background:#101827;border:1px solid #40516b;border-radius:14px;padding:14px 18px;box-shadow:0 10px 40px rgba(0,0,0,.55),0 0 0 1px rgba(143,180,230,.08) inset,0 0 28px color-mix(in srgb,var(--bmev-hue) 35%,transparent);opacity:0;transform:translateY(-18px) scale(.97);transition:opacity .35s,transform .35s;text-align:center;direction:rtl}
+.bmev.on{opacity:1;transform:none}
+.bmev-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.bmev-badge{background:#f2d77a;color:#241c00;font-weight:800;font-size:11px;padding:2px 10px;border-radius:999px}
+.bmev-sys{color:#a9b6c8;font-size:11px}
+.bmev-title{color:#f2d77a;font-size:24px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px}
+.bmev-title i{font-style:normal;filter:drop-shadow(0 0 8px var(--bmev-hue))}
+.bmev-text{color:#edf3fa;font-size:14px;margin-top:4px}
+.bmev.bmev-warn{border-color:#e5c84b}.bmev.bmev-cancel{border-color:#8a4b4b}.bmev.bmev-end{border-color:#4b8a6a}
+.bmev.bmev-sweep.on{animation:bmevSweep .8s ease-out}
+.bmev.bmev-pop.on{animation:bmevPop .55s cubic-bezier(.2,1.4,.4,1)}
+@keyframes bmevSweep{from{clip-path:inset(0 0 0 100%)}to{clip-path:inset(0 0 0 0)}}
+@keyframes bmevPop{from{transform:scale(.8)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.bmev,.bmev.on{transition:none;animation:none!important}}

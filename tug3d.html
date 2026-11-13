@@ -281,7 +281,7 @@ html,body{margin:0;height:100%;background:var(--eht-bg);color:var(--eht-ink);fon
 (function(){
 "use strict";
 /* ===== core: منطق شد الحبل (منقول من tugNormalize/tugValidateWords/tugJoinTeam/tugHandleEvent/tugRegisterPull/tugApplyPullForce/tugPhysicsStep/tugFinishRound) ===== */
-var K={PULL_FORCE:3.2,DECAY:0.86,KNOT_SPEED:34,ROUND_SECONDS:60,COOLDOWN:400,STREAK_RESET:3000,STREAK_STEP:0.12,STREAK_MAX:2.0,GOLDEN_MULT:2.0,GOLDEN_DUR:6000,GOLDEN_MIN:10000,GOLDEN_MAX:20000,RUBBER:1.5,SUBSTEP:1/60};
+var K={PULL_FORCE:3.2,DECAY:0.86,KNOT_SPEED:34,ROUND_SECONDS:60,COOLDOWN:400,STREAK_RESET:3000,STREAK_STEP:0.12,STREAK_MAX:2.0,GOLDEN_MULT:2.0,GOLDEN_DUR:6000,GOLDEN_MIN:10000,GOLDEN_MAX:20000,RUBBER:1.5,SUBSTEP:1/60,TEAM_MULT:{a:1,b:1}};
 var clockFn=function(){return Date.now();};
 function now(){return clockFn();}
 var hooks={followGate:null,lateJoinGate:null,adminCommand:null,onJoin:null,onRoundEnd:null,onWin:null,onStatus:null};
@@ -393,6 +393,7 @@ function applyPull(team,uid){
     mult=Math.min(K.STREAK_MAX,1+(count-1)*K.STREAK_STEP);S.streakMult.set(uid,mult);force*=mult;
   }
   force*=balanceFactor(team);
+  force*=(K.TEAM_MULT&&K.TEAM_MULT[team])||1; /* BATMISH: مضاعِف قوة الفريق (حدث «قوة الفريق») — 1 افتراضياً */
   if(S.golden)force*=K.GOLDEN_MULT;
   if(team==='a')S.forceA+=force;else S.forceB+=force;
   S.pulls++;S.activity[team]+=1;
