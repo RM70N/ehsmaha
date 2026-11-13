@@ -479,4 +479,293 @@
       }
     }
   };
+
+  /* ===================== ضربة الحظ (hz) ===================== */
+  // المتغيرات: hzGameStatus, hzCells[] (رقم الصندوق→uid), hzParticipants(Map uid→{user,cell}), hzMaxClicks/hzClicksUsed، وخطافات الأحداث: hzBonusCells/hzShield/hzDoubleNext
+  function hzActive() { try { return hzGameStatus === 'active'; } catch (e) { return false; } }
+  function hzUnopened() { var out = []; for (var n = 1; n <= HZ_GRID_SIZE; n++) { var e = document.getElementById('hz-cell-' + n); if (e && !e.classList.contains('hz-opened')) out.push(n); } return out; }
+  A.hz = {
+    tag: 'hz', hook: { start: 'startHzRound', began: hzActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !hzActive(); },
+    events: {
+      // 1) الصندوق الأسطوري: صندوق سري يمنح ضغطات إضافية لمن يفتحه
+      'hz.e1': {
+        canRun: function () { try { return hzActive() && hzUnopened().length > 1 ? true : { ok: false, reason: 'no_cells' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var n = pickOne(hzUnopened()); hzBonusCells.add(n); hzBonusClicks = Math.max(1, Math.round(3 * inst.factor)); return { effect: 'صندوق أسطوري سري (+' + hzBonusClicks + ' ضغطات لمن يفتحه)', sustain: true, data: { n: n }, revert: function () { hzBonusCells.delete(n); } }; },
+        shouldEnd: function (ctx, inst) { return !hzBonusCells.has(inst.data.n); }, announceText: 'صندوق أسطوري مخفي بين الصناديق!'
+      },
+      // 2) الصندوق المزدوج: النقرة القادمة تفتح صندوقين (الثاني مجاني)
+      'hz.e2': {
+        canRun: function () { try { return hzActive() && hzClicksUsed < hzMaxClicks && !hzDoubleNext && hzUnopened().length > 2 ? true : { ok: false, reason: 'not_ready' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { hzDoubleNext = true; return { effect: 'النقرة القادمة تفتح صندوقين', sustain: true, revert: function () { hzDoubleNext = false; } }; },
+        shouldEnd: function () { return !hzDoubleNext; }, announceText: 'صندوق مزدوج! نقرة واحدة تفتح صندوقين'
+      },
+      // 3) الصندوق المقلوب: تبديل أماكن اللاعبين المختبئين بين الصناديق غير المفتوحة
+      'hz.e3': {
+        canRun: function () { try { return hzActive() && hzParticipants.size >= 2 ? true : { ok: false, reason: 'not_enough_players' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () {
+          var cells = hzUnopened(), uids = []; cells.forEach(function (n) { uids.push(hzCells[n] || null); });
+          for (var i = uids.length - 1; i > 0; i--) { var j = rnd(i + 1), t = uids[i]; uids[i] = uids[j]; uids[j] = t; }
+          cells.forEach(function (n, i) { hzCells[n] = uids[i]; if (uids[i]) { var p = hzParticipants.get(uids[i]); if (p) p.cell = n; } });
+          return { effect: 'بُدِّلت أماكن اللاعبين بين ' + cells.length + ' صندوقاً', durationMs: 0 };
+        },
+        announceText: 'الصندوق المقلوب! تبدّلت الأماكن'
+      },
+      // 4) فرصة أخيرة: لاعب مختبئ عشوائي يحصل على درع ينقذه من أول إصابة
+      'hz.e4': {
+        canRun: function () { try { return hzActive() && hzParticipants.size >= 1 ? true : { ok: false, reason: 'no_players' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        eligible: function () { try { return Array.from(hzParticipants.keys()).filter(function (u) { return !hzShield.has(u); }); } catch (e) { return []; } },
+        apply: function (ctx, inst) { var uid = pickOne(inst.eligible || []); if (!uid) return { failed: 'no_eligible_player' }; hzShield.add(uid); return { effect: 'لاعب مختبئ نال فرصة نجاة إضافية', sustain: true, data: { uid: uid }, revert: function () { hzShield.delete(uid); } }; },
+        shouldEnd: function (ctx, inst) { return !hzShield.has(inst.data.uid); }, announceText: 'فرصة أخيرة! لاعب نال درع نجاة سري'
+      }
+    }
+  };
+
+  /* ===================== الصندوق العشوائي (box) ===================== */
+  // المتغيرات: boxGameStatus, boxAwaitingPick, boxArrangement[] ('elim'|'immune'|'elim2'|'golden')، boxParticipants
+  function boxActive() { try { return boxGameStatus === 'active'; } catch (e) { return false; } }
+  function boxOpen() { try { return boxActive() && boxAwaitingPick === true && boxArrangement.length > 0; } catch (e) { return false; } }
+  function boxMark(i, cls) { var el = document.getElementById('box-item-' + (i + 1)); if (el) el.classList.add(cls); return el; }
+  A.box = {
+    tag: 'box', hook: { start: 'startBoxRound', began: boxActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !boxActive(); },
+    events: {
+      // 1) الصندوق الأسطوري: يتحول أحد صناديق الإقصاء إلى صندوق ذهبي (جائزة مضاعفة)
+      'box.e1': {
+        canRun: function () { return boxOpen() && boxArrangement.indexOf('elim') >= 0 ? true : { ok: false, reason: 'no_open_turn' }; },
+        apply: function () { var idxs = []; boxArrangement.forEach(function (c, i) { if (c === 'elim') idxs.push(i); }); var i = pickOne(idxs); boxArrangement[i] = 'golden'; var snap = boxArrangement; return { effect: 'تحوّل أحد صناديق الإقصاء إلى صندوق أسطوري ذهبي', sustain: true, data: { snap: snap }, revert: function () { /* يُستهلك باختيار اللاعب */ } }; },
+        shouldEnd: function (ctx, inst) { return !boxOpen() || boxArrangement !== inst.data.snap; }, announceText: 'صندوق أسطوري! أحد الصناديق صار ذهبياً'
+      },
+      // 3) الصناديق المتبدلة: يُعاد خلط محتوى الصناديق قبل أن يختار اللاعب
+      'box.e3': {
+        canRun: function () { return boxOpen() ? true : { ok: false, reason: 'no_open_turn' }; },
+        apply: function () { var a = boxArrangement.slice(); for (var i = a.length - 1; i > 0; i--) { var j = rnd(i + 1), t = a[i]; a[i] = a[j]; a[j] = t; } boxArrangement = a; return { effect: 'أُعيد خلط محتوى الصناديق', durationMs: 0 }; },
+        announceText: 'الصناديق المتبدلة! المحتوى تغيّر أماكنه'
+      },
+      // 5) الاختيار الأخير: عند بقاء لاعبَين يصير بالدور صندوق نجاة واحد فقط والباقي إقصاء (اختيار حاسم)
+      'box.e5': {
+        condition: function () { try { return boxOpen() && boxParticipants.size <= 2; } catch (e) { return false; } },
+        canRun: function () { return boxOpen() ? true : { ok: false, reason: 'no_open_turn' }; },
+        apply: function () { var n = boxArrangement.length, a = []; for (var i = 0; i < n; i++) a.push('elim'); a[rnd(n)] = 'immune'; boxArrangement = a; return { effect: 'اختيار حاسم: صندوق نجاة واحد والباقي إقصاء', durationMs: 0 }; },
+        announceText: 'الاختيار الأخير! صندوق نجاة واحد فقط'
+      }
+    }
+  };
+
+  /* ===================== القناص (sniper) ===================== */
+  // المتغيرات: sniperGameStatus, sniperCells[n]=[uid..], sniperParticipants(Map uid→{user,cell}), sniperShield*/sniperGolden* (آليات اللعبة الأصلية), sniperAmmo
+  function snActive() { try { return sniperGameStatus === 'active'; } catch (e) { return false; } }
+  function snOccupied() { var out = []; for (var n = 1; n <= SNIPER_GRID_SIZE; n++) if (sniperCells[n] && sniperCells[n].length) out.push(n); return out; }
+  A.sniper = {
+    tag: 'sniper', hook: { start: 'startSniperRound', began: snActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !snActive(); },
+    events: {
+      // 1) المنطقة المتحركة: منطقة ذهبية (طلقة إضافية عند الإصابة) تقفز بين المربعات المأهولة
+      'sniper.e1': {
+        canRun: function () { try { return snActive() && snOccupied().length >= 2 && sniperGoldenCells.size === 0 ? true : { ok: false, reason: sniperGoldenCells.size ? 'golden_active' : 'not_enough_cells' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        durationMs: function () { return 0; },
+        apply: function (ctx, inst) {
+          var pe = sniperGoldenZoneEnabled, n = pickOne(snOccupied()); sniperGoldenZoneEnabled = true; sniperGoldenCells.add(n); inst.data.n = n; inst.data.last = Date.now();
+          return { effect: 'منطقة ذهبية متحركة تبدأ بالمربع ' + n, sustain: true, data: inst.data, revert: function () { sniperGoldenCells.delete(inst.data.n); sniperGoldenZoneEnabled = pe; } };
+        },
+        onTick: function (ctx, inst, t) { if (t - inst.data.last >= (inst.cfg.intervalSec || 6) * 1000) { var occ = snOccupied().filter(function (x) { return x !== inst.data.n; }); if (occ.length) { sniperGoldenCells.delete(inst.data.n); inst.data.n = pickOne(occ); sniperGoldenCells.add(inst.data.n); } inst.data.last = t; } },
+        shouldEnd: function () { return !snActive(); }, announceText: 'المنطقة المتحركة! المربع الذهبي يتنقل'
+      },
+      // 2) المربع المحصّن: مربع مأهول يمتص أول ضربة (آلية sniperShield الأصلية)
+      'sniper.e2': {
+        canRun: function () { try { return snActive() && snOccupied().length >= 1 ? true : { ok: false, reason: 'no_occupied_cells' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var pe = sniperShieldEnabled, n = pickOne(snOccupied().filter(function (x) { return !sniperShieldCells.has(x); })); if (!n) return { failed: 'no_cell' }; sniperShieldEnabled = true; sniperShieldCells.add(n); return { effect: 'المربع ' + n + ' محصّن ويمتص ضربة واحدة', sustain: true, data: { n: n }, revert: function () { sniperShieldCells.delete(n); sniperShieldEnabled = pe; } }; },
+        shouldEnd: function (ctx, inst) { return !sniperShieldCells.has(inst.data.n); }, announceText: 'مربع محصّن! يمتص أول ضربة'
+      },
+      // 4) المواجهة الذهبية: مربع مأهول ذهبي — من يُصاب فيه يمنح طلقة إضافية
+      'sniper.e4': {
+        canRun: function () { try { return snActive() && snOccupied().length >= 1 ? true : { ok: false, reason: 'no_occupied_cells' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var pe = sniperGoldenZoneEnabled, n = pickOne(snOccupied().filter(function (x) { return !sniperGoldenCells.has(x); })); if (!n) return { failed: 'no_cell' }; sniperGoldenZoneEnabled = true; sniperGoldenCells.add(n); return { effect: 'المربع ' + n + ' ذهبي: الإصابة فيه تمنح طلقة', sustain: true, data: { n: n }, revert: function () { sniperGoldenCells.delete(n); sniperGoldenZoneEnabled = pe; } }; },
+        shouldEnd: function (ctx, inst) { return !sniperGoldenCells.has(inst.data.n) || snOccupied().indexOf(inst.data.n) < 0; }, announceText: 'مواجهة ذهبية! مربع بجائزة طلقة'
+      },
+      // 5) الذخيرة المحدودة: خصم نسبة من ذخيرة القناص المتبقية
+      'sniper.e5': {
+        canRun: function () { try { return snActive() && sniperAmmo.sniper >= 3 ? true : { ok: false, reason: 'ammo_low' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { var cut = Math.min(sniperAmmo.sniper - 1, Math.max(1, Math.round(sniperAmmo.sniper * (c.cutPercent || 40) / 100 * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.3 : 1)))); sniperAmmo.sniper -= cut; try { updateAmmoUI(); } catch (e) { /* واجهة */ } return { effect: 'خُصمت ' + cut + ' طلقة قناص (بقي ' + sniperAmmo.sniper + ')', durationMs: 0 }; },
+        announceText: 'الذخيرة محدودة! نقصت طلقات القناص'
+      }
+    }
+  };
+
+  /* ===================== الكراسي (chairs) ===================== */
+  // المتغيرات: chairsGameStatus ('spinning'|'claiming'), chairsActiveChairNumbers[], chairsGoldenChairNumber, chairsImmuneUid, chairsParticipants
+  function chClaiming() { try { return chairsGameStatus === 'claiming'; } catch (e) { return false; } }
+  function chLive() { try { return chairsGameStatus === 'spinning' || chairsGameStatus === 'claiming'; } catch (e) { return false; } }
+  A.chairs = {
+    tag: 'chairs', hook: { start: 'chairsStartRoundClick', began: chLive }, windowSec: function () { return 20; }, isRoundOver: function () { return !chLive(); },
+    events: {
+      // 1) الكرسي الذهبي: كرسي نشط يصير ذهبياً (يمنح فائزه نقطتين بآلية اللعبة الأصلية)
+      'chairs.e1': {
+        canRun: function () { try { return chClaiming() && chairsGoldenChairNumber === null && chairsActiveChairNumbers.length >= 2 ? true : { ok: false, reason: chClaiming() ? 'golden_exists' : 'not_claiming' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var n = pickOne(chairsActiveChairNumbers), el = document.getElementById('chair-cell-' + n); chairsGoldenChairNumber = n; var prevTxt = null; if (el) { el.classList.add('golden'); var num = el.querySelector('.chair-cell-num'); if (num) { prevTxt = num.textContent; if (prevTxt.indexOf('⭐') < 0) num.textContent = '⭐' + prevTxt; } } return { effect: 'الكرسي ' + n + ' صار ذهبياً (نقطتان)', sustain: true, revert: function () { if (chairsGoldenChairNumber === n) chairsGoldenChairNumber = null; if (el) { el.classList.remove('golden'); var nm = el.querySelector('.chair-cell-num'); if (nm && prevTxt !== null) nm.textContent = prevTxt; } } }; },
+        shouldEnd: function () { return !chClaiming(); }, announceText: 'كرسي ذهبي! أسرع من يجلس عليه ينال نقطتين'
+      },
+      // 4) الكرسي المحصّن: لاعب عشوائي ينجو تلقائياً من هذه الجولة (آلية chairsImmuneUid الأصلية)
+      'chairs.e4': {
+        canRun: function () { try { return chClaiming() && !chairsImmuneUid && chairsParticipants.size >= 3 ? true : { ok: false, reason: chairsImmuneUid ? 'immune_exists' : 'not_claiming' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        eligible: function () { try { return Array.from(chairsParticipants.keys()); } catch (e) { return []; } },
+        apply: function (ctx, inst) { var uid = pickOne(inst.eligible || []); if (!uid) return { failed: 'no_eligible_player' }; chairsImmuneUid = uid; return { effect: 'لاعب محصّن ينجو من هذه الجولة', sustain: true, revert: function () { if (chairsImmuneUid === uid) chairsImmuneUid = null; } }; },
+        shouldEnd: function () { return !chClaiming(); }, announceText: 'كرسي محصّن! لاعب ينجو تلقائياً'
+      }
+    }
+  };
+
+  /* ===================== إشارة المرور (rlgl) ===================== */
+  // المتغيرات: rlglGameStatus, rlglLightState ('green'|'red'), rlglSetLight(), rlglLightSpeed, rlglProgress(Map), rlglStepsToWin
+  function rlActive() { try { return rlglGameStatus === 'active'; } catch (e) { return false; } }
+  A.rlgl = {
+    tag: 'rlgl', hook: { start: 'startRlglRound', began: function () { try { return rlglGameStatus === 'active' || rlglGameStatus === 'countdown' || !!rlglCountdownTimer; } catch (e) { return false; } } }, windowSec: function () { return 70; },
+    isRoundOver: function () { try { return rlglGameStatus === 'finished' || (rlglGameStatus === 'waiting' && !rlglCountdownTimer); } catch (e) { return true; } },
+    events: {
+      // 1) الإشارة الخاطفة: وميض أحمر مفاجئ أثناء الأخضر (من يتحرك أثناءه يُقصى بقواعد اللعبة)
+      'rlgl.e1': {
+        canRun: function () { return rlActive() && rlglLightState === 'green' ? true : { ok: false, reason: 'light_not_green' }; },
+        durationMs: function (c) { return c.flashMs || 1500; },
+        apply: function () { rlglSetLight('red'); return { effect: 'وميض أحمر خاطف', sustain: true, revert: function () { if (rlActive() && rlglLightState === 'red') rlglSetLight('green'); } }; },
+        announceText: 'إشارة خاطفة! توقفوا فوراً'
+      },
+      // 2) الإشارة المزدوجة: وميضان أحمران متتاليان
+      'rlgl.e2': {
+        canRun: function () { return rlActive() && rlglLightState === 'green' ? true : { ok: false, reason: 'light_not_green' }; },
+        apply: function (ctx, inst) { inst.data.n = 1; inst.data.phase = 'red'; inst.data.at = Date.now(); rlglSetLight('red'); return { effect: 'وميضان أحمران متتاليان', sustain: true, data: inst.data, revert: function () { if (rlActive() && rlglLightState === 'red') rlglSetLight('green'); } }; },
+        onTick: function (ctx, inst, t) {
+          var ms = inst.cfg.flashMs || 1200; if (!rlActive()) return;
+          if (inst.data.phase === 'red' && t - inst.data.at >= ms) { rlglSetLight('green'); inst.data.phase = 'gap'; inst.data.at = t; }
+          else if (inst.data.phase === 'gap' && t - inst.data.at >= 1500) { if (inst.data.n < 2) { inst.data.n++; rlglSetLight('red'); inst.data.phase = 'red'; inst.data.at = t; } else { inst.data.phase = 'done'; } }
+        },
+        shouldEnd: function (ctx, inst) { return inst.data.phase === 'done' || !rlActive(); }, announceText: 'إشارة مزدوجة! وميضان أحمران'
+      },
+      // 5) السباق النهائي: لما يقترب أحدهم من خط النهاية تتسارع الإشارة
+      'rlgl.e5': {
+        condition: function (ctx, c) { try { if (!rlActive()) return false; var best = 0; rlglProgress.forEach(function (v) { if (v > best) best = v; }); return rlglStepsToWin - best <= c.stepsLeft; } catch (e) { return false; } },
+        canRun: function () { return rlActive() ? true : { ok: false, reason: 'not_active' }; },
+        apply: function () { var prev = rlglLightSpeed; rlglLightSpeed = 'fast'; return { effect: 'تسارع الإشارة في السباق النهائي', sustain: true, revert: function () { rlglLightSpeed = prev; } }; },
+        shouldEnd: function () { return !rlActive(); }, announceText: 'السباق النهائي! الإشارة تتسارع'
+      }
+    }
+  };
+
+  /* ===================== الزر المشحون (battery) ===================== */
+  // المتغيرات: batteryCharge (0-100), batteryFinished, batteryRenderMeter(), وخطافات الأحداث batteryChargeMul/batteryOneShotMul
+  function btActive() { try { return !batteryFinished; } catch (e) { return false; } }
+  A.battery = {
+    tag: 'battery', hook: { start: 'batteryNewRound', began: btActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !btActive(); },
+    events: {
+      // 1) الشحن المضاعف: كل شحنة تُضاعَف طوال مدة الحدث
+      'battery.e1': {
+        canRun: function () { return btActive() && batteryChargeMul === 1 ? true : { ok: false, reason: 'mul_active' }; },
+        durationMs: function (c) { return (c.durationSec || 12) * 1000; },
+        apply: function (ctx, inst) { var m = Math.max(1.5, Math.round(2 * inst.factor * 10) / 10); batteryChargeMul = m; return { effect: 'كل شحنة ×' + m, sustain: true, revert: function () { if (batteryChargeMul === m) batteryChargeMul = 1; } }; },
+        announceText: 'شحن مضاعف! كل شحنة بقيمة أكبر'
+      },
+      // 2) انقطاع الطاقة: هبوط مفاجئ في مستوى الشحن
+      'battery.e2': {
+        canRun: function () { return btActive() && batteryCharge >= 15 ? true : { ok: false, reason: 'charge_too_low' }; },
+        apply: function (ctx, inst, c) { var drop = Math.min(batteryCharge - 1, Math.round((c.dropPercent || 25) * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.3 : 1))), before = batteryCharge; batteryCharge -= drop; try { batteryRenderMeter(); } catch (e) { /* واجهة */ } return { effect: 'انقطاع الطاقة: الشحن ' + before + '% → ' + batteryCharge + '%', durationMs: 0 }; },
+        announceText: 'انقطاع الطاقة! الشحن هبط'
+      },
+      // 3) الشحن الخاطف: قفزة فورية في الشحن (لا تصل لـ100 كي لا تمنح فوزاً بلا شاحن)
+      'battery.e3': {
+        canRun: function () { return btActive() && batteryCharge <= 80 ? true : { ok: false, reason: 'charge_too_high' }; },
+        apply: function (ctx, inst, c) { var up = Math.min(99 - batteryCharge, Math.round((c.jumpPercent || 15) * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.3 : 1))), before = batteryCharge; if (up <= 0) return { failed: 'no_room' }; batteryCharge += up; try { batteryRenderMeter(); } catch (e) { /* واجهة */ } return { effect: 'شحن خاطف: ' + before + '% → ' + batteryCharge + '%', durationMs: 0 }; },
+        announceText: 'شحن خاطف! قفزة مفاجئة'
+      },
+      // 4) البطارية الذهبية: أول شحنة قادمة تُضاعف ×3
+      'battery.e4': {
+        canRun: function () { return btActive() && !(batteryOneShotMul > 0) ? true : { ok: false, reason: 'oneshot_active' }; },
+        apply: function () { batteryOneShotMul = 3; return { effect: 'الشحنة القادمة ×3', sustain: true, revert: function () { batteryOneShotMul = 0; } }; },
+        shouldEnd: function () { return !(batteryOneShotMul > 0); }, announceText: 'بطارية ذهبية! الشحنة القادمة ×3'
+      },
+      // 5) الانفجار النهائي: لما يقترب الشحن من 100 تصير الشحنة القادمة حاسمة (تملأ البطارية)
+      'battery.e5': {
+        condition: function (ctx, c) { try { return btActive() && batteryCharge >= c.whenAbove && batteryCharge < 100; } catch (e) { return false; } },
+        canRun: function () { return btActive() && !(batteryOneShotMul > 0) ? true : { ok: false, reason: 'oneshot_active' }; },
+        apply: function () { batteryOneShotMul = 100; return { effect: 'الشحنة القادمة تملأ البطارية وتحسم الفوز', sustain: true, revert: function () { batteryOneShotMul = 0; } }; },
+        shouldEnd: function () { return !(batteryOneShotMul > 0); }, announceText: 'الانفجار النهائي! الشحنة القادمة تحسم اللعبة'
+      }
+    }
+  };
+
+  /* ===================== المتاهة (maze) ===================== */
+  // المتغيرات: mzGameStatus, mzGrid[r][c]={N,E,S,W: جدار؟}, mzPos(Map uid→{r,c}), mzGoal, mzRows/mzCols، والدوال mzRenderGrid()/mzRenderTokens()
+  function mzActive() { try { return mzGameStatus === 'active'; } catch (e) { return false; } }
+  var MZ_D = { N: [-1, 0, 'S'], S: [1, 0, 'N'], E: [0, 1, 'W'], W: [0, -1, 'E'] };
+  function mzSetWall(r, c, d, v) { var dd = MZ_D[d], nr = r + dd[0], nc = c + dd[1]; if (nr < 0 || nr >= mzRows || nc < 0 || nc >= mzCols) return false; mzGrid[r][c][d] = v; mzGrid[nr][nc][dd[2]] = v; return true; }
+  function mzInternalWalls(wantWall) { var out = []; for (var r = 0; r < mzRows; r++) for (var c = 0; c < mzCols; c++) ['E', 'S'].forEach(function (d) { var dd = MZ_D[d], nr = r + dd[0], nc = c + dd[1]; if (nr < mzRows && nc < mzCols && !!mzGrid[r][c][d] === wantWall) out.push([r, c, d]); }); return out; }
+  function mzAllReach() {   // هل يصل كل لاعب حالي إلى الهدف؟ (BFS على الجدران الحالية)
+    var seen = {}, q = [[mzGoal.r, mzGoal.c]]; seen[mzGoal.r + ',' + mzGoal.c] = 1;
+    while (q.length) { var cur = q.shift(); ['N', 'S', 'E', 'W'].forEach(function (d) { if (mzGrid[cur[0]][cur[1]][d]) return; var dd = MZ_D[d], nr = cur[0] + dd[0], nc = cur[1] + dd[1], k = nr + ',' + nc; if (nr < 0 || nr >= mzRows || nc < 0 || nc >= mzCols || seen[k]) return; seen[k] = 1; q.push([nr, nc]); }); }
+    var ok = true; mzPos.forEach(function (p) { if (!seen[p.r + ',' + p.c]) ok = false; }); return ok;
+  }
+  function mzRedraw() { try { mzRenderGrid(); } catch (e) { /* واجهة */ } }
+  A.maze = {
+    tag: 'maze', hook: { start: 'startMzRound', began: mzActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !mzActive(); },
+    events: {
+      // 1) المتاهة المتغيرة: تُفتح جدران وتُغلق أخرى (مع ضمان بقاء طريق لكل لاعب نحو الهدف)
+      'maze.e1': {
+        canRun: function () { return mzActive() ? true : { ok: false, reason: 'not_active' }; },
+        apply: function (ctx, inst, c) {
+          var k = Math.max(1, Math.round((c.changes || 3) * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.4 : 1)));
+          for (var attempt = 0; attempt < 12; attempt++) {
+            var opened = [], closed = [], walls = mzInternalWalls(true), opens = mzInternalWalls(false);
+            for (var i = 0; i < k && walls.length; i++) { var w = walls.splice(rnd(walls.length), 1)[0]; mzSetWall(w[0], w[1], w[2], false); opened.push(w); }
+            for (var j = 0; j < k && opens.length; j++) { var o = opens.splice(rnd(opens.length), 1)[0]; if (opened.some(function (x) { return x[0] === o[0] && x[1] === o[1] && x[2] === o[2]; })) continue; mzSetWall(o[0], o[1], o[2], true); closed.push(o); }
+            if (mzAllReach()) { mzRedraw(); return { effect: 'تغيّر المتاهة: فُتح ' + opened.length + ' جدار وأُغلق ' + closed.length, durationMs: 0 }; }
+            closed.forEach(function (w) { mzSetWall(w[0], w[1], w[2], false); }); opened.forEach(function (w) { mzSetWall(w[0], w[1], w[2], true); });
+          }
+          return { failed: 'no_safe_layout' };
+        },
+        announceText: 'المتاهة تغيّرت! جدران فُتحت وأخرى أُغلقت'
+      },
+      // 2) الباب السري: يُفتح جدار واحد (ممر مختصر)
+      'maze.e2': {
+        canRun: function () { return mzActive() && mzInternalWalls(true).length > 0 ? true : { ok: false, reason: 'no_walls' }; },
+        apply: function () { var w = pickOne(mzInternalWalls(true)); mzSetWall(w[0], w[1], w[2], false); mzRedraw(); return { effect: 'انفتح باب سري بين الخانتين (' + w[0] + ',' + w[1] + ')', durationMs: 0 }; },
+        announceText: 'باب سري! انفتح ممر جديد'
+      },
+      // 3) الطريق المظلم: تُعتَّم اللوحة مدة محددة
+      'maze.e3': {
+        canRun: function () { return mzActive() && document.getElementById('mz-board-wrap') ? true : { ok: false, reason: 'not_active' }; },
+        durationMs: function (c) { return (c.durationSec || 10) * 1000; },
+        apply: function () { var el = document.getElementById('mz-board-wrap'), prev = el.style.filter; el.style.filter = 'brightness(0.18)'; return { effect: 'اللوحة معتمة', sustain: true, revert: function () { el.style.filter = prev; } }; },
+        announceText: 'الطريق مظلم! اللوحة خافتة'
+      }
+    }
+  };
+
+  /* ===================== الجسر الزجاجي (glz) ===================== */
+  // المتغيرات: glzGameStatus ('active'), glzCurrentQuestion {c: رقم الإجابة الصحيحة}, glzTimeLeft, glzAlive(Set)
+  function glzActive() { try { return glzGameStatus === 'active'; } catch (e) { return false; } }
+  A.glz = {
+    tag: 'glz', hook: { start: 'glzStartRound', began: glzActive }, windowSec: function () { return 10; }, isRoundOver: function () { return !glzActive(); },
+    events: {
+      // 2) الزجاج المتشابه: يُشوَّش نص الخيارين فيصعب التمييز
+      'glz.e2': {
+        canRun: function () { return glzActive() ? true : { ok: false, reason: 'not_active' }; },
+        apply: function () { var a = document.getElementById('glz-opt-0-text'), b = document.getElementById('glz-opt-1-text'), pa = a.style.filter, pb = b.style.filter; a.style.filter = 'blur(3px)'; b.style.filter = 'blur(3px)'; return { effect: 'تشويش نص الخيارين', sustain: true, revert: function () { a.style.filter = pa; b.style.filter = pb; } }; },
+        shouldEnd: function () { return !glzActive(); }, announceText: 'زجاج متشابه! الخيارات ضبابية'
+      },
+      // 3) المسار المتوهج: يتوهج الزجاج الصحيح (تلميح للجمهور)
+      'glz.e3': {
+        canRun: function () { try { return glzActive() && glzCurrentQuestion && (glzCurrentQuestion.c === 0 || glzCurrentQuestion.c === 1) ? true : { ok: false, reason: 'no_question' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var el = document.getElementById('glz-panel-' + glzCurrentQuestion.c), pb = el.style.boxShadow, po = el.style.outline; el.style.boxShadow = '0 0 38px 8px rgba(242,215,122,.85)'; el.style.outline = '2px solid #f2d77a'; return { effect: 'توهّج الزجاج الصحيح (الخيار ' + (glzCurrentQuestion.c + 1) + ')', sustain: true, revert: function () { el.style.boxShadow = pb; el.style.outline = po; } }; },
+        shouldEnd: function () { return !glzActive(); }, announceText: 'مسار متوهج! أحد الزجاجين يلمع'
+      },
+      // 4) الوقت المحدود: يُقصَّر ما تبقى من وقت السؤال
+      'glz.e4': {
+        canRun: function (ctx, c) { try { return glzActive() && glzTimeLeft > (c.secondsLeft || 5) + 1 ? true : { ok: false, reason: 'time_already_short' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { var s = Math.max(2, Math.round((c.secondsLeft || 5) / (inst.factor > 1 ? inst.factor : 1))); glzTimeLeft = Math.min(glzTimeLeft, s); return { effect: 'بقي ' + glzTimeLeft + ' ثوانٍ فقط', durationMs: 0 }; },
+        announceText: 'الوقت محدود! ثوانٍ قليلة فقط'
+      },
+      // 5) العبور الأخير: عند بقاء عدد قليل من اللاعبين يُقصَّر وقت السؤال
+      'glz.e5': {
+        condition: function (ctx, c) { try { return glzActive() && glzAlive.size <= c.whenAlive && glzAlive.size >= 2 && glzTimeLeft > (c.secondsLeft || 6) + 1; } catch (e) { return false; } },
+        canRun: function (ctx, c) { try { return glzActive() && glzTimeLeft > (c.secondsLeft || 6) + 1 ? true : { ok: false, reason: 'time_already_short' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { glzTimeLeft = Math.min(glzTimeLeft, c.secondsLeft || 6); return { effect: 'العبور الأخير: بقي ' + glzTimeLeft + ' ثوانٍ', durationMs: 0 }; },
+        announceText: 'العبور الأخير! الوقت يضيق'
+      }
+    }
+  };
 })();

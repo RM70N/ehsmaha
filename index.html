@@ -32225,6 +32225,7 @@ let batteryConnectedOnce = false;
 let batteryCharge = 0;       // 0-100، مشترك بين كل المشاهدين — أول متغيّر بالملف يشتغل بهالشكل
 let batteryLastCharger = null; // { uniqueId, nickname } آخر شخص شحن، يفوز لو وصّلها لـ100
 let batteryFinished = false;
+let batteryChargeMul = 1, batteryOneShotMul = 0; // BATMISH (أحداث خاصة): مضاعِف الشحن (دائم مؤقتاً) ومضاعِف لشحنة واحدة فقط
 
 function goSetupBattery() {
   gamePlatform['battery'] = 'tiktok'; // التبويب الافتراضي المُفعَّل بالـ HTML — بدون هذا، أول تشغيل قبل الضغط على أي تبويب يتخطى فحص مفتاح الـ API
@@ -32320,7 +32321,9 @@ function handleBatteryTikTokEvent(data) {
 
 function batteryApplyCharge(user) {
   if (batteryFinished) return;
-  const pick = BATTERY_CHARGE_OPTIONS[Math.floor(Math.random() * BATTERY_CHARGE_OPTIONS.length)];
+  const basePick = BATTERY_CHARGE_OPTIONS[Math.floor(Math.random() * BATTERY_CHARGE_OPTIONS.length)];
+  let pick = Math.round(basePick * batteryChargeMul);
+  if (batteryOneShotMul > 0) { pick = Math.round(basePick * batteryOneShotMul); batteryOneShotMul = 0; }
   batteryCharge = Math.min(100, batteryCharge + pick);
   batteryLastCharger = user;
   batteryRenderMeter();
@@ -33467,6 +33470,8 @@ let hzConnectedOnce = false;
 let hzReconnectAttempts = 0;
 let hzMaxClicks = 15;             // overridden per-round from moderator settings — عدد الضغطات المسموحة للستريمر بالراوند
 let hzClicksUsed = 0;
+// BATMISH (أحداث خاصة): صناديق مكافأة / درع نجاة لاعب / فتح صندوقين بنقرة واحدة — كلها فارغة افتراضياً ولا تؤثر على اللعبة العادية
+let hzBonusCells = new Set(), hzBonusClicks = 3, hzShield = new Set(), hzDoubleNext = false;
 
 // ==================== HZ NAV ====================
 function goSetupHz() { show('setup-hz'); modInitAdvancedSection('hz'); }
@@ -33704,15 +33709,21 @@ function startHzRound() {
 // الميكانيكية الأساسية: الستريمر يضغط بنفسه على أي صندوق يبيه (كل الصناديق
 // متشابهة بالشكل تماماً — سرية ولا تدل على شيء) وله عدد محدود من الضغطات
 // الكلية بالراوند. إذا خلصت الضغطات، كل من بقي مختبئاً (ما انكشف) يفوز تلقائياً.
-function hzCellClick(num) {
+function hzCellClick(num, free) {
   if (hzGameStatus !== 'active') return;
   if (isGamePausedForRevival('hz')) { toast('⏸️ الجولة متوقفة مؤقتاً بسبب إنعاش لاعب...'); return; }
-  if (hzClicksUsed >= hzMaxClicks) return;
+  if (hzClicksUsed >= hzMaxClicks && !free) return;
   const cellEl = document.getElementById('hz-cell-' + num);
   if (!cellEl || cellEl.classList.contains('hz-opened')) return; // هذا الصندوق انفتح مسبقاً
 
-  hzClicksUsed++;
+  if (!free) hzClicksUsed++;
   updateHzClicksDisplay();
+  if (hzBonusCells.has(num)) { hzBonusCells.delete(num); hzMaxClicks += hzBonusClicks; cellEl.classList.add('hz-bonus-hit'); updateHzClicksDisplay(); toast('✨ صندوق أسطوري! +' + hzBonusClicks + ' ضغطات إضافية'); }
+  if (hzDoubleNext && !free) {
+    hzDoubleNext = false; const others = [];
+    for (let n = 1; n <= HZ_GRID_SIZE; n++) { const e = document.getElementById('hz-cell-' + n); if (e && n !== num && !e.classList.contains('hz-opened')) others.push(n); }
+    if (others.length) { const o = others[Math.floor(Math.random() * others.length)]; setTimeout(() => hzCellClick(o, true), 700); }
+  }
 
   const uid = hzCells[num];
   if (!uid) {
@@ -33724,7 +33735,7 @@ function hzCellClick(num) {
     const p = hzParticipants.get(uid);
     const name = p ? p.user.nickname : uid;
 
-    if (checkAndConsumeImmunity(uid, name) || (hzRevivalEnabled && checkAndConsumeRevival(uid, name, hzRevivalMap, 'hz'))) {
+    if (checkAndConsumeImmunity(uid, name) || hzShield.delete(uid) || (hzRevivalEnabled && checkAndConsumeRevival(uid, name, hzRevivalMap, 'hz'))) {
       cellEl.classList.add('hz-missed-flash');
       setTimeout(() => cellEl.classList.remove('hz-missed-flash'), 500);
       addHzKillLogItem(num, null);

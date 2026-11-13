@@ -53,9 +53,9 @@ test('الخدمة: حفظ حدث مربوط وإعدادات اللعبة، و�
 test('الخدمة: لا يُفعَّل حدث غير مربوط بمحرك لعبته (لا أزرار وهمية)', async () => {
   const s = mk();
   const un = Object.values(EVENT_BY_ID).filter((e) => !e.implemented);
-  assert.ok(un.length > 100);
+  assert.ok(un.length > 20);
   await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported');
-  await rej(s.setEvent('u1', 'hz', 'hz.e2', { enabled: true }), 'event_not_supported');
+  await rej(s.setEvent('u1', 'findball', 'findball.e1', { enabled: true }), 'event_not_supported');
 });
 test('العزل: إعدادات وسجل ومجموعات كل uid مستقلة تماماً', async () => {
   const s = mk();
