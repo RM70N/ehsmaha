@@ -798,7 +798,7 @@ select.bm-input{appearance:none;-webkit-appearance:none;padding-inline-end:40px;
 /* ============ واجهة عربية بالكامل (إضافات الدمج؛ التصميم الأصلي أعلاه بلا تعديل) ============ */
 /* تباعد الحروف يكسر اتصال الحروف العربية، فنلغيه داخل اللوحة ونُبقيه للشعار والأرقام */
 .bm :where(*:not(.mono):not(.bm-num)){letter-spacing:0!important}
-.bm .bm-hero-body h1,.bm .bm-brand-txt b{letter-spacing:.1em!important}
+.bm .bm-hero-body h1,.bm .bm-brand-txt b{letter-spacing:.03em!important}
 .bm .en{font-family:var(--bm-f-ar);direction:rtl;unicode-bidi:normal;font-weight:600}
 .bm .bm-hero-body h1,.bm .bm-brand-txt b{direction:ltr}
 .bm .mono,.bm .bm-num{unicode-bidi:isolate}

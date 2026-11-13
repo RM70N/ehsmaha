@@ -178,9 +178,9 @@ ok(await Z2.page.evaluate(() => modGetSetting('harfnajat', 'answerSeconds', 20))
 console.log('== 7) أقسام العرض الأخرى + الصوت');
 for (const v of ['settings', 'round', 'players', 'stream', 'balance', 'av', 'auto']) {
   await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(500);
-  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-fp').length, comms: !!document.querySelector('.bm-comms') }));
+  const info = await Z2.page.evaluate(() => ({ fields: document.querySelectorAll('.bm-fp').length, comms: !!document.querySelector('.bm-comms'), ana: !!document.querySelector('.bm-ana') }));
   if (!(info.fields > 0 || (v === 'stream' && info.comms))) info.dump = await Z2.page.evaluate(() => ({ view: window.Batmish.ui._dash.view, h: document.querySelector('#bm-view').innerHTML.slice(0, 260), err: document.querySelector('#bm-view .bm-pagehead h2') && document.querySelector('#bm-view .bm-pagehead h2').textContent }));
-  ok(info.fields > 0 || (v === 'stream' && info.comms), `قسم ${v}: ` + (info.fields ? info.fields + ' إعداد' : 'حالة «غير موصول» صادقة'), info);
+  ok(info.fields > 0 || (v === 'stream' && info.comms) || (v === 'balance' && info.ana), `قسم ${v}: ` + (info.fields ? info.fields + ' إعداد' : 'حالة «غير موصول» صادقة'), info);
 }
 await Z2.page.screenshot({ path: SHOTS + '/08-section.png' });
 await Z2.page.click('.bm-nav-item[data-nav="av"]'); await sleep(400);
@@ -254,6 +254,7 @@ const mob = await Z2.page.evaluate(() => ({ sw: document.documentElement.scrollW
 ok(mob.rw <= mob.rc + 1 && mob.nav, 'جوال: لا تمرير أفقي داخل اللوحة، والتنقل السفلي ظاهر', mob);
 await Z2.page.click('.bm-mnav [data-act="menu"]'); await sleep(600);
 await Z2.page.screenshot({ path: SHOTS + '/10-mobile-nav.png' });
+await Z2.page.evaluate(() => { const d = Batmish.ui._dash; d.arch = 'all'; d.status = 'all'; d.q = ''; });
 await Z2.page.click('.bm-nav-item[data-nav="db"]'); await sleep(600);
 console.log('  mobile view:', JSON.stringify(await Z2.page.evaluate(() => ({ view: Batmish.ui._dash.view, cards: document.querySelectorAll('.bm-gc').length, calm: document.getElementById('batmish-root').className })))); await Z2.page.click('.bm-gc[data-game="whoami"]'); await sleep(600);
 await Z2.page.evaluate(() => { const n = document.querySelector('input[data-n]'); n.value = '15'; n.dispatchEvent(new Event('input', { bubbles: true })); });

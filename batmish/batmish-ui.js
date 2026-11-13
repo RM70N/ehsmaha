@@ -709,11 +709,11 @@ class Dashboard {
     const sm = this.sm, games = this.games, rows = this.fieldsOf(['scoring', 'balance', 'difficulty']);
     const max = Math.max(1, ...games.map(g => g.fields));
     const bars = games.map(g => { const m = sm.modifiedCount(g.tag); return '<div class="r"><span>' + esc(g.name) + '</span><div class="tr"><i class="' + (m ? 'y' : '') + '" style="width:' + (Math.max(m ? 6 : 0, m / max * 100)) + '%"></i></div><span class="v">' + m + '/' + g.fields + '</span></div>'; }).join('');
-    const cc = {}; let tot = 0; games.forEach(g => sm.games[g.tag].fields.forEach(f => { cc[f.cat] = (cc[f.cat] || 0) + 1; tot++; }));
+    const cc = {}; let tot = 0; games.forEach(g => (sm.games[g.tag] ? sm.games[g.tag].fields : []).forEach(f => { cc[f.cat] = (cc[f.cat] || 0) + 1; tot++; }));
     const col = { round: '#8FB4E6', players: '#A39BE0', balance: '#E5C84B', scoring: '#C3CEDF', difficulty: '#5279A9' }; let off = 0; const C = 2 * Math.PI * 54;
     const arcs = Object.keys(cc).map(k => { const len = cc[k] / tot * C; const s = '<circle cx="75" cy="75" r="54" stroke="' + (col[k] || '#27364A') + '" stroke-dasharray="' + Math.max(0, len - 2).toFixed(1) + ' ' + C.toFixed(1) + '" stroke-dashoffset="' + (-off).toFixed(1) + '"/>'; off += len; return s; }).join('');
     const leg = Object.keys(cc).map(k => '<div><i style="background:' + (col[k] || '#27364A') + '"></i>' + (CAT_INFO[k] ? CAT_INFO[k][1] : k) + '<b>' + cc[k] + '</b></div>').join('');
-    let tOn = 0, tAll = 0; games.forEach(g => sm.games[g.tag].fields.forEach(f => { if (f.type === 'toggle') { tAll++; if (sm.value(g.tag, f.key)) tOn++; } }));
+    let tOn = 0, tAll = 0; games.forEach(g => (sm.games[g.tag] ? sm.games[g.tag].fields : []).forEach(f => { if (f.type === 'toggle') { tAll++; if (sm.value(g.tag, f.key)) tOn++; } }));
     const ana = '<div class="bm-ana"><div class="bm-box bm-plate"><i class="bm-glow"></i><h5>التخصيص حسب اللعبة</h5><div class="bm-hbar">' + bars + '</div></div><div class="bm-box bm-plate"><i class="bm-glow"></i><h5>توزيع المعاملات</h5><div class="bm-donut"><svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="54" stroke="rgba(169,182,200,.1)"/>' + arcs + '</svg><div class="bm-legend">' + leg + '</div></div>' +
       '<div class="bm-hbar" style="margin-top:18px"><div class="r" style="grid-template-columns:104px minmax(0,1fr) 46px"><span>المفاتيح المفعّلة</span><div class="tr"><i style="width:' + (tAll ? tOn / tAll * 100 : 0) + '%"></i></div><span class="v">' + tOn + '/' + tAll + '</span></div></div></div></div>';
     return this.pageHead({ eyebrow: 'وحدة التحليل', title: 'موازنة الألعاب' }, '', 'النقاط والصعوبة والحصانة والمضاعفات، مع قراءة سريعة لمدى تخصيص كل لعبة.') + ana + this.fieldsByGame(rows);
