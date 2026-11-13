@@ -30,8 +30,9 @@ test('الكتالوج: كل لعبة في الأحداث موجودة فعلا�
 });
 test('الكتالوج: كل حدث «مربوط» له Adapter فعلي في adapters.js، ولا Adapter لحدث غير مربوط', () => {
   const src = fs.readFileSync(path.join(__dirname, '..', '..', 'batmish', 'events', 'adapters.js'), 'utf8');
-  for (const id of Object.keys(IMPLEMENTED)) assert.ok(src.includes("'" + id + "': {"), 'لا Adapter للحدث ' + id);
-  for (const m of src.matchAll(/'([a-z0-9-]+\.e\d)': \{/g)) assert.ok(IMPLEMENTED[m[1]], 'Adapter لحدث غير معلن مربوطاً: ' + m[1]);
+  for (const id of Object.keys(IMPLEMENTED)) assert.ok(src.includes("'" + id + "': {") || src.includes("['" + id + "'] ="), 'لا Adapter للحدث ' + id);
+  for (const m of src.matchAll(/'([a-z0-9-]+\.e\d)'(?:: \{|\] =)/g)) assert.ok(IMPLEMENTED[m[1]], 'Adapter لحدث غير معلن مربوطاً: ' + m[1]);
+  assert.equal(Object.keys(IMPLEMENTED).length, 155, 'كل أحداث الكتالوج الـ155 مربوطة');
 });
 
 // ----------------------------------------------------------------------------------- الخدمة
@@ -52,10 +53,10 @@ test('الخدمة: حفظ حدث مربوط وإعدادات اللعبة، و�
 });
 test('الخدمة: لا يُفعَّل حدث غير مربوط بمحرك لعبته (لا أزرار وهمية)', async () => {
   const s = mk();
-  const un = Object.values(EVENT_BY_ID).filter((e) => !e.implemented);
-  assert.ok(un.length > 20);
-  await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported');
-  await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported');
+  assert.equal(Object.values(EVENT_BY_ID).filter((e) => !e.implemented).length, 0);
+  // الحارس ما زال يعمل: حدث غير مربوط (نفترضه مؤقتاً) لا يُفعَّل
+  const e = EVENT_BY_ID['bomb.e1'], prev = e.implemented; e.implemented = false;
+  try { await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported'); } finally { e.implemented = prev; }
 });
 test('العزل: إعدادات وسجل ومجموعات كل uid مستقلة تماماً', async () => {
   const s = mk();
@@ -261,7 +262,8 @@ test('HTTP: bootstrap/حفظ/سجل عبر handleEvents، ومسارات غير 
   const [c0, b0] = await call('GET', '/batmish/events/bootstrap'); assert.equal(c0, 200); assert.equal(b0.catalog.games.length, 31);
   assert.equal(b0.catalog.games.find((g) => g.tag === 'cw').events.filter((e) => e.implemented).length, 5);
   assert.equal((await call('POST', '/batmish/events/event', { tag: 'cw', eventId: 'cw.e1', values: { enabled: true } }))[0], 200);
-  assert.equal((await call('POST', '/batmish/events/event', { tag: 'bomb', eventId: 'bomb.e1', values: { enabled: true } }))[0], 409);
+  { const e = EVENT_BY_ID['bomb.e1'], prev = e.implemented; e.implemented = false; try { assert.equal((await call('POST', '/batmish/events/event', { tag: 'bomb', eventId: 'bomb.e1', values: { enabled: true } }))[0], 409); } finally { e.implemented = prev; } }
+  assert.equal((await call('POST', '/batmish/events/event', { tag: 'bomb', eventId: 'bomb.e1', values: { enabled: true } }))[0], 200);
   assert.equal((await call('POST', '/batmish/events/event', { tag: 'cw', eventId: 'cw.e1', values: { probability: 999 } }))[0], 400);
   assert.equal((await call('POST', '/batmish/events/record', { key: 'k', tag: 'cw', eventId: 'cw.e1', status: 'completed' }))[0], 200);
   const [, h] = await call('GET', '/batmish/events/history?tag=cw'); assert.equal(h.history.length, 1);

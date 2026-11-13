@@ -115,10 +115,11 @@ for (const id of ['cw.e1', 'cw.e2', 'cw.e3', 'cw.e4']) {
 const saved = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/bootstrap', { headers: { Authorization: 'Bearer ' + t } }); return (await r.json()).state; });
 ok(saved.games.cw.mode === 'random' && saved.games.cw.events['cw.e1'].enabled && saved.games.cw.events['cw.e4'].probability === 100 && saved.games.cw.maxPerRound === 10, 'الإعدادات محفوظة في الخادم', saved);
 const bad = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/event', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'bomb', eventId: 'bomb.e1', values: { enabled: true } }) }); return r.status; });
-ok(bad === 409, 'الخادم يرفض تفعيل حدث غير مربوط بمحرك لعبته');
+ok(bad === 200, 'الخادم يقبل تفعيل أي حدث من الـ155 (كلها مربوطة بمحركات ألعابها)');
+await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); await fetch(Batmish.controller.relay() + '/batmish/events/event', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'bomb', eventId: 'bomb.e1', values: { enabled: false } }) }); });
 await Z.page.click('[data-ev="back"]'); await sleep(500); await Z.page.click('.bm-evgc:has-text("القنبلة المتحركة") [data-ev="open"]'); await sleep(700);
-const bomb = await Z.page.evaluate(() => ({ dim: document.querySelectorAll('.bm-evc.dim').length, toggles: document.querySelectorAll('.bm-evc[data-evid] [data-evf="enabled"]').length, txt: document.querySelector('.bm-evc.dim').innerText }));
-ok(bomb.dim === 5 && bomb.toggles === 0 && /غير مربوط بعد/.test(bomb.txt), 'القنبلة: الأحداث الخمسة تظهر «غير مربوط بعد» بدون أي زر تفعيل وهمي', bomb);
+const bomb = await Z.page.evaluate(() => ({ dim: document.querySelectorAll('.bm-evc.dim').length, toggles: document.querySelectorAll('.bm-evc[data-evid] [data-evf="enabled"]').length, txt: (document.querySelector('.bm-evc.dim') || { innerText: '' }).innerText }));
+ok(bomb.dim === 0 && bomb.toggles === 5, 'القنبلة: الأحداث الخمسة كلها مربوطة وقابلة للتفعيل (5 مفاتيح تفعيل حقيقية)', bomb);
 
 console.log('== E3) تشغيل فعلي داخل لعبة حرب الدول الحقيقية (عشوائي عبر المجدول المركزي)');
 await Z.page.evaluate(async () => {

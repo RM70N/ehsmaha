@@ -899,6 +899,13 @@ var AUTH_LOCAL={
   }
 };
 var AUTH=AUTH_LOCAL, externalAuth=false;
+/* BATMISH (الأحداث الخاصة): أعلام افتراضها مطفأ؛ تُفعَّل فقط من نظام الأحداث بالموقع ولا تغيّر اللعبة عند غيابها */
+var EV={mystery:false,invert:false,immune:null};
+function evAdjust(hit,pid){
+  if(EV.invert){ EV.invert=false; hit=!hit; status('الحظ المعكوس! انقلبت النتيجة'); }
+  if(hit&&EV.immune&&EV.immune===pid){ EV.immune=null; hit=false; status('فرصة الحصانة! نجا من الإصابة'); }
+  return hit;
+}
 function modeOf(k){ return {cyl6:{type:'cyl',n:6},cyl4:{type:'cyl',n:4},f6:{type:'fixed',p:1/6,n:6},f3:{type:'fixed',p:1/3,n:6}}[k]||{type:'cyl',n:6}; }
 async function loadCylinder(){
   if(!M||M.mode.type!=='cyl'){ return; }
@@ -907,6 +914,7 @@ async function loadCylinder(){
 }
 function oddsText(){
   if(!M) return '';
+  if(EV.mystery) return 'اللفة الغامضة: احتمال الإقصاء سرّي 🎲';
   if(externalAuth) return 'النتائج يحددها الخادم';
   if(M.mode.type==='cyl'){ var left=M.cyl.n-M.cyl.idx; return 'احتمال الإقصاء الآن: <b>١ من '+ar(left)+'</b> · ختم الشحنة <code>'+M.cyl.commit+'</code>'; }
   return 'احتمال الإقصاء: <b>١ من '+ar(Math.round(1/M.mode.p))+'</b>'+(M.pending&&M.pending.commit?' · ختم <code>'+M.pending.commit+'</code>':'');
@@ -1074,6 +1082,7 @@ async function playRound(id,presetPid){
   if(dec.choice===2){ p.passes--; p.passesUsed++; await passScene(id,p); go('PLAYER_SAFE'); M.pending=null; return; }
   p.fires++; var hit;
   try{ hit=!!(await AUTH.resolveFire({pid:pid,round:M.round,r:M.pending.r,mode:M.mode})); }catch(e){ hit=false; }
+  hit=evAdjust(hit,pid);
   log('fire',{pid:pid,hit:hit,chamber:M.cyl?M.cyl.idx:null});
   await fireScene(id,p,hit);
   if(hit){ await elimScene(id,p,'fire'); }
@@ -1116,6 +1125,7 @@ async function targetShot(id,p,t){
   var hit=false;
   try{ hit=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ hit=false; }
   if(M.cfg.tgtGuaranteed) hit=true; /* BATMISH: إصابة مضمونة (اختياري، مطفأ افتراضيًا) */
+  hit=evAdjust(hit,t.id);
   log('fire',{pid:t.id,by:p.id,target:true,hit:hit,chamber:M.cyl?M.cyl.idx:null});
   await fireScene(id,t,hit,p.name+' أطلق على '+t.name);
   if(hit){ await elimScene(id,t,'fire'); }
@@ -1191,6 +1201,7 @@ async function runMatchContinue(id){
 }
 
 /* ---------- واجهة برمجية للمنصة ---------- */
+window.__RLT={EV:EV,evAdjust:evAdjust,CFG:CFG,st:function(){ return ST; },M:function(){ return M; },players:function(){ return players; },alive:alive,byId:byId,refreshOdds:refreshOdds,status:status};
 window.EhsemhaRoulette={
   chat:chat, setChatStatus:setChatStatus,
   onEvent:function(f){ listeners.push(f); return function(){ listeners=listeners.filter(function(x){return x!==f;}); }; },

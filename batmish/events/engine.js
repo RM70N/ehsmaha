@@ -4,7 +4,7 @@
   'use strict';
   if (window.BatmishEvents) return;
   var B = window.Batmish, core = window.BatmishEventsCore, adapters = window.BatmishEventAdapters || {};
-  var engine = null, catalog = null, state = null, hooked = {}, booted = false, queue = [], flushing = false;
+  var engine = null, catalog = null, state = null, hooked = {}, booted = false, queue = [], flushing = false, watchTimer = null;
   var PRESENT = {   // أسلوب عرض يناسب طبيعة كل لعبة (لون/أيقونة/حركة)
     cw: { icon: '🌍', hue: '#8fb4e6', anim: 'bmev-sweep' },
     _: { icon: '⚡', hue: '#e5c84b', anim: 'bmev-pop' }
@@ -88,9 +88,11 @@
     if (booted) return; booted = true;
     engine = core.createEngine({ presenter: presenter, record: record, log: function (l, m, e) { if (window.console) console.warn('[bmev]', m, e && e.message || ''); } });
     Object.keys(adapters).forEach(function (t) { engine.registerAdapter(adapters[t]); });
+    // ألعاب الإطارات تبدأ جولتها من داخل الإطار (بلا استدعاء دالة بالصفحة الأم): نراقب الحالة ونفتح جولة الأحداث عند بدئها
+    if (!watchTimer) watchTimer = setInterval(function () { try { if (!engine) return; var live = engine.status().rounds; Object.keys(adapters).forEach(function (t) { var ad = adapters[t]; if (ad.watchBegin && live.indexOf(t) < 0 && ad.watchBegin()) engine.beginRound(t, {}); }); } catch (e) { /* لا شيء */ } }, 1200);
     load(function (err) { if (err) { booted = false; setTimeout(start, 20000); return; } Object.keys(adapters).forEach(hookGame); document.dispatchEvent(new CustomEvent('bmev:ready')); });
   }
-  function stop() { if (engine) { engine.destroy(); engine = null; } booted = false; queue.length = 0; var h = document.getElementById('bmev-host'); if (h) h.innerHTML = ''; }
+  function stop() { if (engine) { engine.destroy(); engine = null; } if (watchTimer) { clearInterval(watchTimer); watchTimer = null; } booted = false; queue.length = 0; var h = document.getElementById('bmev-host'); if (h) h.innerHTML = ''; }
   // معاينة: عرض فقط — لا تلمس حالة اللعبة ولا اللاعبين ولا النقاط ولا السجل
   function preview(tag, eventId) {
     var g = catalog && catalog.games.filter(function (x) { return x.tag === tag; })[0], def = g && g.events.filter(function (e) { return e.id === eventId; })[0]; if (!def) return false;

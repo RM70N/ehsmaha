@@ -77021,7 +77021,7 @@ $('#snd').addEventListener('click',function(){
 });
 
 /* ---------- الحالة ---------- */
-var state='idle', roundId=0, roundNum=0, players=[], WIND=0, skip=false;
+var state='idle', roundId=0, roundNum=0, players=[], WIND=0, skip=false, REVERSE=false;   /* REVERSE: BATMISH حدث «التحدي العكسي» — الفائز صاحب أقصر رمية */
 var cur=null, landed=[], extras=[], camMode='idle', shake=0, flash=0, speedFx=0, fovPunch=0, timeScale=1, slowUntil=0;
 var camLook=new THREE.Vector3(16,5,0), camPos=new THREE.Vector3(12,8,38), orbitT=0, winnerSpot=null, lastFW=0;
 var bubbleEl=null, bubble={text:'',until:0};
@@ -77149,8 +77149,8 @@ async function fireAll(id){
   state='done'; renderBoard();
   var res=players.filter(function(p){return p.dist!=null});
   if(!res.length){ stage({name:'ما أحد أكمل الإطلاق'}); await sleep(2000); if(id!==roundId) return; state='idle'; hostCall('onRoundOver'); return; }
-  var best=res.slice().sort(function(a,b){return b.dist-a.dist})[0];
-  stage({tag:'الفائز',gold:true,name:best.name,av:best.avatar,num:best.dist,note:'أبعد رمية في الجولة',pop:true});
+  var best=res.slice().sort(function(a,b){return REVERSE?a.dist-b.dist:b.dist-a.dist})[0];
+  stage({tag:'الفائز',gold:true,name:best.name,av:best.avatar,num:best.dist,note:REVERSE?'أقصر رمية في الجولة (التحدي العكسي)':'أبعد رمية في الجولة',pop:true});
   sfx('fanfare'); sfx('cheer'); flash=0.5;
   var L=landed.filter(function(l){return l.p===best}).sort(function(a,b){return b.x-a.x})[0];
   if(L){ winnerSpot={x:L.x,z:L.z}; confetti(L.x,6,L.z,160); winnerProps(L); }
@@ -77692,6 +77692,16 @@ window.HC={
   },
   reset:function(){ roundId++; clearScene(); players=[]; pq=[]; cur=null; state='idle'; camMode='idle'; winnerSpot=null; renderBoard(); stage(null); setPhase('…',0); },
   cfg:function(){ return JSON.parse(JSON.stringify(CFG)); },
+  /* BATMISH (الأحداث الخاصة): واجهة تتحكم بحالة الجولة الحالية؛ لا تُستدعى إلا من نظام الأحداث */
+  ev:{
+    wind:function(w){ if(w!=null){ WIND=+w; renderWind(); } return WIND; },
+    reverse:function(v){ if(v!=null) REVERSE=!!v; return REVERSE; },
+    flying:function(){ return !!(cur&&!cur.rest&&state==='firing'); },
+    deploy:function(id){ if(!cur||cur.rest||state!=='firing') return false; try{ spawnObstacle(id,cur,lead(cur,0.6)); return true; }catch(e){ return false; } },
+    golden:function(){ if(!cur||cur.rest||state!=='firing') return false; var g=GIFTS.filter(function(x){return x.id==='moneygun'})[0]; var pw=penWindow; penWindow=false; try{ giftApply(g,'هدف ذهبي'); }finally{ penWindow=pw; } return true; },
+    clearObstacles:function(){ clearObstacles(); },
+    cur:function(){ return cur?{x:cur.x,y:cur.y,vx:cur.vx,shield:cur.shield||0,tail:cur.tail||0,rest:!!cur.rest}:null; }
+  },
   info:function(){ return {state:state,round:roundNum,players:players.length,aimed:players.filter(function(p){return p.angle!=null}).length,running:running}; }
 };
 /* ---------- تشغيل ---------- */

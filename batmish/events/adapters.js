@@ -1321,4 +1321,290 @@
       }
     }
   };
+  /* ===================== الدفعة الخامسة: ألعاب الإطارات (القنبلة، الروليت 3D، شد الحبل) ===================== */
+  // هذه الألعاب تعمل داخل إطار iframe من نفس الأصل؛ الأحداث تتعامل مع واجهاتها المكشوفة (__B3D / __RLT / _t.core) ولا تحاكي شيئاً
+  function ifw(id) { try { var f = document.getElementById(id); return f && f.contentWindow; } catch (e) { return null; } }
+  function ifd(id) { try { var f = document.getElementById(id); return f && f.contentDocument; } catch (e) { return null; } }
+  // ---- القنبلة المتحركة
+  function bmB() { var w = ifw('bomb-frame'); return (w && w.__B3D) || null; }
+  function bmLive() { try { var b = bmB(); return !!(b && b.G && b.G.status === 'active'); } catch (e) { return false; } }
+  function bmOk() { try { var b = bmB(); return bmLive() && !!b.G.holder && !b.G.exploding && !(b.G.freeze > 0) && b.G.part.size >= 2; } catch (e) { return false; } }
+  function bmOthers() { var b = bmB(), out = []; b.G.part.forEach(function (q) { if (q.id !== b.G.holder) out.push(q); }); return out; }
+  A.bomb = {
+    tag: 'bomb', hook: { start: 'startBombRound', began: bmLive }, watchBegin: bmLive, windowSec: function () { return 60; }, isRoundOver: function () { return !bmLive(); },
+    events: {
+      // 1) القنبلة المجنونة: تنتقل فجأة من حاملها إلى لاعب آخر عشوائي (عبر آلية التمرير الأصلية بالرقم)
+      'bomb.e1': {
+        canRun: function () { return bmOk() ? true : { ok: false, reason: 'no_holder' }; },
+        apply: function () { var b = bmB(), from = b.G.part.get(b.G.holder), t = pickOne(bmOthers()); if (!t) return { failed: 'no_target' }; if (!b.commandPass(b.G.holder, String(t.num))) return { failed: 'pass_rejected' }; return { effect: 'القنبلة قفزت من ' + (from && from.name) + ' إلى ' + t.name, durationMs: 0 }; },
+        announceText: 'القنبلة المجنونة! تغيّر اتجاهها فجأة'
+      },
+      // 2) التمرير المزدوج: أول تمريرة تتبعها تمريرة ثانية فورية من المستلم إلى لاعب آخر
+      'bomb.e2': {
+        canRun: function () { return bmOk() && bmB().G.part.size >= 3 ? true : { ok: false, reason: 'not_enough_players' }; },
+        apply: function (ctx, inst) {
+          var api = ifw('bomb-frame').EhsemhaBomb3D, state = { armed: true }; inst.data.state = state;
+          var off = api.onEvent(function (ev) { if (!state.armed || ev.type !== 'pass') return; state.armed = false; var b = bmB(), to = ev.data && ev.data.to; setTimeout(function () { try { var o = []; b.G.part.forEach(function (q) { if (q.id !== to && q.id !== (ev.data && ev.data.from)) o.push(q); }); var t = pickOne(o); if (t && b.G.holder === to) b.commandPass(to, String(t.num)); } catch (e) { /* انتهت الجولة */ } }, 350); });
+          return { effect: 'أول تمريرة قادمة تتبعها تمريرة ثانية فورية', sustain: true, data: inst.data, revert: function () { state.armed = false; try { off(); } catch (e) { /* لا شيء */ } } };
+        },
+        shouldEnd: function (ctx, inst) { return !inst.data.state.armed || !bmLive(); }, announceText: 'التمرير المزدوج! القنبلة تمشي مرتين'
+      },
+      // 3) القنبلة المتخفية: يُخفى اسم حامل القنبلة مؤقتاً عن لوحة اللعبة
+      'bomb.e3': {
+        canRun: function () { return bmOk() ? true : { ok: false, reason: 'no_holder' }; },
+        durationMs: durMs(12),
+        apply: function (ctx, inst) {
+          var d = ifd('bomb-frame'), hq = d.getElementById('b3d-hq'), hn = d.getElementById('b3d-hn'); if (!hn) return { failed: 'ui_missing' };
+          var hide = function () { var b = bmB(); if (!b || !b.G.holder) return; hq.textContent = 'القنبلة مع · ؟'; hn.textContent = '؟؟؟'; };
+          hide(); inst.data.hide = hide;
+          return { effect: 'اسم حامل القنبلة مخفي', sustain: true, data: inst.data, revert: function () { try { var b = bmB(); if (b) b.UI.holder(); } catch (e) { /* واجهة */ } } };
+        },
+        onTick: function (ctx, inst) { inst.data.hide(); },
+        shouldEnd: function () { return !bmLive(); }, announceText: 'القنبلة المتخفية! لا أحد يعرف من يحملها'
+      },
+      // 4) العد التنازلي المفاجئ: تُقصَّر مهلة الانفجار الحالية وتظهر لافتة إنذار
+      'bomb.e4': {
+        canRun: function (ctx, c) { try { return bmOk() && bmB().G.remaining > (c.seconds || 3) + 1 ? true : { ok: false, reason: bmOk() ? 'time_already_short' : 'no_holder' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { var b = bmB(), s = Math.max(1.5, (c.seconds || 3) / (inst.factor > 1 ? inst.factor : 1)); b.G.remaining = Math.min(b.G.remaining, s); try { b.UI.banner('⚠ العد التنازلي المفاجئ!', 'bad'); } catch (e) { /* واجهة */ } return { effect: 'بقي ' + s.toFixed(1) + ' ثانية للانفجار', durationMs: 0 }; },
+        announceText: 'العد التنازلي المفاجئ! القنبلة ستنفجر قريباً'
+      },
+      // 5) فرصة النجاة: لاعب عشوائي ينجو من أول انفجار (نعترض خطّاف consumeImmunity الذي تستدعيه اللعبة عند كل انفجار ثم نعيده)
+      'bomb.e5': {
+        canRun: function () { try { return bmLive() && bmB().G.part.size >= 2 ? true : { ok: false, reason: 'no_players' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        eligible: function () { var b = bmB(), out = []; b.G.part.forEach(function (q) { out.push(q.id); }); return out; },
+        apply: function (ctx, inst) {
+          var b = bmB(), uid = pickOne(inst.eligible || []); if (!uid) return { failed: 'no_eligible_player' };
+          var HK = b.HOOKS, orig = HK.consumeImmunity, st = { used: false }, wrap = function (id, name) { if (!st.used && String(id) === String(uid)) { st.used = true; return true; } return orig.apply(this, arguments); };
+          HK.consumeImmunity = wrap; var p = b.G.part.get(uid); inst.data.st = st; inst.data.uid = uid;
+          try { b.UI.toast('🛡 ' + (p && p.name) + ' نال فرصة نجاة من انفجار واحد', 'info'); } catch (e) { /* واجهة */ }
+          return { effect: (p && p.name) + ' محصّن من انفجار واحد', sustain: true, data: inst.data, revert: function () { if (HK.consumeImmunity === wrap) HK.consumeImmunity = orig; } };
+        },
+        shouldEnd: function (ctx, inst) { return !bmLive() || inst.data.st.used; }, announceText: 'فرصة النجاة! لاعب نال حصانة من انفجار'
+      }
+    }
+  };
+
+  // ---- الروليت الروسي 3D
+  function rrR() { var w = ifw('roulette3d-frame'); return (w && w.__RLT) || null; }
+  var RR_OFF = ['IDLE', 'SETTINGS', 'JOINING', 'GAME_OVER', 'RESULTS'];
+  function rrLive() { try { var r = rrR(); return !!(r && RR_OFF.indexOf(r.st()) < 0 && r.M()); } catch (e) { return false; } }
+  function rrPre() { try { var r = rrR(), s = r.st(); return rrLive() && ['SPINNING', 'PLAYER_SELECTED', 'WAITING_FOR_DECISION', 'TARGET_PICK'].indexOf(s) >= 0 && r.alive().length >= 2; } catch (e) { return false; } }
+  A.roulette3d = {
+    tag: 'roulette3d', hook: null, watchBegin: rrLive, windowSec: function () { return 90; }, isRoundOver: function () { return !rrLive(); },
+    events: {
+      'roulette3d.e1': {
+        canRun: function () { return rrLive() && !rrR().EV.mystery ? true : { ok: false, reason: rrLive() ? 'mystery_active' : 'not_live' }; },
+        durationMs: durMs(30),
+        apply: function () { var r = rrR(); r.EV.mystery = true; r.refreshOdds(); return { effect: 'احتمال الإقصاء سرّي', sustain: true, revert: function () { r.EV.mystery = false; try { r.refreshOdds(); } catch (e) { /* واجهة */ } } }; },
+        shouldEnd: function () { return !rrLive(); }, announceText: 'اللفة الغامضة! الاحتمالات سرّية'
+      },
+      'roulette3d.e2': {
+        canRun: function () { return rrPre() && !rrR().EV.invert ? true : { ok: false, reason: rrR() && rrR().EV.invert ? 'invert_active' : 'no_open_turn' }; },
+        apply: function () { var r = rrR(); r.EV.invert = true; return { effect: 'نتيجة الإطلاق القادمة معكوسة', sustain: true, revert: function () { r.EV.invert = false; } }; },
+        shouldEnd: function () { return !rrR() || !rrR().EV.invert || !rrLive(); }, announceText: 'الحظ المعكوس! النتيجة القادمة تنقلب'
+      },
+      'roulette3d.e3': {
+        canRun: function () { return rrPre() && !rrR().EV.immune ? true : { ok: false, reason: rrR() && rrR().EV.immune ? 'immune_active' : 'no_open_turn' }; },
+        eligible: function () { return rrR().alive().map(function (p) { return p.id; }); },
+        apply: function (ctx, inst) { var r = rrR(), pid = pickOne(inst.eligible || []); if (!pid) return { failed: 'no_eligible_player' }; r.EV.immune = pid; var p = r.byId(pid); try { r.status((p && p.name) + ' نال حصانة من إصابة واحدة'); } catch (e) { /* واجهة */ } return { effect: (p && p.name) + ' محصّن من أول إصابة', sustain: true, data: { pid: pid }, revert: function () { if (r.EV.immune === pid) r.EV.immune = null; } }; },
+        shouldEnd: function (ctx, inst) { return !rrR() || rrR().EV.immune !== inst.data.pid || !rrLive(); }, announceText: 'فرصة الحصانة! لاعب ينجو من إصابة واحدة'
+      },
+      'roulette3d.e4': {
+        canRun: function () { return rrLive() ? true : { ok: false, reason: 'not_live' }; },
+        durationMs: durMs(40),
+        apply: function () { var r = rrR(), M = r.M(), pd = M.cfg.decTime, ps = r.CFG.spinSpeed; M.cfg.decTime = Math.max(4, Math.round(pd / 2)); r.CFG.spinSpeed = 'fast'; var nd = M.cfg.decTime; return { effect: 'مهلة القرار ' + pd + 'ث → ' + nd + 'ث ودوران أسرع', sustain: true, revert: function () { try { if (M.cfg.decTime === nd) M.cfg.decTime = pd; } catch (e) { /* انتهت */ } r.CFG.spinSpeed = ps; } }; },
+        shouldEnd: function () { return !rrLive(); }, announceText: 'الروليت السريع! قرارات أسرع ودوران أسرع'
+      },
+      'roulette3d.e5': {
+        condition: function () { try { return rrLive() && rrR().alive().length === 3; } catch (e) { return false; } },
+        canRun: function () { try { return rrLive() && rrR().alive().length >= 2 ? true : { ok: false, reason: 'not_live' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var r = rrR(), prev = []; r.alive().forEach(function (p) { prev.push([p, p.passes, p.tgtUsed]); p.passes = 0; p.tgtUsed = true; }); try { r.status('المواجهة النهائية! لا امتناع ولا إطلاق على الغير — الإطلاق إجباري'); } catch (e) { /* واجهة */ } return { effect: 'أُلغيت الامتناعات: الإطلاق إجباري لمن بقي', sustain: true, revert: function () { prev.forEach(function (x) { if (x[0].alive) { x[0].passes = x[1]; x[0].tgtUsed = x[2]; } }); } }; },
+        shouldEnd: function () { return !rrLive(); }, announceText: 'المواجهة النهائية! لا مجال للامتناع'
+      }
+    }
+  };
+
+  // ---- شد الحبل 3D
+  function tgC() { try { var w = ifw('tug-frame'); return (w && w.EhsemhaTug3D && w.EhsemhaTug3D._t) || null; } catch (e) { return null; } }
+  function tgLive() { try { var t = tgC(); return !!(t && t.core.S().status === 'active'); } catch (e) { return false; } }
+  function tgClamp(v, lim) { return Math.max(-lim, Math.min(lim, v)); }
+  A.tug = {
+    tag: 'tug', hook: { start: 'startTugRound', began: tgLive }, watchBegin: tgLive, windowSec: function () { return 45; }, isRoundOver: function () { return !tgLive(); },
+    events: {
+      'tug.e1': {
+        canRun: function () { return tgLive() ? true : { ok: false, reason: 'not_live' }; },
+        apply: function (ctx, inst) { var t = tgC(), S = t.core.S(), team = S.knot > 0 ? 'a' : (S.knot < 0 ? 'b' : (rnd(2) ? 'a' : 'b')), amt = t.K.PULL_FORCE * 8 * (inst.factor > 1 ? inst.factor : 1); if (team === 'a') S.forceA += amt; else S.forceB += amt; return { effect: 'دفعة جمهور للفريق ' + S.names[team], durationMs: 0 }; },
+        announceText: 'دفعة الجمهور! الفريق المتأخر يتلقى قوة'
+      },
+      'tug.e2': {
+        canRun: function () { return tgLive() ? true : { ok: false, reason: 'not_live' }; },
+        durationMs: durMs(20),
+        apply: function () { var t = tgC(), prev = t.K.KNOT_SPEED, nv = prev * 0.5; t.K.KNOT_SPEED = nv; return { effect: 'سرعة العقدة ×0.5', sustain: true, revert: function () { if (t.K.KNOT_SPEED === nv) t.K.KNOT_SPEED = prev; } }; },
+        shouldEnd: function () { return !tgLive(); }, announceText: 'الحبل الثقيل! الحركة أبطأ'
+      },
+      'tug.e3': {
+        canRun: function () { return tgLive() ? true : { ok: false, reason: 'not_live' }; },
+        apply: function (ctx, inst) { var t = tgC(), S = t.core.S(), dir = rnd(2) ? 1 : -1, amt = Math.round(12 * (inst.factor > 1 ? inst.factor : 1)), before = S.knot; S.knot = tgClamp(S.knot + dir * amt, 85); return { effect: 'العقدة قفزت ' + (S.knot - before).toFixed(1) + ' وحدة', durationMs: 0 }; },
+        announceText: 'الشد المفاجئ! العقدة اهتزت'
+      },
+      'tug.e4': {
+        canRun: function () { return tgLive() ? true : { ok: false, reason: 'not_live' }; },
+        apply: function () { var t = tgC(), S = t.core.S(); S.knot = 0; S.forceA = 0; S.forceB = 0; S.endsAt += 10000; return { effect: 'تعادل: العقدة عادت للمنتصف وأُضيفت 10 ثوانٍ', durationMs: 0 }; },
+        announceText: 'جولة التعادل! العقدة عادت للمنتصف'
+      },
+      'tug.e5': {
+        canRun: function () { return tgLive() ? true : { ok: false, reason: 'not_live' }; },
+        durationMs: durMs(20),
+        apply: function () { var t = tgC(), S = t.core.S(), team = rnd(2) ? 'a' : 'b'; t.K.TEAM_MULT[team] = 2; return { effect: 'قوة سحب فريق ' + S.names[team] + ' ×2', sustain: true, data: { team: team }, revert: function () { t.K.TEAM_MULT[team] = 1; } }; },
+        shouldEnd: function () { return !tgLive(); }, announceText: 'قوة الفريق! سحبات فريق تُضاعف'
+      }
+    }
+  };
+  // ---- المدفع البشري (لعبة Three.js داخل iframe بنفس الأصل): نتعامل مع HC.ev المضافة داخل اللعبة (لا حالة موازية)
+  function cnW() { var w = ifw('cannon-w-frame'); return (w && w.HC && w.HC.ev) ? w : null; }
+  function cnS() { try { var w = cnW(); return w ? w.HC.state() : null; } catch (e) { return null; } }
+  function cnLive() { var s = cnS(); return s === 'entry' || s === 'firing' || s === 'done'; }
+  function cnOpen() { var s = cnS(); return s === 'entry' || s === 'firing'; }
+  function cnFly() { try { return !!cnW().HC.ev.flying(); } catch (e) { return false; } }
+  A.cannon = {
+    tag: 'cannon', hook: null, watchBegin: cnLive, windowSec: function () { return 40; }, isRoundOver: function () { return !cnLive(); },
+    events: {
+      // 1) الهدف المتحرك: طائرة تقطع مسار المدفوع الحالي (عائق متحرك حقيقي من عوائق اللعبة)
+      'cannon.e1': {
+        canRun: function () { return cnFly() ? true : { ok: false, reason: 'no_flying_player' }; },
+        apply: function () { return cnW().HC.ev.deploy('plane') ? { effect: 'طائرة متحركة اعترضت مسار المدفوع', durationMs: 0 } : { failed: 'deploy_failed' }; },
+        announceText: 'الهدف المتحرك! طائرة تعترض الطريق'
+      },
+      // 2) الهدف الذهبي: المدفوع الحالي ينال دفعة «مسدس المال» الذهبية (صاروخ دفع قوي)
+      'cannon.e2': {
+        canRun: function () { return cnFly() ? true : { ok: false, reason: 'no_flying_player' }; },
+        apply: function () { return cnW().HC.ev.golden() ? { effect: 'دفعة ذهبية للمدفوع الحالي', durationMs: 0 } : { failed: 'golden_failed' }; },
+        announceText: 'الهدف الذهبي! دفعة ذهبية في الجو'
+      },
+      // 3) الرياح المتغيرة: تتبدّل قيمة الرياح فجأة أثناء الجولة (تؤثر على فيزياء الطيران فعلاً)
+      'cannon.e3': {
+        canRun: function () { return cnOpen() ? true : { ok: false, reason: 'not_open' }; },
+        apply: function () { var ev = cnW().HC.ev, prev = ev.wind(), nw = prev, t = 0; while (Math.abs(nw - prev) < 2 && t++ < 50) nw = Math.round((Math.random() * 10 - 5) * 10) / 10; ev.wind(nw); return { effect: 'الرياح ' + prev + ' → ' + nw, durationMs: 0 }; },
+        announceText: 'الرياح المتغيرة! اتجاه الرياح تبدّل'
+      },
+      // 4) التحدي العكسي: الفائز صاحب أقصر رمية بدل أبعدها
+      'cannon.e4': {
+        canRun: function () { return cnOpen() && !cnW().HC.ev.reverse() ? true : { ok: false, reason: cnOpen() ? 'reverse_active' : 'not_open' }; },
+        apply: function () { var ev = cnW().HC.ev; ev.reverse(true); return { effect: 'الفائز صاحب أقصر رمية', sustain: true, revert: function () { try { ev.reverse(false); } catch (e) { /* انتهى */ } } }; },
+        shouldEnd: function () { return !cnLive(); }, announceText: 'التحدي العكسي! أقصر رمية تفوز'
+      },
+      // 5) الجولة المثالية: لا رياح ولا عوائق ولا عقوبات حتى نهاية الجولة
+      'cannon.e5': {
+        canRun: function () { return cnOpen() ? true : { ok: false, reason: 'not_open' }; },
+        apply: function () { var w = cnW(), c = w.HC.cfg(), prev = { obs: c.obs, pen: c.pen }; w.HC.configure({ obs: false, pen: false }); w.HC.ev.wind(0); w.HC.ev.clearObstacles(); return { effect: 'رياح صفر وبلا عوائق ولا عقوبات', sustain: true, revert: function () { try { w.HC.configure(prev); } catch (e) { /* انتهى */ } } }; },
+        shouldEnd: function () { return !cnLive(); }, announceText: 'الجولة المثالية! طقس صافٍ بلا عوائق'
+      }
+    }
+  };
+  /* ===================== الدفعة السادسة: الأراضي البركانية وحرف النجاة ===================== */
+  // ---- الأراضي البركانية: نلتقط نسخة المحرك التي تنشئها صفحة اللعبة عبر تغليف الصنف المعلن (VolcanicLands.Engine)
+  (function () {
+    try {
+      var VL = window.VolcanicLands;
+      if (VL && VL.Engine && !VL.Engine.__bm) {
+        var Orig = VL.Engine, Rec = class extends Orig { constructor() { super(...arguments); window.__vlEngine = this; } };
+        Rec.__bm = 1; VL.Engine = Rec;
+      }
+    } catch (e) { /* لا تغليف */ }
+  })();
+  var VL_OFF = ['IDLE', 'LOBBY', 'GAME_OVER'];
+  function vlE() { return window.__vlEngine || null; }
+  function vlLive() { try { var e = vlE(); return !!(e && e.phase && VL_OFF.indexOf(e.phase) < 0 && e.alivePlayers().length >= 1); } catch (e2) { return false; } }
+  function vlPre() { try { var e = vlE(); return vlLive() && ['ROUND_INTRO', 'QUESTION', 'REVEAL', 'BUILD'].indexOf(e.phase) >= 0; } catch (e2) { return false; } }
+  A['volcanic-lands'] = {
+    tag: 'volcanic-lands', hook: null, watchBegin: vlLive, windowSec: function () { return 60; }, isRoundOver: function () { return !vlLive(); },
+    events: {
+      // 1) ثوران مفاجئ: ترتفع الحمم بلوكاً إضافياً فوراً (يحرق من ارتفاعه أدنى منها عند الاحتراق)
+      'volcanic-lands.e1': {
+        canRun: function () { return vlPre() ? true : { ok: false, reason: 'not_ready' }; },
+        apply: function (ctx, inst) { var e = vlE(), n = Math.max(1, Math.round(inst.factor > 1 ? inst.factor * 0.7 : 1)), before = e.lavaLevel; e.lavaLevel += n; return { effect: 'ثوران! الحمم ' + before + ' → ' + e.lavaLevel, durationMs: 0 }; },
+        announceText: 'ثوران مفاجئ! الحمم ارتفعت أكثر'
+      },
+      // 2) الصخور المتحركة: يتبادل لاعبان حيّان ارتفاعيهما (تتحرك الصخور بينهما)
+      'volcanic-lands.e2': {
+        canRun: function () { try { var e = vlE(), a = vlPre() ? e.alivePlayers() : []; return a.length >= 2 && a.some(function (p) { return p.height !== a[0].height; }) ? true : { ok: false, reason: 'not_enough_players' }; } catch (e2) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () {
+          var a = vlE().alivePlayers(), x = pickOne(a), y = pickOne(a.filter(function (p) { return p !== x && p.height !== x.height; })); if (!y) return { failed: 'no_pair' };
+          var h = x.height; x.height = y.height; y.height = h; return { effect: 'تبادل ' + x.nickname + ' و' + y.nickname + ' ارتفاعيهما', durationMs: 0 };
+        },
+        announceText: 'الصخور المتحركة! تبدّلت ارتفاعات لاعبين'
+      },
+      // 3) المنطقة الذهبية: لاعب حيّ عشوائي ينال ثلاث بلوكات ذهبية
+      'volcanic-lands.e3': {
+        canRun: function () { try { return vlPre() && vlE().alivePlayers().length >= 1 ? true : { ok: false, reason: 'not_ready' }; } catch (e2) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var p = pickOne(vlE().alivePlayers()), n = Math.max(2, Math.round(3 * (inst.factor > 1 ? inst.factor * 0.7 : 1))); p.height += n; return { effect: p.nickname + ' نال ' + n + ' بلوكات ذهبية', durationMs: 0 }; },
+        announceText: 'المنطقة الذهبية! لاعب نال بلوكات إضافية'
+      },
+      // 4) الحمم المتصاعدة: تُرفع صعوبة صعود الحمم في هذه الجولة فقط (إلى «جحيم») ثم تعود
+      'volcanic-lands.e4': {
+        canRun: function () { try { var e = vlE(); return vlPre() && e.settings.difficulty !== 'hell' ? true : { ok: false, reason: vlPre() ? 'already_hell' : 'not_ready' }; } catch (e2) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var e = vlE(), prev = e.settings.difficulty, r = e.round; e.settings.difficulty = 'hell'; inst.data.round = r; return { effect: 'صعود الحمم في هذه الجولة بوضع «جحيم» بدل «' + prev + '»', sustain: true, data: inst.data, revert: function () { if (e.settings.difficulty === 'hell') e.settings.difficulty = prev; } }; },
+        shouldEnd: function (ctx, inst) { var e = vlE(); return !e || !vlLive() || e.phase === 'BURN' || e.round !== inst.data.round; }, announceText: 'الحمم المتصاعدة! ارتفاع الحمم أشد هذه الجولة'
+      },
+      // 5) النجاة الأخيرة: عند بقاء 2–3 لاعبين ينال أضعفهم ارتفاعاً ثلاث بلوكات
+      'volcanic-lands.e5': {
+        condition: function () { try { var e = vlE(), n = e ? e.alivePlayers().length : 0; return vlPre() && n >= 2 && n <= 3; } catch (e2) { return false; } },
+        canRun: function () { try { return vlPre() && vlE().alivePlayers().length >= 2 ? true : { ok: false, reason: 'not_ready' }; } catch (e2) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var a = vlE().alivePlayers().slice().sort(function (x, y) { return x.height - y.height; }), p = a[0]; p.height += 3; return { effect: 'نجاة أخيرة: ' + p.nickname + ' نال 3 بلوكات', durationMs: 0 }; },
+        announceText: 'النجاة الأخيرة! فرصة لأضعف الناجين'
+      }
+    }
+  };
+
+  // ---- حرف النجاة: نصل لمحرك اللعبة عبر _h (تعريض سطر واحد في harf-alnajat3d.html، بلا أي تغيير في منطق اللعبة)
+  function hnH() { try { var w = ifw('harfnajat-frame'); return (w && w.HarfAlNajat && w.HarfAlNajat._h) || null; } catch (e) { return null; } }
+  var HN_OFF = ['start', 'setup', 'lobby', 'win', 'ended'];
+  function hnLive() { try { var h = hnH(); return !!(h && HN_OFF.indexOf(h.S.phase) < 0); } catch (e) { return false; } }
+  function hnEarly() { try { var h = hnH(); return hnLive() && !!h.S.turn && ['picking', 'walking'].indexOf(h.S.phase) >= 0; } catch (e) { return false; } }
+  function hnAlive() { var h = hnH(), out = []; h.S.players.forEach(function (p) { if (p.status !== 'out' && p.status !== 'removed') out.push(p); }); return out; }
+  A.harfnajat = {
+    tag: 'harfnajat', hook: null, watchBegin: hnLive, windowSec: function () { return 45; }, isRoundOver: function () { return !hnLive(); },
+    events: {
+      // 1) الحرف النادر: يُبدَّل حرف الدور بأقل حرف استُخدم من نفس الفئة (قبل كشف الحرف)
+      'harfnajat.e1': {
+        canRun: function () { try { return hnEarly() ? true : { ok: false, reason: 'letter_already_shown' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () {
+          var S = hnH().S, t = S.turn, cands = S.pairs.filter(function (p) { return p.cat === t.cat && p.letter !== t.letter; }).map(function (p) { return p.letter; }); if (!cands.length) return { failed: 'no_other_letter' };
+          var min = Math.min.apply(null, cands.map(function (l) { return S.letterCounts[l] || 0; })), rare = pickOne(cands.filter(function (l) { return (S.letterCounts[l] || 0) === min; })), old = t.letter;
+          S.letterCounts[old] = Math.max(0, (S.letterCounts[old] || 1) - 1); S.letterCounts[rare] = (S.letterCounts[rare] || 0) + 1; S.lastLetter = rare; t.letter = rare;
+          return { effect: 'الحرف تغيّر من «' + old + '» إلى الحرف النادر «' + rare + '»', durationMs: 0 };
+        },
+        announceText: 'الحرف النادر! حرف قليل الاستخدام هذا الدور'
+      },
+      // 2) الوقت المتقلص: تُقصَّر مهلة الإجابة الحالية
+      'harfnajat.e2': {
+        canRun: function (ctx, c) { try { var h = hnH(); return hnLive() && h.S.phase === 'answer' && h.S.turn && h.S.turn.timeLeft > (c.seconds || 8) + 1 ? true : { ok: false, reason: 'not_answer_phase' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { var t = hnH().S.turn, s = Math.max(3, Math.round((c.seconds || 8) / (inst.factor > 1 ? inst.factor : 1))), b = t.timeLeft; t.timeLeft = Math.min(t.timeLeft, s); return { effect: 'المهلة ' + b.toFixed(0) + 'ث → ' + t.timeLeft + 'ث', durationMs: 0 }; },
+        announceText: 'الوقت المتقلص! المهلة تضيق'
+      },
+      // 3) حرفان متتاليان: يُضاف حرف ثانٍ من نفس الفئة للحرف المطلوب (يبدأ الجواب بالحرفين، والتحكيم بيد الستريمر)
+      'harfnajat.e3': {
+        canRun: function () { try { return hnEarly() && String(hnH().S.turn.letter).length === 1 ? true : { ok: false, reason: 'letter_already_shown' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () {
+          var S = hnH().S, t = S.turn, cands = S.pairs.filter(function (p) { return p.cat === t.cat && p.letter !== t.letter; }).map(function (p) { return p.letter; }); if (!cands.length) return { failed: 'no_other_letter' };
+          var l2 = pickOne(cands), old = t.letter; t.letter = old + l2; return { effect: 'الحرفان المطلوبان «' + old + l2 + '»', durationMs: 0 };
+        },
+        announceText: 'حرفان متتاليان! يبدأ الجواب بحرفين'
+      },
+      // 4) الكلمة الذهبية: إن قُبلت إجابة صاحب الدور الحالي نال نقطة قبول إضافية
+      'harfnajat.e4': {
+        canRun: function () { try { var h = hnH(); return hnLive() && !!h.S.turn && ['picking', 'walking', 'letter', 'ready', 'answer'].indexOf(h.S.phase) >= 0 ? true : { ok: false, reason: 'no_open_turn' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var S = hnH().S, p = S.players.get(S.turn.playerId); inst.data.turnId = S.turn.seq; inst.data.pid = p.id; inst.data.base = p.accepted; inst.data.done = false; return { effect: 'الكلمة الذهبية لـ' + p.name + ': قبولها يمنح نقطة إضافية', sustain: true, data: inst.data, revert: noop }; },
+        onTick: function (ctx, inst) { var S = hnH().S, p = S.players.get(inst.data.pid); if (!p || inst.data.done) return; if (p.accepted > inst.data.base) { p.accepted += 1; S.acceptedTotal += 1; inst.data.done = true; try { hnH().emit('players', null); } catch (e) { /* واجهة */ } } },
+        shouldEnd: function (ctx, inst) { try { var S = hnH().S; return !hnLive() || inst.data.done || (S.turn && S.turn.seq !== inst.data.turnId) || !S.turn; } catch (e) { return true; } }, announceText: 'الكلمة الذهبية! قبولها يمنح نقطة إضافية'
+      },
+      // 5) النجاة الأخيرة: عند بقاء 3 لاعبين أو أقل تُمدَّد مهلة الإجابة 10 ثوانٍ لبقية المباراة
+      'harfnajat.e5': {
+        condition: function () { try { var n = hnAlive().length; return hnLive() && n >= 2 && n <= 3; } catch (e) { return false; } },
+        canRun: function () { try { return hnLive() && hnAlive().length >= 2 ? true : { ok: false, reason: 'not_live' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var h = hnH(), prev = h.T.ANSWER, nv = prev + 10; h.T.ANSWER = nv; var S = h.S; if (S.phase === 'answer' && S.turn) S.turn.timeLeft += 10; return { effect: 'مهلة الإجابة ' + prev + 'ث → ' + nv + 'ث للناجين', sustain: true, revert: function () { if (h.T.ANSWER === nv) h.T.ANSWER = prev; } }; },
+        shouldEnd: function () { return !hnLive(); }, announceText: 'النجاة الأخيرة! وقت إضافي للناجين'
+      }
+    }
+  };
 })();
