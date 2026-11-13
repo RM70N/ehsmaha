@@ -20,7 +20,7 @@
     return 'قبل ' + Math.round(h / 24) + ' يوم';
   }
   function fmtVal(f, v) {
-    if (f && f.type === 'toggle') return v ? 'ON' : 'OFF';
+    if (f && f.type === 'toggle') return v ? 'تشغيل' : 'إيقاف';
     if (Array.isArray(v)) return v.join(' / ');
     return String(v) + (f && f.unit ? f.unit : '');
   }
@@ -236,18 +236,18 @@
 
   /* ============================================================ BatmishDashboard */
   var NAV = [
-    ['cmd', 'COMMAND CENTER', 'cmd'], ['games', 'ALL GAMES', 'games'], ['advanced', 'ADVANCED SETTINGS', 'adv'], ['round', 'ROUND CONTROL', 'round'],
-    ['players', 'PLAYER EXPERIENCE', 'players'], ['stream', 'STREAM INTERACTION', 'stream'], ['balance', 'GAME BALANCING', 'balance'],
-    ['av', 'AUDIO & VISUAL', 'av'], ['auto', 'AUTOMATION', 'auto'], ['presets', 'PRESETS', 'presets'], ['history', 'HISTORY', 'history']
+    ['cmd', 'مركز القيادة', 'cmd'], ['games', 'كل الألعاب', 'games'], ['advanced', 'الإعدادات المتقدمة', 'adv'], ['round', 'التحكم بالجولات', 'round'],
+    ['players', 'تجربة اللاعبين', 'players'], ['stream', 'تفاعل البث', 'stream'], ['balance', 'موازنة الألعاب', 'balance'],
+    ['av', 'الصوت والمرئيات', 'av'], ['auto', 'الأتمتة', 'auto'], ['presets', 'المجموعات', 'presets'], ['history', 'السجل', 'history']
   ];
   var SECTION_INFO = {
-    round: { title: 'ROUND CONTROL', ar: 'مدد الجولات والمحاولات والعدّادات في كل الألعاب', cats: ['round'] },
-    players: { title: 'PLAYER EXPERIENCE', ar: 'ما يخص اللاعبين: الإنعاش وإعادة الانضمام وعدد المرات المسموحة', cats: ['players'] },
-    stream: { title: 'STREAM INTERACTION', ar: 'تفاعل جمهور البث', cats: ['interaction'] },
-    balance: { title: 'GAME BALANCING', ar: 'نقاط المكافآت، الصعوبة، الحصانة والمضاعفات', cats: ['scoring', 'balance', 'difficulty'] },
-    av: { title: 'AUDIO & VISUAL', ar: 'مستوى الصوت والمؤثرات البصرية', tag: '__site' }
+    round: { title: 'التحكم بالجولات', ar: 'مدد الجولات والمحاولات والعدّادات في كل الألعاب', cats: ['round'] },
+    players: { title: 'تجربة اللاعبين', ar: 'ما يخص اللاعبين: الإنعاش وإعادة الانضمام وعدد المرات المسموحة', cats: ['players'] },
+    stream: { title: 'تفاعل البث', ar: 'تفاعل جمهور البث', cats: ['interaction'] },
+    balance: { title: 'موازنة الألعاب', ar: 'نقاط المكافآت، الصعوبة، الحصانة والمضاعفات', cats: ['scoring', 'balance', 'difficulty'] },
+    av: { title: 'الصوت والمرئيات', ar: 'مستوى الصوت والمؤثرات البصرية', tag: '__site' }
   };
-  var TAB_AR = { GENERAL: 'GENERAL', GAMEPLAY: 'GAMEPLAY', PLAYERS: 'PLAYERS', DIFFICULTY: 'DIFFICULTY', SCORING: 'SCORING', ADVANCED: 'ADVANCED' };
+  var TAB_AR = { GENERAL: 'عام', GAMEPLAY: 'اللعب', PLAYERS: 'اللاعبون', DIFFICULTY: 'الصعوبة', SCORING: 'النقاط', ADVANCED: 'متقدم' };
   var AUTO_RE = /^(timerEnabled|turnSeconds|answerSeconds|timerSeconds|timeLimit|maxSeconds|hintAfterSeconds|holdDuration|revival.*|speedupEnabled|chairReductionPercent|shuffleSpeedupPercent)$/;
 
   function Dashboard() {
@@ -309,7 +309,7 @@
       '<div class="bm-scan"></div></div>' +
       '<aside class="bm-side" aria-label="BATMISH navigation"><div class="bm-brand">' + B.BAT_SVG + '<div><b>BATMISH</b><small>THE DARK KNIGHT</small></div></div>' +
       '<nav class="bm-nav">' + NAV.map(function (n) { return '<button type="button" data-nav="' + n[0] + '">' + ic(n[2]) + '<span>' + n[1] + '</span></button>'; }).join('') + '</nav>' +
-      '<div class="bm-side-foot"><span id="bm-foot-user"></span><br>OVERLAY <b id="bm-foot-rev">-</b></div></aside>' +
+      '<div class="bm-side-foot"><span id="bm-foot-user"></span><br>التخصيص: <b id="bm-foot-rev">-</b></div></aside>' +
       '<main class="bm-main"><header class="bm-top"><button type="button" class="bm-x bm-menu" data-act="menu" aria-label="القائمة">' + ic('menu') + '</button>' +
       '<div class="bm-crumb" id="bm-crumb"></div><span class="bm-status" id="bm-status" role="status" aria-live="polite"><span class="bm-hide-s" id="bm-status-t"></span></span>' +
       '<button type="button" class="bm-x" data-act="close" aria-label="إغلاق BATMISH">' + ic('x') + '</button></header>' +
@@ -328,9 +328,9 @@
 
   Dashboard.prototype.updateStatus = function () {
     var s = this.sm, el = $('#bm-status', this.root), t = $('#bm-status-t', this.root); if (!el) return;
-    var map = { saved: ['SAVED', 'saved'], dirty: ['UNSAVED ' + s.dirtyCount(), 'dirty'], saving: ['SAVING', 'saving'], error: ['SAVE FAILED', 'error'] }, m = map[s.saveState] || map.saved;
+    var map = { saved: ['تم الحفظ', 'saved'], dirty: ['غير محفوظ: ' + s.dirtyCount(), 'dirty'], saving: ['جارٍ الحفظ', 'saving'], error: ['فشل الحفظ', 'error'] }, m = map[s.saveState] || map.saved;
     el.setAttribute('data-s', m[1]); t.textContent = m[0];
-    var rev = $('#bm-foot-rev', this.root); if (rev) rev.textContent = B.resolver.active ? 'ACTIVE · REV ' + B.resolver.rev : 'OFFLINE';
+    var rev = $('#bm-foot-rev', this.root); if (rev) rev.textContent = B.resolver.active ? 'فعّال · إصدار ' + B.resolver.rev : 'متوقف';
     var us = $('#bm-foot-user', this.root); if (us) us.textContent = '@' + B.STREAMER;
   };
 
@@ -343,10 +343,10 @@
     var saving = s.saveState === 'saving';
     msg.innerHTML = (s.saveState === 'error' ? '<b>فشل الحفظ.</b> مسودتك محفوظة على جهازك. ' : '') + (n ? '<b>' + n + '</b> تعديل غير محفوظ. يُطبَّق من <b>الراوند التالي</b>، والراوند الجاري يكمل بإعداداته.' : '');
     act.innerHTML =
-      '<label class="bm-switch" title="حفظ تلقائي"><input type="checkbox" data-act="autosave"' + (s.autosave ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt">AUTO</span></label>' +
-      '<button type="button" class="bm-btn is-ghost" data-act="discard"' + (saving ? ' disabled' : '') + '>' + ic('reset') + 'DISCARD</button>' +
-      (this.view === 'game' ? '<button type="button" class="bm-btn is-ghost" data-act="savepreset"' + (bad || saving ? ' disabled' : '') + '>' + ic('presets') + 'SAVE AS PRESET</button>' : '') +
-      '<button type="button" class="bm-btn is-primary" data-act="save"' + (bad || saving ? ' disabled' : '') + '>' + ic('save') + (saving ? 'SAVING…' : 'SAVE & APPLY TO NEXT ROUND') + '</button>';
+      '<label class="bm-switch" title="حفظ تلقائي"><input type="checkbox" data-act="autosave"' + (s.autosave ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt">تلقائي</span></label>' +
+      '<button type="button" class="bm-btn is-ghost" data-act="discard"' + (saving ? ' disabled' : '') + '>' + ic('reset') + 'تجاهل التعديلات</button>' +
+      (this.view === 'game' ? '<button type="button" class="bm-btn is-ghost" data-act="savepreset"' + (bad || saving ? ' disabled' : '') + '>' + ic('presets') + 'حفظ كمجموعة</button>' : '') +
+      '<button type="button" class="bm-btn is-primary" data-act="save"' + (bad || saving ? ' disabled' : '') + '>' + ic('save') + (saving ? 'جارٍ الحفظ…' : 'حفظ وتطبيق من الراوند التالي') + '</button>';
   };
   Dashboard.prototype.hasBad = function (tag) { for (var k in this.errs) { if (!this.errs[k]) continue; if (!tag || k.indexOf(tag + '.') === 0) return true; } return false; };
 
@@ -402,38 +402,38 @@
 
   Dashboard.prototype.vError = function () {
     var e = this.loadError, forb = e && (e.status === 403 || e.status === 401);
-    return this.empty(forb ? 'lock' : 'warn', forb ? 'ACCESS DENIED' : 'CONNECTION LOST',
+    return this.empty(forb ? 'lock' : 'warn', forb ? 'الوصول مرفوض' : 'انقطع الاتصال',
       forb ? 'الخادم ما أكّد صلاحيتك الآن. تأكد أن بثك مربوط وأنك داخل بحسابك.' : esc(errMsg(e)),
-      '<p style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-act="retry">' + ic('reset') + 'RETRY</button></p>');
+      '<p style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-act="retry">' + ic('reset') + 'إعادة المحاولة</button></p>');
   };
 
   Dashboard.prototype.vCmd = function () {
     var s = this.sm, cust = this.games.filter(function (g) { return g.fields > 0; }).length;
     var last = this.lastEntry ? this.fieldLabel(this.lastEntry.tag, this.lastEntry.key) + ' · ' + ago(this.lastEntry.ts) : (s.lastChange ? 'الآن' : 'لا يوجد تعديل بعد');
-    var save = { saved: 'SAVED', dirty: 'UNSAVED CHANGES', saving: 'SAVING', error: 'SAVE FAILED' }[s.saveState];
+    var save = { saved: 'محفوظ', dirty: 'تعديلات غير محفوظة', saving: 'جارٍ الحفظ', error: 'فشل الحفظ' }[s.saveState];
     var stats = [
-      ['STREAMER', '@' + B.STREAMER, 'is-gold', 'الحساب المصرّح له'],
-      ['STREAM LINK', 'LINKED', 'is-ok', 'ربط البث مؤكد من الخادم'],
-      ['SYSTEM', B.resolver.active ? 'ONLINE' : 'OFFLINE', B.resolver.active ? 'is-ok' : '', B.resolver.active ? 'التخصيص مفعّل على ألعابك' : 'التخصيص غير محمّل'],
-      ['CUSTOMIZABLE GAMES', '<span class="bm-num">' + cust + '</span>', '', 'من أصل ' + this.games.length + ' لعبة'],
-      ['CUSTOM SETTINGS', '<span class="bm-num">' + s.totalCustomized() + '</span>', '', 'إعدادات مغيّرة عن الافتراضي'],
-      ['LAST CHANGE', esc(last), '', 'آخر تعديل محفوظ'],
-      ['SAVE STATE', save, s.saveState === 'saved' ? 'is-ok' : 'is-gold', s.dirtyCount() ? s.dirtyCount() + ' تعديل بانتظار الحفظ' : 'كل شيء محفوظ'],
-      ['NEXT ROUND', 'REV ' + s.rev, 'is-gold', 'القيم المحفوظة تُقرأ عند بداية كل راوند']
+      ['الستريمر', '@' + B.STREAMER, 'is-gold', 'الحساب المصرّح له'],
+      ['ربط البث', 'مربوط', 'is-ok', 'ربط البث مؤكد من الخادم'],
+      ['النظام', B.resolver.active ? 'يعمل' : 'متوقف', B.resolver.active ? 'is-ok' : '', B.resolver.active ? 'التخصيص مفعّل على ألعابك' : 'التخصيص غير محمّل'],
+      ['ألعاب قابلة للتخصيص', '<span class="bm-num">' + cust + '</span>', '', 'من أصل ' + this.games.length + ' لعبة'],
+      ['إعدادات مخصصة', '<span class="bm-num">' + s.totalCustomized() + '</span>', '', 'إعدادات مغيّرة عن الافتراضي'],
+      ['آخر تعديل', esc(last), '', 'آخر تعديل محفوظ'],
+      ['حالة الحفظ', save, s.saveState === 'saved' ? 'is-ok' : 'is-gold', s.dirtyCount() ? s.dirtyCount() + ' تعديل بانتظار الحفظ' : 'كل شيء محفوظ'],
+      ['الراوند التالي', 'إصدار ' + s.rev, 'is-gold', 'القيم المحفوظة تُقرأ عند بداية كل راوند']
     ];
     stats[4][2] = s.totalCustomized() ? 'is-gold' : '';
     var tiles = [
-      ['games', 'GAME CONFIGURATION', 'إعدادات كل لعبة على حدة', 'games', cust + ' GAMES'], ['advanced', 'ADVANCED GAME SETTINGS', 'كل الإعدادات المتقدمة في مكان واحد', 'adv', this.totalFields() + ' SETTINGS'],
-      ['round', 'ROUND CONTROL', 'مدد وعدّادات ومحاولات الجولات', 'round', this.countCats(['round']) + ' SETTINGS'], ['players', 'PLAYER EXPERIENCE', 'الإنعاش وإعادة الانضمام', 'players', this.countCats(['players']) + ' SETTINGS'],
-      ['stream', 'STREAM INTERACTION', 'تفاعل جمهور البث', 'stream', this.countCats(['interaction']) ? this.countCats(['interaction']) + ' SETTINGS' : 'NOT CONNECTED YET'],
-      ['balance', 'GAME BALANCING', 'النقاط والصعوبة والمضاعفات', 'balance', this.countCats(['scoring', 'balance', 'difficulty']) + ' SETTINGS'],
-      ['av', 'AUDIO & VISUAL CONTROL', 'الصوت والمؤثرات البصرية', 'av', this.countTag('__site') + ' SETTINGS'], ['auto', 'AUTOMATION RULES', 'سلوكيات تلقائية قابلة للضبط', 'auto', this.autoFields().length + ' BEHAVIORS'],
-      ['presets', 'PRESETS & PROFILES', 'مجموعات إعدادات محفوظة لكل لعبة', 'presets', Object.keys(s.presets).length + ' SAVED'], ['history', 'CHANGE HISTORY', 'سجل التعديلات والتراجع', 'history', 'AUDIT LOG']
+      ['games', 'إعدادات الألعاب', 'إعدادات كل لعبة على حدة', 'games', cust + ' لعبة'], ['advanced', 'الإعدادات المتقدمة', 'كل الإعدادات المتقدمة في مكان واحد', 'adv', this.totalFields() + ' إعداد'],
+      ['round', 'التحكم بالجولات', 'مدد وعدّادات ومحاولات الجولات', 'round', this.countCats(['round']) + ' إعداد'], ['players', 'تجربة اللاعبين', 'الإنعاش وإعادة الانضمام', 'players', this.countCats(['players']) + ' إعداد'],
+      ['stream', 'تفاعل البث', 'تفاعل جمهور البث', 'stream', this.countCats(['interaction']) ? this.countCats(['interaction']) + ' إعداد' : 'غير موصول بعد'],
+      ['balance', 'موازنة الألعاب', 'النقاط والصعوبة والمضاعفات', 'balance', this.countCats(['scoring', 'balance', 'difficulty']) + ' إعداد'],
+      ['av', 'الصوت والمرئيات', 'الصوت والمؤثرات البصرية', 'av', this.countTag('__site') + ' إعداد'], ['auto', 'الأتمتة', 'سلوكيات تلقائية قابلة للضبط', 'auto', this.autoFields().length + ' سلوك'],
+      ['presets', 'المجموعات المحفوظة', 'مجموعات إعدادات محفوظة لكل لعبة', 'presets', Object.keys(s.presets).length + ' محفوظة'], ['history', 'سجل التعديلات', 'سجل التعديلات والتراجع', 'history', 'سجل كامل']
     ];
     return '<section class="bm-hero"><div class="bm-panel is-gold"><div class="bm-in bm-hero-main"><div class="bm-hero-sig"><span class="bm-ring"></span><span class="bm-ring"></span>' + B.BAT_SVG + '</div>' +
       '<h1>BATMISH</h1><h2>THE DARK KNIGHT CONTROL CENTER</h2><p>YOUR STREAM. YOUR RULES.</p></div></div>' +
       '<dl class="bm-stat-grid">' + stats.map(function (x) { return '<div class="bm-panel bm-stat"><div class="bm-in"><dt>' + x[0] + '</dt><dd class="' + x[2] + '">' + x[1] + '<small>' + esc(x[3]) + '</small></dd></div></div>'; }).join('') + '</dl></section>' +
-      '<div class="bm-sec"><h3>QUICK ACCESS</h3><span></span></div><div class="bm-tiles">' +
+      '<div class="bm-sec"><h3>وصول سريع</h3><span></span></div><div class="bm-tiles">' +
       tiles.map(function (t) { return '<button type="button" class="bm-tile bm-panel" data-nav="' + t[0] + '"><span class="bm-in"><span class="bm-tile-art"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICONS[t[3]] + '</svg><em>' + t[4] + '</em></span><h4>' + t[1] + '</h4><p>' + t[2] + '</p></span></button>'; }).join('') + '</div>';
   };
 
@@ -452,25 +452,25 @@
       return true;
     });
     return '<div class="bm-tools"><div class="bm-search"><label class="bm-sr" for="bm-q">بحث</label><input id="bm-q" type="search" data-q placeholder="ابحث عن لعبة" value="' + esc(this.q) + '" autocomplete="off"></div>' +
-      '<div class="bm-seg" role="group" aria-label="تصفية">' + [['all', 'ALL'], ['can', 'CUSTOMIZABLE'], ['custom', 'CUSTOMIZED']].map(function (x) { return '<button type="button" data-filter="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
-      (list.length ? '<div class="bm-games">' + list.map(function (g) { return self.gameCard(g); }).join('') + '</div>' : this.empty('games', 'NO MATCH', 'ما فيه ألعاب تطابق بحثك.'));
+      '<div class="bm-seg" role="group" aria-label="تصفية">' + [['all', 'الكل'], ['can', 'قابلة للتخصيص'], ['custom', 'مخصصة']].map(function (x) { return '<button type="button" data-filter="' + x[0] + '" aria-pressed="' + (f === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>' +
+      (list.length ? '<div class="bm-games">' + list.map(function (g) { return self.gameCard(g); }).join('') + '</div>' : this.empty('games', 'لا نتائج', 'ما فيه ألعاب تطابق بحثك.'));
   };
   Dashboard.prototype.gameCard = function (g) {
     var s = this.sm, n = s.customizedCount(g.tag), can = g.fields > 0, dirty = s.dirtyCount(g.tag);
-    var badge = !can ? '<span class="bm-badge">NOT CUSTOMIZABLE YET</span>' : n ? '<span class="bm-badge is-gold">CUSTOMIZED ' + n + '</span>' : '<span class="bm-badge">DEFAULT</span>';
+    var badge = !can ? '<span class="bm-badge">غير قابلة للتخصيص بعد</span>' : n ? '<span class="bm-badge is-gold">مخصصة: ' + n + '</span>' : '<span class="bm-badge">افتراضية</span>';
     return '<article class="bm-panel bm-gcard' + (can ? '' : ' is-off') + '"><div class="bm-in"><div class="bm-gcard-top"><div class="bm-gicon">' + (g.icon || ic('games')) + '</div><div><h4>' + esc(g.name) + '</h4></div></div>' +
-      '<p>' + esc(g.desc) + '</p><div class="bm-badges">' + badge + (can ? '<span class="bm-badge">' + g.fields + ' SETTINGS</span>' : '') + (dirty ? '<span class="bm-badge is-gold">UNSAVED ' + dirty + '</span>' : '') + '</div>' +
-      '<div class="bm-gcard-act">' + (can ? '<button type="button" class="bm-btn is-primary is-sm" data-game="' + esc(g.tag) + '">' + ic('adv') + 'SETTINGS</button><button type="button" class="bm-btn is-ghost is-sm" data-resetgame="' + esc(g.tag) + '"' + (n ? '' : ' disabled') + '>' + ic('reset') + 'RESET</button>'
+      '<p>' + esc(g.desc) + '</p><div class="bm-badges">' + badge + (can ? '<span class="bm-badge">' + g.fields + ' إعداد</span>' : '') + (dirty ? '<span class="bm-badge is-gold">غير محفوظ: ' + dirty + '</span>' : '') + '</div>' +
+      '<div class="bm-gcard-act">' + (can ? '<button type="button" class="bm-btn is-primary is-sm" data-game="' + esc(g.tag) + '">' + ic('adv') + 'الإعدادات</button><button type="button" class="bm-btn is-ghost is-sm" data-resetgame="' + esc(g.tag) + '"' + (n ? '' : ' disabled') + '>' + ic('reset') + 'إعادة للافتراضي</button>'
         : '<span class="bm-tag-off" style="font-size:12px;color:var(--bm-mute);line-height:1.7">لا توجد إعدادات موصولة بمنطق هذي اللعبة بعد.</span>') + '</div></div></article>';
   };
 
   Dashboard.prototype.vGame = function (tag) {
     var s = this.sm, g = s.games[tag], gi = this.gameInfo(tag);
-    if (!g) return this.empty('warn', 'GAME NOT FOUND', 'هذي اللعبة ما فيها إعدادات قابلة للتخصيص.');
+    if (!g) return this.empty('warn', 'اللعبة غير موجودة', 'هذي اللعبة ما فيها إعدادات قابلة للتخصيص.');
     var self = this, tabs = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED'].filter(function (t) { return g.fields.some(function (f) { return f.tab === t; }); });
     if (tabs.indexOf(this.tab) < 0) this.tab = tabs[0];
     var fields = g.fields.filter(function (f) { return f.tab === self.tab; });
-    return '<button type="button" class="bm-btn is-ghost is-sm bm-back" data-nav="games">' + ic('back') + 'ALL GAMES</button>' +
+    return '<button type="button" class="bm-btn is-ghost is-sm bm-back" data-nav="games">' + ic('back') + 'كل الألعاب</button>' +
       '<div class="bm-gh"><div class="bm-gicon">' + ((gi && gi.icon) || ic('games')) + '</div><div><h2>' + esc(g.name === gi.name ? gi.name : (gi.name || g.name)) + '</h2><p>' + esc((gi && gi.desc) || g.desc) + '</p></div></div>' +
       '<div class="bm-tabs" role="tablist">' + tabs.map(function (t) { var n = g.fields.filter(function (f) { return f.tab === t; }).length, d = g.fields.filter(function (f) { return f.tab === t && s.isDirty(tag, f.key); }).length;
         return '<button type="button" role="tab" data-tab="' + t + '" aria-selected="' + (t === self.tab) + '">' + TAB_AR[t] + '<sup>' + n + (d ? ' · ' + d + '*' : '') + '</sup></button>'; }).join('') + '</div>' +
@@ -484,12 +484,12 @@
     if (info.tag) { var g = s.games[info.tag]; if (g) rows = [{ tag: info.tag, fields: g.fields }]; }
     else { for (var t in s.games) { if (t.indexOf('__') === 0) continue; var fl = s.games[t].fields.filter(function (f) { return info.cats.indexOf(f.cat) >= 0; }); if (fl.length) rows.push({ tag: t, fields: fl }); } }
     var intro = '<div class="bm-note"><b>' + info.title + '</b> — ' + esc(info.ar) + '. ' + (info.tag ? 'يطبّق على ألعاب الصفحة الرئيسية التي تستخدم WebAudio (لا يشمل ألعاب الـ3D داخل نافذة مستقلة).' : 'تعديل أي إعداد هنا هو نفس تعديله من صفحة اللعبة، ويُطبَّق من الراوند التالي.') + '</div>';
-    if (!rows.length) return intro + this.empty(view === 'stream' ? 'stream' : 'warn', 'NOT CONNECTED YET',
+    if (!rows.length) return intro + this.empty(view === 'stream' ? 'stream' : 'warn', 'غير موصول بعد',
       view === 'stream' ? 'ما فيه إعدادات تفاعل موصولة فعلياً بمنطق الألعاب حالياً، فما نعرضها كأنها تشتغل. إذا حبّيت إعدادات محددة (مثل رسائل بداية الجولة)، أضيفها بدعم برمجي حقيقي داخل كل لعبة أول.' : 'ما فيه إعدادات في هذا القسم.');
     return intro + rows.map(function (r) {
       var gi = self.gameInfo(r.tag);
-      return '<div class="bm-group"><h4>' + esc(r.tag === '__site' ? s.games.__site.name : (gi ? gi.name : r.tag)) + '</h4><span>' + r.fields.length + ' SETTINGS</span>' +
-        (r.tag === '__site' ? '' : '<button type="button" class="bm-btn is-ghost is-sm" data-game="' + esc(r.tag) + '">' + ic('adv') + 'OPEN</button>') + '</div>' +
+      return '<div class="bm-group"><h4>' + esc(r.tag === '__site' ? s.games.__site.name : (gi ? gi.name : r.tag)) + '</h4><span>' + r.fields.length + ' إعداد</span>' +
+        (r.tag === '__site' ? '' : '<button type="button" class="bm-btn is-ghost is-sm" data-game="' + esc(r.tag) + '">' + ic('adv') + 'فتح</button>') + '</div>' +
         '<div class="bm-fields">' + r.fields.map(function (f) { return self.fieldHtml(r.tag, f); }).join('') + '</div>';
     }).join('');
   };
@@ -502,19 +502,19 @@
     tags.forEach(function (t) {
       var gi = self.gameInfo(t), fl = s.games[t].fields.filter(function (f) { return !q || f.label.toLowerCase().indexOf(q) >= 0 || (gi && gi.name.toLowerCase().indexOf(q) >= 0) || f.key.toLowerCase().indexOf(q) >= 0; });
       if (!fl.length) return; any = true;
-      out += '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + fl.length + ' SETTINGS</span></div><div class="bm-fields">' + fl.map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
+      out += '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + fl.length + ' إعداد</span></div><div class="bm-fields">' + fl.map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
     });
-    return any ? out : out + this.empty('adv', 'NO MATCH', 'ما فيه إعدادات تطابق بحثك.');
+    return any ? out : out + this.empty('adv', 'لا نتائج', 'ما فيه إعدادات تطابق بحثك.');
   };
 
   Dashboard.prototype.vAuto = function () {
     var self = this, s = this.sm, list = this.autoFields(), byGame = {};
     list.forEach(function (x) { (byGame[x.tag] = byGame[x.tag] || []).push(x.f); });
-    var intro = '<div class="bm-note"><b>AUTOMATIC BEHAVIORS</b> — هذي السلوكيات التلقائية اللي تنفّذها الألعاب فعلاً (انتهاء الوقت، تمرير الدور، الإنعاش عبر الهدايا، تسريع الخلط…) وتقدر تضبط توقيتها وتفعيلها. ' +
+    var intro = '<div class="bm-note"><b>السلوكيات التلقائية</b> — هذي السلوكيات التلقائية اللي تنفّذها الألعاب فعلاً (انتهاء الوقت، تمرير الدور، الإنعاش عبر الهدايا، تسريع الخلط…) وتقدر تضبط توقيتها وتفعيلها. ' +
       'بناء قواعد مخصصة جديدة (إذا حصل X سوّي Y) غير متاح حالياً: ما فيه نقاط ربط آمنة داخل الألعاب تسمح بذلك بدون المساس بمنطق الفوز والإقصاء، فما نعرضه كأنه يشتغل.</div>';
     return intro + Object.keys(byGame).map(function (t) {
       var gi = self.gameInfo(t);
-      return '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + byGame[t].length + ' BEHAVIORS</span></div><div class="bm-fields">' + byGame[t].map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
+      return '<div class="bm-group"><h4>' + esc(gi ? gi.name : t) + '</h4><span>' + byGame[t].length + ' سلوك</span></div><div class="bm-fields">' + byGame[t].map(function (f) { return self.fieldHtml(t, f); }).join('') + '</div>';
     }).join('');
   };
 
@@ -524,17 +524,17 @@
     var tag = this.presetTag, list = this.presets.forGame(tag), def = s.defaultPresets[tag];
     var sel = '<select class="bm-input" data-presettag aria-label="اللعبة">' + tags.map(function (t) { var gi = self.gameInfo(t); return '<option value="' + t + '"' + (t === tag ? ' selected' : '') + '>' + esc(gi ? gi.name : t) + '</option>'; }).join('') + '</select>';
     var intro = '<div class="bm-note">المجموعة تحفظ تخصيصك للعبة <b>واحدة</b> فقط، وتطبيقها لا يمس إعدادات أي لعبة ثانية. أمثلة أسماء: CLASSIC NIGHT · DARK CHALLENGE · FAST ROUND · COMPETITIVE MODE · COMMUNITY NIGHT.</div>';
-    var form = '<div class="bm-form" style="margin:0 0 18px">' + sel + '<input class="bm-input is-grow" id="bm-pname" maxlength="40" placeholder="اسم المجموعة الجديدة (من إعدادات اللعبة الحالية)" aria-label="اسم المجموعة"><button type="button" class="bm-btn is-primary" data-act="newpreset">' + ic('presets') + 'CREATE PRESET</button></div>';
+    var form = '<div class="bm-form" style="margin:0 0 18px">' + sel + '<input class="bm-input is-grow" id="bm-pname" maxlength="40" placeholder="اسم المجموعة الجديدة (من إعدادات اللعبة الحالية)" aria-label="اسم المجموعة"><button type="button" class="bm-btn is-primary" data-act="newpreset">' + ic('presets') + 'إنشاء مجموعة</button></div>';
     var rows = list.length ? '<div class="bm-list">' + list.map(function (p) {
       var n = Object.keys(p.values).length;
-      return '<div class="bm-panel bm-row"><div class="bm-in"><div class="bm-row-main"><b>' + esc(p.name) + (def === p.id ? ' <span class="bm-badge is-gold">DEFAULT</span>' : '') + '</b><small>' + n + ' إعداد مخصص · ' + ago(p.updatedAt) + '</small></div><div class="bm-row-act">' +
-        '<button type="button" class="bm-btn is-primary is-sm" data-presetact="apply" data-id="' + p.id + '">' + ic('play') + 'APPLY</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="overwrite" data-id="' + p.id + '">' + ic('save') + 'UPDATE</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="rename" data-id="' + p.id + '">' + ic('edit') + 'RENAME</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="duplicate" data-id="' + p.id + '">' + ic('copy') + 'COPY</button>' +
-        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="default" data-id="' + p.id + '"' + (def === p.id ? ' disabled' : '') + '>' + ic('star') + 'DEFAULT</button>' +
-        '<button type="button" class="bm-btn is-ghost is-danger is-sm" data-presetact="delete" data-id="' + p.id + '">' + ic('trash') + 'DELETE</button></div></div></div>';
-    }).join('') + '</div>' : this.empty('presets', 'NO PRESETS', 'ما أنشأت مجموعات للعبة هذي بعد. عدّل إعداداتها ثم احفظها كمجموعة.');
+      return '<div class="bm-panel bm-row"><div class="bm-in"><div class="bm-row-main"><b>' + esc(p.name) + (def === p.id ? ' <span class="bm-badge is-gold">الافتراضية</span>' : '') + '</b><small>' + n + ' إعداد مخصص · ' + ago(p.updatedAt) + '</small></div><div class="bm-row-act">' +
+        '<button type="button" class="bm-btn is-primary is-sm" data-presetact="apply" data-id="' + p.id + '">' + ic('play') + 'تطبيق</button>' +
+        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="overwrite" data-id="' + p.id + '">' + ic('save') + 'تحديث</button>' +
+        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="rename" data-id="' + p.id + '">' + ic('edit') + 'تسمية</button>' +
+        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="duplicate" data-id="' + p.id + '">' + ic('copy') + 'نسخ</button>' +
+        '<button type="button" class="bm-btn is-ghost is-sm" data-presetact="default" data-id="' + p.id + '"' + (def === p.id ? ' disabled' : '') + '>' + ic('star') + 'افتراضية</button>' +
+        '<button type="button" class="bm-btn is-ghost is-danger is-sm" data-presetact="delete" data-id="' + p.id + '">' + ic('trash') + 'حذف</button></div></div></div>';
+    }).join('') + '</div>' : this.empty('presets', 'لا توجد مجموعات', 'ما أنشأت مجموعات للعبة هذي بعد. عدّل إعداداتها ثم احفظها كمجموعة.');
     return intro + form + rows;
   };
 
@@ -542,17 +542,17 @@
     var self = this, s = this.sm, tags = Object.keys(s.games);
     var items = this.hist.items.filter(function (e) { return !self.histTag || e.tag === self.histTag; });
     var sel = '<select class="bm-input" data-histtag aria-label="تصفية حسب اللعبة"><option value="">كل الألعاب</option>' + tags.map(function (t) { var gi = self.gameInfo(t); return '<option value="' + t + '"' + (t === self.histTag ? ' selected' : '') + '>' + esc(gi ? gi.name : t) + '</option>'; }).join('') + '</select>';
-    var bar = '<div class="bm-form" style="margin-bottom:18px">' + sel + '<button type="button" class="bm-btn is-ghost" data-act="histrefresh">' + ic('reset') + 'REFRESH</button>' +
-      (this.histTag && s.customizedCount(this.histTag) ? '<button type="button" class="bm-btn is-ghost is-danger" data-act="restoregame">' + ic('reset') + 'RESTORE GAME DEFAULTS</button>' : '') + '</div>';
+    var bar = '<div class="bm-form" style="margin-bottom:18px">' + sel + '<button type="button" class="bm-btn is-ghost" data-act="histrefresh">' + ic('reset') + 'تحديث</button>' +
+      (this.histTag && s.customizedCount(this.histTag) ? '<button type="button" class="bm-btn is-ghost is-danger" data-act="restoregame">' + ic('reset') + 'استرجاع افتراضي اللعبة</button>' : '') + '</div>';
     var note = '<div class="bm-note">التراجع يرجّع <b>إعداداً</b> لقيمته القديمة للراوندات القادمة فقط. ما يلمس جولات انتهت ولا نتائجها لأن الإعداد يُقرأ عند بداية كل راوند.</div>';
-    var statusAr = { saved: 'SAVED', reset: 'RESET', reverted: 'REVERTED' };
+    var statusAr = { saved: 'محفوظ', reset: 'إعادة للافتراضي', reverted: 'تراجع' };
     var rows = items.length ? '<div class="bm-list">' + items.map(function (e) {
       var f = s.field(e.tag, e.key), gi = self.gameInfo(e.tag);
       return '<div class="bm-panel bm-row"><div class="bm-in"><div class="bm-row-main"><b>' + esc(gi ? gi.name : e.tag) + ' › ' + esc(f ? f.label.replace(/\s*[—-].*$/, '') : e.key) + '</b>' +
-        '<small>' + ago(e.ts) + (e.preset ? ' · مجموعة: ' + esc(e.preset) : '') + ' · <span class="bm-en" style="letter-spacing:.1em">' + (statusAr[e.status] || e.status) + (e.reverted ? ' · REVERTED LATER' : '') + '</span> · تُطبَّق من الراوند التالي</small></div>' +
+        '<small>' + ago(e.ts) + (e.preset ? ' · مجموعة: ' + esc(e.preset) : '') + ' · <span class="bm-en" style="letter-spacing:.1em">' + (statusAr[e.status] || e.status) + (e.reverted ? ' · تم التراجع عنه لاحقاً' : '') + '</span> · تُطبَّق من الراوند التالي</small></div>' +
         '<div class="bm-diff"><s>' + esc(fmtVal(f, e.old)) + '</s><span>→</span><i>' + esc(fmtVal(f, e.new)) + '</i></div>' +
-        '<div class="bm-row-act"><button type="button" class="bm-btn is-ghost is-sm" data-revert="' + e.id + '"' + (e.reverted || !f ? ' disabled' : '') + '>' + ic('reset') + 'REVERT</button></div></div></div>';
-    }).join('') + '</div>' : this.empty('history', 'NO CHANGES YET', 'لسا ما عدّلت أي إعداد. كل تعديل تحفظه يظهر هنا.');
+        '<div class="bm-row-act"><button type="button" class="bm-btn is-ghost is-sm" data-revert="' + e.id + '"' + (e.reverted || !f ? ' disabled' : '') + '>' + ic('reset') + 'تراجع</button></div></div></div>';
+    }).join('') + '</div>' : this.empty('history', 'لا توجد تعديلات بعد', 'لسا ما عدّلت أي إعداد. كل تعديل تحفظه يظهر هنا.');
     return note + bar + rows;
   };
 
@@ -562,7 +562,7 @@
     var bad = this.errs[fk];
     var ctrl = '';
     if (f.type === 'toggle') {
-      ctrl = '<label class="bm-switch"><input type="checkbox" id="' + id + '" data-k="' + fk + '"' + (v ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt" data-onoff>' + (v ? 'ON' : 'OFF') + '</span></label>';
+      ctrl = '<label class="bm-switch"><input type="checkbox" id="' + id + '" data-k="' + fk + '"' + (v ? ' checked' : '') + '><span class="bm-switch-track"></span><span class="bm-switch-txt" data-onoff>' + (v ? 'تشغيل' : 'إيقاف') + '</span></label>';
     } else if (f.type === 'number') {
       var step = Math.max(1, Math.round((f.max - f.min) / 160));
       ctrl = '<div class="bm-ctrl-row"><input class="bm-range" type="range" tabindex="-1" aria-hidden="true" min="' + f.min + '" max="' + f.max + '" step="' + step + '" value="' + esc(v) + '" data-k="' + fk + '" data-r="1">' +
@@ -571,8 +571,8 @@
       ctrl = '<div class="bm-ctrl-row is-arr">' + v.map(function (x, i) { return '<input class="bm-numin is-s" type="number" inputmode="numeric" min="' + f.min + '" max="' + f.max + '" value="' + esc(x) + '" data-k="' + fk + '" data-i="' + i + '" aria-label="' + esc(f.label) + ' ' + (i + 1) + '">'; }).join('') + '</div>';
     }
     return '<div class="bm-panel bm-field' + (mod || dirty ? ' is-mod' : '') + (bad ? ' is-bad' : '') + '" data-fk="' + fk + '"><div class="bm-in"><div><div class="bm-field-label"><label for="' + id + '">' + esc(f.label) + '</label></div><div class="bm-field-hint">' + esc(f.hint || '') + '</div>' +
-      '<div class="bm-field-meta"><span class="bm-badge">DEFAULT ' + esc(fmtVal(f, f.default)) + '</span>' + (dirty ? '<span class="bm-badge is-gold">UNSAVED</span>' : mod ? '<span class="bm-badge is-gold">CUSTOM</span>' : '') +
-      '<button type="button" class="bm-btn is-ghost is-sm" data-resetkey="' + fk + '"' + (mod || dirty ? '' : ' disabled') + '>' + ic('reset') + 'DEFAULT</button></div></div>' +
+      '<div class="bm-field-meta"><span class="bm-badge">الافتراضي: ' + esc(fmtVal(f, f.default)) + '</span>' + (dirty ? '<span class="bm-badge is-gold">غير محفوظ</span>' : mod ? '<span class="bm-badge is-gold">مخصص</span>' : '') +
+      '<button type="button" class="bm-btn is-ghost is-sm" data-resetkey="' + fk + '"' + (mod || dirty ? '' : ' disabled') + '>' + ic('reset') + 'الافتراضي</button></div></div>' +
       '<div class="bm-ctrl">' + ctrl + '<div class="bm-err" role="alert" data-err>' + esc(bad || '') + '</div></div></div></div>';
   };
 
@@ -586,7 +586,7 @@
       if (meta) {
         var old = $all('.bm-badge.is-gold', meta); old.forEach(function (b) { b.remove(); });
         var btn = $('[data-resetkey]', meta);
-        if (dirty || mod) { var b = document.createElement('span'); b.className = 'bm-badge is-gold'; b.textContent = dirty ? 'UNSAVED' : 'CUSTOM'; meta.insertBefore(b, btn); }
+        if (dirty || mod) { var b = document.createElement('span'); b.className = 'bm-badge is-gold'; b.textContent = dirty ? 'غير محفوظ' : 'مخصص'; meta.insertBefore(b, btn); }
         if (btn) btn.disabled = !(mod || dirty);
       }
     });
@@ -603,7 +603,7 @@
     var fk = t.getAttribute && t.getAttribute('data-k'); if (!fk) return;
     var i = fk.indexOf('.'), tag = fk.slice(0, i), key = fk.slice(i + 1), s = this.sm, f = s.field(tag, key); if (!f) return;
     var v;
-    if (f.type === 'toggle') { v = !!t.checked; var tx = $('[data-onoff]', t.closest('.bm-switch')); if (tx) tx.textContent = v ? 'ON' : 'OFF'; }
+    if (f.type === 'toggle') { v = !!t.checked; var tx = $('[data-onoff]', t.closest('.bm-switch')); if (tx) tx.textContent = v ? 'تشغيل' : 'إيقاف'; }
     else if (f.type === 'number') {
       v = t.value === '' ? NaN : Number(t.value);
       // مزامنة المنزلق ↔ الرقم
@@ -637,7 +637,7 @@
     if ((el = t.closest('[data-tab]'))) { this.tab = el.getAttribute('data-tab'); this.render(); return; }
     if ((el = t.closest('[data-filter]'))) { this.filter = el.getAttribute('data-filter'); this.render(); return; }
     if ((el = t.closest('[data-resetkey]'))) { var fk = el.getAttribute('data-resetkey'), i = fk.indexOf('.'); delete this.errs[fk]; this.run(this.sm.resetKey(fk.slice(0, i), fk.slice(i + 1)), 'تمت إعادة الإعداد للافتراضي.').then(function () { self.render(); }); return; }
-    if ((el = t.closest('[data-resetgame]'))) { var tag = el.getAttribute('data-resetgame'); this.confirm({ title: 'RESET GAME', text: 'ترجيع كل إعدادات «' + (this.gameInfo(tag) || {}).name + '» للافتراضي؟ تقدر تتراجع عن أي إعداد من سجل التعديلات.', ok: 'RESET', danger: true }).then(function (y) { if (y) self.run(self.sm.resetGame(tag), 'رجعت إعدادات اللعبة للافتراضي.').then(function () { self.render(); }); }); return; }
+    if ((el = t.closest('[data-resetgame]'))) { var tag = el.getAttribute('data-resetgame'); this.confirm({ title: 'إعادة اللعبة للافتراضي', text: 'ترجيع كل إعدادات «' + (this.gameInfo(tag) || {}).name + '» للافتراضي؟ تقدر تتراجع عن أي إعداد من سجل التعديلات.', ok: 'إعادة', danger: true }).then(function (y) { if (y) self.run(self.sm.resetGame(tag), 'رجعت إعدادات اللعبة للافتراضي.').then(function () { self.render(); }); }); return; }
     if ((el = t.closest('[data-presetact]'))) { this.presetAction(el.getAttribute('data-presetact'), el.getAttribute('data-id')); return; }
     if ((el = t.closest('[data-revert]'))) { this.run(this.hist.revert(el.getAttribute('data-revert')), 'تم التراجع عن التعديل.').then(function () { return self.hist.load(self.histTag); }).then(function () { self.render(); }); return; }
     if ((el = t.closest('[data-act]'))) { this.act(el.getAttribute('data-act')); }
@@ -650,23 +650,23 @@
     if (a === 'retry') return this.loadAll();
     if (a === 'discard') { s.discard(this.view === 'game' ? this.arg : null); this.errs = {}; this.render(); return; }
     if (a === 'save') { s.saveAll().then(function () { self.render(); }); return; }
-    if (a === 'savepreset') { this.prompt({ title: 'SAVE AS PRESET', label: 'اسم المجموعة', value: '' }).then(function (name) {
+    if (a === 'savepreset') { this.prompt({ title: 'حفظ كمجموعة', label: 'اسم المجموعة', value: '' }).then(function (name) {
       if (name == null) return; var tag = self.arg;
       self.run(self.presets.create(tag, name, s.effectiveOverrides(tag)), 'تم حفظ المجموعة «' + name + '». (التعديلات غير المحفوظة ضُمّنت فيها لكنها لم تُطبَّق بعد.)'); }); return; }
     if (a === 'newpreset') { var nm = $('#bm-pname', this.root).value.trim(); if (!nm) { this.toast('اكتب اسماً للمجموعة.', 'err'); return; }
       this.run(this.presets.create(this.presetTag, nm, s.config[this.presetTag] ? clone(s.config[this.presetTag]) : {}), 'تم إنشاء المجموعة.').then(function () { self.render(); }); return; }
     if (a === 'histrefresh') { this.hist.load(this.histTag).then(function () { self.render(); }, function (er) { self.toast(errMsg(er), 'err'); }); return; }
-    if (a === 'restoregame') { var tag = this.histTag; this.confirm({ title: 'RESTORE GAME', text: 'استرجاع إعدادات هذي اللعبة كاملة للافتراضي؟ ما يأثر على جولات انتهت.', ok: 'RESTORE', danger: true }).then(function (y) { if (y) self.run(self.hist.restoreGame(tag), 'تم استرجاع إعدادات اللعبة.').then(function () { return self.hist.load(self.histTag); }).then(function () { self.render(); }); }); }
+    if (a === 'restoregame') { var tag = this.histTag; this.confirm({ title: 'استرجاع إعدادات اللعبة', text: 'استرجاع إعدادات هذي اللعبة كاملة للافتراضي؟ ما يأثر على جولات انتهت.', ok: 'استرجاع', danger: true }).then(function (y) { if (y) self.run(self.hist.restoreGame(tag), 'تم استرجاع إعدادات اللعبة.').then(function () { return self.hist.load(self.histTag); }).then(function () { self.render(); }); }); }
   };
 
   Dashboard.prototype.presetAction = function (op, id) {
     var self = this, s = this.sm, p = s.presets[id]; if (!p) return;
-    if (op === 'apply') { this.confirm({ title: 'APPLY PRESET', text: 'تطبيق «' + p.name + '» يغيّر إعدادات هذي اللعبة فقط، ويسري من الراوند التالي.', ok: 'APPLY' }).then(function (y) { if (y) self.run(self.presets.apply(id), 'تم تطبيق المجموعة.').then(function () { self.render(); }); }); return; }
-    if (op === 'overwrite') { this.confirm({ title: 'UPDATE PRESET', text: 'استبدال محتوى «' + p.name + '» بإعدادات اللعبة الحالية المحفوظة؟', ok: 'UPDATE' }).then(function (y) { if (y) self.run(self.presets.overwrite(id, s.config[p.tag] ? clone(s.config[p.tag]) : {}), 'تم تحديث المجموعة.').then(function () { self.render(); }); }); return; }
-    if (op === 'rename') { this.prompt({ title: 'RENAME PRESET', label: 'الاسم الجديد', value: p.name }).then(function (n) { if (n != null) self.run(self.presets.rename(id, n), 'تمت التسمية.').then(function () { self.render(); }); }); return; }
+    if (op === 'apply') { this.confirm({ title: 'تطبيق المجموعة', text: 'تطبيق «' + p.name + '» يغيّر إعدادات هذي اللعبة فقط، ويسري من الراوند التالي.', ok: 'تطبيق' }).then(function (y) { if (y) self.run(self.presets.apply(id), 'تم تطبيق المجموعة.').then(function () { self.render(); }); }); return; }
+    if (op === 'overwrite') { this.confirm({ title: 'تحديث المجموعة', text: 'استبدال محتوى «' + p.name + '» بإعدادات اللعبة الحالية المحفوظة؟', ok: 'تحديث' }).then(function (y) { if (y) self.run(self.presets.overwrite(id, s.config[p.tag] ? clone(s.config[p.tag]) : {}), 'تم تحديث المجموعة.').then(function () { self.render(); }); }); return; }
+    if (op === 'rename') { this.prompt({ title: 'تسمية المجموعة', label: 'الاسم الجديد', value: p.name }).then(function (n) { if (n != null) self.run(self.presets.rename(id, n), 'تمت التسمية.').then(function () { self.render(); }); }); return; }
     if (op === 'duplicate') { this.run(this.presets.duplicate(id), 'تم نسخ المجموعة.').then(function () { self.render(); }); return; }
     if (op === 'default') { this.run(this.presets.setDefault(id), 'صارت المجموعة الافتراضية للعبة.').then(function () { self.render(); }); return; }
-    if (op === 'delete') { this.confirm({ title: 'DELETE PRESET', text: 'حذف «' + p.name + '» نهائياً؟', ok: 'DELETE', danger: true }).then(function (y) { if (y) self.run(self.presets.remove(id), 'تم الحذف.').then(function () { self.render(); }); }); }
+    if (op === 'delete') { this.confirm({ title: 'حذف المجموعة', text: 'حذف «' + p.name + '» نهائياً؟', ok: 'حذف', danger: true }).then(function (y) { if (y) self.run(self.presets.remove(id), 'تم الحذف.').then(function () { self.render(); }); }); }
   };
 
   // ينفّذ وعداً مع رسالة نجاح/فشل موحّدة
@@ -687,7 +687,7 @@
   Dashboard.prototype.confirm = function (o) {
     var self = this;
     return new Promise(function (res) {
-      var m = self.modal('<h4>' + esc(o.title) + '</h4><p>' + esc(o.text) + '</p><div class="bm-modal-act"><button type="button" class="bm-btn ' + (o.danger ? 'is-danger' : 'is-primary') + '" data-ok>' + esc(o.ok || 'OK') + '</button><button type="button" class="bm-btn is-ghost" data-no>CANCEL</button></div>');
+      var m = self.modal('<h4>' + esc(o.title) + '</h4><p>' + esc(o.text) + '</p><div class="bm-modal-act"><button type="button" class="bm-btn ' + (o.danger ? 'is-danger' : 'is-primary') + '" data-ok>' + esc(o.ok || 'موافق') + '</button><button type="button" class="bm-btn is-ghost" data-no>إلغاء</button></div>');
       var done = function (v) { m.remove(); res(v); };
       $('[data-ok]', m).addEventListener('click', function () { done(true); }); $('[data-no]', m).addEventListener('click', function () { done(false); });
       m.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); done(false); } });
@@ -697,7 +697,7 @@
   Dashboard.prototype.prompt = function (o) {
     var self = this;
     return new Promise(function (res) {
-      var m = self.modal('<h4>' + esc(o.title) + '</h4><p><label for="bm-pin">' + esc(o.label) + '</label></p><input id="bm-pin" class="bm-input" maxlength="40" value="' + esc(o.value || '') + '"><div class="bm-modal-act" style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-ok>SAVE</button><button type="button" class="bm-btn is-ghost" data-no>CANCEL</button></div>');
+      var m = self.modal('<h4>' + esc(o.title) + '</h4><p><label for="bm-pin">' + esc(o.label) + '</label></p><input id="bm-pin" class="bm-input" maxlength="40" value="' + esc(o.value || '') + '"><div class="bm-modal-act" style="margin-top:16px"><button type="button" class="bm-btn is-primary" data-ok>حفظ</button><button type="button" class="bm-btn is-ghost" data-no>إلغاء</button></div>');
       var inp = $('#bm-pin', m), done = function (v) { m.remove(); res(v); };
       $('[data-ok]', m).addEventListener('click', function () { var v = inp.value.trim(); if (v) done(v); else inp.focus(); });
       $('[data-no]', m).addEventListener('click', function () { done(null); });
@@ -716,7 +716,7 @@
   Dashboard.prototype.requestClose = function () {
     var self = this, s = this.sm;
     if (s.dirtyCount()) {
-      this.confirm({ title: 'UNSAVED CHANGES', text: 'عندك ' + s.dirtyCount() + ' تعديل غير محفوظ. تحفظها الحين، أو تتركها كمسودة على جهازك للمرة الجاية؟', ok: 'SAVE & CLOSE' }).then(function (y) {
+      this.confirm({ title: 'تعديلات غير محفوظة', text: 'عندك ' + s.dirtyCount() + ' تعديل غير محفوظ. تحفظها الحين، أو تتركها كمسودة على جهازك للمرة الجاية؟', ok: 'حفظ وإغلاق' }).then(function (y) {
         if (y) s.saveAll().then(function (ok) { if (ok) self.close(); }); else self.close();
       });
     } else this.close();

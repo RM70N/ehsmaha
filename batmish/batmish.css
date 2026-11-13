@@ -5,7 +5,7 @@
   --bm-gold:#D8B84E; --bm-gold-hi:#F2D77A; --bm-gold-dim:rgba(216,184,78,.14);
   --bm-mute:#858B96; --bm-text:#F5F5F2; --bm-err:#E27D70; --bm-ok:#8FC9A1;
   --bm-cut:10px; --bm-cut-s:6px;
-  --bm-display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --bm-display:'Big Shoulders Display','Tajawal','Cairo','Arial Narrow',sans-serif;
   --bm-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
   --bm-ar:'Tajawal','Cairo',system-ui,sans-serif;
   --bm-ease:cubic-bezier(.16,1,.3,1);
@@ -308,3 +308,16 @@
   .bm-launch{transition:none}
   .bm-warp{display:none}
 }
+
+/* واجهة عربية: لا تباعد حروف (يكسر اتصال الحروف العربية) ولا اتجاه LTR لعناوين الأقسام */
+.bm :where(.bm-nav button,.bm-btn,.bm-tabs button,.bm-tile h4,.bm-sec h3,.bm-seg button,.bm-badge,.bm-crumb,.bm-stat dt,.bm-stat dd,.bm-status,.bm-modal h4,.bm-empty h4,.bm-tile-art em,.bm-switch-txt,.bm-side-foot,.bm-tile .bm-tag-off,.bm-group span){
+  letter-spacing:0;font-family:var(--bm-ar);direction:rtl;text-align:start;text-transform:none}
+.bm :where(.bm-nav button,.bm-btn,.bm-tile h4,.bm-sec h3,.bm-tabs button,.bm-empty h4){font-weight:800}
+.bm .bm-nav button{font-size:16px}.bm .bm-btn{font-size:14.5px}.bm .bm-tile h4{font-size:19px}.bm .bm-sec h3{font-size:21px}
+.bm .bm-stat dd{font-size:22px}.bm .bm-stat dt{font-size:12px}.bm .bm-badge{font-size:11.5px}
+.bm .bm-crumb{font-size:14px}.bm .bm-status{font-size:12.5px}.bm .bm-side-foot{font-size:12px;line-height:1.9}
+.bm .bm-nav button[aria-current="page"]::before{left:auto;right:0}
+.bm .bm-hero h1,.bm .bm-hero h2,.bm .bm-hero p,.bm .bm-brand{direction:ltr}
+.bm .bm-num{direction:ltr}
+.bm .bm-stat dt,.bm .bm-tile-art em,.bm .bm-badge,.bm .bm-status,.bm .bm-side-foot,.bm .bm-group span,.bm .bm-switch-txt,.bm .bm-crumb{letter-spacing:0;font-family:var(--bm-ar)}
+.bm .bm-badge .bm-num,.bm .bm-side-foot b{font-family:var(--bm-ar)}
