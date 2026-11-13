@@ -6,8 +6,9 @@ export const STREAMER_ID = '_zvd4';
 // الستريمرات المسموح لهم باللوحة (يوزر تيك توك بعد التطبيع). لكل واحد تثبيت حساب مستقل وإعدادات معزولة بحسب uid.
 export const STREAMERS = ['_zvd4'];
 // حسابات احسمها (اسم المستخدم بالموقع) المسموح لها باللوحة بمجرد الدخول بحسابها — بدون ربط بث. الخادم يتحقق أن uid التوكن = uid هذا الحساب.
-// الاسم المعروض: mish هو نفس صاحب بث _zvd4؛ mzx حساب المالك (إعداداته منفصلة باسمه).
-export const SITE_USERS = { mish: '_zvd4', mzx: 'mzx' };
+// mish = نفس صاحب بث _zvd4. حساب المالك يُتحقق منه ببريده في التوكن (لا بسجل الأسماء) وتُعرض إعداداته باسم mzx.
+export const SITE_USERS = { mish: '_zvd4' };
+export const OWNER_DISPLAY = 'mzx';
 export const CATEGORIES = ['round', 'players', 'difficulty', 'scoring', 'interaction', 'balance', 'audiovisual', 'advanced'];
 export const TABS = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED'];
 export const SITE_TAG = '__site';

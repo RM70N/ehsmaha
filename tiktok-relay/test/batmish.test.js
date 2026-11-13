@@ -473,10 +473,11 @@ test('تخزين BATMISH المرن: نفاد حصة Firestore لا يعطّل �
   await assert.rejects(() => svc.getState('u1'));
 });
 
-test('البوابة: حساب المالك mzx يفتح اللوحة بإعداداته المنفصلة ويُعرض باسمه، وmish يبقى باسم _zvd4', async () => {
-  const names = { mish: 'uM', mzx: 'uX' };
-  const acc = new BatmishAccess({ store: new MemoryStore(), resolveUid: async (n) => names[n] || '' });
-  assert.deepEqual(await acc.check('uX'), { allowed: true, reason: 'ok', streamerId: 'mzx', via: 'account' });
-  assert.equal((await acc.check('uM')).streamerId, '_zvd4');
-  assert.equal((await acc.check('uRandom')).allowed, false);
+test('البوابة: المالك يُتحقق منه ببريد التوكن (لا باسم المستخدم)، وmish يبقى باسم _zvd4', async () => {
+  const names = { mish: 'uM', mzx: 'uSpoof' };               // حتى لو سجّل أحدهم اسم mzx فلا يفتح له
+  const acc = new BatmishAccess({ store: new MemoryStore(), resolveUid: async (n) => names[n] || '', ownerEmail: 'Owner@Test.com' });
+  assert.deepEqual(await acc.check('uX', { email: 'owner@test.com' }), { allowed: true, reason: 'ok', streamerId: 'mzx', via: 'account' });
+  assert.equal((await acc.check('uSpoof', { email: 'x@test.com' })).allowed, false);
+  assert.equal((await acc.check('uX', {})).allowed, false, 'بدون بريد في التوكن لا يُفتح');
+  assert.equal((await acc.check('uM', { email: 'm@test.com' })).streamerId, '_zvd4');
 });
