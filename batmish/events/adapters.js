@@ -801,7 +801,7 @@
 
   /* ===================== أين الكرة (findball) ===================== */
   // المتغيرات: findballGameStatus ('hiding'|'shuffling'|'guessing'|'revealing'|'finished-round'), findballShuffling, FINDBALL_SHUFFLE_MIN_MS/FLOOR_MS/FINDBALL_SWAP_COUNT
-  function fbLive() { try { return findballGameStatus === 'hiding' || findballGameStatus === 'shuffling' || findballGameStatus === 'guessing'; } catch (e) { return false; } }
+  function fbLive() { try { return findballGameStatus === 'hiding' || findballGameStatus === 'shuffling' || findballGameStatus === 'guessing' || findballGameStatus === 'revealing'; } catch (e) { return false; } }
   A.findball = {
     tag: 'findball', planAtStart: true,
     hook: { start: 'findballShuffle', before: true, canBegin: function () { try { return !findballShuffling; } catch (e) { return false; } } },
@@ -1042,5 +1042,283 @@
       return { effect: 'اكتبوا الجملة مرتين متتاليتين', sustain: true, revert: function () { if (wrAcceptOverride === twice) wrAcceptOverride = null; if (el.textContent === now) el.textContent = pe; } };
     },
     shouldEnd: function () { return !wrActive(); }, announceText: 'سباق السلسلة! اكتبوا الجملة مرتين متتاليتين'
+  };
+  /* ===================== الدفعة الثالثة: بقية الألعاب غير ثلاثية الأبعاد ===================== */
+  // ---- سرقة التاج: cs.e3
+  A.cs.events['cs.e3'] = {
+    canRun: function () { return csHolding() && !csDoubleCrown ? true : { ok: false, reason: csHolding() ? 'double_active' : 'no_holder' }; },
+    durationMs: durMs(30),
+    apply: function () {
+      var em = document.getElementById('cs-crown-emoji'), pe = em ? em.textContent : ''; csDoubleCrown = true; if (em) em.textContent = '👑👑';
+      return { effect: 'تاج مزدوج: فائز هذه الفترة ينال نقطتين', sustain: true, revert: function () { csDoubleCrown = false; if (em && em.textContent === '👑👑') em.textContent = pe; } };
+    },
+    shouldEnd: function () { return !csActive(); }, announceText: 'التاج المزدوج! من يفوز الآن ينال نقطتين'
+  };
+
+  // ---- لعبة التوقيت: tmr.e4 / e5
+  A.tmr.events['tmr.e4'] = {
+    canRun: function () { return tmrRunning() && !tmrDoubleTries ? true : { ok: false, reason: tmrRunning() ? 'tries_active' : 'not_running' }; },
+    apply: function () { tmrDoubleTries = true; return { effect: 'لكل لاعب محاولتان والأقرب تُحتسب', sustain: true, revert: function () { tmrDoubleTries = false; } }; },
+    shouldEnd: function () { return !tmrRunning(); }, announceText: 'التوقيت المزدوج! لكل لاعب محاولتان والأقرب تُحتسب'
+  };
+  A.tmr.events['tmr.e5'] = {
+    condition: function (ctx, c) { try { return tmrRunning() && tmrElapsed >= tmrSecretTime - (c.beforeSec || 2) - 1.5 && tmrElapsed < tmrSecretTime; } catch (e) { return false; } },
+    canRun: function () { return tmrRunning() && !tmrBlind ? true : { ok: false, reason: tmrRunning() ? 'blind_active' : 'not_running' }; },
+    apply: function (ctx, inst, c) { var b = { before: c.beforeSec || 2, after: 1 }; tmrBlind = b; return { effect: 'الساعة معمّاة قبل الوقت السري بـ' + b.before + 'ث وبعده بثانية', sustain: true, revert: function () { if (tmrBlind === b) tmrBlind = null; } }; },
+    shouldEnd: function () { return !tmrRunning(); }, announceText: 'آخر جزء من الثانية! الساعة تُعمّى قرب الوقت السري'
+  };
+
+  // ---- إشارة المرور: rlgl.e3 / e4
+  A.rlgl.events['rlgl.e3'] = {
+    canRun: function () { return rlActive() && !rlglYellow ? true : { ok: false, reason: rlActive() ? 'yellow_active' : 'not_active' }; },
+    durationMs: durMs(20),
+    apply: function () {
+      var ind = document.getElementById('rlgl-light-indicator'), prev = ind ? ind.textContent : '', txt = '🟡 ضوء أصفر — نصف السرعة'; rlglYellow = true; rlglYellowCount = new Map(); if (ind && rlglLightState === 'green') ind.textContent = txt;
+      return { effect: 'خطوة من كل خطوتين تُقبل أثناء الأخضر', sustain: true, revert: function () { rlglYellow = false; if (ind && ind.textContent === txt) ind.textContent = rlglLightState === 'red' ? '🔴 ضوء أحمر' : '🟢 ضوء أخضر'; } };
+    },
+    shouldEnd: function () { return !rlActive(); }, announceText: 'الضوء الأصفر! الخطوات تحسب بنصف السرعة'
+  };
+  A.rlgl.events['rlgl.e4'] = {
+    canRun: function () { return rlActive() ? true : { ok: false, reason: 'not_active' }; },
+    apply: function (ctx, inst, c) {
+      var n = Math.max(1, Math.round((c.extraSteps || 4) * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.3 : 1))), redraw = function () { try { var l = rlglComputeLayout(); rlglBuildTrackVisuals(l); rlglParticipants.forEach(function (u, uid) { try { rlglRenderTokenPosition(uid, false, l); } catch (e) { /* رمز */ } }); } catch (e) { /* واجهة */ } };
+      rlglStepsToWin += n; redraw();
+      return { effect: 'الطريق أطول بـ' + n + ' خطوات', sustain: true, revert: function () { rlglStepsToWin = Math.max(1, rlglStepsToWin - n); if (rlActive()) redraw(); } };
+    },
+    shouldEnd: function () { return !rlActive(); }, announceText: 'الطريق الطويل! خط النهاية ابتعد'
+  };
+
+  // ---- الكراسي: chairs.e2 / e3 / e5
+  A.chairs.events['chairs.e2'] = {
+    canRun: function () { try { return chClaiming() && chairsActiveChairNumbers.some(function (n) { return !chairsClaims.has(n); }) ? true : { ok: false, reason: 'no_free_chair' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var free = chairsActiveChairNumbers.filter(function (n) { return !chairsClaims.has(n); }), n = pickOne(free), range = Math.max(100, chairsActiveChairNumbers.length + 1), m, tries = 0;
+      do { m = 1 + rnd(range); } while (chairsActiveChairNumbers.indexOf(m) >= 0 && ++tries < 300);
+      if (chairsActiveChairNumbers.indexOf(m) >= 0) return { failed: 'no_free_number' };
+      chairsActiveChairNumbers[chairsActiveChairNumbers.indexOf(n)] = m; if (chairsGoldenChairNumber === n) chairsGoldenChairNumber = m;
+      var el = document.getElementById('chair-cell-' + n); if (el) { el.id = 'chair-cell-' + m; var num = el.querySelector('.chair-cell-num'); if (num) num.textContent = (chairsGoldenChairNumber === m ? '⭐' : '') + rdAr(m); }
+      return { effect: 'الكرسي ' + n + ' انتقل ليصبح رقمه ' + m, durationMs: 0, data: { from: n, to: m } };
+    },
+    announceText: 'الكرسي المتنقل! أحد الكراسي الشاغرة غيّر رقمه'
+  };
+  A.chairs.events['chairs.e3'] = {
+    canRun: function () { try { return chLive() && !!chairsSongVideoId ? true : { ok: false, reason: chairsSongVideoId ? 'not_live' : 'no_song_configured' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    durationMs: durMs(20),
+    apply: function () { var was = chairsSongWantsPlaying; chairsSongPause(); return { effect: 'أُوقفت الموسيقى (كانت ' + (was ? 'تعمل' : 'متوقفة') + ')', sustain: true, revert: function () { if (was && chLive()) chairsSongPlay(); } }; },
+    shouldEnd: function () { return !chLive(); }, announceText: 'جولة بدون موسيقى! الصمت يربك اللاعبين'
+  };
+  A.chairs.events['chairs.e5'] = {
+    condition: function () { try { return chClaiming() && chairsIsFinalRound && chairsGoldenChairNumber === null; } catch (e) { return false; } },
+    canRun: function () { try { return chClaiming() && chairsGoldenChairNumber === null && chairsActiveChairNumbers.length >= 1 ? true : { ok: false, reason: 'golden_exists' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var n = chairsActiveChairNumbers[0], el = document.getElementById('chair-cell-' + n), num = el && el.querySelector('.chair-cell-num'), pt = num ? num.textContent : null; chairsGoldenChairNumber = n; if (el) el.classList.add('golden'); if (num && pt.indexOf('⭐') < 0) num.textContent = '⭐' + pt;
+      return { effect: 'الكرسي الأخير ذهبي: الفائز به ينال نقطتين', sustain: true, revert: function () { if (chairsGoldenChairNumber === n) chairsGoldenChairNumber = null; if (el) el.classList.remove('golden'); if (num && pt !== null && num.textContent === '⭐' + pt) num.textContent = pt; } };
+    },
+    shouldEnd: function () { return !chLive(); }, announceText: 'الكرسي الأخير! آخر كرسي ذهبي بنقطتين'
+  };
+
+  // ---- الجسر الزجاجي: glz.e1
+  A.glz.events['glz.e1'] = {
+    canRun: function () { return glzActive() && !glzDoubleStep ? true : { ok: false, reason: glzActive() ? 'step_active' : 'not_active' }; },
+    apply: function () { glzDoubleStep = true; return { effect: 'خطوة ثانية للجميع: لا إقصاء في هذه الجولة', sustain: true, revert: function () { glzDoubleStep = false; } }; },
+    shouldEnd: function () { return !glzDoubleStep || !glzActive(); }, announceText: 'الخطوة المزدوجة! لا أحد يسقط في هذه الجولة'
+  };
+
+  // ---- ضربة الحظ: hz.e5
+  A.hz.events['hz.e5'] = {
+    canRun: function () { try { return hzActive() && hzUnopened().length > 1 ? true : { ok: false, reason: 'no_cells' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var n = pickOne(hzUnopened().filter(function (x) { return !hzMystery.has(x); })); if (!n) return { failed: 'no_cell' }; hzMystery.add(n);
+      var el = document.getElementById('hz-cell-' + n), po = el ? el.style.outline : ''; if (el) { el.style.outline = '2px dashed #b57cff'; el.title = 'صندوق غامض'; }
+      return { effect: 'صندوق غامض رقم ' + n + ' (مفعوله مجهول)', sustain: true, data: { n: n }, revert: function () { hzMystery.delete(n); if (el) { el.style.outline = po; el.title = ''; } } };
+    },
+    shouldEnd: function (ctx, inst) { return !hzMystery.has(inst.data.n); }, announceText: 'صندوق غامض! لا أحد يعرف ما بداخله'
+  };
+
+  // ---- دائرة الإقصاء: rou.e4
+  A.rou.events['rou.e4'] = {
+    canRun: function () { try { return rouActive() && Array.from(rouEliminatedHistory).some(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }) ? true : { ok: false, reason: 'no_eliminated_player' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    eligible: function () { try { return Array.from(rouEliminatedHistory).filter(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }); } catch (e) { return []; } },
+    apply: function (ctx, inst) {
+      var uid = pickOne(inst.eligible || []); if (!uid) return { failed: 'no_eligible_player' };
+      var user = Object.assign({}, rouElimUsers.get(uid), { isFollower: true }); rouEliminatedHistory.delete(uid); rouElimUsers.delete(uid); rouJoinParticipant(user);
+      if (rouParticipants.has(uid) && rouActivePlayers.indexOf(user.nickname) < 0) rouActivePlayers.push(user.nickname);
+      return { effect: 'عاد ' + (user.nickname || uid) + ' إلى العجلة', durationMs: 0 };
+    },
+    announceText: 'العودة المفاجئة! لاعب مقصى يعود إلى اللعبة'
+  };
+
+  // ---- الصندوق العشوائي: box.e2 (تضحية) / e3 (مزدوج) / e4 (متبدلة)
+  A.box.events['box.e4'] = A.box.events['box.e3'];
+  A.box.events['box.e4'].announceText = 'الصناديق المتبدلة! المحتوى تغيّر أماكنه';
+  A.box.events['box.e2'] = {
+    canRun: function () { return boxOpen() && boxParticipants.size >= 2 && (boxArrangement.indexOf('empty') >= 0 || boxArrangement.indexOf('elim') >= 0) ? true : { ok: false, reason: 'no_open_turn' }; },
+    apply: function () {
+      var idxs = []; boxArrangement.forEach(function (c, i) { if (c !== 'elim' && c !== 'elim2' && c !== 'immune' && c !== 'golden' && c !== 'sacrifice') idxs.push(i); }); if (!idxs.length) boxArrangement.forEach(function (c, i) { if (c === 'elim') idxs.push(i); });
+      var i = pickOne(idxs); boxArrangement[i] = 'sacrifice'; var snap = boxArrangement;
+      return { effect: 'أحد الصناديق صار «صندوق تضحية» يمنح حصانته للاعب آخر', sustain: true, data: { snap: snap }, revert: function () { /* يُستهلك باختيار اللاعب */ } };
+    },
+    shouldEnd: function (ctx, inst) { return !boxOpen() || boxArrangement !== inst.data.snap; }, announceText: 'صندوق التضحية! أحد الصناديق يمنح الحصانة لغيرك'
+  };
+  A.box.events['box.e3'] = {
+    canRun: function () { return boxOpen() && boxArrangement.indexOf('elim') >= 0 ? true : { ok: false, reason: 'no_open_turn' }; },
+    apply: function () { var idxs = []; boxArrangement.forEach(function (c, i) { if (c === 'elim') idxs.push(i); }); var i = pickOne(idxs); boxArrangement[i] = 'elim2'; var snap = boxArrangement; return { effect: 'صندوق مزدوج: أحد صناديق الإقصاء يقصي لاعبين معاً', sustain: true, data: { snap: snap }, revert: function () { /* يُستهلك باختيار اللاعب */ } }; },
+    shouldEnd: function (ctx, inst) { return !boxOpen() || boxArrangement !== inst.data.snap; }, announceText: 'الصندوق المزدوج! أحد الصناديق يقصي لاعبين'
+  };
+
+  // ---- القناص: sniper.e3
+  A.sniper.events['sniper.e3'] = {
+    canRun: function () { try { var e = []; for (var n = 1; n <= SNIPER_GRID_SIZE; n++) if (!sniperCells[n] || !sniperCells[n].length) e.push(n); return snActive() && e.length ? true : { ok: false, reason: 'no_empty_cell' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var empty = []; for (var n = 1; n <= SNIPER_GRID_SIZE; n++) if (!sniperCells[n] || !sniperCells[n].length) empty.push(n);
+      var k = pickOne(empty), el = document.getElementById('s-cell-' + k), nm = document.getElementById('s-name-' + k); if (!el || !nm) return { failed: 'cell_missing' };
+      var hadOcc = el.classList.contains('occupied'), pt = nm.textContent, fake = '🎯 ؟'; el.classList.add('occupied'); nm.textContent = fake;
+      return { effect: 'المربع الفارغ ' + k + ' يبدو مأهولاً (هدف وهمي)', sustain: true, data: { n: k }, revert: function () { if (nm.textContent === fake) { nm.textContent = pt; if (!hadOcc && (!sniperCells[k] || !sniperCells[k].length)) el.classList.remove('occupied'); } } };
+    },
+    shouldEnd: function (ctx, inst) { return !snActive() || (sniperCells[inst.data.n] && sniperCells[inst.data.n].length > 0); }, announceText: 'الهدف الوهمي! مربع فارغ يبدو مأهولاً'
+  };
+
+  // ---- المتاهة: maze.e4 / e5
+  A.maze.events['maze.e4'] = {
+    canRun: function () { return mzActive() && !mzFakeGoal ? true : { ok: false, reason: mzActive() ? 'fake_active' : 'not_active' }; },
+    durationMs: durMs(40),
+    apply: function () {
+      var r, c, t = 0; do { r = rnd(mzRows); c = rnd(mzCols); } while (((r === mzGoal.r && c === mzGoal.c) || (r === mzStart.r && c === mzStart.c)) && ++t < 100);
+      var f = { r: r, c: c }; mzFakeGoal = f; mzRedraw();
+      return { effect: 'مخرج وهمي عند (' + r + ',' + c + ') يعيد إلى البداية', sustain: true, revert: function () { mzFakeGoal = null; mzRedraw(); } };
+    },
+    shouldEnd: function () { return !mzActive(); }, announceText: 'المخرج الوهمي! مخرج ثانٍ يخدعكم'
+  };
+  A.maze.events['maze.e5'] = {
+    canRun: function () { return mzActive() ? true : { ok: false, reason: 'not_active' }; },
+    durationMs: durMs(40),
+    apply: function (ctx, inst) { inst.data.last = Date.now(); inst.data.closed = 0; return { effect: 'الجدران تُغلق تدريجياً (مع بقاء طريق للجميع)', sustain: true, data: inst.data, revert: noop }; },
+    onTick: function (ctx, inst, t) {
+      if (t - inst.data.last < (inst.cfg.intervalSec || 5) * 1000) return; inst.data.last = t;
+      var opens = mzInternalWalls(false); for (var i = opens.length - 1; i > 0; i--) { var j = rnd(i + 1), x = opens[i]; opens[i] = opens[j]; opens[j] = x; }
+      for (var k = 0; k < opens.length && k < 30; k++) { var w = opens[k]; mzSetWall(w[0], w[1], w[2], true); if (mzAllReach()) { inst.data.closed++; mzRedraw(); return; } mzSetWall(w[0], w[1], w[2], false); }
+    },
+    shouldEnd: function () { return !mzActive(); }, announceText: 'سباق الانهيار! الجدران تنغلق شيئاً فشيئاً'
+  };
+
+  // ---- أين الكرة: findball.e4 / e5
+  A.findball.isRoundOver = function () { return !fbLive(); };
+  A.findball.events['findball.e4'] = {
+    canRun: function () { try { return fbLive() && !findballGolden ? true : { ok: false, reason: findballGolden ? 'golden_active' : 'not_live' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () { findballGolden = true; return { effect: 'من يخمّن صح هذه الجولة ينال حصانة لخطأ قادم', sustain: true, revert: function () { findballGolden = false; } }; },
+    shouldEnd: function () { return !fbLive(); }, announceText: 'الكرة الذهبية! من يصيب ينال حصانة'
+  };
+  A.findball.events['findball.e5'] = {
+    condition: function () { try { return findballGameStatus === 'guessing'; } catch (e) { return false; } },
+    canRun: function () { try { return findballGameStatus === 'guessing' ? true : { ok: false, reason: 'not_guessing' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () { ['a', 'b', 'c'].forEach(function (id) { var e = document.getElementById('findball-cup-num-' + id); if (e) e.textContent = '؟'; }); return { effect: 'أرقام الأكواب أُخفيت: اعتمدوا على الذاكرة', sustain: true, revert: function () { try { findballRedrawNumbers(); } catch (e) { /* واجهة */ } } }; },
+    shouldEnd: function () { try { return findballGameStatus !== 'guessing'; } catch (e) { return true; } }, announceText: 'ذاكرة اللاعب! أرقام الأكواب اختفت'
+  };
+
+  // ---- توب 10: tt10.e1 / e4
+  A.tt10.events['tt10.e1'] = {
+    canRun: function () { return ttActive() && !tt10HideRanks ? true : { ok: false, reason: ttActive() ? 'hidden_active' : 'not_active' }; },
+    durationMs: durMs(30),
+    apply: function () { tt10HideRanks = true; try { tt10RenderGrid(); } catch (e) { /* واجهة */ } return { effect: 'أرقام المراكز غير المكشوفة مخفية', sustain: true, revert: function () { tt10HideRanks = false; try { if (tt10CurrentQuestion) tt10RenderGrid(); } catch (e) { /* واجهة */ } } }; },
+    shouldEnd: function () { return !ttActive(); }, announceText: 'القائمة المخفية! لا أحد يعرف قيمة المراكز المتبقية'
+  };
+  A.tt10.events['tt10.e4'] = {
+    canRun: function () { try { return ttActive() && !tt10StealNext && Array.from(tt10Scores.values()).some(function (e) { return e.score > 0; }) ? true : { ok: false, reason: 'no_leader' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () { tt10StealNext = true; return { effect: 'أول إجابة صحيحة تسرق نقاطاً من المتصدر', sustain: true, revert: function () { tt10StealNext = false; } }; },
+    shouldEnd: function () { return !ttActive(); }, announceText: 'الإجابة المسروقة! أول إجابة صحيحة تسرق من المتصدر'
+  };
+  /* ===================== الدفعة الرابعة: خمن الرسمة وتخمين السعر ===================== */
+  function delayedClear(fn, ms) { setTimeout(function () { try { fn(); } catch (e) { /* لا شيء */ } }, ms || 2500); }
+  // ---- خمن الرسمة (لعبة الجمعات): الأحداث تعمل على لوحة الرسم الحقيقية
+  function drActive() { try { var pg = document.getElementById('pg-pdraw'); return !!(pg && pg.classList.contains('active')); } catch (e) { return false; } }
+  function drWrap() { return document.getElementById('pdraw-canvas-wrap'); }
+  function drBadge(id, text) { var w = drWrap(), b = document.createElement('div'); b.id = id; b.setAttribute('dir', 'rtl'); b.style.cssText = 'position:absolute;top:8px;left:8px;z-index:5;padding:4px 10px;border-radius:999px;background:rgba(0,0,0,.72);color:#f2d77a;font-weight:800;font-size:14px;pointer-events:none'; b.textContent = text; if (w) { if (getComputedStyle(w).position === 'static') w.style.position = 'relative'; w.appendChild(b); } return b; }
+  A.draw = {
+    tag: 'draw', hook: { start: 'pdrawStartDrawing', began: drActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !drActive(); },
+    events: {
+      // 1) الرسم السريع: عدّاد تنازلي؛ عند انتهائه تُقفل لوحة الرسم فلا تُقبل ضربات جديدة
+      'draw.e1': {
+        canRun: function () { return drActive() && !pdrawLocked ? true : { ok: false, reason: drActive() ? 'already_locked' : 'not_active' }; },
+        durationMs: durMs(20),
+        apply: function (ctx, inst) { var b = drBadge('bmev-draw-timer', '⏱ ' + (inst.cfg.durationSec || 20)); inst.data.b = b; return { effect: 'تُقفل لوحة الرسم بعد ' + (inst.cfg.durationSec || 20) + ' ثانية', sustain: true, data: inst.data, revert: function (status) { if (b.parentNode) b.parentNode.removeChild(b); if (status === 'completed' && drActive()) { pdrawLocked = true; var cv = document.getElementById('pdraw-canvas'); if (cv) cv.style.cursor = 'not-allowed'; } } }; },
+        onTick: function (ctx, inst, t) { inst.data.b.textContent = '⏱ ' + Math.max(0, Math.ceil((inst.endAt - t) / 1000)); },
+        announceText: 'الرسم السريع! الوقت يضيق على اللوحة'
+      },
+      // 2) القلم المحدود: عدد محدود من الضربات
+      'draw.e2': {
+        canRun: function () { return drActive() && !(pdrawStrokeLimit > 0) ? true : { ok: false, reason: drActive() ? 'limit_active' : 'not_active' }; },
+        apply: function (ctx, inst, c) { var n = Math.max(2, c.strokes || 12); pdrawStrokeLimit = n; pdrawStrokeCount = 0; inst.data.b = drBadge('bmev-draw-strokes', '✏️ ' + n + ' / ' + n); inst.data.n = n; return { effect: 'ضربات الرسم محدودة بـ' + n, sustain: true, data: inst.data, revert: function () { pdrawStrokeLimit = 0; if (inst.data.b.parentNode) inst.data.b.parentNode.removeChild(inst.data.b); } }; },
+        onTick: function (ctx, inst) { inst.data.b.textContent = '✏️ ' + Math.max(0, inst.data.n - pdrawStrokeCount) + ' / ' + inst.data.n; },
+        shouldEnd: function () { return !drActive(); }, announceText: 'القلم المحدود! عدد الضربات قليل'
+      },
+      // 3) الكشف التدريجي: ورقة بيضاء تغطي اللوحة وتتلاشى تدريجياً
+      'draw.e3': {
+        canRun: function () { return drActive() && drWrap() ? true : { ok: false, reason: 'not_active' }; },
+        durationMs: durMs(30),
+        apply: function (ctx, inst) { var w = drWrap(), o = document.createElement('div'); o.id = 'bmev-draw-cover'; o.style.cssText = 'position:absolute;inset:0;background:#fff;z-index:4;pointer-events:none;opacity:1'; if (getComputedStyle(w).position === 'static') w.style.position = 'relative'; w.appendChild(o); inst.data.o = o; return { effect: 'اللوحة مغطاة وتنكشف تدريجياً', sustain: true, data: inst.data, revert: function () { if (o.parentNode) o.parentNode.removeChild(o); } }; },
+        onTick: function (ctx, inst, t) { var total = inst.endAt - inst.startedAt; inst.data.o.style.opacity = String(Math.max(0, 1 - (t - inst.startedAt) / total)); },
+        announceText: 'الكشف التدريجي! الرسمة تظهر ببطء'
+      },
+      // 4) الرسم المعكوس: اللوحة معكوسة أفقياً فيخرج الرسم معكوساً عن حركة اليد
+      'draw.e4': {
+        canRun: function () { return drActive() && document.getElementById('pdraw-canvas') ? true : { ok: false, reason: 'not_active' }; },
+        durationMs: durMs(25),
+        apply: function () { var cv = document.getElementById('pdraw-canvas'), prev = cv.style.transform; cv.style.transform = 'scaleX(-1)'; return { effect: 'اللوحة معكوسة أفقياً', sustain: true, revert: function () { if (cv.style.transform === 'scaleX(-1)') cv.style.transform = prev; } }; },
+        shouldEnd: function () { return !drActive(); }, announceText: 'الرسم المعكوس! اليد تسير عكس الخط'
+      },
+      // 5) الموضوع المزدوج: فكرة ثانية تُضاف للأولى
+      'draw.e5': {
+        canRun: function () { try { return drActive() && PDRAW_IDEAS.some(function (i) { return i !== pdrawCurrentIdea; }) ? true : { ok: false, reason: 'no_second_idea' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) {
+          var prev = pdrawCurrentIdea, i2 = pickOne(PDRAW_IDEAS.filter(function (i) { return i !== prev; })), mine = prev + ' + ' + i2; pdrawCurrentIdea = mine; var b = drBadge('bmev-draw-idea', '🎨 + ' + i2); inst.data.b = b;
+          return { effect: 'فكرتان للرسم: ' + mine, sustain: true, data: inst.data, revert: function () { if (pdrawCurrentIdea === mine) pdrawCurrentIdea = prev; if (b.parentNode) b.parentNode.removeChild(b); } };
+        },
+        shouldEnd: function () { return !drActive(); }, announceText: 'الموضوع المزدوج! ارسموا فكرتين معاً'
+      }
+    }
+  };
+
+  // ---- تخمين السعر
+  function pgActive() { try { return pgsGameStatus === 'active'; } catch (e) { return false; } }
+  A.pgs = {
+    tag: 'pgs', hook: { start: 'startPGRound', began: pgActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !pgActive(); },
+    events: {
+      'pgs.e1': {
+        canRun: function () { return pgActive() && !pgsBlind ? true : { ok: false, reason: pgActive() ? 'blind_active' : 'not_active' }; },
+        apply: function () { pgsBlind = true; return { effect: 'اتجاه الفرق (أعلى/أقل) مخفي', sustain: true, revert: function () { pgsBlind = false; } }; },
+        shouldEnd: function () { return !pgActive(); }, announceText: 'السعر السري! لا تلميح عن الاتجاه'
+      },
+      'pgs.e2': {
+        canRun: function () { try { return pgActive() && pgsPrice > 10 ? true : { ok: false, reason: 'no_price' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) {
+          var prev = pgsPrice, pct = Math.max(1, c.pct || 15) / 100, up = rnd(2) === 1, np = Math.max(1, Math.round(prev * (1 + (up ? pct : -pct)))); if (np === prev) np = prev + 1;
+          pgsPrice = np; var best = null; try { pgsAllGuesses.forEach(function (g) { var d = Math.abs(g.value - np); if (!best || d < best.diff) best = { user: g.user, value: g.value, diff: d }; }); } catch (e) { /* لا تخمينات */ } pgsBestGuess = best;
+          try { var bd = document.getElementById('pgs-guesses-board'); var n = document.createElement('div'); n.className = 'pg-guess-row close'; n.textContent = '📈 تغيّر السوق: السعر الحقيقي ' + (up ? 'ارتفع' : 'انخفض') + ' — خمّنوا من جديد'; bd.appendChild(n); } catch (e) { /* واجهة */ }
+          return { effect: 'السعر الحقيقي ' + (up ? 'ارتفع' : 'انخفض') + ' من ' + prev + ' إلى ' + np, sustain: true, revert: function () { delayedClear(function () { if (pgsPrice === np) pgsPrice = prev; }, 3500); } };
+        },
+        shouldEnd: function () { return !pgActive(); }, announceText: 'السوق المتغير! السعر الحقيقي تغيّر'
+      },
+      'pgs.e3': {
+        canRun: function () { return pgActive() && !pgsGroupBonus ? true : { ok: false, reason: pgActive() ? 'group_active' : 'not_active' }; },
+        apply: function (ctx, inst) {
+          var bd = document.getElementById('pgs-guesses-board'), bar = document.createElement('div'); bar.id = 'bmev-pgs-avg'; bar.setAttribute('dir', 'rtl'); bar.style.cssText = 'margin:6px 0;padding:6px 12px;border:1px solid #e5c84b;border-radius:10px;background:rgba(229,200,75,.12);font-weight:700'; bar.textContent = 'متوسط التخمين الجماعي: —';
+          bd.parentNode.insertBefore(bar, bd); inst.data.bar = bar; pgsGroupBonus = true;
+          return { effect: 'إن قارب متوسط التخمينات السعر (±10٪) ينال كل مخمّن نقطة', sustain: true, data: inst.data, revert: function () { if (bar.parentNode) bar.parentNode.removeChild(bar); delayedClear(function () { pgsGroupBonus = false; }); } };
+        },
+        onTick: function (ctx, inst) { try { var n = pgsAllGuesses.length; inst.data.bar.textContent = n ? 'متوسط التخمين الجماعي: ' + Math.round(pgsAllGuesses.reduce(function (a, g) { return a + g.value; }, 0) / n).toLocaleString() + ' (' + n + ' تخمين)' : 'متوسط التخمين الجماعي: —'; } catch (e) { /* لا شيء */ } },
+        shouldEnd: function () { return !pgActive(); }, announceText: 'تخمين جماعي! متوسط الجمهور يصنع نقاطاً'
+      },
+      'pgs.e4': {
+        canRun: function () { try { return pgActive() && pgsParticipants.size >= 1 ? true : { ok: false, reason: 'not_active' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        durationMs: durMs(25),
+        apply: function () { return { effect: 'ينتهي الراوند بعد قليل ويفوز أقرب تخمين', sustain: true, revert: function (status) { if (status === 'completed' && pgActive()) { if (pgsBestGuess) { pgsGameStatus = 'finished'; pgsSetGameStatus('finished'); var b = pgsBestGuess; setTimeout(function () { pgsShowWinner(b.user, b.value, false, false); }, 600); } } } }; },
+        announceText: 'أقرب سعر يفوز! الحسم بعد لحظات'
+      },
+      'pgs.e5': {
+        canRun: function () { return pgActive() && !pgsDouble2x ? true : { ok: false, reason: pgActive() ? 'double_active' : 'not_active' }; },
+        apply: function () { pgsDouble2x = true; return { effect: 'فائز هذه الجولة ينال نقطتين', sustain: true, revert: function () { delayedClear(function () { pgsDouble2x = false; }); } }; },
+        shouldEnd: function () { return !pgActive(); }, announceText: 'السعر المضاعف! الفائز بنقطتين'
+      }
+    }
   };
 })();

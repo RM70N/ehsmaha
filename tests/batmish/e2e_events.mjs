@@ -422,12 +422,12 @@ ok(h4.ok && h4.uid && h4.survived && h4.size === h4.before && !h4.left, 'فرص�
 await Z.page.evaluate(() => { hzGameStatus = 'finished'; }); await sleep(1200);
 ok(await Z.page.evaluate(() => hzBonusCells.size === 0 && hzShield.size === 0 && hzDoubleNext === false && window.BatmishEvents.status().active.length === 0), 'ضربة الحظ: انتهاء الراوند يعيد الخطافات');
 // ---- الصندوق العشوائي
-await enable('box', ['box.e1', 'box.e3', 'box.e5'], {});
+await enable('box', ['box.e1', 'box.e4', 'box.e5'], {});
 await Z.page.evaluate((us) => { boxGameStatus = 'waiting'; boxParticipants.clear(); us.forEach((u) => boxParticipants.set(u.uniqueId, u)); BOX_COUNT = 4; startBoxRound(); }, Us(71, 4));
 ok(await Z.page.evaluate(() => boxGameStatus === 'active' && boxAwaitingPick && window.BatmishEvents.status().rounds.includes('box')), 'الصندوق العشوائي: بدء الراوند والدور الأول يفتح جولة أحداث');
 const b1 = await Z.page.evaluate(() => { const before = boxArrangement.slice(); const r = window.BatmishEvents.trigger('box', 'box.e1'); return { ok: r.ok, before, after: boxArrangement.slice() }; });
 ok(b1.ok && b1.after.includes('golden') && b1.after.filter((x) => x === 'elim').length === b1.before.filter((x) => x === 'elim').length - 1, 'الصندوق الأسطوري: تحوّل صندوق إقصاء إلى ذهبي فعلاً', b1);
-const b3 = await Z.page.evaluate(() => { const a = boxArrangement.slice().sort().join(); let moved = false; for (let t = 0; t < 8 && !moved; t++) { const x = boxArrangement.slice(); window.BatmishEvents.status().active.forEach((q) => window.BatmishEvents.engine().cancelEvent('box', q.id)); const r = window.BatmishEvents.trigger('box', 'box.e3'); if (!r.ok) return { err: r.reason }; moved = boxArrangement.some((c, i) => c !== x[i]); } return { moved, same: boxArrangement.slice().sort().join() === a }; });
+const b3 = await Z.page.evaluate(() => { const a = boxArrangement.slice().sort().join(); let moved = false; for (let t = 0; t < 8 && !moved; t++) { const x = boxArrangement.slice(); window.BatmishEvents.status().active.forEach((q) => window.BatmishEvents.engine().cancelEvent('box', q.id)); const r = window.BatmishEvents.trigger('box', 'box.e4'); if (!r.ok) return { err: r.reason }; moved = boxArrangement.some((c, i) => c !== x[i]); } return { moved, same: boxArrangement.slice().sort().join() === a }; });
 ok(b3.moved && b3.same, 'الصناديق المتبدلة: أُعيد خلط المحتوى بنفس المكونات', b3);
 const b5 = await Z.page.evaluate(() => { boxParticipants.delete([...boxParticipants.keys()][0]); boxParticipants.delete([...boxParticipants.keys()][0]); const r = window.BatmishEvents.trigger('box', 'box.e5'); return { ok: r.ok, a: boxArrangement.slice(), n: boxParticipants.size }; });
 ok(b5.ok && b5.a.filter((x) => x === 'immune').length === 1 && b5.a.filter((x) => x === 'elim').length === b5.a.length - 1, 'الاختيار الأخير: صندوق نجاة واحد والباقي إقصاء', b5);

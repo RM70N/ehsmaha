@@ -33491,6 +33491,7 @@ let hzMaxClicks = 15;             // overridden per-round from moderator setting
 let hzClicksUsed = 0;
 // BATMISH (أحداث خاصة): صناديق مكافأة / درع نجاة لاعب / فتح صندوقين بنقرة واحدة — كلها فارغة افتراضياً ولا تؤثر على اللعبة العادية
 let hzBonusCells = new Set(), hzBonusClicks = 3, hzShield = new Set(), hzDoubleNext = false;
+let hzMystery = new Set();   // BATMISH حدث «الصندوق الغامض»: صناديق لا يُعرف مفعولها إلا عند فتحها
 
 // ==================== HZ NAV ====================
 function goSetupHz() { show('setup-hz'); modInitAdvancedSection('hz'); }
@@ -33738,6 +33739,14 @@ function hzCellClick(num, free) {
   if (!free) hzClicksUsed++;
   updateHzClicksDisplay();
   if (hzBonusCells.has(num)) { hzBonusCells.delete(num); hzMaxClicks += hzBonusClicks; cellEl.classList.add('hz-bonus-hit'); updateHzClicksDisplay(); toast('✨ صندوق أسطوري! +' + hzBonusClicks + ' ضغطات إضافية'); }
+  if (hzMystery.has(num)) {   // BATMISH: الصندوق الغامض — نتيجة عشوائية تُكشف عند الفتح
+    hzMystery.delete(num); cellEl.classList.add('hz-bonus-hit');
+    const mr = Math.floor(Math.random() * 4);
+    if (mr === 0) { hzMaxClicks += 2; updateHzClicksDisplay(); toast('❓ الصندوق الغامض: +2 ضغطات!'); }
+    else if (mr === 1) { const sh = [...hzParticipants.keys()].filter(u => !hzShield.has(u)); if (sh.length) { hzShield.add(sh[Math.floor(Math.random() * sh.length)]); toast('❓ الصندوق الغامض: لاعب مختبئ نال درعاً!'); } else { hzMaxClicks += 2; updateHzClicksDisplay(); toast('❓ الصندوق الغامض: +2 ضغطات!'); } }
+    else if (mr === 2) { hzDoubleNext = true; toast('❓ الصندوق الغامض: نقرتك القادمة تفتح صندوقين!'); }
+    else { hzMaxClicks = Math.max(hzClicksUsed, hzMaxClicks - 1); updateHzClicksDisplay(); toast('❓ الصندوق الغامض: فخ! ضغطة أقل'); }
+  }
   if (hzDoubleNext && !free) {
     hzDoubleNext = false; const others = [];
     for (let n = 1; n <= HZ_GRID_SIZE; n++) { const e = document.getElementById('hz-cell-' + n); if (e && n !== num && !e.classList.contains('hz-opened')) others.push(n); }
@@ -34469,6 +34478,7 @@ let rouKickedDuringRound = new Set(); // uniqueIds مطرودين أثناء ر�
 let rouRevivalEnabled = false;
 let rouRevivalMaxUses = 2;
 let rouEliminatedHistory = new Set();
+let rouElimUsers = new Map();   // BATMISH: بيانات المقصَيْن هذه الجولة (لحدث «العودة المفاجئة»)
 let rouRevivalCounts = new Map(); // uniqueId -> عدد مرات الانعاش بالهدايا هالراوند
 let rouRevivalBootedForStreamer = null;
 let rouRevivalMap = new Map();
@@ -34586,7 +34596,7 @@ function initRouletteDashboard() {
   rouSpinning = false;
   rouPendingMention = null;
   rouClearPendingMentionTimer();
-  rouEliminatedHistory.clear();
+  rouEliminatedHistory.clear(); rouElimUsers.clear();
   rouRevivalCounts.clear();
   rouConnectedOnce = false;
   rouReconnectAttempts = 0;
@@ -35160,6 +35170,7 @@ function rouEliminateByMention(loserName, mentionedNames) {
       if (tag) tag.style.opacity = '0.3';
       rouParticipants.delete(uid);
       rouEliminatedHistory.add(uid); // يخليه مؤهّل لإنعاش لاحق بهدية
+      if (rouUser) rouElimUsers.set(uid, rouUser);
     }
     addRouElimItem(targetName, loserName);
 
@@ -35578,6 +35589,8 @@ let tmrStartTime = null;         // performance.now() لما شغّل المؤق
 let tmrElapsed = 0;              // ثوانٍ مضت فعلاً (لما يوقف)
 let tmrRafId = null;             // requestAnimationFrame id
 let TMR_MAX_SECONDS = 30;             // overridden per-round from moderator settings
+let tmrDoubleTries = false;           // BATMISH حدث «التوقيت المزدوج»: محاولة ثانية لكل لاعب (تُحتسب الأقرب)
+let tmrBlind = null;                  // BATMISH حدث «آخر جزء من الثانية»: {before, after} تعمية الساعة حول الوقت السري
 let tmrReverseClock = false;          // BATMISH حدث «الوقت المعكوس»: عرض الساعة تنازلياً (لا يغيّر منطق الفوز)
 let tmrGoldenZoneEnabled = false;     // مود إضافي: منطقة ذهبية من الوقت — الوقوف فيها يفوز فوراً
 let tmrGoldenZoneStart = null;
@@ -35930,7 +35943,7 @@ function startTimerClock() {
       stopTimerClock(false);
       return;
     }
-    clock.textContent = (tmrReverseClock ? Math.max(0, TMR_MAX_SECONDS - tmrElapsed) : tmrElapsed).toFixed(2);
+    clock.textContent = (tmrBlind && tmrElapsed >= tmrSecretTime - tmrBlind.before && tmrElapsed <= tmrSecretTime + tmrBlind.after) ? '؟.؟؟' : (tmrReverseClock ? Math.max(0, TMR_MAX_SECONDS - tmrElapsed) : tmrElapsed).toFixed(2);
     tmrRafId = requestAnimationFrame(tick);
   }
   tmrRafId = requestAnimationFrame(tick);
@@ -35964,11 +35977,19 @@ function stopTimerClock(manual) {
 }
 
 function tmrRecordGuess(user) {
-  // كل متابع يسجل مرة واحدة فقط
-  if (tmrGuesses.find(g => g.user.uniqueId === user.uniqueId)) return;
+  // كل متابع يسجل مرة واحدة فقط (إلا أثناء حدث «التوقيت المزدوج»: محاولة ثانية تُحتسب إن كانت أقرب)
+  const prevG = tmrGuesses.find(g => g.user.uniqueId === user.uniqueId);
+  if (prevG && !(tmrDoubleTries && !prevG.second)) return;
   if (tmrGameStatus !== 'running') return;
   const time = (performance.now() - tmrStartTime) / 1000;
   const diff = Math.abs(time - tmrSecretTime);
+  if (prevG) {
+    prevG.second = true;
+    if (diff < prevG.diff) { prevG.time = time; prevG.diff = diff; }
+    sortAndRenderGuesses();
+    toastFast('⏱️ ' + user.nickname + ' محاولة ثانية — ' + time.toFixed(2) + 'ث');
+    return;
+  }
 
   // مود المنطقة الذهبية: الوقوف داخلها يفوز فوراً بغض النظر عن القرب من الوقت السري
   if (tmrGoldenZoneEnabled && time >= tmrGoldenZoneStart && time <= tmrGoldenZoneEnd) {
@@ -37083,6 +37104,20 @@ function boxPick(n) {
         : '🛡️ ' + name + ' حصل على صندوق الحصانة!';
       toastFast((isGolden ? '⭐ ' : '🛡️ ') + name + ' حصل على حصانة!');
       setTimeout(boxAdvanceTurn, 2200);
+    } else if (content === 'sacrifice') {   // BATMISH: صندوق التضحية — يتنازل الفاتح عن حصانته ويمنحها للاعب آخر
+      const others = [...boxParticipants.keys()].filter(u => u !== uid);
+      const had = boxImmuneSet.has(uid);
+      if (had) boxImmuneSet.delete(uid);
+      const target = others.length ? others[Math.floor(Math.random() * others.length)] : null;
+      if (target) boxImmuneSet.set(target, (boxImmuneSet.get(target) || 0) + 1);
+      const tUser = target ? boxParticipants.get(target) : null;
+      item.classList.add('opened','immune');
+      item.querySelector('.box-shape').textContent = '🎁';
+      tag.textContent = 'تضحية';
+      banner.className = 'box-reveal-banner immune show';
+      banner.textContent = '🎁 ' + name + (had ? ' تنازل عن حصانته ومنحها' : ' ضحّى بصندوقه ومنح حصانة') + (tUser ? ' لـ ' + (tUser.nickname || tUser.uniqueId) : ' (لا أحد غيره)') + '!';
+      toastFast('🎁 صندوق التضحية!');
+      setTimeout(boxAdvanceTurn, 2200);
     } else {
       item.classList.add('opened','empty');
       item.querySelector('.box-shape').textContent = '🌀';
@@ -38081,6 +38116,7 @@ let mzCols = 11, mzRows = 7;
 let mzGrid = [];            // [r][c] = {N,E,S,W}
 let mzStart = { r: 0, c: 0 };
 let mzGoal = { r: 0, c: 0 };
+let mzFakeGoal = null;   // BATMISH حدث «المخرج الوهمي»: خلية تبدو كالمخرج وتعيد من يصلها للبداية
 let mzCellSize = 40;
 let mzRoundsPlayed = 0;
 
@@ -38441,6 +38477,7 @@ function mzRenderGrid() {
       if (cell.S) cls += ' mz-w-s';
       if (c === 0 && cell.W) cls += ' mz-w-w';
       if (r === mzGoal.r && c === mzGoal.c) cls += ' mz-goal-cell';
+      if (mzFakeGoal && r === mzFakeGoal.r && c === mzFakeGoal.c) cls += ' mz-goal-cell';
       if (r === mzStart.r && c === mzStart.c) cls += ' mz-start-cell';
       div.className = cls;
       grid.appendChild(div);
@@ -38511,6 +38548,7 @@ function mzMove(uid, dir) {
   const nr = pos.r + delta[0], nc = pos.c + delta[1];
   if (nr < 0 || nr >= mzRows || nc < 0 || nc >= mzCols) return;
   mzPos.set(uid, { r: nr, c: nc });
+  if (mzFakeGoal && nr === mzFakeGoal.r && nc === mzFakeGoal.c) { mzPos.set(uid, { r: mzStart.r, c: mzStart.c }); toastFast('🪤 مخرج وهمي! عاد ' + ((mzParticipants.get(uid) || {}).nickname || uid) + ' للبداية'); }
   mzRenderTokens();
   if (nr === mzGoal.r && nc === mzGoal.c) mzFinishRound(uid);
 }
@@ -43081,6 +43119,10 @@ let pgsGameStatus = 'waiting';
 let pgsParticipants = new Map();
 let pgsPendingFollowers = new Map();
 let pgsAttempts = new Map();   // uniqueId -> عدد المحاولات
+let pgsBlind = false;          // BATMISH حدث «السعر السري»: لا يُعرض اتجاه الفرق (أعلى/أقل)
+let pgsGroupBonus = false;     // BATMISH حدث «تخمين جماعي»: إن قاربت متوسطات التخمين السعر ينال كل مخمّن نقطة
+let pgsDouble2x = false;       // BATMISH حدث «السعر المضاعف»: فائز الجولة بنقطتين
+let pgsAllGuesses = [];
 let pgsBestGuess = null;       // { user, value, diff }
 let PGS_MAX_ATTEMPTS = 2;      // overridden per-round from moderator settings
 let pgsKicked = new Set();
@@ -43384,6 +43426,7 @@ function pgsProcessGuess(user, text) {
 
   const newUsed = used + 1;
   pgsAttempts.set(uid, newUsed);
+  pgsAllGuesses.push({ user, value: guessVal });
 
   const diff = Math.abs(guessVal - pgsPrice);
   const isExact = diff === 0;
@@ -43405,7 +43448,7 @@ function pgsProcessGuess(user, text) {
     diffText = '🎯 السعر الحقيقي!';
   } else {
     const pctText = pct.toFixed(1) + '%';
-    const dirText = guessVal < pgsPrice ? '📈 أقل' : '📉 أكثر';
+    const dirText = pgsBlind ? '❓ اتجاه سري' : (guessVal < pgsPrice ? '📈 أقل' : '📉 أكثر');
     if (pct <= 10) {
       rowType = 'close';
       badge = '<span class="pg-guess-badge close">🔥 قريب (' + pctText + ' فرق)</span>';
@@ -43427,7 +43470,7 @@ function pgsProcessGuess(user, text) {
   if (newUsed >= PGS_MAX_ATTEMPTS) {
     toast('❌ @' + user.nickname + ' استنفد محاولاته');
   } else {
-    toast('⚠️ @' + user.nickname + ' — محاولة ' + newUsed + '/' + PGS_MAX_ATTEMPTS + ' — ' + (guessVal < pgsPrice ? 'ارفع أكثر 📈' : 'انزّل أقل 📉'));
+    toast('⚠️ @' + user.nickname + ' — محاولة ' + newUsed + '/' + PGS_MAX_ATTEMPTS + (pgsBlind ? '' : ' — ' + (guessVal < pgsPrice ? 'ارفع أكثر 📈' : 'انزّل أقل 📉')));
   }
 
   // فحص لو الكل خلّص
@@ -43454,7 +43497,7 @@ function startPGRound() {
   pgsAttempts.clear();
   // يمنع بقاء المطرودين بالراوند السابق مطرودين بالراوند الجديد
   pgsKickedDuringRound.clear();
-  pgsBestGuess = null;
+  pgsBestGuess = null; pgsAllGuesses = [];
   document.getElementById('pgs-guesses-board').innerHTML = '';
   document.getElementById('pgs-no-winner-box').style.display = 'none';
   document.getElementById('pgs-attempts-bar').innerHTML = '';
@@ -43509,8 +43552,15 @@ function pgsUpdateAttemptsBar(user, uid, used, closenessPct) {
 
 function pgsShowWinner(user, val, isExact, isFirstAttempt) {
   // مود إضافي: أول متابع يجاوب السعر بالضبط من أول محاولة يأخذ نقطتين بدل نقطة
-  const doubleWin = isExact && isFirstAttempt && modGetSetting('priceguess', 'doubleWinEnabled', false);
+  const doubleWin = (isExact && isFirstAttempt && modGetSetting('priceguess', 'doubleWinEnabled', false)) || pgsDouble2x;
   recordWin(user, 'تخمين السعر', doubleWin ? 2 : 1);
+  if (pgsGroupBonus && pgsAllGuesses.length) {   // BATMISH: تخمين جماعي — متوسط التخمينات قريب من السعر الحقيقي ⇒ نقطة لكل مخمّن
+    const avg = pgsAllGuesses.reduce((a, g) => a + g.value, 0) / pgsAllGuesses.length;
+    if (pgsPrice > 0 && Math.abs(avg - pgsPrice) / pgsPrice <= 0.10) {
+      const seen = new Set(); pgsAllGuesses.forEach(g => { if (!seen.has(g.user.uniqueId)) { seen.add(g.user.uniqueId); recordWin(g.user, 'تخمين السعر (جماعي)', 1); } });
+      toast('🤝 التخمين الجماعي أصاب! نقطة لكل مخمّن');
+    }
+  }
   document.getElementById('pgsw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('pgsw-label').textContent = isExact
     ? user.nickname + ' خمّن السعر بالضبط! 🎯' + (doubleWin ? ' (من أول محاولة — نقطتان 🎉)' : '')
@@ -49217,6 +49267,8 @@ let CS_HOLD_DURATION = 5; // seconds — overridden per-round from moderator set
 let CS_MAX_STEAL_ATTEMPTS = 2;  // كل شخص له محاولتين سرقة بالراوند — نفس الشيء
 let csImmunityEnabled = false;   // مود إضافي: فرصة حماية مؤقتة لحامل التاج
 let csSpeedupEnabled = false;    // مود إضافي: مدة الحمل تقل كل ما زادت محاولات السرقة
+let csDoubleCrown = false;       // BATMISH: حدث «التاج المزدوج» — الفائز بالراوند ينال نقطتين
+let csWinPts = 1;
 let csImmuneUntil = 0;           // performance.now() timestamp — حامل التاج محمي حتى هذا الوقت
 const CS_IMMUNITY_CHANCE = 0.25;    // فرصة تفعيل الحماية عند إمساك التاج
 let CS_IMMUNITY_DURATION = 2;     // ثوانٍ حماية عند تفعيلها
@@ -49635,6 +49687,7 @@ function csStartCountdown() {
 function csFinishRound() {
   if (csGameStatus !== 'active' || !csHolderUid) return;
   csGameStatus = 'finished';
+  csWinPts = csDoubleCrown ? 2 : 1;
   csSetGameStatus('finished');
   const winner = csParticipants.get(csHolderUid);
   if (winner) {
@@ -49653,7 +49706,7 @@ function addCSLogItem(icon, text, sub) {
 }
 
 function csShowWinner(user) {
-  recordWin(user, 'سرقة التاج');
+  recordWin(user, 'سرقة التاج', csWinPts); csWinPts = 1;
   document.getElementById('csw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('csw-label').textContent = user.nickname + ' — صمد 5 ثوانٍ بدون أن يُسرق منه التاج! 👑';
   const wrap = document.getElementById('csw-avatar-wrap');
@@ -51114,6 +51167,8 @@ let FINDBALL_SWAP_COUNT = 6;
 let findballRevivalEnabled = false;
 let findballRevivalMaxUses = 2;
 let findballShuffling = false;
+let findballGolden = false;          // BATMISH حدث «الكرة الذهبية»: من يخمّن صح هذه الجولة ينال حصانة لخطأ قادم
+let findballShield = new Set();
 // رقم تشغيل الجولة: الريست يغيّره فتتوقف مؤقّتات الإخفاء/الخلط/الكشف المعلّقة من الجولة السابقة
 // (قبل: ريست أثناء خلط الأكواب يترك doSwap شغّالاً على أكواب ممسوحة فيرمي خطأ ويقلب الحالة لاحقاً)
 let findballRunId = 0;
@@ -52105,6 +52160,7 @@ function findballStartRoundClick() {
   findballGuessTimerEnabled = modGetSetting('findball', 'guessTimerEnabled', true);
   FINDBALL_GUESS_TIMER_SECONDS = modGetSetting('findball', 'guessTimerSeconds', 10);
 
+  if (findballRoundNum === 0) findballShield.clear();
   findballRoundNum++;
   document.getElementById('findball-participants-box').style.display = 'none';
   document.getElementById('findball-round-bar').style.display = 'flex';
@@ -52348,8 +52404,10 @@ function findballResolveRound(winningCup) {
     const guess = findballGuesses.get(uid);
     if (guess === winningCup) {
       correctUsers.push(user);
+      if (findballGolden) findballShield.add(uid);
       return;
     }
+    if (findballShield.delete(uid)) { correctUsers.push(user); toastFast('🌟 ' + (user.nickname || uid) + ' نجا بالحصانة الذهبية!'); return; }
     // No guess submitted counts as wrong (didn't answer in time).
     if (checkAndConsumeImmunity(uid, user.nickname)) { correctUsers.push(user); return; }
     if (checkAndConsumeRevival(uid, user.nickname, findballRevivalMap, 'findball')) { correctUsers.push(user); return; }
@@ -53837,6 +53895,8 @@ let rlglProgress = new Map();         // uniqueId -> عدد الخطوات ال�
 let rlglEliminated = new Set();       // uniqueId -> مُقصى هذا الراوند
 let rlglWinnerUid = null;             // أول من يصل خط النهاية
 
+let rlglYellow = false;           // BATMISH حدث «الضوء الأصفر»: أثناء الأخضر تُقبل خطوة من كل خطوتين فقط
+let rlglYellowCount = new Map();
 let rlglLightState = 'green'; // green|red
 let rlglLightTimer = null;
 let rlglRoundEndsAt = 0;
@@ -54448,6 +54508,10 @@ function rlglHandleMoveMessage(user) {
   if (rlglWinnerUid) return; // الجولة محسومة فعلياً، بانتظار شاشة الفوز
   if (rlglIsRateLimited(user.uniqueId)) return; // رسالة زائدة السرعة — تجاهل صامت
 
+  if (rlglYellow && rlglLightState === 'green') {   // BATMISH: ضوء أصفر — نصف السرعة
+    const yc = (rlglYellowCount.get(user.uniqueId) || 0) + 1; rlglYellowCount.set(user.uniqueId, yc);
+    if (yc % 2 === 0) return;
+  }
   rlglLastMoveAt.set(user.uniqueId, Date.now());
 
   if (rlglIsMoveAllowed()) {
@@ -55822,6 +55886,9 @@ let pdrawIsDrawing = false;
 let pdrawLastX = 0;
 let pdrawLastY = 0;
 let pdrawStrokeHistory = [];
+let pdrawLocked = false;        // BATMISH حدث «الرسم السريع»: انتهى وقت الرسم فتُقفل اللوحة
+let pdrawStrokeLimit = 0;       // BATMISH حدث «القلم المحدود»: أقصى عدد ضربات (0 = بلا حد)
+let pdrawStrokeCount = 0;
 const PDRAW_COLORS = ['#000000','#ffffff','#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#8e24aa','#6d4c41','#00acc1'];
 
 function pdrawShuffle(arr) {
@@ -55946,6 +56013,7 @@ function pdrawInitCanvasTools() {
   const canvas = document.getElementById('pdraw-canvas');
   pdrawCtx = canvas.getContext('2d');
   pdrawStrokeHistory = [];
+  pdrawLocked = false; pdrawStrokeCount = 0;
   pdrawColor = '#000000';
   pdrawBrushSize = 6;
   pdrawIsErasing = false;
@@ -55994,6 +56062,8 @@ function pdrawSaveHistorySnapshot() {
 
 function pdrawPointerDown(e) {
   if (!pdrawCtx) return;
+  if (pdrawLocked) return;
+  if (pdrawStrokeLimit > 0) { if (pdrawStrokeCount >= pdrawStrokeLimit) return; pdrawStrokeCount++; }
   pdrawSaveHistorySnapshot();
   pdrawIsDrawing = true;
   const pos = pdrawGetCanvasPos(e);
@@ -81749,6 +81819,8 @@ let tt10RoundSeconds = 0; // 0 = بدون تايمر (الافتراضي) — ي
 let tt10Ws = null, tt10ReconnectTimer = null, tt10ConnectedOnce = false;
 let tt10TiktokUser = '', tt10KickUser = '', tt10YtUser = '';
 let tt10Participants = new Map();      // uniqueId -> user (كل من كتب بالشات أثناء اللعبة — لأدوات الإدارة فقط)
+let tt10HideRanks = false;           // BATMISH حدث «القائمة المخفية»: أرقام المراكز غير المكشوفة تُخفى
+let tt10StealNext = false;          // BATMISH حدث «الإجابة المسروقة»: أول إجابة صحيحة تسرق نقاطاً من المتصدر
 let tt10Scores = new Map();            // uniqueId -> { user, score }
 let tt10FollowPrompted = new Set();    // عشان ما نكرر تنبيه "لازم تسوي فولو" لنفس الشخص
 let tt10GameStatus = 'waiting';        // waiting | active | roundover | finished
@@ -82034,6 +82106,11 @@ function tt10ProcessAnswer(user, text) {
   const tt10Pts = match.rank * (match.bonusMul || 1); // BATMISH (أحداث خاصة): مضاعِف نقاط لإجابة محددة
   entry.score += tt10Pts;
   tt10Scores.set(user.uniqueId, entry);
+  if (tt10StealNext) {   // BATMISH: الإجابة المسروقة — تؤخذ نقاط من المتصدر الحالي
+    tt10StealNext = false;
+    const top = Array.from(tt10Scores.values()).filter(e => e.user.uniqueId !== user.uniqueId).sort((a, b) => b.score - a.score)[0];
+    if (top && top.score > 0) { const st = Math.min(top.score, Math.ceil(match.rank / 2)); top.score -= st; entry.score += st; toast('🕵️ ' + (user.nickname || user.uniqueId) + ' سرق ' + st + ' نقطة من ' + (top.user.nickname || top.user.uniqueId) + '!'); }
+  }
 
   toast('✅ ' + (user.nickname || user.uniqueId) + ' جاوب "' + match.value + '" صح — أخذ ' + tt10Pts + ' نقطة!');
   if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(user);
@@ -82102,7 +82179,7 @@ function tt10RenderGrid(targetId) {
   if (!grid || !tt10CurrentQuestion) return;
   grid.innerHTML = tt10CurrentQuestion.items.map(item => `
     <div class="top10-cell ${item.revealed ? 'revealed' : 'hidden-cell'}">
-      <div class="top10-cell-rank">${item.rank}</div>
+      <div class="top10-cell-rank">${(tt10HideRanks && !item.revealed) ? '؟' : item.rank}</div>
       <div class="top10-cell-value">${item.revealed ? esc(item.value) : '؟؟؟'}</div>
     </div>
   `).join('');
@@ -82948,6 +83025,7 @@ let glzTimerInterval = null, glzTimeLeft = 0;
 // رقم تشغيل اللعبة: الخروج أو لعبة جديدة يغيّره، فمؤقّتات كشف الإجابة المعلّقة لا تبدأ سؤالاً جديداً
 // بالخلفية ولا تفتح شاشة الفوز فوق لعبة ثانية (قبل: الخروج أثناء الكشف يكمل اللعبة بالخلفية).
 let glzRunId = 0;
+let glzDoubleStep = false;   // BATMISH حدث «الخطوة المزدوجة»: هذه الجولة لا يسقط فيها أحد (خطوة ثانية للجميع)
 let glzSimMode = false;
 
 function goSetupGlz() { show('setup-glz'); }
@@ -83383,6 +83461,7 @@ function glzResolveRound() {
     eliminated = eliminated.filter(u => u !== lucky);
   }
 
+  if (glzDoubleStep) { glzDoubleStep = false; if (eliminated.length) { survivors = survivors.concat(eliminated); eliminated = []; toast('👣 الخطوة المزدوجة! نجا الجميع هذه الجولة'); } }
   const correctPanel = document.getElementById('glz-panel-' + correct);
   if (correctPanel) correctPanel.classList.add('safe-glow');
   toast('✅ الإجابة الصحيحة: ' + q.o[correct]);
