@@ -162,15 +162,19 @@ function errMsg(e) {
   return base;
 }
 /* في الدمج الحقيقي: B.controller.request. هنا: MockServer.request */
-const Transport = { request: (m, p, b) => B.controller.request(m, p, b) };
+const Transport = { request: (m, p, b, o) => B.controller.request(m, p, b, o) };
 const ConfigurationService = {
-  call(method, path, body) {
-    return Transport.request(method, path, body).then(r => {
+  call(method, path, body, opt) {
+    return Transport.request(method, path, body, opt).then(r => {
       if (r.status >= 200 && r.status < 300) return r.body;
       const e = new Error((r.body && r.body.error) || 'http_' + r.status); e.status = r.status; e.code = r.body && r.body.error; e.detail = r.body && r.body.detail; e.rev = r.body && r.body.rev; throw e;
     });
   },
-  bootstrap() { return this.call('GET', '/batmish/bootstrap'); },
+  // الخادم المجاني قد يكون نائماً (تشغيله يأخذ حتى ~50 ثانية): مهلة أطول + إعادة محاولة تلقائية واحدة عند انقطاع الاتصال
+  bootstrap() {
+    const go = () => this.call('GET', '/batmish/bootstrap', undefined, { timeout: 45000 });
+    return go().catch(e => (e && e.offline) ? new Promise(r => setTimeout(r, 2500)).then(go) : Promise.reject(e));
+  },
   save(tag, values, baseRev) { return this.call('POST', '/batmish/config', { tag, values, baseRev }); },
   reset(tag, key, baseRev) { return this.call('POST', '/batmish/reset', { tag, key, baseRev }); },
   preset(op, p) { return this.call('POST', '/batmish/presets', Object.assign({ op }, p)); },

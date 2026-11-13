@@ -29,3 +29,38 @@ export class FirestoreStore {
     if (!pin) await ref.delete(); else await ref.set(pin);
   }
 }
+
+// تخزين مرن: Firestore هو الأساس، وRealtime Database مرآة احتياطية (نص JSON واحد لكل uid لتفادي قيود مفاتيح RTDB).
+// السبب: حصة Firestore قد تنفد (حدث سابقاً) فتفشل قراءة /batmish/bootstrap بـ500. هنا القراءة والكتابة تنجحان إن نجح أحد المخزنين.
+// عند توفر الاثنين تُعتمد النسخة الأحدث (بحسب updatedAt) حتى لا ترجع بيانات قديمة بعد تعافي Firestore.
+export class ResilientStore {
+  constructor({ db, rtdb, log = () => {} }) { this.fs = new FirestoreStore(db); this.rtdb = rtdb; this.log = log; }
+  async _rtGet(path) { const s = await this.rtdb.ref(path).get(); if (!s.exists()) return null; const v = s.val(); try { return JSON.parse(v.json); } catch (e) { return null; } }
+  async _rtSet(path, val) { if (val == null) await this.rtdb.ref(path).remove(); else await this.rtdb.ref(path).set({ json: JSON.stringify(val), at: Date.now() }); }
+  async _both(fsFn, rtFn, what) {
+    const [a, b] = await Promise.allSettled([fsFn(), rtFn()]);
+    if (a.status === 'rejected') this.log('warn', 'batmish_fs_failed', { what, message: a.reason && a.reason.message });
+    if (b.status === 'rejected') this.log('warn', 'batmish_rtdb_failed', { what, message: b.reason && b.reason.message });
+    if (a.status === 'rejected' && b.status === 'rejected') throw a.reason;
+    return [a.status === 'fulfilled' ? a.value : undefined, b.status === 'fulfilled' ? b.value : undefined];
+  }
+  async load(uid) {
+    const [f, r] = await this._both(() => this.fs.load(uid), () => this._rtGet('batmishDocs/' + uid), 'load');
+    if (f && r) return (r.updatedAt || 0) > (f.updatedAt || 0) ? r : f;
+    return f || r || null;
+  }
+  async save(uid, doc) {
+    const rs = await Promise.allSettled([this.fs.save(uid, doc), this._rtSet('batmishDocs/' + uid, doc)]);
+    rs.forEach((x, i) => { if (x.status === 'rejected') this.log('warn', i ? 'batmish_rtdb_save_failed' : 'batmish_fs_save_failed', { message: x.reason && x.reason.message }); });
+    if (rs.every((x) => x.status === 'rejected')) throw rs[0].reason;
+  }
+  async getPin(sid = '_zvd4') {
+    const [f, r] = await this._both(() => this.fs.getPin(sid), () => this._rtGet('batmishPins/' + sid), 'getPin');
+    if (f && r) return (r.at || 0) > (f.at || 0) ? r : f;
+    return f || r || null;
+  }
+  async setPin(pin, sid = '_zvd4') {
+    const rs = await Promise.allSettled([this.fs.setPin(pin, sid), this._rtSet('batmishPins/' + sid, pin)]);
+    if (rs.every((x) => x.status === 'rejected')) throw rs[0].reason;
+  }
+}
