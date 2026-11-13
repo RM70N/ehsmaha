@@ -4,7 +4,7 @@
 set -u
 cd "$(dirname "$0")/../.."
 fail=0
-for f in e2e_events e2e_events2 e2e_events_3d_a e2e_events_3d_b e2e_events_3d_c e2e_events_3d_d; do
+for f in e2e_events e2e_events2 e2e_events_3d_a e2e_events_3d_b e2e_events_3d_c e2e_events_3d_d e2e_events_3d_e; do
   echo "=== $f"; node tests/batmish/$f.mjs 2>&1 | tail -n 3 || fail=1
 done
 exit $fail

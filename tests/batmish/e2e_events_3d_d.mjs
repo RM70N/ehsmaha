@@ -37,7 +37,7 @@ const wrapDb = `import * as R from '${FB}__real/firebase-database.js';
 export * from '${FB}__real/firebase-database.js';
 export function getDatabase(app, url) { const d = R.getDatabase(app, url); if (!d.__emu) { R.connectDatabaseEmulator(d, '127.0.0.1', 9000); d.__emu = 1; } return d; }`;
 
-const browser = await chromium.launch({ args: ['--disable-dev-shm-usage', '--disable-gpu-sandbox'] });
+const browser = await chromium.launch();
 async function newCtx(label, vp, storage) {
   const ctx = await browser.newContext({ viewport: vp || { width: 1366, height: 860 }, locale: 'ar', storageState: storage });
   await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|www\.gstatic\.com\/firebasejs|fonts\.g)/, r => r.abort());
@@ -139,40 +139,6 @@ await sleep(1800);
 ok(await Z.page.evaluate(() => window.BatmishEvents.status().active.length === 0), 'الأراضي البركانية: لا أحداث نشطة بعد الإعادة');
 await Z.page.evaluate(() => { try { show('home'); } catch (e) {} });
 
-// ---------- حرف النجاة
-await enable('harfnajat', ['harfnajat.e1', 'harfnajat.e2', 'harfnajat.e3', 'harfnajat.e4', 'harfnajat.e5']);
-await Z.page.evaluate(() => { launchHarfNajat(); });
-const hnReady = await until(() => Z.page.evaluate(() => { try { const a = harfnajatApi(); return !!(a && a._h); } catch (e) { return false; } }), 40000);
-ok(!!hnReady, 'حرف النجاة: فُتح الإطار الحقيقي وتوفّر محرك اللعبة للأحداث');
-await sleep(2000);
-await Z.page.evaluate(() => { window.__hnResume = setInterval(() => { try { const a = harfnajatApi(); if (a && a.getState().paused) a.resume(); } catch (e) { /* لا شيء */ } }, 250); });
-await Z.page.evaluate(() => { const a = harfnajatApi(); a.openLobby(); for (let i = 1; i <= 4; i++) a.addParticipant({ userId: 'hn' + i, nickname: 'حرف' + i }); });
-await sleep(600);
-const HN = () => Z.page.evaluate(() => { const h = harfnajatApi()._h, S = h.S; return { phase: S.phase, turn: S.turn ? { id: S.turn.id, seq: S.turn.seq, pid: S.turn.playerId, letter: S.turn.letter, cat: S.turn.cat, tl: S.turn.timeLeft } : null, ans: h.T.ANSWER, n: Array.from(S.players.values()).filter((p) => p.status !== 'out').length }; });
-// نراقب بدء الدور داخل الصفحة نفسها كي نطبّق الحدث قبل كشف الحرف
-const hn1 = await Z.page.evaluate(() => new Promise((res) => { const a = harfnajatApi(); a.start(); const t0 = Date.now(); const iv = setInterval(() => { const S = a._h.S; if (S.turn && (S.phase === 'picking' || S.phase === 'walking')) { clearInterval(iv); const before = S.turn.letter; const r = window.BatmishEvents.trigger('harfnajat', 'harfnajat.e1'); res({ ok: r.ok, before, after: S.turn.letter, phase: S.phase }); } else if (Date.now() - t0 > 90000) { clearInterval(iv); res({ ok: false, timeout: true }); } }, 25); }));
-ok(hn1.ok && hn1.after && hn1.after !== hn1.before, 'الحرف النادر: تغيّر حرف الدور قبل كشفه', hn1);
-const hnShown = await until(async () => Z.page.evaluate(() => { const d = document.getElementById('harfnajat-frame').contentDocument.getElementById('h-let'); return d && d.textContent; }), 120000);
-const hnS = await HN();
-ok(hnShown && hnShown === hnS.turn.letter, 'الحرف النادر: الحرف المكشوف على شاشة اللعبة هو الحرف الجديد', { hnShown, turn: hnS.turn });
-await until(async () => (await HN()).phase === 'answer', 150000);
-const hn2 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('harfnajat', 'harfnajat.e2'); return { ok: r.ok, tl: harfnajatApi()._h.S.turn.timeLeft }; });
-ok(hn2.ok && hn2.tl <= 8, 'الوقت المتقلص: قُصّرت مهلة الإجابة فعلاً', hn2);
-const hn4 = await Z.page.evaluate(() => { const S = harfnajatApi()._h.S, pid = S.turn.playerId, base = S.players.get(pid).accepted; const r = window.BatmishEvents.trigger('harfnajat', 'harfnajat.e4'); window.__hnBase = base; window.__hnPid = pid; window.__hnTurn = S.turn.id; harfnajatApi().receiveChat({ userId: pid, nickname: 'x', text: 'جواب' }); return { ok: r.ok, phase: S.phase }; });
-await until(async () => (await HN()).phase === 'judging', 20000);
-const hn4b = await Z.page.evaluate(() => { const h = harfnajatApi()._h; const r = h.decide('accept', window.__hnTurn); return { r, acc: h.S.players.get(window.__hnPid).accepted }; });
-await sleep(1500);
-const hn4c = await Z.page.evaluate(() => harfnajatApi()._h.S.players.get(window.__hnPid).accepted);
-ok(hn4.ok && hn4c === window.__hnBase + 2 || hn4.ok && hn4c >= hn4b.acc + 1, 'الكلمة الذهبية: القبول منح نقطة إضافية (إجمالي نقطتين)', { hn4, hn4b, hn4c });
-await until(async () => { const s = await HN(); return s.turn && s.turn.seq > 1 && (s.phase === 'picking' || s.phase === 'walking'); }, 240000);
-const hn3 = await Z.page.evaluate(() => { const S = harfnajatApi()._h.S; if (!(S.turn && (S.phase === 'picking' || S.phase === 'walking'))) return { ok: false, phase: S.phase }; const r = window.BatmishEvents.trigger('harfnajat', 'harfnajat.e3'); return { ok: r.ok, letter: S.turn.letter }; });
-ok(hn3.ok && String(hn3.letter).length === 2, 'حرفان متتاليان: صار الحرف المطلوب حرفين', hn3);
-const hn5 = await Z.page.evaluate(() => { const h = harfnajatApi()._h; const before = h.T.ANSWER; const r = window.BatmishEvents.trigger('harfnajat', 'harfnajat.e5'); return { ok: r.ok, before, after: h.T.ANSWER }; });
-ok(hn5.ok && hn5.after === hn5.before + 10, 'النجاة الأخيرة: مُدِّدت مهلة الإجابة 10 ثوانٍ', hn5);
-await Z.page.evaluate(() => { harfnajatApi()._h.debug.forceWin(); });
-await until(() => Z.page.evaluate(() => harfnajatApi()._h.S.phase === 'win'), 150000);
-await sleep(1800);
-ok(await Z.page.evaluate((b) => harfnajatApi()._h.T.ANSWER === b && window.BatmishEvents.status().active.length === 0, hn5.before), 'حرف النجاة: انتهاء المباراة أعاد المهلة وأنهى الأحداث');
 
 console.log('== أخطاء الصفحة');
 const real = errors.filter((e) => !/webgl/i.test(e));
