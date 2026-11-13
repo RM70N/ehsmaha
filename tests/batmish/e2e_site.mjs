@@ -79,7 +79,7 @@ async function linkStream(page, username) {
   }, [username, API]);
 }
 const btn = (page) => page.evaluate(() => { const b = document.getElementById('batmish-launch'); return !!b && b.classList.contains('is-on'); });
-const bind = (uid) => fetch(API + '/__bind', { method: 'POST', body: JSON.stringify({ uid }) });
+const bind = (uid, streamer) => fetch(API + '/__bind', { method: 'POST', body: JSON.stringify({ uid, streamer }) });
 
 console.log('== 1) البوابة: ظهور الزر');
 const Z = await newCtx('Z');
@@ -265,6 +265,24 @@ const ov = await Z2.page.evaluate(() => { const r = document.getElementById('bm-
 ok(ov.sw <= ov.cw + 1, 'جوال: صفحة اللعبة بلا تمرير أفقي', ov);
 await Z2.page.screenshot({ path: SHOTS + '/11-mobile-game.png' });
 
+console.log('== 11b) حساب احسمها mish');
+{
+  const M = await newCtx('M'); await open(M.page);
+  const uidM = await signup(M.page, 'mish', 'm@test.com');
+  await M.page.evaluate((api) => { TIKTOK_BRIDGE_SERVERS[0] = api.replace('http', 'ws') + '/ws'; }, API);   // توجيه الصفحة لخادم الاختبار (بدون ربط بث)
+  await sleep(2500);
+  ok(!(await btn(M.page)), 'mish قبل أن يعرّفه الخادم (غير مسجَّل بالسجل): لا زر');
+  await fetch(API + '/__siteuser', { method: 'POST', body: JSON.stringify({ name: 'mish', uid: uidM }) });
+  await M.page.evaluate(() => { try { Batmish.controller.tick && Batmish.controller.tick(); } catch (e) {} });
+  ok(!!(await until(() => btn(M.page), 25000)), 'حساب mish بمجرد الدخول (بدون ربط بث): يظهر الزر');
+  if (!(await btn(M.page))) console.log('  DEBUG', JSON.stringify(await M.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/access', { headers: { Authorization: 'Bearer ' + t } }); return { u: typeof currentUsername !== 'undefined' ? currentUsername : null, st: Batmish.controller.state, linked: Batmish.controller.clientLinked(), api: r.status, body: await r.json() }; })));
+  const info = await M.page.evaluate(() => ({ s: Batmish.STREAMER, v: Batmish.VIA }));
+  ok(info.s === 'mish' && info.v === 'account', 'الخادم أكّد mish عبر الحساب', info);
+  await M.page.evaluate(() => document.getElementById('batmish-launch').click());
+  const txt = await until(async () => M.page.evaluate(() => { const r = document.getElementById('batmish-root'); return r && r.classList.contains('is-open') ? r.innerText : ''; }), 15000);
+  ok(!!txt && /@mish/i.test(txt) && !/ربط البث|الربط مؤكد/.test(txt), 'لوحة mish تفتح باسمه ولا تدّعي ربط بث', (txt || '').slice(0, 300));
+  await M.ctx.close();
+}
 console.log('== 12) أخطاء الصفحة');
 const real = errors.filter(e => !/webgl/i.test(e));
 ok(real.length === 0, 'لا أخطاء JavaScript', real.slice(0, 5));

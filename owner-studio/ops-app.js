@@ -71,7 +71,9 @@
   }
 
   // BATMISH: تثبيت هوية الستريمر _zvd4 (يُحفظ بالخادم). اللوحة تظهر فقط للحساب المثبَّت + بثه مربوط باسم _zvd4.
-  const BM = { pinned: undefined, msg: '' };
+  const BM = { pins: undefined, sel: '_zvd4', msg: '' };
+  const BM_STREAMERS = ['_zvd4'];
+  const bmStText = () => BM.pins === undefined ? 'جارِ التحميل…' : BM_STREAMERS.map((s) => '@' + s + ': ' + (BM.pins[s] ? 'مثبَّت على الحساب ' + BM.pins[s] : 'غير مثبَّت')).join(' — ');
   const bmApi = () => (window.EHS_APP_API || 'https://ehsmaha-piratetok-bridge.onrender.com') + '/batmish/admin';
   async function bmCall(path, body) {
     const u = O.host && O.host.__fb && O.host.__fb.auth && O.host.__fb.auth.currentUser; if (!u) throw new Error('لا توجد جلسة مالك');
@@ -79,14 +81,14 @@
     const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || ('HTTP ' + r.status)); e.code = j.error; throw e; } return j;
   }
   function bmPanel() {
-    const st = BM.pinned === undefined ? 'جارِ التحميل…' : BM.pinned ? 'مثبَّت على الحساب ' + esc(BM.pinned) : 'غير مثبَّت: ما أحد يقدر يفتح BATMISH';
+    const st = esc(bmStText());
     return `<div class="panel" id="bm-admin" style="margin-top:16px"><h4 style="margin:0 0 6px">لوحة BATMISH (الستريمر _zvd4)</h4>
       <p style="color:var(--text-3);font-size:13px;margin:0 0 10px">اللوحة تظهر لحساب واحد فقط: الحساب المثبَّت هنا + بثه مربوط الآن باسم _zvd4. اكتب اسم حساب الستريمر في احسمها (مو يوزر تيك توك) ثم ثبّته.</p>
       <p id="bm-st" style="margin:0 0 10px">${st}</p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><input class="input" id="bm-user" dir="ltr" maxlength="40" placeholder="اسم الحساب في احسمها" style="max-width:260px" aria-label="اسم الحساب في احسمها">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><select class="input" id="bm-streamer" dir="ltr" aria-label="الستريمر" style="max-width:140px">${BM_STREAMERS.map((s) => `<option value="${s}"${BM.sel === s ? ' selected' : ''}>@${s}</option>`).join('')}</select><input class="input" id="bm-user" dir="ltr" maxlength="40" placeholder="اسم الحساب في احسمها" style="max-width:260px" aria-label="اسم الحساب في احسمها">
       <button class="btn btn-primary" id="bm-bind" type="button">تثبيت</button><button class="btn" id="bm-unbind" type="button">إلغاء التثبيت</button><span id="bm-msg" role="status">${esc(BM.msg)}</span></div></div>`;
   }
-  async function bmLoad(v) { try { BM.pinned = (await bmCall('/status')).pinnedUid || null; } catch (e) { BM.pinned = undefined; BM.msg = 'تعذّر قراءة الحالة'; } const p = $('#bm-st', v); if (p) p.textContent = BM.pinned === undefined ? '-' : BM.pinned ? 'مثبَّت على الحساب ' + BM.pinned : 'غير مثبَّت: ما أحد يقدر يفتح BATMISH'; }
+  async function bmLoad(v) { try { const s = await bmCall('/status'); BM.pins = s.pins || { _zvd4: s.pinnedUid || null }; } catch (e) { BM.pins = undefined; BM.msg = 'تعذّر قراءة الحالة'; } const p = $('#bm-st', v); if (p) p.textContent = bmStText(); }
 
   function body() {
     if (!O.owner()) return O.denied();
@@ -126,8 +128,8 @@
         if (bb) {
           const msg = $('#bm-msg', v);
           try {
-            if (bb.id === 'bm-bind') { const un = $('#bm-user', v).value.trim(); if (!un) { msg.textContent = 'اكتب اسم الحساب.'; return; } const r = await bmCall('/bind', { username: un }); BM.msg = 'تم التثبيت.'; BM.pinned = r.pinnedUid; }
-            else { if (!(await UI.confirm({ title: 'إلغاء تثبيت BATMISH', text: 'بعدها ما أحد يقدر يفتح اللوحة لين تثبّت حساباً من جديد.' }))) return; await bmCall('/unbind', {}); BM.msg = 'أُلغي التثبيت.'; BM.pinned = null; }
+            if (bb.id === 'bm-bind') { const un = $('#bm-user', v).value.trim(); if (!un) { msg.textContent = 'اكتب اسم الحساب.'; return; } BM.sel = $('#bm-streamer', v).value; const r = await bmCall('/bind', { username: un, streamer: BM.sel }); BM.msg = 'تم التثبيت لـ@' + BM.sel + '.'; }
+            else { if (!(await UI.confirm({ title: 'إلغاء تثبيت BATMISH', text: 'بعدها هذا الستريمر ما يقدر يفتح اللوحة لين تثبّت حساباً من جديد.' }))) return; BM.sel = $('#bm-streamer', v).value; await bmCall('/unbind', { streamer: BM.sel }); BM.msg = 'أُلغي التثبيت لـ@' + BM.sel + '.'; }
             msg.textContent = BM.msg; bmLoad(v);
           } catch (er) { msg.textContent = er.code === 'account_not_found' ? 'ما لقينا حساباً بهذا الاسم.' : 'تعذّر التنفيذ: ' + er.message; }
           return;

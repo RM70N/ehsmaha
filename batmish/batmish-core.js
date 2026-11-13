@@ -5,7 +5,9 @@
   'use strict';
   if (window.Batmish) return;
 
-  var STREAMER = '_zvd4';
+  var STREAMERS = ['_zvd4'];           // يوزرات البث المسموحة (الفحص الحقيقي بالخادم)
+  var SITE_USERS = ['mish'];           // حسابات احسمها المسموحة بمجرد الدخول
+  var STREAMER = STREAMERS[0];          // اليوزر الفعلي بعد تأكيد الخادم
   var RECHECK_MS = 15000;
   var SELF_SRC = (document.currentScript && document.currentScript.src) || '/batmish/batmish-core.js';
   var BASE = SELF_SRC.replace(/[^/]*$/, '');
@@ -76,12 +78,14 @@
     try { return String(TIKTOK_BRIDGE_SERVERS[0]).replace(/^wss:/, 'https:').replace(/^ws:/, 'http:').replace(/\/ws$/, ''); } catch (e) { return ''; }
   };
   AccessController.prototype.user = function () { try { return (typeof currentUser !== 'undefined' && currentUser) ? currentUser : null; } catch (e) { return null; } };
-  // فحص أولي من حالة الواجهة (توفير للشبكة فقط، ليس حماية): بث تيك توك مربوط الآن باسم _zvd4
+  // فحص أولي من حالة الواجهة (توفير للشبكة فقط، ليس حماية): بث تيك توك مربوط الآن باسم _zvd4،
+  // أو حساب احسمها المسمّى (mish) مسجَّل الدخول. القرار النهائي دائماً للخادم.
   AccessController.prototype.clientLinked = function () {
     try {
       var s = typeof homeConnections !== 'undefined' && homeConnections && homeConnections.tiktok;
-      return !!(s && s.ws && s.ws.readyState === 1 && norm(s.username) === STREAMER);
-    } catch (e) { return false; }
+      if (s && s.ws && s.ws.readyState === 1 && STREAMERS.indexOf(norm(s.username)) >= 0) return true;
+    } catch (e) { /* تجاهل */ }
+    try { return typeof currentUsername !== 'undefined' && SITE_USERS.indexOf(norm(currentUsername)) >= 0; } catch (e) { return false; }
   };
   AccessController.prototype.request = function (method, path, body, opt) {
     var self = this, u = this.user();
@@ -111,7 +115,7 @@
     this.checking = true; this.lastServerCheck = now;
     this.request('GET', '/batmish/access').then(function (r) {
       self.checking = false;
-      if (r.status === 200 && r.body && r.body.allowed === true) self.allow();
+      if (r.status === 200 && r.body && r.body.allowed === true) { if (STREAMERS.indexOf(r.body.streamerId) >= 0 || SITE_USERS.indexOf(r.body.streamerId) >= 0) { STREAMER = r.body.streamerId; if (window.Batmish) { window.Batmish.STREAMER = STREAMER; window.Batmish.VIA = r.body.via || 'stream'; } } self.allow(); }
       else self.hide('server');
     }, function () { self.checking = false; /* خطأ شبكة: نبقى على الحالة الحالية؛ الخادم يرفض أي طلب بعدها إن فقدنا الصلاحية */ });
   };
