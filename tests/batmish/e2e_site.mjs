@@ -115,7 +115,7 @@ await sleep(2300);
 await Z.page.screenshot({ path: SHOTS + '/02-command-center.png' });
 const cc = await Z.page.evaluate(() => ({ h1: document.querySelector('.bm-hero-body h1').textContent, sub: document.querySelector('.bm-hero-body h2').textContent, qc: document.querySelectorAll('.bm-qc').length, nav: document.querySelectorAll('.bm-nav-item').length }));
 ok(cc.h1 === 'BATMISH' && /الفارس المظلم/.test(cc.sub), 'الصفحة الرئيسية: الشعار والعنوان الفرعي بالعربي', cc);
-ok(cc.qc === 10 && cc.nav === 11, 'عشر بطاقات وصول سريع و11 قسماً بالقائمة', cc);
+ok(cc.qc === 10 && cc.nav === 12, 'عشر بطاقات وصول سريع و12 قسماً بالقائمة (مع الأحداث الخاصة)', cc);
 await Z.page.click('.bm-nav-item[data-nav="db"]');
 await sleep(700);
 const games = await Z.page.evaluate(() => ({ cards: document.querySelectorAll('.bm-gc').length, can: document.querySelectorAll('.bm-gc[data-game]').length }));
@@ -214,11 +214,11 @@ ok(fx.muted && fx.patched && fx.gain === 0 && fx.reduce, 'كتم المؤثرا�
 
 console.log('== 8) لغة الواجهة: كل الأزرار والأقسام بالعربي');
 const latin = new Set();
-for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'balance', 'av', 'auto', 'presets', 'history']) {
+for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'events', 'balance', 'av', 'auto', 'presets', 'history']) {
   await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(450);
   const bad = await Z2.page.evaluate(() => {
     const out = [];
-    const ok = (t) => !/[A-Za-z]{3,}/.test(t.replace(/BATMISH|WebAudio|iframe|3D|@[\w.]+|FAST ROUND|CLASSIC NIGHT|DARK CHALLENGE|COMMUNITY NIGHT/gi, ''));
+    const ok = (t) => !/[A-Za-z]{3,}/.test(t.replace(/BATMISH|SPECIAL EVENTS|WebAudio|iframe|3D|@[\w.]+|FAST ROUND|CLASSIC NIGHT|DARK CHALLENGE|COMMUNITY NIGHT/gi, ''));
     document.querySelectorAll('#batmish-root button, #batmish-root h1, #batmish-root h2, #batmish-root h3, #batmish-root h4, #batmish-root h5, #batmish-root .bm-tag, #batmish-root .bm-chip, #batmish-root .bm-nav-txt, #batmish-root .bm-eyebrow, #batmish-root label').forEach((e) => { const t = (e.innerText || '').trim(); if (t && !ok(t)) out.push(t.slice(0, 40)); });
     return out;
   });
@@ -227,11 +227,11 @@ for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'balance
 ok(latin.size === 0, 'لا نصوص إنجليزية ظاهرة في الأزرار والأقسام والعناوين', [...latin].slice(0, 12));
 await Z2.page.click('.bm-nav-item[data-nav="cmd"]'); await sleep(300);
 const navTxt = await Z2.page.evaluate(() => [...document.querySelectorAll('.bm-nav-item .ar')].map((e) => e.textContent));
-ok(navTxt.length === 11 && navTxt.every((t) => /[\u0600-\u06FF]/.test(t)), 'أسماء الأقسام الـ11 بالعربي', navTxt);
+ok(navTxt.length === 12 && navTxt.every((t) => /[\u0600-\u06FF]/.test(t)), 'أسماء الأقسام الـ12 بالعربي', navTxt);
 
 console.log('== 9) اختبار كل زر');
 let clicked = 0, problems = [];
-for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'balance', 'av', 'auto', 'presets', 'history']) {
+for (const v of ['cmd', 'db', 'settings', 'round', 'players', 'stream', 'events', 'balance', 'av', 'auto', 'presets', 'history']) {
   await Z2.page.click(`.bm-nav-item[data-nav="${v}"]`); await sleep(500);
   const n = await Z2.page.evaluate(() => document.querySelectorAll('#bm-view button:not([disabled]), #bm-savebar button:not([disabled])').length);
   for (let i = 0; i < n; i++) {

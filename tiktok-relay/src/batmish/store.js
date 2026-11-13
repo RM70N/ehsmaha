@@ -74,3 +74,10 @@ export class ResilientStore {
     await Promise.any(ps).catch((e) => { throw (e && e.errors && e.errors[0]) || e; });
   }
 }
+
+// يعيد استخدام نفس التخزين (Firestore/RTDB/ذاكرة) بمفتاح مسبوق ببادئة: لا نظام تخزين موازٍ.
+export class PrefixedStore {
+  constructor(inner, prefix) { this.inner = inner; this.prefix = prefix; }
+  load(uid) { return this.inner.load(this.prefix + uid); }
+  save(uid, doc) { return this.inner.save(this.prefix + uid, doc); }
+}

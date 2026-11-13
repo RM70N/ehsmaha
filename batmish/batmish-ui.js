@@ -383,7 +383,7 @@ const NAV = [
   ['cmd', 'نظرة عامة', 'مركز القيادة', 'cmd', 'الأساسي'], ['db', 'أرشيف كامل', 'قاعدة الألعاب', 'db'], ['settings', 'كل المعاملات', 'إعدادات الألعاب', 'settings'],
   ['round', 'الأوقات والمحاولات', 'التحكم بالجولات', 'round', 'العمليات'], ['players', 'قواعد اللاعبين', 'تجربة اللاعبين', 'players'], ['stream', 'إحصائيات البث', 'أرقام البث الحية', 'stream'],
   ['balance', 'النقاط والتوازن', 'موازنة الألعاب', 'balance'], ['av', 'الصوت والحركة', 'الصوت والمرئيات', 'av'], ['auto', 'سلوكيات تلقائية', 'الأتمتة', 'auto'],
-  ['presets', 'مجموعاتك المحفوظة', 'المجموعات', 'presets', 'المحفوظات'], ['history', 'سجل التعديلات', 'السجل', 'history']
+  ['events', 'الأحداث الخاصة', 'مركز الأحداث', 'bolt', 'الأحداث'], ['presets', 'مجموعاتك المحفوظة', 'المجموعات', 'presets', 'المحفوظات'], ['history', 'سجل التعديلات', 'السجل', 'history']
 ];
 const NAV_BY = {}; NAV.forEach(n => { NAV_BY[n[0]] = n; });
 const SECTION_INFO = {
@@ -634,15 +634,17 @@ class Dashboard {
   go(view, arg) {
     if (view === 'game') { if (this.view !== 'game' || this.arg !== arg) this.tab = 'GENERAL'; }
     this.view = view; this.arg = arg || null; this.root.classList.remove('is-nav');
+    if ((view === 'events' || view === 'evgame') && !(this.ev && this.ev.loaded) && !(this.ev && this.ev.loading)) this.evLoad();
+    if (view === 'events' && this.ev && this.ev.loaded && this.ev.tab === 'history') this.evLoadHistory();
     if (view === 'history' && this.ready) this.hist.load(this.histTag).then(() => this.render('nav'), () => this.render('nav')); else this.render('nav');
   }
-  crumb() { const v = this.view === 'game' ? 'db' : this.view, n = NAV_BY[v]; return this.view === 'game' ? ['قاعدة الألعاب', this.gameName(this.arg)] : [n[1], n[2]]; }
-  activeNav() { return this.view === 'game' ? 'db' : this.view; }
+  crumb() { if (this.view === 'evgame') return ['الأحداث الخاصة', this.evGameName(this.arg)]; const v = this.view === 'game' ? 'db' : this.view, n = NAV_BY[v]; return this.view === 'game' ? ['قاعدة الألعاب', this.gameName(this.arg)] : [n[1], n[2]]; }
+  activeNav() { return this.view === 'game' ? 'db' : this.view === 'evgame' ? 'events' : this.view; }
   render(mode) {
     const main = $('#bm-main', this.root), v = $('#bm-view', this.root); if (!v) return;
     let html;
     if (this.loadError) html = this.vError(); else if (!this.ready) html = this.vSkeleton();
-    else { const fn = { cmd: 'vCmd', db: 'vDb', game: 'vGame', settings: 'vSettings', round: 'vRound', players: 'vPlayers', stream: 'vStream', balance: 'vBalance', av: 'vAv', auto: 'vAuto', presets: 'vPresets', history: 'vHistory' }[this.view]; html = this[fn](); }
+    else { const fn = { cmd: 'vCmd', db: 'vDb', game: 'vGame', settings: 'vSettings', round: 'vRound', players: 'vPlayers', stream: 'vStream', events: 'vEvents', evgame: 'vEvGame', balance: 'vBalance', av: 'vAv', auto: 'vAuto', presets: 'vPresets', history: 'vHistory' }[this.view]; html = this[fn](); }
     const scroll = main.scrollTop;
     v.classList.remove('is-in', 'is-flip'); v.innerHTML = html;
     if (mode === 'nav' || mode === 'first') {
@@ -726,6 +728,139 @@ class Dashboard {
     const tc = list('أكثر المعلّقين', S.topChatters, r => '<li><b>' + esc(r.name) + '</b><span class="mono">' + nf(r.n) + ' تعليق</span></li>', '—');
     const tg = list('أكثر المهدين', S.topGifters, r => '<li><b>' + esc(r.name) + '</b><span class="mono">' + nf(r.n) + ' ألماسة</span></li>', '—');
     return tags + kpis + spark + '<div class="bm-sgrid">' + cmt + '<div class="bm-scol">' + gf + tc + tg + '</div></div>';
+  }
+
+  /* ====================== الأحداث الخاصة (SPECIAL EVENTS) ====================== */
+  evState() { return this.ev || (this.ev = { loaded: false, loading: false, err: null, tab: 'center', hist: null, hf: { tag: '', status: '', range: '' }, profName: '' }); }
+  evBE() { return window.BatmishEvents; }
+  evCat() { const E = this.evBE(); return E && E.catalog(); }
+  evGameName(tag) { const c = this.evCat(); const g = c && c.games.filter(x => x.tag === tag)[0]; return g ? g.name : tag; }
+  evLoad() {
+    const ev = this.evState(); ev.loading = true; ev.err = null;
+    const E = this.evBE(); if (!E) { ev.loading = false; ev.err = 'محرك الأحداث لم يُحمَّل بعد'; this.soft(); return; }
+    E.reload(err => { ev.loading = false; if (err) ev.err = 'تعذّر تحميل الأحداث من الخادم'; else ev.loaded = true; this.soft(); });
+  }
+  evLoadHistory() {
+    const ev = this.evState(), f = ev.hf, q = []; if (f.tag) q.push('tag=' + encodeURIComponent(f.tag)); if (f.status) q.push('status=' + f.status);
+    if (f.range) q.push('from=' + (Date.now() - Number(f.range) * 3600e3));
+    Transport.request('GET', '/batmish/events/history?' + q.join('&'), null, { timeout: 30000 }).then(r => { ev.hist = r.status === 200 ? r.body : { history: [], stats: { total: 0, completed: 0, cancelled: 0, failed: 0 } }; if (this.view === 'events') this.soft(); }, () => { ev.hist = { history: [], stats: { total: 0, completed: 0, cancelled: 0, failed: 0 }, err: true }; this.soft(); });
+  }
+  evCfgOf(tag) { const E = this.evBE(), st = E && E.state(); return (st && st.games && st.games[tag]) || { events: {} }; }
+  evSaved(tag, id) { return (this.evCfgOf(tag).events || {})[id] || {}; }
+  evVal(f, saved) { return saved[f.key] !== undefined ? saved[f.key] : f.default; }
+  evCommon() { const c = this.evCat(); return c ? c.commonFields : []; }
+  vEvents() {
+    const ev = this.evState(), c = this.evCat(), E = this.evBE();
+    const head = this.pageHead({ eyebrow: 'SPECIAL EVENTS', title: 'الأحداث الخاصة' }, '', 'اجعل كل راوند غير متوقع: أحداث مفاجئة تغيّر طريقة اللعب فعلياً، تتحكم أنت بتوقيتها واحتماليتها وتأثيرها.');
+    if (ev.err) return head + this.empty('warn', 'تعذّر تحميل الأحداث', esc(ev.err), '<button type="button" class="bm-btn" data-ev="reload">إعادة المحاولة</button>');
+    if (!ev.loaded || !c) return head + this.vSkeleton();
+    const tabs = '<div class="bm-evtabs"><button type="button" class="' + (ev.tab === 'center' ? 'on' : '') + '" data-ev="tab" data-id="center">مركز الأحداث</button><button type="button" class="' + (ev.tab === 'history' ? 'on' : '') + '" data-ev="tab" data-id="history">سجل الأحداث والتقارير</button></div>';
+    if (ev.tab === 'history') return head + tabs + this.evHistoryHtml();
+    const stS = E.status(), games = c.games, impl = games.reduce((n, g) => n + g.events.filter(x => x.implemented).length, 0), total = games.reduce((n, g) => n + g.events.length, 0);
+    let enabledN = 0; Object.keys((E.state() || {}).games || {}).forEach(t => Object.keys(((E.state().games[t] || {}).events) || {}).forEach(id => { if (E.state().games[t].events[id].enabled) enabledN++; }));
+    const supported = games.filter(g => E.supported(g.tag)).length;
+    const lastRow = stS.stats.last ? this.evEventName(stS.stats.last.eventId) : '—';
+    const kpi = (v, l, en) => '<div class="bm-kpi bm-plate"><i class="bm-glow"></i><div class="v">' + v + '</div><div class="l"><span class="en">' + en + '</span>' + l + '</div></div>';
+    const kpis = '<div class="bm-kpis">' + kpi(supported + '<small>/' + games.length + '</small>', 'ألعاب مربوطة بمحرك الأحداث', 'GAMES') + kpi(total, 'إجمالي الأحداث بالكتالوج', 'CATALOG') + kpi(impl, 'أحداث مربوطة فعلياً', 'WIRED') + kpi(enabledN, 'أحداث مفعّلة', 'ENABLED') + kpi(stS.active.length, 'تعمل الآن بالجولة', 'LIVE') + kpi(stS.stats.total, 'مرات التشغيل', 'RUNS') + '</div>' +
+      '<div class="bm-chan" style="margin-bottom:16px"><span class="bm-tag t-ok">حالة النظام · يعمل</span><span class="bm-tag">آخر حدث · ' + esc(lastRow) + '</span><span class="bm-tag">مكتمل ' + stS.stats.completed + ' · ملغي ' + stS.stats.cancelled + ' · فشل ' + stS.stats.failed + '</span></div>';
+    const cards = games.map(g => {
+      const wired = g.events.filter(x => x.implemented).length, cfg = this.evCfgOf(g.tag), en = g.events.filter(x => (cfg.events[x.id] || {}).enabled).length, last = (stS.stats.byGame[g.tag] || {}).last;
+      return '<div class="bm-evgc bm-plate' + (wired ? '' : ' dim') + '"><i class="bm-glow"></i><div class="n">' + esc(g.name) + '</div><div class="m"><span>' + g.events.length + ' أحداث</span><span>' + wired + ' مربوطة</span><span>' + en + ' مفعّلة</span></div>' +
+        '<div class="s"><span class="bm-tag ' + (en ? 't-ok' : '') + '">' + (cfg.mode || cfg.events && Object.keys(cfg.events).length ? 'مخصّص' : 'افتراضي') + '</span>' + (last ? '<span class="bm-tag">آخر: ' + esc(this.evEventName(last)) + '</span>' : '') + '</div>' +
+        '<button type="button" class="bm-btn bm-btn-p" data-ev="open" data-tag="' + g.tag + '">إدارة الأحداث</button></div>';
+    }).join('');
+    const nf = (c.notFoundGames || []).length ? '<div class="bm-note">' + ic('info') + '<div>ألعاب ذُكرت بالطلب ولا توجد في الموقع فلم تُنشأ ولم تُربط: <b>' + c.notFoundGames.map(esc).join('، ') + '</b>.</div></div>' : '';
+    return head + tabs + kpis + '<h3 class="bm-evh">تحكمك بالأحداث</h3><div class="bm-evgrid">' + cards + '</div>' + nf;
+  }
+  evEventName(id) { const c = this.evCat(); if (!c) return id; for (const g of c.games) for (const e of g.events) if (e.id === id) return e.name; return id; }
+  vEvGame() {
+    const tag = this.arg, ev = this.evState(), c = this.evCat(), E = this.evBE();
+    if (ev.err) return this.empty('warn', 'تعذّر التحميل', esc(ev.err), '<button type="button" class="bm-btn" data-ev="reload">إعادة المحاولة</button>');
+    if (!ev.loaded || !c) return this.vSkeleton();
+    const g = c.games.filter(x => x.tag === tag)[0]; if (!g) return this.empty('warn', 'اللعبة غير موجودة', 'هذه اللعبة غير موجودة في كتالوج الأحداث.');
+    const cfg = this.evCfgOf(tag), gf = c.gameFields, val = (k) => cfg[k] !== undefined ? cfg[k] : gf.filter(f => f.key === k)[0].default;
+    const MODE_AR = { manual: 'يدوي', random: 'عشوائي', scheduled: 'مجدول', hybrid: 'هجين' }, INT_AR = { low: 'منخفضة', normal: 'عادية', high: 'عالية', extreme: 'قصوى' };
+    const wired = g.events.filter(x => x.implemented).length;
+    const seg = (name, opts, labels, cur) => '<div class="bm-seg" data-evseg="' + name + '">' + opts.map(o => '<button type="button" class="' + (o === cur ? 'on' : '') + '" data-ev="seg" data-name="' + name + '" data-val="' + o + '">' + labels[o] + '</button>').join('') + '</div>';
+    const num = (k, lab, min, max, v) => '<label class="bm-evf"><span>' + lab + '</span><input type="number" class="bm-in" data-evg="' + k + '" min="' + min + '" max="' + max + '" value="' + v + '"></label>';
+    const gamePanel = this.panel('<div class="bm-sl-h"><b>إعدادات أحداث اللعبة</b><span class="bm-tag">' + wired + ' من ' + g.events.length + ' أحداث مربوطة بمحرك اللعبة</span></div><div class="bm-evbody">' +
+      '<div class="bm-evf"><span>نمط التشغيل</span>' + seg('mode', c.modes, MODE_AR, val('mode')) + '<small>يدوي: أنت تشغّل الحدث بنفسك · عشوائي: المحرك يسحب من المفعّلة · مجدول: بتوقيت محدد · هجين: يجمع الاثنين</small></div>' +
+      '<div class="bm-evf"><span>قوة الأحداث</span>' + seg('intensity', c.intensities, INT_AR, val('intensity')) + '<small>تؤثر فقط على الأحداث القابلة للتدرّج وبحد آمن لميكانيكية اللعبة</small></div>' +
+      num('minGapSec', 'أقل فاصل بين حدثين (بالثواني)', 0, 600, val('minGapSec')) + num('maxPerRound', 'أقصى عدد أحداث بالراوند', 1, 20, val('maxPerRound')) +
+      '<div class="bm-evrow"><button type="button" class="bm-btn bm-btn-p" data-ev="save-game" data-tag="' + tag + '">حفظ إعدادات اللعبة</button><button type="button" class="bm-btn" data-ev="reset-game" data-tag="' + tag + '">إعادة للافتراضي</button></div></div>');
+    const profs = Object.values((E.state() || {}).profiles || {}).filter(p => p.tag === tag);
+    const profPanel = this.panel('<div class="bm-sl-h"><b>مجموعات الأحداث</b><span class="bm-tag">خاصة بهذه اللعبة فقط</span></div><div class="bm-evbody">' +
+      (profs.length ? '<ul class="bm-sl">' + profs.map(p => '<li><b>' + esc(p.name) + '</b><span class="bm-evrow"><button type="button" class="bm-btn bm-btn-s" data-ev="p-apply" data-id="' + p.id + '" data-tag="' + tag + '">تطبيق</button><button type="button" class="bm-btn bm-btn-s" data-ev="p-update" data-id="' + p.id + '">تحديث من الحالي</button><button type="button" class="bm-btn bm-btn-s" data-ev="p-rename" data-id="' + p.id + '">إعادة تسمية</button><button type="button" class="bm-btn bm-btn-s" data-ev="p-dup" data-id="' + p.id + '">نسخ</button><button type="button" class="bm-btn bm-btn-s" data-ev="p-del" data-id="' + p.id + '">حذف</button></span></li>').join('') + '</ul>' : '<p class="bm-sl-e">لا توجد مجموعات محفوظة. احفظ إعداداتك الحالية كمجموعة (مثل «وضع الفوضى»).</p>') +
+      '<div class="bm-evrow"><input class="bm-in" id="bmev-pname" maxlength="40" placeholder="اسم المجموعة الجديدة" value="' + esc(ev.profName || '') + '"><button type="button" class="bm-btn bm-btn-p" data-ev="p-create" data-tag="' + tag + '">حفظ كمجموعة</button></div></div>');
+    const cards = g.events.map(e => this.evCard(g, e, cfg)).join('');
+    return this.pageHead({ eyebrow: 'SPECIAL EVENTS / ' + esc(g.name), title: esc(g.name) }, '', 'خمسة أحداث خاصة لهذه اللعبة. الحدث لا يُفعَّل إلا إذا كان مربوطاً فعلياً بمحرك اللعبة.') +
+      '<div class="bm-evrow" style="margin-bottom:14px"><button type="button" class="bm-btn" data-ev="back">رجوع لمركز الأحداث</button></div>' + gamePanel + profPanel + '<div class="bm-evgrid2">' + cards + '</div>';
+  }
+  evCard(g, e, cfg) {
+    const saved = (cfg.events || {})[e.id] || {}, E = this.evBE();
+    const TYPE_AR = { random: 'عشوائي', scheduled: 'مجدول', milestone: 'عند مرحلة', final: 'نهائي', manual: 'يدوي' };
+    if (!e.implemented) return '<div class="bm-evc bm-plate dim"><i class="bm-glow"></i><div class="h"><b>' + esc(e.name) + '</b><span class="bm-tag t-warn">غير مربوط بعد</span></div><p>' + esc(e.desc || 'وصف مفصّل يُضاف عند ربط الحدث بمحرك اللعبة.') + '</p><p class="bm-sl-e" style="padding:0">لم يُربط هذا الحدث بمحرك اللعبة بعد، لذلك لا يمكن تفعيله ولا معاينته (لا نعرض زراً لا يعمل).</p></div>';
+    const c = this.evCat(), fields = [...c.commonFields.filter(f => f.key !== 'enabled'), ...(e.extra || [])];
+    const inp = f => { const v = this.evVal(f, saved); return f.type === 'toggle' ? '<label class="bm-evf chk"><input type="checkbox" data-evf="' + f.key + '"' + (v ? ' checked' : '') + '><span>' + f.label + '</span></label>' : '<label class="bm-evf"><span>' + f.label + '</span><input type="number" class="bm-in" data-evf="' + f.key + '" min="' + f.min + '" max="' + f.max + '" value="' + v + '">' + (f.hint ? '<small>' + f.hint + '</small>' : '') + '</label>'; };
+    const on = !!saved.enabled, live = E.status().active.some(a => a.eventId === e.id), cnt = (E.status().stats.byGame[g.tag] || {}).count || 0;
+    return '<div class="bm-evc bm-plate' + (on ? ' on' : '') + '" data-evid="' + e.id + '"><i class="bm-glow"></i><div class="h"><b>' + esc(e.name) + '</b><span class="bm-tag ' + (live ? 't-ok' : '') + '">' + (live ? 'يعمل الآن' : TYPE_AR[e.type]) + '</span></div>' +
+      '<p>' + esc(e.desc) + '</p><label class="bm-evf chk big"><input type="checkbox" data-evf="enabled"' + (on ? ' checked' : '') + '><span>تفعيل الحدث</span></label>' +
+      '<div class="bm-evfs">' + fields.map(inp).join('') + '</div>' +
+      '<div class="bm-evrow"><button type="button" class="bm-btn" data-ev="preview" data-tag="' + g.tag + '" data-id="' + e.id + '">معاينة</button><button type="button" class="bm-btn" data-ev="trigger" data-tag="' + g.tag + '" data-id="' + e.id + '">تشغيل الآن</button><button type="button" class="bm-btn bm-btn-p" data-ev="save-event" data-tag="' + g.tag + '" data-id="' + e.id + '">حفظ</button></div></div>';
+  }
+  evHistoryHtml() {
+    const ev = this.evState(), c = this.evCat(), h = ev.hist, hf = ev.hf;
+    const sel = (name, opts, cur) => '<select class="bm-in" data-evhf="' + name + '">' + opts.map(o => '<option value="' + o[0] + '"' + (String(cur) === String(o[0]) ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>';
+    const filters = '<div class="bm-evrow" style="margin:14px 0">' + sel('tag', [['', 'كل الألعاب'], ...c.games.map(g => [g.tag, g.name])], hf.tag) + sel('status', [['', 'كل الحالات'], ['completed', 'مكتمل'], ['cancelled', 'ملغي'], ['failed', 'فشل']], hf.status) + sel('range', [['', 'كل الأوقات'], ['24', 'آخر 24 ساعة'], ['168', 'آخر 7 أيام']], hf.range) + '<button type="button" class="bm-btn" data-ev="hist-reload">تحديث</button></div>';
+    if (!h) return filters + this.vSkeleton();
+    const AR = { completed: 'مكتمل', cancelled: 'ملغي', failed: 'فشل' }, REASON = { round_end: 'انتهت الجولة', round_over: 'انتهت الجولة', window_closed: 'انتهت نافذة الظهور', conflict: 'تعارض مع حدث آخر', round_limit: 'بلغ الحد الأقصى بالراوند', disabled: 'الحدث معطّل', manual_cancel: 'أُلغي يدوياً', event_not_implemented: 'غير مربوط بمحرك اللعبة', adapter_missing: 'لا يوجد محوّل للعبة', no_eligible_player: 'لا يوجد لاعب مؤهل', destroy: 'أُغلق النظام', round_replaced: 'بدأت جولة جديدة' };
+    const rows = h.history.map(r => '<tr><td>' + esc(this.evGameName(r.tag)) + '</td><td>' + esc(this.evEventName(r.eventId)) + '</td><td><span class="bm-tag ' + (r.status === 'completed' ? 't-ok' : r.status === 'failed' ? 't-warn' : '') + '">' + AR[r.status] + '</span></td><td>' + new Date(r.startedAt).toLocaleString('ar-EG') + '</td><td>' + (r.durationMs ? Math.round(r.durationMs / 1000) + ' ث' : '—') + '</td><td>' + esc(r.effect || REASON[r.reason] || r.reason || '—') + '</td><td class="mono">' + esc(String(r.roundId).slice(-8)) + '</td></tr>').join('');
+    return filters + '<div class="bm-chan" style="margin-bottom:12px"><span class="bm-tag">الإجمالي ' + h.stats.total + '</span><span class="bm-tag t-ok">مكتمل ' + h.stats.completed + '</span><span class="bm-tag">ملغي ' + h.stats.cancelled + '</span><span class="bm-tag t-warn">فشل ' + h.stats.failed + '</span></div>' +
+      (h.history.length ? this.panel('<div class="bm-evtbl"><table><thead><tr><th>اللعبة</th><th>الحدث</th><th>الحالة</th><th>وقت التشغيل</th><th>المدة</th><th>التأثير / السبب</th><th>الجولة</th></tr></thead><tbody>' + rows + '</tbody></table></div>') : this.empty('info', 'لا توجد أحداث مسجّلة', 'ستظهر هنا الأحداث بعد تشغيلها في الجولات.'));
+  }
+  evPrompt(title, value) {
+    return new Promise(res => {
+      const m = this.modal('<h4>' + esc(title) + '</h4><input class="bm-in" id="bmev-prompt" maxlength="40" value="' + esc(value || '') + '" style="width:100%;margin:10px 0"><div class="act"><button type="button" class="bm-btn b-prime" data-ok>حفظ</button><button type="button" class="bm-btn" data-no>إلغاء</button></div>');
+      const done = v => { m.remove(); res(v); }; const inp = $('#bmev-prompt', m);
+      $('[data-ok]', m).addEventListener('click', () => done(inp.value)); $('[data-no]', m).addEventListener('click', () => done(null));
+      m.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); done(null); } if (e.key === 'Enter') done(inp.value); }); inp.focus(); inp.select();
+    });
+  }
+  evAct(el) {
+    const a = el.getAttribute('data-ev'), tag = el.getAttribute('data-tag'), id = el.getAttribute('data-id'), ev = this.evState(), E = this.evBE(), root = this.root;
+    const post = (path, body) => Transport.request('POST', path, body, { timeout: 30000 }).then(r => { if (r.status >= 200 && r.status < 300) return r.body; const e = new Error((r.body && r.body.error) || 'http_' + r.status); e.code = r.body && r.body.error; throw e; });
+    const EV_ERR = { conflict: 'تغيّرت الإعدادات من مكان آخر — حدّثناها، أعد المحاولة', event_not_supported: 'هذا الحدث غير مربوط بمحرك اللعبة', out_of_range: 'قيمة خارج المدى المسموح', invalid_window: 'وقت النهاية لازم يكون بعد وقت البداية', duplicate_name: 'الاسم مستخدم من قبل', invalid_name: 'اسم غير صالح (حتى 40 حرفاً)', too_many_profiles: 'وصلت الحد الأقصى للمجموعات', profile_wrong_game: 'هذه المجموعة لا تخص هذه اللعبة' };
+    const fail = e => { this.toast(EV_ERR[e && e.code] || (e && e.offline ? 'ما قدرنا نوصل للخادم — جرّب مرة ثانية' : 'تعذّر تنفيذ العملية'), 'err'); if (e && e.code === 'conflict') this.evLoad(); };
+    const done = (msg) => { this.toast(msg, 'ok'); E.reload(() => { this.soft(); }); };
+    const rev = () => { const s = E.state(); return s ? s.rev : null; };
+    if (a === 'open') return this.go('evgame', tag);
+    if (a === 'back') return this.go('events');
+    if (a === 'reload') { ev.loaded = false; ev.loading = false; return this.go(this.view, this.arg); }
+    if (a === 'tab') { ev.tab = id; if (id === 'history') { ev.hist = null; this.soft(); this.evLoadHistory(); } else this.soft(); return; }
+    if (a === 'hist-reload') { ev.hist = null; this.soft(); return this.evLoadHistory(); }
+    if (a === 'seg') { $all('[data-evseg="' + el.getAttribute('data-name') + '"] button', root).forEach(b => b.classList.toggle('on', b === el)); return; }
+    if (a === 'save-game') {
+      const v = {}; const m = $('[data-evseg="mode"] .on', root), i = $('[data-evseg="intensity"] .on', root); if (m) v.mode = m.getAttribute('data-val'); if (i) v.intensity = i.getAttribute('data-val');
+      $all('[data-evg]', root).forEach(x => { v[x.getAttribute('data-evg')] = Number(x.value); });
+      return post('/batmish/events/game', { tag, values: v, baseRev: rev() }).then(() => done('تم حفظ إعدادات اللعبة — تُطبَّق من الراوند التالي.'), fail);
+    }
+    if (a === 'reset-game') return this.confirm({ title: 'إعادة أحداث اللعبة للافتراضي', text: 'ستُحذف كل إعدادات أحداث «' + this.evGameName(tag) + '» وتعود الأحداث معطّلة.', ok: 'إعادة للافتراضي', danger: true }).then(y => { if (y) post('/batmish/events/reset', { tag, baseRev: null }).then(() => done('أُعيدت أحداث اللعبة للافتراضي.'), fail); });
+    if (a === 'save-event') {
+      const card = el.closest('[data-evid]'), v = {};
+      $all('[data-evf]', card).forEach(x => { v[x.getAttribute('data-evf')] = x.type === 'checkbox' ? x.checked : Number(x.value); });
+      return post('/batmish/events/event', { tag, eventId: id, values: v, baseRev: rev() }).then(() => done('تم حفظ الحدث — يُطبَّق من الراوند التالي.'), fail);
+    }
+    if (a === 'preview') { if (!E.preview(tag, id)) this.toast('تعذّرت المعاينة', 'err'); else this.toast('معاينة فقط — لا تتغير حالة اللعبة أو اللاعبين.', 'ok'); return; }
+    if (a === 'trigger') {
+      const r = E.trigger(tag, id), AR = { no_active_round: 'لا توجد جولة نشطة لهذه اللعبة الآن — شغّل راوند أولاً', event_not_implemented: 'الحدث غير مربوط', engine_off: 'المحرك غير جاهز', failed: 'تعذّر تشغيل الحدث', unknown_event: 'حدث غير معروف' };
+      if (r.ok) this.toast('تم تشغيل الحدث على الجولة الحالية.', 'ok'); else this.toast(AR[r.reason] || (String(r.reason).indexOf('conflict') === 0 ? 'يتعارض مع حدث يعمل الآن' : 'الشروط غير جاهزة الآن لتشغيل الحدث'), 'err'); return;
+    }
+    if (a === 'p-create') { const nm = ($('#bmev-pname', root).value || '').trim(); ev.profName = nm; return post('/batmish/events/profile', { op: 'create', tag, name: nm }).then(() => { ev.profName = ''; done('تم حفظ المجموعة.'); }, fail); }
+    if (a === 'p-apply') return post('/batmish/events/profile', { op: 'apply', id, tag, baseRev: rev() }).then(() => done('طُبِّقت المجموعة على اللعبة — تُطبَّق من الراوند التالي.'), fail);
+    if (a === 'p-update') return post('/batmish/events/profile', { op: 'update', id }).then(() => done('حُدِّثت المجموعة من الإعدادات الحالية.'), fail);
+    if (a === 'p-dup') return post('/batmish/events/profile', { op: 'duplicate', id }).then(() => done('تم نسخ المجموعة.'), fail);
+    if (a === 'p-del') return this.confirm({ title: 'حذف المجموعة', text: 'سيتم حذف هذه المجموعة نهائياً.', ok: 'حذف', danger: true }).then(y => { if (y) post('/batmish/events/profile', { op: 'delete', id }).then(() => done('تم حذف المجموعة.'), fail); });
+    if (a === 'p-rename') { const cur = (E.state().profiles[id] || {}).name || ''; return this.evPrompt('إعادة تسمية المجموعة', cur).then(nm => { if (nm == null) return; return post('/batmish/events/profile', { op: 'rename', id, name: nm }).then(() => done('تمت إعادة التسمية.'), fail); }); }
   }
   vBalance() {
     const sm = this.sm, games = this.games, rows = this.fieldsOf(['scoring', 'balance', 'difficulty']);
@@ -843,6 +978,7 @@ class Dashboard {
   onChange(e) {
     const t = e.target;
     if (t.matches('[data-act="autosave"]')) { this.sm.setAutosave(t.checked); return; }
+    if (t.matches('[data-evhf]')) { const ev = this.evState(); ev.hf[t.getAttribute('data-evhf')] = t.value; ev.hist = null; this.soft(); this.evLoadHistory(); return; }
     if (t.matches('[data-histtag]')) { this.histTag = t.value; this.hist.load(this.histTag).then(() => this.soft(), er => this.toast(errMsg(er), 'err')); return; }
     if (t.matches('[data-n]')) { const fk = t.getAttribute('data-k'); BatmishSettingsPanel.refresh(this.root, this.sm, this.errs, fk); }
   }
@@ -875,6 +1011,7 @@ class Dashboard {
     if ((el = t.closest('[data-resetgame]'))) {
       const tag = el.getAttribute('data-resetgame'); this.confirm({ title: 'إعادة اللعبة للافتراضي', text: 'ترجيع كل إعدادات «' + this.gameName(tag) + '» للافتراضي؟ تقدر تتراجع عن أي إعداد من السجل.', ok: 'إعادة', danger: true }).then(y => { if (y) this.run(this.sm.resetGame(tag), 'تمت إعادة اللعبة للافتراضي.').then(() => { this.errs = {}; return this.hist.load(this.histTag).catch(() => 0); }).then(() => this.soft()); }); return;
     }
+    if ((el = t.closest('[data-ev]'))) { this.evAct(el); return; }
     if ((el = t.closest('[data-presetact]'))) { this.presetAction(el.getAttribute('data-presetact'), el.getAttribute('data-id')); return; }
     if ((el = t.closest('[data-revert]'))) { this.run(this.hist.revert(el.getAttribute('data-revert')), 'تم التراجع عن التعديل.').then(() => this.hist.load(this.histTag)).then(() => this.soft(), () => 0); return; }
     if ((el = t.closest('[data-act]')) && !el.matches('input')) this.act(el.getAttribute('data-act'));

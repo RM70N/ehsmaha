@@ -132,14 +132,22 @@
     this.state = 'allowed';
     this.loadCss();
     this.mountButton();
+    this.loadEvents();
     // التخصيص النشط للألعاب (overrides فقط) — من الخادم
     this.request('GET', '/batmish/overlay').then(function (r) {
       if (r.status === 200 && r.body && self.state === 'allowed') { var u = self.user(); self.resolver.set(r.body.rev, r.body.config, u && u.uid); }
     }, function () {});
     try { window.dispatchEvent(new CustomEvent('batmish:access', { detail: { allowed: true } })); } catch (e) {}
   };
+  // محرك الأحداث الخاصة: يُحمَّل فقط بعد موافقة الخادم، ويبدأ بالعمل حتى لو لم تُفتح اللوحة (الأحداث تعمل أثناء الجولات)
+  AccessController.prototype.loadEvents = function () {
+    var self = this; if (window.BatmishEvents) { try { window.BatmishEvents.start(); } catch (e) {} return; }
+    var queue = ['events/engine-core.js', 'events/adapters.js', 'events/engine.js'], i = 0;
+    (function next() { if (i >= queue.length) { if (self.state === 'allowed' && window.BatmishEvents) window.BatmishEvents.start(); return; } var s = document.createElement('script'); s.src = BASE + queue[i++] + '?v=1'; s.onload = next; s.onerror = function () {}; document.head.appendChild(s); })();
+  };
   AccessController.prototype.hide = function (why) {
     var was = this.state;
+    try { if (window.BatmishEvents) window.BatmishEvents.stop(); } catch (e) {}
     this.state = 'hidden';
     this.resolver.clear();
     if (this.ui && this.ui.close) { try { this.ui.close({ silent: true, reason: why }); } catch (e) {} }

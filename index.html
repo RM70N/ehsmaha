@@ -35546,6 +35546,7 @@ let tmrStartTime = null;         // performance.now() لما شغّل المؤق
 let tmrElapsed = 0;              // ثوانٍ مضت فعلاً (لما يوقف)
 let tmrRafId = null;             // requestAnimationFrame id
 let TMR_MAX_SECONDS = 30;             // overridden per-round from moderator settings
+let tmrReverseClock = false;          // BATMISH حدث «الوقت المعكوس»: عرض الساعة تنازلياً (لا يغيّر منطق الفوز)
 let tmrGoldenZoneEnabled = false;     // مود إضافي: منطقة ذهبية من الوقت — الوقوف فيها يفوز فوراً
 let tmrGoldenZoneStart = null;
 let tmrGoldenZoneEnd = null;
@@ -35897,7 +35898,7 @@ function startTimerClock() {
       stopTimerClock(false);
       return;
     }
-    clock.textContent = tmrElapsed.toFixed(2);
+    clock.textContent = (tmrReverseClock ? Math.max(0, TMR_MAX_SECONDS - tmrElapsed) : tmrElapsed).toFixed(2);
     tmrRafId = requestAnimationFrame(tick);
   }
   tmrRafId = requestAnimationFrame(tick);

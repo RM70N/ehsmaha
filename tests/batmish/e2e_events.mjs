@@ -1,0 +1,255 @@
+// اختبار متصفح كامل لـBATMISH: الموقع الحقيقي + محاكيات Firebase + خادم BATMISH (وحدات الخادم الحقيقية).
+// يتحقق: ظهور/اختفاء الزر، رفض غير المصرّح، التعديل والحفظ والاستمرار بعد التحديث، عزل الحسابات، تطبيق القيمة على modGetSetting،
+// المجموعات والسجل، التجاوب على الجوال. التشغيل: انظر tests/batmish/README.md
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+const require = createRequire(import.meta.url);
+const { chromium } = require(process.env.PLAYWRIGHT || '/opt/node22/lib/node_modules/playwright');
+const SITE = process.env.SITE || 'http://127.0.0.1:8790/index.html';
+const API = process.env.API || 'http://127.0.0.1:8791';
+const SHOTS = process.env.SHOTS || '/tmp/bm-shots';
+fs.mkdirSync(SHOTS, { recursive: true });
+const FB = 'https://www.gstatic.com/firebasejs/12.15.0/';
+const NM = path.resolve(process.env.FB_NM || '/tmp/fbemu/node_modules/firebase');
+const PID = 'streamgame-180b8';
+const NS = 'streamgame-180b8-default-rtdb';
+const adm = { Authorization: 'Bearer owner' };
+await fetch(`http://127.0.0.1:9000/.settings/rules.json?ns=${NS}`, { method: 'PUT', headers: adm, body: fs.readFileSync('database.rules.json', 'utf8') });
+await fetch(`http://127.0.0.1:9000/.json?ns=${NS}`, { method: 'DELETE', headers: adm });
+await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PID}/databases/(default)/documents`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${PID}/accounts`, { method: 'DELETE' });
+await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${PID}:securityRules`, { method: 'PUT', body: JSON.stringify({ rules: { files: [{ name: 'firestore.rules', content: fs.readFileSync('firestore.rules', 'utf8') }] } }) });
+let pass = 0, fail = 0; const errors = [];
+const ok = (c, m, extra = '') => { if (c) { pass++; console.log('  ✔', m); } else { fail++; console.log('  ✘', m, typeof extra === 'string' ? extra : JSON.stringify(extra)); } };
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function until(fn, ms = 10000) { const t = Date.now(); while (Date.now() - t < ms) { try { const v = await fn(); if (v) return v; } catch (e) { } await sleep(150); } return null; }
+
+const wrapAuth = `import * as R from '${FB}__real/firebase-auth.js';
+export * from '${FB}__real/firebase-auth.js';
+export function getAuth(app) { const a = R.getAuth(app); if (!a.__emu) { R.connectAuthEmulator(a, 'http://127.0.0.1:9099', { disableWarnings: true }); a.__emu = 1; } window.__auth = a; window.__authM = R; return a; }`;
+const wrapFs = `import * as R from '${FB}__real/firebase-firestore.js';
+export * from '${FB}__real/firebase-firestore.js';
+const hook = (db) => { try { R.connectFirestoreEmulator(db, '127.0.0.1', 8080); } catch (e) { } return db; };
+export function initializeFirestore(app, s, id) { return hook(R.initializeFirestore(app, s, id)); }
+export function getFirestore(...a) { return hook(R.getFirestore(...a)); }`;
+const wrapDb = `import * as R from '${FB}__real/firebase-database.js';
+export * from '${FB}__real/firebase-database.js';
+export function getDatabase(app, url) { const d = R.getDatabase(app, url); if (!d.__emu) { R.connectDatabaseEmulator(d, '127.0.0.1', 9000); d.__emu = 1; } return d; }`;
+
+const browser = await chromium.launch();
+async function newCtx(label, vp, storage) {
+  const ctx = await browser.newContext({ viewport: vp || { width: 1366, height: 860 }, locale: 'ar', storageState: storage });
+  await ctx.route(/^https?:\/\/(?!127\.0\.0\.1|localhost|www\.gstatic\.com\/firebasejs|fonts\.g)/, r => r.abort());
+  await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+  await ctx.route(/windows-launch-campaign\//, r => r.abort());
+  await ctx.route(FB + '**', async (r) => {
+    const u = r.request().url().slice(FB.length);
+    const H = { 'content-type': 'application/javascript', 'access-control-allow-origin': '*' };
+    if (u === 'firebase-firestore.js') return r.fulfill({ status: 200, headers: H, body: wrapFs });
+    if (u === 'firebase-auth.js') return r.fulfill({ status: 200, headers: H, body: wrapAuth });
+    if (u === 'firebase-database.js') return r.fulfill({ status: 200, headers: H, body: wrapDb });
+    const f = path.join(NM, u.replace(/^__real\//, ''));
+    if (fs.existsSync(f)) return r.fulfill({ status: 200, headers: H, body: fs.readFileSync(f) });
+    return r.fulfill({ status: 404, body: '' });
+  });
+  await ctx.addInitScript(() => { document.addEventListener('DOMContentLoaded', () => { const st = document.createElement('style'); st.textContent = '#ehsemha-win,.ehsemha-win-bg{display:none!important}'; document.head.appendChild(st); }); });   // نافذة ترويج تطبيق ويندوز تعترض النقرات بالاختبار
+  const page = await ctx.newPage();
+  page.on('pageerror', e => { errors.push(label + ': ' + e.message); });
+  page.on('dialog', d => d.accept());
+  return { ctx, page };
+}
+async function open(page) { await page.goto(SITE); await page.waitForFunction(() => window.__auth && window.__fb && document.getElementById('auth-loader').classList.contains('hidden'), null, { timeout: 25000 }); await sleep(500); }
+async function signup(page, u, e) {
+  await page.evaluate(() => { show('auth'); authSwitchTab('signup'); });
+  await page.fill('#auth-signup-username', u); await page.fill('#auth-signup-email', e); await page.fill('#auth-signup-pass', '123456');
+  await page.click('#auth-signup-btn');
+  await until(async () => page.evaluate((n) => typeof currentUsername !== 'undefined' && currentUsername === n, u), 25000);
+  return page.evaluate(() => window.__auth.currentUser.uid);
+}
+// يحاكي ربط البث الفعلي: يبني رابط الجسر بنفس دالة الموقع (مع التوكن) ويفتح WS حقيقي لخادم الاختبار
+async function linkStream(page, username) {
+  return page.evaluate(async ([user, api]) => {
+    TIKTOK_BRIDGE_SERVERS[0] = api.replace('http', 'ws') + '/ws';
+    const url = tiktokBridgeWsUrlAt(0, user);
+    const ws = new WebSocket(url);
+    await new Promise((r, j) => { ws.onmessage = () => r(); ws.onerror = j; setTimeout(r, 3000); });
+    homeConnections.tiktok = { ws, username: user, attempts: 0, timer: null };
+    window.__bmWs = ws;
+    return { hasToken: /[?&]t=/.test(url), user };
+  }, [username, API]);
+}
+const btn = (page) => page.evaluate(() => { const b = document.getElementById('batmish-launch'); return !!b && b.classList.contains('is-on'); });
+const bind = (uid, streamer) => fetch(API + '/__bind', { method: 'POST', body: JSON.stringify({ uid, streamer }) });
+
+
+console.log('== E1) فتح لوحة الأحداث الخاصة');
+const Z = await newCtx('Z');
+await open(Z.page);
+const uidZ = await signup(Z.page, 'zvd_user', 'z@test.com');
+await bind(uidZ); await sleep(1500);
+await linkStream(Z.page, '_zvd4');
+ok(!!(await until(() => btn(Z.page), 10000)), 'الزر يظهر لحساب _zvd4');
+const evReady = await until(() => Z.page.evaluate(() => !!(window.BatmishEvents && window.BatmishEvents.catalog())), 15000);
+ok(!!evReady, 'محرك الأحداث يُحمَّل ويقرأ الكتالوج من الخادم بعد موافقة الخادم فقط');
+await Z.page.click('#batmish-launch'); await Z.page.waitForSelector('#batmish-root.is-open'); await sleep(2200);
+await Z.page.click('.bm-nav-item[data-nav="events"]'); await sleep(1200);
+const center = await Z.page.evaluate(() => ({ cards: document.querySelectorAll('.bm-evgc').length, kpis: document.querySelectorAll('.bm-kpi').length, head: document.querySelector('.bm-pagehead h2').textContent, txt: document.querySelector('#bm-view').innerText }));
+ok(center.cards === 31 && center.kpis >= 6 && /الأحداث الخاصة/.test(center.head), 'المركز: 31 بطاقة لعبة + مؤشرات', center);
+ok(/155/.test(center.txt) && /لعبة التاج/.test(center.txt) && /فعالية الستريمر/.test(center.txt), 'يعرض 155 حدثاً ويذكر اللعبتين غير الموجودتين صراحة');
+ok(!/[A-Za-z]{4,}/.test(await Z.page.evaluate(() => [...document.querySelectorAll('#bm-view button, #bm-view .bm-tag')].map((e) => e.innerText).join(' ').replace(/SPECIAL EVENTS|GAMES|CATALOG|WIRED|ENABLED|LIVE|RUNS/g, ''))), 'كل الأزرار والوسوم بالعربي');
+await Z.page.screenshot({ path: SHOTS + '/ev-01-center.png' });
+
+console.log('== E2) صفحة حرب الدول: 5 أحداث مربوطة، حفظ إعدادات حقيقي');
+await Z.page.click('.bm-evgc:has-text("حرب الدول") [data-ev="open"]'); await sleep(900);
+const gp = await Z.page.evaluate(() => ({ cards: document.querySelectorAll('.bm-evc[data-evid]').length, dim: document.querySelectorAll('.bm-evc.dim').length, h: document.querySelector('.bm-pagehead h2').textContent }));
+ok(gp.cards === 5 && gp.dim === 0 && gp.h.includes('حرب الدول'), 'خمسة أحداث كلها مربوطة وقابلة للتفعيل', gp);
+await Z.page.click('[data-evseg="mode"] button[data-val="random"]');
+await Z.page.fill('[data-evg="minGapSec"]', '0'); await Z.page.fill('[data-evg="maxPerRound"]', '10');
+await Z.page.click('[data-ev="save-game"]'); await sleep(900);
+for (const id of ['cw.e1', 'cw.e2', 'cw.e3', 'cw.e4']) {
+  const c = `.bm-evc[data-evid="${id}"]`;
+  await Z.page.check(`${c} [data-evf="enabled"]`); await Z.page.fill(`${c} [data-evf="probability"]`, '100'); await Z.page.fill(`${c} [data-evf="fromSec"]`, '1'); await Z.page.fill(`${c} [data-evf="toSec"]`, '6');
+  await Z.page.click(`${c} [data-ev="save-event"]`); await sleep(500);
+}
+const saved = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/bootstrap', { headers: { Authorization: 'Bearer ' + t } }); return (await r.json()).state; });
+ok(saved.games.cw.mode === 'random' && saved.games.cw.events['cw.e1'].enabled && saved.games.cw.events['cw.e4'].probability === 100 && saved.games.cw.maxPerRound === 10, 'الإعدادات محفوظة في الخادم', saved);
+const bad = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/event', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'bomb', eventId: 'bomb.e1', values: { enabled: true } }) }); return r.status; });
+ok(bad === 409, 'الخادم يرفض تفعيل حدث غير مربوط بمحرك لعبته');
+await Z.page.click('[data-ev="back"]'); await sleep(500); await Z.page.click('.bm-evgc:has-text("القنبلة المتحركة") [data-ev="open"]'); await sleep(700);
+const bomb = await Z.page.evaluate(() => ({ dim: document.querySelectorAll('.bm-evc.dim').length, toggles: document.querySelectorAll('.bm-evc[data-evid] [data-evf="enabled"]').length, txt: document.querySelector('.bm-evc.dim').innerText }));
+ok(bomb.dim === 5 && bomb.toggles === 0 && /غير مربوط بعد/.test(bomb.txt), 'القنبلة: الأحداث الخمسة تظهر «غير مربوط بعد» بدون أي زر تفعيل وهمي', bomb);
+
+console.log('== E3) تشغيل فعلي داخل لعبة حرب الدول الحقيقية (عشوائي عبر المجدول المركزي)');
+await Z.page.evaluate(async () => {
+  await new Promise((r) => window.BatmishEvents.reload(r));
+  for (let i = 1; i <= 5; i++) cwJoinParticipant({ uniqueId: 'p' + i, nickname: 'لاعب' + i, isFollower: true, followKnown: true, followRole: 1 });
+  window.__rows = []; document.addEventListener('bmev:history', () => {});
+});
+await Z.page.evaluate(() => startCountryWarRound());
+ok(await Z.page.evaluate(() => cwGameStatus === 'active' && window.BatmishEvents.status().rounds.includes('cw')), 'بدء راوند حرب الدول يبدأ جولة أحداث لنفس اللعبة (hook فعلي)');
+const fired = await until(() => Z.page.evaluate(() => (cwAlliancePair || cwGoldenCountryName) ? { pair: cwAlliancePair, golden: cwGoldenCountryName, goldenOn: cwGoldenCountryEnabled } : null), 12000);
+ok(!!fired, 'المجدول المركزي شغّل حدثاً عشوائياً فغيّر حالة اللعبة الفعلية', fired);
+ok(await Z.page.evaluate(() => !!document.querySelector('#bmev-host .bmev')), 'عُرض إعلان الحدث على شاشة اللعبة');
+await Z.page.screenshot({ path: SHOTS + '/ev-02-live.png' });
+await sleep(4000);
+const st1 = await Z.page.evaluate(() => window.BatmishEvents.status());
+ok(st1.stats.total >= 0 && st1.rounds.length === 1, 'الجولة نشطة والمحرك يتابعها', st1.stats);
+
+console.log('== E4) كل حدث من الخمسة على حدة (تشغيل يدوي عبر خط التنفيذ الكامل)');
+await Z.page.evaluate(() => { window.BatmishEvents.engine().endRound('cw', 'test'); });
+await Z.page.evaluate(() => { cwGameStatus = 'finished'; });
+const reset = () => Z.page.evaluate(() => { cwGameStatus = 'idle'; cwAlliancePair = null; cwGoldenCountryName = null; cwGoldenCountrySaved = false; cwGoldenCountryEnabled = false; cwTurnUid = null; cwActiveCountries = []; cwEliminatedNames = new Set(); cwAssignments.clear(); cwKickedDuringRound.clear(); });
+await reset();
+await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); await fetch(Batmish.controller.relay() + '/batmish/events/game', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'cw', values: { mode: 'manual' } }) }); await fetch(Batmish.controller.relay() + '/batmish/events/event', { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify({ tag: 'cw', eventId: 'cw.e5', values: { enabled: true, probability: 100, fromSec: 0, whenLeft: 4 } }) }); await new Promise((r) => window.BatmishEvents.reload(r)); });
+await Z.page.evaluate(() => startCountryWarRound());
+// e1 التحالف السري
+let r1 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('cw', 'cw.e1'); return { ok: r.ok, reason: r.reason, status: cwGameStatus, rounds: window.BatmishEvents.status().rounds, pair: cwAlliancePair && cwAlliancePair.slice(), active: cwActiveCountries.map((c) => c.name) }; });
+ok(r1.ok && r1.pair && r1.pair.length === 2 && r1.pair.every((n) => r1.active.includes(n)) && r1.pair[0] !== r1.pair[1], 'التحالف السري: ربط دولتين فعليتين مختلفتين', r1);
+const blocked = await Z.page.evaluate(() => { const p = cwAlliancePair.slice(); const holder = cwActiveCountries.find((c) => c.name === p[0]).uid; cwTurnUid = holder; const before = cwActiveCountries.length; cwEliminateCountry(p[1], 'streamer'); return { same: cwActiveCountries.length === before }; });
+ok(blocked.same, 'التحالف يمنع فعلياً إقصاء الحليف (منطق اللعبة الأصلي)');
+await Z.page.evaluate(() => { cwTurnUid = null; window.BatmishEvents.engine().cancelEvent('cw', window.BatmishEvents.status().active.find((a) => a.eventId === 'cw.e1').id); });
+ok(await Z.page.evaluate(() => cwAlliancePair === null), 'انتهاء الحدث يستعيد الحالة (التحالف أُزيل)');
+// e2 الدولة الذهبية
+let r2 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('cw', 'cw.e2'); return { ok: r.ok, name: cwGoldenCountryName, on: cwGoldenCountryEnabled }; });
+ok(r2.ok && r2.name && r2.on, 'الدولة الذهبية: دولة محصّنة وتفعيل الحماية', r2);
+const saved2 = await Z.page.evaluate(() => { const n = cwGoldenCountryName; const holder = cwActiveCountries.find((c) => c.name !== n).uid; cwTurnUid = holder; cwEliminateCountry(n, 'streamer'); return { still: cwActiveCountries.some((c) => c.name === n), savedFlag: cwGoldenCountrySaved }; });
+ok(saved2.still && saved2.savedFlag, 'الدولة الذهبية تنجو فعلياً من أول محاولة إقصاء');
+await Z.page.evaluate(() => { window.BatmishEvents.engine().tick(); });
+await sleep(700);
+ok(await Z.page.evaluate(() => cwGoldenCountryEnabled === false && !window.BatmishEvents.status().active.some((a) => a.eventId === 'cw.e2')), 'بعد استهلاك الحماية ينتهي الحدث وتعود الإعدادات الأصلية');
+// e3 الانقلاب
+await Z.page.evaluate(() => { cwTurnUid = cwActiveCountries[0].uid; cwSpinning = false; });
+let r3 = await Z.page.evaluate(() => { const from = cwTurnUid; const r = window.BatmishEvents.trigger('cw', 'cw.e3'); return { ok: r.ok, from, to: cwTurnUid }; });
+ok(r3.ok && r3.to && r3.to !== r3.from, 'الانقلاب: الدور انتقل فعلياً للاعب آخر حي', r3);
+// e4 التهديد المزدوج
+let r4 = await Z.page.evaluate(() => { cwTurnUid = cwActiveCountries[0].uid; cwDoubleElimEliminationsThisTurn = 0; cwDoubleElimActivated = false; const r = window.BatmishEvents.trigger('cw', 'cw.e4'); return { ok: r.ok, armed: cwDoubleElimArmed, act: cwDoubleElimActivated }; });
+ok(r4.ok && r4.armed && r4.act, 'التهديد المزدوج: فُعِّل الإقصاء المزدوج لصاحب الدور', r4);
+const two = await Z.page.evaluate(() => { const holder = cwTurnUid, n0 = cwActiveCountries.length; const t = cwActiveCountries.filter((c) => c.uid !== holder).map((c) => c.name); cwEliminateCountry(t[0], 'streamer'); const stillMine = cwTurnUid === holder; if (stillMine) cwEliminateCountry(t[1], 'streamer'); return { n0, n1: cwActiveCountries.length, stillMine }; });
+ok(two.stillMine && two.n1 === two.n0 - 2, 'صاحب الدور قصى دولتين فعلاً بدور واحد', two);
+await Z.page.evaluate(() => window.BatmishEvents.engine().tick()); await sleep(600);
+ok(await Z.page.evaluate(() => !window.BatmishEvents.status().active.some((a) => a.eventId === 'cw.e4') && cwDoubleElimActivated === false), 'انتهى الحدث بانتهاء الدور وعادت الحالة');
+// e5 الحرب الأخيرة (شرط: عدد الدول ≤ whenLeft)
+const left = await Z.page.evaluate(() => cwActiveCountries.length); 
+await Z.page.evaluate(() => { window.BatmishEvents.engine().endRound('cw', 'test'); cwGameStatus = 'idle'; cwActiveCountries = []; });
+await reset();
+await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const H = { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, B = Batmish.controller.relay(); for (const id of ['cw.e1', 'cw.e2', 'cw.e3', 'cw.e4']) await fetch(B + '/batmish/events/event', { method: 'POST', headers: H, body: JSON.stringify({ tag: 'cw', eventId: id, values: { enabled: false } }) }); await fetch(B + '/batmish/events/game', { method: 'POST', headers: H, body: JSON.stringify({ tag: 'cw', values: { mode: 'random' } }) }); await new Promise((r) => window.BatmishEvents.reload(r)); });
+await Z.page.evaluate(() => { for (let i = 1; i <= 5; i++) cwJoinParticipant({ uniqueId: 'p' + i, nickname: 'لاعب' + i, isFollower: true, followKnown: true, followRole: 1 }); });
+const prevSecs = await Z.page.evaluate(() => { startCountryWarRound(); return cwTurnSeconds; });
+await sleep(1200);
+ok(await Z.page.evaluate(() => window.BatmishEvents.status().active.every((a) => a.eventId !== 'cw.e5')), 'الحرب الأخيرة لا تظهر قبل تحقق الشرط (5 دول > 4)');
+await Z.page.evaluate(() => { cwActiveCountries = cwActiveCountries.slice(0, 3); });
+const r5 = await until(() => Z.page.evaluate(() => window.BatmishEvents.status().active.some((a) => a.eventId === 'cw.e5') ? { secs: cwTurnSeconds, en: cwDoubleElimEnabled, from: cwDoubleElimFrom } : null), 4000);
+ok(r5 && r5.secs === 8 && r5.en && r5.from === 99, 'الحرب الأخيرة: ظهرت بعد تحقق الشرط وقلّصت وقت الدور وفعّلت الإقصاء المزدوج', r5);
+await Z.page.evaluate(() => { cwGameStatus = 'finished'; });
+await sleep(1500);
+ok(await Z.page.evaluate((p) => cwTurnSeconds === p && cwDoubleElimEnabled === false && window.BatmishEvents.status().active.length === 0, prevSecs), 'انتهاء الجولة أثناء الحدث: أُلغي وعادت قيم اللعبة الأصلية');
+await Z.page.evaluate(() => { cwGameStatus = 'idle'; });
+
+console.log('== E4ب) لعبة التوقيت الحقيقية: ثلاثة أحداث مربوطة');
+await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const H = { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, B = Batmish.controller.relay(); await fetch(B + '/batmish/events/game', { method: 'POST', headers: H, body: JSON.stringify({ tag: 'tmr', values: { mode: 'manual' } }) }); for (const id of ['tmr.e1', 'tmr.e2', 'tmr.e3']) await fetch(B + '/batmish/events/event', { method: 'POST', headers: H, body: JSON.stringify({ tag: 'tmr', eventId: id, values: { enabled: true } }) }); await new Promise((r) => window.BatmishEvents.reload(r)); });
+await Z.page.evaluate(() => { tmrGameStatus = 'waiting'; startTimerClock(); });
+ok(await Z.page.evaluate(() => window.BatmishEvents.status().rounds.includes('tmr')), 'بدء جولة التوقيت يبدأ جولة أحداث (hook فعلي)');
+const t1 = await Z.page.evaluate(async () => { const r = window.BatmishEvents.trigger('tmr', 'tmr.e1'); await new Promise((x) => setTimeout(x, 700)); const a = parseFloat(document.getElementById('tmr-clock').textContent); await new Promise((x) => setTimeout(x, 700)); const b = parseFloat(document.getElementById('tmr-clock').textContent); return { ok: r.ok, rev: tmrReverseClock, a, b }; });
+ok(t1.ok && t1.rev && t1.a > 25 && t1.b < t1.a, 'الوقت المعكوس: الساعة صارت تنازلية فعلياً', t1);
+const conf = await Z.page.evaluate(() => window.BatmishEvents.trigger('tmr', 'tmr.e3'));
+ok(!conf.ok && /conflict/.test(conf.reason), 'التعارض: «الساعة المخفية» ترفض أثناء «الوقت المعكوس» (نفس مجموعة العرض) دون إيقاف الجولة', conf);
+const t2 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('tmr', 'tmr.e2'); return { ok: r.ok, on: tmrGoldenZoneEnabled, s: tmrGoldenZoneStart, e: tmrGoldenZoneEnd, el: tmrElapsed }; });
+ok(t2.ok && t2.on && t2.s > t2.el && Math.abs(t2.e - t2.s - 0.3) < 1e-6, 'المنطقة الذهبية: نافذة 0.3ث بالمستقبل', t2);
+const win = await Z.page.evaluate(() => { tmrStartTime = performance.now() - (tmrGoldenZoneStart + 0.1) * 1000; tmrRecordGuess({ uniqueId: 'gold1', nickname: 'ذهبي', isFollower: true }); return { st: tmrGameStatus, golden: tmrGuesses.length && tmrGuesses[0].golden === true }; });
+ok(win.st === 'stopped' && win.golden, 'الوقوف داخل المنطقة الذهبية يفوز فوراً (منطق اللعبة الأصلي)', win);
+await sleep(1200);
+ok(await Z.page.evaluate(() => tmrReverseClock === false && tmrGoldenZoneEnabled === false && window.BatmishEvents.status().active.length === 0), 'انتهاء الجولة: أُلغيت الأحداث وعادت المتغيرات الأصلية');
+await Z.page.evaluate(() => { window.BatmishEvents.engine().endRound('tmr', 'test'); tmrGameStatus = 'waiting'; startTimerClock(); });
+const t3 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('tmr', 'tmr.e3'); return { ok: r.ok, vis: document.getElementById('tmr-clock').style.visibility }; });
+ok(t3.ok && t3.vis === 'hidden', 'الساعة المخفية: اختفت الساعة', t3);
+await Z.page.evaluate(() => { const a = window.BatmishEvents.status().active.find((x) => x.eventId === 'tmr.e3'); window.BatmishEvents.engine().cancelEvent('tmr', a.id); });
+ok(await Z.page.evaluate(() => document.getElementById('tmr-clock').style.visibility === ''), 'إيقاف الحدث يعيد الساعة');
+await Z.page.evaluate(() => { stopTimerClock(true); }); await sleep(700);
+
+console.log('== E5) المعاينة لا تلمس اللعبة، والسجل يعرض الحقيقة');
+await reset();
+const beforeHist = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/history', { headers: { Authorization: 'Bearer ' + t } }); return (await r.json()).stats.total; });
+await Z.page.evaluate(() => { cwAlliancePair = null; window.BatmishEvents.preview('cw', 'cw.e1'); });
+await sleep(800);
+const pv = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/history', { headers: { Authorization: 'Bearer ' + t } }); return { total: (await r.json()).stats.total, pair: cwAlliancePair, card: !!document.querySelector('#bmev-host .bmev') }; });
+ok(pv.pair === null && pv.total === beforeHist && pv.card, 'المعاينة تعرض فقط: لا تغيّر اللعبة ولا تُسجَّل', { beforeHist, pv });
+await Z.page.click('.bm-nav-item[data-nav="events"]'); await sleep(700);
+await Z.page.click('[data-ev="tab"][data-id="history"]'); await sleep(1800);
+const hist = await Z.page.evaluate(() => ({ rows: document.querySelectorAll('.bm-evtbl tbody tr').length, txt: document.querySelector('.bm-evtbl') ? document.querySelector('.bm-evtbl').innerText : '' }));
+ok(hist.rows >= 8 && /مكتمل/.test(hist.txt) && /ملغي/.test(hist.txt) && /تحالف سري/.test(hist.txt), 'السجل: صفوف حقيقية بحالات مكتمل/ملغي وتأثير فعلي', hist.rows);
+await Z.page.selectOption('[data-evhf="status"]', 'cancelled'); await sleep(1500);
+ok(await Z.page.evaluate(() => [...document.querySelectorAll('.bm-evtbl tbody tr')].every((r) => /ملغي/.test(r.innerText)) && document.querySelectorAll('.bm-evtbl tbody tr').length > 0), 'فلتر الحالة يعمل');
+await Z.page.screenshot({ path: SHOTS + '/ev-03-history.png' });
+// مجموعات
+await Z.page.click('[data-ev="tab"][data-id="center"]'); await sleep(500); await Z.page.click('.bm-evgc:has-text("حرب الدول") [data-ev="open"]'); await sleep(700);
+await Z.page.fill('#bmev-pname', 'وضع الفوضى'); await Z.page.click('[data-ev="p-create"]'); await sleep(1500);
+ok(await Z.page.evaluate(() => /وضع الفوضى/.test(document.querySelector('.bm-sl').innerText)), 'حفظ مجموعة أحداث للعبة');
+await Z.page.click('[data-ev="p-dup"]'); await sleep(1500);
+ok(await Z.page.evaluate(() => document.querySelectorAll('.bm-sl li').length === 2), 'نسخ المجموعة');
+await Z.page.click('.bm-sl li:last-child [data-ev="p-del"]'); await sleep(400); await Z.page.click('.bm-dlg [data-ok]'); await sleep(1500);
+ok(await Z.page.evaluate(() => document.querySelectorAll('.bm-sl li').length === 1), 'حذف المجموعة بعد تأكيد');
+
+console.log('== E6) العزل بين الحسابات + الجوال');
+const O = await newCtx('O'); await open(O.page);
+await signup(O.page, 'other_user2', 'o2@test.com');
+const iso = await O.page.evaluate(async (api) => { TIKTOK_BRIDGE_SERVERS[0] = api.replace('http', 'ws') + '/ws'; const t = await window.__auth.currentUser.getIdToken(); const base = Batmish.controller.relay(); const out = []; for (const p of ['/batmish/events/bootstrap', '/batmish/events/history']) out.push((await fetch(base + p, { headers: { Authorization: 'Bearer ' + t } })).status); for (const [p, b] of [['/batmish/events/event', { tag: 'cw', eventId: 'cw.e1', values: { enabled: true } }], ['/batmish/events/record', { key: 'x', tag: 'cw', eventId: 'cw.e1', status: 'completed' }]]) out.push((await fetch(base + p, { method: 'POST', headers: { Authorization: 'Bearer ' + t, 'Content-Type': 'application/json' }, body: JSON.stringify(b) })).status); return out; }, API);
+ok(iso.every((s) => s === 403), 'حساب غير مصرّح: كل مسارات الأحداث 403 (قراءة وكتابة وتسجيل)', iso);
+ok(await O.page.evaluate(() => !window.BatmishEvents && !window.__bmStreamTap || !window.BatmishEvents), 'لا يُحمَّل محرك الأحداث لحساب غير مصرّح');
+await O.ctx.close();
+const M = await newCtx('M', { width: 390, height: 780 }); await open(M.page);
+await M.page.evaluate((api) => { TIKTOK_BRIDGE_SERVERS[0] = api.replace('http', 'ws') + '/ws'; }, API);
+const uidM = await signup(M.page, 'mobile_z', 'mz@test.com'); await bind(uidM); await linkStream(M.page, '_zvd4');
+ok(!!(await until(() => btn(M.page), 20000)), 'جوال: يظهر الزر'); await M.page.click('#batmish-launch'); await M.page.waitForSelector('#batmish-root.is-open'); await sleep(2500);
+await M.page.evaluate(() => window.Batmish.ui._dash.go('events')); await sleep(1500);
+ok(await M.page.evaluate(() => document.querySelectorAll('.bm-evgc').length === 31 && document.documentElement.scrollWidth <= innerWidth + 2), 'جوال: بطاقات الألعاب بلا تمرير أفقي');
+await M.page.evaluate(() => window.Batmish.ui._dash.go('evgame', 'cw')); await sleep(1200);
+ok(await M.page.evaluate(() => document.querySelectorAll('.bm-evc[data-evid]').length === 5 && document.documentElement.scrollWidth <= innerWidth + 2), 'جوال: صفحة اللعبة بلا تمرير أفقي');
+await M.page.screenshot({ path: SHOTS + '/ev-04-mobile.png' });
+
+console.log('== E7) أخطاء الصفحة');
+const real = errors.filter((e) => !/webgl/i.test(e));
+ok(real.length === 0, 'لا أخطاء JavaScript', real.slice(0, 5));
+await browser.close();
+console.log(`\nالنتيجة: ${pass} نجح، ${fail} فشل`);
+process.exit(fail ? 1 : 0);
