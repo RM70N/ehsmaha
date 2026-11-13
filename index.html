@@ -81973,10 +81973,11 @@ function tt10ProcessAnswer(user, text) {
 
   const entry = tt10Scores.get(user.uniqueId) || { user, score: 0 };
   entry.user = user;
-  entry.score += match.rank;
+  const tt10Pts = match.rank * (match.bonusMul || 1); // BATMISH (أحداث خاصة): مضاعِف نقاط لإجابة محددة
+  entry.score += tt10Pts;
   tt10Scores.set(user.uniqueId, entry);
 
-  toast('✅ ' + (user.nickname || user.uniqueId) + ' جاوب "' + match.value + '" صح — أخذ ' + match.rank + ' نقطة!');
+  toast('✅ ' + (user.nickname || user.uniqueId) + ' جاوب "' + match.value + '" صح — أخذ ' + tt10Pts + ' نقطة!');
   if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(user);
 
   tt10RenderGrid();

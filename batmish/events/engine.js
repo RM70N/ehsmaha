@@ -37,7 +37,7 @@
   var presenter = {
     start: function (inst, def, cfg) {
       var ad = adapters[inst.tag], ev = ad && ad.events[def.id];
-      if (cfg.vfx !== false && cfg.announce !== false) show(def, 'bmev-start', (ev && ev.announceText) || def.desc, 4200);
+      var at = ev && ev.announceText; if (typeof at === 'function') { try { at = at(inst); } catch (e) { at = ''; } } if (cfg.vfx !== false && cfg.announce !== false) show(def, 'bmev-start', at || def.desc, 4200);
       if (cfg.sfx !== false) beep([523, 784, 1047], .07);
     },
     warn: function (inst, def) { if (inst.cfg.vfx !== false && inst.cfg.announce !== false) show(def, 'bmev-warn', 'الحدث على وشك الانتهاء', 2400); if (inst.cfg.sfx !== false) beep([440, 440], .06); },
@@ -64,6 +64,10 @@
     var h = adapters[tag].hook; if (!h) return; hooked[tag] = true;
     var orig = window[h.start]; if (typeof orig !== 'function') { hooked[tag] = false; return; }
     window[h.start] = function () {
+      if (h.before) {   // ألعاب تحتاج أن تسبق الأحداثُ بدايةَ المرحلة (مثل خلط الأكواب): نبدأ الجولة ثم نُنفّذ المستحَق فوراً قبل اللعبة
+        try { if (engine && (!h.canBegin || h.canBegin())) { engine.beginRound(tag, {}); engine.tick(); } } catch (e) { console.warn('[bmev] beginRound', e); }
+        return orig.apply(this, arguments);
+      }
       var r = orig.apply(this, arguments);
       try { if (engine && h.began()) engine.beginRound(tag, {}); } catch (e) { console.warn('[bmev] beginRound', e); }
       return r;

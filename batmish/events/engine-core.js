@@ -47,6 +47,7 @@
         var c = eventCfg(tag, e.id, snap), end = c.toSec > 0 ? c.toSec : r.windowSec;
         if (e.type === 'manual' || g.mode === 'manual') return;
         if (e.type === 'final' || e.type === 'milestone') { r.plan.push({ id: e.id, kind: 'condition', defers: 0, n: 0 }); return; }
+        if (ad.planAtStart && g.mode !== 'scheduled') { for (var q = 0; q < c.maxPerRound; q++) if (rng() * 100 < c.probability) r.plan.push({ id: e.id, kind: 'time', at: now(), defers: 0, n: q }); return; }   // ألعاب أحداثها لازم تسبق بداية المرحلة (مثل الخلط)
         if (g.mode === 'scheduled') { r.plan.push({ id: e.id, kind: 'time', at: now() + (Math.min(c.fromSec, end) * 1000), defers: 0, n: 0 }); return; }
         if (g.mode === 'hybrid' && e.type === 'scheduled') { r.plan.push({ id: e.id, kind: 'time', at: now() + (Math.min(c.fromSec, end) * 1000), defers: 0, n: 0 }); return; }
         // random: كل ظهور مسموح (حتى maxPerRound) يُسحب له احتمال مرة واحدة بالراوند + توقيت عشوائي ضمن النافذة

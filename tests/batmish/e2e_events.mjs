@@ -541,6 +541,35 @@ await Z.page.evaluate(() => { glzGameStatus = 'resolving'; }); await sleep(1200)
 ok(await Z.page.evaluate(() => document.getElementById('glz-opt-0-text').style.filter === '' && document.getElementById('glz-panel-0').style.boxShadow === '' && document.getElementById('glz-panel-1').style.boxShadow === '' && window.BatmishEvents.status().active.length === 0), 'الجسر الزجاجي: انتهاء السؤال يعيد التنسيق الأصلي');
 await Z.page.evaluate(() => { glzGameStatus = 'lobby'; if (glzTimerInterval) { clearInterval(glzTimerInterval); glzTimerInterval = null; } });
 
+console.log('== E4ز) أين الكرة (جولة حقيقية كاملة) وتوب 10');
+await api('/batmish/events/game', { tag: 'findball', values: { mode: 'random', minGapSec: 0, maxPerRound: 5 } });
+for (const id of ['findball.e1', 'findball.e2', 'findball.e3']) await api('/batmish/events/event', { tag: 'findball', eventId: id, values: { enabled: true, probability: 100, fromSec: 0 } });
+await Z.page.evaluate(() => new Promise((r) => window.BatmishEvents.reload(r)));
+await Z.page.evaluate((us) => { window.__fbLog = { minMs: 1e9, swaps: 0, status: [], opac: null }; findballParticipants.clear(); findballGameStatus = 'waiting'; findballRoundNum = 0; findballShuffling = false; FINDBALL_SHUFFLE_MIN_MS = 6000; FINDBALL_SHUFFLE_FLOOR_MS = 1800; FINDBALL_SWAP_COUNT = 6; us.forEach((u) => { findballParticipants.set(u.uniqueId, u); }); window.__fbBase = { min: modGetSetting('findball', 'shuffleMinMs', 6000), swaps: modGetSetting('findball', 'swapCount', 6) }; window.__fbIv = setInterval(() => { const st = findballGameStatus; if (!window.__fbLog.status.length || window.__fbLog.status[window.__fbLog.status.length - 1] !== st) window.__fbLog.status.push(st); if (st === 'shuffling') { window.__fbLog.minMs = Math.min(window.__fbLog.minMs, FINDBALL_SHUFFLE_MIN_MS); window.__fbLog.swaps = Math.max(window.__fbLog.swaps, FINDBALL_SWAP_COUNT); } if (st === 'guessing') { const o = ['a', 'b', 'c'].map((c) => document.getElementById('findball-cup-' + c).style.opacity).filter((x) => x === '0.12'); if (o.length) window.__fbLog.opac = o.length; } }, 80); findballStartRoundClick(); }, Us(131, 3));
+ok(await until(() => Z.page.evaluate(() => window.__fbLog.status.includes('shuffling')), 15000), 'أين الكرة: الجولة الحقيقية وصلت لمرحلة الخلط');
+await until(() => Z.page.evaluate(() => window.__fbLog.status.includes('guessing')), 30000);
+await sleep(1500);
+const fbq = await Z.page.evaluate(() => ({ log: window.__fbLog, base: window.__fbBase, status: window.BatmishEvents.status().stats }));
+ok(fbq.log.minMs < fbq.base.min * 0.8, 'الخلط السريع: مدة الخلط قُصّرت فعلاً قبل بدء الخلط', fbq);
+ok(fbq.log.swaps > fbq.base.swaps, 'تبديل مفاجئ: عدد التبديلات زاد فعلاً', fbq);
+ok(fbq.log.opac === 1, 'الكأس المتخفي: تلاشى كأس واحد فعلاً عند بدء التخمين', fbq.log);
+await Z.page.evaluate(() => { clearInterval(window.__fbIv); findballRunId++; findballGameStatus = 'finished-round'; findballShuffling = false; }); await sleep(1500);
+ok(await Z.page.evaluate(() => FINDBALL_SHUFFLE_MIN_MS === 6000 && FINDBALL_SWAP_COUNT === 6 && ['a', 'b', 'c'].every((c) => document.getElementById('findball-cup-' + c).style.opacity !== '0.12') && window.BatmishEvents.status().active.length === 0), 'أين الكرة: انتهاء الجولة يعيد سرعة الخلط وعدد التبديلات والأكواب');
+// ---- توب 10
+await enable('tt10', ['tt10.e2', 'tt10.e3', 'tt10.e5'], {});
+await Z.page.evaluate(() => { tt10GameStatus = 'waiting'; tt10Round = 0; tt10Scores.clear(); startTop10RoundWrapper = null; tt10StartRound(); });
+ok(await Z.page.evaluate(() => tt10GameStatus === 'active' && window.BatmishEvents.status().rounds.includes('tt10')), 'توب 10: بدء الجولة الحقيقية يبدأ جولة أحداث');
+const tq2 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('tt10', 'tt10.e2'); const it = tt10CurrentQuestion.items.find((i) => i.bonusMul); const val = it.value; tt10ProcessAnswer({ uniqueId: 'tp1', nickname: 'أ', isFollower: true, followKnown: true }, val); return { ok: r.ok, rank: it.rank, score: tt10Scores.get('tp1') && tt10Scores.get('tp1').score }; });
+ok(tq2.ok && tq2.score === tq2.rank * 2, 'المركز الذهبي: الإجابة الصحيحة منحت نقاطاً مضاعفة فعلاً', tq2);
+await Z.page.evaluate(() => window.BatmishEvents.status().active.forEach((a) => window.BatmishEvents.engine().cancelEvent('tt10', a.id)));
+const tq3 = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('tt10', 'tt10.e3'); const it = tt10CurrentQuestion.items.find((i) => !i.revealed && i.rank >= 7); tt10ProcessAnswer({ uniqueId: 'tp2', nickname: 'ب', isFollower: true, followKnown: true }, it.value); return { ok: r.ok, rank: it.rank, score: tt10Scores.get('tp2') && tt10Scores.get('tp2').score }; });
+ok(tq3.ok && tq3.score === tq3.rank * 2, 'تحدي المراكز الأخيرة: نقاط المراكز المتأخرة تضاعفت فعلاً', tq3);
+await Z.page.evaluate(() => window.BatmishEvents.status().active.forEach((a) => window.BatmishEvents.engine().cancelEvent('tt10', a.id)));
+const tq5 = await Z.page.evaluate(() => { const open = tt10CurrentQuestion.items.filter((i) => !i.revealed); open.slice(0, open.length - 3).forEach((i) => { i.revealed = true; }); const rem = tt10CurrentQuestion.items.filter((i) => !i.revealed); const before = rem.map((i) => i.rank); const r = window.BatmishEvents.trigger('tt10', 'tt10.e5'); const after = rem.map((i) => i.rank); return { ok: r.ok, before, after }; });
+ok(tq5.ok && JSON.stringify(tq5.after) === JSON.stringify(tq5.before.slice().reverse()) && JSON.stringify(tq5.before) !== JSON.stringify(tq5.after), 'النهائي المقلوب: انعكست قيم نقاط الإجابات المتبقية', tq5);
+await Z.page.evaluate(() => { tt10GameStatus = 'roundover'; }); await sleep(1200);
+ok(await Z.page.evaluate(() => window.BatmishEvents.status().active.length === 0 && tt10CurrentQuestion.items.every((i) => !i.bonusMul)), 'توب 10: انتهاء الجولة يعيد القيم الأصلية');
+
 console.log('== E5) المعاينة لا تلمس اللعبة، والسجل يعرض الحقيقة');
 await reset();
 const beforeHist = await Z.page.evaluate(async () => { const t = await window.__auth.currentUser.getIdToken(); const r = await fetch(Batmish.controller.relay() + '/batmish/events/history', { headers: { Authorization: 'Bearer ' + t } }); return (await r.json()).stats.total; });

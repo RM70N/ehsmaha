@@ -768,4 +768,65 @@
       }
     }
   };
+
+  /* ===================== توب 10 (tt10) ===================== */
+  // المتغيرات: tt10GameStatus, tt10CurrentQuestion.items[{rank,value,revealed,bonusMul}]، tt10RenderGrid()
+  function ttActive() { try { return tt10GameStatus === 'active' && !!tt10CurrentQuestion; } catch (e) { return false; } }
+  function ttOpen() { return tt10CurrentQuestion.items.filter(function (i) { return !i.revealed; }); }
+  A.tt10 = {
+    tag: 'tt10', hook: { start: 'tt10StartRound', began: ttActive }, windowSec: function () { return 60; }, isRoundOver: function () { return !ttActive(); },
+    events: {
+      // 2) المركز الذهبي: إجابة غير مكشوفة تُضاعَف نقاطها
+      'tt10.e2': {
+        canRun: function () { try { return ttActive() && ttOpen().length >= 2 ? true : { ok: false, reason: 'not_enough_items' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var it = pickOne(ttOpen().filter(function (i) { return !i.bonusMul; })); if (!it) return { failed: 'no_item' }; it.bonusMul = 2; try { tt10RenderGrid(); } catch (e) { /* واجهة */ } return { effect: 'المركز ' + it.rank + ' صار ذهبياً (نقاطه ×2)', sustain: true, data: { it: it }, revert: function () { if (it.bonusMul === 2) delete it.bonusMul; } }; },
+        shouldEnd: function (ctx, inst) { return !ttActive() || inst.data.it.revealed; },
+        announceText: function (inst) { return inst && inst.effect ? inst.effect : 'مركز ذهبي! نقاطه مضاعفة'; }
+      },
+      // 3) تحدي المراكز الأخيرة: الإجابات ذات المراكز المتأخرة تُضاعَف نقاطها
+      'tt10.e3': {
+        canRun: function () { try { return ttActive() && ttOpen().length >= 1 ? true : { ok: false, reason: 'no_items' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst, c) { var picked = ttOpen().filter(function (i) { return i.rank >= (c.fromRank || 7) && !i.bonusMul; }); if (!picked.length) return { failed: 'no_late_items' }; picked.forEach(function (i) { i.bonusMul = 2; }); return { effect: 'نقاط ' + picked.length + ' من المراكز الأخيرة ×2', sustain: true, revert: function () { picked.forEach(function (i) { if (i.bonusMul === 2) delete i.bonusMul; }); } }; },
+        shouldEnd: function () { return !ttActive(); }, announceText: 'تحدي المراكز الأخيرة! نقاطها مضاعفة'
+      },
+      // 5) النهائي المقلوب: عند بقاء إجابات قليلة تُعكس قيم نقاطها
+      'tt10.e5': {
+        condition: function (ctx, c) { try { var n = ttActive() ? ttOpen().length : 0; return n >= 2 && n <= c.whenLeft; } catch (e) { return false; } },
+        canRun: function () { try { return ttActive() && ttOpen().length >= 2 ? true : { ok: false, reason: 'not_enough_items' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var open = ttOpen(), ranks = open.map(function (i) { return i.rank; }), orig = ranks.slice(), rev = ranks.slice().reverse(); open.forEach(function (it, k) { it.rank = rev[k]; }); try { tt10RenderGrid(); } catch (e) { /* واجهة */ } return { effect: 'عُكست نقاط ' + open.length + ' إجابات متبقية', sustain: true, revert: function () { open.forEach(function (it, k) { if (!it.revealed) it.rank = orig[k]; }); } }; },
+        shouldEnd: function () { return !ttActive(); }, announceText: 'النهائي المقلوب! النقاط انعكست'
+      }
+    }
+  };
+
+  /* ===================== أين الكرة (findball) ===================== */
+  // المتغيرات: findballGameStatus ('hiding'|'shuffling'|'guessing'|'revealing'|'finished-round'), findballShuffling, FINDBALL_SHUFFLE_MIN_MS/FLOOR_MS/FINDBALL_SWAP_COUNT
+  function fbLive() { try { return findballGameStatus === 'hiding' || findballGameStatus === 'shuffling' || findballGameStatus === 'guessing'; } catch (e) { return false; } }
+  A.findball = {
+    tag: 'findball', planAtStart: true,
+    hook: { start: 'findballShuffle', before: true, canBegin: function () { try { return !findballShuffling; } catch (e) { return false; } } },
+    windowSec: function () { return 30; },
+    isRoundOver: function () { try { return !(findballGameStatus === 'hiding' || findballGameStatus === 'shuffling' || findballGameStatus === 'guessing'); } catch (e) { return true; } },
+    events: {
+      // 1) الخلط السريع: مدة الخلط أقصر بكثير (تُطبَّق على الخلط القادم)
+      'findball.e1': {
+        canRun: function () { try { return !findballShuffling ? true : { ok: false, reason: 'shuffle_started' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var a = FINDBALL_SHUFFLE_MIN_MS, b = FINDBALL_SHUFFLE_FLOOR_MS, k = Math.max(0.25, 0.5 / inst.factor); FINDBALL_SHUFFLE_MIN_MS = Math.round(a * k); FINDBALL_SHUFFLE_FLOOR_MS = Math.round(b * k); var na = FINDBALL_SHUFFLE_MIN_MS, nb = FINDBALL_SHUFFLE_FLOOR_MS; return { effect: 'مدة الخلط ×' + k.toFixed(2), sustain: true, revert: function () { if (FINDBALL_SHUFFLE_MIN_MS === na) FINDBALL_SHUFFLE_MIN_MS = a; if (FINDBALL_SHUFFLE_FLOOR_MS === nb) FINDBALL_SHUFFLE_FLOOR_MS = b; } }; },
+        shouldEnd: function () { return !fbLive(); }, announceText: 'خلط سريع! الأكواب تتحرك بسرعة'
+      },
+      // 2) الكأس المتخفي: عند بدء التخمين يتلاشى أحد الأكواب (شبه شفاف)
+      'findball.e2': {
+        condition: function () { try { return findballGameStatus === 'guessing'; } catch (e) { return false; } },
+        canRun: function () { try { return findballGameStatus === 'guessing' ? true : { ok: false, reason: 'not_guessing' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { var id = pickOne(['a', 'b', 'c']), el = document.getElementById('findball-cup-' + id); if (!el) return { failed: 'cup_missing' }; var prev = el.style.opacity; el.style.opacity = '0.12'; return { effect: 'تلاشى الكأس ' + id.toUpperCase(), sustain: true, revert: function () { el.style.opacity = prev; } }; },
+        shouldEnd: function () { try { return findballGameStatus !== 'guessing'; } catch (e) { return true; } }, announceText: 'كأس متخفٍّ! أحد الأكواب تلاشى'
+      },
+      // 3) تبديل مفاجئ: عدد تبديلات أكبر في الخلط القادم
+      'findball.e3': {
+        canRun: function () { try { return !findballShuffling ? true : { ok: false, reason: 'shuffle_started' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function (ctx, inst) { var add = Math.max(2, Math.round(4 * inst.factor)), prev = FINDBALL_SWAP_COUNT; FINDBALL_SWAP_COUNT = prev + add; var now = FINDBALL_SWAP_COUNT; return { effect: 'تبديلات إضافية +' + add, sustain: true, revert: function () { if (FINDBALL_SWAP_COUNT === now) FINDBALL_SWAP_COUNT = prev; } }; },
+        shouldEnd: function () { return !fbLive(); }, announceText: 'تبديل مفاجئ! تبديلات أكثر'
+      }
+    }
+  };
 })();

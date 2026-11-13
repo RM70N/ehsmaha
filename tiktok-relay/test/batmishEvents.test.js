@@ -55,7 +55,7 @@ test('الخدمة: لا يُفعَّل حدث غير مربوط بمحرك لع
   const un = Object.values(EVENT_BY_ID).filter((e) => !e.implemented);
   assert.ok(un.length > 20);
   await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported');
-  await rej(s.setEvent('u1', 'findball', 'findball.e1', { enabled: true }), 'event_not_supported');
+  await rej(s.setEvent('u1', 'bomb', 'bomb.e1', { enabled: true }), 'event_not_supported');
 });
 test('العزل: إعدادات وسجل ومجموعات كل uid مستقلة تماماً', async () => {
   const s = mk();

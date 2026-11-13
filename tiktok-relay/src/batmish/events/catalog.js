@@ -45,6 +45,12 @@ const SRC = [
 // الأحداث المربوطة فعلاً بمحرك لعبتها (تُحدَّث كلما أُضيف Adapter + اختبار). المفتاح = معرف الحدث.
 // الحقول: type نوع التشغيل، group مجموعة التعارض، durationSec المدة الافتراضية (إن وجدت)، fields حقول خاصة بالحدث.
 export const IMPLEMENTED = {
+  'tt10.e2': { type: 'random', group: 'tt10.bonus', fields: [] },
+  'tt10.e3': { type: 'random', group: 'tt10.bonus', fields: [{ key: 'fromRank', type: 'number', label: 'تُضاعَف نقاط المراكز من هذا الرقم فما فوق', hint: 'الحالي: 7', default: 7, min: 2, max: 10 }] },
+  'tt10.e5': { type: 'final', group: 'tt10.rank', fields: [{ key: 'whenLeft', type: 'number', label: 'يبدأ لما يتبقى هذا العدد من الإجابات أو أقل', hint: 'الحالي: 3', default: 3, min: 2, max: 6 }] },
+  'findball.e1': { type: 'random', group: 'findball.speed', planAtStart: true, fields: [] },
+  'findball.e2': { type: 'milestone', group: 'findball.cup', fields: [] },
+  'findball.e3': { type: 'random', group: 'findball.swaps', planAtStart: true, fields: [] },
   'maze.e1': { type: 'random', group: 'maze.layout', fields: [{ key: 'changes', type: 'number', label: 'عدد الجدران التي تتغير (تُفتح وتُغلق)', hint: 'الحالي: 3', default: 3, min: 1, max: 8 }] },
   'maze.e2': { type: 'random', group: 'maze.layout', fields: [] },
   'maze.e3': { type: 'random', group: 'maze.dark', fields: [{ key: 'durationSec', type: 'number', label: 'مدة العتمة (بالثواني)', hint: 'الحالي: 10', default: 10, min: 3, max: 60 }] },
