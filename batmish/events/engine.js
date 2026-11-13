@@ -95,7 +95,7 @@
   function preview(tag, eventId) {
     var g = catalog && catalog.games.filter(function (x) { return x.tag === tag; })[0], def = g && g.events.filter(function (e) { return e.id === eventId; })[0]; if (!def) return false;
     var d = { id: def.id, tag: tag, name: def.name, desc: def.desc };
-    var ad = adapters[tag], txt = (ad && ad.events[eventId] && ad.events[eventId].announceText) || def.desc;
+    var ad = adapters[tag], txt = (ad && ad.events[eventId] && ad.events[eventId].announceText) || def.desc; if (typeof txt === 'function') { try { txt = txt({ data: {}, cfg: {} }); } catch (e) { txt = def.desc; } }
     show(d, 'bmev-start', txt, 3000, true); setTimeout(function () { show(d, 'bmev-warn', 'الحدث على وشك الانتهاء', 2000, true); }, 3300); setTimeout(function () { show(d, 'bmev-end', 'انتهى الحدث وعادت قواعد اللعبة', 2200, true); }, 5600);
     beep([523, 784, 1047], .05); return true;
   }

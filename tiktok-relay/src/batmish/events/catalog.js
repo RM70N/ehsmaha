@@ -131,6 +131,26 @@ export const IMPLEMENTED = {
   ] },
 };
 
+// ===== الدفعة الثانية (أحداث الألعاب الإضافية): مساعدات لتقليل التكرار =====
+const DUR = (sec, label) => ({ key: 'durationSec', type: 'number', label: label || 'مدة الحدث (بالثواني)', hint: 'الحالي: ' + sec, default: sec, min: 3, max: 300 });
+const NUM = (key, label, def, min, max) => ({ key, type: 'number', label, hint: 'الحالي: ' + def, default: def, min, max });
+const EV = (group, fields, type, extra) => Object.assign({ type: type || 'random', group, fields: fields || [] }, extra || {});
+Object.assign(IMPLEMENTED, {
+  'main.e2': EV('main.word'), 'main.e3': EV('main.hint', [DUR(15, 'مدة ظهور التلميح قبل سحبه (بالثواني)')]), 'main.e5': EV('main.word'),
+  'll.e1': EV('ll.rule', [DUR(30, 'مدة منع الحرف (بالثواني)')]),
+  'll.e3': EV('ll.turn'),
+  'll.e4': EV('ll.rule', [NUM('minLen', 'أقل عدد حروف للكلمة', 5, 3, 10), DUR(30)]),
+  'll.e5': EV('ll.rule', [NUM('turns', 'عدد الأدوار', 3, 2, 8)]),
+  'wai.e4': EV('wai.hint'), 'wai.e5': EV('wai.bonus', [DUR(15, 'مدة نافذة النقطتين (بالثواني)')]),
+  'rw.e1': EV('rw.display'), 'rw.e4': EV('rw.display'),
+  'lsc.e3': EV('lsc.display'),
+  'guessword.e1': EV('gw.hint'), 'guessword.e3': EV('gw.hint'), 'guessword.e5': EV('gw.board', [DUR(30)]),
+  'ig.e4': EV('ig.visual'),
+  'fastans.e2': EV('fastans.bonus'), 'fastans.e3': EV('fastans.steal'),
+  'wr.e1': EV('wr.display'), 'wr.e2': EV('wr.display'), 'wr.e3': EV('wr.display'), 'wr.e4': EV('wr.display'),
+});
+
+
 // حقول مشتركة لكل حدث (الحقول الخاصة تُضاف فوقها). type: toggle | number | select
 export const COMMON_FIELDS = [
   { key: 'enabled', type: 'toggle', label: 'تفعيل الحدث', default: false },

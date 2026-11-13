@@ -829,4 +829,218 @@
       }
     }
   };
+  /* ===================== الدفعة الجديدة: ألعاب الكلمات (main/ll/wai/rw/lsc/guessword/ig/fastans/wr) ===================== */
+  function nrm(s) { try { return normalize(s); } catch (e) { return String(s); } }
+  function nlen(s) { return Array.from(nrm(s)).length; }
+  function bankWords(minLen, maxLen, not) {
+    var arr = [], nn = nrm(not || '');
+    try { Object.keys(WORDLE_WORD_BANK).forEach(function (k) { WORDLE_WORD_BANK[k].forEach(function (w) { arr.push(w); }); }); } catch (e) { /* لا بنك */ }
+    try { GW_WORD_BANK.forEach(function (x) { if (!/\s/.test(x.word)) arr.push(x.word); }); } catch (e) { /* لا بنك */ }
+    return arr.filter(function (w) { var l = nlen(w); return l >= minLen && l <= maxLen && nrm(w) !== nn; });
+  }
+  function bankWord(len, not) { var a = bankWords(len, len, not); return a.length ? pickOne(a) : null; }
+  function durMs(def) { return function (c) { return (c.durationSec || def) * 1000; }; }
+  function noop() { /* لا شيء */ }
+
+  // ---- أوجد الكلمة: main.e2 / e3 / e5
+  A.main.events['main.e2'] = {
+    canRun: function () { try { return mainActive() && !mainExtraWord && bankWord(nlen(targetWord), targetWord) ? true : { ok: false, reason: mainExtraWord ? 'already_double' : 'no_second_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () { var w = bankWord(nlen(targetWord), targetWord); if (!w) return { failed: 'no_second_word' }; mainExtraWord = w; return { effect: 'كلمتان سريتان: تُقبل أي منهما', sustain: true, revert: function () { if (mainExtraWord === w) mainExtraWord = null; } }; },
+    shouldEnd: function () { return !mainActive(); }, announceText: 'الكلمة المزدوجة! للجولة كلمتان سريتان وأي منهما تفوز'
+  };
+  A.main.events['main.e3'] = {
+    canRun: function () { try { return mainActive() && String(targetWord || '').length >= 2 ? true : { ok: false, reason: 'no_secret_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    durationMs: durMs(15),
+    apply: function () { var box = document.getElementById('main-hint-box'), disp = document.getElementById('main-hint-display'), pd = box.style.display, pt = disp.textContent; mainRevealLetterHint(); var mine = disp.textContent; return { effect: 'تلميح مؤقت ثم يُسحب: ' + mine, sustain: true, revert: function () { if (disp.textContent === mine) { disp.textContent = pt; box.style.display = pd || 'none'; } } }; },
+    announceText: 'التلميح المسروق! تلميح لحظات ثم يُسحب'
+  };
+  A.main.events['main.e5'] = {
+    canRun: function () { try { return mainActive() && bankWord(nlen(targetWord), targetWord) ? true : { ok: false, reason: 'no_replacement_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var prev = targetWord, nw = bankWord(nlen(targetWord), targetWord); if (!nw) return { failed: 'no_replacement_word' };
+      targetWord = nw; guesses = []; try { document.getElementById('guesses-board').innerHTML = '<div class="empty"><div class="empty-icon">🔀</div><div class="empty-txt">الكلمة تغيّرت! ابدؤوا من جديد</div></div>'; } catch (e) { /* واجهة */ }
+      return { effect: 'الكلمة السرية تغيّرت وصُفّرت التخمينات', sustain: true, revert: function () { if (targetWord === nw) targetWord = prev; } };
+    },
+    shouldEnd: function () { return !mainActive(); }, announceText: 'الكلمة المتغيرة! تغيّرت الكلمة السرية — ابدؤوا من جديد'
+  };
+
+  // ---- آخر حرف: ll.e1 / e3 / e4 / e5
+  A.ll.events['ll.e1'] = {
+    canRun: function () { return llActive() && !llBanLetter ? true : { ok: false, reason: llActive() ? 'ban_active' : 'not_active' }; },
+    durationMs: durMs(30),
+    apply: function () {
+      var req = ''; try { req = llReqChar(llCurrentWord); } catch (e) { /* لا حرف */ }
+      var L = pickOne('ابتلمنرويهسف'.split('').filter(function (x) { return x !== req && x !== 'ا'; })); llBanLetter = L;
+      return { effect: 'الحرف الممنوع: ' + L, sustain: true, data: { letter: L }, revert: function () { if (llBanLetter === L) llBanLetter = ''; } };
+    },
+    announceText: function (inst) { return 'الحرف الممنوع «' + (inst.data && inst.data.letter || '') + '»! أي كلمة تحتويه تُقصي قائلها'; }
+  };
+  A.ll.events['ll.e3'] = {
+    canRun: function () { try { return llActive() && !llReturnNext && String(llCurrentWord || '').length >= 2 ? true : { ok: false, reason: llActive() ? 'return_active' : 'not_active' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      llReturnNext = true; var el = document.getElementById('ll-cur-letter'); try { if (el) el.textContent = llGetFirstChar(llCurrentWord); } catch (e) { /* واجهة */ }
+      return { effect: 'الدور القادم يبدأ بأول حرف من الكلمة السابقة', sustain: true, revert: function () { if (llReturnNext) { llReturnNext = false; try { if (el && llActive()) el.textContent = llGetLastChar(llCurrentWord); } catch (e) { /* واجهة */ } } } };
+    },
+    shouldEnd: function () { return !llReturnNext || !llActive(); }, announceText: 'حرف العودة! ابدأ كلمتك بأول حرف من الكلمة السابقة'
+  };
+  A.ll.events['ll.e4'] = {
+    canRun: function () { return llActive() && !llMinLen ? true : { ok: false, reason: llActive() ? 'min_active' : 'not_active' }; },
+    durationMs: durMs(30),
+    apply: function (ctx, inst, c) { var n = Math.max(3, Math.round((c.minLen || 5) * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.2 : 1))); llMinLen = n; return { effect: 'أقل طول للكلمة ' + n + ' حروف', sustain: true, data: { n: n }, revert: function () { if (llMinLen === n) llMinLen = 0; } }; },
+    announceText: function (inst) { return 'الكلمة الطويلة! لا تقل كلمتك عن ' + (inst.data && inst.data.n || 5) + ' حروف'; }
+  };
+  A.ll.events['ll.e5'] = {
+    canRun: function () { return llActive() && !(llChainLeft > 0) ? true : { ok: false, reason: llActive() ? 'chain_active' : 'not_active' }; },
+    apply: function (ctx, inst, c) { var n = Math.max(2, c.turns || 3); llChainLeft = n; return { effect: 'تحدي السلسلة: ' + n + ' أدوار لا تقصر فيها الكلمة', sustain: true, data: { n: n }, revert: function () { llChainLeft = 0; } }; },
+    shouldEnd: function () { return !(llChainLeft > 0) || !llActive(); },
+    announceText: function (inst) { return 'تحدي السلسلة! كل كلمة لا تقصر عن سابقتها لـ' + (inst.data && inst.data.n || 3) + ' أدوار'; }
+  };
+
+  // ---- من أنا؟: wai.e4 / e5
+  A.wai.events['wai.e4'] = {
+    canRun: function () { try { return waiActive() && String(waiCharName || '').length > 1 && DC_CHARACTER_POOL.some(function (n) { return nrm(n) !== nrm(waiCharName); }) ? true : { ok: false, reason: 'no_decoy' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var decoy = pickOne(DC_CHARACTER_POOL.filter(function (n) { return nrm(n) !== nrm(waiCharName); })), pair = rnd(2) ? [waiCharName, decoy] : [decoy, waiCharName];
+      var txt = 'الشخصية إحدى اثنتين: ' + pair[0] + ' أو ' + pair[1], prev = waiShow(txt);
+      return { effect: 'عُرضت شخصيتان محتملتان (واحدة فقط صحيحة)', sustain: true, revert: function () { waiRestore(prev, txt); } };
+    },
+    shouldEnd: function () { return !waiActive(); }, announceText: 'شخصية مزدوجة! الجواب أحد اسمين'
+  };
+  A.wai.events['wai.e5'] = {
+    canRun: function () { return waiActive() && !(waiEarlyBonusUntil > Date.now()) ? true : { ok: false, reason: waiActive() ? 'bonus_active' : 'not_active' }; },
+    durationMs: durMs(15),
+    apply: function (ctx, inst, c) { var until = Date.now() + (c.durationSec || 15) * 1000; waiEarlyBonusUntil = until; return { effect: 'الإجابة الصحيحة المبكرة تنال نقطتين', sustain: true, revert: function () { if (waiEarlyBonusUntil === until) waiEarlyBonusUntil = 0; } }; },
+    announceText: 'الإجابة المبكرة! أسرع إجابة صحيحة تنال نقطتين'
+  };
+
+  // ---- عكس الكلمة: rw.e1 / e4
+  A.rw.events['rw.e1'] = {
+    canRun: function () { try { return rwActive() && !rwDoubleRev && nrm(rwAnswer) !== nrm(rwWord) ? true : { ok: false, reason: rwActive() ? 'palindrome_or_active' : 'not_active' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = document.getElementById('rw-word-display'), hint = document.getElementById('rw-answer-hint'), pe = el.textContent, ph = hint.textContent, mine = rwAnswer;
+      rwDoubleRev = true; el.textContent = mine; hint.textContent = 'العكس المزدوج: الكلمة معكوسة أصلاً — اكتب عكسها (الكلمة الأصلية)';
+      return { effect: 'الكلمة معروضة معكوسة — الجواب هو الكلمة الأصلية', sustain: true, revert: function () { rwDoubleRev = false; if (el.textContent === mine) el.textContent = pe; hint.textContent = ph; } };
+    },
+    shouldEnd: function () { return !rwActive(); }, announceText: 'العكس المزدوج! الكلمة معكوسة أصلاً — اعكسوها مجدداً'
+  };
+  A.rw.events['rw.e4'] = {
+    canRun: function () { try { return rwActive() && bankWords(6, 8, rwWord).length ? true : { ok: false, reason: 'no_long_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var pw = rwWord, pa = rwAnswer, nw = pickOne(bankWords(Math.max(6, nlen(rwWord) + 1), 8, rwWord).concat(bankWords(6, 8, rwWord)).slice(0, 40));
+      var el = document.getElementById('rw-word-display'), hint = document.getElementById('rw-answer-hint'), pe = el.textContent, ph = hint.textContent;
+      rwWord = nw; rwAnswer = reverseArabicWord(nw); el.textContent = nw; hint.textContent = 'اكتب عكسها في الشات — ' + nw.length + ' حروف'; try { document.getElementById('rw-guesses-board').innerHTML = ''; } catch (e) { /* واجهة */ }
+      return { effect: 'استُبدلت الكلمة بكلمة أطول: ' + nw, sustain: true, revert: function () { if (rwWord === nw) { rwWord = pw; rwAnswer = pa; } if (el.textContent === nw) el.textContent = pe; hint.textContent = ph; } };
+    },
+    shouldEnd: function () { return !rwActive(); }, announceText: 'الكلمة الطويلة! ظهرت كلمة أطول للعكس'
+  };
+
+  // ---- ترتيب الحروف: lsc.e3
+  A.lsc.events['lsc.e3'] = {
+    canRun: function () { try { return lscActive() && String(lscScrambled || '').length >= 3 && bankWords(3, 5, lscWord).length ? true : { ok: false, reason: 'no_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = document.getElementById('lsc-word-display'), hint = document.getElementById('lsc-word-hint'), pe = el.textContent, ph = hint.textContent, decoy = pickOne(bankWords(3, 5, lscWord));
+      var letters = Array.from(pe.replace(/\s+/g, '')).concat(Array.from(decoy)); for (var i = letters.length - 1; i > 0; i--) { var j = rnd(i + 1), t = letters[i]; letters[i] = letters[j]; letters[j] = t; }
+      var now = letters.join(' '); el.textContent = now; hint.textContent = 'حروف كلمتين متداخلتين — الجواب كلمة من ' + lscWord.length + ' حروف';
+      return { effect: 'اختلطت حروف الكلمة بحروف كلمة أخرى', sustain: true, revert: function () { if (el.textContent === now) el.textContent = pe; hint.textContent = ph; } };
+    },
+    shouldEnd: function () { return !lscActive(); }, announceText: 'كلمتان متداخلتان! حروف كلمة دخيلة اختلطت'
+  };
+
+  // ---- خمن الموضوع: guessword.e1 / e3 / e5
+  A.guessword.events['guessword.e1'] = {
+    canRun: function () { try { return gwActive() && !gwExtraWord && GW_WORD_BANK.some(function (x) { return nrm(x.word) !== nrm(gwSecretWord); }) ? true : { ok: false, reason: gwExtraWord ? 'double_active' : 'no_second_topic' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var entry = pickOne(GW_WORD_BANK.filter(function (x) { return !/\s/.test(x.word) && nrm(x.word) !== nrm(gwSecretWord); })), el = document.getElementById('gw-hint-show'), wrap = document.getElementById('gw-hint-wrap'), pt = el.textContent, pd = wrap.style.display;
+      gwExtraWord = entry.word; var now = (gwSecretHint ? gwSecretHint + ' — أو — ' : '') + entry.hint; el.textContent = now; wrap.style.display = '';
+      return { effect: 'موضوعان سريان: تُقبل أي كلمة منهما', sustain: true, revert: function () { if (gwExtraWord === entry.word) gwExtraWord = null; if (el.textContent === now) { el.textContent = pt; wrap.style.display = pd; } } };
+    },
+    shouldEnd: function () { return !gwActive(); }, announceText: 'الموضوع المزدوج! للجولة موضوعان وأي منهما يفوز'
+  };
+  A.guessword.events['guessword.e3'] = {
+    canRun: function () { try { return gwActive() && String(gwSecretWord || '').length >= 2 ? true : { ok: false, reason: 'no_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = document.getElementById('gw-hint-show'), wrap = document.getElementById('gw-hint-wrap'), pt = el.textContent, pd = wrap.style.display, w = Array.from(String(gwSecretWord)), cat = 'تصنيف سري: كلمة من ' + w.length + ' حروف تبدأ بحرف «' + w[0] + '»';
+      var now = (pt && pt.trim() ? pt + ' | ' : '') + cat; el.textContent = now; wrap.style.display = '';
+      return { effect: cat, sustain: true, revert: function () { if (el.textContent === now) { el.textContent = pt; wrap.style.display = pd; } } };
+    },
+    shouldEnd: function () { return !gwActive(); }, announceText: 'التصنيف السري! كُشف عدد الحروف والحرف الأول'
+  };
+  A.guessword.events['guessword.e5'] = {
+    canRun: function () { try { return gwActive() && document.getElementById('gw-board') ? true : { ok: false, reason: 'not_active' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    durationMs: durMs(30),
+    apply: function (ctx, inst) {
+      var board = document.getElementById('gw-board'), bar = document.createElement('div'); bar.id = 'bmev-gw-top'; bar.setAttribute('dir', 'rtl');
+      bar.style.cssText = 'margin:8px 0;padding:8px 12px;border:1px solid #e5c84b;border-radius:10px;background:rgba(229,200,75,.12);font-weight:700;font-size:14px'; bar.textContent = 'الاختيار الجماعي: لا تخمينات بعد';
+      board.parentNode.insertBefore(bar, board); inst.data.bar = bar;
+      return { effect: 'لوحة الأقرب جماعياً تُحدَّث مباشرة', sustain: true, data: inst.data, revert: function () { if (bar.parentNode) bar.parentNode.removeChild(bar); } };
+    },
+    onTick: function (ctx, inst) {
+      var top = []; try { top = gwGuesses.slice().sort(function (a, b) { return b.sim - a.sim; }).slice(0, 3); } catch (e) { /* لا تخمينات */ }
+      inst.data.bar.textContent = top.length ? 'الأقرب جماعياً: ' + top.map(function (g) { return g.text + ' (' + g.sim + '٪)'; }).join(' · ') : 'الاختيار الجماعي: لا تخمينات بعد';
+    },
+    shouldEnd: function () { return !gwActive(); }, announceText: 'الاختيار الجماعي! أقرب ثلاثة تخمينات تُعرض للجميع'
+  };
+
+  // ---- خمن الصورة: ig.e4
+  A.ig.events['ig.e4'] = {
+    canRun: function () { try { return igActive() && igClue() && IG_BANK.some(function (x) { return x.c === igCurrentQuestion.c && x.a !== igCurrentQuestion.a && x.pic; }) ? true : { ok: false, reason: 'no_decoy' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = igClue(), prev = el.innerHTML, d = pickOne(IG_BANK.filter(function (x) { return x.c === igCurrentQuestion.c && x.a !== igCurrentQuestion.a && x.pic; })), alt = igRenderClue({ pic: d.pic });
+      var now = rnd(2) ? prev + '<span class="ig-clue-letters">⇄</span>' + alt : alt + '<span class="ig-clue-letters">⇄</span>' + prev; el.innerHTML = now;
+      return { effect: 'ظهرت صورتان متشابهتان (واحدة فقط هي الصحيحة)', sustain: true, revert: function () { if (el.innerHTML === now) el.innerHTML = prev; } };
+    },
+    shouldEnd: function () { return !igActive(); }, announceText: 'صورتان متشابهتان! أيهما المقصودة؟'
+  };
+
+  // ---- سؤال وجواب سريع: fastans.e2 / e3
+  A.fastans.events['fastans.e2'] = {
+    canRun: function () { return fsRunning() && !(fastansBonusPts > 0) ? true : { ok: false, reason: fsRunning() ? 'bonus_active' : 'not_running' }; },
+    apply: function () {
+      var el = document.getElementById('fastans-question-card'), prev = el.textContent, q2 = pickOne(FASTANS_QUESTIONS.filter(function (q) { return q !== prev; })), now = prev + '  ➕  ' + q2;
+      el.textContent = now; fastansBonusPts = 1;
+      return { effect: 'سؤالان معاً — الفائز ينال نقطتين', sustain: true, revert: function () { if (el.textContent === now) el.textContent = prev; fastansBonusPts = 0; } };
+    },
+    shouldEnd: function () { return false; }, announceText: 'السؤال المزدوج! سؤالان معاً ونقطتان للفائز'
+  };
+  A.fastans.events['fastans.e3'] = {
+    canRun: function () { try { var h = fastansPlayers[fastansCurrentPlayerIdx]; return fsRunning() && !fastansStealNext && h && h.score > 0 ? true : { ok: false, reason: 'holder_has_no_points' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () { fastansStealNext = true; return { effect: 'الفائز بهذه الجولة يسرق نقطة من حامل القنبلة', sustain: true, revert: function () { fastansStealNext = false; } }; },
+    shouldEnd: function () { return false; }, announceText: 'فرصة السرقة! الفائز يأخذ نقطة من حامل القنبلة'
+  };
+
+  // ---- سباق الكلمات: wr.e1 / e2 / e3 / e4
+  function wrEl() { return document.getElementById('wr-word-display'); }
+  A.wr.events['wr.e1'] = {
+    canRun: function () { try { return wrActive() && bankWords(4, 8, wrWord).length ? true : { ok: false, reason: 'no_replacement' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var pw = wrWord, nw = pickOne(bankWords(4, 8, wrWord)), el = wrEl(), pe = el.textContent; wrWord = nw; el.textContent = nw; try { document.getElementById('wr-guesses-board').innerHTML = ''; } catch (e) { /* واجهة */ }
+      return { effect: 'تبدّلت الجملة إلى: ' + nw, sustain: true, revert: function () { if (wrWord === nw) wrWord = pw; if (el.textContent === nw) el.textContent = pe; } };
+    },
+    shouldEnd: function () { return !wrActive(); }, announceText: 'تبديل الفئة! تغيّرت الجملة المطلوبة'
+  };
+  A.wr.events['wr.e2'] = {
+    canRun: function () { try { return wrActive() && Array.from(String(wrWord || '').replace(/\s/g, '')).length >= 3 ? true : { ok: false, reason: 'no_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = wrEl(), pe = el.textContent, ch = Array.from(pe), idx = []; ch.forEach(function (c, i) { if (c.trim()) idx.push(i); }); ch[pickOne(idx)] = '＿'; var now = ch.join(''); el.textContent = now;
+      return { effect: 'اختفى حرف مفاجئ من الجملة', sustain: true, revert: function () { if (el.textContent === now) el.textContent = pe; } };
+    },
+    shouldEnd: function () { return !wrActive(); }, announceText: 'الحرف المفاجئ! اختفى حرف من الجملة'
+  };
+  A.wr.events['wr.e3'] = {
+    canRun: function () { try { return wrActive() && !wrAcceptOverride && String(wrWord || '').trim().split(/\s+/).length >= 2 ? true : { ok: false, reason: 'phrase_too_short' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = wrEl(), pe = el.textContent, words = String(wrWord).trim().split(/\s+/), k = rnd(words.length), banned = words[k], rest = words.filter(function (w, i) { return i !== k; }).join(' ');
+      wrAcceptOverride = rest; el.innerHTML = words.map(function (w, i) { return i === k ? '<s style="opacity:.6;color:#ff6b6b">' + esc(w) + '</s>' : esc(w); }).join(' '); var mine = el.innerHTML;
+      return { effect: 'الكلمة الممنوعة «' + banned + '» لا تُكتب', sustain: true, data: { w: banned }, revert: function () { if (wrAcceptOverride === rest) wrAcceptOverride = null; if (el.innerHTML === mine) el.textContent = pe; } };
+    },
+    shouldEnd: function () { return !wrActive(); }, announceText: function (inst) { return 'الكلمة الممنوعة «' + (inst.data && inst.data.w || '') + '»! اكتبوا الجملة بدونها'; }
+  };
+  A.wr.events['wr.e4'] = {
+    canRun: function () { try { return wrActive() && !wrAcceptOverride && String(wrWord || '').length > 0 ? true : { ok: false, reason: 'no_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    apply: function () {
+      var el = wrEl(), pe = el.textContent, twice = wrWord + ' ' + wrWord, now = pe + '  ×٢'; wrAcceptOverride = twice; el.textContent = now;
+      return { effect: 'اكتبوا الجملة مرتين متتاليتين', sustain: true, revert: function () { if (wrAcceptOverride === twice) wrAcceptOverride = null; if (el.textContent === now) el.textContent = pe; } };
+    },
+    shouldEnd: function () { return !wrActive(); }, announceText: 'سباق السلسلة! اكتبوا الجملة مرتين متتاليتين'
+  };
 })();

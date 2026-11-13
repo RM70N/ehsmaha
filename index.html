@@ -23925,6 +23925,8 @@ let mainTimerInterval = null;
 let mainHintEnabled = false;          // مود إضافي: يكشف موضع حرف واحد بعد مدة معيّنة
 let MAIN_HINT_AFTER_SECONDS = 15;
 let mainHintTimeout = null;
+let mainExtraWord = null;   // BATMISH: كلمة ثانية مقبولة (حدث الكلمة المزدوجة)
+let mainWinShown = '';     // BATMISH: الكلمة التي فاز بها اللاعب (تُعرض في شاشة الفوز)
 let mainSpeedBonusEnabled = false;    // مود إضافي: نقطتان لأول تخمين مضبوط من أول محاولة لصاحبه
 
 // ==================== TWITCH IRC (مشترك بين كل الألعاب) ====================
@@ -26969,13 +26971,22 @@ function gwCleanGuessText(text) {
   return cleaned;
 }
 
+let gwExtraWord = null;   // BATMISH: كلمة سرية ثانية مقبولة (الموضوع المزدوج)
+let gwWinWord = '';
 function gwProcessGuess(user, text) {
   if (gwGameStatus !== 'active') return;
   const cleaned = gwCleanGuessText(text);
   if (!cleaned) return; // رسالة مو كلمة مفردة صالحة — تجاهل بصمت
 
-  const isWin = gwScoreGuess(cleaned, gwSecretWord);
-  const closenessPercent = isWin ? 100 : gwGuessClosenessPercent(cleaned, gwSecretWord);
+  let isWin = gwScoreGuess(cleaned, gwSecretWord);
+  let closenessPercent = isWin ? 100 : gwGuessClosenessPercent(cleaned, gwSecretWord);
+  let winWord = gwSecretWord;
+  if (gwExtraWord) {   // BATMISH: الموضوع المزدوج — يُقبل أي من الموضوعين ويُحتسب الأقرب
+    const w2 = gwScoreGuess(cleaned, gwExtraWord);
+    const c2 = w2 ? 100 : gwGuessClosenessPercent(cleaned, gwExtraWord);
+    if (w2 && !isWin) { isWin = true; winWord = gwExtraWord; closenessPercent = 100; }
+    else if (!isWin && c2 > closenessPercent) closenessPercent = c2;
+  }
 
   gwAttemptCount++;
   document.getElementById('gw-attempts-count').textContent = gwAttemptCount;
@@ -26986,6 +26997,7 @@ function gwProcessGuess(user, text) {
   gwAddGuessRow(guess);
 
   if (formatted.isWin) {
+    gwWinWord = winWord;
     gwGameStatus = 'finished';
     gwSetGameStatus('finished');
     setTimeout(() => gwShowWinner(user), 600);
@@ -27224,10 +27236,10 @@ function gwRenderGuessRow(guess) {
 function gwShowWinner(user) {
   recordWin(user, 'خمّن الموضوع', 1);
   document.getElementById('gw-w-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('gw-w-label').textContent = (user.nickname || user.uniqueId) + ' — خمّن الموضوع وكان: ' + gwSecretWord + ' 🎉';
+  document.getElementById('gw-w-label').textContent = (user.nickname || user.uniqueId) + ' — خمّن الموضوع وكان: ' + (gwWinWord || gwSecretWord) + ' 🎉';
 
   const wordDisplay = document.getElementById('gw-w-word-display');
-  wordDisplay.textContent = gwSecretWord;
+  wordDisplay.textContent = gwWinWord || gwSecretWord; gwWinWord = '';
   wordDisplay.style.display = 'block';
 
   document.getElementById('gw-w-attempts').textContent = 'عدد المحاولات الكلي: ' + gwAttemptCount;
@@ -28534,7 +28546,12 @@ const mainLiveCommandHandlers = {
 
 function processGuess(user, text) {
   if (gameStatus !== 'active') return;
-  const colors = checkGuess(text, targetWord);
+  let colors = checkGuess(text, targetWord);
+  let winWord = targetWord;
+  if (mainExtraWord) {   // BATMISH: كلمتان سريتان — تُقبل أي منهما، ويُعرض التلوين الأقرب
+    const c2 = checkGuess(text, mainExtraWord);
+    if (c2 && (!colors || c2.filter(c => c === 'green').length > colors.filter(c => c === 'green').length)) { colors = c2; winWord = mainExtraWord; }
+  }
   if (!colors) return;
 
   // مود إضافي: أول تخمين لهذا المتابع في الراوند (لتحديد أهلية نقطة المكافأة)
@@ -28546,6 +28563,7 @@ function processGuess(user, text) {
 
   if (colors.every(c => c === 'green')) {
     gameStatus = 'finished';
+    mainWinShown = winWord;
     setGameStatus('finished');
     if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; }
     if (mainHintTimeout) { clearTimeout(mainHintTimeout); mainHintTimeout = null; }
@@ -28695,10 +28713,11 @@ function showWinner(user, isFirstAttempt) {
   const bonus = mainSpeedBonusEnabled && isFirstAttempt;
   recordWin(user, 'اوجد الكلمة', bonus ? 2 : 1);
   document.getElementById('w-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('w-label').textContent = user.nickname + ' — خمّن الكلمة وكانت: ' + targetWord + ' 🎉' + (bonus ? ' (أول محاولة — نقطتان 🎉)' : '');
+  const shownWord = mainWinShown || targetWord; mainWinShown = '';
+  document.getElementById('w-label').textContent = user.nickname + ' — خمّن الكلمة وكانت: ' + shownWord + ' 🎉' + (bonus ? ' (أول محاولة — نقطتان 🎉)' : '');
 
   const wordDisplay = document.getElementById('w-word-display');
-  wordDisplay.textContent = targetWord;
+  wordDisplay.textContent = shownWord;
   wordDisplay.style.display = 'block';
 
   const wrap = document.getElementById('w-avatar-wrap');
@@ -39643,6 +39662,10 @@ let llGameStatus = 'waiting'; // waiting | active | finished
 let llParticipants = new Map();     // uniqueId -> user
 let llPendingFollowers = new Map();
 let llKickedDuringRound = new Set(); // uniqueIds مطرودين أثناء راوند شغّال — يُمنعون من الرجوع لحد راوند جديد
+let llBanLetter = '';       // BATMISH: حرف ممنوع (أي كلمة تحتويه تُقصي قائلها)
+let llReturnNext = false;   // BATMISH: الدور الحالي/القادم يبدأ بأول حرف من الكلمة السابقة
+let llMinLen = 0;           // BATMISH: أقل عدد حروف للكلمة المقبولة
+let llChainLeft = 0;        // BATMISH: عدد الأدوار المتبقية التي يجب ألا تقصر فيها الكلمة عن سابقتها
 let llRevivalEnabled = false;
 let llRevivalMaxUses = 2;
 let llEliminatedHistory = new Set();
@@ -40026,7 +40049,7 @@ function startTurnFor(idx) {
   if (!user) return;
 
   // عرض اللاعب الحالي
-  const lastChar = llGetLastChar(llCurrentWord);
+  const lastChar = llReqChar(llCurrentWord);
   document.getElementById('ll-cur-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('ll-cur-letter').textContent = lastChar;
 
@@ -40085,7 +40108,7 @@ function llProcessAnswer(user, text) {
 
   const word = text.trim();
   const normWord = normalize(word);
-  const requiredChar = llGetLastChar(llCurrentWord);
+  const requiredChar = llReqChar(llCurrentWord);
 
   // تحقق أول حرف
   const firstChar = llGetFirstChar(word);
@@ -40103,8 +40126,26 @@ function llProcessAnswer(user, text) {
     return;
   }
 
+  // BATMISH: قواعد الأحداث الخاصة (الحرف الممنوع / الطول الأدنى / سلسلة لا تقصر)
+  if (llBanLetter && normWord.includes(normalize(llBanLetter))) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `الحرف الممنوع "${llBanLetter}" موجود في كلمتك ❌`);
+    return;
+  }
+  if (llMinLen > 0 && normWord.length < llMinLen) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `الكلمة أقصر من ${llMinLen} حروف ❌`);
+    return;
+  }
+  if (llChainLeft > 0 && normWord.length < normalize(llCurrentWord).length) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `تحدي السلسلة: لا تقصر عن "${llCurrentWord}" ❌`);
+    return;
+  }
   // صحيح!
   clearInterval(llCountdownInterval); llCountdownInterval = null;
+  if (llReturnNext) llReturnNext = false;
+  if (llChainLeft > 0) llChainLeft--;
   llUsedWords.add(normWord);
   llCurrentWord = word;
   addWordToChain(word, true);
@@ -40113,6 +40154,8 @@ function llProcessAnswer(user, text) {
   // انتقل للاعب التالي
   llNextPlayer();
 }
+
+function llReqChar(word) { return llReturnNext ? llGetFirstChar(word) : llGetLastChar(word); }
 
 function llGetLastChar(word) {
   const norm = normalize(word);
@@ -40559,6 +40602,8 @@ let waiUser = '';
 let waiKeyword = '';
 let waiCharName = '';
 let waiDescription = '';
+let waiEarlyBonusUntil = 0;   // BATMISH: الإجابة الصحيحة قبل هذا الوقت (ms) تنال نقطتين
+let waiWinBonus = false;
 let waiHint2 = '';               // تلميح إضافي اختياري يكتبه الستريمر
 let waiGameStatus = 'waiting';
 let waiParticipants = new Map();
@@ -40865,6 +40910,7 @@ function waiProcessGuess(user, text) {
   waiAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
+    waiWinBonus = Date.now() < waiEarlyBonusUntil;
     waiGameStatus = 'finished';
     waiSetWAIGameStatus('finished');
     if (waiTimerInterval) { clearInterval(waiTimerInterval); waiTimerInterval = null; }
@@ -40984,7 +41030,8 @@ function waiAddGuessRow(user, text, isCorrect) {
 
 function waiShowWinner(user) {
   const bonusEnabled = modGetSetting('whoami', 'speedBonusEnabled', false);
-  recordWin(user, 'من أنا؟', bonusEnabled ? 2 : 1);
+  const earlyBonus = waiWinBonus; waiWinBonus = false;
+  recordWin(user, 'من أنا؟', (bonusEnabled || earlyBonus) ? 2 : 1);
   document.getElementById('waiw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('waiw-label').textContent = user.nickname + ' — خمّن الشخصية وكانت: ' + waiCharName + ' 🎉';
   const disp = document.getElementById('waiw-char-display');
@@ -42310,6 +42357,8 @@ let rwApiKey = '';
 let rwUser = '';
 let rwKeyword = '';
 let rwWord = '';         // الكلمة الأصلية
+let rwDoubleRev = false;   // BATMISH: العكس المزدوج — الجواب الصحيح هو الكلمة الأصلية (عكس العكس)
+let rwWinInfo = null;      // BATMISH: كلمة/جواب الفائز وقت الفوز
 let rwAnswer = '';       // العكس الصحيح
 let rwGameStatus = 'waiting';
 let rwParticipants = new Map();
@@ -42623,12 +42672,13 @@ function rwProcessGuess(user, text) {
   }
 
   const normGuess = normalize(text);
-  const normAnswer = normalize(rwAnswer);
+  const normAnswer = normalize(rwDoubleRev ? rwWord : rwAnswer);
   const isCorrect = normGuess === normAnswer;
 
   rwAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
+    rwWinInfo = { word: rwWord, answer: rwDoubleRev ? rwWord : rwAnswer, shown: rwDoubleRev ? rwAnswer : rwWord };
     rwGameStatus = 'finished';
     rwSetRWGameStatus('finished');
     if (rwTimerInterval) { clearInterval(rwTimerInterval); rwTimerInterval = null; }
@@ -42735,9 +42785,10 @@ function rwAddGuessRow(user, text, isCorrect) {
 function rwShowWinner(user) {
   recordWin(user, 'عكس الكلمة', rwSpeedBonusEnabled ? 2 : 1);
   document.getElementById('rww-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('rww-label').textContent = user.nickname + ' — عكس الكلمة وكانت: ' + rwWord + ' ← ' + rwAnswer + ' 🎉' + (rwSpeedBonusEnabled ? ' (نقطتان 🎉)' : '');
+  document.getElementById('rww-label').textContent = user.nickname + ' — عكس الكلمة وكانت: ' + (rwWinInfo ? rwWinInfo.shown : rwWord) + ' ← ' + (rwWinInfo ? rwWinInfo.answer : rwAnswer) + ' 🎉' + (rwSpeedBonusEnabled ? ' (نقطتان 🎉)' : '');
   const disp = document.getElementById('rww-answer-display');
-  disp.textContent = rwAnswer;
+  disp.textContent = rwWinInfo ? rwWinInfo.answer : rwAnswer;
+  rwWinInfo = null;
   disp.style.display = 'block';
   const wrap = document.getElementById('rww-avatar-wrap');
   if (user.avatar) {
@@ -44391,6 +44442,7 @@ function lscAddChatMsg(user, text) {
 let wrApiKey = '';
 let wrUser = '';
 let wrKeyword = '';
+let wrAcceptOverride = null;  // BATMISH: صيغة الجواب المقبولة أثناء الحدث (الكلمة الممنوعة/سباق السلسلة)
 let wrWord = '';            // الجملة/الكلمة السرية اللي يختارها الستريمر
 let wrGameStatus = 'waiting';
 let wrParticipants = new Map();
@@ -44663,7 +44715,7 @@ const wrLiveCommandHandlers = {
 // ==================== GAME LOGIC ====================
 function wrProcessGuess(user, text) {
   if (wrGameStatus !== 'active') return;
-  const isCorrect = normalize(text) === normalize(wrWord);
+  const isCorrect = normalize(text) === normalize(wrAcceptOverride || wrWord);
   wrAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
@@ -55541,6 +55593,7 @@ let fastansTimerStart = null;
 let fastansRafId = null;
 let fastansRoundOver = false;
 let fastansBonusPts = 0;          // BATMISH (أحداث خاصة): نقاط إضافية للفائز بالسؤال الحالي (حدث «المضاعف السري»)
+let fastansStealNext = false;        // BATMISH: حدث «فرصة السرقة»
 
 function fastansShuffle(arr) {
   const a = arr.slice();
@@ -55708,6 +55761,11 @@ function fastansClosePickList() {
 function fastansPickWinner(idx) {
   fastansClosePickList();
   const player = fastansPlayers[idx];
+  if (fastansStealNext) {   // BATMISH: فرصة السرقة — الفائز يأخذ نقطة من حامل القنبلة
+    fastansStealNext = false;
+    const holder = fastansPlayers[fastansCurrentPlayerIdx];
+    if (holder && holder !== player && holder.score > 0) { holder.score--; player.score++; toastFast('🕵️ ' + player.name + ' سرق نقطة من ' + holder.name + '!'); }
+  }
   player.score += 1 + (fastansBonusPts > 0 ? fastansBonusPts : 0); fastansBonusPts = 0;
 
   if (player.score >= FASTANS_WIN_SCORE) {
