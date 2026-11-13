@@ -34458,6 +34458,7 @@ let rouImmuneName = null;
 let rouImmunityUsed = false;
 let rouDoubleElimEnabled = false;      // مود إضافي: فرصة عشوائية تقصي شخصين بدل واحد بنفس اللفة
 let rouDoubleElimArmed = false;
+let rouForceDoubleElim = false;       // BATMISH (أحداث خاصة): يفعّل الإقصاء المزدوج لأول لفة قادمة مرة واحدة
 const ROU_DOUBLE_ELIM_CHANCE = 0.3;
 let rouAutoSpinArmed = false; // بعد أول ضغطة على "ابدأ الاختيار" بالراوند، يختفي الزر ويصير اللف تلقائي بالكامل
 
@@ -35038,7 +35039,8 @@ function spinRoulette() {
       rouSpinning = false;
 
       // مود إضافي: فرصة عشوائية تفعّل إقصاء مزدوج بهذه اللفة
-      rouDoubleElimArmed = rouDoubleElimEnabled && Math.random() < ROU_DOUBLE_ELIM_CHANCE;
+      rouDoubleElimArmed = (rouDoubleElimEnabled && Math.random() < ROU_DOUBLE_ELIM_CHANCE) || rouForceDoubleElim;
+      rouForceDoubleElim = false;
 
       // عرض اسم الشخص اللي وقع عليه الروليت وانتظر استهدافه (رقم اللاعب بكل المنصات)
       const result = document.getElementById('spin-result');

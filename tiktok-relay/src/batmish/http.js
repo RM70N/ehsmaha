@@ -39,6 +39,7 @@ const STATUS_BY_CODE = {
 
 export function createBatmishHandler({ verifyToken, service, eventsService = null, access, ownerEmail, limiter = new RateLimiter(), readJsonBody, resolveUid = null, log = () => {} }) {
   const owner = String(ownerEmail || '').toLowerCase();
+  const evLimiter = new RateLimiter({ perMinute: 400 });
 
   function bearer(req) { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; }
 
@@ -55,7 +56,8 @@ export function createBatmishHandler({ verifyToken, service, eventsService = nul
     try {
       const user = await verifyToken(bearer(req));
       if (!user) { send(401, { error: 'unauthorized' }); return true; }
-      if (!limiter.allow(user.uid)) { send(429, { error: 'rate_limited' }); return true; }
+      // الأحداث الخاصة لها سقف أعلى مستقل (السجل يرسل طلباً لكل حدث) حتى لا تُجوِّع طلبات الإعدادات
+      if (!(path.startsWith('/batmish/events/') ? evLimiter : limiter).allow(user.uid)) { send(429, { error: 'rate_limited' }); return true; }
       const uid = user.uid;
 
       // ---- إدارة التثبيت: للمالك فقط

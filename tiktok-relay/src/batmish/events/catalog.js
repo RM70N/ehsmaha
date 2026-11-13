@@ -45,6 +45,19 @@ const SRC = [
 // الأحداث المربوطة فعلاً بمحرك لعبتها (تُحدَّث كلما أُضيف Adapter + اختبار). المفتاح = معرف الحدث.
 // الحقول: type نوع التشغيل، group مجموعة التعارض، durationSec المدة الافتراضية (إن وجدت)، fields حقول خاصة بالحدث.
 export const IMPLEMENTED = {
+  'cs.e1': { type: 'random', group: 'cs.hold', fields: [{ key: 'durationSec', type: 'number', label: 'مدة السخونة (بالثواني)', hint: 'الحالي: 15', default: 15, min: 5, max: 120 }] },
+  'cs.e2': { type: 'random', group: 'cs.immunity', fields: [{ key: 'durationSec', type: 'number', label: 'مدة الحماية (بالثواني)', hint: 'الحالي: 6', default: 6, min: 2, max: 30 }] },
+  'cs.e4': { type: 'random', group: 'cs.attempts', fields: [] },
+  'cs.e5': { type: 'final', group: 'cs.hold', fields: [{ key: 'afterPercent', type: 'number', label: 'يبدأ لما يقضي الملك هذه النسبة من مدة الحمل (٪)', hint: 'الحالي: 70', default: 70, min: 30, max: 95 }] },
+  'main.e1': { type: 'random', group: 'main.hint', fields: [] },
+  'main.e4': { type: 'random', group: 'main.bonus', fields: [] },
+  'll.e2': { type: 'random', group: 'll.speed', fields: [{ key: 'durationSec', type: 'number', label: 'مدة السرعة القصوى (بالثواني)', hint: 'الحالي: 30', default: 30, min: 10, max: 180 }] },
+  'rou.e1': { type: 'random', group: 'rou.spin', fields: [
+    { key: 'speedPercent', type: 'number', label: 'مدة الدوران كنسبة من الطبيعي (٪)', hint: 'الحالي: 40 — أقل = أسرع، أكثر من 100 = أبطأ', default: 40, min: 20, max: 300 },
+    { key: 'durationSec', type: 'number', label: 'مدة الحدث (بالثواني)', hint: 'الحالي: 45', default: 45, min: 10, max: 180 }] },
+  'rou.e2': { type: 'random', group: 'rou.double', fields: [] },
+  'rou.e3': { type: 'random', group: 'rou.immunity', fields: [] },
+  'rou.e5': { type: 'final', group: 'rou.spin', fields: [{ key: 'slowPercent', type: 'number', label: 'إبطاء الدوران في اللفة الأخيرة (٪ من الطبيعي)', hint: 'الحالي: 250', default: 250, min: 100, max: 400 }] },
   'tmr.e1': { type: 'random', group: 'tmr.display', fields: [] },
   'tmr.e2': { type: 'random', group: 'tmr.golden', fields: [] },
   'tmr.e3': { type: 'random', group: 'tmr.display', fields: [

@@ -128,4 +128,158 @@
       }
     }
   };
+
+  /* ===================== سرقة التاج (cs) ===================== */
+  // المتغيرات: csGameStatus, csHolderUid, csStartTime (performance.now), CS_HOLD_DURATION, csImmunityEnabled/csImmuneUntil, csStealAttempts(Map)
+  function csActive() { try { return csGameStatus === 'active'; } catch (e) { return false; } }
+  function csHolding() { try { return csActive() && !!csHolderUid && csStartTime != null; } catch (e) { return false; } }
+  A.cs = {
+    tag: 'cs',
+    hook: { start: 'startCrownStealRound', began: csActive },
+    windowSec: function () { return 60; },
+    isRoundOver: function () { return !csActive(); },
+    events: {
+      // 1) التاج الساخن: تقصير مدة الحمل المطلوبة للفوز مؤقتاً (يتدرّج بقوة الحدث)
+      'cs.e1': {
+        canRun: function () { return csHolding() ? true : { ok: false, reason: 'no_holder' }; },
+        durationMs: function (c) { return (c.durationSec || 15) * 1000; },
+        apply: function (ctx, inst) {
+          var prev = CS_HOLD_DURATION, ratio = Math.min(0.85, Math.max(0.25, 0.5 / inst.factor)), nv = Math.max(2, Math.round(prev * ratio * 10) / 10);
+          CS_HOLD_DURATION = nv; return { effect: 'مدة الحمل ' + prev + 'ث → ' + nv + 'ث', sustain: true, revert: function () { if (CS_HOLD_DURATION === nv) CS_HOLD_DURATION = prev; } };
+        },
+        announceText: 'التاج ساخن! مدة الحمل تقصّرت'
+      },
+      // 2) الحماية الملكية: حامل التاج محمي من السرقة مدة محددة (آلية csImmune الأصلية)
+      'cs.e2': {
+        canRun: function () { return csHolding() ? true : { ok: false, reason: 'no_holder' }; },
+        durationMs: function (c) { return (c.durationSec || 6) * 1000; },
+        apply: function (ctx, inst, c) {
+          var prevEn = csImmunityEnabled, until = performance.now() + (c.durationSec || 6) * 1000; csImmunityEnabled = true; csImmuneUntil = until;
+          return { effect: 'حماية ملكية ' + (c.durationSec || 6) + 'ث لحامل التاج', sustain: true, revert: function () { csImmunityEnabled = prevEn; if (csImmuneUntil === until) csImmuneUntil = 0; } };
+        },
+        announceText: 'حماية ملكية! حامل التاج لا يُسرق منه'
+      },
+      // 4) المطاردة: تُمنح كل اللاعبين محاولات سرقة جديدة (تصفير عدّاد المحاولات)
+      'cs.e4': {
+        canRun: function () { return csHolding() ? true : { ok: false, reason: 'no_holder' }; },
+        eligible: function () { try { return Array.from(csParticipants.keys()); } catch (e) { return []; } },
+        apply: function () { var n = csStealAttempts.size; csStealAttempts.clear(); return { effect: 'أُعيد منح محاولات السرقة (' + n + ' لاعب استنفد محاولاته)' }; },
+        announceText: 'المطاردة! الجميع يملك محاولات سرقة جديدة'
+      },
+      // 5) العرش الأخير: لما يقارب الملك الفوز يُمدَّد الوقت المطلوب ليأخذ المنافسون فرصة أخيرة
+      'cs.e5': {
+        condition: function (ctx, c) { try { return csHolding() && ((performance.now() - csStartTime) / 1000) >= CS_HOLD_DURATION * (c.afterPercent / 100); } catch (e) { return false; } },
+        canRun: function () { return csHolding() ? true : { ok: false, reason: 'no_holder' }; },
+        apply: function (ctx, inst) {
+          var add = Math.round(2 * inst.factor * 10) / 10; CS_HOLD_DURATION += add;
+          return { effect: 'مُدِّدت مدة الحمل ' + add + 'ث — فرصة أخيرة للمنافسين', sustain: true, revert: function () { CS_HOLD_DURATION = Math.max(2, CS_HOLD_DURATION - add); } };
+        },
+        shouldEnd: function () { return !csActive(); },
+        announceText: 'العرش الأخير! فرصة أخيرة لسرقة التاج'
+      }
+    }
+  };
+
+  /* ===================== أوجد الكلمة (main) ===================== */
+  // المتغيرات: gameStatus, targetWord, mainSpeedBonusEnabled، والدالة mainRevealLetterHint()
+  function mainActive() { try { return gameStatus === 'active'; } catch (e) { return false; } }
+  A.main = {
+    tag: 'main',
+    hook: { start: 'startRound', began: mainActive },
+    windowSec: function () { return 60; },
+    isRoundOver: function () { return !mainActive(); },
+    events: {
+      // 1) الحرف الذهبي: يكشف موضع حرف من الكلمة السرية فوراً (آلية التلميح الأصلية)
+      'main.e1': {
+        canRun: function () { try { return mainActive() && String(targetWord || '').length >= 2 ? true : { ok: false, reason: 'no_secret_word' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        apply: function () { mainRevealLetterHint(); return { effect: 'كُشف موضع حرف من الكلمة السرية' }; },
+        announceText: 'الحرف الذهبي! كُشف موضع حرف من الكلمة'
+      },
+      // 4) سباق أول إجابة: نقطتان لأول تخمين مضبوط من أول محاولة (آلية mainSpeedBonus الأصلية) طوال الراوند
+      'main.e4': {
+        canRun: function () { return mainActive() && !mainSpeedBonusEnabled ? true : { ok: false, reason: mainActive() ? 'bonus_already_on' : 'not_active' }; },
+        apply: function () { var prev = mainSpeedBonusEnabled; mainSpeedBonusEnabled = true; return { effect: 'مكافأة أول إجابة مفعّلة (نقطتان)', sustain: true, revert: function () { mainSpeedBonusEnabled = prev; } }; },
+        shouldEnd: function () { return !mainActive(); },
+        announceText: 'سباق أول إجابة! أول تخمين مضبوط ينال نقطتين'
+      }
+    }
+  };
+
+  /* ===================== آخر حرف (ll) ===================== */
+  function llActive() { try { return llGameStatus === 'active'; } catch (e) { return false; } }
+  A.ll = {
+    tag: 'll',
+    hook: { start: 'startLastLetterRound', began: llActive },
+    windowSec: function () { return 90; },
+    isRoundOver: function () { return !llActive(); },
+    events: {
+      // 2) السرعة القصوى: يقصّر وقت دور اللاعب (حالياً وللأدوار القادمة) ثم يعيده
+      'll.e2': {
+        canRun: function () { return llActive() ? true : { ok: false, reason: 'not_active' }; },
+        durationMs: function (c) { return (c.durationSec || 30) * 1000; },
+        apply: function (ctx, inst) {
+          var prev = LL_TURN_SECONDS, nv = Math.max(3, Math.round(prev * Math.min(0.85, Math.max(0.25, 0.5 / inst.factor))));
+          LL_TURN_SECONDS = nv; try { if (llSecondsLeft > nv) llSecondsLeft = nv; } catch (e) { /* الدور لم يبدأ */ }
+          return { effect: 'وقت الدور ' + prev + 'ث → ' + nv + 'ث', sustain: true, revert: function () { if (LL_TURN_SECONDS === nv) LL_TURN_SECONDS = prev; } };
+        },
+        announceText: 'السرعة القصوى! وقت الدور يتقلص'
+      }
+    }
+  };
+
+  /* ===================== دائرة الإقصاء (rou) ===================== */
+  function rouActive() { try { return rouGameStatus === 'active'; } catch (e) { return false; } }
+  A.rou = {
+    tag: 'rou',
+    hook: { start: 'startRouletteRound', began: rouActive },
+    windowSec: function () { return 90; },
+    isRoundOver: function () { return !rouActive(); },
+    events: {
+      // 1) الدوران المجنون: يغيّر مدة دوران العجلة (تُقرأ عند كل لفة)
+      'rou.e1': {
+        canRun: function () { return rouActive() ? true : { ok: false, reason: 'not_active' }; },
+        durationMs: function (c) { return (c.durationSec || 45) * 1000; },
+        apply: function (ctx, inst, c) {
+          var a = ROU_SPIN_MIN_MS, b = ROU_SPIN_RANDOM_MS, k = (c.speedPercent || 40) / 100;
+          ROU_SPIN_MIN_MS = Math.max(600, Math.round(a * k)); ROU_SPIN_RANDOM_MS = Math.max(200, Math.round(b * k));
+          var na = ROU_SPIN_MIN_MS, nb = ROU_SPIN_RANDOM_MS;
+          return { effect: 'مدة الدوران ×' + k.toFixed(2), sustain: true, revert: function () { if (ROU_SPIN_MIN_MS === na) ROU_SPIN_MIN_MS = a; if (ROU_SPIN_RANDOM_MS === nb) ROU_SPIN_RANDOM_MS = b; } };
+        },
+        announceText: 'الدوران المجنون! سرعة العجلة تغيّرت'
+      },
+      // 2) الإقصاء المزدوج: اللفة القادمة يُقصى فيها لاعبان (آلية rouDoubleElimArmed الأصلية — مرة واحدة)
+      'rou.e2': {
+        canRun: function () { try { return rouActive() && rouActivePlayers.length >= 3 && !rouForceDoubleElim ? true : { ok: false, reason: 'not_enough_players' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        durationMs: function () { return 0; },
+        apply: function () { rouForceDoubleElim = true; return { effect: 'اللفة القادمة: إقصاء لاعبين', sustain: true, revert: function () { rouForceDoubleElim = false; } }; },
+        shouldEnd: function () { return !rouForceDoubleElim; },      // يُستهلك عند اللفة التالية
+        announceText: 'إقصاء مزدوج! اللفة القادمة تُقصي لاعبين'
+      },
+      // 3) منطقة النجاة: لاعب عشوائي يحصل على حصانة من أول محاولة إقصاء (آلية rouImmune الأصلية)
+      'rou.e3': {
+        canRun: function () { try { return rouActive() && rouActivePlayers.length >= 2 && (!rouImmuneName || rouImmunityUsed) ? true : { ok: false, reason: 'immunity_active' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+        eligible: function () { try { return rouActivePlayers.slice(); } catch (e) { return []; } },
+        apply: function (ctx, inst) {
+          var pick = pickOne(inst.eligible || []); if (!pick) return { failed: 'no_eligible_player' };
+          var pe = rouImmunityEnabled, pn = rouImmuneName, pu = rouImmunityUsed; rouImmunityEnabled = true; rouImmuneName = pick; rouImmunityUsed = false;
+          return { effect: 'حصانة مؤقتة للاعب ' + pick, sustain: true, revert: function () { rouImmunityEnabled = pe; if (rouImmuneName === pick) { rouImmuneName = pe ? pn : null; rouImmunityUsed = pe ? pu : false; } } };
+        },
+        shouldEnd: function () { try { return rouImmunityUsed === true; } catch (e) { return true; } },
+        announceText: 'منطقة النجاة! لاعب محصّن من أول إقصاء'
+      },
+      // 5) اللفة الأخيرة: عند بقاء 3 لاعبين تُبطأ العجلة وتُقصي اللفة التالية لاعبين
+      'rou.e5': {
+        condition: function () { try { return rouActive() && rouActivePlayers.length === 3; } catch (e) { return false; } },
+        canRun: function () { return rouActive() ? true : { ok: false, reason: 'not_active' }; },
+        apply: function (ctx, inst, c) {
+          var a = ROU_SPIN_MIN_MS, b = ROU_SPIN_RANDOM_MS, k = Math.min(4, (c.slowPercent || 250) / 100 * (inst.factor > 1 ? 1 + (inst.factor - 1) * 0.2 : 1));
+          ROU_SPIN_MIN_MS = Math.round(a * k); ROU_SPIN_RANDOM_MS = Math.round(b * k); rouForceDoubleElim = true;
+          var na = ROU_SPIN_MIN_MS, nb = ROU_SPIN_RANDOM_MS;
+          return { effect: 'اللفة الأخيرة: دوران أبطأ ×' + k.toFixed(1) + ' + إقصاء مزدوج', sustain: true, revert: function () { if (ROU_SPIN_MIN_MS === na) ROU_SPIN_MIN_MS = a; if (ROU_SPIN_RANDOM_MS === nb) ROU_SPIN_RANDOM_MS = b; rouForceDoubleElim = false; } };
+        },
+        shouldEnd: function () { return !rouActive(); },
+        announceText: 'اللفة الأخيرة! ثلاثة لاعبين فقط'
+      }
+    }
+  };
 })();
