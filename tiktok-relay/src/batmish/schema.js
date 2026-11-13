@@ -530,6 +530,24 @@ export const GAMES = {
     "tab": "GENERAL"
    },
    {
+    "key": "turnTimerEnabled",
+    "type": "toggle",
+    "label": "اللعب مع المؤقت",
+    "hint": "مفعّل: لكل لاعب مهلة لاختيار دولته (مدتها من خيار «مدة دور اللاعب»). مطفأ: بلا مؤقت والدور ينتظر اللاعب.",
+    "default": true,
+    "cat": "round",
+    "tab": "GENERAL"
+   },
+   {
+    "key": "timeoutKickEnabled",
+    "type": "toggle",
+    "label": "طرد من انتهى مؤقته ولم يلعب",
+    "hint": "مفعّل: إذا خلص المؤقت ولم يختر اللاعب دولة يُطرد من الراوند (تُقصى دولته). مطفأ: يروح دوره فقط.",
+    "default": true,
+    "cat": "round",
+    "tab": "GENERAL"
+   },
+   {
     "key": "allianceEnabled",
     "type": "toggle",
     "label": "تفعيل تحالف مؤقت",
