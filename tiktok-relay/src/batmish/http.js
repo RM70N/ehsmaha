@@ -1,7 +1,7 @@
 'use strict';
 // مسارات HTTP لـBATMISH تحت /batmish/*. كل مسار (عدا /batmish/access و/batmish/admin/*) يمر عبر البوابة:
 // توكن Firebase صالح + uid مثبَّت + بث مربوط الآن. الهوية تُؤخذ من التوكن فقط، لا من الجسم ولا الرابط.
-import { GAMES, CATEGORIES, TABS, STREAMER_ID } from './schema.js';
+import { GAMES, CATEGORIES, TABS, STREAMER_ID, STREAMERS } from './schema.js';
 import { ValidationError } from './validation.js';
 import { ConflictError, NotFoundError } from './service.js';
 
@@ -61,21 +61,27 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
       if (path.startsWith('/batmish/admin/')) {
         if (String(user.email || '').toLowerCase() !== owner) { send(403, { error: 'forbidden' }); return true; }
         if (path === '/batmish/admin/status' && req.method === 'GET') {
-          send(200, { streamerId: STREAMER_ID, pinnedUid: (await access.pinnedUid()) || null });
+          const pins = {}; for (const sid of STREAMERS) pins[sid] = (await access.pinnedUid(sid)) || null;
+          send(200, { streamerId: STREAMER_ID, pinnedUid: pins[STREAMER_ID], streamers: STREAMERS, pins });
           return true;
         }
         if (path === '/batmish/admin/bind' && req.method === 'POST') {
           const b = await readJsonBody(req, 1024);
+          const sid = String(b.streamer || STREAMER_ID).trim().toLowerCase().replace(/^@/, '');
+          if (!STREAMERS.includes(sid)) { send(400, { error: 'streamer_not_allowed' }); return true; }
           let target = String(b.uid || '');
           // يمكن للمالك التثبيت باسم حساب احسمها (اليوزر الذي سجّل به الستريمر بالموقع) بدل uid
           if (!target && b.username && resolveUid) { target = String((await resolveUid(String(b.username).trim().toLowerCase())) || ''); if (!target) { send(404, { error: 'account_not_found' }); return true; } }
           if (!target) { send(400, { error: 'uid_or_username_required' }); return true; }
-          await access.bind(target, user.uid);
-          send(200, { ok: true, pinnedUid: target });
+          await access.bind(target, user.uid, sid);
+          send(200, { ok: true, pinnedUid: target, streamer: sid });
           return true;
         }
         if (path === '/batmish/admin/unbind' && req.method === 'POST') {
-          await access.unbind();
+          const bu = await readJsonBody(req, 1024).catch(() => ({}));
+          const su = String((bu && bu.streamer) || STREAMER_ID).trim().toLowerCase().replace(/^@/, '');
+          if (!STREAMERS.includes(su)) { send(400, { error: 'streamer_not_allowed' }); return true; }
+          await access.unbind(su);
           send(200, { ok: true });
           return true;
         }
@@ -86,14 +92,14 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
       // ---- البوابة
       const gate = await access.check(uid);
       if (path === '/batmish/access' && req.method === 'GET') {
-        send(200, { allowed: gate.allowed, reason: gate.allowed ? 'ok' : gate.reason, streamerId: gate.allowed ? STREAMER_ID : undefined });
+        send(200, { allowed: gate.allowed, reason: gate.allowed ? 'ok' : gate.reason, streamerId: gate.allowed ? gate.streamerId : undefined, via: gate.allowed ? gate.via : undefined });
         return true;
       }
       if (!gate.allowed) { send(403, { error: 'forbidden', reason: gate.reason }); return true; }
 
       if (path === '/batmish/bootstrap' && req.method === 'GET') {
         const state = await service.getState(uid);
-        send(200, { streamerId: STREAMER_ID, games: GAMES, categories: CATEGORIES, tabs: TABS, state });
+        send(200, { streamerId: gate.streamerId, via: gate.via, games: GAMES, categories: CATEGORIES, tabs: TABS, state });
         return true;
       }
       if (path === '/batmish/overlay' && req.method === 'GET') { send(200, await service.overlay(uid)); return true; }

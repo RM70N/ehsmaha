@@ -206,7 +206,7 @@ test('البوابة: تحتاج تثبيت الهوية + جلسة بث موث�
   assert.equal((await acc.check('u1')).reason, 'not_linked', 'مربوط بيوزر آخر');
   const ws2 = fakeWs();
   acc.registerSession('u1', '@_ZVD4', ws2);                                    // توحيد حالة الأحرف و@
-  assert.deepEqual(await acc.check('u1'), { allowed: true, reason: 'ok' });
+  assert.deepEqual(await acc.check('u1'), { allowed: true, reason: 'ok', streamerId: '_zvd4', via: 'stream' });
   assert.equal((await acc.check('u2')).reason, 'not_streamer', 'حساب غير المثبَّت');
   assert.equal((await acc.check('')).reason, 'unauthenticated');
   ws2.close();                                                                 // انقطع الربط → تختفي فوراً
@@ -276,7 +276,7 @@ test('HTTP: غير مسجّل = 401، حساب غير مثبَّت = 403 على 
     }
     assert.deepEqual((await call('GET', '/batmish/access', 'tok-other')).body, { allowed: false, reason: 'not_streamer' });
     const ok = await call('GET', '/batmish/access', 'tok-zvd');
-    assert.deepEqual(ok.body, { allowed: true, reason: 'ok', streamerId: '_zvd4' });
+    assert.deepEqual(ok.body, { allowed: true, reason: 'ok', streamerId: '_zvd4', via: 'stream' });
   } finally { server.close(); }
 });
 
@@ -400,4 +400,40 @@ test('جسر /ws: توكن صحيح يسجّل جلسة للبوابة، بدو�
     assert.equal((await access.check('uid-zvd')).reason, 'not_linked');
     [anon, wrong, other].forEach((w) => w.close());
   } finally { server.close(); }
+});
+
+test('البوابة: ستريمران بث (_zvd4 وother) — لكل واحد تثبيت مستقل، ولا يُفتح لأحدهما ببث الآخر', async () => {
+  const store = new MemoryStore();
+  const acc = new BatmishAccess({ store, streamers: ['_zvd4', 'mish'], siteUsers: [] });
+  await acc.bind('uZ', 'owner', '_zvd4');
+  await acc.bind('uM', 'owner', 'mish');
+  acc.registerSession('uM', '@Mish', fakeWs());                      // توحيد حالة الأحرف و@
+  assert.deepEqual(await acc.check('uM'), { allowed: true, reason: 'ok', streamerId: 'mish', via: 'stream' });
+  assert.equal((await acc.check('uZ')).reason, 'not_linked');        // uZ ما اتصل ببثه
+  acc.registerSession('uZ', 'mish', fakeWs());                       // uZ متصل بغرفة mish فقط → لا يكفي
+  assert.equal((await acc.check('uZ')).allowed, false);
+  acc.registerSession('uZ', '_zvd4', fakeWs());
+  assert.equal((await acc.check('uZ')).streamerId, '_zvd4');
+  acc.registerSession('uOther', 'mish', fakeWs());
+  assert.equal((await acc.check('uOther')).reason, 'not_streamer');
+  await assert.rejects(() => acc.bind('uX', 'owner', 'someoneelse'));
+  await acc.unbind('mish');
+  assert.equal((await acc.check('uM')).allowed, false);
+  assert.equal((await acc.check('uZ')).allowed, true);               // إلغاء تثبيت mish لا يمس _zvd4
+});
+
+test('البوابة: حساب احسمها المسمّى (mish) يفتح اللوحة بمجرد الدخول بدون بث، والخادم يتحقق من uid الحساب', async () => {
+  const names = { mish: 'uM' };
+  const acc = new BatmishAccess({ store: new MemoryStore(), resolveUid: async (n) => names[n] || '' });
+  assert.deepEqual(await acc.check('uM'), { allowed: true, reason: 'ok', streamerId: '_zvd4', via: 'account' });
+  assert.equal((await acc.check('uOther')).allowed, false, 'حساب آخر لا يفتح');
+  assert.equal((await acc.check('uOther')).reason, 'not_bound');
+  // _zvd4 ما تأثر: يحتاج تثبيت + بث
+  await acc.bind('uZ', 'owner');
+  assert.equal((await acc.check('uZ')).reason, 'not_linked');
+  acc.registerSession('uZ', '_zvd4', fakeWs());
+  assert.deepEqual(await acc.check('uZ'), { allowed: true, reason: 'ok', streamerId: '_zvd4', via: 'stream' });
+  // فشل محلّل الأسماء لا يفتح لأحد ولا يكسر الباقي
+  const bad = new BatmishAccess({ store: new MemoryStore(), resolveUid: async () => { throw new Error('down'); } });
+  assert.equal((await bad.check('uM')).allowed, false);
 });

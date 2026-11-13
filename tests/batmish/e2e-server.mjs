@@ -12,7 +12,8 @@ const decode = async (t) => { try { const p = JSON.parse(Buffer.from(String(t).s
 export async function startBatmishTestServer(port = 0) {
   const store = new MemoryStore();
   const service = new BatmishService({ store });
-  const access = new BatmishAccess({ store });
+  const siteUsers = new Map(); // اسم حساب احسمها → uid (يحاكي سجل الأسماء؛ المحلّل الحقيقي مغطّى باختبارات accountLookup)
+  const access = new BatmishAccess({ store, resolveUid: async (n) => siteUsers.get(n) || '' });
   const readJsonBody = async (req, limit = 10000) => { let n = 0; const c = []; for await (const x of req) { n += x.length; if (n > limit) throw new Error('الجسم كبير جداً'); c.push(x); } const t = Buffer.concat(c).toString('utf8'); return t ? JSON.parse(t) : {}; };
   const handler = createBatmishHandler({ verifyToken: decode, service, access, ownerEmail: OWNER, readJsonBody });
   const bridge = new LegacyBridgeServer({ log: () => {}, isStreamerEnabled: async () => true, verifyToken: decode, onSession: (u, id, ws) => access.registerSession(u, id, ws) });
@@ -20,8 +21,9 @@ export async function startBatmishTestServer(port = 0) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     if (url.pathname === '/healthz') { res.writeHead(200); return res.end('ok'); }
-    if (url.pathname === '/__bind' && req.method === 'POST') { const b = await readJsonBody(req); await access.bind(b.uid, 'test'); res.writeHead(200); return res.end('{}'); }
-    if (url.pathname === '/__unbind' && req.method === 'POST') { await access.unbind(); res.writeHead(200); return res.end('{}'); }
+    if (url.pathname === '/__siteuser' && req.method === 'POST') { const b = await readJsonBody(req); siteUsers.set(b.name, b.uid); access._siteCache.clear(); res.writeHead(200); return res.end('{}'); }
+    if (url.pathname === '/__bind' && req.method === 'POST') { const b = await readJsonBody(req); await access.bind(b.uid, 'test', b.streamer || undefined); res.writeHead(200); return res.end('{}'); }
+    if (url.pathname === '/__unbind' && req.method === 'POST') { const b = await readJsonBody(req).catch(() => ({})); await access.unbind((b && b.streamer) || undefined); res.writeHead(200); return res.end('{}'); }
     if (!(await handler(req, res, url.pathname, url))) { res.writeHead(404); res.end(); }
   });
   server.on('upgrade', (req, socket, head) => { if (new URL(req.url, 'http://localhost').pathname === '/ws') bridge.handleUpgrade(req, socket, head); else socket.destroy(); });

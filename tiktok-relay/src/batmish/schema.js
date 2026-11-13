@@ -3,6 +3,10 @@
 // modGetSetting(tag, key, default) (تُقرأ عند بداية كل راوند → تُطبَّق من الراوند التالي).
 // الاختبار test/batmish.test.js يقارن هذا الكتالوج بـMOD_SETTINGS_SCHEMA في index.html حتى لا ينفصلا.
 export const STREAMER_ID = '_zvd4';
+// الستريمرات المسموح لهم باللوحة (يوزر تيك توك بعد التطبيع). لكل واحد تثبيت حساب مستقل وإعدادات معزولة بحسب uid.
+export const STREAMERS = ['_zvd4'];
+// حسابات احسمها (اسم المستخدم بالموقع) المسموح لها باللوحة بمجرد الدخول بحسابها — بدون ربط بث. الخادم يتحقق أن uid التوكن = uid هذا الحساب.
+export const SITE_USERS = ['mish'];
 export const CATEGORIES = ['round', 'players', 'difficulty', 'scoring', 'interaction', 'balance', 'audiovisual', 'advanced'];
 export const TABS = ['GENERAL', 'GAMEPLAY', 'PLAYERS', 'DIFFICULTY', 'SCORING', 'ADVANCED'];
 export const SITE_TAG = '__site';
