@@ -283,6 +283,16 @@ console.log('== 11b) حساب احسمها mish');
   ok(!!txt && /@_zvd4/i.test(txt) && !/ربط البث|الربط مؤكد/.test(txt), 'لوحة mish تفتح باسمه ولا تدّعي ربط بث', (txt || '').slice(0, 300));
   await M.ctx.close();
 }
+console.log('== 11c) المالك (ببريده، اسم مستخدم MZX)');
+{
+  const W = await newCtx('W'); await open(W.page);
+  await signup(W.page, 'MZX', 'malshaifan1@gmail.com');
+  await W.page.evaluate((api) => { TIKTOK_BRIDGE_SERVERS[0] = api.replace('http', 'ws') + '/ws'; }, API);
+  ok(!!(await until(() => btn(W.page), 25000)), 'حساب المالك: يظهر الزر بدون ربط بث وبدون تثبيت');
+  const info = await W.page.evaluate(() => ({ s: Batmish.STREAMER, v: Batmish.VIA }));
+  ok(info.s === 'mzx' && info.v === 'account', 'الخادم أكّد المالك ببريده ويعرضه باسم mzx', info);
+  await W.ctx.close();
+}
 console.log('== 12) أخطاء الصفحة');
 const real = errors.filter(e => !/webgl/i.test(e));
 ok(real.length === 0, 'لا أخطاء JavaScript', real.slice(0, 5));

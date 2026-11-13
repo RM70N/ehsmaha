@@ -121,7 +121,7 @@ async function isStreamerEnabled(identifier) {
 // BATMISH: إعدادات ستريمر واحد (_zvd4) — مخزن Firestore لو متاح وإلا الذاكرة (تُفقد عند إعادة التشغيل).
 const batmishStore = db ? new ResilientStore({ db, rtdb: admin.database(), log }) : new MemoryStore();
 const batmishService = new BatmishService({ store: batmishStore });
-const batmishAccess = new BatmishAccess({ store: batmishStore, resolveUid: resolveAccountUid, envPinUid: process.env.BATMISH_OWNER_UID || '', autoClaim: process.env.BATMISH_AUTOCLAIM === '1', log });
+const batmishAccess = new BatmishAccess({ store: batmishStore, resolveUid: resolveAccountUid, ownerEmail: OWNER_EMAIL, envPinUid: process.env.BATMISH_OWNER_UID || '', autoClaim: process.env.BATMISH_AUTOCLAIM === '1', log });
 const legacyBridge = new LegacyBridgeServer({ log, isStreamerEnabled, verifyToken, onSession: (uid, uniqueId, ws) => batmishAccess.registerSession(uid, uniqueId, ws) });
 
 async function readJsonBody(req, limit = 10_000) {

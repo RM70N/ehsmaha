@@ -13,7 +13,7 @@ export async function startBatmishTestServer(port = 0) {
   const store = new MemoryStore();
   const service = new BatmishService({ store });
   const siteUsers = new Map(); // اسم حساب احسمها → uid (يحاكي سجل الأسماء؛ المحلّل الحقيقي مغطّى باختبارات accountLookup)
-  const access = new BatmishAccess({ store, resolveUid: async (n) => siteUsers.get(n) || '' });
+  const access = new BatmishAccess({ store, ownerEmail: 'malshaifan1@gmail.com', resolveUid: async (n) => siteUsers.get(n) || '' });
   const readJsonBody = async (req, limit = 10000) => { let n = 0; const c = []; for await (const x of req) { n += x.length; if (n > limit) throw new Error('الجسم كبير جداً'); c.push(x); } const t = Buffer.concat(c).toString('utf8'); return t ? JSON.parse(t) : {}; };
   const handler = createBatmishHandler({ verifyToken: decode, service, access, ownerEmail: OWNER, readJsonBody });
   const bridge = new LegacyBridgeServer({ log: () => {}, isStreamerEnabled: async () => true, verifyToken: decode, onSession: (u, id, ws) => access.registerSession(u, id, ws) });

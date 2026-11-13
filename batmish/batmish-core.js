@@ -6,7 +6,7 @@
   if (window.Batmish) return;
 
   var STREAMERS = ['_zvd4'];           // يوزرات البث المسموحة (الفحص الحقيقي بالخادم)
-  var SITE_USERS = ['mish', 'mzx'];    // حسابات احسمها المسموحة بمجرد الدخول (mish = صاحب _zvd4، mzx = المالك)
+  var SITE_USERS = ['mish', 'mzx'];    // فحص أولي فقط (mish = صاحب _zvd4، mzx = المالك). المرجع الحقيقي الخادم: المالك ببريده، وmish بسجل الأسماء
   var STREAMER = STREAMERS[0];          // اليوزر الفعلي بعد تأكيد الخادم
   var RECHECK_MS = 15000;
   var SELF_SRC = (document.currentScript && document.currentScript.src) || '/batmish/batmish-core.js';
@@ -85,6 +85,7 @@
       var s = typeof homeConnections !== 'undefined' && homeConnections && homeConnections.tiktok;
       if (s && s.ws && s.ws.readyState === 1 && STREAMERS.indexOf(norm(s.username)) >= 0) return true;
     } catch (e) { /* تجاهل */ }
+    try { if (typeof isOwnerAccount === 'function' && isOwnerAccount()) return true; } catch (e) { /* تجاهل */ }
     try { return typeof currentUsername !== 'undefined' && SITE_USERS.indexOf(norm(currentUsername)) >= 0; } catch (e) { return false; }
   };
   AccessController.prototype.request = function (method, path, body, opt) {
