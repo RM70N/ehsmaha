@@ -17,6 +17,10 @@ import { createAccountResolver } from './accountLookup.js';
 import { AppControlService, AppLinkHub, createDownloadsFetcher, OWNER_EMAIL } from './appControl.js';
 import { LegacyBridgeServer } from './legacyBridge.js';
 import { Jam3atnaServer } from './jam3atna/server.js';
+import { MemoryStore, FirestoreStore } from './batmish/store.js';
+import { BatmishService } from './batmish/service.js';
+import { BatmishAccess } from './batmish/access.js';
+import { createBatmishHandler } from './batmish/http.js';
 import fs from 'node:fs';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -114,7 +118,11 @@ async function isStreamerEnabled(identifier) {
   }
 }
 
-const legacyBridge = new LegacyBridgeServer({ log, isStreamerEnabled });
+// BATMISH: إعدادات ستريمر واحد (_zvd4) — مخزن Firestore لو متاح وإلا الذاكرة (تُفقد عند إعادة التشغيل).
+const batmishStore = db ? new FirestoreStore(db) : new MemoryStore();
+const batmishService = new BatmishService({ store: batmishStore });
+const batmishAccess = new BatmishAccess({ store: batmishStore, envPinUid: process.env.BATMISH_OWNER_UID || '', autoClaim: process.env.BATMISH_AUTOCLAIM === '1', log });
+const legacyBridge = new LegacyBridgeServer({ log, isStreamerEnabled, verifyToken, onSession: (uid, uniqueId, ws) => batmishAccess.registerSession(uid, uniqueId, ws) });
 
 async function readJsonBody(req, limit = 10_000) {
   let size = 0;
@@ -138,9 +146,13 @@ function sendJson(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+const batmishHandler = createBatmishHandler({ verifyToken, service: batmishService, access: batmishAccess, ownerEmail: OWNER_EMAIL, readJsonBody, log });
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const path = url.pathname;
+
+  if (path.startsWith('/batmish') && await batmishHandler(req, res, path, url)) return;
 
   if (path === '/healthz') return sendJson(res, 200, { ok: true });
 
