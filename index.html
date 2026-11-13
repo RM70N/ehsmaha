@@ -19253,7 +19253,10 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'holdDuration', type: 'number', label: 'مدة حمل التاج للفوز (بالثواني)', hint: 'الحالي: 5', default: 5, min: 2, max: 30 },
       { key: 'maxStealAttempts', type: 'number', label: 'عدد محاولات السرقة لكل لاعب', hint: 'الحالي: 2', default: 2, min: 1, max: 10 },
       { key: 'immunityEnabled', type: 'toggle', label: 'تفعيل الحماية المؤقتة', hint: 'فرصة عشوائية لحامل التاج تمنع السرقة لمدة قصيرة', default: false },
-      { key: 'speedupEnabled', type: 'toggle', label: 'تفعيل تسارع السرقة', hint: 'كل ما انسرق التاج أكثر، مدة الحمل المطلوبة للفوز تقل قليلاً (يزيد التوتر)', default: false }
+      { key: 'speedupEnabled', type: 'toggle', label: 'تفعيل تسارع السرقة', hint: 'كل ما انسرق التاج أكثر، مدة الحمل المطلوبة للفوز تقل قليلاً (يزيد التوتر)', default: false },
+      { key: 'immunityDuration', type: 'number', label: "مدة الحماية المؤقتة (بالثواني)", hint: "الحالي: 2 — إذا «الحماية» مفعّلة", default: 2, min: 1, max: 15 },
+      { key: 'speedupStep', type: 'number', unitDivisor: 10, unitStep: 0.1, label: 'مقدار تقليل مدة الحمل لكل سرقة (بالثواني)', hint: 'الحالي: 0.5 — إذا «التسارع» مفعّل', default: 5, min: 0, max: 50 },
+      { key: 'speedupMin', type: 'number', label: "أقل مدة حمل مع التسارع (بالثواني)", hint: "الحالي: 2", default: 2, min: 1, max: 30 }
     ]
   },
   lastletter: {
@@ -19312,11 +19315,15 @@ const MOD_SETTINGS_SCHEMA = {
       { key: 'spinMinMs', type: 'number', label: 'أقل مدة للف الروليت (بالميلي ثانية)', hint: 'الحالي: 4000', default: 4000, min: 1000, max: 15000 },
       { key: 'spinRandomMs', type: 'number', label: 'مدة عشوائية إضافية للف (بالميلي ثانية)', hint: 'الحالي: 1500', default: 1500, min: 0, max: 10000 },
       { key: 'turnSeconds', type: 'number', label: 'مدة دور اللاعب لاختيار دولة (بالثواني، 0 = بدون وقت)', hint: 'الحالي: 15 — إذا انتهى الوقت دون اختيار يروح دوره ويلف الدور على غيره', default: 15, min: 0, max: 3600 },
+      { key: 'turnTimerEnabled', type: 'toggle', label: 'اللعب مع المؤقت', hint: 'مفعّل: لكل لاعب مهلة لاختيار دولته (مدتها من خيار «مدة دور اللاعب»). مطفأ: بلا مؤقت والدور ينتظر اللاعب.', default: true },
+      { key: 'timeoutKickEnabled', type: 'toggle', label: 'طرد من انتهى مؤقته ولم يلعب', hint: 'مفعّل: إذا خلص المؤقت ولم يختر اللاعب دولة يُطرد من الراوند (تُقصى دولته). مطفأ: يروح دوره فقط.', default: true },
       { key: 'allianceEnabled', type: 'toggle', label: 'تفعيل تحالف مؤقت', hint: 'فرصة عشوائية تربط دولتين كتحالف — ما يقدر أحد يقصي الثانية طول ما التحالف قائم', default: false },
       { key: 'goldenCountryEnabled', type: 'toggle', label: 'تفعيل دولة محصّنة ذهبية', hint: 'دولة واحدة عشوائية بكل راوند تنجو من أول محاولة إقصاء لها', default: false },
       { key: 'endgameMultiplierEnabled', type: 'toggle', label: 'تفعيل مضاعفة الخطر بالنهاية', hint: 'في آخر 3 دول متبقية، فرصة الإقصاء تزيد (مرتين كل دور)', default: false },
       { key: 'revivalEnabled', type: 'toggle', label: 'تفعيل إنعاش عبر هدايا تيك توك', hint: 'أي متابع مُقصى يرجع للعبة فوراً إذا أرسل أي هدية عملات أثناء البث', default: true },
-      { key: 'revivalMaxUses', type: 'number', label: 'عدد مرات الانعاش المسموحة لكل شخص بالراوند', hint: 'الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد', default: 2, min: 1, max: 10 }
+      { key: 'revivalMaxUses', type: 'number', label: 'عدد مرات الانعاش المسموحة لكل شخص بالراوند', hint: 'الحالي: 2 — بعدها ما يقدر يرجع بالانعاش لين يبدأ راوند جديد', default: 2, min: 1, max: 10 },
+      { key: 'endgameMultiplierChance', type: 'number', label: "فرصة الإقصاء المزدوج لصاحب الدور (٪)", hint: "الحالي: 50 — 100 = كل صاحب دور يقدر يقصي دولتين (يتطلب تفعيل «مضاعفة الخطر بالنهاية»)", default: 50, min: 0, max: 100 },
+      { key: 'endgameMultiplierFrom', type: 'number', label: "يبدأ الإقصاء المزدوج لما تبقى هذا العدد من الدول أو أقل", hint: "الحالي: 3 — ارفعه (مثلاً 50) ليشمل كل مراحل اللعب", default: 3, min: 2, max: 50 }
     ]
   },
   reverseword: {
@@ -19413,6 +19420,58 @@ const MOD_SETTINGS_SCHEMA = {
     name: 'توب 10',
     fields: [
       { key: 'totalRounds', type: 'number', label: 'عدد الجولات', hint: 'الحالي: 3 — تُطبَّق عند بدء لعبة جديدة', default: 3, min: 1, max: 10 }
+    ]
+  },
+  roulette3d: {
+    name: 'الروليت الروسي',
+    fields: [
+      { key: 'minP', type: 'number', label: "الحد الأدنى للمشاركين", hint: "لا تبدأ المباراة قبل اكتمال هذا العدد. الحالي: 2", default: 2, min: 2, max: 30 },
+      { key: 'maxP', type: 'number', label: "الحد الأقصى للمشاركين", hint: "الحالي: 12", default: 12, min: 2, max: 24 },
+      { key: 'regTime', type: 'number', label: "مدة التسجيل (بالثواني)", hint: "٠ = تبدأ يدوياً. الحالي: 45", default: 45, min: 0, max: 600 },
+      { key: 'decTime', type: 'number', label: "مدة اتخاذ القرار (بالثواني)", hint: "الحالي: 15", default: 15, min: 5, max: 60 },
+      { key: 'passes', type: 'number', label: "مرات الامتناع لكل لاعب", hint: "«لا تطلق» تستهلك امتناعاً واحداً. الحالي: 2", default: 2, min: 0, max: 9 },
+      { key: 'earnPass', type: 'toggle', label: "كسب امتناع جديد بالشجاعة", hint: "من ينجو من «أطلق» مرتين يكسب امتناعاً إضافياً", default: true },
+      { key: 'tgtUses', type: 'number', label: "عدد مرات «أطلق على شخص» لكل لاعب", hint: "الحالي: 1 — كم مرة يقدر اللاعب يختار شخصاً ويطلق عليه", default: 1, min: 1, max: 5 },
+      { key: 'tgtGuaranteed', type: 'toggle', label: "الإطلاق على شخص = إصابة مضمونة", hint: "إيقاف (الافتراضي): الإطلاق على شخص يخضع لنفس الحظ. تشغيل: يصيب دائماً", default: false },
+      { key: 'tgtTwo', type: 'toggle', label: "الإطلاق على شخصين", hint: "إيقاف (الافتراضي): شخص واحد. تشغيل: يختار شخصين ويُطلق عليهما بالتتابع", default: false }
+    ]
+  },
+  guesscountry: {
+    name: 'خمن الدولة',
+    fields: [
+      { key: 'totalSeconds', type: 'number', label: "مدة التخمين (بالثواني)", hint: "الحالي: 30", default: 30, min: 10, max: 180 },
+      { key: 'maxAttempts', type: 'number', label: "عدد المحاولات", hint: "الحالي: 3", default: 3, min: 1, max: 10 }
+    ]
+  },
+  timersolo: {
+    name: 'التوقيت (فردي)',
+    fields: [
+      { key: 'maxSeconds', type: 'number', label: "أقصى مدة للعدّاد (بالثواني)", hint: "الحالي: 30", default: 30, min: 5, max: 120 }
+    ]
+  },
+  memorybuttons: {
+    name: 'أزرار الذاكرة',
+    fields: [
+      { key: 'startLength', type: 'number', label: "طول التسلسل في البداية", hint: "الحالي: 3", default: 3, min: 1, max: 8 },
+      { key: 'maxLevel', type: 'number', label: "المستوى الذي يعني الفوز الكامل", hint: "الحالي: 15", default: 15, min: 3, max: 40 },
+      { key: 'flashMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "مدة إضاءة كل زر (بالثواني)", hint: "الحالي: 0.6 — أقل = أصعب", default: 600, min: 150, max: 2000 },
+      { key: 'gapMs', type: 'number', unitDivisor: 1000, unitStep: 0.05, label: "الفاصل بين الأزرار (بالثواني)", hint: "الحالي: 0.25", default: 250, min: 50, max: 1500 }
+    ]
+  },
+  countrywarparty: {
+    name: 'حرب الدول (جماعي)',
+    fields: [
+      { key: 'turnSeconds', type: 'number', label: "مدة دور اللاعب (بالثواني)", hint: "الحالي: 15", default: 15, min: 5, max: 120 }
+    ]
+  },
+  findballsolo: {
+    name: 'اعثر على الكورة (فردي)',
+    fields: [
+      { key: 'shuffleMinMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "أقل مدة خلط بالجولة الأولى (بالثواني)", hint: "الحالي: 6", default: 6000, min: 1500, max: 15000 },
+      { key: 'shuffleSpeedupPercent', type: 'number', label: "نسبة تسريع الخلط كل جولة (%)", hint: "الحالي: 15", default: 15, min: 0, max: 50 },
+      { key: 'shuffleMinFloorMs', type: 'number', unitDivisor: 1000, unitStep: 0.1, label: "أقل مدة خلط ممكنة (بالثواني)", hint: "الحالي: 1.8", default: 1800, min: 500, max: 6000 },
+      { key: 'swapCount', type: 'number', label: "عدد تبديلات الأكواب", hint: "الحالي: 6", default: 6, min: 2, max: 20 },
+      { key: 'guessTimerSeconds', type: 'number', label: "مدة التخمين (بالثواني)", hint: "الحالي: 10", default: 10, min: 3, max: 60 }
     ]
   }
 };
@@ -23868,6 +23927,8 @@ let mainTimerInterval = null;
 let mainHintEnabled = false;          // مود إضافي: يكشف موضع حرف واحد بعد مدة معيّنة
 let MAIN_HINT_AFTER_SECONDS = 15;
 let mainHintTimeout = null;
+let mainExtraWord = null;   // BATMISH: كلمة ثانية مقبولة (حدث الكلمة المزدوجة)
+let mainWinShown = '';     // BATMISH: الكلمة التي فاز بها اللاعب (تُعرض في شاشة الفوز)
 let mainSpeedBonusEnabled = false;    // مود إضافي: نقطتان لأول تخمين مضبوط من أول محاولة لصاحبه
 
 // ==================== TWITCH IRC (مشترك بين كل الألعاب) ====================
@@ -26132,6 +26193,7 @@ function homeHasActiveConnection() {
 // المعرّف بنفس الشكل الخام اللي تتوقعه كل لعبة اليوم عبر extractUser)،
 // ثم توزّع نفس الحدث لكل لعبة مسجّلة حالياً.
 function homeDispatchToGameListeners(evt) {
+  if (window.__bmStreamTap) { try { window.__bmStreamTap(evt); } catch (e) {} } // BATMISH: إحصائيات البث (تعمل فقط لحساب مصرّح له)
   if (CONN_DIAG_ON) { try { connDiagObserveEvent(evt); } catch (e) {} }
   // ملاحظة مهمة: لا نجرّد بادئة المنصة من uniqueId هنا. النسخة السابقة كانت
   // تجرّدها، فتُلغي بالضبط الحماية التي يبنيها platformConnect ويصير
@@ -26911,13 +26973,22 @@ function gwCleanGuessText(text) {
   return cleaned;
 }
 
+let gwExtraWord = null;   // BATMISH: كلمة سرية ثانية مقبولة (الموضوع المزدوج)
+let gwWinWord = '';
 function gwProcessGuess(user, text) {
   if (gwGameStatus !== 'active') return;
   const cleaned = gwCleanGuessText(text);
   if (!cleaned) return; // رسالة مو كلمة مفردة صالحة — تجاهل بصمت
 
-  const isWin = gwScoreGuess(cleaned, gwSecretWord);
-  const closenessPercent = isWin ? 100 : gwGuessClosenessPercent(cleaned, gwSecretWord);
+  let isWin = gwScoreGuess(cleaned, gwSecretWord);
+  let closenessPercent = isWin ? 100 : gwGuessClosenessPercent(cleaned, gwSecretWord);
+  let winWord = gwSecretWord;
+  if (gwExtraWord) {   // BATMISH: الموضوع المزدوج — يُقبل أي من الموضوعين ويُحتسب الأقرب
+    const w2 = gwScoreGuess(cleaned, gwExtraWord);
+    const c2 = w2 ? 100 : gwGuessClosenessPercent(cleaned, gwExtraWord);
+    if (w2 && !isWin) { isWin = true; winWord = gwExtraWord; closenessPercent = 100; }
+    else if (!isWin && c2 > closenessPercent) closenessPercent = c2;
+  }
 
   gwAttemptCount++;
   document.getElementById('gw-attempts-count').textContent = gwAttemptCount;
@@ -26928,6 +26999,7 @@ function gwProcessGuess(user, text) {
   gwAddGuessRow(guess);
 
   if (formatted.isWin) {
+    gwWinWord = winWord;
     gwGameStatus = 'finished';
     gwSetGameStatus('finished');
     setTimeout(() => gwShowWinner(user), 600);
@@ -27166,10 +27238,10 @@ function gwRenderGuessRow(guess) {
 function gwShowWinner(user) {
   recordWin(user, 'خمّن الموضوع', 1);
   document.getElementById('gw-w-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('gw-w-label').textContent = (user.nickname || user.uniqueId) + ' — خمّن الموضوع وكان: ' + gwSecretWord + ' 🎉';
+  document.getElementById('gw-w-label').textContent = (user.nickname || user.uniqueId) + ' — خمّن الموضوع وكان: ' + (gwWinWord || gwSecretWord) + ' 🎉';
 
   const wordDisplay = document.getElementById('gw-w-word-display');
-  wordDisplay.textContent = gwSecretWord;
+  wordDisplay.textContent = gwWinWord || gwSecretWord; gwWinWord = '';
   wordDisplay.style.display = 'block';
 
   document.getElementById('gw-w-attempts').textContent = 'عدد المحاولات الكلي: ' + gwAttemptCount;
@@ -28476,7 +28548,12 @@ const mainLiveCommandHandlers = {
 
 function processGuess(user, text) {
   if (gameStatus !== 'active') return;
-  const colors = checkGuess(text, targetWord);
+  let colors = checkGuess(text, targetWord);
+  let winWord = targetWord;
+  if (mainExtraWord) {   // BATMISH: كلمتان سريتان — تُقبل أي منهما، ويُعرض التلوين الأقرب
+    const c2 = checkGuess(text, mainExtraWord);
+    if (c2 && (!colors || c2.filter(c => c === 'green').length > colors.filter(c => c === 'green').length)) { colors = c2; winWord = mainExtraWord; }
+  }
   if (!colors) return;
 
   // مود إضافي: أول تخمين لهذا المتابع في الراوند (لتحديد أهلية نقطة المكافأة)
@@ -28488,6 +28565,7 @@ function processGuess(user, text) {
 
   if (colors.every(c => c === 'green')) {
     gameStatus = 'finished';
+    mainWinShown = winWord;
     setGameStatus('finished');
     if (mainTimerInterval) { clearInterval(mainTimerInterval); mainTimerInterval = null; }
     if (mainHintTimeout) { clearTimeout(mainHintTimeout); mainHintTimeout = null; }
@@ -28637,10 +28715,11 @@ function showWinner(user, isFirstAttempt) {
   const bonus = mainSpeedBonusEnabled && isFirstAttempt;
   recordWin(user, 'اوجد الكلمة', bonus ? 2 : 1);
   document.getElementById('w-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('w-label').textContent = user.nickname + ' — خمّن الكلمة وكانت: ' + targetWord + ' 🎉' + (bonus ? ' (أول محاولة — نقطتان 🎉)' : '');
+  const shownWord = mainWinShown || targetWord; mainWinShown = '';
+  document.getElementById('w-label').textContent = user.nickname + ' — خمّن الكلمة وكانت: ' + shownWord + ' 🎉' + (bonus ? ' (أول محاولة — نقطتان 🎉)' : '');
 
   const wordDisplay = document.getElementById('w-word-display');
-  wordDisplay.textContent = targetWord;
+  wordDisplay.textContent = shownWord;
   wordDisplay.style.display = 'block';
 
   const wrap = document.getElementById('w-avatar-wrap');
@@ -32167,6 +32246,7 @@ let batteryConnectedOnce = false;
 let batteryCharge = 0;       // 0-100، مشترك بين كل المشاهدين — أول متغيّر بالملف يشتغل بهالشكل
 let batteryLastCharger = null; // { uniqueId, nickname } آخر شخص شحن، يفوز لو وصّلها لـ100
 let batteryFinished = false;
+let batteryChargeMul = 1, batteryOneShotMul = 0; // BATMISH (أحداث خاصة): مضاعِف الشحن (دائم مؤقتاً) ومضاعِف لشحنة واحدة فقط
 
 function goSetupBattery() {
   gamePlatform['battery'] = 'tiktok'; // التبويب الافتراضي المُفعَّل بالـ HTML — بدون هذا، أول تشغيل قبل الضغط على أي تبويب يتخطى فحص مفتاح الـ API
@@ -32262,7 +32342,9 @@ function handleBatteryTikTokEvent(data) {
 
 function batteryApplyCharge(user) {
   if (batteryFinished) return;
-  const pick = BATTERY_CHARGE_OPTIONS[Math.floor(Math.random() * BATTERY_CHARGE_OPTIONS.length)];
+  const basePick = BATTERY_CHARGE_OPTIONS[Math.floor(Math.random() * BATTERY_CHARGE_OPTIONS.length)];
+  let pick = Math.round(basePick * batteryChargeMul);
+  if (batteryOneShotMul > 0) { pick = Math.round(basePick * batteryOneShotMul); batteryOneShotMul = 0; }
   batteryCharge = Math.min(100, batteryCharge + pick);
   batteryLastCharger = user;
   batteryRenderMeter();
@@ -33409,6 +33491,9 @@ let hzConnectedOnce = false;
 let hzReconnectAttempts = 0;
 let hzMaxClicks = 15;             // overridden per-round from moderator settings — عدد الضغطات المسموحة للستريمر بالراوند
 let hzClicksUsed = 0;
+// BATMISH (أحداث خاصة): صناديق مكافأة / درع نجاة لاعب / فتح صندوقين بنقرة واحدة — كلها فارغة افتراضياً ولا تؤثر على اللعبة العادية
+let hzBonusCells = new Set(), hzBonusClicks = 3, hzShield = new Set(), hzDoubleNext = false;
+let hzMystery = new Set();   // BATMISH حدث «الصندوق الغامض»: صناديق لا يُعرف مفعولها إلا عند فتحها
 
 // ==================== HZ NAV ====================
 function goSetupHz() { show('setup-hz'); modInitAdvancedSection('hz'); }
@@ -33646,15 +33731,29 @@ function startHzRound() {
 // الميكانيكية الأساسية: الستريمر يضغط بنفسه على أي صندوق يبيه (كل الصناديق
 // متشابهة بالشكل تماماً — سرية ولا تدل على شيء) وله عدد محدود من الضغطات
 // الكلية بالراوند. إذا خلصت الضغطات، كل من بقي مختبئاً (ما انكشف) يفوز تلقائياً.
-function hzCellClick(num) {
+function hzCellClick(num, free) {
   if (hzGameStatus !== 'active') return;
   if (isGamePausedForRevival('hz')) { toast('⏸️ الجولة متوقفة مؤقتاً بسبب إنعاش لاعب...'); return; }
-  if (hzClicksUsed >= hzMaxClicks) return;
+  if (hzClicksUsed >= hzMaxClicks && !free) return;
   const cellEl = document.getElementById('hz-cell-' + num);
   if (!cellEl || cellEl.classList.contains('hz-opened')) return; // هذا الصندوق انفتح مسبقاً
 
-  hzClicksUsed++;
+  if (!free) hzClicksUsed++;
   updateHzClicksDisplay();
+  if (hzBonusCells.has(num)) { hzBonusCells.delete(num); hzMaxClicks += hzBonusClicks; cellEl.classList.add('hz-bonus-hit'); updateHzClicksDisplay(); toast('✨ صندوق أسطوري! +' + hzBonusClicks + ' ضغطات إضافية'); }
+  if (hzMystery.has(num)) {   // BATMISH: الصندوق الغامض — نتيجة عشوائية تُكشف عند الفتح
+    hzMystery.delete(num); cellEl.classList.add('hz-bonus-hit');
+    const mr = Math.floor(Math.random() * 4);
+    if (mr === 0) { hzMaxClicks += 2; updateHzClicksDisplay(); toast('❓ الصندوق الغامض: +2 ضغطات!'); }
+    else if (mr === 1) { const sh = [...hzParticipants.keys()].filter(u => !hzShield.has(u)); if (sh.length) { hzShield.add(sh[Math.floor(Math.random() * sh.length)]); toast('❓ الصندوق الغامض: لاعب مختبئ نال درعاً!'); } else { hzMaxClicks += 2; updateHzClicksDisplay(); toast('❓ الصندوق الغامض: +2 ضغطات!'); } }
+    else if (mr === 2) { hzDoubleNext = true; toast('❓ الصندوق الغامض: نقرتك القادمة تفتح صندوقين!'); }
+    else { hzMaxClicks = Math.max(hzClicksUsed, hzMaxClicks - 1); updateHzClicksDisplay(); toast('❓ الصندوق الغامض: فخ! ضغطة أقل'); }
+  }
+  if (hzDoubleNext && !free) {
+    hzDoubleNext = false; const others = [];
+    for (let n = 1; n <= HZ_GRID_SIZE; n++) { const e = document.getElementById('hz-cell-' + n); if (e && n !== num && !e.classList.contains('hz-opened')) others.push(n); }
+    if (others.length) { const o = others[Math.floor(Math.random() * others.length)]; setTimeout(() => hzCellClick(o, true), 700); }
+  }
 
   const uid = hzCells[num];
   if (!uid) {
@@ -33666,7 +33765,7 @@ function hzCellClick(num) {
     const p = hzParticipants.get(uid);
     const name = p ? p.user.nickname : uid;
 
-    if (checkAndConsumeImmunity(uid, name) || (hzRevivalEnabled && checkAndConsumeRevival(uid, name, hzRevivalMap, 'hz'))) {
+    if (checkAndConsumeImmunity(uid, name) || hzShield.delete(uid) || (hzRevivalEnabled && checkAndConsumeRevival(uid, name, hzRevivalMap, 'hz'))) {
       cellEl.classList.add('hz-missed-flash');
       setTimeout(() => cellEl.classList.remove('hz-missed-flash'), 500);
       addHzKillLogItem(num, null);
@@ -34381,6 +34480,7 @@ let rouKickedDuringRound = new Set(); // uniqueIds مطرودين أثناء ر�
 let rouRevivalEnabled = false;
 let rouRevivalMaxUses = 2;
 let rouEliminatedHistory = new Set();
+let rouElimUsers = new Map();   // BATMISH: بيانات المقصَيْن هذه الجولة (لحدث «العودة المفاجئة»)
 let rouRevivalCounts = new Map(); // uniqueId -> عدد مرات الانعاش بالهدايا هالراوند
 let rouRevivalBootedForStreamer = null;
 let rouRevivalMap = new Map();
@@ -34400,6 +34500,7 @@ let rouImmuneName = null;
 let rouImmunityUsed = false;
 let rouDoubleElimEnabled = false;      // مود إضافي: فرصة عشوائية تقصي شخصين بدل واحد بنفس اللفة
 let rouDoubleElimArmed = false;
+let rouForceDoubleElim = false;       // BATMISH (أحداث خاصة): يفعّل الإقصاء المزدوج لأول لفة قادمة مرة واحدة
 const ROU_DOUBLE_ELIM_CHANCE = 0.3;
 let rouAutoSpinArmed = false; // بعد أول ضغطة على "ابدأ الاختيار" بالراوند، يختفي الزر ويصير اللف تلقائي بالكامل
 
@@ -34497,7 +34598,7 @@ function initRouletteDashboard() {
   rouSpinning = false;
   rouPendingMention = null;
   rouClearPendingMentionTimer();
-  rouEliminatedHistory.clear();
+  rouEliminatedHistory.clear(); rouElimUsers.clear();
   rouRevivalCounts.clear();
   rouConnectedOnce = false;
   rouReconnectAttempts = 0;
@@ -34980,7 +35081,8 @@ function spinRoulette() {
       rouSpinning = false;
 
       // مود إضافي: فرصة عشوائية تفعّل إقصاء مزدوج بهذه اللفة
-      rouDoubleElimArmed = rouDoubleElimEnabled && Math.random() < ROU_DOUBLE_ELIM_CHANCE;
+      rouDoubleElimArmed = (rouDoubleElimEnabled && Math.random() < ROU_DOUBLE_ELIM_CHANCE) || rouForceDoubleElim;
+      rouForceDoubleElim = false;
 
       // عرض اسم الشخص اللي وقع عليه الروليت وانتظر استهدافه (رقم اللاعب بكل المنصات)
       const result = document.getElementById('spin-result');
@@ -35070,6 +35172,7 @@ function rouEliminateByMention(loserName, mentionedNames) {
       if (tag) tag.style.opacity = '0.3';
       rouParticipants.delete(uid);
       rouEliminatedHistory.add(uid); // يخليه مؤهّل لإنعاش لاحق بهدية
+      if (rouUser) rouElimUsers.set(uid, rouUser);
     }
     addRouElimItem(targetName, loserName);
 
@@ -35488,6 +35591,9 @@ let tmrStartTime = null;         // performance.now() لما شغّل المؤق
 let tmrElapsed = 0;              // ثوانٍ مضت فعلاً (لما يوقف)
 let tmrRafId = null;             // requestAnimationFrame id
 let TMR_MAX_SECONDS = 30;             // overridden per-round from moderator settings
+let tmrDoubleTries = false;           // BATMISH حدث «التوقيت المزدوج»: محاولة ثانية لكل لاعب (تُحتسب الأقرب)
+let tmrBlind = null;                  // BATMISH حدث «آخر جزء من الثانية»: {before, after} تعمية الساعة حول الوقت السري
+let tmrReverseClock = false;          // BATMISH حدث «الوقت المعكوس»: عرض الساعة تنازلياً (لا يغيّر منطق الفوز)
 let tmrGoldenZoneEnabled = false;     // مود إضافي: منطقة ذهبية من الوقت — الوقوف فيها يفوز فوراً
 let tmrGoldenZoneStart = null;
 let tmrGoldenZoneEnd = null;
@@ -35839,7 +35945,7 @@ function startTimerClock() {
       stopTimerClock(false);
       return;
     }
-    clock.textContent = tmrElapsed.toFixed(2);
+    clock.textContent = (tmrBlind && tmrElapsed >= tmrSecretTime - tmrBlind.before && tmrElapsed <= tmrSecretTime + tmrBlind.after) ? '؟.؟؟' : (tmrReverseClock ? Math.max(0, TMR_MAX_SECONDS - tmrElapsed) : tmrElapsed).toFixed(2);
     tmrRafId = requestAnimationFrame(tick);
   }
   tmrRafId = requestAnimationFrame(tick);
@@ -35873,11 +35979,19 @@ function stopTimerClock(manual) {
 }
 
 function tmrRecordGuess(user) {
-  // كل متابع يسجل مرة واحدة فقط
-  if (tmrGuesses.find(g => g.user.uniqueId === user.uniqueId)) return;
+  // كل متابع يسجل مرة واحدة فقط (إلا أثناء حدث «التوقيت المزدوج»: محاولة ثانية تُحتسب إن كانت أقرب)
+  const prevG = tmrGuesses.find(g => g.user.uniqueId === user.uniqueId);
+  if (prevG && !(tmrDoubleTries && !prevG.second)) return;
   if (tmrGameStatus !== 'running') return;
   const time = (performance.now() - tmrStartTime) / 1000;
   const diff = Math.abs(time - tmrSecretTime);
+  if (prevG) {
+    prevG.second = true;
+    if (diff < prevG.diff) { prevG.time = time; prevG.diff = diff; }
+    sortAndRenderGuesses();
+    toastFast('⏱️ ' + user.nickname + ' محاولة ثانية — ' + time.toFixed(2) + 'ث');
+    return;
+  }
 
   // مود المنطقة الذهبية: الوقوف داخلها يفوز فوراً بغض النظر عن القرب من الوقت السري
   if (tmrGoldenZoneEnabled && time >= tmrGoldenZoneStart && time <= tmrGoldenZoneEnd) {
@@ -36992,6 +37106,20 @@ function boxPick(n) {
         : '🛡️ ' + name + ' حصل على صندوق الحصانة!';
       toastFast((isGolden ? '⭐ ' : '🛡️ ') + name + ' حصل على حصانة!');
       setTimeout(boxAdvanceTurn, 2200);
+    } else if (content === 'sacrifice') {   // BATMISH: صندوق التضحية — يتنازل الفاتح عن حصانته ويمنحها للاعب آخر
+      const others = [...boxParticipants.keys()].filter(u => u !== uid);
+      const had = boxImmuneSet.has(uid);
+      if (had) boxImmuneSet.delete(uid);
+      const target = others.length ? others[Math.floor(Math.random() * others.length)] : null;
+      if (target) boxImmuneSet.set(target, (boxImmuneSet.get(target) || 0) + 1);
+      const tUser = target ? boxParticipants.get(target) : null;
+      item.classList.add('opened','immune');
+      item.querySelector('.box-shape').textContent = '🎁';
+      tag.textContent = 'تضحية';
+      banner.className = 'box-reveal-banner immune show';
+      banner.textContent = '🎁 ' + name + (had ? ' تنازل عن حصانته ومنحها' : ' ضحّى بصندوقه ومنح حصانة') + (tUser ? ' لـ ' + (tUser.nickname || tUser.uniqueId) : ' (لا أحد غيره)') + '!';
+      toastFast('🎁 صندوق التضحية!');
+      setTimeout(boxAdvanceTurn, 2200);
     } else {
       item.classList.add('opened','empty');
       item.querySelector('.box-shape').textContent = '🌀';
@@ -37990,6 +38118,7 @@ let mzCols = 11, mzRows = 7;
 let mzGrid = [];            // [r][c] = {N,E,S,W}
 let mzStart = { r: 0, c: 0 };
 let mzGoal = { r: 0, c: 0 };
+let mzFakeGoal = null;   // BATMISH حدث «المخرج الوهمي»: خلية تبدو كالمخرج وتعيد من يصلها للبداية
 let mzCellSize = 40;
 let mzRoundsPlayed = 0;
 
@@ -38350,6 +38479,7 @@ function mzRenderGrid() {
       if (cell.S) cls += ' mz-w-s';
       if (c === 0 && cell.W) cls += ' mz-w-w';
       if (r === mzGoal.r && c === mzGoal.c) cls += ' mz-goal-cell';
+      if (mzFakeGoal && r === mzFakeGoal.r && c === mzFakeGoal.c) cls += ' mz-goal-cell';
       if (r === mzStart.r && c === mzStart.c) cls += ' mz-start-cell';
       div.className = cls;
       grid.appendChild(div);
@@ -38420,6 +38550,7 @@ function mzMove(uid, dir) {
   const nr = pos.r + delta[0], nc = pos.c + delta[1];
   if (nr < 0 || nr >= mzRows || nc < 0 || nc >= mzCols) return;
   mzPos.set(uid, { r: nr, c: nc });
+  if (mzFakeGoal && nr === mzFakeGoal.r && nc === mzFakeGoal.c) { mzPos.set(uid, { r: mzStart.r, c: mzStart.c }); toastFast('🪤 مخرج وهمي! عاد ' + ((mzParticipants.get(uid) || {}).nickname || uid) + ' للبداية'); }
   mzRenderTokens();
   if (nr === mzGoal.r && nc === mzGoal.c) mzFinishRound(uid);
 }
@@ -39571,6 +39702,10 @@ let llGameStatus = 'waiting'; // waiting | active | finished
 let llParticipants = new Map();     // uniqueId -> user
 let llPendingFollowers = new Map();
 let llKickedDuringRound = new Set(); // uniqueIds مطرودين أثناء راوند شغّال — يُمنعون من الرجوع لحد راوند جديد
+let llBanLetter = '';       // BATMISH: حرف ممنوع (أي كلمة تحتويه تُقصي قائلها)
+let llReturnNext = false;   // BATMISH: الدور الحالي/القادم يبدأ بأول حرف من الكلمة السابقة
+let llMinLen = 0;           // BATMISH: أقل عدد حروف للكلمة المقبولة
+let llChainLeft = 0;        // BATMISH: عدد الأدوار المتبقية التي يجب ألا تقصر فيها الكلمة عن سابقتها
 let llRevivalEnabled = false;
 let llRevivalMaxUses = 2;
 let llEliminatedHistory = new Set();
@@ -39954,7 +40089,7 @@ function startTurnFor(idx) {
   if (!user) return;
 
   // عرض اللاعب الحالي
-  const lastChar = llGetLastChar(llCurrentWord);
+  const lastChar = llReqChar(llCurrentWord);
   document.getElementById('ll-cur-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('ll-cur-letter').textContent = lastChar;
 
@@ -40013,7 +40148,7 @@ function llProcessAnswer(user, text) {
 
   const word = text.trim();
   const normWord = normalize(word);
-  const requiredChar = llGetLastChar(llCurrentWord);
+  const requiredChar = llReqChar(llCurrentWord);
 
   // تحقق أول حرف
   const firstChar = llGetFirstChar(word);
@@ -40031,8 +40166,26 @@ function llProcessAnswer(user, text) {
     return;
   }
 
+  // BATMISH: قواعد الأحداث الخاصة (الحرف الممنوع / الطول الأدنى / سلسلة لا تقصر)
+  if (llBanLetter && normWord.includes(normalize(llBanLetter))) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `الحرف الممنوع "${llBanLetter}" موجود في كلمتك ❌`);
+    return;
+  }
+  if (llMinLen > 0 && normWord.length < llMinLen) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `الكلمة أقصر من ${llMinLen} حروف ❌`);
+    return;
+  }
+  if (llChainLeft > 0 && normWord.length < normalize(llCurrentWord).length) {
+    clearInterval(llCountdownInterval); llCountdownInterval = null;
+    llEliminate(currentUid, user, `تحدي السلسلة: لا تقصر عن "${llCurrentWord}" ❌`);
+    return;
+  }
   // صحيح!
   clearInterval(llCountdownInterval); llCountdownInterval = null;
+  if (llReturnNext) llReturnNext = false;
+  if (llChainLeft > 0) llChainLeft--;
   llUsedWords.add(normWord);
   llCurrentWord = word;
   addWordToChain(word, true);
@@ -40041,6 +40194,8 @@ function llProcessAnswer(user, text) {
   // انتقل للاعب التالي
   llNextPlayer();
 }
+
+function llReqChar(word) { return llReturnNext ? llGetFirstChar(word) : llGetLastChar(word); }
 
 function llGetLastChar(word) {
   const norm = normalize(word);
@@ -40487,6 +40642,8 @@ let waiUser = '';
 let waiKeyword = '';
 let waiCharName = '';
 let waiDescription = '';
+let waiEarlyBonusUntil = 0;   // BATMISH: الإجابة الصحيحة قبل هذا الوقت (ms) تنال نقطتين
+let waiWinBonus = false;
 let waiHint2 = '';               // تلميح إضافي اختياري يكتبه الستريمر
 let waiGameStatus = 'waiting';
 let waiParticipants = new Map();
@@ -40793,6 +40950,7 @@ function waiProcessGuess(user, text) {
   waiAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
+    waiWinBonus = Date.now() < waiEarlyBonusUntil;
     waiGameStatus = 'finished';
     waiSetWAIGameStatus('finished');
     if (waiTimerInterval) { clearInterval(waiTimerInterval); waiTimerInterval = null; }
@@ -40912,7 +41070,8 @@ function waiAddGuessRow(user, text, isCorrect) {
 
 function waiShowWinner(user) {
   const bonusEnabled = modGetSetting('whoami', 'speedBonusEnabled', false);
-  recordWin(user, 'من أنا؟', bonusEnabled ? 2 : 1);
+  const earlyBonus = waiWinBonus; waiWinBonus = false;
+  recordWin(user, 'من أنا؟', (bonusEnabled || earlyBonus) ? 2 : 1);
   document.getElementById('waiw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('waiw-label').textContent = user.nickname + ' — خمّن الشخصية وكانت: ' + waiCharName + ' 🎉';
   const disp = document.getElementById('waiw-char-display');
@@ -42238,6 +42397,8 @@ let rwApiKey = '';
 let rwUser = '';
 let rwKeyword = '';
 let rwWord = '';         // الكلمة الأصلية
+let rwDoubleRev = false;   // BATMISH: العكس المزدوج — الجواب الصحيح هو الكلمة الأصلية (عكس العكس)
+let rwWinInfo = null;      // BATMISH: كلمة/جواب الفائز وقت الفوز
 let rwAnswer = '';       // العكس الصحيح
 let rwGameStatus = 'waiting';
 let rwParticipants = new Map();
@@ -42551,12 +42712,13 @@ function rwProcessGuess(user, text) {
   }
 
   const normGuess = normalize(text);
-  const normAnswer = normalize(rwAnswer);
+  const normAnswer = normalize(rwDoubleRev ? rwWord : rwAnswer);
   const isCorrect = normGuess === normAnswer;
 
   rwAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
+    rwWinInfo = { word: rwWord, answer: rwDoubleRev ? rwWord : rwAnswer, shown: rwDoubleRev ? rwAnswer : rwWord };
     rwGameStatus = 'finished';
     rwSetRWGameStatus('finished');
     if (rwTimerInterval) { clearInterval(rwTimerInterval); rwTimerInterval = null; }
@@ -42663,9 +42825,10 @@ function rwAddGuessRow(user, text, isCorrect) {
 function rwShowWinner(user) {
   recordWin(user, 'عكس الكلمة', rwSpeedBonusEnabled ? 2 : 1);
   document.getElementById('rww-name').textContent = user.nickname || user.uniqueId;
-  document.getElementById('rww-label').textContent = user.nickname + ' — عكس الكلمة وكانت: ' + rwWord + ' ← ' + rwAnswer + ' 🎉' + (rwSpeedBonusEnabled ? ' (نقطتان 🎉)' : '');
+  document.getElementById('rww-label').textContent = user.nickname + ' — عكس الكلمة وكانت: ' + (rwWinInfo ? rwWinInfo.shown : rwWord) + ' ← ' + (rwWinInfo ? rwWinInfo.answer : rwAnswer) + ' 🎉' + (rwSpeedBonusEnabled ? ' (نقطتان 🎉)' : '');
   const disp = document.getElementById('rww-answer-display');
-  disp.textContent = rwAnswer;
+  disp.textContent = rwWinInfo ? rwWinInfo.answer : rwAnswer;
+  rwWinInfo = null;
   disp.style.display = 'block';
   const wrap = document.getElementById('rww-avatar-wrap');
   if (user.avatar) {
@@ -42958,6 +43121,10 @@ let pgsGameStatus = 'waiting';
 let pgsParticipants = new Map();
 let pgsPendingFollowers = new Map();
 let pgsAttempts = new Map();   // uniqueId -> عدد المحاولات
+let pgsBlind = false;          // BATMISH حدث «السعر السري»: لا يُعرض اتجاه الفرق (أعلى/أقل)
+let pgsGroupBonus = false;     // BATMISH حدث «تخمين جماعي»: إن قاربت متوسطات التخمين السعر ينال كل مخمّن نقطة
+let pgsDouble2x = false;       // BATMISH حدث «السعر المضاعف»: فائز الجولة بنقطتين
+let pgsAllGuesses = [];
 let pgsBestGuess = null;       // { user, value, diff }
 let PGS_MAX_ATTEMPTS = 2;      // overridden per-round from moderator settings
 let pgsKicked = new Set();
@@ -43261,6 +43428,7 @@ function pgsProcessGuess(user, text) {
 
   const newUsed = used + 1;
   pgsAttempts.set(uid, newUsed);
+  pgsAllGuesses.push({ user, value: guessVal });
 
   const diff = Math.abs(guessVal - pgsPrice);
   const isExact = diff === 0;
@@ -43282,7 +43450,7 @@ function pgsProcessGuess(user, text) {
     diffText = '🎯 السعر الحقيقي!';
   } else {
     const pctText = pct.toFixed(1) + '%';
-    const dirText = guessVal < pgsPrice ? '📈 أقل' : '📉 أكثر';
+    const dirText = pgsBlind ? '❓ اتجاه سري' : (guessVal < pgsPrice ? '📈 أقل' : '📉 أكثر');
     if (pct <= 10) {
       rowType = 'close';
       badge = '<span class="pg-guess-badge close">🔥 قريب (' + pctText + ' فرق)</span>';
@@ -43304,7 +43472,7 @@ function pgsProcessGuess(user, text) {
   if (newUsed >= PGS_MAX_ATTEMPTS) {
     toast('❌ @' + user.nickname + ' استنفد محاولاته');
   } else {
-    toast('⚠️ @' + user.nickname + ' — محاولة ' + newUsed + '/' + PGS_MAX_ATTEMPTS + ' — ' + (guessVal < pgsPrice ? 'ارفع أكثر 📈' : 'انزّل أقل 📉'));
+    toast('⚠️ @' + user.nickname + ' — محاولة ' + newUsed + '/' + PGS_MAX_ATTEMPTS + (pgsBlind ? '' : ' — ' + (guessVal < pgsPrice ? 'ارفع أكثر 📈' : 'انزّل أقل 📉')));
   }
 
   // فحص لو الكل خلّص
@@ -43331,7 +43499,7 @@ function startPGRound() {
   pgsAttempts.clear();
   // يمنع بقاء المطرودين بالراوند السابق مطرودين بالراوند الجديد
   pgsKickedDuringRound.clear();
-  pgsBestGuess = null;
+  pgsBestGuess = null; pgsAllGuesses = [];
   document.getElementById('pgs-guesses-board').innerHTML = '';
   document.getElementById('pgs-no-winner-box').style.display = 'none';
   document.getElementById('pgs-attempts-bar').innerHTML = '';
@@ -43386,8 +43554,15 @@ function pgsUpdateAttemptsBar(user, uid, used, closenessPct) {
 
 function pgsShowWinner(user, val, isExact, isFirstAttempt) {
   // مود إضافي: أول متابع يجاوب السعر بالضبط من أول محاولة يأخذ نقطتين بدل نقطة
-  const doubleWin = isExact && isFirstAttempt && modGetSetting('priceguess', 'doubleWinEnabled', false);
+  const doubleWin = (isExact && isFirstAttempt && modGetSetting('priceguess', 'doubleWinEnabled', false)) || pgsDouble2x;
   recordWin(user, 'تخمين السعر', doubleWin ? 2 : 1);
+  if (pgsGroupBonus && pgsAllGuesses.length) {   // BATMISH: تخمين جماعي — متوسط التخمينات قريب من السعر الحقيقي ⇒ نقطة لكل مخمّن
+    const avg = pgsAllGuesses.reduce((a, g) => a + g.value, 0) / pgsAllGuesses.length;
+    if (pgsPrice > 0 && Math.abs(avg - pgsPrice) / pgsPrice <= 0.10) {
+      const seen = new Set(); pgsAllGuesses.forEach(g => { if (!seen.has(g.user.uniqueId)) { seen.add(g.user.uniqueId); recordWin(g.user, 'تخمين السعر (جماعي)', 1); } });
+      toast('🤝 التخمين الجماعي أصاب! نقطة لكل مخمّن');
+    }
+  }
   document.getElementById('pgsw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('pgsw-label').textContent = isExact
     ? user.nickname + ' خمّن السعر بالضبط! 🎯' + (doubleWin ? ' (من أول محاولة — نقطتان 🎉)' : '')
@@ -44319,6 +44494,7 @@ function lscAddChatMsg(user, text) {
 let wrApiKey = '';
 let wrUser = '';
 let wrKeyword = '';
+let wrAcceptOverride = null;  // BATMISH: صيغة الجواب المقبولة أثناء الحدث (الكلمة الممنوعة/سباق السلسلة)
 let wrWord = '';            // الجملة/الكلمة السرية اللي يختارها الستريمر
 let wrGameStatus = 'waiting';
 let wrParticipants = new Map();
@@ -44591,7 +44767,7 @@ const wrLiveCommandHandlers = {
 // ==================== GAME LOGIC ====================
 function wrProcessGuess(user, text) {
   if (wrGameStatus !== 'active') return;
-  const isCorrect = normalize(text) === normalize(wrWord);
+  const isCorrect = normalize(text) === normalize(wrAcceptOverride || wrWord);
   wrAddGuessRow(user, text, isCorrect);
 
   if (isCorrect) {
@@ -47684,10 +47860,12 @@ let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
 let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
 let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwTimeoutKick = true;   // طرد من خلص مؤقته دون اختيار
 let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
 let cwGoldenCountryName = null;
 let cwGoldenCountrySaved = false;      // هل استُهلكت حمايتها بالفعل
+let cwDoubleElimChance = 50, cwDoubleElimFrom = 3; // BATMISH: فرصة (٪) وعتبة عدد الدول المتبقية للإقصاء المزدوج
 let cwDoubleElimEnabled = false;       // مود إضافي: في آخر 3 دول، صاحب الدور يقدر يقصي دولتين بنفس الدور
 let cwDoubleElimArmed = false;         // متاح هالدور (يُحدَّد عشوائياً كل ما دخلنا آخر 3 دول)
 let cwDoubleElimActivated = false;     // صاحب الدور كتب "قصي الثنائي" وفعّلها فعلياً
@@ -48109,9 +48287,13 @@ function startCountryWarRound() {
   CW_SPIN_RANDOM_MS = modGetSetting('countrywar', 'spinRandomMs', 1500);
   cwAllianceEnabled = modGetSetting('countrywar', 'allianceEnabled', false);
   cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
+  if (modGetSetting('countrywar', 'turnTimerEnabled', true) === false) cwTurnSeconds = 0;   // «اللعب مع المؤقت» مطفأ
+  cwTimeoutKick = modGetSetting('countrywar', 'timeoutKickEnabled', true) !== false;
   cwTurnTimerUid = null; cwGridRoundSeq++;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
+  cwDoubleElimChance = Number(modGetSetting('countrywar', 'endgameMultiplierChance', 50));
+  cwDoubleElimFrom = Number(modGetSetting('countrywar', 'endgameMultiplierFrom', 3));
   cwRevivalEnabled = modGetSetting('countrywar', 'revivalEnabled', true);
   cwRevivalMaxUses = modGetSetting('countrywar', 'revivalMaxUses', 2);
   cwAlliancePair = null;
@@ -48287,7 +48469,7 @@ function spinCountryWarWheel() {
       cwDoubleElimEliminationsThisTurn = 0;
       cwDoubleElimActivated = false;
       // مود إضافي: في آخر 3 دول، فرصة عشوائية 50% يُمنح صاحب الدور "قصي ثنائي"
-      cwDoubleElimArmed = cwDoubleElimEnabled && cwActiveCountries.length <= 3 && Math.random() < 0.5;
+      cwDoubleElimArmed = cwDoubleElimEnabled && cwActiveCountries.length <= cwDoubleElimFrom && Math.random() * 100 < cwDoubleElimChance;
 
       const result = document.getElementById('cw-spin-result');
       result.textContent = `🎯 الدور على ${winnerNickname}!`;
@@ -48365,11 +48547,17 @@ function cwTurnTimerTick() {
 function cwTurnTimeout() {
   if (!cwTurnUid || cwGameStatus !== 'active') return;
   const u = cwParticipants.get(cwTurnUid); const nm = u ? (u.nickname || u.uniqueId) : cwTurnUid;
+  const timedOutUid = cwTurnUid;
   cwTurnUid = null; cwTurnTimerUid = null; cwDoubleElimActivated = false; cwDoubleElimArmed = false; cwDoubleElimEliminationsThisTurn = 0;
   const result = document.getElementById('cw-spin-result'); if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — راح دوره!'; result.className = 'cw-spin-result show'; }
   const banner = document.getElementById('cw-turn-banner'); if (banner) banner.className = 'cw-turn-banner';
-  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — يلف الدور على غيره');
+  toast('⏰ انتهى وقت ' + nm + ' دون اختيار — ' + (cwTimeoutKick ? 'تم طرده من الراوند' : 'يلف الدور على غيره'));
   try { sfx.click(soundManager.gain('cw_spin_start')); } catch (e) {}
+  if (cwTimeoutKick && timedOutUid && cwParticipants.has(timedOutUid)) {
+    cwKickedDuringRound.add(timedOutUid);   // لا يرجع للراوند نفسه
+    cwRemoveParticipant(timedOutUid);       // تُقصى دولته بنفس منطق الطرد
+    if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — تم طرده من الراوند!'; result.className = 'cw-spin-result show'; }
+  }
   drawCWWheel(0);
   setTimeout(function cwAutoSpinRetry() {
     if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning || cwTurnUid) return;
@@ -49090,11 +49278,13 @@ let CS_HOLD_DURATION = 5; // seconds — overridden per-round from moderator set
 let CS_MAX_STEAL_ATTEMPTS = 2;  // كل شخص له محاولتين سرقة بالراوند — نفس الشيء
 let csImmunityEnabled = false;   // مود إضافي: فرصة حماية مؤقتة لحامل التاج
 let csSpeedupEnabled = false;    // مود إضافي: مدة الحمل تقل كل ما زادت محاولات السرقة
+let csDoubleCrown = false;       // BATMISH: حدث «التاج المزدوج» — الفائز بالراوند ينال نقطتين
+let csWinPts = 1;
 let csImmuneUntil = 0;           // performance.now() timestamp — حامل التاج محمي حتى هذا الوقت
 const CS_IMMUNITY_CHANCE = 0.25;    // فرصة تفعيل الحماية عند إمساك التاج
-const CS_IMMUNITY_DURATION = 2;     // ثوانٍ حماية عند تفعيلها
-const CS_SPEEDUP_STEP = 0.5;        // ثانية تُخصم من مدة الحمل لكل سرقة ناجحة
-const CS_SPEEDUP_MIN = 2;           // أقل مدة حمل ممكنة مع التسارع
+let CS_IMMUNITY_DURATION = 2;     // ثوانٍ حماية عند تفعيلها
+let CS_SPEEDUP_STEP = 0.5;        // ثانية تُخصم من مدة الحمل لكل سرقة ناجحة
+let CS_SPEEDUP_MIN = 2;           // أقل مدة حمل ممكنة مع التسارع
 
 function goSetupCrownSteal() { show('setup-crownsteal'); modInitAdvancedSection('crownsteal'); }
 
@@ -49396,6 +49586,9 @@ function startCrownStealRound() {
   CS_HOLD_DURATION = modGetSetting('crownsteal', 'holdDuration', 5);
   CS_MAX_STEAL_ATTEMPTS = modGetSetting('crownsteal', 'maxStealAttempts', 2);
   csImmunityEnabled = modGetSetting('crownsteal', 'immunityEnabled', false);
+  CS_IMMUNITY_DURATION = modGetSetting('crownsteal', 'immunityDuration', 2);
+  CS_SPEEDUP_STEP = modGetSetting('crownsteal', 'speedupStep', 5) / 10;
+  CS_SPEEDUP_MIN = modGetSetting('crownsteal', 'speedupMin', 2);
   csSpeedupEnabled = modGetSetting('crownsteal', 'speedupEnabled', false);
   csImmuneUntil = 0;
 
@@ -49505,6 +49698,7 @@ function csStartCountdown() {
 function csFinishRound() {
   if (csGameStatus !== 'active' || !csHolderUid) return;
   csGameStatus = 'finished';
+  csWinPts = csDoubleCrown ? 2 : 1;
   csSetGameStatus('finished');
   const winner = csParticipants.get(csHolderUid);
   if (winner) {
@@ -49523,7 +49717,7 @@ function addCSLogItem(icon, text, sub) {
 }
 
 function csShowWinner(user) {
-  recordWin(user, 'سرقة التاج');
+  recordWin(user, 'سرقة التاج', csWinPts); csWinPts = 1;
   document.getElementById('csw-name').textContent = user.nickname || user.uniqueId;
   document.getElementById('csw-label').textContent = user.nickname + ' — صمد 5 ثوانٍ بدون أن يُسرق منه التاج! 👑';
   const wrap = document.getElementById('csw-avatar-wrap');
@@ -50984,6 +51178,8 @@ let FINDBALL_SWAP_COUNT = 6;
 let findballRevivalEnabled = false;
 let findballRevivalMaxUses = 2;
 let findballShuffling = false;
+let findballGolden = false;          // BATMISH حدث «الكرة الذهبية»: من يخمّن صح هذه الجولة ينال حصانة لخطأ قادم
+let findballShield = new Set();
 // رقم تشغيل الجولة: الريست يغيّره فتتوقف مؤقّتات الإخفاء/الخلط/الكشف المعلّقة من الجولة السابقة
 // (قبل: ريست أثناء خلط الأكواب يترك doSwap شغّالاً على أكواب ممسوحة فيرمي خطأ ويقلب الحالة لاحقاً)
 let findballRunId = 0;
@@ -51975,6 +52171,7 @@ function findballStartRoundClick() {
   findballGuessTimerEnabled = modGetSetting('findball', 'guessTimerEnabled', true);
   FINDBALL_GUESS_TIMER_SECONDS = modGetSetting('findball', 'guessTimerSeconds', 10);
 
+  if (findballRoundNum === 0) findballShield.clear();
   findballRoundNum++;
   document.getElementById('findball-participants-box').style.display = 'none';
   document.getElementById('findball-round-bar').style.display = 'flex';
@@ -52218,8 +52415,10 @@ function findballResolveRound(winningCup) {
     const guess = findballGuesses.get(uid);
     if (guess === winningCup) {
       correctUsers.push(user);
+      if (findballGolden) findballShield.add(uid);
       return;
     }
+    if (findballShield.delete(uid)) { correctUsers.push(user); toastFast('🌟 ' + (user.nickname || uid) + ' نجا بالحصانة الذهبية!'); return; }
     // No guess submitted counts as wrong (didn't answer in time).
     if (checkAndConsumeImmunity(uid, user.nickname)) { correctUsers.push(user); return; }
     if (checkAndConsumeRevival(uid, user.nickname, findballRevivalMap, 'findball')) { correctUsers.push(user); return; }
@@ -52596,15 +52795,20 @@ let findballSoloActive = false;
 let findballSoloGuessable = false;
 let findballSoloTimerInterval = null;
 let findballSoloTimeLeft = 0;
-const FINDBALLSOLO_GUESS_TIMER_SECONDS = 10;
-const FINDBALLSOLO_SHUFFLE_MIN_MS = 6000;
-const FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = 15;
-const FINDBALLSOLO_SHUFFLE_FLOOR_MS = 1800;
-const FINDBALLSOLO_SWAP_COUNT = 6;
+let FINDBALLSOLO_GUESS_TIMER_SECONDS = 10;
+let FINDBALLSOLO_SHUFFLE_MIN_MS = 6000;
+let FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = 15;
+let FINDBALLSOLO_SHUFFLE_FLOOR_MS = 1800;
+let FINDBALLSOLO_SWAP_COUNT = 6;
 
 function goSetupFindballSolo() { show('setup-findballsolo'); }
 
 function findballSoloStart() {
+  FINDBALLSOLO_GUESS_TIMER_SECONDS = modGetSetting('findballsolo', 'guessTimerSeconds', 10);
+  FINDBALLSOLO_SHUFFLE_MIN_MS = modGetSetting('findballsolo', 'shuffleMinMs', 6000);
+  FINDBALLSOLO_SHUFFLE_SPEEDUP_PERCENT = modGetSetting('findballsolo', 'shuffleSpeedupPercent', 15);
+  FINDBALLSOLO_SHUFFLE_FLOOR_MS = modGetSetting('findballsolo', 'shuffleMinFloorMs', 1800);
+  FINDBALLSOLO_SWAP_COUNT = modGetSetting('findballsolo', 'swapCount', 6);
   findballSoloClearTimer();
   findballSoloRoundNum = 0;
   findballSoloLastWinningSlot = null;
@@ -53702,6 +53906,8 @@ let rlglProgress = new Map();         // uniqueId -> عدد الخطوات ال�
 let rlglEliminated = new Set();       // uniqueId -> مُقصى هذا الراوند
 let rlglWinnerUid = null;             // أول من يصل خط النهاية
 
+let rlglYellow = false;           // BATMISH حدث «الضوء الأصفر»: أثناء الأخضر تُقبل خطوة من كل خطوتين فقط
+let rlglYellowCount = new Map();
 let rlglLightState = 'green'; // green|red
 let rlglLightTimer = null;
 let rlglRoundEndsAt = 0;
@@ -54313,6 +54519,10 @@ function rlglHandleMoveMessage(user) {
   if (rlglWinnerUid) return; // الجولة محسومة فعلياً، بانتظار شاشة الفوز
   if (rlglIsRateLimited(user.uniqueId)) return; // رسالة زائدة السرعة — تجاهل صامت
 
+  if (rlglYellow && rlglLightState === 'green') {   // BATMISH: ضوء أصفر — نصف السرعة
+    const yc = (rlglYellowCount.get(user.uniqueId) || 0) + 1; rlglYellowCount.set(user.uniqueId, yc);
+    if (yc % 2 === 0) return;
+  }
   rlglLastMoveAt.set(user.uniqueId, Date.now());
 
   if (rlglIsMoveAllowed()) {
@@ -54614,8 +54824,8 @@ const GC_DATA = [
 ];
 
 const GC_SEEN_KEY = 'gc_seen_currencies';
-const GC_TOTAL_SECONDS = 30;
-const GC_MAX_ATTEMPTS = 3;
+let GC_TOTAL_SECONDS = 30;
+let GC_MAX_ATTEMPTS = 3;
 
 let gcCurrent = null;
 let gcAttemptsUsed = 0;
@@ -54670,6 +54880,8 @@ function gcCheckAnswer(input, data) {
 }
 
 function gcStart() {
+  GC_TOTAL_SECONDS = modGetSetting('guesscountry', 'totalSeconds', 30);
+  GC_MAX_ATTEMPTS = modGetSetting('guesscountry', 'maxAttempts', 3);
   gcCurrent = gcPickNextCurrency();
   gcAttemptsUsed = 0;
   gcTimeLeft = GC_TOTAL_SECONDS;
@@ -54780,7 +54992,7 @@ function goSetupGuessCountry() { show('setup-guesscountry'); }
 <!-- ====== TIMER SOLO — GAME LOGIC ====== -->
 <script>
 // ==================== SOLO GAME: لعبة التوقيت ====================
-const TS_MAX_SECONDS = 30;
+let TS_MAX_SECONDS = 30;
 const TS_SEEN_KEY = 'ts_seen_times';
 
 let tsSecretTime = 0;   // secret target, decimal seconds (0.1 - 29.9)
@@ -54817,6 +55029,7 @@ function tsPickNextSecretTime() {
 function goSetupTimerSolo() { show('setup-timersolo'); }
 
 function tsStart() {
+  TS_MAX_SECONDS = modGetSetting('timersolo', 'maxSeconds', 30);
   tsSecretTime = tsPickNextSecretTime();
   tsElapsed = 0;
   tsRunning = false;
@@ -54889,10 +55102,10 @@ function tsQuit() {
 <script>
 // ==================== SOLO GAME: حفظ الأزرار ====================
 const MB_GRID_SIZE = 9;
-const MB_START_LENGTH = 3;
-const MB_MAX_LEVEL = 15;   // reaching this level = full win
-const MB_FLASH_MS = 600;
-const MB_GAP_MS = 250;
+let MB_START_LENGTH = 3;
+let MB_MAX_LEVEL = 15;   // reaching this level = full win
+let MB_FLASH_MS = 600;
+let MB_GAP_MS = 250;
 
 let mbSequence = [];       // array of button indices (0-8), grows by 1 each level
 let mbPlayerStep = 0;      // how many of mbSequence the player has correctly repeated so far
@@ -54915,6 +55128,10 @@ function mbBuildGrid() {
 }
 
 function mbStart() {
+  MB_START_LENGTH = modGetSetting('memorybuttons', 'startLength', 3);
+  MB_MAX_LEVEL = modGetSetting('memorybuttons', 'maxLevel', 15);
+  MB_FLASH_MS = modGetSetting('memorybuttons', 'flashMs', 600);
+  MB_GAP_MS = modGetSetting('memorybuttons', 'gapMs', 250);
   mbSequence = [];
   for (let i = 0; i < MB_START_LENGTH; i++) mbSequence.push(Math.floor(Math.random() * MB_GRID_SIZE));
   mbLevel = 1;
@@ -55283,11 +55500,12 @@ function pcwRenderCountriesGrid() {
   });
 }
 
-const PCW_TURN_SECONDS = 15;
+let PCW_TURN_SECONDS = 15;
 let pcwTimerInterval = null;
 let pcwTimerDeadline = 0;
 
 function pcwStartTimer() {
+  PCW_TURN_SECONDS = modGetSetting('countrywarparty', 'turnSeconds', 15);
   pcwStopTimer();
   pcwTimerDeadline = Date.now() + PCW_TURN_SECONDS * 1000;
   const numEl = document.getElementById('pcw-timer-num');
@@ -55449,6 +55667,8 @@ let fastansTimerTotal = 0;
 let fastansTimerStart = null;
 let fastansRafId = null;
 let fastansRoundOver = false;
+let fastansBonusPts = 0;          // BATMISH (أحداث خاصة): نقاط إضافية للفائز بالسؤال الحالي (حدث «المضاعف السري»)
+let fastansStealNext = false;        // BATMISH: حدث «فرصة السرقة»
 
 function fastansShuffle(arr) {
   const a = arr.slice();
@@ -55616,7 +55836,12 @@ function fastansClosePickList() {
 function fastansPickWinner(idx) {
   fastansClosePickList();
   const player = fastansPlayers[idx];
-  player.score++;
+  if (fastansStealNext) {   // BATMISH: فرصة السرقة — الفائز يأخذ نقطة من حامل القنبلة
+    fastansStealNext = false;
+    const holder = fastansPlayers[fastansCurrentPlayerIdx];
+    if (holder && holder !== player && holder.score > 0) { holder.score--; player.score++; toastFast('🕵️ ' + player.name + ' سرق نقطة من ' + holder.name + '!'); }
+  }
+  player.score += 1 + (fastansBonusPts > 0 ? fastansBonusPts : 0); fastansBonusPts = 0;
 
   if (player.score >= FASTANS_WIN_SCORE) {
     document.getElementById('fastansw-name').textContent = player.name;
@@ -55672,6 +55897,9 @@ let pdrawIsDrawing = false;
 let pdrawLastX = 0;
 let pdrawLastY = 0;
 let pdrawStrokeHistory = [];
+let pdrawLocked = false;        // BATMISH حدث «الرسم السريع»: انتهى وقت الرسم فتُقفل اللوحة
+let pdrawStrokeLimit = 0;       // BATMISH حدث «القلم المحدود»: أقصى عدد ضربات (0 = بلا حد)
+let pdrawStrokeCount = 0;
 const PDRAW_COLORS = ['#000000','#ffffff','#e53935','#fb8c00','#fdd835','#43a047','#1e88e5','#8e24aa','#6d4c41','#00acc1'];
 
 function pdrawShuffle(arr) {
@@ -55796,6 +56024,7 @@ function pdrawInitCanvasTools() {
   const canvas = document.getElementById('pdraw-canvas');
   pdrawCtx = canvas.getContext('2d');
   pdrawStrokeHistory = [];
+  pdrawLocked = false; pdrawStrokeCount = 0;
   pdrawColor = '#000000';
   pdrawBrushSize = 6;
   pdrawIsErasing = false;
@@ -55844,6 +56073,8 @@ function pdrawSaveHistorySnapshot() {
 
 function pdrawPointerDown(e) {
   if (!pdrawCtx) return;
+  if (pdrawLocked) return;
+  if (pdrawStrokeLimit > 0) { if (pdrawStrokeCount >= pdrawStrokeLimit) return; pdrawStrokeCount++; }
   pdrawSaveHistorySnapshot();
   pdrawIsDrawing = true;
   const pos = pdrawGetCanvasPos(e);
@@ -74859,6 +75090,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if(typeof homeHasActiveConnection==='function'&&(!homeHasActiveConnection()||!streamerUser)){ setStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)'); return; }
     var minP=num(TAG+'-min',2,2,30), maxP=Math.max(minP,num(TAG+'-max',12,2,24));
     pendingCfg={keyword:(($(TAG+'-join-kw')||{}).value||'دخول').trim()||'دخول',minP:minP,maxP:maxP,regTime:num(TAG+'-reg',45,0,600),decTime:num(TAG+'-dec',15,5,60),passes:num(TAG+'-passes',2,0,9),demo:false};
+    /* BATMISH: قيم اللوحة تغلب قيم صفحة الإعداد (وإن لم تُضبط تبقى قيم الصفحة) */
+    pendingCfg.minP = modGetSetting('roulette3d', 'minP', pendingCfg.minP);
+    pendingCfg.maxP = Math.max(pendingCfg.minP, modGetSetting('roulette3d', 'maxP', pendingCfg.maxP));
+    pendingCfg.regTime = modGetSetting('roulette3d', 'regTime', pendingCfg.regTime);
+    pendingCfg.decTime = modGetSetting('roulette3d', 'decTime', pendingCfg.decTime);
+    pendingCfg.passes = modGetSetting('roulette3d', 'passes', pendingCfg.passes);
+    pendingCfg.earnPass = modGetSetting('roulette3d', 'earnPass', true);
+    pendingCfg.tgtUses = modGetSetting('roulette3d', 'tgtUses', 1);
+    pendingCfg.tgtGuaranteed = modGetSetting('roulette3d', 'tgtGuaranteed', false);
+    pendingCfg.tgtTwo = modGetSetting('roulette3d', 'tgtTwo', false);
     if(typeof ownerRegisterActiveStreamer==='function') ownerRegisterActiveStreamer(TAG,streamerUser,(typeof gamePlatform==='object'?gamePlatform[TAG]:'tiktok'),'الروليت الروسي');
     if(typeof contestNoteActivity==='function') contestNoteActivity();
     if(typeof scoreCurrentStreamer!=='undefined'){ try{ scoreCurrentStreamer=streamerUser; }catch(e){} }
@@ -76791,7 +77032,7 @@ $('#snd').addEventListener('click',function(){
 });
 
 /* ---------- الحالة ---------- */
-var state='idle', roundId=0, roundNum=0, players=[], WIND=0, skip=false;
+var state='idle', roundId=0, roundNum=0, players=[], WIND=0, skip=false, REVERSE=false;   /* REVERSE: BATMISH حدث «التحدي العكسي» — الفائز صاحب أقصر رمية */
 var cur=null, landed=[], extras=[], camMode='idle', shake=0, flash=0, speedFx=0, fovPunch=0, timeScale=1, slowUntil=0;
 var camLook=new THREE.Vector3(16,5,0), camPos=new THREE.Vector3(12,8,38), orbitT=0, winnerSpot=null, lastFW=0;
 var bubbleEl=null, bubble={text:'',until:0};
@@ -76919,8 +77160,8 @@ async function fireAll(id){
   state='done'; renderBoard();
   var res=players.filter(function(p){return p.dist!=null});
   if(!res.length){ stage({name:'ما أحد أكمل الإطلاق'}); await sleep(2000); if(id!==roundId) return; state='idle'; hostCall('onRoundOver'); return; }
-  var best=res.slice().sort(function(a,b){return b.dist-a.dist})[0];
-  stage({tag:'الفائز',gold:true,name:best.name,av:best.avatar,num:best.dist,note:'أبعد رمية في الجولة',pop:true});
+  var best=res.slice().sort(function(a,b){return REVERSE?a.dist-b.dist:b.dist-a.dist})[0];
+  stage({tag:'الفائز',gold:true,name:best.name,av:best.avatar,num:best.dist,note:REVERSE?'أقصر رمية في الجولة (التحدي العكسي)':'أبعد رمية في الجولة',pop:true});
   sfx('fanfare'); sfx('cheer'); flash=0.5;
   var L=landed.filter(function(l){return l.p===best}).sort(function(a,b){return b.x-a.x})[0];
   if(L){ winnerSpot={x:L.x,z:L.z}; confetti(L.x,6,L.z,160); winnerProps(L); }
@@ -77462,6 +77703,16 @@ window.HC={
   },
   reset:function(){ roundId++; clearScene(); players=[]; pq=[]; cur=null; state='idle'; camMode='idle'; winnerSpot=null; renderBoard(); stage(null); setPhase('…',0); },
   cfg:function(){ return JSON.parse(JSON.stringify(CFG)); },
+  /* BATMISH (الأحداث الخاصة): واجهة تتحكم بحالة الجولة الحالية؛ لا تُستدعى إلا من نظام الأحداث */
+  ev:{
+    wind:function(w){ if(w!=null){ WIND=+w; renderWind(); } return WIND; },
+    reverse:function(v){ if(v!=null) REVERSE=!!v; return REVERSE; },
+    flying:function(){ return !!(cur&&!cur.rest&&state==='firing'); },
+    deploy:function(id){ if(!cur||cur.rest||state!=='firing') return false; try{ spawnObstacle(id,cur,lead(cur,0.6)); return true; }catch(e){ return false; } },
+    golden:function(){ if(!cur||cur.rest||state!=='firing') return false; var g=GIFTS.filter(function(x){return x.id==='moneygun'})[0]; var pw=penWindow; penWindow=false; try{ giftApply(g,'هدف ذهبي'); }finally{ penWindow=pw; } return true; },
+    clearObstacles:function(){ clearObstacles(); },
+    cur:function(){ return cur?{x:cur.x,y:cur.y,vx:cur.vx,shield:cur.shield||0,tail:cur.tail||0,rest:!!cur.rest}:null; }
+  },
   info:function(){ return {state:state,round:roundNum,players:players.length,aimed:players.filter(function(p){return p.angle!=null}).length,running:running}; }
 };
 /* ---------- تشغيل ---------- */
@@ -81589,6 +81840,8 @@ let tt10RoundSeconds = 0; // 0 = بدون تايمر (الافتراضي) — ي
 let tt10Ws = null, tt10ReconnectTimer = null, tt10ConnectedOnce = false;
 let tt10TiktokUser = '', tt10KickUser = '', tt10YtUser = '';
 let tt10Participants = new Map();      // uniqueId -> user (كل من كتب بالشات أثناء اللعبة — لأدوات الإدارة فقط)
+let tt10HideRanks = false;           // BATMISH حدث «القائمة المخفية»: أرقام المراكز غير المكشوفة تُخفى
+let tt10StealNext = false;          // BATMISH حدث «الإجابة المسروقة»: أول إجابة صحيحة تسرق نقاطاً من المتصدر
 let tt10Scores = new Map();            // uniqueId -> { user, score }
 let tt10FollowPrompted = new Set();    // عشان ما نكرر تنبيه "لازم تسوي فولو" لنفس الشخص
 let tt10GameStatus = 'waiting';        // waiting | active | roundover | finished
@@ -81871,10 +82124,16 @@ function tt10ProcessAnswer(user, text) {
 
   const entry = tt10Scores.get(user.uniqueId) || { user, score: 0 };
   entry.user = user;
-  entry.score += match.rank;
+  const tt10Pts = match.rank * (match.bonusMul || 1); // BATMISH (أحداث خاصة): مضاعِف نقاط لإجابة محددة
+  entry.score += tt10Pts;
   tt10Scores.set(user.uniqueId, entry);
+  if (tt10StealNext) {   // BATMISH: الإجابة المسروقة — تؤخذ نقاط من المتصدر الحالي
+    tt10StealNext = false;
+    const top = Array.from(tt10Scores.values()).filter(e => e.user.uniqueId !== user.uniqueId).sort((a, b) => b.score - a.score)[0];
+    if (top && top.score > 0) { const st = Math.min(top.score, Math.ceil(match.rank / 2)); top.score -= st; entry.score += st; toast('🕵️ ' + (user.nickname || user.uniqueId) + ' سرق ' + st + ' نقطة من ' + (top.user.nickname || top.user.uniqueId) + '!'); }
+  }
 
-  toast('✅ ' + (user.nickname || user.uniqueId) + ' جاوب "' + match.value + '" صح — أخذ ' + match.rank + ' نقطة!');
+  toast('✅ ' + (user.nickname || user.uniqueId) + ' جاوب "' + match.value + '" صح — أخذ ' + tt10Pts + ' نقطة!');
   if (typeof announceDeveloperJoinIfApplicable === 'function') announceDeveloperJoinIfApplicable(user);
 
   tt10RenderGrid();
@@ -81941,7 +82200,7 @@ function tt10RenderGrid(targetId) {
   if (!grid || !tt10CurrentQuestion) return;
   grid.innerHTML = tt10CurrentQuestion.items.map(item => `
     <div class="top10-cell ${item.revealed ? 'revealed' : 'hidden-cell'}">
-      <div class="top10-cell-rank">${item.rank}</div>
+      <div class="top10-cell-rank">${(tt10HideRanks && !item.revealed) ? '؟' : item.rank}</div>
       <div class="top10-cell-value">${item.revealed ? esc(item.value) : '؟؟؟'}</div>
     </div>
   `).join('');
@@ -82787,6 +83046,7 @@ let glzTimerInterval = null, glzTimeLeft = 0;
 // رقم تشغيل اللعبة: الخروج أو لعبة جديدة يغيّره، فمؤقّتات كشف الإجابة المعلّقة لا تبدأ سؤالاً جديداً
 // بالخلفية ولا تفتح شاشة الفوز فوق لعبة ثانية (قبل: الخروج أثناء الكشف يكمل اللعبة بالخلفية).
 let glzRunId = 0;
+let glzDoubleStep = false;   // BATMISH حدث «الخطوة المزدوجة»: هذه الجولة لا يسقط فيها أحد (خطوة ثانية للجميع)
 let glzSimMode = false;
 
 function goSetupGlz() { show('setup-glz'); }
@@ -83222,6 +83482,7 @@ function glzResolveRound() {
     eliminated = eliminated.filter(u => u !== lucky);
   }
 
+  if (glzDoubleStep) { glzDoubleStep = false; if (eliminated.length) { survivors = survivors.concat(eliminated); eliminated = []; toast('👣 الخطوة المزدوجة! نجا الجميع هذه الجولة'); } }
   const correctPanel = document.getElementById('glz-panel-' + correct);
   if (correctPanel) correctPanel.classList.add('safe-glow');
   toast('✅ الإجابة الصحيحة: ' + q.o[correct]);

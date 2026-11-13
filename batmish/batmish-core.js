@@ -132,14 +132,22 @@
     this.state = 'allowed';
     this.loadCss();
     this.mountButton();
+    this.loadEvents();
     // التخصيص النشط للألعاب (overrides فقط) — من الخادم
     this.request('GET', '/batmish/overlay').then(function (r) {
       if (r.status === 200 && r.body && self.state === 'allowed') { var u = self.user(); self.resolver.set(r.body.rev, r.body.config, u && u.uid); }
     }, function () {});
     try { window.dispatchEvent(new CustomEvent('batmish:access', { detail: { allowed: true } })); } catch (e) {}
   };
+  // محرك الأحداث الخاصة: يُحمَّل فقط بعد موافقة الخادم، ويبدأ بالعمل حتى لو لم تُفتح اللوحة (الأحداث تعمل أثناء الجولات)
+  AccessController.prototype.loadEvents = function () {
+    var self = this; if (window.BatmishEvents) { try { window.BatmishEvents.start(); } catch (e) {} return; }
+    var queue = ['events/engine-core.js', 'events/adapters.js', 'events/engine.js'], i = 0;
+    (function next() { if (i >= queue.length) { if (self.state === 'allowed' && window.BatmishEvents) window.BatmishEvents.start(); return; } var s = document.createElement('script'); s.src = BASE + queue[i++] + '?v=1'; s.onload = next; s.onerror = function () {}; document.head.appendChild(s); })();
+  };
   AccessController.prototype.hide = function (why) {
     var was = this.state;
+    try { if (window.BatmishEvents) window.BatmishEvents.stop(); } catch (e) {}
     this.state = 'hidden';
     this.resolver.clear();
     if (this.ui && this.ui.close) { try { this.ui.close({ silent: true, reason: why }); } catch (e) {} }
@@ -200,7 +208,52 @@
   };
 
   var controller = new AccessController();
-  window.Batmish = { STREAMER: STREAMER, BAT_SVG: BAT_SVG, BASE: BASE, controller: controller, resolver: controller.resolver, effects: SiteEffects, norm: norm };
+
+  /* ---------- إحصائيات البث الحيّة: من نفس أحداث الجسر التي تغذّي الألعاب (تعليقات/هدايا/متابعون/إعجابات/مشاهدون).
+     تُجمَّع على هذا الجهاز فقط ومن لحظة ربط البث، وفقط لحساب مصرّح له (الأحداث تُتجاهل بغير ذلك). ليست سجلاً رسمياً من تيك توك. */
+  var StreamStats = (function () {
+    function fresh(user) { return { start: Date.now(), user: user || '', comments: 0, gifts: 0, diamonds: 0, follows: 0, likes: 0, joins: 0, shares: 0, viewers: null, peak: 0, chatters: {}, gifters: {}, recent: [], recentGifts: [], stamps: [], vs: [], lastEvent: 0 }; }
+    var s = fresh('');
+    function who(m) { var u = (m && m.user) || {}; var id = String(u.uniqueId || u.userId || ''); return { id: id, name: String(u.nickname || id || 'مجهول') }; }
+    function top(map, n) { return Object.keys(map).map(function (k) { return { id: k, name: map[k].name, n: map[k].n }; }).sort(function (a, b) { return b.n - a.n; }).slice(0, n); }
+    function curUser() { try { var t = homeConnections && homeConnections.tiktok; return t && t.username ? norm(t.username) : ''; } catch (e) { return ''; } }
+    function add(evt) {
+      var u = curUser(); if (u && u !== s.user) s = fresh(u);   // بث/حساب مختلف → عدّاد جديد
+      var ms = evt && (evt.messages || (evt.type ? [evt] : [])); if (!ms) return;
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i], t = m && (m.type || m.event); if (!t) continue;
+        if (t === 'WebcastChatMessage') {
+          var w = who(m), txt = String(m.comment || '').slice(0, 220); if (!txt) continue;
+          s.comments++; s.lastEvent = Date.now(); s.stamps.push(Date.now()); if (s.stamps.length > 600) s.stamps.shift();
+          var c = s.chatters[w.id] || (s.chatters[w.id] = { name: w.name, n: 0 }); c.n++;
+          s.recent.unshift({ name: w.name, text: txt, at: Date.now() }); if (s.recent.length > 40) s.recent.pop();
+        } else if (t === 'WebcastGiftMessage') {
+          var g = who(m), cnt = Math.max(1, Number(m.repeatCount) || 1), dia = (Number(m.diamondCount) || 0) * cnt;
+          s.gifts += cnt; s.diamonds += dia; s.lastEvent = Date.now();
+          var gg = s.gifters[g.id] || (s.gifters[g.id] = { name: g.name, n: 0 }); gg.n += dia;
+          s.recentGifts.unshift({ name: g.name, gift: String(m.giftName || 'هدية'), cnt: cnt, at: Date.now() }); if (s.recentGifts.length > 20) s.recentGifts.pop();
+        } else if (t === 'WebcastSocialMessage') {
+          if (String(m.displayType || '').indexOf('share') >= 0) s.shares++; else s.follows++;
+          s.lastEvent = Date.now();
+        } else if (t === 'WebcastLikeMessage') {
+          var tl = Number(m.totalLikeCount) || 0; if (tl > s.likes) s.likes = tl; else s.likes += Number(m.likeCount) || 0; s.lastEvent = Date.now();
+        } else if (t === 'WebcastRoomUserSeqMessage') {
+          var v = Number(m.viewerCount); if (isFinite(v)) { s.viewers = v; if (v > s.peak) s.peak = v; s.lastEvent = Date.now(); }
+        } else if (/Member/.test(t)) { s.joins++; }
+      }
+    }
+    // عيّنة مشاهدين كل 5 ثوانٍ للرسم البياني
+    setInterval(function () { if (s.viewers != null) { s.vs.push(s.viewers); if (s.vs.length > 72) s.vs.shift(); } }, 5000);
+    function snapshot() {
+      var now = Date.now(), min = 0; for (var i = s.stamps.length - 1; i >= 0 && now - s.stamps[i] < 60000; i--) min++;
+      var linked = false; try { var t = homeConnections && homeConnections.tiktok; linked = !!(t && t.ws && t.ws.readyState === 1); } catch (e) {}
+      return { linked: linked, user: s.user || curUser(), start: s.start, uptime: now - s.start, comments: s.comments, perMin: min, chatters: Object.keys(s.chatters).length, gifts: s.gifts, diamonds: s.diamonds, follows: s.follows, likes: s.likes, shares: s.shares, joins: s.joins, viewers: s.viewers, peak: s.peak, vs: s.vs.slice(), recent: s.recent.slice(0, 25), recentGifts: s.recentGifts.slice(0, 10), topChatters: top(s.chatters, 5), topGifters: top(s.gifters, 5), lastEvent: s.lastEvent };
+    }
+    function reset() { s = fresh(curUser()); }
+    return { add: add, snapshot: snapshot, reset: reset };
+  })();
+  window.__bmStreamTap = function (evt) { if (controller.state === 'allowed') StreamStats.add(evt); };
+  window.Batmish = { STREAMER: STREAMER, BAT_SVG: BAT_SVG, BASE: BASE, controller: controller, stats: StreamStats, resolver: controller.resolver, effects: SiteEffects, norm: norm };
   // modGetSetting(tag,key,fallback) في index.html يستدعي هذه الدالة أولاً
   window.__batmishOverlay = function (tag, key) { return controller.resolver.get(tag, key); };
   controller.start();

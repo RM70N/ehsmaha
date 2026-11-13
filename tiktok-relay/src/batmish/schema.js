@@ -250,7 +250,10 @@ export const GAMES = {
     "default": false,
     "cat": "balance",
     "tab": "ADVANCED"
-   }
+   },
+   {"key": "immunityDuration", "type": "number", "label": "مدة الحماية المؤقتة (بالثواني)", "hint": "الحالي: 2 — إذا «الحماية» مفعّلة", "default": 2, "min": 1, "max": 15, "cat": "balance", "tab": "ADVANCED"},
+   {"key": "speedupStep", "type": "number", "unitDivisor": 10, "unitStep": 0.1, "label": "مقدار تقليل مدة الحمل لكل سرقة (بالثواني)", "hint": "الحالي: 0.5 — إذا «التسارع» مفعّل", "default": 5, "min": 0, "max": 50, "cat": "balance", "tab": "ADVANCED"},
+   {"key": "speedupMin", "type": "number", "label": "أقل مدة حمل مع التسارع (بالثواني)", "hint": "الحالي: 2", "default": 2, "min": 1, "max": 30, "cat": "balance", "tab": "ADVANCED"}
   ]
  },
  "lastletter": {
@@ -527,6 +530,24 @@ export const GAMES = {
     "tab": "GENERAL"
    },
    {
+    "key": "turnTimerEnabled",
+    "type": "toggle",
+    "label": "اللعب مع المؤقت",
+    "hint": "مفعّل: لكل لاعب مهلة لاختيار دولته (مدتها من خيار «مدة دور اللاعب»). مطفأ: بلا مؤقت والدور ينتظر اللاعب.",
+    "default": true,
+    "cat": "round",
+    "tab": "GENERAL"
+   },
+   {
+    "key": "timeoutKickEnabled",
+    "type": "toggle",
+    "label": "طرد من انتهى مؤقته ولم يلعب",
+    "hint": "مفعّل: إذا خلص المؤقت ولم يختر اللاعب دولة يُطرد من الراوند (تُقصى دولته). مطفأ: يروح دوره فقط.",
+    "default": true,
+    "cat": "round",
+    "tab": "GENERAL"
+   },
+   {
     "key": "allianceEnabled",
     "type": "toggle",
     "label": "تفعيل تحالف مؤقت",
@@ -572,7 +593,9 @@ export const GAMES = {
     "max": 10,
     "cat": "players",
     "tab": "PLAYERS"
-   }
+   },
+   {"key": "endgameMultiplierChance", "type": "number", "label": "فرصة الإقصاء المزدوج لصاحب الدور (٪)", "hint": "الحالي: 50 — 100 = كل صاحب دور يقدر يقصي دولتين (يتطلب تفعيل «مضاعفة الخطر بالنهاية»)", "default": 50, "min": 0, "max": 100, "cat": "balance", "tab": "ADVANCED"},
+   {"key": "endgameMultiplierFrom", "type": "number", "label": "يبدأ الإقصاء المزدوج لما تبقى هذا العدد من الدول أو أقل", "hint": "الحالي: 3 — ارفعه (مثلاً 50) ليشمل كل مراحل اللعب", "default": 3, "min": 2, "max": 50, "cat": "balance", "tab": "ADVANCED"}
   ]
  },
  "reverseword": {
@@ -1057,6 +1080,70 @@ GAMES.tt10 = {
   desc: 'جولات أسئلة «اذكر أفضل ١٠» تُحسب نقاطها بين المشاركين.',
   fields: [
     { key: 'totalRounds', type: 'number', label: 'عدد الجولات', hint: 'الحالي: 3 — تُطبَّق عند بدء لعبة جديدة', default: 3, min: 1, max: 10, cat: 'round', tab: 'GENERAL' },
+  ],
+};
+
+GAMES.roulette3d = {
+  name: "الروليت الروسي",
+  desc: "غرفة مظلمة وأداة تدور وتختار لاعباً، ويقرر بالشات: أطلق أو لا تطلق.",
+  fields: [
+    {"key": "minP", "type": "number", "label": "الحد الأدنى للمشاركين", "hint": "لا تبدأ المباراة قبل اكتمال هذا العدد. الحالي: 2", "default": 2, "min": 2, "max": 30, "cat": "players", "tab": "PLAYERS"},
+    {"key": "maxP", "type": "number", "label": "الحد الأقصى للمشاركين", "hint": "الحالي: 12", "default": 12, "min": 2, "max": 24, "cat": "players", "tab": "PLAYERS"},
+    {"key": "regTime", "type": "number", "label": "مدة التسجيل (بالثواني)", "hint": "٠ = تبدأ يدوياً. الحالي: 45", "default": 45, "min": 0, "max": 600, "cat": "round", "tab": "GENERAL"},
+    {"key": "decTime", "type": "number", "label": "مدة اتخاذ القرار (بالثواني)", "hint": "الحالي: 15", "default": 15, "min": 5, "max": 60, "cat": "round", "tab": "GENERAL"},
+    {"key": "passes", "type": "number", "label": "مرات الامتناع لكل لاعب", "hint": "«لا تطلق» تستهلك امتناعاً واحداً. الحالي: 2", "default": 2, "min": 0, "max": 9, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "earnPass", "type": "toggle", "label": "كسب امتناع جديد بالشجاعة", "hint": "من ينجو من «أطلق» مرتين يكسب امتناعاً إضافياً", "default": true, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "tgtUses", "type": "number", "label": "عدد مرات «أطلق على شخص» لكل لاعب", "hint": "الحالي: 1 — كم مرة يقدر اللاعب يختار شخصاً ويطلق عليه", "default": 1, "min": 1, "max": 5, "cat": "balance", "tab": "ADVANCED"},
+    {"key": "tgtGuaranteed", "type": "toggle", "label": "الإطلاق على شخص = إصابة مضمونة", "hint": "إيقاف (الافتراضي): الإطلاق على شخص يخضع لنفس الحظ. تشغيل: يصيب دائماً", "default": false, "cat": "balance", "tab": "ADVANCED"},
+    {"key": "tgtTwo", "type": "toggle", "label": "الإطلاق على شخصين", "hint": "إيقاف (الافتراضي): شخص واحد. تشغيل: يختار شخصين ويُطلق عليهما بالتتابع", "default": false, "cat": "balance", "tab": "ADVANCED"},
+  ],
+};
+
+GAMES.guesscountry = {
+  name: "خمن الدولة",
+  desc: "تخمين الدولة من عملتها قبل انتهاء الوقت.",
+  fields: [
+    {"key": "totalSeconds", "type": "number", "label": "مدة التخمين (بالثواني)", "hint": "الحالي: 30", "default": 30, "min": 10, "max": 180, "cat": "round", "tab": "GENERAL"},
+    {"key": "maxAttempts", "type": "number", "label": "عدد المحاولات", "hint": "الحالي: 3", "default": 3, "min": 1, "max": 10, "cat": "difficulty", "tab": "DIFFICULTY"},
+  ],
+};
+
+GAMES.timersolo = {
+  name: "التوقيت (فردي)",
+  desc: "أوقف العدّاد قريباً من الوقت السري.",
+  fields: [
+    {"key": "maxSeconds", "type": "number", "label": "أقصى مدة للعدّاد (بالثواني)", "hint": "الحالي: 30", "default": 30, "min": 5, "max": 120, "cat": "round", "tab": "GENERAL"},
+  ],
+};
+
+GAMES.memorybuttons = {
+  name: "أزرار الذاكرة",
+  desc: "تذكّر تسلسل الأزرار المضيئة وأعده بالترتيب.",
+  fields: [
+    {"key": "startLength", "type": "number", "label": "طول التسلسل في البداية", "hint": "الحالي: 3", "default": 3, "min": 1, "max": 8, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "maxLevel", "type": "number", "label": "المستوى الذي يعني الفوز الكامل", "hint": "الحالي: 15", "default": 15, "min": 3, "max": 40, "cat": "round", "tab": "GENERAL"},
+    {"key": "flashMs", "type": "number", "unitDivisor": 1000, "unitStep": 0.1, "label": "مدة إضاءة كل زر (بالثواني)", "hint": "الحالي: 0.6 — أقل = أصعب", "default": 600, "min": 150, "max": 2000, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "gapMs", "type": "number", "unitDivisor": 1000, "unitStep": 0.05, "label": "الفاصل بين الأزرار (بالثواني)", "hint": "الحالي: 0.25", "default": 250, "min": 50, "max": 1500, "cat": "difficulty", "tab": "DIFFICULTY"},
+  ],
+};
+
+GAMES.countrywarparty = {
+  name: "حرب الدول (جماعي)",
+  desc: "نسخة الجمعة من حرب الدول بالأدوار.",
+  fields: [
+    {"key": "turnSeconds", "type": "number", "label": "مدة دور اللاعب (بالثواني)", "hint": "الحالي: 15", "default": 15, "min": 5, "max": 120, "cat": "round", "tab": "GENERAL"},
+  ],
+};
+
+GAMES.findballsolo = {
+  name: "اعثر على الكورة (فردي)",
+  desc: "تتبع الكورة تحت الكوب أثناء الخلط.",
+  fields: [
+    {"key": "shuffleMinMs", "type": "number", "unitDivisor": 1000, "unitStep": 0.1, "label": "أقل مدة خلط بالجولة الأولى (بالثواني)", "hint": "الحالي: 6", "default": 6000, "min": 1500, "max": 15000, "cat": "round", "tab": "GENERAL"},
+    {"key": "shuffleSpeedupPercent", "type": "number", "label": "نسبة تسريع الخلط كل جولة (%)", "hint": "الحالي: 15", "default": 15, "min": 0, "max": 50, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "shuffleMinFloorMs", "type": "number", "unitDivisor": 1000, "unitStep": 0.1, "label": "أقل مدة خلط ممكنة (بالثواني)", "hint": "الحالي: 1.8", "default": 1800, "min": 500, "max": 6000, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "swapCount", "type": "number", "label": "عدد تبديلات الأكواب", "hint": "الحالي: 6", "default": 6, "min": 2, "max": 20, "cat": "difficulty", "tab": "DIFFICULTY"},
+    {"key": "guessTimerSeconds", "type": "number", "label": "مدة التخمين (بالثواني)", "hint": "الحالي: 10", "default": 10, "min": 3, "max": 60, "cat": "round", "tab": "GENERAL"},
   ],
 };
 
