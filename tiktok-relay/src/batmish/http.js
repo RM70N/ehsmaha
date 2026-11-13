@@ -90,7 +90,7 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
       }
 
       // ---- البوابة
-      const gate = await access.check(uid);
+      const gate = await access.check(uid, user);
       if (path === '/batmish/access' && req.method === 'GET') {
         send(200, { allowed: gate.allowed, reason: gate.allowed ? 'ok' : gate.reason, streamerId: gate.allowed ? gate.streamerId : undefined, via: gate.allowed ? gate.via : undefined });
         return true;

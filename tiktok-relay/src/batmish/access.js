@@ -5,15 +5,16 @@
 //      سبب التثبيت: أي مستخدم يقدر يتصل بجسر البث بيوزر _zvd4 كمشاهد، فاتصاله لا يثبت أنه صاحب الحساب.
 //   2) ربط البث الآن: جلسة جسر مفتوحة ومصادَقة (توكن Firebase) لنفس الـuid على غرفة _zvd4 (مفتوحة فعلاً).
 import { normalizeTikTokUsername } from '../normalize.js';
-import { STREAMER_ID, STREAMERS, SITE_USERS } from './schema.js';
+import { STREAMER_ID, STREAMERS, SITE_USERS, OWNER_DISPLAY } from './schema.js';
 
 export class BatmishAccess {
-  constructor({ store, streamerId = STREAMER_ID, streamers = STREAMERS, siteUsers = SITE_USERS, resolveUid = null, envPinUid = '', envPins = {}, autoClaim = false, log = () => {} } = {}) {
+  constructor({ store, streamerId = STREAMER_ID, streamers = STREAMERS, siteUsers = SITE_USERS, resolveUid = null, ownerEmail = '', envPinUid = '', envPins = {}, autoClaim = false, log = () => {} } = {}) {
     this.store = store;
     this.streamerId = streamerId;
     this.streamers = streamers.includes(streamerId) ? streamers : [streamerId, ...streamers];
     this.envPins = { ...envPins }; if (envPinUid) this.envPins[streamerId] = envPinUid;
     this.envPinUid = envPinUid || '';
+    this.ownerEmail = String(ownerEmail || '').toLowerCase();
     this.siteUsers = Array.isArray(siteUsers) ? Object.fromEntries(siteUsers.map((n) => [n, streamerId])) : { ...siteUsers }; this.resolveUid = resolveUid; this._siteCache = new Map();
     this.autoClaim = !!autoClaim;
     this.log = log;
@@ -62,8 +63,10 @@ export class BatmishAccess {
     return '';
   }
 
-  async check(uid) {
+  // ctx.email: بريد الحساب من توكن Firebase المتحقَّق منه في الخادم (لا من الواجهة)
+  async check(uid, ctx = {}) {
     if (!uid) return { allowed: false, reason: 'unauthenticated' };
+    if (this.ownerEmail && String((ctx && ctx.email) || '').toLowerCase() === this.ownerEmail) return { allowed: true, reason: 'ok', streamerId: OWNER_DISPLAY, via: 'account' };
     const su = await this.siteUserOf(uid);
     if (su) return { allowed: true, reason: 'ok', streamerId: this.siteUsers[su] || this.streamerId, via: 'account' };   // حساب الموقع mish = نفس الشخص صاحب بث _zvd4
     let pin = await this.pinnedUid();
