@@ -146,7 +146,7 @@ function sendJson(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
-const batmishHandler = createBatmishHandler({ verifyToken, service: batmishService, access: batmishAccess, ownerEmail: OWNER_EMAIL, readJsonBody, log });
+const batmishHandler = createBatmishHandler({ verifyToken, service: batmishService, access: batmishAccess, ownerEmail: OWNER_EMAIL, readJsonBody, resolveUid: resolveAccountUid, log });
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');

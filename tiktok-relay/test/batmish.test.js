@@ -244,7 +244,7 @@ async function startApi(opts = {}) {
   const service = new BatmishService({ store });
   const access = new BatmishAccess({ store, ...(opts.access || {}) });
   const readJsonBody = async (req, limit = 10000) => { let n = 0; const c = []; for await (const x of req) { n += x.length; if (n > limit) throw new Error('الجسم كبير جداً'); c.push(x); } const t = Buffer.concat(c).toString('utf8'); return t ? JSON.parse(t) : {}; };
-  const handler = createBatmishHandler({ verifyToken: async (t) => TOKENS[t] || null, service, access, ownerEmail: OWNER, limiter: new RateLimiter({ perMinute: opts.rate || 1000 }), readJsonBody });
+  const handler = createBatmishHandler({ verifyToken: async (t) => TOKENS[t] || null, resolveUid: async (n) => (n === 'zvd_site_name' ? 'uid-zvd' : null), service, access, ownerEmail: OWNER, limiter: new RateLimiter({ perMinute: opts.rate || 1000 }), readJsonBody });
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://localhost');
     if (!(await handler(req, res, url.pathname, url))) { res.writeHead(404); res.end(); }
@@ -347,6 +347,11 @@ test('HTTP: مسارات المالك للتثبيت (bind/unbind/status) للم
     assert.equal((await call('POST', '/batmish/admin/bind', 'tok-owner', { uid: 'uid-zvd' })).status, 200);
     assert.equal((await call('GET', '/batmish/admin/status', 'tok-owner')).body.pinnedUid, 'uid-zvd');
     access.registerSession('uid-zvd', '_zvd4', fakeWs());
+    assert.equal((await call('GET', '/batmish/access', 'tok-zvd')).body.allowed, true);
+    await call('POST', '/batmish/admin/unbind', 'tok-owner', {});
+    assert.equal((await call('POST', '/batmish/admin/bind', 'tok-owner', { username: 'nobody' })).status, 404);
+    assert.equal((await call('POST', '/batmish/admin/bind', 'tok-owner', {})).status, 400);
+    assert.equal((await call('POST', '/batmish/admin/bind', 'tok-owner', { username: 'zvd_site_name' })).body.pinnedUid, 'uid-zvd');
     assert.equal((await call('GET', '/batmish/access', 'tok-zvd')).body.allowed, true);
     await call('POST', '/batmish/admin/unbind', 'tok-owner', {});
     assert.equal((await call('GET', '/batmish/access', 'tok-zvd')).body.allowed, false);

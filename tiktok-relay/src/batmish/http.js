@@ -36,7 +36,7 @@ const STATUS_BY_CODE = {
   already_reverted: 409, unsupported_type: 400, invalid_uid: 400,
 };
 
-export function createBatmishHandler({ verifyToken, service, access, ownerEmail, limiter = new RateLimiter(), readJsonBody, log = () => {} }) {
+export function createBatmishHandler({ verifyToken, service, access, ownerEmail, limiter = new RateLimiter(), readJsonBody, resolveUid = null, log = () => {} }) {
   const owner = String(ownerEmail || '').toLowerCase();
 
   function bearer(req) { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; }
@@ -66,8 +66,12 @@ export function createBatmishHandler({ verifyToken, service, access, ownerEmail,
         }
         if (path === '/batmish/admin/bind' && req.method === 'POST') {
           const b = await readJsonBody(req, 1024);
-          await access.bind(String(b.uid || ''), user.uid);
-          send(200, { ok: true, pinnedUid: String(b.uid) });
+          let target = String(b.uid || '');
+          // يمكن للمالك التثبيت باسم حساب احسمها (اليوزر الذي سجّل به الستريمر بالموقع) بدل uid
+          if (!target && b.username && resolveUid) { target = String((await resolveUid(String(b.username).trim().toLowerCase())) || ''); if (!target) { send(404, { error: 'account_not_found' }); return true; } }
+          if (!target) { send(400, { error: 'uid_or_username_required' }); return true; }
+          await access.bind(target, user.uid);
+          send(200, { ok: true, pinnedUid: target });
           return true;
         }
         if (path === '/batmish/admin/unbind' && req.method === 'POST') {
