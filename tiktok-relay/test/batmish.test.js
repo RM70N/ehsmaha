@@ -437,3 +437,38 @@ test('البوابة: حساب احسمها المسمّى (mish) يفتح ال�
   const bad = new BatmishAccess({ store: new MemoryStore(), resolveUid: async () => { throw new Error('down'); } });
   assert.equal((await bad.check('uM')).allowed, false);
 });
+
+// ----------------------------------------------------------------------------------- تخزين مرن (Firestore → RTDB)
+import { ResilientStore } from '../src/batmish/store.js';
+function fakeDb(fail) {
+  const m = new Map();
+  return { m, collection: (c) => ({ doc: (id) => ({
+    get: async () => { if (fail.on) throw Object.assign(new Error('8 RESOURCE_EXHAUSTED: Quota exceeded'), { code: 8 }); const v = m.get(c + '/' + id); return { exists: v !== undefined, data: () => v }; },
+    set: async (d) => { if (fail.on) throw new Error('quota'); m.set(c + '/' + id, JSON.parse(JSON.stringify(d))); },
+    delete: async () => { if (fail.on) throw new Error('quota'); m.delete(c + '/' + id); },
+  }) }) };
+}
+function fakeRtdb(fail) {
+  const m = new Map();
+  return { m, ref: (p) => ({
+    get: async () => { if (fail.on) throw new Error('rtdb down'); const v = m.get(p); return { exists: () => v !== undefined, val: () => v }; },
+    set: async (v) => { if (fail.on) throw new Error('rtdb down'); m.set(p, JSON.parse(JSON.stringify(v))); },
+    remove: async () => { if (fail.on) throw new Error('rtdb down'); m.delete(p); },
+  }) };
+}
+test('تخزين BATMISH المرن: نفاد حصة Firestore لا يعطّل القراءة/الكتابة (يرجع لـRTDB) وعند عودته تُعتمد الأحدث', async () => {
+  const fsF = { on: false }, rtF = { on: false };
+  const st = new ResilientStore({ db: fakeDb(fsF), rtdb: fakeRtdb(rtF) });
+  const svc = new BatmishService({ store: st });
+  await svc.getState('u1');                                         // بدون مستند: يرجع الافتراضي
+  await svc.applyChanges('u1', 'bomb', { revivalMaxUses: 4 });
+  fsF.on = true;                                                    // نفدت حصة Firestore
+  const s1 = await svc.getState('u1');
+  assert.ok(s1 && typeof s1.rev === 'number', 'القراءة تعمل رغم فشل Firestore');
+  await svc.applyChanges('u1', 'bomb', { revivalMaxUses: 5 }, { baseRev: s1.rev });   // كتابة تذهب لـRTDB
+  fsF.on = false;                                                   // Firestore رجع (ببيانات أقدم)
+  const s2 = await svc.getState('u1');
+  assert.equal(s2.config.bomb.revivalMaxUses, 5, 'تُعتمد النسخة الأحدث');
+  rtF.on = true; fsF.on = true;                                     // الاثنان معطّلان → خطأ صريح
+  await assert.rejects(() => svc.getState('u1'));
+});
