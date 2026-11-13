@@ -94,11 +94,11 @@
       if (can !== true && !(can && can.ok)) { r.total--; return { retry: true, reason: (can && can.reason) || 'conditions' }; }   // شروط غير جاهزة بعد (تُعاد المحاولة)
       var cf = conflict(r, def); if (cf) { r.total--; return { retry: true, reason: 'conflict:' + cf }; }
       var eligible = impl.eligible ? impl.eligible(r.ctx, c, r) : null;
-      var inst = { id: key, key: key, def: def, cfg: c, eventId: id, tag: r.tag, startedAt: now(), n: planItem.n, factor: catalog.intensityFactor[r.cfg.intensity] || 1, intensity: r.cfg.intensity, eligible: eligible, endAt: 0, effect: '', revert: null, manual: !!opt.manual, status: 'active' };
+      var inst = { id: key, key: key, def: def, cfg: c, eventId: id, tag: r.tag, startedAt: now(), n: planItem.n, factor: catalog.intensityFactor[r.cfg.intensity] || 1, intensity: r.cfg.intensity, eligible: eligible, endAt: 0, effect: '', revert: null, data: {}, manual: !!opt.manual, status: 'active' };
       var res; try { res = impl.apply(r.ctx, inst, c, r) || {}; } catch (e) { r.firedKeys[key] = 1; emitRow(r, { key: key, def: def, status: 'failed', reason: 'apply_error:' + (e && e.message), startedAt: inst.startedAt, effect: '' }); return null; }
       if (res.failed) { r.firedKeys[key] = 1; emitRow(r, { key: key, def: def, status: 'failed', reason: String(res.failed), startedAt: inst.startedAt, effect: '' }); return null; }
       r.firedKeys[key] = 1; r.fired[id] = (r.fired[id] || 0) + 1;
-      inst.effect = String(res.effect || ''); inst.revert = res.revert || null; inst.data = res.data || {};
+      inst.effect = String(res.effect || ''); inst.revert = res.revert || null; inst.data = res.data || inst.data;
       var dur = res.durationMs != null ? res.durationMs : (impl.durationMs ? impl.durationMs(c, inst) : (def.durationSec ? def.durationSec * 1000 : 0));
       inst.endAt = dur > 0 ? now() + dur : 0;
       r.active.push(inst);
@@ -128,6 +128,7 @@
         if (a && a.isRoundOver && a.isRoundOver(r.ctx)) { endRound(tag, 'round_over'); return; }
         r.active.slice().forEach(function (inst) {
           if (a && a.events[inst.eventId].shouldEnd && a.events[inst.eventId].shouldEnd(r.ctx, inst)) { finish(r, inst, 'completed'); return; }
+          var ot = a && a.events[inst.eventId].onTick; if (ot) { try { ot(r.ctx, inst, t); } catch (e) { log('warn', 'onTick', e); } }
           if (inst.endAt && t >= inst.endAt) finish(r, inst, 'completed');
           else if (inst.endAt && inst.cfg.announce && !inst.warned && inst.endAt - t <= 3000 && inst.endAt - inst.startedAt > 6000) { inst.warned = true; try { presenter.warn(inst, inst.def); } catch (e) { /* تجاهل */ } }
         });

@@ -55529,6 +55529,7 @@ let fastansTimerTotal = 0;
 let fastansTimerStart = null;
 let fastansRafId = null;
 let fastansRoundOver = false;
+let fastansBonusPts = 0;          // BATMISH (أحداث خاصة): نقاط إضافية للفائز بالسؤال الحالي (حدث «المضاعف السري»)
 
 function fastansShuffle(arr) {
   const a = arr.slice();
@@ -55696,7 +55697,7 @@ function fastansClosePickList() {
 function fastansPickWinner(idx) {
   fastansClosePickList();
   const player = fastansPlayers[idx];
-  player.score++;
+  player.score += 1 + (fastansBonusPts > 0 ? fastansBonusPts : 0); fastansBonusPts = 0;
 
   if (player.score >= FASTANS_WIN_SCORE) {
     document.getElementById('fastansw-name').textContent = player.name;
