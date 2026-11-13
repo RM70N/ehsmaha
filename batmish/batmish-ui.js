@@ -577,9 +577,11 @@ class Dashboard {
   }
   discover(games) {
     // كل ألعاب الموقع: سجل البطاقات الفعلي في الصفحة (.gcard[data-tag]) + ما يعلنه الخادم من حقول موصولة. اللعبة بلا حقول تظهر «غير قابلة للتخصيص بعد».
+    // بعض بطاقات الموقع تحمل وسماً مختلفاً عن وسم الإعدادات الموصولة (نفس اللعبة) — نوحّدها.
+    const ALIAS = { rou: 'roulette', ll: 'lastletter', wai: 'whoami', tmr: 'timer', cw: 'countrywar', pgs: 'priceguess', cs: 'crownsteal', lsc: 'letterscramble', rw: 'reverseword' };
     const seen = {}, out = [];
     $all('.gcard[data-tag]').forEach(c => {
-      const tag = c.getAttribute('data-tag'); if (!tag || seen[tag] || tag.indexOf('__') === 0) return; seen[tag] = 1;
+      const raw = c.getAttribute('data-tag'), tag = ALIAS[raw] || raw; if (!tag || seen[tag] || tag.indexOf('__') === 0) return; seen[tag] = 1;
       const nm = c.querySelector('.gcard-name'), ds = c.querySelector('.gcard-desc'), g = games[tag];
       out.push({ tag, name: (nm && nm.textContent.trim()) || (g && g.name) || tag, desc: c.getAttribute('data-short') || (ds && ds.textContent.trim()) || (g && g.desc) || '', fields: g ? g.fields.length : 0 });
     });

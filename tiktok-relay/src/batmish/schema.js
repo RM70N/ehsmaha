@@ -1029,6 +1029,31 @@ export const GAMES = {
  }
 };
 
+GAMES.rlgl = {
+  name: 'الإشارة الحمراء والخضراء',
+  desc: 'سباق على المسار: تحرّك عند الأخضر وتجمّد عند الأحمر.',
+  fields: [
+    { key: 'graceMs', type: 'number', label: 'مهلة السماح بعد تغيّر الإشارة (بالملّي ثانية)', hint: 'الحالي: 400 — تحمي اللاعب من الإقصاء لحظة تحوّل الإشارة', default: 400, min: 0, max: 1500, cat: 'difficulty', tab: 'DIFFICULTY' },
+    { key: 'rateLimitMs', type: 'number', label: 'أقل فاصل بين خطوتين للاعب (بالملّي ثانية)', hint: 'الحالي: 250 — يمنع الضغط المتتابع السريع جداً', default: 250, min: 50, max: 2000, cat: 'balance', tab: 'ADVANCED' },
+  ],
+};
+GAMES.fastans = {
+  name: 'سؤال وجواب سريع',
+  desc: 'قنبلة تمرّ بين اللاعبين مع أسئلة سريعة قبل ما تنفجر.',
+  fields: [
+    { key: 'minSeconds', type: 'number', label: 'أقل مدة عدّاد القنبلة (بالثواني)', hint: 'الحالي: 15', default: 15, min: 5, max: 60, cat: 'round', tab: 'GENERAL' },
+    { key: 'maxSeconds', type: 'number', label: 'أكثر مدة عدّاد القنبلة (بالثواني)', hint: 'الحالي: 45 — تُطبَّق إذا كانت أكبر من الأقل', default: 45, min: 5, max: 120, cat: 'round', tab: 'GENERAL' },
+    { key: 'winScore', type: 'number', label: 'نقاط الفوز', hint: 'الحالي: 5 — أول لاعب يوصلها يفوز', default: 5, min: 1, max: 20, cat: 'scoring', tab: 'SCORING' },
+  ],
+};
+GAMES.tt10 = {
+  name: 'توب 10',
+  desc: 'جولات أسئلة «اذكر أفضل ١٠» تُحسب نقاطها بين المشاركين.',
+  fields: [
+    { key: 'totalRounds', type: 'number', label: 'عدد الجولات', hint: 'الحالي: 3 — تُطبَّق عند بدء لعبة جديدة', default: 3, min: 1, max: 10, cat: 'round', tab: 'GENERAL' },
+  ],
+};
+
 // إعدادات الموقع نفسه (صوت/مؤثرات) — تُطبَّق مركزياً من batmish-core.js على كل ألعاب الصفحة الرئيسية
 // التي تستخدم WebAudio (لا تشمل ألعاب 3D داخل iframe لأن لها سياق صوت مستقل).
 GAMES[SITE_TAG] = {
