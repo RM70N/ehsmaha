@@ -2541,16 +2541,16 @@ body.pf-lock{overflow:hidden}
 .msg-pos-btn.active{background:#0ea5e9;color:#fff;}
 
 /* ===== ON-SCREEN MESSAGE BANNER (shown to recipients) ===== */
-.msg-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:9998;max-width:560px;width:calc(100% - 40px);background:var(--surface);border:1px solid var(--accent2);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:16px 20px;display:none;align-items:flex-start;gap:12px;}
+.msg-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:2147483600;max-width:560px;width:calc(100% - 40px);background:var(--surface);border:1px solid var(--accent2);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:16px 20px;display:none;align-items:flex-start;gap:12px;}
 .msg-banner.visible{display:flex;}
 .msg-banner.pos-top{top:80px;}
 
 /* Center mode is a completely different presentation: a full-screen dimmed
    backdrop behind a large glassmorphic card, rather than the slim top banner. */
-.msg-banner-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
+.msg-banner-backdrop{position:fixed;inset:0;z-index:2147483599;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
 .msg-banner-backdrop.visible{display:block;}
 /* "رسالة للجميع" لازم تبان فوق أي شاشة لعبة (شاشات الفوز/الفعاليات تستخدم 99998–99999) */
-#msg-broadcast-banner{z-index:100002;}
+#msg-broadcast-banner{z-index:2147483601;}
 
 .msg-banner.pos-center{
   top:50%;left:50%;transform:translate(-50%,-50%);
@@ -86931,8 +86931,8 @@ html.ehm-owner-hide-shared-backdrop #msg-banner-backdrop{display:none !important
   display:flex;justify-content:center;padding:0 12px;box-sizing:border-box;
   pointer-events:none;direction:rtl;
 }
-.ehm-owner-signal-stack[data-kind="personal"]{z-index:9998;margin-top:var(--ehm-owner-shift,0px)}
-.ehm-owner-signal-stack[data-kind="broadcast"]{z-index:100002}
+.ehm-owner-signal-stack[data-kind="personal"]{z-index:2147483600;margin-top:var(--ehm-owner-shift,0px)}
+.ehm-owner-signal-stack[data-kind="broadcast"]{z-index:2147483601}
 
 .ehm-owner-signal{
   --ehm-edge:#6d4fc2;
@@ -87073,8 +87073,8 @@ html.ehm-owner-hide-shared-backdrop #msg-banner-backdrop{display:none !important
   padding:max(58px,env(safe-area-inset-top)) max(56px,env(safe-area-inset-right)) max(26px,env(safe-area-inset-bottom)) max(56px,env(safe-area-inset-left));
   direction:rtl;color:var(--ehm-owner-text);font-family:var(--ehm-owner-font);
 }
-.ehm-owner-imperial[data-kind="personal"]{z-index:9998}
-.ehm-owner-imperial[data-kind="broadcast"]{z-index:100002}
+.ehm-owner-imperial[data-kind="personal"]{z-index:2147483600}
+.ehm-owner-imperial[data-kind="broadcast"]{z-index:2147483601}
 .ehm-owner-imperial[hidden]{display:none}
 /* الطبقة 1: الخلفية السينمائية (بدون blur) */
 .ehm-owner-imperial-scene{
