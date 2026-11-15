@@ -89,6 +89,11 @@ module.exports = {
       .then((ok) => ok !== false && tickets.sweepPendingDeletions(client))
       .catch((err) => logger.warn('تعذّر تنظيف قنوات التكتات المغلقة', { error: err }));
 
+    // معرفة الموقع الحية: يسحب صفحات الموقع ويتابع تحديثاتها تلقائياً ويجاوب منها (services/siteKnowledge.js)
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => require('../services/siteKnowledge').init({ store: ok === false ? null : require('../database/botStore'), gemini: require('../services/gemini') }))
+      .catch((err) => logger.warn('📚 تعذّر تشغيل معرفة الموقع', { error: err && err.message }));
+
     // راوندات الألعاب (/دول /روليت /قناص): المدير + استعادة الراوندات الحية بعد إعادة التشغيل
     Promise.resolve(ctx.dbReady)
       .then((ok) => require('../services/discordRounds').init({

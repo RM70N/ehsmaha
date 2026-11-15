@@ -25,6 +25,7 @@ const knowledge = require('../config/ehsmahaKnowledge');
 const gemini = require('./gemini');
 const aiStyle = require('./aiStyle');
 const aiPersona = require('../config/aiPersona');
+const siteKnowledge = require('./siteKnowledge');
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 const { splitMessage } = require('../utils/splitMessage');
@@ -375,7 +376,7 @@ async function handleTicketMessage(message) {
     try {
       r = await generateGuarded({
         guildId: c.guildId,
-        systemInstruction: await systemPromptFor(c.guildId),
+        systemInstruction: await systemPromptFor(c.guildId, await siteKnowledge.promptFor(text)),
         messages: chatMessages(c),
         meta: { context: 'ticket', guildId: c.guildId, channelId: message.channel.id, userId: message.author.id, ticketId: c.ticketId, images: loaded.length || undefined }
       });
@@ -620,7 +621,7 @@ async function handleMention(message, botUser) {
   const r = await generateGuarded({
     guildId: message.guild.id,
     persona: true,
-    systemInstruction: await systemPromptFor(message.guild.id, aiPersona.block()),
+    systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), await siteKnowledge.promptFor(question)].filter(Boolean).join('\n\n')),
     messages: [{ role: 'user', text: withContext(question || IMAGE_MARK, nameOf(message, message.author), ctx), images: loaded.length ? loaded : undefined }],
     meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
   });
