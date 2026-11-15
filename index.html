@@ -1463,10 +1463,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
    عنده إطار مُفعَّل): بدل حلقة صغيرة حول الأفتار، تعرض صورة الإطار العريضة
    كاملة (دائرة الأفتار + لوحة الاسم) كخلفية للبطاقة، والأفتار/الاسم
    يتموضعان داخلها حسب حقل hole بـFRAMES_CATALOG (framesInjectRing بالجافاسكربت). */
-.p-username-tag.p-has-full-frame{position:relative;flex-direction:row;width:auto;height:84px;aspect-ratio:2.8;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
+.p-username-tag.p-has-full-frame{--frm-h:72px;position:relative;flex-direction:row;width:auto;height:var(--frm-h);aspect-ratio:2.8;container-type:size;background-size:100% 100%;background-repeat:no-repeat;background-position:center;padding:0;gap:0;animation:popIn .3s ease;}
 .p-has-full-frame .p-avatar-wrap{position:absolute;display:flex;align-items:center;justify-content:center;}
-.p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;}
-.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:flex;align-items:center;justify-content:center;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);font-size:15px;text-align:center;}
+/* حجم موحّد متوسط لكل الإطارات: قطر الأفتار = أصغر ضلع لفتحة الإطار (نسبة من حجم البطاقة نفسها بوحدات الحاوية، فلا يتأثر بالقياس ولا بتخطيط الصفحة) */
+.p-has-full-frame .p-avatar-circle{box-shadow:none;border:none;width:min(calc(var(--hw,24) * 1cqw),calc(var(--hh,79) * 1cqh));height:min(calc(var(--hw,24) * 1cqw),calc(var(--hh,79) * 1cqh));font-size:calc(min(calc(var(--hw,24) * 1cqw),calc(var(--hh,79) * 1cqh)) * .45);flex:none;object-fit:cover;border-radius:50%;}
+.p-has-full-frame .p-username-name{position:absolute;top:0;bottom:0;right:4%;max-width:none;display:block;line-height:100cqh;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);font-size:clamp(12px,21cqh,17px);font-weight:800;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 .4em;}
 .p-has-full-frame .p-username-prefix{position:absolute;top:3px;right:4%;font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.75);z-index:1;}
 
 /* زر خاص باللعبة (مثل "انفجار" ببومب) — نفس أسلوب الصورة المرجعية: حدود مضيئة بدون تعبئة */
@@ -2541,16 +2542,16 @@ body.pf-lock{overflow:hidden}
 .msg-pos-btn.active{background:#0ea5e9;color:#fff;}
 
 /* ===== ON-SCREEN MESSAGE BANNER (shown to recipients) ===== */
-.msg-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:9998;max-width:560px;width:calc(100% - 40px);background:var(--surface);border:1px solid var(--accent2);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:16px 20px;display:none;align-items:flex-start;gap:12px;}
+.msg-banner{position:fixed;left:50%;transform:translateX(-50%);z-index:2147483600;max-width:560px;width:calc(100% - 40px);background:var(--surface);border:1px solid var(--accent2);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.5);padding:16px 20px;display:none;align-items:flex-start;gap:12px;}
 .msg-banner.visible{display:flex;}
 .msg-banner.pos-top{top:80px;}
 
 /* Center mode is a completely different presentation: a full-screen dimmed
    backdrop behind a large glassmorphic card, rather than the slim top banner. */
-.msg-banner-backdrop{position:fixed;inset:0;z-index:9997;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
+.msg-banner-backdrop{position:fixed;inset:0;z-index:2147483599;background:rgba(8,8,16,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;}
 .msg-banner-backdrop.visible{display:block;}
 /* "رسالة للجميع" لازم تبان فوق أي شاشة لعبة (شاشات الفوز/الفعاليات تستخدم 99998–99999) */
-#msg-broadcast-banner{z-index:100002;}
+#msg-broadcast-banner{z-index:2147483601;}
 
 .msg-banner.pos-center{
   top:50%;left:50%;transform:translate(-50%,-50%);
@@ -2990,10 +2991,9 @@ body.pf-lock{overflow:hidden}
   }
   & .p-username-tag:not(.p-has-full-frame) .p-avatar-circle{ width:34px; height:34px; font-size:16px; border:0; box-shadow:none; }
   & .p-username-tag:not(.p-has-full-frame):hover .p-avatar-circle{ transform:none; }
-  & .p-username-tag.p-has-full-frame{ grid-column:1 / -1; justify-self:center; height:76px; }
+  & .p-username-tag.p-has-full-frame{ grid-column:1 / -1; justify-self:center; height:var(--frm-h,72px); }
   & .p-username-number{ background:var(--gs-c); color:var(--gs-ink); border:2px solid #0b0518; box-shadow:none; font-family:'Cairo',sans-serif; font-weight:900; }
   & .p-username-tag:not(.p-has-full-frame) .p-username-name{ min-width:0; max-width:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; font-size:16px; color:var(--gs-text); }
-  & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
 
   /* الأزرار: الرئيسي كبير بلون اللعبة، والباقي دائري بحدّ */
   & .game-bottom-row{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
@@ -3455,7 +3455,6 @@ body.pf-lock{overflow:hidden}
      المحسوب بالجافاسكربت (framesInjectRingWithFrame) فيطلّع الاسم غير
      متمركز بمكانه الصحيح. لازم أكثر تحديداً من القاعدة العامة فوق حتى تفوز
      بالتخصيص بدون !important. */
-  & .p-has-full-frame .p-username-name{ max-width:none; font-size:15px; }
 
   /* صف أزرار شاشة الانتظار */
   & .game-bottom-row{ max-width:760px; gap:12px; }
@@ -29577,6 +29576,7 @@ async function playerTiktokRefreshLink() {
 }
 
 async function playerTiktokPersist(cleanUsername, okVerb) {
+  const hadPendingFrame = (typeof framesPendingAction !== 'undefined') && !!framesPendingAction; // طلب تفعيل إطار كان ينتظر الربط
   const btn = document.getElementById('player-tiktok-save-btn');
   if (btn) btn.disabled = true;
   // 'load' لازم تكون هنا: .status-msg بدون كلاس حالة = display:none، فرسالة
@@ -29605,6 +29605,8 @@ async function playerTiktokPersist(cleanUsername, okVerb) {
     const outcome = await playerTiktokSaveToAccount(link);
     const avatarNote = fetched ? '' : ' — ما قدرنا نجيب صورة الحساب فراح يظهر أفتار افتراضي، جرّب "تحديث الربط" لاحقاً';
 
+    // الربط جاء من محاولة تفعيل إطار: نقفل المودال تلقائياً ليرى اللاعب إطاره مفعّلاً بدل ما يبقى المودال فوق الصفحة
+    if (hadPendingFrame && outcome !== 'failed') setTimeout(() => { try { playerTiktokModalClose(); } catch (e) {} }, 1400);
     if (outcome === 'failed') {
       playerTiktokSetStatus('err', '⚠️ ' + okVerb + ' على هذا الجهاز، لكن تعذّر حفظه بحسابك — جرّب مرة ثانية');
     } else if (outcome === 'pending') {
@@ -30880,6 +30882,10 @@ function framesRequireLinkedOrRedirect(pendingAction) {
 // الحفظ وإبطال framesParticipantCache الموجود أصلاً فيها.
 function framesResumePendingActionIfAny(loadedForKey) {
   if (!framesPendingAction || loadedForKey !== framesSelfKey) return;
+  // لا نستأنف قبل وصول مستندات كل مفاتيح الشخص (الموقع + تيك توك): الملكية = اتحاد ownedFrames
+  // منها كلها، فلو وصل مستند مفتاح تيك توك الجديد (فاضي) أولاً تطلع الملكية فاضية ويُرفض
+  // التفعيل بصمت ويضيع الطلب المعلّق — فيظن اللاعب إن الإطار ما يتفعّل بعد الربط.
+  if (!framesSelfKeys().every(k => framesSelfDocs[k] !== undefined)) return;
   const linked = (typeof playerTiktokLinkGet === 'function') ? playerTiktokLinkGet() : null;
   if (!linked || !linked.username) return;
   const action = framesPendingAction;
@@ -30935,7 +30941,7 @@ async function framesVerifyActiveSaved(streamKey, expected, okKeys) {
 // التفعيل يُكتب بكل مفاتيح الشخص (يوزر الموقع + تيك توك) عشان ما يعتمد على
 // أي مفتاح واحد ويظل متسقاً مهما اختلف الجهاز أو مصدر القراءة.
 async function framesSetActive(frameId) {
-  if (frameId && !framesSelfOwned.includes(frameId)) return;
+  if (frameId && !framesSelfOwned.includes(frameId)) { if (typeof toast === 'function') toast('🔒 هذا الإطار مو من إطاراتك — اختاره أولاً من المعرض'); return; }
   if (frameId && !framesRequireLinkedOrRedirect({ type: 'setActive', frameId })) return; // إلغاء التفعيل مسموح دايماً بدون شرط الربط
   framesPendingAction = null; // وصلنا هنا يعني الربط متوفر فعلاً (مباشرة أو مُستأنف) — ما فيه شي معلّق نحتفظ فيه
   framesSelfKey = framesKeyForSelf();
@@ -31263,17 +31269,9 @@ function framesInjectRingWithFrame(tagEl, f, sizePx) {
   wrap.style.top = t + '%';
   wrap.style.width = w + '%';
   wrap.style.height = h + '%';
-  const circleEl = wrap.querySelector('.p-avatar-circle');
-  if (circleEl) {
-    // الأفتار دايرة كاملة بقُطر أصغر ضلع للفتحة ومركزّة فيها (CSS يركّزها)،
-    // بدل ما يتمدّد على كل مستطيل الفتحة: التمدّد كان يطلّعه بيضاوياً وأكبر من
-    // الفتحة فيغطي زخرفة الإطار حولها.
-    const bannerH = sizePx || FRAMES_BANNER_H;
-    const holeDiameterPx = Math.max(1, Math.min(bannerH * ratio * (w / 100), bannerH * (h / 100)));
-    circleEl.style.width = Math.round(holeDiameterPx) + 'px';
-    circleEl.style.height = Math.round(holeDiameterPx) + 'px';
-    circleEl.style.fontSize = Math.max(9, Math.round(holeDiameterPx * 0.4)) + 'px';
-  }
+  // قطر الأفتار يُحسب بالـCSS من أبعاد الفتحة (--hw/--hh) بوحدات حاوية البطاقة: حجم موحّد ومتناسق لكل الإطارات
+  tagEl.style.setProperty('--hw', String(w));
+  tagEl.style.setProperty('--hh', String(h));
   const nameEl = tagEl.querySelector('.p-username-name');
   if (nameEl) nameEl.style.left = Math.min(94, l + w + 2) + '%';
 }
@@ -31342,8 +31340,7 @@ function framesResetChipFrame(tagEl) {
   tagEl.style.aspectRatio = '';
   const wrap = tagEl.querySelector('.p-avatar-wrap');
   if (wrap) { wrap.style.left = ''; wrap.style.top = ''; wrap.style.width = ''; wrap.style.height = ''; }
-  const circleEl = wrap && wrap.querySelector('.p-avatar-circle');
-  if (circleEl) { circleEl.style.width = ''; circleEl.style.height = ''; circleEl.style.fontSize = ''; }
+  tagEl.style.removeProperty('--hw'); tagEl.style.removeProperty('--hh');
   const nameEl = tagEl.querySelector('.p-username-name');
   if (nameEl) nameEl.style.left = '';
 }
@@ -76157,7 +76154,7 @@ var xoParticipants = new Map();                // uniqueId -> user (لاعبو �
 #pg-cannon .hcw-list .p-username-tag:not(.p-has-full-frame) .p-avatar-circle{width:28px;height:28px;font-size:13px;border:0;box-shadow:none}
 #pg-cannon .hcw-list .p-username-tag:not(.p-has-full-frame):hover .p-avatar-circle{transform:none}
 #pg-cannon .hcw-list .p-username-tag:not(.p-has-full-frame) .p-username-name{max-width:none;font:800 13.5px Cairo;color:var(--text)}
-#pg-cannon .hcw-list .p-username-tag.p-has-full-frame{height:68px}
+#pg-cannon .hcw-list .p-username-tag.p-has-full-frame{height:var(--frm-h,72px)}
 #pg-cannon .hcw-kav{width:36px;height:36px;border-radius:50%;object-fit:cover;flex:none}
 #pg-cannon .hcw-kav-fb{width:36px;height:36px;border-radius:50%;flex:none;display:grid;place-items:center;background:var(--field);border:1px solid var(--fbd);font:800 15px Cairo}
 #pg-cannon .hcw-ov{z-index:70}
@@ -86931,8 +86928,8 @@ html.ehm-owner-hide-shared-backdrop #msg-banner-backdrop{display:none !important
   display:flex;justify-content:center;padding:0 12px;box-sizing:border-box;
   pointer-events:none;direction:rtl;
 }
-.ehm-owner-signal-stack[data-kind="personal"]{z-index:9998;margin-top:var(--ehm-owner-shift,0px)}
-.ehm-owner-signal-stack[data-kind="broadcast"]{z-index:100002}
+.ehm-owner-signal-stack[data-kind="personal"]{z-index:2147483600;margin-top:var(--ehm-owner-shift,0px)}
+.ehm-owner-signal-stack[data-kind="broadcast"]{z-index:2147483601}
 
 .ehm-owner-signal{
   --ehm-edge:#6d4fc2;
@@ -87073,8 +87070,8 @@ html.ehm-owner-hide-shared-backdrop #msg-banner-backdrop{display:none !important
   padding:max(58px,env(safe-area-inset-top)) max(56px,env(safe-area-inset-right)) max(26px,env(safe-area-inset-bottom)) max(56px,env(safe-area-inset-left));
   direction:rtl;color:var(--ehm-owner-text);font-family:var(--ehm-owner-font);
 }
-.ehm-owner-imperial[data-kind="personal"]{z-index:9998}
-.ehm-owner-imperial[data-kind="broadcast"]{z-index:100002}
+.ehm-owner-imperial[data-kind="personal"]{z-index:2147483600}
+.ehm-owner-imperial[data-kind="broadcast"]{z-index:2147483601}
 .ehm-owner-imperial[hidden]{display:none}
 /* الطبقة 1: الخلفية السينمائية (بدون blur) */
 .ehm-owner-imperial-scene{
