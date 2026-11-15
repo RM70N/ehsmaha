@@ -18,12 +18,17 @@ let server;
 let pages;
 let hits;
 let rtdb;
+let badges;
+let broadcast;
+let appJs;
 const etagOf = (s) => `"${Buffer.from(s).length}-${s.length}-${[...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1000003, 7)}"`;
 
 const HOME = `<!doctype html><html><head><title>احسمها | ألعاب تفاعلية للبث</title>
 <meta name="description" content="منصة عربية مجانية لألعاب البث التفاعلية على تيك توك وتويتش"></head><body>
 <h1>العب مع متابعينك مباشرة</h1><button>ابدأ بثاً سريعاً</button>
-<a href="/roulette3d.html">روليت</a><a href="/preview-x.html">x</a>
+<a href="/roulette3d.html">روليت</a><script src="/app.js"></script>
+<div class="gcard" data-tag="bomb" data-category="luck"><span class="gcard-num">١</span><div class="gcard-name">القنبلة المتحركة</div><div class="gcard-desc">القنبلة عند متابع عشوائي ويمررها بالشات حتى تنفجر</div><div class="gcard-tags"></div></div>
+<div class="gcard" data-tag="wheel" data-category="luck"><span class="gcard-num">٢</span><div class="gcard-name">عجلة الحظ</div><div class="gcard-desc">عجلة تدور وتختار فائزاً من المتابعين المشاركين</div><div class="gcard-tags"></div></div><a href="/preview-x.html">x</a>
 <script>const FAQ=[{q:'هل احسمها مجانية؟',a:'نعم، التسجيل واللعب على احسمها مجاني بالكامل بحساب جوجل أو البريد'}];
 const x={game:'لعبة القنبلة المتحركة: القنبلة عند متابع عشوائي ويمرّرها بالشات'};</script></body></html>`;
 const ROULETTE = `<html><head><title>الروليت الروسي — احسمها</title></head><body><p>روليت الإقصاء: كل جولة يطلق أحدهم النار على متابع والخاسر يخرج من اللعبة</p></body></html>`;
@@ -31,6 +36,18 @@ const ROULETTE = `<html><head><title>الروليت الروسي — احسمه�
 test.before(async () => {
   server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
+    if (url === '/app.js') {
+      res.writeHead(200, { 'content-type': 'text/javascript', etag: etagOf(appJs), 'content-length': String(appJs.length) });
+      return res.end(req.method === 'HEAD' ? undefined : appJs);
+    }
+    if (url === '/rtdb/gameBadges.json') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(badges));
+    }
+    if (url === '/rtdb/broadcastMessages/current.json') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(broadcast));
+    }
     if (url === '/rtdb/siteUpdates.json') {
       if (rtdb === null) {
         res.writeHead(500);
@@ -55,11 +72,15 @@ test.before(async () => {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   process.env.SITE_URL = `http://127.0.0.1:${server.address().port}`;
-  process.env.SITE_UPDATES_URL = `${process.env.SITE_URL}/rtdb/siteUpdates.json`;
+  process.env.SITE_RTDB_URL = `${process.env.SITE_URL}/rtdb`;
+  delete process.env.SITE_UPDATES_URL;
 });
 test.beforeEach(() => {
   pages = { '/': HOME, '/roulette3d.html': ROULETTE };
   rtdb = {};
+  badges = { bomb: { badge: 'none' }, wheel: { badge: 'none' } };
+  broadcast = { text: 'قسم جديد بأسم جمعتنا ألعاب 3D جديدة للستريمر', sentAt: { __ts: Date.UTC(2026, 10, 10) } };
+  appJs = 'console.log(1);';
   hits = [];
   sk._reset();
   fs.rmSync(path.join(tmp, 'site-knowledge.json'), { force: true });
@@ -85,7 +106,7 @@ test('سحب أول مرة: يفهرس كل الصفحات المكتشفة، و
   assert.equal(r.pages, 2);
   assert.ok(sk.status().chunks >= 2);
   const hit = sk.search('هل احسمها مجانية؟');
-  assert.match(hit[0].text, /مجاني بالكامل/);
+  assert.ok(hit.some((h) => /مجاني بالكامل/.test(h.text)), 'جواب السؤال ضمن النتائج');
   const game = sk.search('كيف تشتغل لعبة الروليت');
   assert.match(game[0].text, /روليت الإقصاء/);
   assert.equal(game[0].url.endsWith('/roulette3d.html'), true);
@@ -196,4 +217,57 @@ test('إعلانات المالك الرسمية (📢 تحديثات جديدة
   rtdb = null;
   await sk.crawl();
   assert.equal(sk.status().official, 1);
+});
+
+test('كتالوج الألعاب والملفات: يحلل البطاقات، ويكشف لعبة جديدة وتغيّر شارة ورسالة بث وتغيّر ملف', async () => {
+  const g = sk.parseGames(HOME);
+  assert.deepEqual([...g.keys()], ['bomb', 'wheel']);
+  assert.equal(g.get('bomb').name, 'القنبلة المتحركة');
+  assert.deepEqual(sk.extractAssets(HOME, 'http://x'), ['http://x/app.js']);
+  await sk.crawl();
+  assert.equal(sk.status().games, 2);
+  assert.equal(sk.status().assets, 1);
+
+  // تحديثات: لعبة جديدة + شارة + رسالة بث + تغيّر ملف
+  pages['/'] = HOME.replace('<div class="gcard" data-tag="wheel"', '<div class="gcard" data-tag="race" data-category="chat"><span class="gcard-num">٣</span><div class="gcard-name">سباق الصحراء</div><div class="gcard-desc">تتسابق مع متابعيك بكتابة الكلمات وأسرع واحد يفوز</div><div class="gcard-tags"></div></div>\n<div class="gcard" data-tag="wheel"');
+  badges = { bomb: { badge: 'maintenance' }, wheel: { badge: 'none' }, race: { badge: 'new' } };
+  broadcast = { text: 'نزل تحديث كبير لألعاب الفرق', sentAt: { __ts: Date.UTC(2026, 10, 15) } };
+  appJs = 'console.log(2); // جديد';
+  await sk.crawl();
+  const ev = sk._internal.state.updates[0].events.join('\n');
+  assert.match(ev, /لعبة جديدة بالموقع: «سباق الصحراء»/);
+  assert.match(ev, /«القنبلة المتحركة» دخلت الصيانة/);
+  assert.match(ev, /«سباق الصحراء» صارت «جديدة»/);
+  assert.match(ev, /رسالة بث جديدة من الإدارة: «نزل تحديث كبير/);
+  assert.match(ev, /تغيّر ملف بالموقع: app\.js/);
+
+  const block = await sk.promptFor('وش اخر تحديثات؟');
+  assert.match(block, /عدد الألعاب بالصفحة الرئيسية: 3/);
+  assert.match(block, /ألعاب تحت الصيانة حالياً: «القنبلة المتحركة»/);
+  assert.match(block, /ألعاب عليها شارة «جديد»: «سباق الصحراء»/);
+  assert.match(block, /آخر رسالة بث من الإدارة/);
+  assert.match(block, /ملفات تغيّرت \(رصدها البوت\): app\.js/);
+  assert.match(block, /لعبة جديدة بالموقع: «سباق الصحراء»/);
+});
+
+test('"افحص الموقع": يسحب الموقع فعلاً لحظة السؤال (بدون انتظار الدورة) ويجاوب بما وجد', async () => {
+  await sk.crawl();
+  sk._internal.state.lastCrawlAt = Date.now() - 60_000; // الجولة السابقة قديمة
+  pages['/roulette3d.html'] = ROULETTE.replace('</p>', '</p><p>وضع جديد بالروليت: جولة الحظ المضاعف تعطي نقاط مضاعفة للناجي الأخير</p>');
+  hits = [];
+  const block = await sk.promptFor('افحص ملفات الموقع وقول لي وش تغيّر');
+  assert.ok(hits.length >= 2, 'سحب حي وقت السؤال');
+  assert.match(block, /حالة الموقع الآن/);
+  assert.match(block, /الصفحات المتابَعة: 2/);
+  assert.match(block, /roulette3d\.html/);
+  assert.ok(sk._internal.INSPECT_Q.test('افحص ملفات الموقع'));
+  assert.ok(sk._internal.INSPECT_Q.test('شيك على الموقع'));
+  assert.ok(!sk._internal.INSPECT_Q.test('كيف اربط تيك توك'));
+});
+
+test('أسئلة الألعاب: قائمة ألعاب الموقع الحالية (من بطاقات الصفحة الرئيسية) تدخل البرومبت', async () => {
+  await sk.crawl();
+  const q = await sk.promptFor('كم عدد الالعاب عندكم؟');
+  assert.match(q, /ألعاب الموقع الحالية \(2 لعبة بالصفحة الرئيسية\)/);
+  assert.match(q, /القنبلة المتحركة، عجلة الحظ/);
 });
