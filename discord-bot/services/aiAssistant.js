@@ -24,6 +24,7 @@ const reasons = require('../config/ticketReasons');
 const knowledge = require('../config/ehsmahaKnowledge');
 const gemini = require('./gemini');
 const aiStyle = require('./aiStyle');
+const aiPersona = require('../config/aiPersona');
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
 const { splitMessage } = require('../utils/splitMessage');
@@ -96,27 +97,30 @@ const typing = (channel) => (channel && typeof channel.sendTyping === 'function'
 const cleanInput = (text) => String(text || '').trim().slice(0, MAX_INPUT_CHARS);
 
 // البرومبت = قاعدة المعرفة (مخزّنة) + أسلوب صاحب السيرفر (لكل سيرفر)
-async function systemPromptFor(guildId) {
+async function systemPromptFor(guildId, extra = '') {
   const base = knowledge.buildSystemPrompt();
   const style = await aiStyle.styleBlock(guildId);
-  return style ? `${base}\n\n${style}` : base;
+  return [base, extra, style].filter(Boolean).join('\n\n');
 }
 
 
 // ---------------- جودة الرد: منع نسخ أمثلة الأسلوب + سياق المحادثة ----------------
 
 /** يولّد رد Gemini، ولو الرد ينسخ عبارة من أمثلة الأسلوب يعيد التوليد مرة وحدة بتنبيه صريح. */
-async function generateGuarded({ guildId, ...args }) {
+async function generateGuarded({ guildId, persona = false, ...args }) {
   const r = await gemini.generate(args);
-  if (!r.ok || !(await aiStyle.copiesExamples(guildId, r.text))) return r;
-  logger.info('🎨 رد ينسخ عبارة من أمثلة الأسلوب — إعادة توليد', { guildId });
+  if (!r.ok) return r;
+  const lastUser = [...(args.messages || [])].reverse().find((m) => m.role === 'user');
+  const robotic = persona && aiPersona.isRobotic(r.text) && !aiPersona.asksAboutBot(lastUser && lastUser.text);
+  if (!robotic && !(await aiStyle.copiesExamples(guildId, r.text))) return r;
+  logger.info(robotic ? '🎨 رد روبوتي — إعادة توليد' : '🎨 رد ينسخ عبارة من أمثلة الأسلوب — إعادة توليد', { guildId });
   const retry = await gemini.generate({
     ...args,
     temperature: 0.9,
     messages: [
       ...args.messages,
       { role: 'model', text: r.text },
-      { role: 'user', text: '[ملاحظة نظام] ردك السابق نسخ عبارات من عيّنات الأسلوب. اكتب رداً جديداً بكلماتك، يرد على كلام المستخدم الأخير بالذات ومنطقي بالنسبة له، بدون أي عبارة من العيّنات.' }
+      { role: 'user', text: robotic ? '[ملاحظة نظام] ردك السابق طلع روبوتي. أعد كتابته بلهجة حائل كأنك واحد من الشباب، قصير وبخفة دم، ويرد على كلام المستخدم الأخير بالذات، بدون ما تقول إنك بوت أو نموذج.' : '[ملاحظة نظام] ردك السابق نسخ عبارات من عيّنات الأسلوب. اكتب رداً جديداً بكلماتك، يرد على كلام المستخدم الأخير بالذات ومنطقي بالنسبة له، بدون أي عبارة من العيّنات.' }
     ]
   });
   return retry.ok ? retry : r;
@@ -615,7 +619,8 @@ async function handleMention(message, botUser) {
   const ctx = await channelContext(message, botUser);
   const r = await generateGuarded({
     guildId: message.guild.id,
-    systemInstruction: await systemPromptFor(message.guild.id),
+    persona: true,
+    systemInstruction: await systemPromptFor(message.guild.id, aiPersona.block()),
     messages: [{ role: 'user', text: withContext(question || IMAGE_MARK, nameOf(message, message.author), ctx), images: loaded.length ? loaded : undefined }],
     meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
   });

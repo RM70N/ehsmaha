@@ -55,6 +55,7 @@ module.exports = {
       if (inTicket === null) {
         // Reply من صاحب الأسلوب على لاعب ← المساعد يتعلم طريقة كلامه
         if (message.reference) await aiStyle.captureReply(message);
+        else await aiStyle.captureChat(message); // كلام صاحب الأسلوب العادي ← يتعلم لهجته وطريقته
         const botUser = message.client && message.client.user;
         if (await aiAssistant.handleMention(message, botUser)) return;
       }
