@@ -47584,6 +47584,7 @@ function drawClearCanvas() {
     grid-template-columns:repeat(auto-fill,minmax(var(--cwc-min),1fr));
     gap:var(--cwc-gap);align-content:safe center;
   }
+  #cw-stage .rd-cnum{position:absolute;top:.5cqw;right:.5cqw;z-index:3;min-width:2.8cqw;height:2.8cqw;padding:0 .7cqw;border-radius:99px;background:#7C3AED;color:#fff;border:.2cqw solid #0b0518;font:900 max(11px,1.7cqw)/2.8cqw Cairo,Tajawal,sans-serif;text-align:center;pointer-events:none;box-sizing:border-box;}
   #cw-stage .rd-ccard{border-radius:var(--cwc-rad);padding:var(--cwc-pad) calc(var(--cwc-pad) / 3);gap:var(--cwc-cgap);border-width:.2cqw;}
   /* نفس فكرة الشريحة المستطيلة أعلاه: العرض 1.5× والارتفاع كما هو، فيكبر
      العلم ويتضح بدون ما يتغيّر ارتفاع البطاقة ولا عدد الأعمدة. */
@@ -47871,6 +47872,8 @@ let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
 let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
 let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwCountryNums = new Map(); // رقم ثابت لكل دولة بالراوند (يُكتب بالشات لاختيارها)
+function cwNumOf(name) { if (!cwCountryNums.has(name)) { let m = 0; cwCountryNums.forEach(v => { if (v > m) m = v; }); cwCountryNums.set(name, m + 1); } return cwCountryNums.get(name); }
 let cwTimeoutKick = true;   // طرد من خلص مؤقته دون اختيار
 let cwTurnTimerUid = null, cwTurnDeadline = 0, cwTurnTimerLast = 0;
 let cwGoldenCountryEnabled = false;    // مود إضافي: دولة عشوائية تنجو من أول محاولة إقصاء
@@ -48142,7 +48145,9 @@ function cwHandleEvent(data) {
         // المسجّل (مثلاً عبر "دخول الراوند" بلوحة المالك) مكتوب بأحرف مختلفة
         // عن اللي ترسله المنصة فعلياً بالشات الحقيقي.
         if (String(user.uniqueId).toLowerCase() === String(cwTurnUid).toLowerCase()) {
-          const targetCountry = cwActiveCountries.find(c => normalize(c.name) === normalize(text));
+          // اختيار الدولة باسمها أو برقمها الظاهر بالزاوية (٥ و5 نفس الشي)
+          const typedNum = /^\s*[0-9\u0660-\u0669\u06F0-\u06F9]+\s*$/.test(text) ? parseChatNumber(text) : NaN;
+          const targetCountry = cwActiveCountries.find(c => normalize(c.name) === normalize(text) || (!isNaN(typedNum) && cwCountryNums.get(c.name) === typedNum));
           if (targetCountry) {
             cwEliminateCountry(targetCountry.name, 'chat');
           }
@@ -48339,6 +48344,9 @@ function startCountryWarRound() {
     cwAssignments.set(user.uniqueId, country.name);
     cwActiveCountries.push({ name: country.name, flag: country.flag, code: country.code, uid: user.uniqueId });
   });
+  // أرقام الدول بترتيب ظهورها في الشبكة (1، 2، 3…) — تبقى ثابتة طول الراوند
+  cwCountryNums = new Map();
+  { const act = new Set(cwActiveCountries.map(c => c.name)); cwCountryBank.filter(c => act.has(c.name)).forEach(c => cwNumOf(c.name)); }
 
   // مود إضافي: فرصة 30% لتحالف مؤقت بين دولتين عشوائيتين (تحتاج 2+ دولة)
   if (cwAllianceEnabled && cwActiveCountries.length >= 2 && Math.random() < CW_ALLIANCE_CHANCE) {
@@ -48407,7 +48415,7 @@ function renderCWCountriesGrid() {
     const card = document.createElement('div');
     card.className = 'rd-ccard';
     card.id = 'cwcountry-' + normalize(c.name).replace(/\s/g,'_'); nowIds.add(card.id);
-    card.innerHTML = `<div class="rd-ccard-aim"></div><div class="rd-chip" style="background:${rdGrad(__cwCardIdx)}">${cwFlagImg(c)}</div><div class="rd-cname">${esc(c.name)}</div>`;
+    card.innerHTML = `<div class="rd-cnum" aria-hidden="true">${cwNumOf(c.name)}</div><div class="rd-ccard-aim"></div><div class="rd-chip" style="background:${rdGrad(__cwCardIdx)}">${cwFlagImg(c)}</div><div class="rd-cname">${esc(c.name)}</div>`;
     __cwCardIdx++;
     card.onclick = () => cwStreamerEliminate(c.name);
     grid.appendChild(card);
