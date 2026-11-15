@@ -17,6 +17,7 @@ const sk = require('../services/siteKnowledge');
 let server;
 let pages;
 let hits;
+let rtdb;
 const etagOf = (s) => `"${Buffer.from(s).length}-${s.length}-${[...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 1000003, 7)}"`;
 
 const HOME = `<!doctype html><html><head><title>احسمها | ألعاب تفاعلية للبث</title>
@@ -30,6 +31,14 @@ const ROULETTE = `<html><head><title>الروليت الروسي — احسمه�
 test.before(async () => {
   server = http.createServer((req, res) => {
     const url = req.url.split('?')[0];
+    if (url === '/rtdb/siteUpdates.json') {
+      if (rtdb === null) {
+        res.writeHead(500);
+        return res.end('x');
+      }
+      res.writeHead(200, { 'content-type': 'application/json' });
+      return res.end(JSON.stringify(rtdb));
+    }
     const body = pages[url];
     hits.push(url + (req.headers['if-none-match'] ? ' (cond)' : ''));
     if (body === undefined) {
@@ -46,9 +55,11 @@ test.before(async () => {
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   process.env.SITE_URL = `http://127.0.0.1:${server.address().port}`;
+  process.env.SITE_UPDATES_URL = `${process.env.SITE_URL}/rtdb/siteUpdates.json`;
 });
 test.beforeEach(() => {
   pages = { '/': HOME, '/roulette3d.html': ROULETTE };
+  rtdb = {};
   hits = [];
   sk._reset();
   fs.rmSync(path.join(tmp, 'site-knowledge.json'), { force: true });
@@ -107,11 +118,11 @@ test('promptFor: مقتطفات الموقع الحالية للسؤال، وآ�
   const q = await sk.promptFor('هل احسمها مجانية؟');
   assert.match(q, /معلومات محدّثة من الموقع الحي/);
   assert.match(q, /مجاني بالكامل/);
-  assert.doesNotMatch(q, /آخر تحديثات الموقع/, 'ما نذكر التحديثات لسؤال عادي');
+  assert.doesNotMatch(q, /تغييرات رصدها البوت|إعلان رسمي/, 'ما نذكر التحديثات لسؤال عادي');
   pages['/'] = HOME.replace('</body>', '<p>ميزة جديدة: لوحة متصدرين أسبوعية تتحدث كل يوم جمعة وتوزع جوائز</p></body>');
   await sk.crawl();
   const news = await sk.promptFor('وش الجديد بالموقع؟');
-  assert.match(news, /آخر تحديثات الموقع/);
+  assert.match(news, /تغييرات رصدها البوت/);
   assert.match(news, /لوحة متصدرين أسبوعية/);
   assert.equal(await sk.promptFor('زززز ككككك'), '');
 });
@@ -153,4 +164,36 @@ test('الميزة متوقفة: ما يسحب ولا يضيف شي للبروم
   assert.equal(await sk.init({}), false);
   assert.equal(await sk.promptFor('هل احسمها مجانية؟'), '');
   process.env.SITE_KNOWLEDGE = 'on';
+});
+
+test('"وش آخر التحديثات": بدون أي تحديث مسجّل يرد بصراحة (بدون اختراع)، وحتى قبل أول سحب', async () => {
+  const early = await sk.promptFor('وش اخر تحديثات؟');
+  assert.match(early, /ما فيه تحديثات مسجّلة عندي/);
+  assert.match(early, /لا تخترع تحديثات/);
+  await sk.crawl();
+  const q = await sk.promptFor('وش اخر تحديثات؟');
+  assert.match(q, /ما فيه تحديثات مسجّلة عندي/);
+});
+
+test('إعلانات المالك الرسمية (📢 تحديثات جديدة): تظهر بجواب التحديثات، والإعلان الجديد بعد أول قراءة يدخل السجل فوراً', async () => {
+  rtdb = { current: { published: true, publishedAt: { __ts: Date.UTC(2026, 8, 13) }, text: 'هدية بمناسبة التوب ون: اكتب الكود توب1 من القائمة', updatedBy: 'owner@x' } };
+  await sk.crawl();
+  const q = await sk.promptFor('وش اخر تحديثات؟');
+  assert.match(q, /إعلان رسمي من إدارة احسمها/);
+  assert.match(q, /الكود توب1/);
+  assert.doesNotMatch(q, /ما فيه تحديثات مسجّلة عندي/);
+  assert.equal(sk.status().official, 1);
+
+  // المالك ينشر إعلاناً جديداً
+  rtdb = { current: { published: true, publishedAt: { __ts: Date.UTC(2026, 10, 15) }, text: 'نزلت لعبة جديدة اسمها سباق الصحراء ومعها أحداث خاصة', updatedBy: 'owner@x' } };
+  await sk.crawl();
+  const rec = sk._internal.state.updates[0];
+  assert.equal(rec.official, true);
+  assert.match(rec.summary, /سباق الصحراء/);
+  assert.match(await sk.promptFor('وش الجديد'), /لعبة جديدة اسمها سباق الصحراء/);
+
+  // غير منشور أو RTDB واقع: ما يكسر ولا يمسح اللي عندنا
+  rtdb = null;
+  await sk.crawl();
+  assert.equal(sk.status().official, 1);
 });
