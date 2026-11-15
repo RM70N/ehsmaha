@@ -70,11 +70,31 @@
     return `<div class="ops-bar" id="ap-bar"><span class="live-tag ${S.err ? 'off' : ''}"><span class="ops-dot ${S.err ? 'bad' : 'ok'}"></span>${esc(S.err ? 'تعذّر الاتصال بالخادم' : 'تحديث تلقائي كل ١٥ ثانية')} · ${esc(t)}</span><button class="btn btn-ghost" id="ap-refresh" type="button">تحديث الآن</button></div>`;
   }
 
+  // BATMISH: تثبيت هوية الستريمر _zvd4 (يُحفظ بالخادم). اللوحة تظهر فقط للحساب المثبَّت + بثه مربوط باسم _zvd4.
+  const BM = { pins: undefined, sel: '_zvd4', msg: '' };
+  const BM_STREAMERS = ['_zvd4'];
+  const bmStText = () => BM.pins === undefined ? 'جارِ التحميل…' : BM_STREAMERS.map((s) => '@' + s + ': ' + (BM.pins[s] ? 'مثبَّت على الحساب ' + BM.pins[s] : 'غير مثبَّت')).join(' — ');
+  const bmApi = () => (window.EHS_APP_API || 'https://ehsmaha-piratetok-bridge.onrender.com') + '/batmish/admin';
+  async function bmCall(path, body) {
+    const u = O.host && O.host.__fb && O.host.__fb.auth && O.host.__fb.auth.currentUser; if (!u) throw new Error('لا توجد جلسة مالك');
+    const r = await fetch(bmApi() + path, { method: body ? 'POST' : 'GET', headers: { Authorization: 'Bearer ' + await u.getIdToken(), 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.error || ('HTTP ' + r.status)); e.code = j.error; throw e; } return j;
+  }
+  function bmPanel() {
+    const st = esc(bmStText());
+    return `<div class="panel" id="bm-admin" style="margin-top:16px"><h4 style="margin:0 0 6px">لوحة BATMISH (الستريمر _zvd4)</h4>
+      <p style="color:var(--text-3);font-size:13px;margin:0 0 10px">اللوحة تظهر لحساب واحد فقط: الحساب المثبَّت هنا + بثه مربوط الآن باسم _zvd4. اكتب اسم حساب الستريمر في احسمها (مو يوزر تيك توك) ثم ثبّته.</p>
+      <p id="bm-st" style="margin:0 0 10px">${st}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><select class="input" id="bm-streamer" dir="ltr" aria-label="الستريمر" style="max-width:140px">${BM_STREAMERS.map((s) => `<option value="${s}"${BM.sel === s ? ' selected' : ''}>@${s}</option>`).join('')}</select><input class="input" id="bm-user" dir="ltr" maxlength="40" placeholder="اسم الحساب في احسمها" style="max-width:260px" aria-label="اسم الحساب في احسمها">
+      <button class="btn btn-primary" id="bm-bind" type="button">تثبيت</button><button class="btn" id="bm-unbind" type="button">إلغاء التثبيت</button><span id="bm-msg" role="status">${esc(BM.msg)}</span></div></div>`;
+  }
+  async function bmLoad(v) { try { const s = await bmCall('/status'); BM.pins = s.pins || { _zvd4: s.pinnedUid || null }; } catch (e) { BM.pins = undefined; BM.msg = 'تعذّر قراءة الحالة'; } const p = $('#bm-st', v); if (p) p.textContent = bmStText(); }
+
   function body() {
     if (!O.owner()) return O.denied();
     if (S.err && !S.st) return O.error(S.err, 'ap-retry');
     if (!S.st) return O.skel(6);
-    return stats() + sendForm() + cfgForm();
+    return stats() + sendForm() + cfgForm() + bmPanel();
   }
 
   async function load(v, force) {
@@ -92,7 +112,7 @@
     const m = $('#ap-main', v); if (!m) return;
     // لا نعيد رسم النماذج أثناء الكتابة: نحدّث الأرقام فقط إن كانت النماذج موجودة
     if ($('#ap-title', m) && S.st) { const stat = $('#ap-stats', m); if (stat) stat.innerHTML = stats(); return; }
-    m.innerHTML = S.st ? `<div id="ap-stats">${stats()}</div>${sendForm()}${cfgForm()}` : body();
+    m.innerHTML = S.st ? `<div id="ap-stats">${stats()}</div>${sendForm()}${cfgForm()}${bmPanel()}` : body();
   }
 
   Studio.actions['ap-retry'] = () => { const v = document.getElementById('view-app'); if (v) load(v, true); };
@@ -100,10 +120,20 @@
   Studio.register({ id: 'app', title: 'التطبيق', en: 'DESKTOP APP', icon: 'shield', desc: 'تحكّم بتطبيق احسمها لويندوز: كم حمّله وكم يستخدمه الآن، وأرسل له إشعاراً أو رسالة، وتحكّم بإعداداته.',
     html() { return `${bar()}<div id="ap-main" aria-live="polite">${body()}</div>`; },
     mount(v) {
-      S.cfgDirty = false; load(v, true); O.every(v, REFRESH_MS, () => load(v));
+      S.cfgDirty = false; load(v, true); O.every(v, REFRESH_MS, () => load(v)); setTimeout(() => bmLoad(v), 1200);
       v.addEventListener('input', (e) => { if (e.target.closest('#ap-motd,#ap-minver,#ap-motd-on,#ap-notif,#ap-code')) S.cfgDirty = true; });
       v.addEventListener('click', async (e) => {
         if (e.target.closest('#ap-refresh')) { load(v, true); return; }
+        const bb = e.target.closest('#bm-bind,#bm-unbind');
+        if (bb) {
+          const msg = $('#bm-msg', v);
+          try {
+            if (bb.id === 'bm-bind') { const un = $('#bm-user', v).value.trim(); if (!un) { msg.textContent = 'اكتب اسم الحساب.'; return; } BM.sel = $('#bm-streamer', v).value; const r = await bmCall('/bind', { username: un, streamer: BM.sel }); BM.msg = 'تم التثبيت لـ@' + BM.sel + '.'; }
+            else { if (!(await UI.confirm({ title: 'إلغاء تثبيت BATMISH', text: 'بعدها هذا الستريمر ما يقدر يفتح اللوحة لين تثبّت حساباً من جديد.' }))) return; BM.sel = $('#bm-streamer', v).value; await bmCall('/unbind', { streamer: BM.sel }); BM.msg = 'أُلغي التثبيت لـ@' + BM.sel + '.'; }
+            msg.textContent = BM.msg; bmLoad(v);
+          } catch (er) { msg.textContent = er.code === 'account_not_found' ? 'ما لقينا حساباً بهذا الاسم.' : 'تعذّر التنفيذ: ' + er.message; }
+          return;
+        }
         const send = e.target.closest('#ap-send');
         if (send) {
           const title = $('#ap-title', v).value.trim(); const msg = $('#ap-send-msg', v);

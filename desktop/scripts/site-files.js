@@ -40,6 +40,7 @@ const DIRS = [
   'som3h-10k',
   'blhh-5k',
   'c7-welcome',
+  'batmish',
   'owner-studio',
   'ops',
   'subathon',

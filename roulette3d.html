@@ -314,7 +314,7 @@ function avatarTexture(p){
 
 /* ===================== إعدادات الستريمر ===================== */
 var SET_KEY='rr3d_settings_v1';
-var DEF={minP:2,maxP:12,keyword:'دخول',regTime:45,autoStart:true,decTime:15,passes:2,earnPass:true,timeoutRule:'pass',elimMode:'cyl6',
+var DEF={minP:2,maxP:12,keyword:'دخول',regTime:45,autoStart:true,decTime:15,passes:2,earnPass:true,timeoutRule:'pass',elimMode:'cyl6',tgtUses:1,tgtGuaranteed:false,tgtTwo:false,
   music:true,musicVol:60,sfxVol:80,quality:'auto',shake:true,longElim:true,spinSpeed:'normal',frame:'auto',lowEnd:false,winReplay:true,
   mute:{amb:false,spin:false,clock:false,result:false},demo:!EMBED};
 var SCHEMA=[
@@ -899,6 +899,13 @@ var AUTH_LOCAL={
   }
 };
 var AUTH=AUTH_LOCAL, externalAuth=false;
+/* BATMISH (الأحداث الخاصة): أعلام افتراضها مطفأ؛ تُفعَّل فقط من نظام الأحداث بالموقع ولا تغيّر اللعبة عند غيابها */
+var EV={mystery:false,invert:false,immune:null};
+function evAdjust(hit,pid){
+  if(EV.invert){ EV.invert=false; hit=!hit; status('الحظ المعكوس! انقلبت النتيجة'); }
+  if(hit&&EV.immune&&EV.immune===pid){ EV.immune=null; hit=false; status('فرصة الحصانة! نجا من الإصابة'); }
+  return hit;
+}
 function modeOf(k){ return {cyl6:{type:'cyl',n:6},cyl4:{type:'cyl',n:4},f6:{type:'fixed',p:1/6,n:6},f3:{type:'fixed',p:1/3,n:6}}[k]||{type:'cyl',n:6}; }
 async function loadCylinder(){
   if(!M||M.mode.type!=='cyl'){ return; }
@@ -907,6 +914,7 @@ async function loadCylinder(){
 }
 function oddsText(){
   if(!M) return '';
+  if(EV.mystery) return 'اللفة الغامضة: احتمال الإقصاء سرّي 🎲';
   if(externalAuth) return 'النتائج يحددها الخادم';
   if(M.mode.type==='cyl'){ var left=M.cyl.n-M.cyl.idx; return 'احتمال الإقصاء الآن: <b>١ من '+ar(left)+'</b> · ختم الشحنة <code>'+M.cyl.commit+'</code>'; }
   return 'احتمال الإقصاء: <b>١ من '+ar(Math.round(1/M.mode.p))+'</b>'+(M.pending&&M.pending.commit?' · ختم <code>'+M.pending.commit+'</code>':'');
@@ -1024,7 +1032,7 @@ function startMatch(){
 }
 
 /* ---------- المباراة ---------- */
-function newMatchState(){ return {id:randHex(6),startT:Date.now(),round:0,initial:players.length,elim:[],log:[],mode:modeOf(CFG.elimMode),cyl:null,pending:null,duel:false,cfg:{passes:CFG.passes,decTime:CFG.decTime,timeoutRule:CFG.timeoutRule,elimMode:CFG.elimMode,earnPass:CFG.earnPass}}; }
+function newMatchState(){ return {id:randHex(6),startT:Date.now(),round:0,initial:players.length,elim:[],log:[],mode:modeOf(CFG.elimMode),cyl:null,pending:null,duel:false,cfg:{passes:CFG.passes,decTime:CFG.decTime,timeoutRule:CFG.timeoutRule,elimMode:CFG.elimMode,earnPass:CFG.earnPass,tgtUses:CFG.tgtUses,tgtGuaranteed:CFG.tgtGuaranteed,tgtTwo:CFG.tgtTwo}}; }
 async function runMatch(resume){
   var id=++runId;
   try{
@@ -1057,16 +1065,24 @@ async function playRound(id,presetPid){
   go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now();
   var dec=await decideOrAuto(id,p), tgt=null;
   while(dec.choice===3){
-    p.tgtUsed=true; go('TARGET_PICK'); tgt=await pickTarget(id,p);
+    p.tgtN=(p.tgtN||0)+1; p.tgtUsed=p.tgtN>=Math.max(1,M.cfg.tgtUses||1); go('TARGET_PICK'); tgt=await pickTarget(id,p);
     if(tgt) break;
     M.pending.choice=0; M.pending.by=''; go('WAITING_FOR_DECISION'); M.pending.openAt=Date.now(); dec=await decideOrAuto(id,p);
   }
   go('RESOLVING'); log('decision',{pid:pid,choice:dec.choice,by:dec.by,target:tgt?tgt.id:null});
-  if(tgt){ await targetShot(id,p,tgt); return; }
+  if(tgt){
+    /* BATMISH: «أطلق على شخصين» (اختياري، مطفأ افتراضيًا): يختار الشخص الثاني ثم يُطلق على الاثنين بالتتابع */
+    var tgt2=null;
+    if(M.cfg.tgtTwo&&alive().filter(function(q){ return q!==p&&q!==tgt; }).length){ go('TARGET_PICK'); tgt2=await pickTarget(id,p,tgt); go('RESOLVING'); }
+    await targetShot(id,p,tgt);
+    if(tgt2&&tgt2.alive&&p.alive&&alive().length>1){ M.pending={pid:p.id,round:M.round,openAt:Date.now(),choice:3,by:'chat',r:cryptoFloat()}; await targetShot(id,p,tgt2); }
+    return;
+  }
   if(dec.choice==='out'){ await elimScene(id,p,'timeout'); return; }
   if(dec.choice===2){ p.passes--; p.passesUsed++; await passScene(id,p); go('PLAYER_SAFE'); M.pending=null; return; }
   p.fires++; var hit;
   try{ hit=!!(await AUTH.resolveFire({pid:pid,round:M.round,r:M.pending.r,mode:M.mode})); }catch(e){ hit=false; }
+  hit=evAdjust(hit,pid);
   log('fire',{pid:pid,hit:hit,chamber:M.cyl?M.cyl.idx:null});
   await fireScene(id,p,hit);
   if(hit){ await elimScene(id,p,'fire'); }
@@ -1077,8 +1093,8 @@ async function playRound(id,presetPid){
     go('PLAYER_SAFE'); await safeTail(id,p); M.pending=null;
   }
 }
-async function pickTarget(id,p){
-  var list=alive().filter(function(q){ return q!==p; }); M.pending.tgtList=list; M.pending.tgtPick=null; M.pending.tgtOpenAt=Date.now();
+async function pickTarget(id,p,exclude){
+  var list=alive().filter(function(q){ return q!==p&&q!==exclude; }); M.pending.tgtList=list; M.pending.tgtPick=null; M.pending.tgtOpenAt=Date.now();
   var L=$('#tgtL'); L.innerHTML='';
   list.forEach(function(q,i){ var d=document.createElement('div'), b=document.createElement('b'), n=document.createElement('span'); d.className='tg'; b.textContent=ar(i+1); n.textContent=q.name; d.appendChild(b); d.appendChild(n); L.appendChild(d); });
   $('#tgtT').textContent=p.name+' — اكتب رقم من تُطلق عليه'; $('#decide').classList.remove('on'); status('');
@@ -1108,6 +1124,8 @@ async function targetShot(id,p,t){
   /* «أطلق على شخص»: صارت حظًّا لا إصابة مضمونة — تصيب الهدف بنفس احتمال الأسطوانة/الاحتمال الثابت للوضع الحالي. إن لم تصب ينجو الهدف ويُحسب دور المُطلق منتهيًا. */
   var hit=false;
   try{ hit=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ hit=false; }
+  if(M.cfg.tgtGuaranteed) hit=true; /* BATMISH: إصابة مضمونة (اختياري، مطفأ افتراضيًا) */
+  hit=evAdjust(hit,t.id);
   log('fire',{pid:t.id,by:p.id,target:true,hit:hit,chamber:M.cyl?M.cyl.idx:null});
   await fireScene(id,t,hit,p.name+' أطلق على '+t.name);
   if(hit){ await elimScene(id,t,'fire'); }
@@ -1183,6 +1201,7 @@ async function runMatchContinue(id){
 }
 
 /* ---------- واجهة برمجية للمنصة ---------- */
+window.__RLT={EV:EV,evAdjust:evAdjust,CFG:CFG,st:function(){ return ST; },M:function(){ return M; },players:function(){ return players; },alive:alive,byId:byId,refreshOdds:refreshOdds,status:status};
 window.EhsemhaRoulette={
   chat:chat, setChatStatus:setChatStatus,
   onEvent:function(f){ listeners.push(f); return function(){ listeners=listeners.filter(function(x){return x!==f;}); }; },

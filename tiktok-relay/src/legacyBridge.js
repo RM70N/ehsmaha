@@ -312,9 +312,13 @@ export class LegacyTikTokRoom {
 
 // ---------------------------------------------------------------- خادم الجسر (تسجيل الغرف + ترقية WS)
 export class LegacyBridgeServer {
-  constructor({ log = () => {}, isStreamerEnabled = async () => true } = {}) {
+  // verifyToken/onSession اختياريان: لو وصل توكن Firebase بالرابط (t=) وصحّ، تُسجَّل جلسة موثَّقة (uid + يوزر الغرفة)
+  // لبوابة BATMISH. غياب التوكن أو فشله لا يغيّر سلوك الاتصال القديم إطلاقاً.
+  constructor({ log = () => {}, isStreamerEnabled = async () => true, verifyToken = null, onSession = null } = {}) {
     this.log = log;
     this.isStreamerEnabled = isStreamerEnabled;
+    this.verifyToken = verifyToken;
+    this.onSession = onSession;
     this.rooms = new Map(); // uniqueId -> LegacyTikTokRoom
     this.wss = new WebSocketServer({ noServer: true });
   }
@@ -358,8 +362,16 @@ export class LegacyBridgeServer {
       return;
     }
 
+    let authUser = null;
+    const tok = url.searchParams.get('t') || '';
+    if (tok && this.verifyToken && this.onSession) {
+      try { authUser = await Promise.race([this.verifyToken(tok), new Promise((r) => setTimeout(() => r(null), 3000))]); } catch (e) { authUser = null; }
+      if (socket.destroyed || !socket.writable) return;
+    }
+
     this.wss.handleUpgrade(req, socket, head, (ws) => {
       this.log('info', 'tiktok:' + uniqueId + ' — عميل جديد اتصل (piratetok)');
+      if (authUser && authUser.uid) { try { this.onSession(authUser.uid, uniqueId, ws); } catch (e) { /* لا يؤثر على الاتصال */ } }
       const room = this.getOrCreateRoom(uniqueId);
       room.addClient(ws);
       ws.on('close', (code) => { room.removeClient(ws, code); this.log('info', 'tiktok:' + uniqueId + ' — عميل انفصل (' + code + ')'); });
