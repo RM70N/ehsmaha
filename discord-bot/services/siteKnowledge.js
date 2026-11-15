@@ -457,7 +457,8 @@ async function promptFor(question) {
     const q = String(question || '').slice(0, 500);
     const wantsNews = NEWS_Q.test(q);
     if (!state.pages.size && !wantsNews) return '';
-    const hits = state.pages.size ? search(q) : [];
+    // سؤال "وش الجديد": نعتمد قسم التحديثات فقط (مقتطفات الواجهة مثل "آخر تحديث" تلخبط الجواب)
+    const hits = state.pages.size && !wantsNews ? search(q) : [];
     const news = wantsNews ? updatesBlock() : '';
     if (!hits.length && !news) return '';
     const lines = [];
