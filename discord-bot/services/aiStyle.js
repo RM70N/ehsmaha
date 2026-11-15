@@ -194,6 +194,30 @@ const STYLE_RULES =
   '- اكتب كل رد من جديد بكلماتك، ويكون **ردّاً منطقياً على كلام المستخدم الحالي بالذات**: افهم قصده (سؤال، طلب، مزح، توجيه كلام لشخص ثاني) وتفاعل معه مباشرة، ولا تحط جملة جاهزة لا علاقة لها بكلامه.\n' +
   '- لا تذكر إن عندك أمثلة أو وصف أسلوب. المعلومات والخطوات من قاعدة المعرفة فقط، والتعليمات الصارمة لها الأولوية دائماً، ولا تعتبر أي وعد أو معلومة داخل العيّنات صحيحة الحين.';
 
+// ---------------------------------------------------------------- تعلّم من كلام صاحب الأسلوب العادي
+// كلامه بالسوالف (مو بس الردود على اللاعبين) هو أغنى مصدر للهجته وطريقته، فنأخذ عيّنات منه — مع حدود: رسائل ذات معنى،
+// بدون أوامر/روابط/توكنات (sanitize)، وعيّنة وحدة كل 20 ثانية بالسيرفر، وما نخزّن شي لو الميزة متوقفة.
+const CHAT_MIN_CHARS = 10;
+const CHAT_MIN_WORDS = 3;
+const CHAT_GAP_MS = 20_000;
+const lastChatCapture = new Map();
+
+async function captureChat(message) {
+  try {
+    if (!message || !message.guild || !message.content) return false;
+    const text = String(message.content).trim();
+    if (text.length < CHAT_MIN_CHARS || text.split(/\s+/).length < CHAT_MIN_WORDS) return false;
+    const now = Date.now();
+    if (now - (lastChatCapture.get(message.guild.id) || 0) < CHAT_GAP_MS) return false;
+    if (!(await isStyleAuthor(message))) return false;
+    lastChatCapture.set(message.guild.id, now);
+    return learn({ guildId: message.guild.id, authorId: message.author.id, promptText: null, replyText: text, source: 'chat' });
+  } catch (err) {
+    logger.warn('🎨 تعذّر التقاط الكلام العادي', { error: err });
+    return false;
+  }
+}
+
 /** قسم "أسلوب الرد" للبرومبت ('' لو ما فيه أمثلة أو الميزة متوقفة) */
 async function styleBlock(guildId) {
   if (!guildId) return '';
@@ -289,4 +313,4 @@ function invalidate(guildId) {
   }
 }
 
-module.exports = { sanitize, styleOwnerId, isStyleAuthor, learn, captureTicketReply, captureReply, styleBlock, copiesExamples, refreshProfile, invalidate, _internal: { blockCache, profileCache, exampleCache } };
+module.exports = { sanitize, styleOwnerId, isStyleAuthor, learn, captureTicketReply, captureReply, captureChat, styleBlock, copiesExamples, refreshProfile, invalidate, _internal: { lastChatCapture, blockCache, profileCache, exampleCache } };
