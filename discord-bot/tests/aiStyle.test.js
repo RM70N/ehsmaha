@@ -437,3 +437,31 @@ test('يتعلم من كلام المالك العادي بالسوالف (عي�
   await say(w.general, w.owner, 'كلام جديد وهو متوقف ما ينحفظ');
   assert.equal(await store.aiStyle.count(w.guild.id), 1);
 });
+
+test('معرفة الموقع الحية: مقتطفات الموقع الأقرب لسؤال المنشن والتكت تدخل البرومبت (ومن غيرها البرومبت ما يتغير)', async () => {
+  const sk = require('../services/siteKnowledge');
+  const w = await world();
+  const botUser = w.guild.members.me.user;
+  const ask = async (text) => {
+    ai._internal.mentionCooldowns.clear();
+    calls = [];
+    await say(w.general, w.member, `<@${botUser.id}> ${text}`, { mentions: [botUser] });
+    return calls[0].systemInstruction;
+  };
+  assert.doesNotMatch(await ask('وش لعبة سباق الصحراء'), /معلومات محدّثة من الموقع الحي/, 'قبل تشغيل الميزة');
+  const items = ['لعبة سباق الصحراء الجديدة: تتسابق فيها مع متابعيك بكتابة الكلمات وأسرع واحد يفوز بالسباق'];
+  sk._internal.state.pages.set('http://x/', { items, chunks: sk.mergeItems(items), hash: 'h' });
+  sk._internal.state.index = null;
+  try {
+    const sys = await ask('وش لعبة سباق الصحراء');
+    assert.match(sys, /معلومات محدّثة من الموقع الحي/);
+    assert.match(sys, /تتسابق فيها مع متابعيك/);
+    assert.doesNotMatch(await ask('كلام ما له علاقة ززززز'), /معلومات محدّثة من الموقع الحي/);
+    const ch = await openTicket(w);
+    calls = [];
+    await say(ch, w.member, 'وين الاقي لعبة سباق الصحراء');
+    assert.match(calls[0].systemInstruction, /تتسابق فيها مع متابعيك/, 'التكت كمان');
+  } finally {
+    sk._reset();
+  }
+});
