@@ -69,6 +69,7 @@ test.beforeEach(() => {
   ai._internal.conversations.clear();
   ai._internal.mentionCooldowns.clear();
   aiStyle.invalidate();
+  aiStyle._internal.lastChatCapture.clear();
 });
 test.after(async () => {
   gemini.setGenerator(null);
@@ -164,7 +165,8 @@ test('خارج التكت: Reply من المالك على لاعب ينحفظ �
   const botMsg = makeUserMessage(w.general, w.guild.members.me, 'رسالة بوت');
   await say(w.general, w.owner, 'رد على البوت', { reference: botMsg });
   const rows = await store.aiStyle.recent(w.guild.id);
-  assert.deepEqual(rows.map((r) => [r.reply_text, r.prompt_text, r.source]), [['قريب جداً يا ذيب 😎 خلك متابع', 'متى الفعالية الجاية؟', 'reply']]);
+  // الرد على لاعب (مع سياقه) + كلام المالك العادي (للهجته) — لا الدعم ولا الرد على بوت
+  assert.deepEqual(rows.map((r) => [r.reply_text, r.prompt_text, r.source]), [['رسالة عادية بدون رد', null, 'chat'], ['قريب جداً يا ذيب 😎 خلك متابع', 'متى الفعالية الجاية؟', 'reply']]);
 });
 
 test('/اسلوب_المساعد: الحالة، إيقاف (ما يتعلم ولا يدخل البرومبت)، تشغيل، مسح، وتغيير صاحب الأسلوب لمالك السيرفر فقط', async () => {
@@ -182,7 +184,7 @@ test('/اسلوب_المساعد: الحالة، إيقاف (ما يتعلم و�
   await say(w.general, w.owner, 'رد وقت الإيقاف', { reference: q });
   assert.equal(await store.aiStyle.count(w.guild.id), 1, 'ما يتعلم وهو متوقف');
   await say(w.general, w.member, `<@${w.guild.members.me.id}> سؤال`, { mentions: [w.guild.members.me.user] });
-  assert.equal(calls.pop().systemInstruction, knowledge.buildSystemPrompt(), 'بدون قسم الأسلوب');
+  assert.equal(calls.pop().systemInstruction, `${knowledge.buildSystemPrompt()}\n\n${require('../config/aiPersona').block()}`, 'بدون قسم الأسلوب (الشخصية فقط)');
 
   await cmd(w, w.owner, { 'إجراء': 'on' });
   ai._internal.mentionCooldowns.clear();
@@ -394,4 +396,72 @@ test('ملف الأسلوب: يُبنى من الردود بـGemini، ويدخ�
   assert.match(block, /### وصف الأسلوب\n- لهجة خليجية خفيفة/);
   assert.ok(block.split('\n').filter((l) => l.startsWith('- «')).length <= 3, 'عيّنات أقل مع وجود الملف');
   assert.equal((await store.guildConfig.get(g, 'ai_style_profile')).count, 6);
+});
+
+test('شخصية السوالف: لهجة حائل بالبرومبت، والرد الروبوتي يُعاد توليده (إلا لو سُئل عن كونه بوت)', async () => {
+  const w = await world();
+  const botUser = w.guild.members.me.user;
+  const send = async (text) => {
+    ai._internal.mentionCooldowns.clear();
+    calls = [];
+    return say(w.general, w.member, `<@${botUser.id}> ${text}`, { mentions: [botUser] });
+  };
+  let n = 0;
+  reply = () => (++n === 1 ? 'ما أقدر أعرف اسمك، أنا بوت ديسكورد وأتعامل معك كمسؤول للسيرفر' : 'وش علومك يا سعود، اسمك بالشاشة قدامي ههههه');
+  await send('وش اسمي');
+  assert.match(calls[0].systemInstruction, /عامية سعودية من حائل/);
+  assert.match(calls[0].systemInstruction, /تمون على اللاعبين/);
+  assert.equal(calls.length, 2, 'رد روبوتي ← إعادة توليد');
+  assert.match(JSON.stringify(calls[1].contents), /طلع روبوتي/);
+
+  // سؤال جاد عن كونه بوت ← ما نعيد (ولا ننكر)
+  n = 0;
+  reply = () => 'ايه بوت يا ذيب، احسمها اسمي ههههه';
+  await send('انت بوت ولا انسان؟');
+  assert.equal(calls.length, 1);
+  const { isRobotic } = require('../config/aiPersona');
+  assert.equal(isRobotic('أنا بوت ديسكورد'), true);
+  assert.equal(isRobotic('ابشر يا ولد وش تبي'), false);
+});
+
+test('يتعلم من كلام المالك العادي بالسوالف (عيّنة كل 20 ثانية)، وغيره لا، وما يتعلم وهو متوقف', async () => {
+  const w = await world();
+  await say(w.general, w.owner, 'هلا والله فيك يالربع وش علومكم اليوم');
+  await say(w.general, w.owner, 'رسالة ثانية بنفس اللحظة ما تنحفظ هنا');
+  await say(w.general, w.member, 'كلام لاعب عادي ما ينحفظ أبداً');
+  await say(w.general, w.owner, 'قصير');
+  let rows = await store.aiStyle.recent(w.guild.id);
+  assert.deepEqual(rows.map((r) => [r.reply_text, r.source]), [['هلا والله فيك يالربع وش علومكم اليوم', 'chat']]);
+  aiStyle._internal.lastChatCapture.clear();
+  await cmd(w, w.owner, { 'إجراء': 'off' });
+  await say(w.general, w.owner, 'كلام جديد وهو متوقف ما ينحفظ');
+  assert.equal(await store.aiStyle.count(w.guild.id), 1);
+});
+
+test('معرفة الموقع الحية: مقتطفات الموقع الأقرب لسؤال المنشن والتكت تدخل البرومبت (ومن غيرها البرومبت ما يتغير)', async () => {
+  const sk = require('../services/siteKnowledge');
+  const w = await world();
+  const botUser = w.guild.members.me.user;
+  const ask = async (text) => {
+    ai._internal.mentionCooldowns.clear();
+    calls = [];
+    await say(w.general, w.member, `<@${botUser.id}> ${text}`, { mentions: [botUser] });
+    return calls[0].systemInstruction;
+  };
+  assert.doesNotMatch(await ask('وش لعبة سباق الصحراء'), /معلومات محدّثة من الموقع الحي/, 'قبل تشغيل الميزة');
+  const items = ['لعبة سباق الصحراء الجديدة: تتسابق فيها مع متابعيك بكتابة الكلمات وأسرع واحد يفوز بالسباق'];
+  sk._internal.state.pages.set('http://x/', { items, chunks: sk.mergeItems(items), hash: 'h' });
+  sk._internal.state.index = null;
+  try {
+    const sys = await ask('وش لعبة سباق الصحراء');
+    assert.match(sys, /معلومات محدّثة من الموقع الحي/);
+    assert.match(sys, /تتسابق فيها مع متابعيك/);
+    assert.doesNotMatch(await ask('كلام ما له علاقة ززززز'), /معلومات محدّثة من الموقع الحي/);
+    const ch = await openTicket(w);
+    calls = [];
+    await say(ch, w.member, 'وين الاقي لعبة سباق الصحراء');
+    assert.match(calls[0].systemInstruction, /تتسابق فيها مع متابعيك/, 'التكت كمان');
+  } finally {
+    sk._reset();
+  }
 });
