@@ -47872,6 +47872,7 @@ let cwAlliancePair = null;             // [countryNameA, countryNameB] أو null
 const CW_ALLIANCE_CHANCE = 0.3;
 let cwGridRoundSeq = 0;              // يزيد مع كل راوند: التحريك (FLIP/الأشباح) فقط داخل نفس الراوند
 let cwTurnSeconds = 15;                // مدة دور اللاعب لاختيار دولة (0 = بدون وقت) — من الإعدادات المتقدمة
+let cwRoundToken = 0;   // يزيد مع كل ريست/راوند جديد: يُبطل مؤقتات الراوند القديم المعلّقة (لف/فوز/إعادة محاولة)
 let cwCountryNums = new Map(); // رقم ثابت لكل دولة بالراوند (يُكتب بالشات لاختيارها)
 function cwNumOf(name) { if (!cwCountryNums.has(name)) { let m = 0; cwCountryNums.forEach(v => { if (v > m) m = v; }); cwCountryNums.set(name, m + 1); } return cwCountryNums.get(name); }
 let cwTimeoutKick = true;   // طرد من خلص مؤقته دون اختيار
@@ -48005,6 +48006,7 @@ function initCWDashboard() {
   cwKickedDuringRound.clear();
   cwAssignments.clear();
   cwActiveCountries = [];
+  cwRoundToken++;
   cwSpinning = false;
   cwTurnUid = null;
   cwTurnCountryName = null;
@@ -48305,7 +48307,7 @@ function startCountryWarRound() {
   cwTurnSeconds = (function () { var v = Number(modGetSetting('countrywar', 'turnSeconds', 15)); return isFinite(v) && v >= 0 ? Math.min(3600, Math.floor(v)) : 15; })();
   if (modGetSetting('countrywar', 'turnTimerEnabled', true) === false) cwTurnSeconds = 0;   // «اللعب مع المؤقت» مطفأ
   cwTimeoutKick = modGetSetting('countrywar', 'timeoutKickEnabled', true) !== false;
-  cwTurnTimerUid = null; cwGridRoundSeq++;
+  cwTurnTimerUid = null; cwGridRoundSeq++; cwRoundToken++; cwSpinning = false; cwTurnUid = null;
   cwGoldenCountryEnabled = modGetSetting('countrywar', 'goldenCountryEnabled', false);
   cwDoubleElimEnabled = modGetSetting('countrywar', 'endgameMultiplierEnabled', false);
   cwDoubleElimChance = Number(modGetSetting('countrywar', 'endgameMultiplierChance', 50));
@@ -48468,8 +48470,10 @@ function spinCountryWarWheel() {
 
   const duration = CW_SPIN_MIN_MS + Math.random() * CW_SPIN_RANDOM_MS;
   const startTime = performance.now();
+  const __tok = cwRoundToken;
 
   function animate(now) {
+    if (__tok !== cwRoundToken) return;   // انتهى/أُعيد ضبط الراوند أثناء اللف
     const elapsed = now - startTime;
     const t = Math.min(elapsed / duration, 1);
     const eased = 1 - Math.pow(1 - t, 3);
@@ -48578,7 +48582,9 @@ function cwTurnTimeout() {
     if (result) { result.textContent = '⏰ انتهى وقت ' + nm + ' — تم طرده من الراوند!'; result.className = 'cw-spin-result show'; }
   }
   drawCWWheel(0);
+  const __tokT = cwRoundToken;
   setTimeout(function cwAutoSpinRetry() {
+    if (__tokT !== cwRoundToken) return;
     if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning || cwTurnUid) return;
     if (isGamePausedForRevival('cw')) { setTimeout(cwAutoSpinRetry, 600); return; }
     spinCountryWarWheel();
@@ -48670,8 +48676,10 @@ function cwEliminateCountry(countryName, source, force) {
       // لازم الجولة تكمل بعد الإنعاش بنفس منطق الإقصاء العادي تحت (فحص الفوز
       // أو لف تلقائي للدور التالي) — وإلا cwTurnUid يضل null للأبد ولا حد
       // يقدر يختار دولة بعدها (هذا كان سبب "تعليق" اللعبة بعد كل إنعاش).
+      const __tokR = cwRoundToken;
       if (cwActiveCountries.length === 1) {
         setTimeout(() => {
+          if (__tokR !== cwRoundToken || cwActiveCountries.length !== 1) return;
           cwGameStatus = 'finished';
           cwSetGameStatus('finished');
           const winnerEntry = cwActiveCountries[0];
@@ -48681,6 +48689,7 @@ function cwEliminateCountry(countryName, source, force) {
       } else {
         drawCWWheel(0);
         setTimeout(function cwAutoSpinRetry() {
+          if (__tokR !== cwRoundToken) return;
           if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning) return;
           if (isGamePausedForRevival('cw')) { setTimeout(cwAutoSpinRetry, 600); return; }
           spinCountryWarWheel();
@@ -48718,8 +48727,10 @@ function cwEliminateCountry(countryName, source, force) {
   renderCWCountriesGrid();
 
   // فحص الفائز
+  const __tokE = cwRoundToken;
   if (cwActiveCountries.length === 1) {
     setTimeout(() => {
+      if (__tokE !== cwRoundToken || cwActiveCountries.length !== 1) return;
       cwGameStatus = 'finished';
       cwSetGameStatus('finished');
       const winnerEntry = cwActiveCountries[0];
@@ -48733,6 +48744,7 @@ function cwEliminateCountry(countryName, source, force) {
     // لف تلقائي للدور التالي بعد فاصل قصير وطبيعي — بدون انتظار ضغطة الستريمر
     // (الزر نفسه مختفٍ من أول ضغطة بهذا الراوند، نفس أسلوب دائرة الإقصاء)
     setTimeout(function cwAutoSpinRetry() {
+      if (__tokE !== cwRoundToken) return;
       if (cwGameStatus !== 'active' || cwActiveCountries.length <= 1 || cwSpinning) return;
       if (isGamePausedForRevival('cw')) { setTimeout(cwAutoSpinRetry, 600); return; }
       spinCountryWarWheel();
