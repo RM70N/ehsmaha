@@ -149,9 +149,10 @@ test('التكت: ردود مالك السيرفر فقط تنحفظ (مع رس�
   assert.ok(sys.startsWith(knowledge.buildSystemPrompt()), 'قاعدة المعرفة كاملة أولاً');
   assert.match(sys, /## أسلوب الرد/);
   assert.match(sys, /هلا والله يالغالي 🌹 ابشر بعزك/);
-  assert.match(sys, /اللاعب: «السلام عليكم ما وصلتني نقاطي»/);
+  assert.match(sys, /عيّنات للنبرة فقط/);
   assert.doesNotMatch(sys, /تمام نتابع/);
-  assert.match(sys, /المعلومات والخطوات تاخذها من قاعدة المعرفة/);
+  assert.match(sys, /ممنوع تكرار أي جملة أو عبارة أو تعبير كامل من العيّنات/);
+  assert.match(sys, /المعلومات والخطوات من قاعدة المعرفة فقط/);
 });
 
 test('خارج التكت: Reply من المالك على لاعب ينحفظ — Reply على بوت، أو من غير المالك، أو بدون Reply لا', async () => {
@@ -214,9 +215,10 @@ test('المخزن يحتفظ بآخر 300 مثال فقط لكل سيرفر، �
   const newest = await store.aiStyle.recent(g, 1);
   assert.match(newest[0].reply_text, /رد رقم 304/);
   const block = await aiStyle.styleBlock(g);
-  assert.ok(block.length < 4800, `طول القسم ${block.length}`);
-  assert.match(block, /رد رقم 304/, 'الأحدث داخل');
-  assert.doesNotMatch(block, /رد رقم 0 /, 'الأقدم برا');
+  assert.ok(block.length < 4000, `طول القسم ${block.length}`);
+  const samples = block.split('\n').filter((l) => l.startsWith('- «'));
+  assert.ok(samples.length >= 1 && samples.length <= 6, `عيّنات قليلة فقط للنبرة: ${samples.length}`);
+  assert.ok(samples.every((l) => l.length < 170), 'كل عيّنة مقصوصة');
 });
 
 // =================== الصور ===================
@@ -324,4 +326,72 @@ test('Gemini: تحويل الرسائل — صور + نص، صورة بدون ن
   assert.deepEqual(toContent({ role: 'user', text: '', images: [{ mimeType: 'image/png', data: 'AA==' }] }).parts, [{ inlineData: { mimeType: 'image/png', data: 'AA==' } }]);
   assert.deepEqual(toContent({ role: 'model', text: 'y' }), { role: 'model', parts: [{ text: 'y' }] });
   assert.deepEqual(toContent({ role: 'user', text: '' }).parts, [{ text: '' }]);
+});
+
+test('حارس النسخ: رد ينسخ عبارة من أمثلة الأسلوب يُكشف، والرد الجديد المنطقي لا', async () => {
+  const g = 'g-copy';
+  await store.guildSettings.update(g, { ai_style_enabled: true });
+  await store.aiStyle.add({ guildId: g, authorId: 'o', replyText: 'لا تبالغ ذي بل يالله وجبه', source: 'reply' });
+  await store.aiStyle.add({ guildId: g, authorId: 'o', replyText: 'ابشر ياغالي', source: 'reply' });
+  aiStyle.invalidate(g);
+  assert.equal(await aiStyle.copiesExamples(g, 'لا تبالغ ذي بل يالله وجبه'), true, 'نسخ كامل');
+  assert.equal(await aiStyle.copiesExamples(g, 'يا شيخ، لا تبالغ ذي بل يالله وجبه والله'), true, 'نسخ داخل جملة أطول');
+  assert.equal(await aiStyle.copiesExamples(g, 'ميش احبك ❤️ ابلغه بنفسي ههه'), false, 'رد جديد');
+  assert.equal(await aiStyle.copiesExamples(g, 'ابشر'), false, 'كلمة قصيرة مشتركة مو نسخ');
+  assert.equal(await aiStyle.copiesExamples('g-none', 'لا تبالغ ذي بل يالله وجبه'), false, 'بدون أمثلة/ميزة متوقفة');
+});
+
+test('منشن: النموذج يرى أسماء الأشخاص (مو المعرّفات) وآخر رسائل القناة، ورد ينسخ الأسلوب يُعاد توليده بدل ما ينرسل', async () => {
+  const w = await world();
+  await cmd(w, w.owner, { 'إجراء': 'on' });
+  // صاحب الأسلوب رد على لاعب: جملة مميزة
+  const q = await say(w.general, w.member, 'وش رايك فيني');
+  await say(w.general, w.owner, 'لا تبالغ ذي بل يالله وجبه', { reference: q });
+  aiStyle.invalidate();
+  calls = [];
+  ai._internal.mentionCooldowns.clear();
+
+  const mish = makeMember(w.guild, { username: 'ميش' });
+  // رسائل سابقة بالقناة (سياق)
+  w.general.messages = {
+    fetch: async () =>
+      new Map([
+        ['1', { id: '1', content: 'احسمها ينفع يقول كلام؟', author: w.member.user, createdTimestamp: 1, mentions: { users: new Map() } }]
+      ])
+  };
+  let n = 0;
+  reply = () => (++n === 1 ? 'لا تبالغ ذي بل يالله وجبه' : 'ميش احبك ❤️ ابلغتها لك ههه');
+  const botUser = w.guild.members.me.user;
+  const msg = await say(w.general, w.member, `<@${botUser.id}> قول <@${mish.id}> احبك`, { mentions: [botUser, mish.user] });
+
+  assert.equal(calls.length, 2, 'توليد ثاني بعد كشف النسخ');
+  const turn = calls[0].contents.at(-1).parts.map((p) => p.text).join('');
+  assert.match(turn, /قول @ميش احبك/, 'اسم الشخص بدل المعرّف');
+  assert.doesNotMatch(turn, /<@\d+>/);
+  assert.match(turn, /احسمها ينفع يقول كلام؟/, 'سياق القناة');
+  assert.match(turn, /الموجّهة لك/);
+  assert.match(JSON.stringify(calls[1].contents), /نسخ عبارات من عيّنات الأسلوب/);
+  const sent = repliesTo(w, msg);
+  assert.equal(sent.length, 1);
+  assert.match(sent[0][3].content, /ميش احبك/);
+  assert.doesNotMatch(sent[0][3].content, /يالله وجبه/);
+});
+
+test('ملف الأسلوب: يُبنى من الردود بـGemini، ويدخل البرومبت مع عيّنات قليلة، ويُحفظ', async () => {
+  const g = 'g-profile';
+  await store.guildSettings.update(g, { ai_style_enabled: true });
+  for (let i = 0; i < 6; i += 1) await store.aiStyle.add({ guildId: g, authorId: 'o', replyText: `رد رقم ${i} ابشر`, source: 'reply' });
+  let seen = null;
+  gemini.setGenerator(async (req) => {
+    seen = req;
+    return '- لهجة خليجية خفيفة\n- ردود قصيرة مع إيموجي';
+  });
+  aiStyle.invalidate(g);
+  assert.equal(await aiStyle.refreshProfile(g), true);
+  assert.match(seen.systemInstruction, /ممنوع تماماً اقتباس/);
+  aiStyle.invalidate(g);
+  const block = await aiStyle.styleBlock(g);
+  assert.match(block, /### وصف الأسلوب\n- لهجة خليجية خفيفة/);
+  assert.ok(block.split('\n').filter((l) => l.startsWith('- «')).length <= 3, 'عيّنات أقل مع وجود الملف');
+  assert.equal((await store.guildConfig.get(g, 'ai_style_profile')).count, 6);
 });
