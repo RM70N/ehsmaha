@@ -39500,6 +39500,12 @@ function addEvChatMsg(user, text) {
 .ll-queue-tag.active-player{background:rgba(124,58,237,.22);border-color:var(--accent2);color:var(--accent2);box-shadow:0 0 0 3px rgba(167,139,255,.12);}
 .ll-queue-tag.eliminated{opacity:.3;text-decoration:line-through;}
 
+/* آخر حرف: مناطق بحجم ثابت — لا تتغير أبعاد الشاشة عند الإقصاء أو إضافة كلمة، فلا شيء يتحرك */
+#pg-lastletter .ll-queue-list{height:68px;overflow-y:auto;align-content:flex-start;overflow-anchor:none;}
+#pg-lastletter .ll-chain-words{height:90px;max-height:none;overflow-anchor:none;align-content:flex-start;}
+#pg-lastletter .ll-elim-log{height:104px;overflow-y:auto;overflow-anchor:none;flex:none;}
+#pg-lastletter .ll-elim-item{flex:none;padding-top:8px;padding-bottom:8px;}
+
 /* Last letter winner */
 #pg-lastletter-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(52,211,153,.16) 0%,var(--bg) 70%);}
 </style>
