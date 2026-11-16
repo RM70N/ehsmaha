@@ -9,8 +9,8 @@ const setNow=async(t)=>{await fetch(URL+'__now?t='+encodeURIComponent(t||''))};
   const visible=(pg)=>pg.evaluate(()=>!!document.getElementById('wlc-root'));
   const waitOpen=(pg)=>pg.waitForSelector('#wlc-root.is-open',{timeout:15000});
 
-  // 1) active period (server time = day 3) → opens automatically, no login, medium size
-  await setNow('2026-11-09T12:00:00Z');
+  // 1) active period (server time = day 5) → opens automatically, no login, medium size
+  await setNow('2026-11-20T12:00:00Z');
   let {ctx,pg}=await mk(); await pg.goto(URL+'index.html'); await waitOpen(pg); await pg.waitForTimeout(1500);
   const box=await pg.evaluate(()=>{const c=document.querySelector('.wlc-card').getBoundingClientRect();return {w:c.width,h:c.height,vw:innerWidth,vh:innerHeight}});
   assert(box.w<=861&&box.w>=800,'width '+box.w); assert(box.h<=0.75*box.vh+1,'height '+box.h); assert(Math.abs(box.w/box.h-1040/590)<0.01,'ratio');
@@ -43,18 +43,18 @@ const setNow=async(t)=>{await fetch(URL+'__now?t='+encodeURIComponent(t||''))};
   await ctx.close();
 
   // 6) before start → not shown ; after end → not shown ; expires while open
-  await setNow('2026-11-07T17:00:00Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(5000);
-  assert(!(await visible(pg))); ok('before start (server 20:00 +03 on 7 Nov): not shown'); await ctx.close();
-  await setNow('2026-11-22T18:00:01Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(5000);
-  assert(!(await visible(pg))); ok('after end (22 Nov 21:00:01 +03): not shown'); await ctx.close();
-  await setNow('2026-11-22T17:59:50Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await waitOpen(pg);
+  await setNow('2026-11-15T20:00:00Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(5000);
+  assert(!(await visible(pg))); ok('before start (server 23:00 +03 on 15 Nov): not shown'); await ctx.close();
+  await setNow('2026-12-15T21:00:01Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(5000);
+  assert(!(await visible(pg))); ok('after end (16 Dec 00:00:01 +03): not shown'); await ctx.close();
+  await setNow('2026-12-15T20:59:50Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await waitOpen(pg);
   await pg.waitForFunction(()=>!document.getElementById('wlc-root'),null,{timeout:20000}); ok('campaign ends while open → closes automatically'); await ctx.close();
   // starts while page open (pending → scheduleStart)
-  await setNow('2026-11-07T17:59:56Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(2500); assert(!(await visible(pg)));
+  await setNow('2026-11-15T20:59:56Z'); ({ctx,pg}=await mk()); await pg.goto(URL+'index.html'); await pg.waitForTimeout(2500); assert(!(await visible(pg)));
   await waitOpen(pg); ok('opens exactly at start time for an already-open page'); await ctx.close();
 
   // 7) inside the Windows app → never
-  await setNow('2026-11-09T12:00:00Z');
+  await setNow('2026-11-20T12:00:00Z');
   ({ctx,pg}=await mk()); await pg.addInitScript(()=>{window.ehsmahaDesktop={isDesktopApp:true}}); await pg.goto(URL+'index.html'); await pg.waitForTimeout(5000);
   assert(!(await visible(pg))); ok('inside Windows app (ehsmahaDesktop.isDesktopApp): not shown'); await ctx.close();
 
