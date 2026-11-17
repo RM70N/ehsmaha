@@ -41,7 +41,7 @@ const AV = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://w
   check('التصميم القديم محذوف من الصفحة (CSS + buildGiftSparkles)', !oldCode.css && oldCode.fn === 'undefined', oldCode);
 
   // 2) كل لعبة فيها إنعاش: التجميد + المشهد الجديد + الاسم والصورة
-  const tags = ['findball', 'chairs', 'sniper', 'hz', 'rou', 'box', 'll', 'cw', 'bomb'];
+  const tags = ['chairs', 'sniper', 'hz', 'rou', 'box', 'll', 'cw', 'bomb'];
   for (const tag of tags) {
     await reset();
     const t0 = Date.now();
@@ -71,7 +71,7 @@ const AV = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://w
 
 
   // 3ب) مسار الهدية الحقيقي بكل ألعاب الإنعاش (دالة الهدية الفعلية، لاعب مُقصى سابقاً): مشهد واحد فقط، حتى لو نفس الهدية وصلت مرتين
-  for (const tag of ['findball', 'chairs', 'sniper', 'hz', 'rou', 'box', 'll', 'cw']) {
+  for (const tag of ['chairs', 'sniper', 'hz', 'rou', 'box', 'll', 'cw']) {
     await reset();
     const r = await page.evaluate(([t, av]) => {
       const u = { uniqueId: 'rg_' + t, nickname: 'مُنعَش ' + t, profilePictureUrl: av };

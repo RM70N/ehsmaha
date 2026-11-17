@@ -25,6 +25,8 @@ const ROOT_FILES = [
   'harf-alnajat3d.html',
   'space-odyssey.html',
   'space-odyssey-integration.js',
+  'findball3d.html',
+  'findball3d-integration.js',
   'ws-diag.html',
   'desktop-auth.html',
   'windows-app.html',

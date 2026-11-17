@@ -1215,6 +1215,10 @@
     shouldEnd: function () { try { return findballGameStatus !== 'guessing'; } catch (e) { return true; } }, announceText: 'ذاكرة اللاعب! أرقام الأكواب اختفت'
   };
 
+  // اعثر على الكورة صارت واجهة ثلاثية الأبعاد مستقلة داخل إطار (findball3d.html): أحداثها الخاصة كانت تعدّل أكواب الـDOM القديمة،
+  // فهي معطّلة الآن (لا تُنفَّذ ولا تؤثر على الجولة) إلى أن تُربط بواجهة الإطار.
+  Object.keys(A.findball.events).forEach(function (id) { A.findball.events[id].canRun = function () { return { ok: false, reason: 'game_unavailable' }; }; });
+
   // ---- توب 10: tt10.e1 / e4
   A.tt10.events['tt10.e1'] = {
     canRun: function () { return ttActive() && !tt10HideRanks ? true : { ok: false, reason: ttActive() ? 'hidden_active' : 'not_active' }; },

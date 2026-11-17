@@ -408,24 +408,6 @@ ok(mz5 && mo1.open < mo0.open && mo1.reach, 'سباق الانهيار: أُغل
 await Z.page.evaluate(() => { mzGameStatus = 'finished'; }); await sleep(1100);
 ok(await Z.page.evaluate(() => window.BatmishEvents.status().active.length === 0 && mzFakeGoal === null), 'المتاهة: انتهاء الراوند ينظف الأحداث');
 
-await enable('findball', ['findball.e4', 'findball.e5']);
-await Z.page.evaluate((us) => { findballParticipants.clear(); findballGameStatus = 'waiting'; findballRoundNum = 0; findballShuffling = false; findballShield.clear(); FINDBALL_SHUFFLE_MIN_MS = 6000; FINDBALL_SHUFFLE_FLOOR_MS = 1800; FINDBALL_SWAP_COUNT = 6; us.forEach((u) => findballParticipants.set(u.uniqueId, u)); findballStartRoundClick(); }, Us(301, 4));
-await until(() => Z.page.evaluate(() => findballGameStatus === 'shuffling'), 15000);
-const fg = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('findball', 'findball.e4'); return { ok: r.ok, g: findballGolden, st: findballGameStatus }; });
-ok(fg.ok && fg.g, 'الكرة الذهبية: فُعّلت أثناء الجولة', fg);
-ok(!!(await until(() => Z.page.evaluate(() => findballGameStatus === 'guessing'), 30000)), 'أين الكرة: وصلت الجولة لمرحلة التخمين');
-const fm = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('findball', 'findball.e5'); return { ok: r.ok, nums: ['a', 'b', 'c'].map((c) => document.getElementById('findball-cup-num-' + c).textContent) }; });
-ok(fm.ok && fm.nums.every((x) => x === '؟'), 'ذاكرة اللاعب: أرقام الأكواب اختفت أثناء التخمين', fm);
-await Z.page.evaluate(() => { findballClearGuessTimer(); findballGuesses.clear(); findballGuesses.set('u301', 1); findballGuesses.set('u302', 1); findballGuesses.set('u303', 2); findballGuesses.set('u304', 3); findballResolveRound(1); });
-const fg2 = await Z.page.evaluate(() => ({ alive: [...findballParticipants.keys()].sort(), shield: [...findballShield].sort(), st: findballGameStatus }));
-ok(fg2.alive.join() === 'u301,u302' && fg2.shield.join() === 'u301,u302', 'الكرة الذهبية: الصائبان نالا حصانة والمخطئان أُقصيا', fg2);
-await sleep(1300);
-ok(await Z.page.evaluate(() => findballGolden === false && ['a', 'b', 'c'].every((c) => document.getElementById('findball-cup-num-' + c).textContent !== '؟') && window.BatmishEvents.status().active.length === 0), 'أين الكرة: انتهاء الجولة يعيد الأرقام ويطفئ الذهبية');
-await Z.page.evaluate(() => { findballGuesses.clear(); findballGuesses.set('u301', 2); findballGuesses.set('u302', 3); findballGameStatus = 'guessing'; findballResolveRound(1); });
-const fg3 = await Z.page.evaluate(() => ({ alive: [...findballParticipants.keys()].sort(), shield: findballShield.size }));
-ok(fg3.alive.length === 2 && fg3.shield === 0, 'الحصانة الذهبية: نجا اللاعبان بعد خطأ كل منهما واستُهلكت الحصانة', fg3);
-await Z.page.evaluate(() => { findballRunId++; findballGameStatus = 'waiting'; findballShuffling = false; });
-
 await enable('tt10', ['tt10.e1', 'tt10.e4']);
 await Z.page.evaluate(() => { tt10GameStatus = 'waiting'; tt10Round = 0; tt10Scores.clear(); tt10StartRound(); });
 const th = await Z.page.evaluate(() => { const r = window.BatmishEvents.trigger('tt10', 'tt10.e1'); const ranks = [...document.querySelectorAll('#tt10-grid .top10-cell.hidden-cell .top10-cell-rank')].map((e) => e.textContent); return { ok: r.ok, ranks }; });

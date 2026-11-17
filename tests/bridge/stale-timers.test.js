@@ -24,36 +24,7 @@ async function waitFor(page, fn, arg, timeout = 15000) {
   page.on('dialog', (d) => d.accept().catch(() => {}));
   await H.linkAccount(page, STREAMER);
 
-  // ===== اعثر على الكورة =====
-  for (const [label, phase, how] of [['ريست أثناء الخلط', 'shuffling', 'reset'], ['ريست أثناء الإخفاء', 'hiding', 'reset'], ['الرجوع للرئيسية أثناء الخلط', 'shuffling', 'home']]) {
-    const e0 = page._errors.length;
-    await page.evaluate(() => { try { goHome(); } catch (e) {} }); await sleep(200);
-    await H.launch(page, G('findball'));
-    for (let i = 0; i < 3; i++) await say('fb_' + phase + how + i, 'ادخل');
-    await waitFor(page, () => findballParticipants.size === 3, null, 8000);
-    await page.evaluate(() => findballStartRoundClick());
-    await waitFor(page, (p) => findballGameStatus === p, phase, 10000);
-    await page.evaluate((how) => { if (how === 'reset') resetFindball(); else goHome(); }, how);
-    const st0 = await page.evaluate(() => findballGameStatus);
-    await sleep(7000);
-    const r = await page.evaluate(() => ({ st: findballGameStatus, page: document.querySelector('.page.active').id }));
-    check('اعثر على الكورة — ' + label + ': لا أخطاء والحالة لا تنقلب (' + st0 + ')', page._errors.length === e0 && r.st === st0, Object.assign({ errors: page._errors.slice(e0) }, r));
-  }
-  // جولة طبيعية بعد الريست تكمل عادي (الإصلاح ما كسر اللعبة)
-  await page.evaluate(() => { try { goHome(); } catch (e) {} }); await sleep(200);
-  await H.launch(page, G('findball'));
-  for (let i = 0; i < 3; i++) await say('fb_ok' + i, 'ادخل');
-  await waitFor(page, () => findballParticipants.size === 3, null, 8000);
-  await page.evaluate(() => findballStartRoundClick());
-  await waitFor(page, () => findballGameStatus === 'shuffling', null, 10000);
-  await page.evaluate(() => resetFindball()); await sleep(300);
-  for (let i = 0; i < 3; i++) await say('fb_ok2' + i, 'ادخل');
-  await waitFor(page, () => findballParticipants.size === 3, null, 8000);
-  await page.evaluate(() => findballStartRoundClick());
-  const guessing = await waitFor(page, () => findballGameStatus === 'guessing', null, 20000);
-  await page.evaluate(() => [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup))));
-  const done = await waitFor(page, () => findballGameStatus === 'finished-round', null, 15000);
-  check('اعثر على الكورة: جولة جديدة بعد ريست وسط الخلط تكمل طبيعياً (خلط ← تخمين ← نتيجة)', guessing && done, await page.evaluate(() => findballGameStatus));
+  // اعثر على الكورة: صارت واجهة 3D مستقلة (findball3d.html) ولها اختبارها: tests/findball3d/e2e_findball3d.mjs
 
   // ===== الطريق الزجاجي =====
   for (const [label, phase, how] of [['الخروج أثناء كشف الإجابة', 'resolving', 'quit'], ['الرجوع للرئيسية أثناء السؤال', 'active', 'home']]) {
