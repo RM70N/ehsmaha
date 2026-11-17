@@ -9879,7 +9879,7 @@ function landingCtaClick(){
       <div class="gcard-tags"><span class="gcard-tag" style="background:rgba(245,158,11,.14);color:var(--brand-amber);">حظ وإقصاء</span></div>
     </div>
 
-    <div class="gcard" data-tag="findball" data-category="guess" onclick="goSetupFindball()">
+    <div class="gcard" data-tag="findball" data-category="guess" data-extra-cats="3d" onclick="goSetupFindball()">
       <span class="gcard-num">١٩</span>
       <span class="badge" data-badge-slot></span>
       <div class="gcard-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7" fill="none"/><path d="M16.5 16.5 21 21"/><path d="M8.5 11h5"/></svg></div>
@@ -25704,6 +25704,7 @@ function show(page) {
   if (typeof ehsLtgOnShow === 'function') ehsLtgOnShow(page); // لا تطيّحه: تنظيف الإطار عند الخروج من اللعبة
   if (typeof ehsHnjOnShow === 'function') ehsHnjOnShow(page); // حرف النجاة: تنظيف الإطار عند الخروج من اللعبة
   if (typeof ehsSoOnShow === 'function') ehsSoOnShow(page); // رحلة الفضاء: تنظيف الإطار عند الخروج من اللعبة
+  if (typeof ehsFbOnShow === 'function') ehsFbOnShow(page); // اعثر على الكورة 3D: تنظيف الإطار عند الخروج من اللعبة
   if (typeof winScreenOnShow === 'function') winScreenOnShow(page); // شاشة الفوز الجديدة (EhsemhaWin) لألعاب الستريمر
   if (typeof drawOnShow === 'function') drawOnShow(page); // خمن الرسمة: تركيب/تفكيك محرك الرسم (مستمعات/مؤقّتات)
   if (typeof cannonOnShow === 'function') cannonOnShow(page); // المدفع البشري: إنهاء الجولة عند مغادرة صفحتها
@@ -50240,8 +50241,6 @@ function fxSlapEliminatePlayer(user, soundId){
 <!-- ==================== FIND THE BALL GAME (اعثر على الكورة) ==================== -->
 <style>
 /* ===== FIND THE BALL ===== */
-#pg-setup-findball{align-items:center;justify-content:flex-start;padding:40px 20px;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.20) 0%,transparent 60%),var(--bg);}
-#pg-findball{padding:0;background:var(--bg);overflow:hidden;}
 
 .findball-stage{position:relative;width:100%;max-width:560px;min-height:260px;margin:10px auto 0;display:flex;align-items:center;justify-content:center;perspective:900px;}
 .findball-cups{position:relative;width:100%;height:220px;}
@@ -50296,7 +50295,6 @@ function fxSlapEliminatePlayer(user, soundId){
 .findball-correct-list .chairs-elim-item .chairs-elim-icon::before{content:'👑';}
 .findball-correct-list .chairs-elim-name{color:var(--brand-green);}
 
-#pg-findball-winner{align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 50%,rgba(124,58,237,.20) 0%,var(--bg) 70%);}
 </style>
 
 <!-- ====== MUSICAL CHAIRS SETUP ====== -->
@@ -50491,180 +50489,19 @@ function fxSlapEliminatePlayer(user, soundId){
 </div>
 
 <!-- ====== FIND THE BALL — SETUP ====== -->
-<div id="pg-setup-findball" class="page">
-  <div class="setup-box">
-    <button class="back-btn" onclick="show('home')">← رجوع</button>
-    <div class="setup-title">🥤 إعداد لعبة اعثر على الكورة</div>
-    <div class="setup-sub">الكورة تختبئ تحت كوب عشوائي من 3 أكواب — خمّن رقم الكوب بالشات، ومن يخطئ يُقصى!</div>
-
-    <div class="legacy-connect-box">
-    <div class="platform-toggle">
-      <button type="button" class="ptab active" id="findball-tab-tiktok" onclick="setPlatform('findball','tiktok')">📱 تيك توك</button>
-      <button type="button" class="ptab" id="findball-tab-twitch" onclick="setPlatform('findball','twitch')">🟣 تويتش</button>
-      <button type="button" class="ptab plat-kick" id="findball-tab-kick" onclick="setPlatform('findball','kick')">🟢 كيك</button>
-      <button type="button" class="ptab plat-youtube" id="findball-tab-youtube" onclick="setPlatform('findball','youtube')">▶️ يوتيوب</button>
-    </div>
-
-    <div class="api-section" id="findball-tiktok-section">
-      <div class="api-section-title">🔑 مفتاح API — تيك توك</div>
-      <div class="field-hint" id="findball-tiktok-apikey-hint" style="margin-bottom:0;font-size:13px;">
-        اربط مفتاح تيك توك مرة وحدة من <b>بروفايلي</b> (اضغط اسم حسابك فوق بالزاوية اليمنى) وبيشتغل تلقائياً هنا وبكل الألعاب.
-      </div>
-    </div>
-    <div class="api-section" id="findball-twitch-section" style="display:none">
-      <div class="api-section-title">🟣 ربط بث تويتش — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على تويتش الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب اسم قناتك بالضبط في الحقل تحت (نفس اللي بعد twitch.tv/)</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key!</span></div>
-      </div>
-    </div>
-    <div class="api-section" id="findball-kick-section" style="display:none">
-      <div class="api-section-title">🟢 ربط بث كيك — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على كيك الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر قناتك بالضبط بالحقل تحت (نفس اللي بعد kick.com/)</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة — يتصل بشات بثك تلقائياً بدون أي API Key! لو اليوزر ما ضبط، الصق رابط بثك كامل بدلاً منه</span></div>
-      </div>
-    </div>
-    <div class="api-section" id="findball-youtube-section" style="display:none">
-      <div class="api-section-title">▶️ ربط بث يوتيوب — بدون مفتاح!</div>
-      <div class="api-steps">
-        <div class="api-step"><div class="api-step-num">1</div><span>تأكد إن بثك شغال على يوتيوب الآن</span></div>
-        <div class="api-step"><div class="api-step-num">2</div><span>اكتب يوزر/هاندل قناتك بالحقل تحت — بدون أي مفتاح API</span></div>
-        <div class="api-step"><div class="api-step-num">3</div><span>اضغط ابدأ اللعبة. لو اليوزر ما ضبط، الصق رابط بثك المباشر كامل بدلاً منه</span></div>
-      </div>
-    </div>
-
-    <div class="field">
-      <label id="findball-user-label">يوزر تيك توك (بدون @)</label>
-      <input type="text" id="findball-user" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">يوزر حسابك على تيك توك</div>
-    </div>
-
-    <div class="field" id="findball-kick-field" style="display:none">
-      <label>🟢 يوزر قناتك على كيك</label>
-      <input type="text" id="findball-kickuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">بدون أي إعداد يدوي — لو ما ضبط، الصق رابط بثك (kick.com/username) بدلاً منه</div>
-    </div>
-    <div class="field" id="findball-youtube-field" style="display:none">
-      <label>▶️ يوزر قناتك على يوتيوب</label>
-      <input type="text" id="findball-ytuser" placeholder="مثال: username123" dir="ltr" style="direction:ltr;text-align:right" />
-      <div class="field-hint">بدون أي مفتاح API — لو ما ضبط، الصق رابط بثك المباشر بدلاً منه</div>
-    </div>
-    </div>
-
-    <div class="field">
-      <label>كلمة مفتاحية للانضمام</label>
-      <input type="text" id="findball-kw" placeholder="مثال: كوب" />
-      <div class="field-hint">المتابعون يكتبونها في شات البث للدخول للعبة</div>
-    </div>
-
-    <div id="mod-advanced-findball"></div>
-
-    <button class="btn-primary" id="btn-findball-launch" onclick="launchFindball()">🚀 ابدأ اللعبة</button>
-    <div class="status-msg" id="findball-status"></div>
-  </div>
-</div>
-
-<!-- ====== FIND THE BALL — DASHBOARD ====== -->
+<!-- BEGIN findball3d:pages — اعثر على الكورة 3D (findball3d.html؛ يحل محل واجهة الأكواب القديمة بالكامل؛ الربط كله في findball3d-integration.js) -->
+<style>
+#pg-findball.active{position:fixed !important;inset:0;z-index:2147483000;background:#080816;padding:0 !important;margin:0 !important;display:block;overflow:hidden}
+#pg-findball iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;background:#080816}
+#pg-findball .ehsn-bar{inset-inline-end:auto;inset-inline-start:auto;left:6px;right:auto;transform:none;top:auto;bottom:max(6px,calc(env(safe-area-inset-bottom) + 6px));opacity:.55;padding:3px 7px}
+#pg-findball .ehsn-bar span{display:none}
+</style>
 <div id="pg-findball" class="page">
-  <img class="rf-badge rf-badge-logo" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="ehsmaha.com" aria-hidden="true">
-  <img class="rf-badge rf-badge-tiktok" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="@ehsmaha7" aria-hidden="true">
-  <div class="chairs-layout">
-
-    <div class="panel chairs-center">
-      <div class="top-bar">
-        <div class="room-info">
-          <div class="dot connecting" id="findball-dot"></div>
-          <div class="room-username" id="findball-live-user">@username</div>
-        </div>
-      </div>
-
-      <div class="game-title-header">
-        <div class="gth-icon">🥤</div>
-        <div class="gth-name">اعثر على الكورة</div>
-        <div class="gth-desc">الكورة تختبئ تحت كوب عشوائي من 3 أكواب — خمّن رقم الكوب بالشات، ومن يخطئ يُقصى!</div>
-      </div>
-
-      <div class="status-strip waiting" id="findball-status-strip">
-        ⏳ في انتظار المشاركين — اكتب الكلمة المفتاحية في شات البث
-      </div>
-
-      <button class="game-special-btn" type="button" disabled>الكلمة المفتاحية: <b id="findball-kw-show">—</b> 🔑</button>
-
-      <div class="chairs-round-bar" id="findball-round-bar" style="display:none;">
-        الجولة <b id="findball-round-num">1</b> &nbsp;|&nbsp; المتبقّون: <b id="findball-round-survivors">—</b>
-      </div>
-
-      <!-- Guess timer (مود إضافي — وقت محدد للتخمين) -->
-      <div class="wai-timer-box" id="findball-timer-box" style="display:none;">
-        ⏱️ الوقت المتبقي للتخمين: <span id="findball-timer-num">0</span> ثانية
-      </div>
-
-      <!-- Participants (shown while waiting) -->
-      <div class="participants-overlay" id="findball-participants-box" style="max-width:640px;">
-        <div class="participants-overlay-header">
-          <div class="participants-big-count" id="findball-p-count">0</div>
-          <div class="participants-label">مشارك في اللعبة</div>
-        </div>
-        <div class="participants-usernames" id="findball-p-usernames">
-          <span class="p-empty-placeholder" style="font-size:12px;color:var(--muted)">في انتظار المشاركين...</span>
-        </div>
-      </div>
-
-      <div class="game-bottom-row">
-        <button class="btn-start-round" id="findball-btn-round" onclick="findballStartRoundClick()">ابدأ الجولة</button>
-        <button class="btn-home" onclick="goHome()">🏠 رئيسية</button>
-        <button class="btn-reset" onclick="resetFindball()">🔄 ريست</button>
-        <button class="btn-kick" onclick="findballOpenKickModal()">🚫 اطرد لاعب</button>
-      </div>
-
-      <!-- Cups stage -->
-      <div class="findball-stage" id="findball-stage">
-        <div class="findball-cups" id="findball-cups"></div>
-      </div>
-    </div>
-
-    <div class="panel panel-right">
-      <div class="panel-head">
-        <div class="panel-label">شات البث</div>
-        <button type="button" class="chat-toggle-btn" onclick="toggleGameChatPanel(this)" title="إخفاء شات البث">◀</button>
-      </div>
-      <div class="chat-scroll" id="findball-chat-list">
-        <div class="empty"><div class="empty-icon">💬</div><div class="empty-txt">الشات سيظهر هنا</div></div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Results overlay: correct guessers + eliminated -->
-  <div class="chairs-elim-overlay" id="findball-results-overlay">
-    <div class="chairs-elim-box">
-      <div class="chairs-elim-title" id="findball-results-title">🥤 كشف الكورة!</div>
-      <div class="findball-correct-sub" id="findball-correct-sub">خمّنوا صح (ينتقلون للجولة القادمة):</div>
-      <div class="chairs-elim-list findball-correct-list" id="findball-correct-list"></div>
-      <div class="chairs-elim-sub" id="findball-elim-sub">هؤلاء اختاروا الكوب الخطأ ويُقصون:</div>
-      <div class="chairs-elim-list" id="findball-elim-list"></div>
-      <button class="btn-primary" id="findball-results-continue-btn" onclick="findballCloseResultsOverlay()" style="margin-top:0;">متابعة</button>
-    </div>
-  </div>
+  <div class="ehsn-bar"><div class="dot connecting" id="findball-live-dot"></div><span id="findball-live-user">@</span><button type="button" onclick="ehsFbGoHome()" aria-label="العودة لألعاب الستريمر">خروج</button></div>
+  <iframe id="findball-frame" title="اعثر على الكورة" allow="autoplay; fullscreen"></iframe>
 </div>
-
-<!-- ====== FIND THE BALL — WINNER ====== -->
-<div id="pg-findball-winner" class="page">
-  <!-- شاشة الفوز تُعرض عبر EhsemhaWin؛ هذه العناصر مخفية وتحمل بيانات اللعبة فقط -->
-  <div class="ehsemha-win-carrier" hidden aria-hidden="true">
-  <div class="winner-box">
-    
-    <div id="findballw-avatar-wrap"></div>
-    <div class="w-congrats">🏆 مبروك للفائز!</div>
-    <div class="w-name" id="findballw-name">—</div>
-    <div class="w-label" id="findballw-label">آخر من عثر على الكورة! 🥤</div>
-    <button type="button" data-win-act onclick="goHome()">🔁 العب مجدداً</button>
-  </div>
-  </div>
-</div>
+<script src="/findball3d-integration.js?v=1"></script>
+<!-- END findball3d:pages -->
 
 <!-- ====== TUG OF WAR SETUP ====== -->
 <!-- BEGIN tug3d:pages (شد الحبل 3D — يحل محل النسخة القديمة بالكامل) -->
@@ -51905,32 +51742,7 @@ function sniperAdminChooseSlot(user) {
   return false; // انضم كمشارك لكن ما فيه خانة فاضية بالشبكة حالياً
 }
 
-function goSetupFindball() { show('setup-findball'); modInitAdvancedSection('findball'); }
-
-// ==================== LAUNCH ====================
-function launchFindball() {
-    findballApiKey = getTikTokApiKey();
-  findballUser = localStorage.getItem(STREAMER_USER_STORAGE_KEY) || '';
-  gamePlatform['findball'] = localStorage.getItem(HOME_CONNECTED_PLATFORM_KEY) || gamePlatform['findball'];
-  findballKeyword = document.getElementById('findball-kw').value.trim();
-
-  if (!homeHasActiveConnection() || !findballUser) return findballSetStatus('err','⚠️ اربط بثك أولاً من الصفحة الرئيسية (زر ابدأ بثاً سريعاً)');
-  if (!findballKeyword) return findballSetStatus('err','⚠️ أدخل الكلمة المفتاحية');
-
-  scoreCurrentStreamer = findballUser;
-  ownerRegisterActiveStreamer('findball', findballUser, gamePlatform['findball'], 'اعثر على الكورة');
-  contestNoteActivity();
-  liveCommandsBoot('findball', findballLiveCommandHandlers);
-  findballRevivalBoot(findballUser);
-
-  findballSetStatus('load','⏳ جاري الاتصال ببثك...');
-  document.getElementById('btn-findball-launch').disabled = true;
-  initFindballDashboard();
-  show('findball');
-  homeRegisterGameListener('findball', findballHandleEvent);
-  document.getElementById('btn-findball-launch').disabled = false;
-  document.getElementById('findball-status').className = 'status-msg';
-}
+// goSetupFindball / launchFindball: الآن في findball3d-integration.js (واجهة 3D جديدة)
 
 function findballSetStatus(type, msg) {
   const el = document.getElementById('findball-status');

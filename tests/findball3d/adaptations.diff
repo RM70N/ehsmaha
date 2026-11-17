@@ -1,0 +1,98 @@
+257a258
+> body.embed .demo,body.embed .ptabs,body.embed .field.emb-hide{display:none !important}   /* EHSEMHA-EMBED */
+392a394,397
+> /* EHSEMHA-EMBED: وضع التضمين داخل احسمها (?embed=1): لا محاكاة شات/بوتات، ولا نقر محلي، والتحكم بالبث من الموقع */
+> const EMBED=QS.has('embed')||(function(){try{return window.self!==window.top}catch(e){return true}})();
+> const EMB={hooks:{},link:false,emit(type,data){if(!EMBED)return;try{window.parent.postMessage({source:'ehsemha-findball',type:type,data:data||null},'*');}catch(e){}}};
+> if(EMBED)document.body.classList.add('embed');
+491,492c496,497
+< function contestNoteRoundStarted(){}
+< function recordWin(){}
+---
+> function contestNoteRoundStarted(){ try{ EMB.emit('round-start',{round:findballRoundNum+1}); if(EMB.hooks.onRoundStart)EMB.hooks.onRoundStart(); }catch(e){} }   // EHSEMHA-EMBED: يبلغ الموقع ببدء الجولة
+> function recordWin(user){ try{ EMB.emit('winner',{uniqueId:user&&user.uniqueId,nickname:user&&user.nickname}); if(EMB.hooks.onWin)EMB.hooks.onWin(user,'اعثر على الكورة'); }catch(e){} }   // EHSEMHA-EMBED: تسجيل الفوز بنظام الموقع
+1437c1442
+< document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(['1','2','3'].includes(e.key))handleChat(ME,e.key);if(e.key==='h'||e.key==='H')document.body.classList.toggle('clean');});
+---
+> document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(!EMBED&&['1','2','3'].includes(e.key))handleChat(ME,e.key);if(e.key==='h'||e.key==='H')document.body.classList.toggle('clean');});
+1450c1455
+< canvas.addEventListener('click',e=>{const s=pick(e);if(s)handleChat(ME,String(s));});
+---
+> canvas.addEventListener('click',e=>{if(EMBED)return;const s=pick(e);if(s)handleChat(ME,String(s));});   // EHSEMHA-EMBED: لا نقر محلي بالتضمين
+1535a1541,1616
+> 
+> /* =====================================================================
+>    EHSEMHA-EMBED) طبقة التكامل مع موقع احسمها (تُضاف فقط — منطق اللعبة والتصميم أعلاه كما وصلا)
+>    الموقع يمرّر أحداث البث الحقيقية عبر window.EhsemhaFindball ويقرأ الحالة منه.
+>    ===================================================================== */
+> (function(){
+>   const pendingFollow=findballPendingFollowers;
+>   function cleanUser(u){return {uniqueId:String(u&&u.uniqueId!=null?u.uniqueId:''),nickname:String((u&&(u.nickname||u.uniqueId))||'').slice(0,40),avatar:(u&&u.avatar)||'',isFollower:!!(u&&u.isFollower),followKnown:u&&u.followKnown};}
+>   function gateOk(u){try{return EMB.hooks.followGate?!!EMB.hooks.followGate(u):true;}catch(e){return true;}}
+>   // انضمام بشرط المتابعة (مثل لعبة الموقع الأصلية): غير المتابع يُعلَّق حتى يصل حدث متابعة منه
+>   function tryJoin(u){
+>     if(findballParticipants.has(u.uniqueId))return;
+>     if(!gateOk(u)){pendingFollow.set(u.uniqueId,u);toast('⚠️ '+u.nickname+' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');return;}
+>     findballJoinParticipant(u);
+>   }
+>   function dispatch(ev){
+>     if(!ev||typeof ev!=='object')return 'ignored';
+>     const t=ev.type||ev.event;
+>     if(t==='chat'||t==='WebcastChatMessage'||t==='comment'){
+>       const u=cleanUser(ev),text=String(ev.comment||'').trim();
+>       if(!u.uniqueId||!text)return 'ignored';
+>       if(findballGameStatus==='waiting'){ if(joinTextMatches(text,findballKeyword))tryJoin(u); return 'ok'; }
+>       if(findballGameStatus==='guessing'){ findballProcessGuess(u,text); return 'ok'; }
+>       return 'ignored';
+>     }
+>     if(t==='WebcastSocialMessage'||t==='follow'||t==='social'){
+>       const u=cleanUser(ev);u.isFollower=true;
+>       if(pendingFollow.has(u.uniqueId)){pendingFollow.delete(u.uniqueId);findballJoinParticipant(u);return 'joined';}
+>       return 'ignored';
+>     }
+>     if(t==='WebcastGiftMessage'||t==='gift'){
+>       const u=cleanUser(ev);findballHandleGift(u,String(ev.giftName||'هدية'),Number(ev.diamonds)||0);return 'ok';
+>     }
+>     return 'ignored';
+>   }
+>   function removePlayer(uid){
+>     uid=String(uid);const had=findballParticipants.delete(uid);pendingFollow.delete(uid);
+>     if(!had)return false;
+>     findballKickedDuringRound.add(uid);
+>     const chip=document.getElementById('findballtag-'+uid);if(chip)chip.remove();
+>     $('findball-p-count').textContent=findballParticipants.size;UI.stats();
+>     if(findballGameStatus==='guessing'&&findballParticipants.size&&findballGuessedUids.size>=findballParticipants.size)findballRevealBall();
+>     return true;
+>   }
+>   window.EhsemhaFindball={
+>     version:'1.0',
+>     receiveEvent:dispatch,
+>     setHooks(h){Object.assign(EMB.hooks,h||{});},
+>     setLinkStatus(on,txt){EMB.link=!!on;const d=$('findball-dot');if(d)d.className='dot '+(on?'':'connecting');if(txt)$('findball-live-user').textContent=txt;},
+>     // إعدادات الموقع (ops/لوحة المالك): تُكتب في حقول الإعداد الأصلية للعبة فتقرأها modGetSetting كالمعتاد
+>     configure(c){c=c||{};
+>       const set=(id,v)=>{const el=$('set-'+id);if(!el||v==null)return;if(el.type==='checkbox')el.checked=!!v;else el.value=String(v);};
+>       ['shuffleMinMs','shuffleSpeedupPercent','shuffleMinFloorMs','swapCount','guessTimerSeconds','revivalMaxUses'].forEach(k=>{ if(c[k]!=null){ const el=$('set-'+k); const mul=el&&parseFloat(el.dataset.mul)||1; set(k,c[k]/mul);} });
+>       ['guessTimerEnabled','revivalEnabled'].forEach(k=>set(k,c[k]));
+>       if(c.keyword!=null)$('findball-kw').value=String(c.keyword);
+>       if(c.user!=null)$('findball-user').value=String(c.user);
+>       return {keyword:$('findball-kw').value};},
+>     enterLobby(){enterLobby();},
+>     startRound(){findballStartRoundClick();},
+>     reset(){findballResetGame();},
+>     removePlayer,
+>     join(u){const c=cleanUser(u);if(!c.uniqueId)return false;tryJoin(c);return findballParticipants.has(c.uniqueId);},   // أوامر البث الحيّة (انضم)
+>     forceWin(uid){const u=findballParticipants.get(String(uid));if(!u||findballGameStatus==='finished')return false;findballGameStatus='finished';findballSetGameStatus('finished');findballShowWinner(u);return true;},   // «فوّزه»
+>     getState(){return {status:findballGameStatus,round:findballRoundNum,keyword:findballKeyword,shuffling:findballShuffling,
+>       players:[...findballParticipants.values()].map(u=>({uniqueId:u.uniqueId,nickname:u.nickname})),pending:pendingFollow.size,eliminated:[...findballEliminatedHistory],ballCup:findballBallCup,link:EMB.link};},
+>     destroy(){try{dispose();}catch(e){}}
+>   };
+>   if(EMBED){
+>     // في التضمين: حقول المنصة/اليوزر/المفتاح يتولاها الموقع (اتصال البث موحّد) فنخفيها من شاشة الإعداد
+>     ['findball-apikey','findball-user'].forEach(id=>{const f=$(id)&&$(id).closest('.field');if(f)f.classList.add('emb-hide');});
+>     $('findball-live-user').textContent='البث غير متصل';
+>     $('btn-connect').addEventListener('click',()=>EMB.emit('lobby',{keyword:findballKeyword}));
+>     $('findball-btn-round').addEventListener('click',()=>EMB.emit('round-click',{status:findballGameStatus}));
+>     EMB.emit('ready',{version:'1.0'});
+>   }
+> })();
