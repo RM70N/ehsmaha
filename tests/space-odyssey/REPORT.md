@@ -23,6 +23,7 @@
 - يُستعمل `window.EhsemhaSpace` (نفس الأصل): `receiveEvent` للتعليقات ({type:'chat', uniqueId, nickname, avatar, comment, msgId, isFollower, followKnown}) والمتابعة ({type:'WebcastSocialMessage'})، و`setHooks({followGate,onWin})`، و`setLinkStatus`، و`destroy` عند الخروج فقط.
 - اتصال الستريمر هو اتصال الموقع الموحّد (`homeRegisterGameListener`)؛ لا اتصال ثانٍ ولا ربط مزدوج. الحقول تأتي من `extractUser` الحقيقية (الهوية بـ«tiktok:…» كما يوفّرها الموقع).
 - رسائل الإطار (`source: ehsemha-space`): تُقبل فقط إن كان الأصل = أصل الموقع، والمصدر = إطار اللعبة، والنوع ضمن (ready, lobby, join, match-start, round-end, result, finish, late-mode).
+- **صفحة الانتظار (طلب لاحق):** تعرض أفاتار كل لاعب وتحته اسمه (حلقة زرقاء/حمراء حسب الفريق، حرف أول بديل إن لم تتوفر صورة). تتم من `space-odyssey-integration.js` فقط بمراقبة قوائم اللاعبين وإعادة رسمها من قائمة اللعبة نفسها؛ ملف اللعبة لم يُلمس (SHA-256 ثابت).
 - لا تُنشأ شاشة إعداد ثانية: تظهر شاشة الإعداد الأصلية داخل اللعبة. بلا اتصال بث تُفتح نافذة الربط السريع ثم تعود للعبة تلقائياً.
 
 ## نتائج الفحص (Chromium + WebGL برمجي SwiftShader)

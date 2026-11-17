@@ -58,6 +58,8 @@ let st = await S();
 ok('وصول التعليقات من جسر الموقع وتوزيع الفرق (6 أزرق / 6 أحمر، تجاهل العشوائي والمكرر)', st.phase === 'lobby' && st.blue.size === 6 && st.red.size === 6 && (await A('teamOf', 'tiktok:b0')) === 'blue' && (await A('teamOf', 'tiktok:r0')) === 'red' && (await A('teamOf', 'tiktok:x1')) === null, { p: st.phase, b: st.blue.size, r: st.red.size });
 const joinInfo = await pg.evaluate(() => { const w = document.getElementById('spaceodyssey-frame').contentWindow; const g = w.EhsemhaSpace.game(); const u = g.S.roster.get('tiktok:b1').user; return u; });
 ok('هوية المرسل واسمه وصورته وصلت للعبة', joinInfo.uniqueId === 'tiktok:b1' && joinInfo.nickname === 'نb1' && !!joinInfo.avatar, joinInfo);
+const lob = await pg.evaluate(() => { const d = document.getElementById('spaceodyssey-frame').contentDocument; const t = [...d.querySelectorAll('.so-pl')]; return { tiles: t.length, pills: d.querySelectorAll('.plist .pill').length, avatars: d.querySelectorAll('.so-pl .so-av-img, .so-pl .so-av-fb').length, below: t.every(x => x.querySelector('.so-nm').getBoundingClientRect().top > x.querySelector('.so-av-img,.so-av-fb').getBoundingClientRect().top), names: t.slice(0, 3).map(x => x.querySelector('.so-nm').textContent) }; });
+ok('صفحة الانتظار: لكل لاعب أفاتار وتحته اسمه (بدل الأسماء وحدها)، بعدد اللاعبين', lob.tiles === 12 && lob.pills === 0 && lob.avatars === 12 && lob.below, lob);
 // شرط المتابعة: غير المتابع المعلوم يُعلّق، ثم يدخل عند حدث متابعة
 await pg.evaluate(() => { window.__gateOn = true; window.__origFGR = window.followGateRequired; window.followGateRequired = () => true; });
 await ev('nf1', 'ازرق', { user: { uniqueId: 'tiktok:nf1', nickname: 'نnf1', followRole: 0, followKnown: true, followInfo: { followStatus: 0 } } });

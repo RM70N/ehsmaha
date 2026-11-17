@@ -76,6 +76,64 @@
     });
   }
 
+
+  // ===== صفحة الانتظار: صورة اللاعب (الأفاتار) وتحتها اسمه بدل الاسم وحده =====
+  // تُنفَّذ من طبقة الربط فقط (ملف اللعبة لم يُعدَّل): نراقب قوائم اللاعبين بالردهة ونعيد رسمها من قائمة اللعبة نفسها
+  // (A.game().S.roster / A.solo().S.players) فنصل لصورة كل لاعب كما استلمتها اللعبة من جسر الموقع.
+  var lobbyObservers = [];
+  var LOBBY_CSS = '' +
+    '.plist.so-av{display:flex;flex-wrap:wrap;gap:10px 8px;justify-content:center;align-items:flex-start}' +
+    '.so-pl{display:flex;flex-direction:column;align-items:center;gap:4px;width:64px;animation:soPlIn .35s ease both}' +
+    '.so-pl .so-av-img,.so-pl .so-av-fb{width:44px;height:44px;border-radius:50%;object-fit:cover;display:flex;align-items:center;justify-content:center;font:800 18px Cairo,sans-serif;color:#fff;background:linear-gradient(135deg,#7C3AED,#EC4899);border:2px solid rgba(255,255,255,.35);box-shadow:0 4px 14px -4px rgba(0,0,0,.6)}' +
+    '.so-pl.b .so-av-img,.so-pl.b .so-av-fb{border-color:#3b82f6}.so-pl.r .so-av-img,.so-pl.r .so-av-fb{border-color:#ef4444}' +
+    '.so-pl .so-nm{max-width:64px;font:700 11px/1.25 Cairo,sans-serif;color:#e8e6ff;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '@keyframes soPlIn{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}' +
+    '@media (prefers-reduced-motion:reduce){.so-pl{animation:none}}';
+  function lobbyTile(user, team, doc) {
+    var nm = String((user && (user.nickname || user.uniqueId)) || '?'), av = String((user && user.avatar) || '');
+    var t = doc.createElement('div'); t.className = 'so-pl ' + (team === 'blue' ? 'b' : team === 'red' ? 'r' : ''); t.title = nm;
+    var fb = function () { var d = doc.createElement('div'); d.className = 'so-av-fb'; d.textContent = Array.from(nm)[0] || '?'; return d; };
+    if (/^(https?:)?\/\//.test(av) || /^\//.test(av) || /^data:image\//.test(av)) {
+      var im = doc.createElement('img'); im.className = 'so-av-img'; im.alt = ''; im.loading = 'lazy'; im.referrerPolicy = 'no-referrer';
+      im.onerror = function () { if (im.parentNode) im.parentNode.replaceChild(fb(), im); };
+      im.src = av; t.appendChild(im);
+    } else t.appendChild(fb());
+    var n = doc.createElement('div'); n.className = 'so-nm'; n.textContent = nm; t.appendChild(n);
+    return t;
+  }
+  function renderLobby(a, doc) {
+    try {
+      var g = a.game && a.game(), c = a.solo && a.solo();
+      var map = function (id, list, team) {
+        var box = doc.getElementById(id); if (!box) return;
+        box.classList.add('so-av'); box.textContent = '';
+        list.slice(-40).forEach(function (u) { box.appendChild(lobbyTile(u, team, doc)); });
+      };
+      var L = { blue: [], red: [] };
+      if (g && g.S && g.S.roster) g.S.roster.forEach(function (r) { if (L[r.team]) L[r.team].push(r.user); });
+      map('l-pb', L.blue, 'blue'); map('l-pr', L.red, 'red');
+      var solo = []; if (c && c.S && c.S.players) c.S.players.forEach(function (p) { solo.push(p.user); });
+      map('l-ps', solo, '');
+    } catch (e) { console.error('[' + TAG + '] lobby avatars', e); }
+  }
+  function installLobbyAvatars(a) {
+    var doc; try { doc = frame().contentDocument; } catch (e) { return; }
+    if (!doc || doc.getElementById('so-host-lobby-css')) return;
+    var st = doc.createElement('style'); st.id = 'so-host-lobby-css'; st.textContent = LOBBY_CSS; doc.head.appendChild(st);
+    var scheduled = false;
+    var schedule = function () { if (scheduled) return; scheduled = true; (doc.defaultView || window).requestAnimationFrame(function () { scheduled = false; renderLobby(a, doc); }); };
+    ['l-pb', 'l-pr', 'l-ps'].forEach(function (id) {
+      var box = doc.getElementById(id); if (!box) return;
+      var mo = new (doc.defaultView.MutationObserver)(function (muts) {
+        // نتجاهل تغييراتنا نحن (كل الأبناء بلاطاتنا)؛ نعيد الرسم فقط حين تعيد اللعبة بناء القائمة بحبوبها
+        if (box.children.length && Array.prototype.every.call(box.children, function (k) { return k.classList.contains('so-pl'); })) return;
+        schedule();
+      });
+      mo.observe(box, { childList: true }); lobbyObservers.push(mo);
+    });
+    schedule();
+  }
+
   function onFrameLoad() {
     var tries = 0; clearInterval(readyTimer);
     readyTimer = setInterval(function () {
@@ -83,6 +141,7 @@
       if (a) {
         clearInterval(readyTimer); readyTimer = null;
         try { installHooks(a); } catch (e) { console.error('[' + TAG + ']', e); }
+        try { installLobbyAvatars(a); } catch (e) { console.error('[' + TAG + ']', e); }
         ready = true; pushLink(a);
         queue.splice(0).forEach(function (ev) { sendToGame(a, ev); });
       } else if (tries > 600) { clearInterval(readyTimer); readyTimer = null; toastMsg('⚠️ تعذّر تجهيز اللعبة ثلاثية الأبعاد على هذا الجهاز'); }
@@ -133,6 +192,7 @@
     if (linkTimer) { clearInterval(linkTimer); linkTimer = null; }
     if (readyTimer) { clearInterval(readyTimer); readyTimer = null; }
     ready = false; queue = [];
+    lobbyObservers.splice(0).forEach(function (m) { try { m.disconnect(); } catch (e) {} });
     var f = frame();
     if (f) {
       f.onload = null;
