@@ -17,7 +17,7 @@ const PAGES = [
   ['sniper', 'setup-sniper', 'sniper', '#F59E0B'], ['battery', 'setup-battery', 'battery', '#A78BFF'], ['rou', 'setup-roulette', 'roulette', '#F59E0B'], ['tmr', 'setup-timer', 'timer', '#22D3EE'],
   ['ll', 'setup-lastletter', 'lastletter', '#A78BFF'], ['wai', 'setup-whoami', 'whoami', '#22D3EE'], ['rw', 'setup-reverseword', 'reverseword', '#A78BFF'],
   ['pgs', 'setup-priceguess', 'priceguess', '#22D3EE'], ['cs', 'setup-crownsteal', 'crownsteal', '#A78BFF'], ['lsc', 'setup-letterscramble', 'letterscramble', '#A78BFF'], ['cw', 'setup-countrywar', 'countrywar', '#F59E0B'],
-  ['box', 'setup-box', 'box', '#F59E0B'], ['chairs', 'setup-chairs', 'chairs', '#F59E0B'], ['findball', 'setup-findball', 'findball', '#22D3EE'], ['wr', 'setup-wordrace', 'wordrace', '#A78BFF'],
+  ['box', 'setup-box', 'box', '#F59E0B'], ['chairs', 'setup-chairs', 'chairs', '#F59E0B'], ['wr', 'setup-wordrace', 'wordrace', '#A78BFF'],
   ['rlgl', 'setup-rlgl', 'rlgl', '#F59E0B'], ['maze', 'setup-maze', 'maze', '#A78BFF'],
   ['tt10', 'setup-tt10', 'tt10', '#A78BFF'], ['glz', 'setup-glz', 'glz', '#F59E0B'], ['volcanic-lands', 'setup-volcanic-lands', 'volcanic-lands', '#F59E0B'], ['hz', 'setup-hz', 'hz', '#F59E0B'], ['ig', 'setup-ig', 'ig', '#22D3EE'],
 ];
@@ -41,7 +41,7 @@ const PAGES = [
   }), PAGES);
   const CLASSIC = ['rou', 'cw', 'volcanic-lands'];
   const badStruct = struct.filter((x) => CLASSIC.includes(x.tag) ? !(x.setupPreview && x.pvSetup && !x.main && x.titleAny) : !(x.setupPreview && x.pvSetup && x.pv && x.top && x.main && x.side && x.stage && x.foot && x.title));
-  check('كل الـ26 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
+  check('كل الـ25 لعبة: لوحة معاينة بالإعداد + هيكل (top/main/side/stage/foot) بشاشة اللعبة (والثلاث الكلاسيكية بلا هيكل جديد)', badStruct.length === 0, badStruct.map((x) => x.tag));
 
   // ---------- 2) ألوان التصنيف ----------
   const colors = await page.evaluate((P) => P.map(([tag, s, g, c]) => [tag, getComputedStyle(document.getElementById('pg-' + g)).getPropertyValue('--gs-c').trim().toUpperCase(), getComputedStyle(document.getElementById('pg-' + s)).getPropertyValue('--gs-c').trim().toUpperCase(), c]), PAGES);
@@ -70,7 +70,7 @@ const PAGES = [
   await setVal('#hz-kw', 'العب');
   check('لعبة بلا مشهد مخصّص (ضربة الحظ): رسمة اللعبة + الكلمة المفتاحية بالمعاينة', await page.evaluate(() => { const p = document.querySelector('#pg-setup-hz .gs-pv-stage'); return !!p.querySelector('.pv-art svg') && p.querySelector('.pv-join b').textContent === 'العب'; }));
   const pvAll = await page.evaluate((P) => P.map(([tag, s]) => { const el = document.querySelector('#pg-' + s + ' .gs-pv-stage'); return [tag, !!el && el.innerHTML.length > 80]; }).filter((x) => !x[1]), PAGES);
-  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ26', pvAll.length === 0, pvAll);
+  check('معاينة الراوند موجودة ومرسومة بكل صفحات الإعداد الـ25', pvAll.length === 0, pvAll);
   await page.evaluate(() => show('setup-cr')); await sleep(250);
   const nav = await page.evaluate(() => { const b = document.querySelector('#pg-setup-cr .btn-primary'); const r = b.getBoundingClientRect(); return { h: Math.round(r.height), bg: getComputedStyle(b).backgroundColor, radius: getComputedStyle(b).borderRadius }; });
   check('زر "ابدأ اللعبة" كبير دائري بلون التصنيف (72px)', nav.h >= 70 && nav.bg === 'rgb(167, 139, 255)' && parseInt(nav.radius) >= 100, nav);

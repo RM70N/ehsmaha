@@ -43,7 +43,6 @@ const CASES = [
   ['cw', 'countrywar-winner', "showCWWinner(U, 'السعودية', '🇸🇦')", null],
   ['cs', 'crownsteal-winner', "csShowWinner(U)", null],
   ['chairs', 'chairs-winner', "chairsShowWinner(U, false)", null],
-  ['findball', 'findball-winner', "findballShowWinner(U)", null],
   ['rlgl', 'rlgl-winner', "rlglShowWinner(U)", null],
   ['tt10', 'tt10-winner', "(tt10Scores.clear(), tt10Scores.set(U.uniqueId, { user: U, score: 12 }), tt10ShowFinalWinner())", /12/],
   ['glz', 'glz-winner', "(glzParticipants.set(U.uniqueId, U), glzAlive.clear(), glzAlive.add(U.uniqueId), glzShowWinner())", null]

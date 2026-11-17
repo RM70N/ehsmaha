@@ -542,20 +542,7 @@ await Z.page.evaluate(() => { glzGameStatus = 'resolving'; }); await sleep(1200)
 ok(await Z.page.evaluate(() => document.getElementById('glz-opt-0-text').style.filter === '' && document.getElementById('glz-panel-0').style.boxShadow === '' && document.getElementById('glz-panel-1').style.boxShadow === '' && window.BatmishEvents.status().active.length === 0), 'الجسر الزجاجي: انتهاء السؤال يعيد التنسيق الأصلي');
 await Z.page.evaluate(() => { glzGameStatus = 'lobby'; if (glzTimerInterval) { clearInterval(glzTimerInterval); glzTimerInterval = null; } });
 
-console.log('== E4ز) أين الكرة (جولة حقيقية كاملة) وتوب 10');
-await api('/batmish/events/game', { tag: 'findball', values: { mode: 'random', minGapSec: 0, maxPerRound: 5 } });
-for (const id of ['findball.e1', 'findball.e2', 'findball.e3']) await api('/batmish/events/event', { tag: 'findball', eventId: id, values: { enabled: true, probability: 100, fromSec: 0 } });
-await Z.page.evaluate(() => new Promise((r) => window.BatmishEvents.reload(r)));
-await Z.page.evaluate((us) => { window.__fbLog = { minMs: 1e9, swaps: 0, status: [], opac: null }; findballParticipants.clear(); findballGameStatus = 'waiting'; findballRoundNum = 0; findballShuffling = false; FINDBALL_SHUFFLE_MIN_MS = 6000; FINDBALL_SHUFFLE_FLOOR_MS = 1800; FINDBALL_SWAP_COUNT = 6; us.forEach((u) => { findballParticipants.set(u.uniqueId, u); }); window.__fbBase = { min: modGetSetting('findball', 'shuffleMinMs', 6000), swaps: modGetSetting('findball', 'swapCount', 6) }; window.__fbIv = setInterval(() => { const st = findballGameStatus; if (!window.__fbLog.status.length || window.__fbLog.status[window.__fbLog.status.length - 1] !== st) window.__fbLog.status.push(st); if (st === 'shuffling') { window.__fbLog.minMs = Math.min(window.__fbLog.minMs, FINDBALL_SHUFFLE_MIN_MS); window.__fbLog.swaps = Math.max(window.__fbLog.swaps, FINDBALL_SWAP_COUNT); } if (st === 'guessing') { const o = ['a', 'b', 'c'].map((c) => document.getElementById('findball-cup-' + c).style.opacity).filter((x) => x === '0.12'); if (o.length) window.__fbLog.opac = o.length; } }, 80); findballStartRoundClick(); }, Us(131, 3));
-ok(await until(() => Z.page.evaluate(() => window.__fbLog.status.includes('shuffling')), 15000), 'أين الكرة: الجولة الحقيقية وصلت لمرحلة الخلط');
-await until(() => Z.page.evaluate(() => window.__fbLog.status.includes('guessing')), 30000);
-await sleep(1500);
-const fbq = await Z.page.evaluate(() => ({ log: window.__fbLog, base: window.__fbBase, status: window.BatmishEvents.status().stats }));
-ok(fbq.log.minMs < fbq.base.min * 0.8, 'الخلط السريع: مدة الخلط قُصّرت فعلاً قبل بدء الخلط', fbq);
-ok(fbq.log.swaps > fbq.base.swaps, 'تبديل مفاجئ: عدد التبديلات زاد فعلاً', fbq);
-ok(fbq.log.opac === 1, 'الكأس المتخفي: تلاشى كأس واحد فعلاً عند بدء التخمين', fbq.log);
-await Z.page.evaluate(() => { clearInterval(window.__fbIv); findballRunId++; findballGameStatus = 'finished-round'; findballShuffling = false; }); await sleep(1500);
-ok(await Z.page.evaluate(() => FINDBALL_SHUFFLE_MIN_MS === 6000 && FINDBALL_SWAP_COUNT === 6 && ['a', 'b', 'c'].every((c) => document.getElementById('findball-cup-' + c).style.opacity !== '0.12') && window.BatmishEvents.status().active.length === 0), 'أين الكرة: انتهاء الجولة يعيد سرعة الخلط وعدد التبديلات والأكواب');
+console.log('== E4ز) أين الكرة: صارت واجهة 3D مستقلة — أحداثها الخاصة معطّلة (انظر batmish/events/adapters.js) وتُفحص لعبتها في tests/findball3d')
 // ---- توب 10
 await enable('tt10', ['tt10.e2', 'tt10.e3', 'tt10.e5'], {});
 await Z.page.evaluate(() => { tt10GameStatus = 'waiting'; tt10Round = 0; tt10Scores.clear(); startTop10RoundWrapper = null; tt10StartRound(); });
