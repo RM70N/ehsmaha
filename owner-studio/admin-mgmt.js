@@ -98,7 +98,7 @@
   /* ---------- حفظ مع إبلاغ صادق عن نتيجة القاعدتين ---------- */
   async function persist(rec, okMsg, auditAction, target) {
     const r = await D.save(rec);
-    if (r.ok) { UI.toast(okMsg, 'ok'); D.log(auditAction, { resourceType: 'admin', resourceId: rec.userId, targetUid: rec.userId, targetName: rec.username, result: 'success', meta: { perms: P.enabledFromStore(rec.permissions).length, status: rec.status } }); return true; }
+    if (r.ok) { UI.toast(okMsg + (r.warnings && r.warnings.length ? ' — تنبيه: نسخة Firestore لم تُحفظ (' + r.warnings.join(' | ').slice(0, 120) + '). الأدمن يعمل من RTDB، لكن منح الإطارات يحتاج Firestore.' : ''), r.warnings && r.warnings.length ? 'warn' : 'ok'); D.log(auditAction, { resourceType: 'admin', resourceId: rec.userId, targetUid: rec.userId, targetName: rec.username, result: 'success', meta: { perms: P.enabledFromStore(rec.permissions).length, status: rec.status } }); return true; }
     UI.toast('لم يكتمل الحفظ — ' + r.errors.join(' | '), 'bad');
     D.log(auditAction, { resourceType: 'admin', resourceId: rec.userId, targetUid: rec.userId, targetName: rec.username, result: 'failed', meta: { errors: r.errors.join(' | ').slice(0, 200) } });
     return false;

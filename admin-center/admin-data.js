@@ -24,6 +24,10 @@
      نعيد بناءها بـJSON الخاص بالصفحة الأم قبل إرسالها (القيم الخاصة مثل serverTimestamp تُضاف بعد التحويل). */
   function native(o) { var h = host(); try { return h.JSON.parse(JSON.stringify(o)); } catch (e) { return o; } }
   D.native = native;
+  /* حصة Firestore إذا نفدت تُعلِّق الكتابات بلا رد (طابور مؤجّل) → كل عملية Firestore لها مهلة، وRTDB هو المرجع الأساسي للأدمن. */
+  function tmo(p, ms, what) { return new Promise(function (res, rej) { var t = setTimeout(function () { rej(Object.assign(new Error((what || 'Firestore') + ' لم يردّ خلال ' + Math.round(ms / 1000) + ' ثوانٍ (غالباً حصة Firestore منتهية)'), { code: 'timeout' })); }, ms); Promise.resolve(p).then(function (v) { clearTimeout(t); res(v); }, function (e) { clearTimeout(t); rej(e); }); }); }
+  D.tmo = tmo;
+  function rtGet(path) { var f = fb(); if (!f || !f.rtdb) return Promise.reject(new Error('RTDB غير متاح')); return tmo(f.rtdbGet(f.rtdbRef(f.rtdb, path)), 10000, 'RTDB').then(function (sn) { return sn.exists() ? sn.val() : null; }); }
   function denied(e) { return !!(e && (e.code === 'permission-denied' || /PERMISSION_DENIED|permission/i.test(String(e.message || e)))); }
   D.isDenied = denied;
 
@@ -44,39 +48,56 @@
   /* ---------- سجلات الأدمن (القاعدتان معاً) ---------- */
   function rtdbRecord(rec) {
     var ids = {}; (P.framesAllowed(rec) || []).forEach(function (x) { ids[x] = true; });
-    return { userId: rec.userId, username: rec.username, role: 'admin', status: rec.status, permissions: rec.permissions || {}, frameGrantScope: { mode: 'allowlist', frameIds: ids }, rev: rec.rev || 1 };
+    return { userId: rec.userId, username: rec.username, role: 'admin', status: rec.status, permissions: rec.permissions || {}, frameGrantScope: { mode: 'allowlist', frameIds: ids }, rev: rec.rev || 1, createdBy: rec.createdBy || '', createdAt: (rec.createdAt && typeof rec.createdAt === 'number') ? rec.createdAt : Date.now(), updatedAt: Date.now() };
   }
+  /* القراءة: RTDB أولاً (يعمل حتى لو حصة Firestore منتهية)، ثم دمج Firestore إن ردّ. */
+  function withId(uid, v) { return Object.assign({ _id: uid }, v, { userId: v.userId || uid }); }
   D.list = function () {
-    var f = fb(); if (!fsOk()) return Promise.reject(new Error('Firestore غير متاح'));
-    return f.getDocs(f.collection(f.db, 'adminAccess')).then(function (qs) { var out = []; qs.forEach(function (d) { out.push(Object.assign({ _id: d.id }, d.data())); }); return out; });
+    var f = fb(); var out = {};
+    var fsP = fsOk() ? tmo(f.getDocs(f.collection(f.db, 'adminAccess')), 6000).then(function (qs) { var m = {}; qs.forEach(function (d) { m[d.id] = Object.assign({ _id: d.id }, d.data()); }); return m; }, function () { return null; }) : Promise.resolve(null);
+    return Promise.all([rtGet('adminAccess').then(function (v) { return v || {}; }, function () { return null; }), fsP]).then(function (r) {
+      var rt = r[0], fsm = r[1];
+      if (rt === null && fsm === null) throw new Error('تعذّرت قراءة قائمة الأدمن (RTDB وFirestore)');
+      Object.keys(fsm || {}).forEach(function (k) { out[k] = fsm[k]; });
+      Object.keys(rt || {}).forEach(function (k) { out[k] = Object.assign({}, out[k] || {}, withId(k, rt[k])); });
+      return Object.keys(out).map(function (k) { return out[k]; });
+    });
   };
-  D.get = function (uid) { var f = fb(); return f.getDoc(f.doc(f.db, 'adminAccess', uid)).then(function (s) { return s.exists() ? s.data() : null; }); };
-  D.getMine = function () {
-    var m = me(); var f = fb(); if (!m || !f) return Promise.resolve(null);
-    return f.getDoc(f.doc(f.db, 'adminAccess', m.uid)).then(function (s) { return s.exists() ? s.data() : null; });
+  D.get = function (uid) {
+    var f = fb();
+    return rtGet('adminAccess/' + uid).then(function (v) { return v ? withId(uid, v) : null; }, function () { return null; }).then(function (v) {
+      if (v || !fsOk()) return v;
+      return tmo(f.getDoc(f.doc(f.db, 'adminAccess', uid)), 6000).then(function (s) { return s.exists() ? s.data() : null; }, function () { return null; });
+    });
   };
+  D.getMine = function () { var m = me(); return m ? D.get(m.uid) : Promise.resolve(null); };
   /** يحفظ سجل الأدمن في القاعدتين. يرجع {ok, fs, rtdb, errors}. المالك فقط (القواعد تفرض). */
   D.save = function (rec) {
-    var f = fb(); var o = me(); var res = { fs: false, rtdb: false, errors: [] };
-    var fsRec = Object.assign(native(rec), { role: 'admin', createdBy: rec.createdBy || (o && o.uid) || '', updatedAt: f.serverTimestamp(), createdAt: rec.createdAt || f.serverTimestamp(), rev: (rec.rev || 0) + 1 });
+    var f = fb(); var o = me(); var res = { fs: false, rtdb: false, errors: [], warnings: [] };
+    rec = Object.assign({}, rec); delete rec._id;
+    var fsRec = Object.assign(native(rec), { role: 'admin', createdBy: rec.createdBy || (o && o.uid) || '', updatedAt: f.serverTimestamp(), createdAt: (rec.createdAt && typeof rec.createdAt === 'object') ? rec.createdAt : f.serverTimestamp(), rev: (rec.rev || 0) + 1 });
     fsRec.frameGrantScope = native({ mode: 'allowlist', frameIds: P.framesAllowed(rec) });
-    return f.setDoc(f.doc(f.db, 'adminAccess', rec.userId), fsRec).then(function () { res.fs = true; }, function (e) { res.errors.push('Firestore: ' + errText(e)); })
-      .then(function () {
-        if (!f.rtdb) { res.errors.push('RTDB غير متاح'); return; }
-        return f.rtdbSet(f.rtdbRef(f.rtdb, 'adminAccess/' + rec.userId), rtdbRecord(Object.assign({}, rec, { rev: fsRec.rev }))).then(function () { res.rtdb = true; }, function (e) { res.errors.push('RTDB: ' + errText(e)); });
-      }).then(function () { res.ok = res.fs && res.rtdb; return res; });
+    var rtRec = rtdbRecord(Object.assign({}, rec, { rev: fsRec.rev, createdBy: fsRec.createdBy }));
+    /* 1) RTDB (المرجع الأساسي — يقرأه الأدمن نفسه ولوحته) */
+    var rtP = !f.rtdb ? (res.errors.push('RTDB غير متاح'), Promise.resolve()) : tmo(f.rtdbSet(f.rtdbRef(f.rtdb, 'adminAccess/' + rec.userId), rtRec), 12000, 'RTDB').then(function () { res.rtdb = true; }, function (e) { res.errors.push('RTDB: ' + errText(e)); });
+    /* 2) Firestore (يحتاجه منح الإطارات؛ يتعلّق لو الحصة منتهية → مهلة وتنبيه صريح) */
+    return rtP.then(function () {
+      if (!res.rtdb) return;
+      return tmo(f.setDoc(f.doc(f.db, 'adminAccess', rec.userId), fsRec), 8000).then(function () { res.fs = true; }, function (e) { res.warnings.push('Firestore: ' + errText(e)); });
+    }).then(function () { res.ok = res.rtdb; return res; });
   };
   D.remove = function (uid) {
-    var f = fb(); var res = { fs: false, rtdb: false, errors: [] };
-    return f.deleteDoc(f.doc(f.db, 'adminAccess', uid)).then(function () { res.fs = true; }, function (e) { res.errors.push('Firestore: ' + errText(e)); })
-      .then(function () { if (!f.rtdb) return; return f.rtdbRemove(f.rtdbRef(f.rtdb, 'adminAccess/' + uid)).then(function () { res.rtdb = true; }, function (e) { res.errors.push('RTDB: ' + errText(e)); }); })
-      .then(function () { res.ok = res.fs && res.rtdb; return res; });
+    var f = fb(); var res = { fs: false, rtdb: false, errors: [], warnings: [] };
+    var rtP = !f.rtdb ? (res.errors.push('RTDB غير متاح'), Promise.resolve()) : tmo(f.rtdbRemove(f.rtdbRef(f.rtdb, 'adminAccess/' + uid)), 12000, 'RTDB').then(function () { res.rtdb = true; }, function (e) { res.errors.push('RTDB: ' + errText(e)); });
+    return rtP.then(function () { if (!res.rtdb) return; return tmo(f.deleteDoc(f.doc(f.db, 'adminAccess', uid)), 8000).then(function () { res.fs = true; }, function (e) { res.warnings.push('Firestore: ' + errText(e)); }); })
+      .then(function () { res.ok = res.rtdb; return res; });
   };
   /** هل نسختا السجل متطابقتان (الحالة + الصلاحيات + الإطارات)؟ */
   D.checkSync = function (uid) {
     var f = fb(); if (!f.rtdb) return Promise.resolve({ ok: false, why: 'RTDB غير متاح' });
-    return Promise.all([D.get(uid), f.rtdbGet(f.rtdbRef(f.rtdb, 'adminAccess/' + uid))]).then(function (r) {
-      var a = r[0], b = r[1].exists() ? r[1].val() : null;
+    return Promise.all([(fsOk() ? tmo(f.getDoc(f.doc(f.db, 'adminAccess', uid)), 6000).then(function (s) { return s.exists() ? s.data() : null; }, function () { return undefined; }) : Promise.resolve(undefined)), rtGet('adminAccess/' + uid).catch(function () { return null; })]).then(function (r) {
+      var a = r[0], b = r[1];
+      if (a === undefined) return { ok: false, why: 'Firestore غير متاح الآن (حصة)؛ RTDB هو المعتمد' };
       if (!a && !b) return { ok: true };
       if (!a || !b) return { ok: false, why: !a ? 'غير موجود في Firestore' : 'غير موجود في RTDB' };
       var sa = JSON.stringify([a.status, P.enabledFromStore(a.permissions).sort(), P.framesAllowed(a).sort()]);
@@ -127,7 +148,7 @@
         b.set(f.doc(f.db, 'adminActionLog', aid), Object.assign(native({ actorId: m.uid, actorName: String(m.name || m.email || m.uid).slice(0, 60), action: kind, resourceType: 'frame', resourceId: frameId, targetUid: user.uid, targetKey: k, targetName: String(user.username || '').slice(0, 60), result: 'success', reqId: rid, meta: {} }), { ts: f.serverTimestamp() }));
         b.set(f.doc(f.db, 'levels', k), Object.assign(native({}), { ownedFrames: f.arrayUnion(frameId) }), native({ merge: true }));
       });
-      return b.commit().then(function () {
+      return tmo(b.commit(), 12000).then(function () {
         try { var h = host(); all.forEach(function (k) { if (h.framesParticipantCache) { h.framesParticipantCache.delete(k); h.framesParticipantCacheAt && h.framesParticipantCacheAt.delete(k); } }); } catch (e) {}
         return { ok: true, keys: keys, reqId: rid };
       });
