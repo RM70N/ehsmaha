@@ -115,7 +115,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "sniperParticipants.has(uid)",
    "start": "startSniperRound()",
-   "elim": "sniperParticipants.delete(uid), sniperEliminatedHistory.add(uid)",
+   "elim": "sniperParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "sniperKeyword",
    "heavy": false,
@@ -144,7 +144,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "hzParticipants.has(uid)",
    "start": "startHzRound()",
-   "elim": "hzParticipants.delete(uid), hzEliminatedHistory.add(uid)",
+   "elim": "hzParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "hzKeyword",
    "heavy": false,
@@ -173,7 +173,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "rouParticipants.has(uid)",
    "start": "startRouletteRound()",
-   "elim": "rouParticipants.delete(uid), rouEliminatedHistory.add(uid)",
+   "elim": "rouParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "rouKeyword",
    "heavy": false,
@@ -264,7 +264,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "boxParticipants.has(uid)",
    "start": "startBoxRound()",
-   "elim": "boxParticipants.delete(uid), boxEliminatedHistory.add(uid)",
+   "elim": "boxParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "boxKeyword",
    "n": 4,
@@ -397,7 +397,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "llParticipants.has(uid)",
    "start": "startLastLetterRound()",
-   "elim": "llParticipants.delete(uid), llEliminatedHistory.add(uid)",
+   "elim": "llParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "llKeyword",
    "n": 4,
@@ -640,7 +640,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "cwActiveCountries.some(c => c.uid === uid)",
    "start": "startCountryWarRound()",
-   "elim": "cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1), cwEliminatedHistory.add(uid)",
+   "elim": "cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "cwKeyword",
    "n": 4,
@@ -701,7 +701,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "findballParticipants.has(uid)",
    "start": "findballStartRoundClick()",
-   "elim": "findballParticipants.delete(uid), findballEliminatedHistory.add(uid)",
+   "elim": "findballParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "findballKeyword",
    "n": 4,
@@ -731,7 +731,7 @@ window.EHS_OPS_GAMES = [
   "lab": {
    "isIn": "chairsParticipants.has(uid)",
    "start": "chairsStartRoundClick()",
-   "elim": "chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)",
+   "elim": "chairsParticipants.delete(uid)",
    "lobby": "document.querySelector('.page.active .btn-reset:not(.lj-btn)').click()",
    "kwVar": "chairsKeyword",
    "n": 5,

@@ -15,7 +15,7 @@
   var TAG = 'findball', NAME = 'اعثر على الكورة', SRC = '/findball3d.html?embed=1&v=1', MSG_SOURCE = 'ehsemha-findball';
   var KNOWN = { ready: 1, lobby: 1, 'round-start': 1, 'round-click': 1, winner: 1 };
   var ready = false, queue = [], linkTimer = null, readyTimer = null, active = false, users = new Map(), streamer = '', mirrorSig = '';
-  var SETTING_KEYS = [['shuffleMinMs', 6000], ['shuffleSpeedupPercent', 15], ['shuffleMinFloorMs', 1800], ['swapCount', 6], ['guessTimerEnabled', true], ['guessTimerSeconds', 10], ['revivalEnabled', true], ['revivalMaxUses', 2]];
+  var SETTING_KEYS = [['shuffleMinMs', 6000], ['shuffleSpeedupPercent', 15], ['shuffleMinFloorMs', 1800], ['swapCount', 6], ['guessTimerEnabled', true], ['guessTimerSeconds', 10]];
 
   function $(id) { return document.getElementById(id); }
   function frame() { return $(TAG + '-frame'); }

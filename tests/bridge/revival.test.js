@@ -1,5 +1,5 @@
 'use strict';
-// اختبار مشهد الإنعاش الجديد (revival-system/) داخل الموقع الحقيقي، لكل الألعاب اللي فيها إنعاش بهدايا تيك توك:
+// اختبار مشهد الإنعاش الجديد (revival-system/) داخل الموقع الحقيقي، (المشهد نفسه يُستخدم للإنعاش الإداري؛ الإنعاش بالهدايا محذوف):
 //   - التصميم القديم محذوف (#gift-revival-overlay ما يظهر أبداً)، والجديد (.rv-*) يظهر باسم اللاعب وصورته فقط.
 //   - التجميد 3 ثوانٍ لكل لعبة يبدأ وينتهي مع المشهد، ولا شي يبقى معلّق.
 //   - نفس الشخص ما يتكرر مشهده؛ وإنعاش عدة أشخاص يمشي بالتتابع بلا تداخل ولا بقايا.
@@ -56,33 +56,20 @@ const AV = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://w
   }
   check('ما ظهر التصميم القديم بأي لعبة', (await page.evaluate(() => window.__oldSeen)) === false);
 
-  // 3) المسار الحقيقي: checkAndConsumeRevival (إنعاش من هدية مسبقة) بلعبة
-  await reset();
-  await page.evaluate((av) => {
-    fb = fb || { updateDoc: () => Promise.resolve(), doc: () => ({}), db: {} };
-    if (!fb.updateDoc) fb.updateDoc = () => Promise.resolve(); if (!fb.doc) fb.doc = () => ({});
-    try { sniperParticipants.set('real1', { uid: 'real1', nickname: 'سعد الحقيقي', profilePictureUrl: av }); } catch (e) { window.__noMap = true; }
-    sniperRevivalMap.set('real1', { docId: 'd1', usesRemaining: 1 });
-    window.__r = checkAndConsumeRevival('real1', 'سعد الحقيقي', sniperRevivalMap, 'sniper');
-  }, AV);
-  await sleep(500);
-  let sc = await info();
-  check('checkAndConsumeRevival الحقيقي: مشهد واحد باسم المُنعَش وصورته من المشاركين', (await page.evaluate(() => window.__r)) === true && sc.length === 1 && sc[0].name === 'سعد الحقيقي' && /^data:image\/svg/.test(sc[0].photo), { sc });
-
-
-  // 3ب) مسار الهدية الحقيقي بكل ألعاب الإنعاش (دالة الهدية الفعلية، لاعب مُقصى سابقاً): مشهد واحد فقط، حتى لو نفس الهدية وصلت مرتين
+  let sc;
+  // 3) الإنعاش بالهدايا محذوف (سجل الإقصاء أُزيل): لا دالة استهلاك قديمة، ولا هدية من مقصٍ تُرجعه أو تُظهر مشهداً
+  check('دوال الإنعاش بالهدايا القديمة محذوفة', await page.evaluate(() => typeof checkAndConsumeRevival === 'undefined' && typeof grantRevival === 'undefined' && typeof revivalCountAndCheck === 'undefined'));
   for (const tag of ['chairs', 'sniper', 'hz', 'rou', 'box', 'll', 'cw']) {
     await reset();
     const r = await page.evaluate(([t, av]) => {
-      const u = { uniqueId: 'rg_' + t, nickname: 'مُنعَش ' + t, profilePictureUrl: av };
-      const code = `${t}RevivalEnabled = true; ${t}GameStatus = 'active'; ${t}RevivalMaxUses = 2; ${t}RevivalCounts.clear(); ${t}Participants.delete(u.uniqueId); ${t}EliminatedHistory.add(u.uniqueId); ${t}HandleGift(u, 'Rose', 5); ${t}HandleGift(u, 'Rose', 5);`;
-      try { (new Function('u', code))(u); } catch (e) { return { err: String(e) }; }
-      return { ok: true };
+      const u = { uniqueId: 'rg_' + t, nickname: 'مقصي ' + t, profilePictureUrl: av, isFollower: true };
+      const code = `${t}GameStatus = 'active'; ${t}Participants.delete(u.uniqueId); ${t}HandleGift(u, 'Rose', 5); ${t}HandleGift(u, 'Rose', 5); return ${t}Participants.has(u.uniqueId);`;
+      try { return { back: (new Function('u', code))(u) }; } catch (e) { return { err: String(e) }; }
     }, [tag, AV]);
-    await sleep(700);
+    await sleep(3600);
     const sc2 = await info();
-    check('[' + tag + '] دالة الهدية الحقيقية: مشهد واحد باسم المُنعَش وصورته (حتى لو الهدية وصلت مرتين)', sc2.length === 1 && sc2[0].name === 'مُنعَش ' + tag && /^data:image\/svg/.test(sc2[0].photo), { r, sc2 });
-    await sleep(3000);
+    const back = await page.evaluate((t) => (new Function(`return ${t}Participants.has('rg_${t}');`))(), tag);
+    check('[' + tag + '] هدية من مقصٍ لا تُرجعه ولا تُظهر مشهد إنعاش', !r.err && r.back === false && back === false && sc2.length === 0, { r, back, scenes: sc2.length });
   }
 
   // 4) نفس الشخص مرتين بسرعة = مشهد واحد (والتجميد يبقى)

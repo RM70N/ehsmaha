@@ -224,7 +224,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);overflow:hid
     <button class="bomb3d-ib" id="b3d-tSnd" type="button" aria-label="تشغيل الصوت" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></svg></button>
     <button class="bomb3d-ib" id="b3d-tStream" type="button" aria-label="وضع البث: إخفاء أدوات التحكم (H)" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
     <button class="bomb3d-ib" id="b3d-tSet" type="button" aria-label="الإعدادات"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg></button>
-    <button class="bomb3d-ib" id="b3d-tTest" type="button" aria-label="لوحة التجربة" hidden><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg></button><form id="b3d-test" class="bomb3d-test" autocomplete="off" hidden><select id="b3d-tWho" aria-label="من يكتب"></select><input id="b3d-tIn" type="text" placeholder="جرّب: دخول / رقم" aria-label="رسالة تجريبية"><button type="submit">أرسل</button><button type="button" id="b3d-tBots">+٥ لاعبين</button><button type="button" class="bomb3d-btn" id="b3d-tAuto">▶ لعب تلقائي</button><button type="button" id="b3d-tGift">هدية إنعاش</button><button type="button" id="b3d-tImm">حصانة</button></form>
+    <button class="bomb3d-ib" id="b3d-tTest" type="button" aria-label="لوحة التجربة" hidden><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/></svg></button><form id="b3d-test" class="bomb3d-test" autocomplete="off" hidden><select id="b3d-tWho" aria-label="من يكتب"></select><input id="b3d-tIn" type="text" placeholder="جرّب: دخول / رقم" aria-label="رسالة تجريبية"><button type="submit">أرسل</button><button type="button" id="b3d-tBots">+٥ لاعبين</button><button type="button" class="bomb3d-btn" id="b3d-tAuto">▶ لعب تلقائي</button><button type="button" id="b3d-tImm">حصانة</button></form>
   </div>
 
   <div id="b3d-setM" class="bomb3d-modal" hidden><div class="bomb3d-panel" role="dialog" aria-labelledby="b3d-seth"><h2 id="b3d-seth">إعدادات اللعبة</h2><div class="bomb3d-sub">تُحفظ على هذا الجهاز، وتُقرأ عند بداية كل راوند.</div><div id="b3d-setG2" class="bomb3d-grid"></div><div class="bomb3d-btns"><button class="bomb3d-bt pri" id="b3d-bSetSave" type="button">حفظ وإغلاق</button></div></div></div>
@@ -599,7 +599,7 @@ function cleanName(n){ n=String(n==null?'':n).replace(INVIS_RE,'').replace(/\s+/
 /* ===================== إعدادات الستريمر ===================== */
 var SET_KEY='bomb3d_settings_v1';
 var DEF_TIMES=[15,12,10,7,5,4];
-var DEF={keyword:'دخول',minP:2,times:'15,12,10,7,5,4',revivalEnabled:true,revivalMaxUses:2,followGate:false,
+var DEF={keyword:'دخول',minP:2,times:'15,12,10,7,5,4',followGate:false,
   music:true,sfxVol:80,ambVol:50,mute:{amb:false,fuse:false,sfx:false},quality:'auto',lowEnd:false,shake:true,reduceMotion:REDUCED,frame:'auto'};
 var SCHEMA=[
   ['sec','المشاركون'],
@@ -608,8 +608,6 @@ var SCHEMA=[
   ['followGate','chk','اشترط المتابعة للانضمام','','','غير المتابع يُحجز حتى يتابع ثم يدخل تلقائيًا.'],
   ['sec','القنبلة'],
   ['times','text','أزمنة القنبلة (ثوانٍ، مفصولة بفواصل)','','','تنتقل للقيمة التالية مع كل تمريرة ثم تثبت على الأخيرة. الافتراضي: 15,12,10,7,5,4'],
-  ['revivalEnabled','chk','تفعيل الإنعاش بالهدايا'],
-  ['revivalMaxUses','num','أقصى عدد إنعاشات لكل لاعب',0,9],
   ['sec','الصوت'],
   ['sfxVol','range','مستوى المؤثرات',0,100],
   ['ambVol','range','مستوى الأجواء',0,100],
@@ -628,7 +626,7 @@ function parseTimes(s){
   return a.length?a:DEF_TIMES.slice();
 }
 function saveCfg(){
-  CFG.minP=clamp(Math.round(+CFG.minP||2),2,30); CFG.revivalMaxUses=clamp(Math.round(+CFG.revivalMaxUses||0),0,9);
+  CFG.minP=clamp(Math.round(+CFG.minP||2),2,30);
   CFG.keyword=String(CFG.keyword||'').trim().slice(0,24)||'دخول'; CFG.times=parseTimes(CFG.times).join(',');
   store(SET_KEY,CFG);
 }
@@ -1217,8 +1215,8 @@ var SKINS_=[0xF2C19A,0xD9A074,0xA86B45,0xFFD6B0,0x8A5A3B,0xC68E62];
 var V=null;                       /* العرض الحالي: View3D أو ViewFB */
 var listeners=[], chatStatus='demo';
 function freshState(){ return {screen:'setup',status:'waiting',part:new Map(),roster:[],nextNum:1,holder:null,passCount:0,remaining:0,total:0,last:Date.now(),ver:0,
-  exploding:false,freeze:0,elimHist:new Set(),kicked:new Set(),pendingFollow:new Map(),revCounts:new Map(),lateMode:false,lateSeen:new Set(),elimLog:[],chatLog:[],
-  winner:null,winRecorded:false,times:parseTimes(CFG.times),revEn:!!CFG.revivalEnabled,revMax:CFG.revivalMaxUses,tickInt:null,timers:new Set(),lastSec:-1,roundNo:0,stats:{passes:0,passRejected:0,explosions:0}}; }
+  exploding:false,freeze:0,kicked:new Set(),pendingFollow:new Map(),lateMode:false,lateSeen:new Set(),elimLog:[],chatLog:[],
+  winner:null,winRecorded:false,times:parseTimes(CFG.times),tickInt:null,timers:new Set(),lastSec:-1,roundNo:0,stats:{passes:0,passRejected:0,explosions:0}}; }
 var G=freshState(); G.epoch=0;
 /* ---------- خطّافات المنصة (تُستبدل عند الدمج لاحقًا) ---------- */
 var GRANTS={immune:new Set(),revival:new Set(),retry:new Set()};
@@ -1299,7 +1297,7 @@ function forceWin(uid){ if(G.status==='finished') return false; var p=G.part.get
 function startRound(){
   if(G.status!=='waiting') return {ok:false,reason:'state'};
   var min=Math.max(2,CFG.minP|0); if(G.part.size<min){ UI.toast('⚠ لازم '+min+' لاعبين على الأقل','warn'); AUD.play('error'); return {ok:false,reason:'min',need:min,have:G.part.size}; }
-  G.times=parseTimes(CFG.times); G.revEn=!!CFG.revivalEnabled; G.revMax=CFG.revivalMaxUses;
+  G.times=parseTimes(CFG.times);
   G.status='active'; G.passCount=0; G.roundNo++; G.winRecorded=false; G.winner=null; G.exploding=false; G.freeze=0; G.lateSeen=new Set(); G.elimLog=[]; G.stats={passes:0,passRejected:0,explosions:0};
   V.relayout(); V.setScreen('round'); UI.setScreen('round'); AUD.play('start');
   var r=pickOne(Array.from(G.part.values())); giveBomb(r.id,G.times[0],'start',null); startTick();
@@ -1338,8 +1336,7 @@ function explode(uid){
   var p=G.part.get(uid); if(!p||G.exploding) return; var name=p.name;
   G.stats.explosions++; AUD.fuseStop();
   if(HOOKS.consumeImmunity(uid,name)){ V.explode(p,'immune'); UI.banner('🛡 '+name+' محصّن — القنبلة لم تقصه','good'); emit('immunity',{id:uid,name:name,reason:'bomb'}); giveBomb(uid,G.times[0],'reset',null); return; }
-  if(G.revEn&&HOOKS.consumeRevival(uid,name)){ V.explode(p,'immune'); UI.banner('✨ '+name+' ينجو بالإنعاش','good'); emit('revival-save',{id:uid,name:name}); giveBomb(uid,G.times[0],'reset',null); return; }
-  G.exploding=true; G.holder=null; G.part.delete(uid); G.elimHist.add(uid); p.state='out'; p.dead=true; p.elimNo=G.elimLog.length+1;
+  G.exploding=true; G.holder=null; G.part.delete(uid); p.state='out'; p.dead=true; p.elimNo=G.elimLog.length+1;
   G.elimLog.unshift({id:uid,name:name,num:p.num,t:Date.now()}); V.explode(p,'elim'); UI.labelOut(p,1400);
   UI.banner('انفجرت عند '+name+' — تم إقصاؤه!','bad'); UI.elimAdd(name); UI.holder(); UI.refresh(); emit('explode',{id:uid,name:name,num:p.num,left:G.part.size});
   if(HOOKS.consumeRetry(uid,name)){ var np=joinParticipant({uid:uid,name:name,avatar:p.avatarUrl,isFollower:true},{fx:'retry',delay:1.0}); if(np) UI.toast('🔁 '+name+' عاد بمحاولة جديدة — رقمه '+np.num,'info'); }
@@ -1364,35 +1361,22 @@ function finishNoWinner(){
 function lateJoin(uid,name,avatar,opts){
   opts=opts||{}; uid=String(uid==null?'':uid).trim(); if(!uid) return false;
   if(G.status!=='active'||!G.lateMode||G.exploding&&false) return false;
-  if(G.part.has(uid)||G.lateSeen.has(uid)||G.elimHist.has(uid)||G.kicked.has(uid)) return false;
+  if(G.part.has(uid)||G.lateSeen.has(uid)||wasElim(uid)||G.kicked.has(uid)) return false;
   var u={uid:uid,name:name,avatar:avatar,isFollower:!!opts.isFollower};
   if(!followOk(normUser(u))){ G.pendingFollow.set(uid,normUser(u)); UI.refresh(); return 'queued'; }
   var p=joinParticipant(u,{fx:'late',late:true}); if(!p) return false; G.lateSeen.add(uid); emit('late-join',{id:uid,name:p.name,num:p.num}); return 'joined';
 }
 function lateCancel(uid){ uid=String(uid); G.pendingFollow.delete(uid); G.lateSeen.delete(uid); UI.refresh(); return true; }
 function followEvent(uid){
-  uid=String(uid); var u=G.pendingFollow.get(uid); if(!u) return false; if(G.status==='waiting'||(G.status==='active'&&G.lateMode&&!G.elimHist.has(uid)&&!G.kicked.has(uid))){ u.isFollower=true; G.pendingFollow.delete(uid); var p=joinParticipant(u,{fx:G.status==='active'?'late':undefined,late:G.status==='active'}); if(p&&G.status==='active') G.lateSeen.add(uid); return !!p; }
+  uid=String(uid); var u=G.pendingFollow.get(uid); if(!u) return false; if(G.status==='waiting'||(G.status==='active'&&G.lateMode&&!wasElim(uid)&&!G.kicked.has(uid))){ u.isFollower=true; G.pendingFollow.delete(uid); var p=joinParticipant(u,{fx:G.status==='active'?'late':undefined,late:G.status==='active'}); if(p&&G.status==='active') G.lateSeen.add(uid); return !!p; }
   return false;
 }
-/* ---------- الإنعاش بالهدايا ---------- */
+/* ---------- الهدايا (مشاركة الهدايا فقط) ---------- */
+function wasElim(uid){ return G.elimLog.some(function(e){ return e.id===uid; }); }
 function gift(user,giftName,diamonds){
   user=normUser(user); if(!user) return false; var d=Number(diamonds)||0;
   try{ HOOKS.giftShare({uid:user.uid,name:user.name,giftName:giftName||'هدية',diamonds:d}); }catch(e){} emit('gift',{id:user.uid,name:user.name,giftName:giftName,diamonds:d});
-  if(!G.revEn) return false;
-  if(G.part.has(user.uid)) return false;
-  if(!G.elimHist.has(user.uid)) return false;
-  if(G.status!=='active') return false;
-  var c=G.revCounts.get(user.uid)||0; if(c>=G.revMax) return false;
-  G.revCounts.set(user.uid,c+1); G.elimHist.delete(user.uid);
-  G.freeze++; AUD.fuseStop(); UI.revivalBanner(user.name,user.avatar,giftName); emit('revival-freeze',{id:user.uid,name:user.name,uses:c+1});
-  later(function(){
-    G.freeze=Math.max(0,G.freeze-1); G.last=Date.now();
-    if(G.status!=='active') return;
-    var p=joinParticipant({uid:user.uid,name:user.name,avatar:user.avatar,isFollower:true},{fx:'revive'});
-    if(p){ UI.toast('✨ تم إنعاش '+p.name+' — رقمه الجديد '+p.num,'info'); emit('revive',{id:p.id,name:p.name,num:p.num}); try{ HOOKS.grantRevival(user.uid,user.name); }catch(e){} }
-    if(G.freeze===0&&G.holder&&!G.exploding) AUD.fuseStart();
-  },3000);
-  return true;
+  return false;   // الإنعاش بالهدايا محذوف مع سجل الإقصاء
 }
 /* ---------- الشات ---------- */
 function joinMatch(text){ return norm(text)===norm(CFG.keyword); }
@@ -1432,7 +1416,7 @@ function getState(){
   var holder=G.holder?G.part.get(G.holder):null;
   return {screen:G.screen,status:G.status,round:G.roundNo,holder:holder?{id:holder.id,num:holder.num,name:holder.name}:null,remaining:+G.remaining.toFixed(2),total:G.total,passCount:G.passCount,ver:G.ver,exploding:G.exploding,freeze:G.freeze,
     players:Array.from(G.part.values()).map(function(p){ return {id:p.id,num:p.num,name:p.name,late:!!p.late}; }),
-    eliminated:Array.from(G.elimHist),kicked:Array.from(G.kicked),pending:Array.from(G.pendingFollow.keys()),lateMode:G.lateMode,winner:G.winner?{id:G.winner.id,name:G.winner.name,num:G.winner.num}:null,
+    eliminated:G.elimLog.map(function(e){return e.id;}),kicked:Array.from(G.kicked),pending:Array.from(G.pendingFollow.keys()),lateMode:G.lateMode,winner:G.winner?{id:G.winner.id,name:G.winner.name,num:G.winner.num}:null,
     times:G.times,stats:G.stats,view:V&&V.kind,chat:chatStatus,elimLog:G.elimLog.map(function(e){return e.name;})};
 }
 
@@ -1518,7 +1502,7 @@ var UI=(function(){
   function init(){
     emptyDrawers(); conn(); applyFrame();
     buildSettingsUI($('#b3d-setG'),function(k){ if(k==='keyword') el.kw.textContent=CFG.keyword; if(k==='frame') applyFrame(); if(k==='quality'||k==='lowEnd'){ if(V) V.applyQuality(); } if(k==='music'||k==='mute.fuse'||k==='mute.sfx') AUD.applyVolumes(); });
-    $('#b3d-bGo').onclick=function(){ saveCfg(); G.times=parseTimes(CFG.times); G.revEn=!!CFG.revivalEnabled; G.revMax=CFG.revivalMaxUses; setScreen('waiting'); emit('setup-done',{keyword:CFG.keyword}); };
+    $('#b3d-bGo').onclick=function(){ saveCfg(); G.times=parseTimes(CFG.times); setScreen('waiting'); emit('setup-done',{keyword:CFG.keyword}); };
     ['b3d-bSetHome','b3d-bWHome','b3d-bHome','b3d-bWinHome'].forEach(function(id){ $('#'+id).onclick=function(){ homeGame(); }; });
     $('#b3d-bStart').onclick=function(){ startRound(); };
     function openSet(){ buildSettingsUI($('#b3d-setG2'),function(k){ if(k==='frame') applyFrame(); if(k==='quality'||k==='lowEnd'){ if(V) V.applyQuality(); } if(k==='music'||k==='mute.fuse'||k==='mute.sfx') AUD.applyVolumes(); }); el.setM.hidden=false; }
@@ -1554,7 +1538,6 @@ var UI=(function(){
     $('#b3d-tAuto').onclick=function(){ autoOn=!autoOn; this.textContent=autoOn?'■ إيقاف التلقائي':'▶ لعب تلقائي'; clearTimeout(autoT); if(autoOn) autoStep(); };
     if(!EMBED&&!/nodemo/.test(location.search)){ autoOn=true; $('#b3d-tAuto').textContent='■ إيقاف التلقائي'; autoT=setTimeout(autoStep,1500); }
     $('#b3d-tBots').onclick=function(){ var names=['أبو فهد','نورة','سلطان','ريم','Shadow_7','صقر','دانة','بندر']; for(var i=0;i<5;i++){ var nm=names[(G.nextNum+i)%names.length]; var uid='bot'+(G.nextNum+i)+'_'+Math.floor(Math.random()*999); if(G.status==='waiting') joinParticipant({uid:uid,name:nm,isFollower:true}); else lateJoin(uid,nm,'',{isFollower:true}); } };
-    $('#b3d-tGift').onclick=function(){ var last=G.elimLog[0]; if(last) gift({uid:last.id,name:last.name,isFollower:true},'وردة',1); else toast('لا يوجد مُقصى للإنعاش','warn'); };
     $('#b3d-tImm').onclick=function(){ if(G.holder){ GRANTS.immune.add(G.holder); toast('تمت إضافة حصانة للحامل الحالي','info'); } };
     sndState(); refresh(); timer(); holder();
   }

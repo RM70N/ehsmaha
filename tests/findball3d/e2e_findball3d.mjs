@@ -75,14 +75,14 @@ for (const u of bad) await ev(u, String(wrongSlot));
 await ev(good[0], String(wrongSlot));    // محاولة تغيير التخمين: ممنوعة
 await pg.waitForFunction(() => document.getElementById('findball-frame').contentWindow.EhsemhaFindball.getState().status.startsWith('finished'), null, { timeout: 40000 });
 st = await S();
-ok('التخمين الصحيح ينجو، والخاطئ يُقصى، وتجاهل غير المشارك والرقم الخاطئ ومحاولة تغيير التخمين', st.status === 'finished-round' && st.players.length === good.length && good.every(u => st.players.some(p => p.uniqueId === 'tiktok:' + u)) && st.eliminated.length === bad.length, { s: st.status, left: st.players.length, elim: st.eliminated.length });
+ok('التخمين الصحيح ينجو، والخاطئ يُقصى، وتجاهل غير المشارك والرقم الخاطئ ومحاولة تغيير التخمين', st.status === 'finished-round' && st.players.length === good.length && good.every(u => st.players.some(p => p.uniqueId === 'tiktok:' + u)), { s: st.status, left: st.players.length });
 await pg.screenshot({ path: '/tmp/fb_round1.png' });
-// إنعاش بهدية لمقصي
+// الإنعاش بهدية محذوف (سجل الإقصاء أُزيل): هدية من مقصي لا تُرجعه
 const target = bad[0];
 await pg.evaluate((u) => homeDispatchToGameListeners({ sourcePlatform: 'tiktok', messages: [{ type: 'WebcastGiftMessage', giftName: 'وردة', diamondCount: 1, repeatCount: 1, user: { uniqueId: 'tiktok:' + u, nickname: 'ن' + u, followRole: 1, followKnown: true } }] }), target);
 await pg.waitForTimeout(3800);
 st = await S();
-ok('الإنعاش بالهدية: المقصي يرجع للعبة بعد التجميد', st.players.some(p => p.uniqueId === 'tiktok:' + target) && !st.eliminated.includes('tiktok:' + target), { n: st.players.length });
+ok('الإنعاش بالهدايا محذوف: المقصي لا يرجع للعبة بإرسال هدية', !st.players.some(p => p.uniqueId === 'tiktok:' + target), { n: st.players.length });
 // بقية الجولات حتى الفوز
 let winnerRound = 1;
 for (let round = 2; round <= 8; round++) {

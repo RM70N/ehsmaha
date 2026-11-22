@@ -1137,11 +1137,11 @@
 
   // ---- دائرة الإقصاء: rou.e4
   A.rou.events['rou.e4'] = {
-    canRun: function () { try { return rouActive() && Array.from(rouEliminatedHistory).some(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }) ? true : { ok: false, reason: 'no_eliminated_player' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
-    eligible: function () { try { return Array.from(rouEliminatedHistory).filter(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }); } catch (e) { return []; } },
+    canRun: function () { try { return rouActive() && Array.from(rouElimUsers.keys()).some(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }) ? true : { ok: false, reason: 'no_eliminated_player' }; } catch (e) { return { ok: false, reason: 'game_unavailable' }; } },
+    eligible: function () { try { return Array.from(rouElimUsers.keys()).filter(function (u) { return rouElimUsers.has(u) && !rouParticipants.has(u); }); } catch (e) { return []; } },
     apply: function (ctx, inst) {
       var uid = pickOne(inst.eligible || []); if (!uid) return { failed: 'no_eligible_player' };
-      var user = Object.assign({}, rouElimUsers.get(uid), { isFollower: true }); rouEliminatedHistory.delete(uid); rouElimUsers.delete(uid); rouJoinParticipant(user);
+      var user = Object.assign({}, rouElimUsers.get(uid), { isFollower: true }); rouElimUsers.delete(uid); rouJoinParticipant(user);
       if (rouParticipants.has(uid) && rouActivePlayers.indexOf(user.nickname) < 0) rouActivePlayers.push(user.nickname);
       return { effect: 'عاد ' + (user.nickname || uid) + ' إلى العجلة', durationMs: 0 };
     },

@@ -312,8 +312,6 @@ body.embed .demo,body.embed .ptabs,body.embed .field.emb-hide{display:none !impo
     </div>
     <div class="sw"><span>وقت محدد للتخمين</span><input type="checkbox" id="set-guessTimerEnabled" checked></div>
     <div class="field"><label>مدة التخمين (ث)</label><input type="number" id="set-guessTimerSeconds" value="10" min="3" max="60"></div>
-    <div class="sw"><span>نظام الإنعاش بالهدايا</span><input type="checkbox" id="set-revivalEnabled" checked></div>
-    <div class="field"><label>أقصى مرات الإنعاش</label><input type="number" id="set-revivalMaxUses" value="2" min="1" max="10"></div>
 
     <div class="sect">العرض (بصري فقط — لا يؤثر على قواعد اللعب)</div>
     <div class="field"><label>الكاميرا</label><select id="set-cam"><option value="cinematic">سينمائية (ثابتة أثناء الخلط والتخمين)</option><option value="static">ثابتة بالكامل</option></select></div>
@@ -361,7 +359,6 @@ body.embed .demo,body.embed .ptabs,body.embed .field.emb-hide{display:none !impo
     <button class="num" data-g="1" type="button" disabled>1</button>
     <button class="num" data-g="2" type="button" disabled>2</button>
     <button class="num" data-g="3" type="button" disabled>3</button>
-    <button id="d-gift" type="button" disabled>هدية إنعاش</button>
     <button id="d-reset" type="button">ريست</button>
   </div>
 </footer>
@@ -467,15 +464,11 @@ let findballLastWinningSlot=null;
 let findballGuesses=new Map();
 let findballGuessedUids=new Set();
 let FINDBALL_SHUFFLE_MIN_MS=6000, FINDBALL_SHUFFLE_SPEEDUP_PERCENT=15, FINDBALL_SHUFFLE_FLOOR_MS=1800, FINDBALL_SWAP_COUNT=6;
-let findballRevivalEnabled=false, findballRevivalMaxUses=2;
 let findballShuffling=false;
 let findballRunId=0;
 let findballGuessTimerEnabled=true, FINDBALL_GUESS_TIMER_SECONDS=10;
 let findballGuessTimerInterval=null, findballGuessTimeLeft=0;
 let findballSlotOfCup={}, findballCupInSlot={};
-let findballEliminatedHistory=new Set();
-let findballRevivalCounts=new Map();
-let findballRevivalMap=new Map();          // (في الموقع: يُملأ من Firestore) — هنا فارغ
 const gamePausedForRevival={};
 const isGamePausedForRevival=tag=>!!gamePausedForRevival[tag];
 
@@ -490,8 +483,6 @@ function normalizeJoinText(s){let t=foldChatDigits(s).replace(JOIN_INVISIBLES_RE
 function joinTextMatches(text,keyword){const a=normalizeJoinText(text),b=normalizeJoinText(keyword);return !!b&&a===b;}
 function modGetSetting(game,key,def){const el=$('set-'+key);if(!el)return def;if(el.type==='checkbox')return el.checked;const v=parseFloat(el.value);if(isNaN(v))return def;return v*(parseFloat(el.dataset.mul)||1);}
 function checkAndConsumeImmunity(){return false;}          // الموقع: نظام الحماية الحقيقي
-function checkAndConsumeRevival(uid,nick,map,tag){const e=map.get(uid);if(!e||!(e.usesRemaining>0))return false;e.usesRemaining--;if(e.usesRemaining<=0)map.delete(uid);toast(nick+' رجع للعبة بإنعاش من هدية!');VIS.revival({nickname:nick,uniqueId:uid});return true;}
-function revivalCountAndCheck(m,uid,max){const cap=(typeof max==='number'&&max>0)?max:2;const used=m.get(uid)||0;if(used>=cap)return false;m.set(uid,used+1);return true;}
 function liveRoundsMirror(){}
 function contestNoteRoundStarted(){ try{ EMB.emit('round-start',{round:findballRoundNum+1}); if(EMB.hooks.onRoundStart)EMB.hooks.onRoundStart(); }catch(e){} }   // EHSEMHA-EMBED: يبلغ الموقع ببدء الجولة
 function recordWin(user){ try{ EMB.emit('winner',{uniqueId:user&&user.uniqueId,nickname:user&&user.nickname}); if(EMB.hooks.onWin)EMB.hooks.onWin(user,'اعثر على الكورة'); }catch(e){} }   // EHSEMHA-EMBED: تسجيل الفوز بنظام الموقع
@@ -540,8 +531,6 @@ function findballStartRoundClick(){
   FINDBALL_SHUFFLE_SPEEDUP_PERCENT=modGetSetting('findball','shuffleSpeedupPercent',15);
   FINDBALL_SHUFFLE_FLOOR_MS=modGetSetting('findball','shuffleMinFloorMs',1800);
   FINDBALL_SWAP_COUNT=modGetSetting('findball','swapCount',6);
-  findballRevivalEnabled=modGetSetting('findball','revivalEnabled',true);
-  findballRevivalMaxUses=modGetSetting('findball','revivalMaxUses',2);
   findballGuessTimerEnabled=modGetSetting('findball','guessTimerEnabled',true);
   FINDBALL_GUESS_TIMER_SECONDS=modGetSetting('findball','guessTimerSeconds',10);
 
@@ -694,10 +683,9 @@ function findballResolveRound(winningCup){
     const guess=findballGuesses.get(uid);
     if(guess===winningCup){correctUsers.push(user);return;}
     if(checkAndConsumeImmunity(uid,user.nickname)){correctUsers.push(user);return;}
-    if(checkAndConsumeRevival(uid,user.nickname,findballRevivalMap,'findball')){correctUsers.push(user);return;}
     eliminated.push(user);
   });
-  eliminated.forEach(user=>{findballParticipants.delete(user.uniqueId);findballEliminatedHistory.add(user.uniqueId);});UI.elimTotal+=eliminated.length;UI.stats();
+  eliminated.forEach(user=>{findballParticipants.delete(user.uniqueId);});UI.elimTotal+=eliminated.length;UI.stats();
   liveRoundsMirror('findball',findballParticipants);
 
   findballShowResultsOverlay(correctUsers,eliminated);
@@ -731,21 +719,7 @@ function findballShowWinner(user){
 }
 
 /* ---------- الإنعاش (نسخة طبق الأصل من findballHandleGift) ---------- */
-function findballHandleGift(user,giftName,diamondValue){
-  if(!findballRevivalEnabled)return;
-  if(findballParticipants.has(user.uniqueId))return;
-  if(!findballEliminatedHistory.has(user.uniqueId))return;
-  if(findballGameStatus==='finished'||findballGameStatus==='waiting')return;
-  if(!revivalCountAndCheck(findballRevivalCounts,user.uniqueId,findballRevivalMaxUses))return;
-  findballEliminatedHistory.delete(user.uniqueId);
-  triggerGiftRevivalFreeze('findball',user);
-  later(()=>findballJoinParticipant(Object.assign({},user,{isFollower:true})),3000);
-}
-function triggerGiftRevivalFreeze(tag,user){            // الموقع: تجميد 3 ثوانٍ + مشهد الإنعاش
-  gamePausedForRevival[tag]=true;$('pause-badge').classList.remove('hide');
-  VIS.revival(user);
-  later(()=>{gamePausedForRevival[tag]=false;$('pause-badge').classList.add('hide');},3000);
-}
+function findballHandleGift(user,giftName,diamondValue){}   // الإنعاش بالهدايا محذوف (سجل الإقصاء أُزيل)
 
 /* ---------- إعادة الضبط / الخروج (حماية findballRunId) ---------- */
 function findballResetGame(){
@@ -753,7 +727,7 @@ function findballResetGame(){
   findballClearGuessTimer();
   findballShuffling=false;
   findballGameStatus='waiting';findballRoundNum=0;findballBallCup=null;findballLastWinningSlot=null;
-  findballGuesses.clear();findballGuessedUids.clear();findballEliminatedHistory.clear();findballRevivalCounts.clear();
+  findballGuesses.clear();findballGuessedUids.clear();
   gamePausedForRevival.findball=false;$('pause-badge').classList.add('hide');
   Bots.clear();
   VIS.reset();
@@ -1335,7 +1309,6 @@ const UI={
   enterRound(){
     $('panel-lobby').classList.add('hide');$('panel-setup').classList.add('hide');
     $('findball-round-bar').style.display='';$('chip-survivors').style.display='';VIS.layout();
-    $('d-gift').disabled=!findballRevivalEnabled;
   },
   leaveRound(){},
   results(correct,elim,winSlot){
@@ -1418,9 +1391,6 @@ $('findball-results-continue-btn').onclick=()=>{findballCloseResultsOverlay();};
 $('d-add').onclick=()=>{SFX.resume();if(!findballKeyword)findballKeyword=$('findball-kw').value.trim()||'كوب';Bots.add(8);
   if(!findballParticipants.has('me')&&findballGameStatus==='waiting'){handleChat(ME,findballKeyword);}};
 document.querySelectorAll('.demo .num').forEach(b=>b.onclick=()=>handleChat(ME,b.dataset.g));
-$('d-gift').onclick=()=>{const uid=[...findballEliminatedHistory][0];if(!uid){toast('لا يوجد مقصي لإنعاشه الآن');return;}
-  const u={uniqueId:uid,nickname:(Bots.userCache&&Bots.userCache[uid])||uid};
-  findballHandleGift(Object.assign(u,findballLastUsers[uid]||{}),'هدية',100);};
 $('d-reset').onclick=()=>findballResetGame();
 const findballLastUsers={};
 const _join=findballJoinParticipant; // نحفظ بيانات المستخدمين للإنعاش التجريبي
@@ -1533,8 +1503,7 @@ window.__fbTest={
   frameHook:null,
   setImmunityAlways(){},
   handleChat,
-  findballHandleGift:findballHandleGift,
-  eliminated(){return [...findballEliminatedHistory];}
+  findballHandleGift:findballHandleGift
 };
 // خطاف للإطار لاختبارات التصادم
 const _frame=VIS.frame.bind(VIS);VIS.frame=function(n,d){_frame(n,d);if(window.__fbTest.frameHook)window.__fbTest.frameHook(n);};
@@ -1591,7 +1560,7 @@ const _frame=VIS.frame.bind(VIS);VIS.frame=function(n,d){_frame(n,d);if(window._
     configure(c){c=c||{};
       const set=(id,v)=>{const el=$('set-'+id);if(!el||v==null)return;if(el.type==='checkbox')el.checked=!!v;else el.value=String(v);};
       ['shuffleMinMs','shuffleSpeedupPercent','shuffleMinFloorMs','swapCount','guessTimerSeconds','revivalMaxUses'].forEach(k=>{ if(c[k]!=null){ const el=$('set-'+k); const mul=el&&parseFloat(el.dataset.mul)||1; set(k,c[k]/mul);} });
-      ['guessTimerEnabled','revivalEnabled'].forEach(k=>set(k,c[k]));
+      ['guessTimerEnabled'].forEach(k=>set(k,c[k]));
       if(c.keyword!=null)$('findball-kw').value=String(c.keyword);
       if(c.user!=null)$('findball-user').value=String(c.user);
       return {keyword:$('findball-kw').value};},
@@ -1602,7 +1571,7 @@ const _frame=VIS.frame.bind(VIS);VIS.frame=function(n,d){_frame(n,d);if(window._
     join(u){const c=cleanUser(u);if(!c.uniqueId)return false;tryJoin(c);return findballParticipants.has(c.uniqueId);},   // أوامر البث الحيّة (انضم)
     forceWin(uid){const u=findballParticipants.get(String(uid));if(!u||findballGameStatus==='finished')return false;findballGameStatus='finished';findballSetGameStatus('finished');findballShowWinner(u);return true;},   // «فوّزه»
     getState(){return {status:findballGameStatus,round:findballRoundNum,keyword:findballKeyword,shuffling:findballShuffling,
-      players:[...findballParticipants.values()].map(u=>({uniqueId:u.uniqueId,nickname:u.nickname})),pending:pendingFollow.size,eliminated:[...findballEliminatedHistory],ballCup:findballBallCup,link:EMB.link};},
+      players:[...findballParticipants.values()].map(u=>({uniqueId:u.uniqueId,nickname:u.nickname})),pending:pendingFollow.size,ballCup:findballBallCup,link:EMB.link};},
     destroy(){try{dispose();}catch(e){}}
   };
   if(EMBED){

@@ -363,7 +363,7 @@ const rb0 = await Z.page.evaluate(() => window.BatmishEvents.trigger('rou', 'rou
 ok(!rb0.ok && /no_eliminated/.test(rb0.reason), 'العودة المفاجئة: ترفض بصدق إذا لم يُقصَ أحد بعد');
 await Z.page.evaluate(() => { const a = rouParticipants.get('u261'); rouEliminateByMention(rouParticipants.get('u262').nickname, [a.nickname]); });
 await sleep(400);
-const rb1 = await Z.page.evaluate(() => { const gone = !rouParticipants.has('u261') && !rouActivePlayers.includes('ل261'); const r = window.BatmishEvents.trigger('rou', 'rou.e4'); return { gone, ok: r.ok, back: rouParticipants.has('u261'), inWheel: rouActivePlayers.includes('ل261'), hist: rouEliminatedHistory.has('u261') }; });
+const rb1 = await Z.page.evaluate(() => { const gone = !rouParticipants.has('u261') && !rouActivePlayers.includes('ل261'); const r = window.BatmishEvents.trigger('rou', 'rou.e4'); return { gone, ok: r.ok, back: rouParticipants.has('u261'), inWheel: rouActivePlayers.includes('ل261') }; });
 ok(rb1.gone && rb1.ok && rb1.back && rb1.inWheel && !rb1.hist, 'العودة المفاجئة: عاد اللاعب المقصى إلى العجلة فعلاً', rb1);
 await Z.page.evaluate(() => { rouGameStatus = 'finished'; }); await sleep(1100);
 
