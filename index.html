@@ -20455,8 +20455,8 @@ function contestNoteHome() {
 // "➕ وقت" لتعويضه يدوياً لو رغبت).
 let contestPlayTickStarted = false;
 let contestPlayTickLastMs = 0;
-const CONTEST_PLAYTICK_INTERVAL_MS = 30000;
-const CONTEST_PLAYTICK_MAX_DELTA_MS = 90000; // سقف أمان ضد قفزات الوقت
+const CONTEST_PLAYTICK_INTERVAL_MS = 60000;   // كان 30 ث: نصف كتابات Firestore (الوقت يُراكَم بالفعل المنقضي)
+const CONTEST_PLAYTICK_MAX_DELTA_MS = 180000; // سقف أمان ضد قفزات الوقت
 
 function contestStartPlayTick() {
   if (contestPlayTickStarted) return;
@@ -21107,8 +21107,8 @@ async function sevtHardResetNow() {
 // فكان السبب الأكبر باستهلاك حصة الكتابة اليومية (كتابة كل 20 ثانية × كل
 // جلسة نشطة). رفعناها لـ90 ثانية (تقليل ~4.5 ضعف بالكتابات) بدون أي فرق
 // ملموس لدقة عداد "أونلاين الحين" (نافذة الاعتبار رُفعت بنفس النسبة).
-const SITE_PRESENCE_HEARTBEAT_MS = 90000;
-const SITE_PRESENCE_ONLINE_WINDOW_MS = 180000;
+const SITE_PRESENCE_HEARTBEAT_MS = 150000;
+const SITE_PRESENCE_ONLINE_WINDOW_MS = 330000;
 let presenceTimer = null;
 
 // PRESENCE_HEARTBEAT_MS (فترة قصيرة عمداً) يُستخدم فقط بغرف اللعب/طابور
