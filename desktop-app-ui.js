@@ -30,7 +30,7 @@ html[data-ehs-code-login="0"] #ehs-code-login-btn{display:none !important}
 #ehs-code-login-btn:hover .ehs-cl-arrow{transform:translateX(-4px)}
 @media (prefers-reduced-motion:reduce){#ehs-code-login-btn,#ehs-code-login-btn::before,#ehs-code-login-btn .ehs-cl-arrow{transition:none}}`;
   var HTML = `
-<svg class="ehs-cl-logo" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><linearGradient id="ehsClGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#A78BFF"/><stop offset="100%" stop-color="#7C3AED"/></linearGradient></defs><rect width="1200" height="1200" rx="280" fill="url(#ehsClGrad)"/><g transform="translate(140 80) scale(9.2)"><path d="M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z" fill="#FFFFFF" stroke-linejoin="round"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="#FFFFFF"/><circle cx="50" cy="26" r="5" fill="#FFFFFF"/></g></svg>
+<img class="ehs-cl-logo" src="/assets/branding/icon-96.png" alt="" aria-hidden="true" decoding="async" style="display:block;object-fit:contain">
 <span class="ehs-cl-text"><span class="ehs-cl-title">الدخول برمز احسمها</span><span class="ehs-cl-sub">اكتب يوزرك واستلم الرمز على شاشتك</span></span>
 <svg class="ehs-cl-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>`;
 

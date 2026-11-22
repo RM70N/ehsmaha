@@ -49,6 +49,8 @@ on:
       - about-experience/previews-sq/**
       - about-experience/posters/**
       - code-race-banner.png
+      - assets/**
+      - favicon.ico
       - discord-logo.png
       - CNAME
       - desktop/scripts/site-manifest.js
@@ -76,7 +78,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html space-odyssey.html space-odyssey-integration.js findball3d.html findball3d-integration.js ws-diag.html desktop-auth.html windows-app.html link-device.html desktop-link.js desktop-app-ui.js ehsemha-responsive-fixes.css ehsemha-perf.js fs-failover.js ehsemha-perf.css code-race-banner.png discord-logo.png CNAME _site/
+          cp index.html roulette3d.html bomb3d.html tug3d.html xo.html ektheb-alay.html almeezan3d.html wesh-taghayar.html hallaha-qabli.html code-race.html callcenter3d.html la-tatayeh3d.html harf-alnajat3d.html space-odyssey.html space-odyssey-integration.js findball3d.html findball3d-integration.js ws-diag.html desktop-auth.html windows-app.html link-device.html desktop-link.js desktop-app-ui.js ehsemha-responsive-fixes.css ehsemha-perf.js fs-failover.js ehsemha-perf.css code-race-banner.png discord-logo.png favicon.ico CNAME _site/
           cp -r revival-system _site/revival-system
           cp -r dhmx-welcome _site/dhmx-welcome
           cp -r som3h-10k _site/som3h-10k
@@ -87,6 +89,7 @@ jobs:
           cp -r ops _site/ops
           cp -r subathon _site/subathon
           cp -r windows-app _site/windows-app
+          cp -r assets _site/assets
           cp -r windows-launch-campaign _site/windows-launch-campaign
           cp -r jam3atna _site/jam3atna
           # معاينات صفحة «من نحن» (صفحات معزولة وصور)، بدون مصادر البناء
