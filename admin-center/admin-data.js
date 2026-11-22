@@ -20,6 +20,10 @@
   function fsOk() { var f = fb(); return !!(f && f.db); }
   function errText(e) { return (e && (e.code ? '[' + e.code + '] ' : '')) + String((e && e.message) || e || 'خطأ غير معروف').slice(0, 220); }
   D.errText = errText;
+  /* الكائنات المنشأة داخل الإطار (iframe) من «عالم» JS مختلف عن الصفحة الأم، وFirestore يرفضها («custom Object»).
+     نعيد بناءها بـJSON الخاص بالصفحة الأم قبل إرسالها (القيم الخاصة مثل serverTimestamp تُضاف بعد التحويل). */
+  function native(o) { var h = host(); try { return h.JSON.parse(JSON.stringify(o)); } catch (e) { return o; } }
+  D.native = native;
   function denied(e) { return !!(e && (e.code === 'permission-denied' || /PERMISSION_DENIED|permission/i.test(String(e.message || e)))); }
   D.isDenied = denied;
 
@@ -54,8 +58,8 @@
   /** يحفظ سجل الأدمن في القاعدتين. يرجع {ok, fs, rtdb, errors}. المالك فقط (القواعد تفرض). */
   D.save = function (rec) {
     var f = fb(); var o = me(); var res = { fs: false, rtdb: false, errors: [] };
-    var fsRec = Object.assign({}, rec, { role: 'admin', createdBy: rec.createdBy || (o && o.uid) || '', updatedAt: f.serverTimestamp(), createdAt: rec.createdAt || f.serverTimestamp(), rev: (rec.rev || 0) + 1 });
-    fsRec.frameGrantScope = { mode: 'allowlist', frameIds: P.framesAllowed(rec) };
+    var fsRec = Object.assign(native(rec), { role: 'admin', createdBy: rec.createdBy || (o && o.uid) || '', updatedAt: f.serverTimestamp(), createdAt: rec.createdAt || f.serverTimestamp(), rev: (rec.rev || 0) + 1 });
+    fsRec.frameGrantScope = native({ mode: 'allowlist', frameIds: P.framesAllowed(rec) });
     return f.setDoc(f.doc(f.db, 'adminAccess', rec.userId), fsRec).then(function () { res.fs = true; }, function (e) { res.errors.push('Firestore: ' + errText(e)); })
       .then(function () {
         if (!f.rtdb) { res.errors.push('RTDB غير متاح'); return; }
@@ -86,7 +90,7 @@
     var f = fb(); var m = me(); if (!f || !m) return Promise.resolve(false);
     o = o || {};
     var data = { actorId: m.uid, actorName: String(o.actorName || m.name || m.email || m.uid).slice(0, 60), action: String(action).slice(0, 59), resourceType: String(o.resourceType || '').slice(0, 30), resourceId: String(o.resourceId || '').slice(0, 80),
-      targetUid: String(o.targetUid || ''), targetKey: String(o.targetKey || ''), targetName: String(o.targetName || '').slice(0, 60), result: o.result || 'success', reqId: o.reqId || reqId(), ts: f.serverTimestamp(), meta: o.meta || {} };
+      targetUid: String(o.targetUid || ''), targetKey: String(o.targetKey || ''), targetName: String(o.targetName || '').slice(0, 60), result: o.result || 'success', reqId: o.reqId || reqId(), ts: f.serverTimestamp(), meta: native(o.meta || {}) };
     return f.setDoc(f.doc(f.db, 'adminActionLog', o.id || ('a_' + data.reqId)), data).then(function () { return true; }, function () { return false; });
   };
   D.history = function (opts) {
@@ -120,8 +124,8 @@
       var b = f.writeBatch(f.db);
       keys.forEach(function (k) {
         var aid = 'g_' + m.uid + '_' + k + '_' + frameId;
-        b.set(f.doc(f.db, 'adminActionLog', aid), { actorId: m.uid, actorName: String(m.name || m.email || m.uid).slice(0, 60), action: kind, resourceType: 'frame', resourceId: frameId, targetUid: user.uid, targetKey: k, targetName: String(user.username || '').slice(0, 60), result: 'success', reqId: rid, ts: f.serverTimestamp(), meta: {} });
-        b.set(f.doc(f.db, 'levels', k), { ownedFrames: f.arrayUnion(frameId) }, { merge: true });
+        b.set(f.doc(f.db, 'adminActionLog', aid), Object.assign(native({ actorId: m.uid, actorName: String(m.name || m.email || m.uid).slice(0, 60), action: kind, resourceType: 'frame', resourceId: frameId, targetUid: user.uid, targetKey: k, targetName: String(user.username || '').slice(0, 60), result: 'success', reqId: rid, meta: {} }), { ts: f.serverTimestamp() }));
+        b.set(f.doc(f.db, 'levels', k), Object.assign(native({}), { ownedFrames: f.arrayUnion(frameId) }), native({ merge: true }));
       });
       return b.commit().then(function () {
         try { var h = host(); all.forEach(function (k) { if (h.framesParticipantCache) { h.framesParticipantCache.delete(k); h.framesParticipantCacheAt && h.framesParticipantCacheAt.delete(k); } }); } catch (e) {}
