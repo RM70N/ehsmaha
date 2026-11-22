@@ -67,7 +67,6 @@ const C = {
     elim: 'cwActiveCountries.splice(cwActiveCountries.findIndex(c => c.uid === uid), 1), cwEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'cwKeyword', n: 4,
     deep: 'cwAssignments.has(uid)' },
   draw: { g: G('draw'), kind: 'native', noKw: true, isIn: 'drawParticipants.has(uid)', start: 'startDrawRound()', lobby: RESET + ", (document.getElementById('gd-modal-yes') || { click() {} }).click()", n: 0 },
-  findball: { g: G('findball'), drive: "findballGameStatus === 'guessing' && [...findballParticipants.values()].forEach((u) => findballProcessGuess(u, String(findballBallCup)))", isIn: 'findballParticipants.has(uid)', start: 'findballStartRoundClick()', elim: 'findballParticipants.delete(uid), findballEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'findballKeyword', staged: "findballGameStatus === 'finished-round' || findballGameStatus === 'hiding'", n: 4 },
   chairs: { g: G('chairs'), isIn: 'chairsParticipants.has(uid)', start: 'chairsStartRoundClick()', elim: 'chairsParticipants.delete(uid), chairsEliminatedHistory.add(uid)', lobby: RESET, kwVar: 'chairsKeyword', staged: "chairsGameStatus === 'finished-round'", n: 5,
     drive: "chairsGameStatus === 'claiming' && [...chairsParticipants.values()].forEach((u, i) => chairsProcessClaim(u, String(chairsActiveChairNumbers[i] || 0)))" },
   tug: { g: G('tug'), kind: 'native', heavy: 1, afterJoin: async () => { await say('tug_b0', 'ازرق'); await say('tug_b1', 'ازرق'); }, isIn: '!!tugTeamOf(uid)', start: 'startTugRound()',

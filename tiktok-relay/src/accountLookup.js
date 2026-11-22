@@ -11,7 +11,7 @@ export function isQuota(e) {
 const DIR_TTL = 10 * 60e3;
 const DIR_MAX_PAGES = 50; // ≤ 50,000 حساب
 
-export function createAccountResolver({ admin, db, now = Date.now }) {
+export function createAccountResolver({ admin, db, now = Date.now, log = () => {} }) {
   const cache = new Map();
   let dir = null; // { map, exp }
   let dirLoading = null;
@@ -57,13 +57,15 @@ export function createAccountResolver({ admin, db, now = Date.now }) {
     try {
       const snap = await admin.database().ref('pendingUsernames/' + key.replace(/[.#$\[\]\/]/g, '_')).get();
       if (snap.exists() && snap.val() && snap.val().uid) return String(snap.val().uid);
-    } catch (e) { /* الحكم بالأسفل */ }
+    } catch (e) { log('warn', 'lookup_rtdb_failed', { message: e && e.message }); }
     if (quota) {
       try {
-        const uid = (await authDirectory()).get(key.toLowerCase());
+        const map = await authDirectory();
+        const uid = map.get(key.toLowerCase());
         if (uid) { cache.set(key, { uid, exp: now() + 3600e3 }); return uid; }
+        log('warn', 'lookup_not_in_auth_directory', { size: map.size });
         // لا نجزم بعدم الوجود: حسابات قديمة قد لا تحمل displayName ⇒ نكمل إلى lookup_unavailable
-      } catch (e) { /* نكمل لـlookup_unavailable */ }
+      } catch (e) { log('warn', 'lookup_auth_directory_failed', { message: e && e.message }); }
     }
     if (quota) { const err = new Error('lookup_unavailable'); err.code = 'lookup_unavailable'; throw err; }
     return null;

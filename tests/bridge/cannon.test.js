@@ -49,7 +49,7 @@ const setToggle = (page, k, on) => page.evaluate(([k, on]) => { const i = docume
       barrelAnim: getComputedStyle(c.querySelector('.hcn-barrel')).animationName,
     };
   });
-  check('المدفع البشري أول بطاقة بمكتبة الستريمر (٣٨ لعبة)', lib.first === 'cannon' && lib.n === 38, { first: lib.first, n: lib.n });
+  check('المدفع البشري أول بطاقة بمكتبة الستريمر (٣٩ لعبة)', lib.first === 'cannon' && lib.n === 39, { first: lib.first, n: lib.n });
   check('الكرت بنفس ملف التصميم: شارة جديد · أمر "اكتب 45 80" · فئة ثلاثية الأبعاد · العنوان والوصف الكامل · زرّان',
     lib.tag === 'جديد' && /new/.test(lib.tagCls) && lib.cmd === 'اكتب 45 80' && lib.cat === 'ثلاثية الأبعاد' && lib.h3 === 'المدفع البشري' &&
     lib.p === 'اكتب زاوية وقوة وانطلق من المدفع. الستريمر يرمي عوائق في السماء والهدايا تحميك. الأبعد يفوز.' && lib.btns.join('|') === 'ابدأ اللعبة|التفاصيل' && lib.pin, lib);

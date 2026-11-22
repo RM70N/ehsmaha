@@ -1,0 +1,1620 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>احسمها — اعثر على الكورة 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* =====================================================================
+   EHSMAHA — FIND THE BALL 3D  (standalone visual edition)
+   ملف مستقل: لا يعدّل index.html الرئيسي. منطق اللعبة منقول حرفياً (ENGINE PORT)
+   وطبقة العرض (VIS) هي الوحيدة التي تعرف الـ 3D.
+   ===================================================================== */
+:root{
+  --bg:#080816; --panel:rgba(20,20,38,.86); --panel-2:rgba(32,30,56,.9);
+  --line:rgba(167,139,250,.16); --line-2:rgba(167,139,250,.36);
+  --text:#F5F3FF; --muted:#A7A2BD; --vio:#7C3AED; --vio-2:#A78BFA; --blue:#4F8CFF;
+  --gold:#D8B46A; --gold-2:#efd7a0; --ok:#34d399; --bad:#e5634f; --warn:#f0b24a;
+  --r:14px;
+  --ease:cubic-bezier(.2,.8,.2,1); --ease-out:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Tajawal','Cairo',system-ui,sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+#fb3d-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+button{font-family:inherit;cursor:pointer;border:0;color:inherit}
+input,select{font-family:inherit}
+.hide{display:none!important}
+
+/* ---------- Top bar ---------- */
+#topbar{position:fixed;top:0;inset-inline:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 18px;z-index:20;
+  background:linear-gradient(180deg,rgba(7,9,12,.88),rgba(7,9,12,0));pointer-events:none}
+#topbar>*{pointer-events:auto}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,#f1dcae,#b8965a);display:grid;place-items:center;color:#14171b;font-weight:900;font-size:15px;box-shadow:0 4px 14px rgba(217,188,130,.25)}
+.brand b{font-size:17px;font-weight:800;letter-spacing:.2px}
+.brand small{display:block;font-size:11px;color:var(--muted);margin-top:-2px}
+.tb-center{flex:1;display:flex;justify-content:center;gap:10px}
+.chip{display:flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:999px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--muted);backdrop-filter:blur(10px)}
+.chip b{color:var(--text);font-size:15px;font-weight:800;min-width:1ch;text-align:center;font-variant-numeric:tabular-nums}
+.chip.status{color:var(--text)}
+.chip.status i{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.chip.status.active i{background:var(--gold);box-shadow:0 0 10px var(--gold);animation:pulseDot 1.1s infinite}
+.chip.status.finished i{background:var(--ok)}
+.tb-ctrl{display:flex;gap:8px;align-items:center}
+.ibtn{height:34px;min-width:34px;padding:0 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:12px;color:var(--text);backdrop-filter:blur(10px);transition:.18s var(--ease)}
+.ibtn:hover{border-color:var(--line-2);background:var(--panel-2)}
+.ibtn.on{border-color:rgba(217,188,130,.5);color:var(--gold-2)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);display:inline-block}
+.dot.connecting{background:var(--warn)} .dot.off{background:var(--bad)}
+@keyframes pulseDot{50%{opacity:.35}}
+
+/* ---------- Banner (mask reveal) ---------- */
+#banner-zone{position:fixed;top:64px;inset-inline:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:15;pointer-events:none}
+.banner{display:flex;align-items:center;gap:16px;padding:10px 26px;border-radius:14px;background:linear-gradient(180deg,rgba(18,21,26,.92),rgba(10,12,15,.92));border:1px solid var(--line-2);
+  box-shadow:0 14px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(8px);
+  clip-path:inset(0 0 0 100%);animation:maskIn .55s var(--ease-out) forwards}
+.banner.out{animation:maskOut .35s var(--ease) forwards}
+.banner h1{font-size:26px;font-weight:900;letter-spacing:.2px;line-height:1.15}
+.banner p{font-size:13px;color:var(--muted);margin-top:2px}
+.banner .accent{width:4px;align-self:stretch;border-radius:4px;background:linear-gradient(var(--gold-2),#a98547)}
+.banner.ok .accent{background:var(--ok)} .banner.bad .accent{background:var(--bad)}
+.banner.big h1{font-size:32px}
+@keyframes maskIn{to{clip-path:inset(0 0 0 0)}}
+@keyframes maskOut{from{clip-path:inset(0 0 0 0)}to{clip-path:inset(0 100% 0 0);opacity:.4}}
+.banner .wordstag span{display:inline-block;opacity:0;transform:translateY(10px);animation:wordIn .45s var(--ease-out) forwards}
+@keyframes wordIn{to{opacity:1;transform:none}}
+
+/* timer (inside guess banner, never over the cups) */
+#findball-timer-box{display:flex;align-items:center;gap:10px;position:relative}
+.ring{position:relative;width:46px;height:46px}
+.ring svg{width:46px;height:46px;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:4}
+.ring .bg{stroke:rgba(255,255,255,.1)} .ring .fg{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset .95s linear}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
+#findball-timer-box.danger .fg{stroke:var(--bad)} #findball-timer-box.danger .ring b{color:var(--bad);animation:tickPulse 1s infinite}
+@keyframes tickPulse{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+
+/* ---------- Panels ---------- */
+.panel{position:fixed;z-index:18;background:var(--panel);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(16px);box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
+.panel h2{font-size:15px;font-weight:800;padding:16px 18px 10px;display:flex;align-items:center;justify-content:space-between}
+.panel h2 small{font-size:11px;color:var(--muted);font-weight:500}
+.panel .body{padding:0 18px 18px;overflow:auto}
+#panel-setup{top:70px;bottom:14px;inset-inline-start:14px;width:340px;display:flex;flex-direction:column;animation:slideIn .6s var(--ease-out)}
+#panel-setup .body{flex:1}
+#panel-lobby{top:70px;inset-inline-start:14px;width:320px;max-height:calc(100% - 150px);display:flex;flex-direction:column;animation:slideIn .6s var(--ease-out)}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+[dir=rtl] #panel-setup{animation-name:slideInR}
+@keyframes slideInR{from{opacity:0;transform:translateX(-30px)}to{opacity:1;transform:none}}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+.field input[type=text],.field input[type=number],.field input[type=password],.field select{width:100%;height:38px;padding:0 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--text);font-size:14px;outline:none;transition:.15s}
+.field input:focus,.field select:focus{border-color:rgba(217,188,130,.6);background:rgba(255,255,255,.06)}
+.field .hint{font-size:11px;color:var(--muted);margin-top:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sect{font-size:11px;letter-spacing:.4px;color:var(--gold);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.sect::after{content:'';flex:1;height:1px;background:var(--line)}
+.ptabs{display:flex;gap:6px;margin-bottom:12px}
+.ptab{flex:1;height:32px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid var(--line);font-size:12px;color:var(--muted)}
+.ptab.active{border-color:rgba(217,188,130,.55);color:var(--gold-2);background:rgba(217,188,130,.08)}
+.sw{display:flex;align-items:center;justify-content:space-between;padding:8px 0;font-size:13px}
+.sw input{appearance:none;width:40px;height:22px;border-radius:99px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:.2s;flex:none}
+.sw input::after{content:'';position:absolute;top:3px;inset-inline-start:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.2s var(--ease)}
+.sw input:checked{background:var(--gold)} .sw input:checked::after{inset-inline-start:21px;background:#14171b}
+.btn{height:44px;border-radius:12px;font-size:15px;font-weight:800;background:linear-gradient(180deg,#f1dcae,#c9a566);color:#17140d;width:100%;transition:.18s var(--ease);box-shadow:0 8px 22px rgba(217,188,130,.22)}
+.btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 12px 28px rgba(217,188,130,.3)}
+.btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.btn.ghost{background:rgba(255,255,255,.06);color:var(--text);box-shadow:none;border:1px solid var(--line);font-weight:700}
+.btn.sm{height:34px;font-size:12.5px;border-radius:9px}
+.p-count{display:flex;align-items:baseline;gap:8px;padding:0 18px}
+.p-count b{font-size:44px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums}
+.p-count span{color:var(--muted);font-size:13px}
+.kwbox{margin:10px 18px 0;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px dashed var(--line-2);font-size:13px;color:var(--muted)}
+.kwbox b{color:var(--gold-2);font-size:15px}
+#findball-p-usernames{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px;max-height:210px;overflow:auto}
+.pchip{display:flex;align-items:center;gap:7px;height:30px;padding:0 10px 0 4px;border-radius:99px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-size:12.5px;animation:chipIn .4s var(--ease-out)}
+.pchip em{font-style:normal;color:var(--muted);font-size:11px}
+@keyframes chipIn{from{opacity:0;transform:translateY(8px) scale(.9)}to{opacity:1;transform:none}}
+.av{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#101214;flex:none}
+.p-empty-placeholder{color:var(--muted);font-size:12px;padding:6px 0}
+.lobby-foot{padding:0 18px 18px;display:flex;flex-direction:column;gap:8px}
+#findball-status-strip{margin:12px 18px 0;padding:9px 12px;border-radius:10px;font-size:12.5px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--muted)}
+#findball-status-strip.active{color:var(--gold-2);border-color:rgba(217,188,130,.35)}
+#findball-status-strip.finished{color:var(--ok);border-color:rgba(62,207,148,.35)}
+
+/* ---------- Results ---------- */
+#findball-results-overlay{position:fixed;inset:0;z-index:17;pointer-events:none;display:none}
+#findball-results-overlay.show{display:block}
+.res-panel{position:absolute;top:84px;width:min(270px,24vw);max-height:calc(100% - 190px);display:flex;flex-direction:column;border-radius:18px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(16px);box-shadow:0 24px 60px rgba(0,0,0,.5);pointer-events:auto;overflow:hidden}
+.res-panel.ok{inset-inline-start:14px;border-top:3px solid var(--ok)}
+.res-panel.bad{inset-inline-end:14px;border-top:3px solid var(--bad)}
+.res-panel header{padding:14px 18px 6px;display:flex;align-items:baseline;justify-content:space-between}
+.res-panel header h3{font-size:15px;font-weight:800}
+.res-panel header b{font-size:34px;font-weight:900;font-variant-numeric:tabular-nums}
+.res-panel.ok header b{color:var(--ok)} .res-panel.bad header b{color:var(--bad)}
+.res-list{padding:6px 14px 14px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.res-item{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13.5px;opacity:0;transform:translateX(24px);animation:resIn .5s var(--ease-out) forwards}
+.res-panel.bad .res-item{transform:translateX(-24px)}
+.res-item .tick{margin-inline-start:auto;font-size:13px;font-weight:900}
+.res-panel.ok .tick{color:var(--ok)} .res-panel.bad .tick{color:var(--bad)}
+.res-panel.bad .res-item.out{animation:resIn .5s var(--ease-out) forwards,dim 1s .6s forwards}
+.res-empty{font-size:12.5px;color:var(--muted);padding:6px 2px}
+@keyframes resIn{to{opacity:1;transform:none}}
+@keyframes dim{to{opacity:.62}}
+#findball-results-title-wrap{position:absolute;bottom:86px;inset-inline:0;display:flex;flex-direction:column;align-items:center;gap:12px;pointer-events:none}
+#findball-results-title{font-size:30px;font-weight:900;padding:10px 28px;border-radius:14px;background:rgba(10,12,15,.88);border:1px solid var(--line-2);backdrop-filter:blur(8px);clip-path:inset(0 0 0 100%);animation:maskIn .6s .1s var(--ease-out) forwards}
+#findball-results-title span{color:var(--gold-2)}
+#findball-results-continue-btn{pointer-events:auto;width:auto;padding:0 40px}
+
+/* ---------- Winner / revival ---------- */
+#winner{position:fixed;inset-inline:0;bottom:90px;display:flex;justify-content:center;z-index:19;pointer-events:none}
+.win-card{display:flex;align-items:center;gap:18px;padding:16px 30px;border-radius:20px;background:linear-gradient(180deg,rgba(26,22,12,.94),rgba(12,11,9,.94));border:1px solid rgba(217,188,130,.55);box-shadow:0 20px 70px rgba(0,0,0,.6),0 0 60px rgba(217,188,130,.18);clip-path:inset(0 0 0 100%);animation:maskIn .8s var(--ease-out) forwards}
+.win-card .av{width:62px;height:62px;font-size:26px;border:2px solid var(--gold)}
+.win-card small{color:var(--gold);font-size:12px;letter-spacing:.4px}
+.win-card h1{font-size:34px;font-weight:900;line-height:1.1}
+.win-card p{color:var(--muted);font-size:13px;margin-top:2px}
+#revival{position:fixed;top:50%;inset-inline-end:26px;transform:translateY(-50%);z-index:19;pointer-events:none}
+.rev-card{display:flex;align-items:center;gap:14px;padding:14px 22px;border-radius:16px;background:rgba(10,18,14,.92);border:1px solid rgba(62,207,148,.5);box-shadow:0 18px 50px rgba(0,0,0,.5),0 0 40px rgba(62,207,148,.14);clip-path:inset(0 0 0 100%);animation:maskIn .5s var(--ease-out) forwards}
+.rev-card.out{animation:maskOut .4s forwards}
+.rev-card h4{font-size:19px;font-weight:900;color:var(--ok)} .rev-card p{font-size:13px;color:var(--text)}
+.pause-badge{position:fixed;top:112px;inset-inline:0;margin:auto;width:max-content;z-index:16;padding:7px 18px;border-radius:99px;background:rgba(10,12,15,.9);border:1px solid rgba(240,178,74,.45);color:var(--warn);font-size:13px}
+
+/* ---------- Demo dock ---------- */
+#dock{position:fixed;bottom:12px;inset-inline:0;margin:auto;width:max-content;max-width:calc(100% - 24px);z-index:19;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;padding:8px 10px;border-radius:14px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(12px)}
+#dock .lbl{font-size:11px;color:var(--muted);padding:0 4px}
+#dock button{height:32px;padding:0 12px;border-radius:9px;background:rgba(255,255,255,.06);border:1px solid var(--line);font-size:12.5px;font-weight:700}
+#dock button:hover{border-color:var(--line-2)}
+#dock button.num{width:36px;padding:0;font-size:15px;font-weight:900;color:var(--gold-2)}
+#dock button:disabled{opacity:.35;cursor:not-allowed}
+
+/* ---------- Toasts ---------- */
+#toasts{position:fixed;bottom:76px;inset-inline-end:16px;z-index:30;display:flex;flex-direction:column;gap:6px;align-items:flex-end;pointer-events:none}
+.toast{padding:8px 14px;border-radius:10px;background:rgba(10,12,15,.9);border:1px solid var(--line-2);font-size:13px;animation:toastIn .35s var(--ease-out),toastOut .4s 2.4s forwards}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}}
+@keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
+
+/* ---------- Boot / error ---------- */
+#boot{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--bg);transition:opacity .6s}
+#boot.gone{opacity:0;pointer-events:none}
+#boot div{text-align:center;color:var(--muted);font-size:14px}
+#boot b{display:block;color:var(--text);font-size:22px;margin-bottom:8px}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid rgba(255,255,255,.12);border-top-color:var(--gold);margin:0 auto 14px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- Responsive ---------- */
+@media (max-width:900px){
+  .brand small,.tb-ctrl .ibtn.opt{display:none}
+  .tb-center .chip.status{display:none}
+  .banner h1{font-size:19px}.banner.big h1{font-size:23px}
+  #panel-setup,#panel-lobby{inset-inline:10px;width:auto;top:auto;bottom:62px;max-height:46vh}
+  #panel-setup{bottom:10px;max-height:52vh}
+  .res-panel{width:calc(50% - 16px);top:auto;bottom:140px;max-height:30vh}
+  .res-panel.ok{inset-inline-start:8px}.res-panel.bad{inset-inline-end:8px}
+  #findball-results-title-wrap{bottom:96px}#findball-results-title{font-size:20px}
+  #dock{bottom:8px}
+  #revival{inset-inline-end:8px}
+}
+body.clean #topbar .tb-ctrl{display:none}
+@media (prefers-reduced-motion:reduce){.banner,.res-item,.pchip{animation-duration:.01s!important}}
+
+/* ===== VIBRANT CINEMATIC EDITION — overrides ===== */
+body{background:#080816}
+#topbar{height:60px;background:linear-gradient(180deg,rgba(8,8,22,.94),rgba(8,8,22,0))}
+.brand-mark{width:32px;height:32px;border-radius:10px;background:linear-gradient(145deg,#A78BFA,#7C3AED 60%,#4c1d95);color:#fff;box-shadow:0 4px 18px rgba(124,58,237,.55)}
+.chip.status.active i{background:var(--vio-2);box-shadow:0 0 10px var(--vio)}
+.ibtn.on{border-color:rgba(167,139,250,.6);color:var(--vio-2)}
+.banner{padding:12px 30px;border-radius:16px;background:linear-gradient(180deg,rgba(26,20,52,.95),rgba(10,9,26,.95));border:1px solid rgba(167,139,250,.5);box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 38px rgba(124,58,237,.28),inset 0 1px 0 rgba(255,255,255,.08)}
+.banner .accent{background:linear-gradient(var(--vio-2),var(--vio))}
+.banner.gold .accent{background:linear-gradient(var(--gold-2),#a98547)}.banner.gold h1{color:var(--gold-2)}
+.banner.speed{border-color:rgba(240,178,74,.6);box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 38px rgba(240,178,74,.25)}
+.banner.speed .accent{background:linear-gradient(#ffd27a,#f0b24a)}.banner.speed h1{color:#ffd27a}
+.banner h1{font-size:30px}.banner.big h1{font-size:40px}
+.banner.guess{padding:14px 34px;gap:20px;border-color:rgba(216,180,106,.55)}
+.banner.guess h1{font-size:34px}.banner.guess p{font-size:15px}
+.ring{width:64px;height:64px}.ring svg{width:64px;height:64px}
+.ring .fg{stroke:var(--gold);filter:drop-shadow(0 0 5px rgba(216,180,106,.7))}
+.ring b{font-size:23px;color:var(--gold-2)}
+#findball-timer-box.warn .fg{stroke:#ff9a3c;filter:drop-shadow(0 0 7px rgba(255,154,60,.9))}
+#findball-timer-box.warn .ring b{color:#ffb766}
+.ptab.active{border-color:rgba(167,139,250,.6);color:var(--vio-2);background:rgba(124,58,237,.16)}
+.field input:focus,.field select:focus{border-color:rgba(167,139,250,.7)}
+.sect{color:var(--vio-2)}
+.sw input:checked{background:var(--vio)}.sw input:checked::after{background:#fff}
+.btn{height:46px;background:linear-gradient(180deg,#8b5cf6,#6d28d9);color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.42),inset 0 1px 0 rgba(255,255,255,.22)}
+.btn:hover:not(:disabled){box-shadow:0 12px 32px rgba(124,58,237,.6),inset 0 1px 0 rgba(255,255,255,.28)}
+#findball-status-strip.active{color:var(--vio-2);border-color:rgba(167,139,250,.4)}
+#findball-results-title{font-size:32px;padding:10px 30px;border-radius:16px;background:linear-gradient(180deg,rgba(44,32,12,.93),rgba(14,10,26,.93));border:1px solid rgba(216,180,106,.65);box-shadow:0 0 44px rgba(216,180,106,.22)}
+.res-panel.ok{border-top:3px solid var(--ok);background:linear-gradient(180deg,rgba(10,46,36,.9),rgba(10,16,26,.92));box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(52,211,153,.14)}
+.res-panel.bad{border-top:3px solid #c0392b;background:linear-gradient(180deg,rgba(60,14,18,.92),rgba(18,9,16,.94));box-shadow:0 24px 60px rgba(0,0,0,.5),0 0 40px rgba(192,57,43,.16)}
+.win-card{background:linear-gradient(180deg,rgba(60,36,110,.96),rgba(12,9,28,.97));border:1px solid rgba(216,180,106,.75);box-shadow:0 20px 70px rgba(0,0,0,.6),0 0 80px rgba(124,58,237,.4),0 0 34px rgba(216,180,106,.22)}
+.win-card h1{font-size:42px}.win-card small{color:var(--gold);font-size:15px;font-weight:800;letter-spacing:.6px}
+/* bottom broadcast bar */
+#dock{position:fixed;bottom:0;inset-inline:0;margin:0;width:auto;max-width:none;z-index:19;display:flex;align-items:center;gap:18px;padding:10px 20px 12px;border-radius:0;border:0;border-top:2px solid transparent;border-image:linear-gradient(90deg,transparent,#7C3AED,#4F8CFF,#7C3AED,transparent) 1;background:linear-gradient(180deg,rgba(8,8,22,.6),rgba(8,8,22,.92));backdrop-filter:blur(10px);flex-wrap:nowrap;justify-content:flex-start}
+.bstat{display:flex;align-items:baseline;gap:8px;padding-inline-end:18px;border-inline-end:1px solid var(--line);white-space:nowrap}
+.bstat span{font-size:12px;color:var(--muted)}
+.bstat b{font-size:26px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.bstat.ok b{color:var(--ok)}.bstat.bad b{color:#f08a7a}
+.bmsg{flex:1;text-align:center;font-size:15px;font-weight:700;min-width:0}
+.bmsg em{font-style:normal;color:var(--gold-2)}
+.demo{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.demo .lbl{font-size:11px;color:var(--muted);padding:0 2px}
+.demo button{height:32px;padding:0 12px;border-radius:9px;background:rgba(124,58,237,.16);border:1px solid var(--line-2);font-size:12.5px;font-weight:700}
+.demo button:hover{background:rgba(124,58,237,.32)}
+.demo button.num{width:38px;padding:0;font-size:16px;font-weight:900;color:var(--gold-2)}
+.demo button:disabled{opacity:.35;cursor:not-allowed}
+#chatq{position:fixed;bottom:86px;inset-inline-start:14px;z-index:18;display:flex;flex-direction:column-reverse;gap:6px;pointer-events:none;width:236px}
+.ccard{display:flex;align-items:center;gap:9px;padding:6px 8px 6px 12px;border-radius:12px;background:linear-gradient(90deg,rgba(124,58,237,.38),rgba(20,20,38,.93));border:1px solid rgba(167,139,250,.38);font-size:13px;animation:ccIn .45s var(--ease-out) both}
+.ccard.alt{background:linear-gradient(90deg,rgba(79,140,255,.32),rgba(20,20,38,.93));border-color:rgba(79,140,255,.38)}
+.ccard.out{animation:ccOut .35s forwards}
+.ccard .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ccard b{min-width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:#0c0b1e;color:var(--gold-2);font-size:16px;font-weight:900;border:1px solid rgba(216,180,106,.5)}
+@keyframes ccIn{from{opacity:0;transform:translateX(-26px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes ccOut{to{opacity:0;transform:translateY(-8px)}}
+#toasts{bottom:92px}
+#findball-results-title-wrap{bottom:100px}
+@media (max-width:760px){#dock{flex-wrap:wrap;gap:8px 12px;padding:8px 10px}.bmsg{order:5;flex-basis:100%;font-size:13px}.bstat{padding-inline-end:10px}.bstat b{font-size:20px}.demo{order:6;flex-basis:100%;justify-content:center}#chatq{bottom:158px;width:180px}.banner.guess h1{font-size:24px}.banner h1{font-size:22px}}
+body.clean .demo{display:none}
+body.embed .demo,body.embed .ptabs,body.embed .field.emb-hide{display:none !important}   /* EHSEMHA-EMBED */
+.banner.sweep{position:relative;overflow:hidden}
+.banner.sweep::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,236,190,.55) 50%,transparent 65%);transform:translateX(-120%);animation:sweepL 1s .15s var(--ease-out) forwards}
+@keyframes sweepL{to{transform:translateX(120%)}}
+#banner-zone{position:relative}
+.sparks{position:absolute;left:50%;top:50%;pointer-events:none}
+.sparks i{position:absolute;width:6px;height:6px;border-radius:50%;background:#efd7a0;box-shadow:0 0 8px #D8B46A;animation:spk 1.1s ease-out forwards}
+@keyframes spk{from{opacity:1;transform:translate(0,0) scale(1)}to{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.3)}}
+</style>
+</head>
+<body>
+<canvas id="fb3d-canvas" tabindex="0" aria-label="مشهد لعبة اعثر على الكورة ثلاثي الأبعاد"></canvas>
+
+<div id="boot"><div><div class="spin"></div><b>اعثر على الكورة</b><span id="boot-msg">جارٍ تجهيز الاستوديو…</span></div></div>
+
+<header id="topbar">
+  <div class="brand"><div class="brand-mark">ح</div><div><b>اعثر على الكورة</b><small>احسمها · ألعاب الستريمر</small></div></div>
+  <div class="tb-center">
+    <div class="chip" id="findball-round-bar" style="display:none">الجولة <b id="findball-round-num">1</b></div>
+    <span id="chip-survivors" style="display:none"></span>
+    <div class="chip status" id="chip-status"><i></i><span id="chip-status-txt">في الانتظار</span></div>
+  </div>
+  <div class="tb-ctrl">
+    <span class="chip" style="height:34px"><span class="dot connecting" id="findball-dot"></span><span id="findball-live-user">وضع تجريبي</span></span>
+    <button class="ibtn opt" id="btn-cam" title="وضع الكاميرا">كاميرا: سينمائية</button>
+    <button class="ibtn opt" id="btn-q" title="جودة الرسوم">جودة: عالية</button>
+    <button class="ibtn" id="btn-snd" title="الصوت">صوت</button>
+    <input type="range" id="vol" min="0" max="100" value="60" style="width:70px;accent-color:#7C3AED" aria-label="مستوى الصوت">
+  </div>
+</header>
+
+<div id="banner-zone"></div>
+<div id="pause-badge" class="pause-badge hide">الجولة متوقفة مؤقتاً — إنعاش لاعب</div>
+
+<!-- ============ SETUP ============ -->
+<aside class="panel" id="panel-setup">
+  <h2>إعداد اللعبة <small>اعثر على الكورة</small></h2>
+  <div class="body">
+    <div class="ptabs">
+      <button class="ptab active" id="findball-tab-tiktok" type="button">تيك توك</button>
+      <button class="ptab" id="findball-tab-twitch" type="button">تويتش</button>
+      <button class="ptab" id="findball-tab-kick" type="button">كيك</button>
+      <button class="ptab" id="findball-tab-youtube" type="button">يوتيوب</button>
+    </div>
+    <div class="field"><label>مفتاح الربط (API Key)</label><input type="password" id="findball-apikey" placeholder="وضع تجريبي — غير مطلوب هنا" dir="ltr"></div>
+    <div class="field"><label>يوزر تيك توك (بدون @)</label><input type="text" id="findball-user" placeholder="مثال: username123" dir="ltr" style="text-align:right"></div>
+    <div class="field"><label>كلمة الانضمام</label><input type="text" id="findball-kw" placeholder="مثال: كوب" value="كوب"></div>
+
+    <div class="sect">إعدادات اللعب الأصلية</div>
+    <div class="grid2">
+      <div class="field"><label>أقل مدة خلط (ث)</label><input type="number" id="set-shuffleMinMs" data-mul="1000" value="6" min="1.5" max="15" step="0.1"></div>
+      <div class="field"><label>زيادة السرعة / جولة %</label><input type="number" id="set-shuffleSpeedupPercent" value="15" min="0" max="60"></div>
+      <div class="field"><label>حد أدنى للخلط (ث)</label><input type="number" id="set-shuffleMinFloorMs" data-mul="1000" value="1.8" min="0.5" max="10" step="0.1"></div>
+      <div class="field"><label>عدد التبديلات</label><input type="number" id="set-swapCount" value="6" min="3" max="20"></div>
+    </div>
+    <div class="sw"><span>وقت محدد للتخمين</span><input type="checkbox" id="set-guessTimerEnabled" checked></div>
+    <div class="field"><label>مدة التخمين (ث)</label><input type="number" id="set-guessTimerSeconds" value="10" min="3" max="60"></div>
+    <div class="sw"><span>نظام الإنعاش بالهدايا</span><input type="checkbox" id="set-revivalEnabled" checked></div>
+    <div class="field"><label>أقصى مرات الإنعاش</label><input type="number" id="set-revivalMaxUses" value="2" min="1" max="10"></div>
+
+    <div class="sect">العرض (بصري فقط — لا يؤثر على قواعد اللعب)</div>
+    <div class="field"><label>الكاميرا</label><select id="set-cam"><option value="cinematic">سينمائية (ثابتة أثناء الخلط والتخمين)</option><option value="static">ثابتة بالكامل</option></select></div>
+    <div class="field"><label>جودة الرسوم</label><select id="set-quality"><option value="high">عالية</option><option value="medium">متوسطة</option><option value="low">منخفضة</option></select></div>
+    <button class="btn" id="btn-connect" type="button">دخول اللوبي</button>
+  </div>
+</aside>
+
+<!-- ============ LOBBY ============ -->
+<aside class="panel hide" id="panel-lobby">
+  <h2>المشاركون <small id="lobby-sub">في انتظار المشاركين</small></h2>
+  <div class="p-count"><b id="findball-p-count">0</b><span>مشارك</span></div>
+  <div class="kwbox">الكلمة المفتاحية: <b id="findball-kw-show">—</b></div>
+  <div id="findball-status-strip" class="status-strip waiting">في انتظار المشاركين — اكتب الكلمة المفتاحية في شات البث</div>
+  <div id="findball-p-usernames"><span class="p-empty-placeholder">لا يوجد مشاركون بعد</span></div>
+  <div class="lobby-foot">
+    <button class="btn" id="findball-btn-round" type="button">ابدأ الجولة</button>
+    <button class="btn ghost sm" id="btn-back-setup" type="button">رجوع للإعدادات</button>
+  </div>
+</aside>
+
+<!-- ============ RESULTS ============ -->
+<div id="findball-results-overlay">
+  <section class="res-panel ok"><header><h3>الناجون من الجولة</h3><b id="res-ok-count">0</b></header><div class="res-list" id="findball-correct-list"></div></section>
+  <section class="res-panel bad"><header><h3>المقصيون</h3><b id="res-bad-count">0</b></header><div class="res-list" id="findball-elim-list"></div></section>
+  <div id="findball-results-title-wrap">
+    <div id="findball-results-title">الكورة كانت تحت كوب <span>—</span></div>
+    <button class="btn" id="findball-results-continue-btn" type="button">متابعة</button>
+  </div>
+</div>
+<div id="winner"></div>
+<div id="revival"></div>
+
+<!-- ============ BOTTOM BROADCAST BAR (+ أدوات محاكاة الشات التجريبية) ============ -->
+<div id="chatq"></div>
+<footer id="dock">
+  <div class="bstat"><span>المشاركون</span><b id="bb-p">0</b></div>
+  <div class="bstat ok"><span>الناجون</span><b id="findball-round-survivors">0</b></div>
+  <div class="bstat bad"><span>المقصيون</span><b id="bb-e">0</b></div>
+  <div class="bmsg" id="bb-msg">اكتب <em>كلمة الانضمام</em> في الشات للدخول</div>
+  <div class="demo">
+    <span class="lbl">محاكاة الشات</span>
+    <button id="d-add" type="button">+8 مشاركين</button>
+    <span class="lbl">تخمينك:</span>
+    <button class="num" data-g="1" type="button" disabled>1</button>
+    <button class="num" data-g="2" type="button" disabled>2</button>
+    <button class="num" data-g="3" type="button" disabled>3</button>
+    <button id="d-gift" type="button" disabled>هدية إنعاش</button>
+    <button id="d-reset" type="button">ريست</button>
+  </div>
+</footer>
+<div id="toasts"></div>
+
+<script>
+/* ===================== THREE loader (نفس نسخة الموقع r128 + بدائل) ===================== */
+(function(){
+  var CDN=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'];
+  var i=0;
+  function next(){
+    if(window.THREE){ return window.dispatchEvent(new Event('three-ready')); }
+    if(i>=CDN.length){ document.getElementById('boot-msg').textContent='تعذّر تحميل Three.js — تحقق من الاتصال بالإنترنت'; return; }
+    var s=document.createElement('script'); s.src=CDN[i++]; s.onload=next; s.onerror=next; document.head.appendChild(s);
+  }
+  next();
+})();
+</script>
+<script>
+window.addEventListener('three-ready', function(){ try{ FB3D_MAIN(); }catch(e){ console.error(e); var m=document.getElementById('boot-msg'); if(m)m.textContent='تعذّر تشغيل المشهد ثلاثي الأبعاد: '+e.message; } });
+
+function FB3D_MAIN(){
+'use strict';
+/* =====================================================================
+   0) أدوات عامة
+   ===================================================================== */
+const QS=new URLSearchParams(location.search);
+const TS=Math.min(60,Math.max(.1,parseFloat(QS.get('ts'))||1));   // مقياس زمن للاختبارات الآلية فقط (الافتراضي 1)
+if(QS.has('clean')) document.body.classList.add('clean');
+/* EHSEMHA-EMBED: وضع التضمين داخل احسمها (?embed=1): لا محاكاة شات/بوتات، ولا نقر محلي، والتحكم بالبث من الموقع */
+const EMBED=QS.has('embed')||(function(){try{return window.self!==window.top}catch(e){return true}})();
+const EMB={hooks:{},link:false,emit(type,data){if(!EMBED)return;try{window.parent.postMessage({source:'ehsemha-findball',type:type,data:data||null},'*');}catch(e){}}};
+if(EMBED)document.body.classList.add('embed');
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const later=(fn,ms)=>setTimeout(fn,ms/TS);               // كل مؤقتات اللعبة تمر من هنا (TS=1 في الإنتاج)
+const VT=ms=>ms/TS;
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const easeInOutCubic=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const easeInOutSine=t=>-(Math.cos(Math.PI*t)-1)/2;
+const smoother=t=>t*t*t*(t*(t*6-15)+10);
+const easeOutBack=t=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+const easeOutCubic=t=>1-Math.pow(1-t,3);
+const easeInOutQuad=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+function hashHue(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)%360;}
+function avatarHTML(u,cls){const n=(u.nickname||u.uniqueId||'?');const h=hashHue(u.uniqueId||n);return `<span class="av ${cls||''}" style="background:hsl(${h} 45% 68%)">${esc([...n][0]||'?')}</span>`;}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;$('toasts').appendChild(t);setTimeout(()=>t.remove(),2900);}
+const toastFast=toast;
+function tweenNumber(el,to,ms){const from=parseInt(el.textContent)||0;if(from===to){el.textContent=to;return;}const t0=performance.now();(function f(n){const p=clamp((n-t0)/ms,0,1);el.textContent=Math.round(lerp(from,to,easeOutCubic(p)));if(p<1)requestAnimationFrame(f);})(t0);}
+
+/* =====================================================================
+   1) الصوت (WebAudio — مؤثرات مولّدة برمجياً، بدون ملفات خارجية)
+   ===================================================================== */
+const SFX=(()=>{
+  let ctx=null,master=null,vol=.6,muted=false,drone=null;
+  function init(){ if(ctx) return; try{ctx=new (window.AudioContext||window.webkitAudioContext)();master=ctx.createGain();master.gain.value=muted?0:vol;
+    const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=4;master.connect(comp);comp.connect(ctx.destination);}catch(e){ctx=null;} }
+  function resume(){init();if(ctx&&ctx.state==='suspended')ctx.resume();}
+  function noiseBuf(d){const n=Math.max(1,Math.floor(ctx.sampleRate*d));const b=ctx.createBuffer(1,n,ctx.sampleRate);const a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=Math.random()*2-1;return b;}
+  function noise(d,o){ if(!ctx)return; o=o||{};const s=ctx.createBufferSource();s.buffer=noiseBuf(d);const f=ctx.createBiquadFilter();f.type=o.type||'bandpass';f.frequency.value=o.f||1200;f.Q.value=o.q||1;
+    if(o.to){f.frequency.setValueAtTime(o.f,ctx.currentTime);f.frequency.exponentialRampToValueAtTime(o.to,ctx.currentTime+d);}
+    const g=ctx.createGain();const t=ctx.currentTime+(o.delay||0);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(o.gain||.2,t+(o.a||.006));g.gain.exponentialRampToValueAtTime(0.0001,t+d);
+    s.connect(f);f.connect(g);g.connect(master);s.start(t);s.stop(t+d+.02);}
+  function tone(fr,d,o){ if(!ctx)return;o=o||{};const os=ctx.createOscillator();os.type=o.type||'sine';const t=ctx.currentTime+(o.delay||0);os.frequency.setValueAtTime(fr,t);if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+d);
+    const g=ctx.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(o.gain||.15,t+(o.a||.005));g.gain.exponentialRampToValueAtTime(0.0001,t+d);os.connect(g);g.connect(master);os.start(t);os.stop(t+d+.02);}
+  const api={
+    resume, setVolume(v){vol=v;if(master)master.gain.value=muted?0:vol;}, setMuted(m){muted=m;if(master)master.gain.value=muted?0:vol;}, get muted(){return muted;},
+    lift(){ noise(.16,{f:2200,to:3600,q:2,gain:.07}); tone(1900,.28,{gain:.035,type:'triangle'}); tone(2860,.22,{gain:.02,delay:.01}); },
+    place(){ tone(110,.16,{to:48,gain:.28}); noise(.07,{type:'lowpass',f:1400,gain:.2}); tone(2400,.1,{gain:.03,delay:.004}); },
+    swap(speed){ const d=clamp(.2/Math.sqrt(speed),.07,.22); noise(d,{f:500,to:1500*Math.min(2,speed),q:1.2,gain:.05+Math.min(.04,speed*.01)}); noise(.04,{type:'lowpass',f:900,gain:.06,delay:d*.85}); },
+    tension(level){ if(!ctx)return; api.stopTension(); const o1=ctx.createOscillator(),o2=ctx.createOscillator(),lfo=ctx.createOscillator(),lg=ctx.createGain(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+      o1.type='sawtooth';o2.type='triangle';o1.frequency.value=55;o2.frequency.value=82.4;f.type='lowpass';f.frequency.value=260+level*40;lfo.frequency.value=1.6+level*.35;lg.gain.value=.03;
+      g.gain.value=0.0001;g.gain.exponentialRampToValueAtTime(.05,ctx.currentTime+1.2);lfo.connect(lg);lg.connect(g.gain);o1.connect(f);o2.connect(f);f.connect(g);g.connect(master);o1.start();o2.start();lfo.start();drone={o1,o2,lfo,g}; },
+    stopTension(){ if(!drone||!ctx)return;const d=drone;drone=null;try{d.g.gain.cancelScheduledValues(ctx.currentTime);d.g.gain.setValueAtTime(Math.max(d.g.gain.value,.0002),ctx.currentTime);d.g.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.5);setTimeout(()=>{try{d.o1.stop();d.o2.stop();d.lfo.stop();}catch(e){}},700);}catch(e){} },
+    pulse(){ tone(70,.22,{to:45,gain:.12}); },
+    tick(last){ tone(last?1320:880,.07,{gain:.07,type:'square'}); },
+    reveal(){ tone(300,.5,{to:1200,gain:.08,type:'triangle'}); noise(.5,{f:800,to:5000,q:.8,gain:.05}); [1568,2093,2637].forEach((f,i)=>tone(f,.9,{gain:.05,delay:.38+i*.07})); },
+    win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.55,{type:'triangle',gain:.12,delay:i*.11})); tone(262,1.2,{gain:.1,type:'sine',delay:.4}); },
+    join(){ tone(660,.09,{gain:.06,type:'triangle'}); tone(990,.12,{gain:.05,delay:.06,type:'triangle'}); },
+    ok(){ tone(740,.1,{gain:.06,type:'triangle'}); tone(1110,.14,{gain:.05,delay:.07,type:'triangle'}); },
+    elim(){ tone(330,.28,{to:180,gain:.07,type:'triangle'}); },
+    revive(){ [392,523,659,784].forEach((f,i)=>tone(f,.3,{gain:.07,type:'triangle',delay:i*.08})); },
+    num(i){ tone(500+i*120,.09,{gain:.05,type:'triangle'}); }
+  };
+  return api;
+})();
+document.addEventListener('pointerdown',()=>SFX.resume(),{once:false,passive:true});
+
+/* =====================================================================
+   2) ENGINE PORT — منطق اللعبة الأصلي (منقول من index.html بنفس الأسماء والخطوات)
+      الفرق الوحيد: أماكن تعديل DOM القديمة للأكواب استُبدلت بنداءات VIS.*
+      (طبقة العرض). لا يوجد هنا أي مصدر حقيقة ثانٍ لمكان الكرة.
+   ===================================================================== */
+let findballUser='', findballKeyword='';
+let findballGameStatus='waiting';
+let findballParticipants=new Map();
+let findballPendingFollowers=new Map();
+let findballKickedDuringRound=new Set();
+let findballRoundNum=0;
+let findballBallCup=null;
+let findballLastWinningSlot=null;
+let findballGuesses=new Map();
+let findballGuessedUids=new Set();
+let FINDBALL_SHUFFLE_MIN_MS=6000, FINDBALL_SHUFFLE_SPEEDUP_PERCENT=15, FINDBALL_SHUFFLE_FLOOR_MS=1800, FINDBALL_SWAP_COUNT=6;
+let findballRevivalEnabled=false, findballRevivalMaxUses=2;
+let findballShuffling=false;
+let findballRunId=0;
+let findballGuessTimerEnabled=true, FINDBALL_GUESS_TIMER_SECONDS=10;
+let findballGuessTimerInterval=null, findballGuessTimeLeft=0;
+let findballSlotOfCup={}, findballCupInSlot={};
+let findballEliminatedHistory=new Set();
+let findballRevivalCounts=new Map();
+let findballRevivalMap=new Map();          // (في الموقع: يُملأ من Firestore) — هنا فارغ
+const gamePausedForRevival={};
+const isGamePausedForRevival=tag=>!!gamePausedForRevival[tag];
+
+/* --- دوال الموقع العامة التي يعتمد عليها المحرك (نسخ مبسّطة للوضع المستقل) --- */
+function foldChatDigits(s){return String(s==null?'':s).replace(/[‎‏‪-‮⁦-⁩]/g,'').replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x0660)).replace(/[۰-۹]/g,d=>String(d.charCodeAt(0)-0x06F0));}
+function normalize(s){return (s||'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ت').replace(/ى/g,'ي').trim().toLowerCase();}
+const JOIN_DIACRITICS_RE=/[ؐ-ًؚ-ٰٟۖ-ۭـ]/g;
+const JOIN_INVISIBLES_RE=/[​-‏‪-‮⁦-⁩﻿­]/g;
+function normalizeJoinText(s){let t=foldChatDigits(s).replace(JOIN_INVISIBLES_RE,'');try{t=t.normalize('NFKC');}catch(e){}
+  t=t.replace(JOIN_DIACRITICS_RE,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ت').toLowerCase();
+  try{t=t.replace(/[^\p{L}\p{N}]/gu,'');}catch(e){t=t.replace(/[\s\-_.,،!؟?]/g,'');}return t;}
+function joinTextMatches(text,keyword){const a=normalizeJoinText(text),b=normalizeJoinText(keyword);return !!b&&a===b;}
+function modGetSetting(game,key,def){const el=$('set-'+key);if(!el)return def;if(el.type==='checkbox')return el.checked;const v=parseFloat(el.value);if(isNaN(v))return def;return v*(parseFloat(el.dataset.mul)||1);}
+function checkAndConsumeImmunity(){return false;}          // الموقع: نظام الحماية الحقيقي
+function checkAndConsumeRevival(uid,nick,map,tag){const e=map.get(uid);if(!e||!(e.usesRemaining>0))return false;e.usesRemaining--;if(e.usesRemaining<=0)map.delete(uid);toast(nick+' رجع للعبة بإنعاش من هدية!');VIS.revival({nickname:nick,uniqueId:uid});return true;}
+function revivalCountAndCheck(m,uid,max){const cap=(typeof max==='number'&&max>0)?max:2;const used=m.get(uid)||0;if(used>=cap)return false;m.set(uid,used+1);return true;}
+function liveRoundsMirror(){}
+function contestNoteRoundStarted(){ try{ EMB.emit('round-start',{round:findballRoundNum+1}); if(EMB.hooks.onRoundStart)EMB.hooks.onRoundStart(); }catch(e){} }   // EHSEMHA-EMBED: يبلغ الموقع ببدء الجولة
+function recordWin(user){ try{ EMB.emit('winner',{uniqueId:user&&user.uniqueId,nickname:user&&user.nickname}); if(EMB.hooks.onWin)EMB.hooks.onWin(user,'اعثر على الكورة'); }catch(e){} }   // EHSEMHA-EMBED: تسجيل الفوز بنظام الموقع
+
+/* ---------- الحالة ---------- */
+function findballSetGameStatus(s){
+  const strip=$('findball-status-strip'),btn=$('findball-btn-round');
+  const act=(s==='hiding'||s==='shuffling'||s==='guessing'||s==='revealing');
+  strip.className='status-strip '+(act?'active':(s==='finished'?'finished':'waiting'));
+  const chip=$('chip-status');chip.className='chip status '+(act?'active':(s==='finished'?'finished':''));
+  const T={waiting:['في انتظار المشاركين','في انتظار المشاركين — اكتب الكلمة المفتاحية في شات البث','ابدأ الجولة',false],
+    hiding:['إخفاء الكورة','إخفاء الكورة تحت كوب عشوائي...','الجولة شغالة...',true],
+    shuffling:['الخلط','الأكواب تتبادل الأماكن...','الجولة شغالة...',true],
+    guessing:['التخمين','اكتبوا رقم الكوب بالشات بسرعة!','الجولة شغالة...',true],
+    revealing:['كشف الكورة','كشف الكورة...','الجولة شغالة...',true],
+    'finished-round':['انتهت الجولة','انتهت الجولة — اضغط للمتابعة للجولة التالية','الجولة التالية',false],
+    finished:['انتهت اللعبة','انتهت اللعبة!','ابدأ الجولة',true]}[s];
+  $('bb-msg').innerHTML=({waiting:'اكتب <em>كلمة الانضمام</em> في الشات للدخول',hiding:'ركّز على الكوب اللي تحته الكورة...',shuffling:'تابع الأكواب بعينك!',guessing:'اكتب <em>رقم الكوب</em> (1 · 2 · 3) في الشات','revealing':'كشف الكورة...','finished-round':'انتهت الجولة — اضغط للمتابعة',finished:'انتهت اللعبة'})[s]||'';
+  $('chip-status-txt').textContent=T[0];strip.textContent=T[1];btn.textContent=T[2];btn.disabled=T[3];
+  $('findball-timer-box');
+  VIS.status(s);
+}
+
+/* ---------- المشاركون ---------- */
+function buildParticipantChip(user,n,id){const d=document.createElement('div');d.className='pchip';d.id=id;d.innerHTML=avatarHTML(user)+'<span>'+esc(user.nickname||user.uniqueId)+'</span><em>'+n+'</em>';return d;}
+function findballJoinParticipant(user){
+  if(findballParticipants.has(user.uniqueId))return;
+  if(findballKickedDuringRound.has(user.uniqueId))return;
+  findballParticipants.set(user.uniqueId,user);
+  $('findball-p-count').textContent=findballParticipants.size;UI.stats();
+  const c=$('findball-p-usernames');const ph=c.querySelector('.p-empty-placeholder');if(ph)ph.remove();
+  c.appendChild(buildParticipantChip(user,findballParticipants.size,'findballtag-'+user.uniqueId));
+  if(['hiding','shuffling','guessing'].includes(findballGameStatus))toastFast(user.nickname+' انضم — بينتظر الجولة الجاية');
+  else toast(user.nickname+' انضم!');
+  SFX.join();
+  liveRoundsMirror('findball',findballParticipants);
+}
+
+/* ---------- بدء الجولة ---------- */
+function findballStartRoundClick(){
+  if(isGamePausedForRevival('findball')){toast('الجولة متوقفة مؤقتاً بسبب إنعاش لاعب...');return;}
+  if(findballGameStatus!=='waiting'&&findballGameStatus!=='finished-round')return;
+  if(findballRoundNum===0&&findballParticipants.size<2){toast('لازم شخصان على الأقل قبل بدء الجولة');return;}
+
+  FINDBALL_SHUFFLE_MIN_MS=modGetSetting('findball','shuffleMinMs',6000);
+  FINDBALL_SHUFFLE_SPEEDUP_PERCENT=modGetSetting('findball','shuffleSpeedupPercent',15);
+  FINDBALL_SHUFFLE_FLOOR_MS=modGetSetting('findball','shuffleMinFloorMs',1800);
+  FINDBALL_SWAP_COUNT=modGetSetting('findball','swapCount',6);
+  findballRevivalEnabled=modGetSetting('findball','revivalEnabled',true);
+  findballRevivalMaxUses=modGetSetting('findball','revivalMaxUses',2);
+  findballGuessTimerEnabled=modGetSetting('findball','guessTimerEnabled',true);
+  FINDBALL_GUESS_TIMER_SECONDS=modGetSetting('findball','guessTimerSeconds',10);
+
+  findballRoundNum++;
+  UI.enterRound();
+  $('findball-round-num').textContent=findballRoundNum;
+  tweenNumber($('findball-round-survivors'),findballParticipants.size,500);
+  $('findball-results-overlay').classList.remove('show');
+  $('findball-btn-round').disabled=true;
+
+  findballGameStatus='hiding';
+  findballSetGameStatus('hiding');
+  contestNoteRoundStarted('findball');
+  findballBuildCups();
+  findballHideBall();
+}
+
+/* ---------- الأكواب (معرّفات ثابتة a/b/c + خريطة المواقع) ---------- */
+function findballBuildCups(){
+  findballSlotOfCup={a:1,b:2,c:3};
+  findballCupInSlot={1:'a',2:'b',3:'c'};
+  VIS.build(findballSlotOfCup);
+}
+function findballRedrawNumbers(){VIS.numbers(true,findballSlotOfCup);}
+
+function findballHideBall(){
+  const run=++findballRunId;
+  const hiddenSlot=1+Math.floor(Math.random()*3);
+  const cupId=findballCupInSlot[hiddenSlot];
+  VIS.hideLift(cupId,run);                        // (قبل: cupEl.classList.add('lifted'))
+  later(()=>{
+    if(run!==findballRunId)return;
+    VIS.ballShow(cupId);                          // (قبل: ballEl.classList.add('show'))
+    later(()=>{
+      if(run!==findballRunId)return;
+      VIS.hideLower(cupId);                       // (قبل: cupEl.classList.remove('lifted'))
+      later(()=>{
+        if(run!==findballRunId)return;
+        VIS.ballHide(cupId);
+        findballGameStatus='shuffling';
+        findballSetGameStatus('shuffling');
+        findballShuffle(cupId);
+      },500);
+    },700);
+  },500);
+}
+
+/* ---------- الخلط ---------- */
+function findballShuffle(ballCupId){
+  if(findballShuffling)return;
+  findballShuffling=true;
+  const speedupFactor=Math.pow(1-(FINDBALL_SHUFFLE_SPEEDUP_PERCENT/100),Math.max(0,findballRoundNum-1));
+  const totalDuration=Math.max(FINDBALL_SHUFFLE_FLOOR_MS,FINDBALL_SHUFFLE_MIN_MS*speedupFactor);
+  const swaps=FINDBALL_SWAP_COUNT+Math.min(6,findballRoundNum-1);
+  const stepMs=Math.max(180,totalDuration/swaps);
+  VIS.shuffleStart({stepMs,swaps,totalDuration,round:findballRoundNum,speed:Math.max(1,FINDBALL_SHUFFLE_MIN_MS/Math.max(1,totalDuration))});
+
+  let step=0;
+  const run=findballRunId;
+  function doSwap(){
+    if(run!==findballRunId)return;
+    step++;
+    const cupIds=['a','b','c'];
+    const cupA=cupIds[Math.floor(Math.random()*3)];
+    let cupB=cupIds[Math.floor(Math.random()*3)];
+    while(cupB===cupA)cupB=cupIds[Math.floor(Math.random()*3)];
+    const slotA=findballSlotOfCup[cupA],slotB=findballSlotOfCup[cupB];
+    findballSlotOfCup[cupA]=slotB;findballSlotOfCup[cupB]=slotA;
+    findballCupInSlot[slotA]=cupB;findballCupInSlot[slotB]=cupA;
+    VIS.swap(findballSlotOfCup,stepMs,{step,swaps,cupA,cupB});   // (قبل: style.left = ...%)
+
+    if(step<swaps){
+      later(doSwap,stepMs);
+    }else{
+      let finalSlot=findballSlotOfCup[ballCupId];
+      if(finalSlot===findballLastWinningSlot){
+        const others=['a','b','c'].filter(id=>id!==ballCupId);
+        const partner=others[Math.floor(Math.random()*others.length)];
+        const slotBall=findballSlotOfCup[ballCupId],slotPartner=findballSlotOfCup[partner];
+        findballSlotOfCup[ballCupId]=slotPartner;findballSlotOfCup[partner]=slotBall;
+        findballCupInSlot[slotBall]=partner;findballCupInSlot[slotPartner]=ballCupId;
+        VIS.swap(findballSlotOfCup,stepMs,{step,swaps,cupA:ballCupId,cupB:partner,silent:true});
+        finalSlot=findballSlotOfCup[ballCupId];
+      }
+      findballRedrawNumbers();
+      findballBallCup=finalSlot;
+      findballLastWinningSlot=finalSlot;
+      findballShuffling=false;
+      VIS.shuffleEnd(findballSlotOfCup,ballCupId);
+      findballOpenGuessing();
+    }
+  }
+  later(doSwap,stepMs);
+}
+
+/* ---------- التخمين ---------- */
+function findballOpenGuessing(){
+  findballGuesses.clear();findballGuessedUids.clear();findballKickedDuringRound.clear();
+  findballGameStatus='guessing';
+  findballSetGameStatus('guessing');
+  VIS.guessOpen();
+  if(findballGuessTimerEnabled){findballStartGuessTimer();toast('خمّنوا رقم الكوب اللي فيه الكورة! عندكم '+FINDBALL_GUESS_TIMER_SECONDS+' ثانية');}
+  else{VIS.timerHide();toast('خمّنوا رقم الكوب اللي فيه الكورة بالشات بسرعة!');}
+  Bots.onGuessOpen();
+  UI.guessButtons(true);
+}
+function findballClearGuessTimer(){if(findballGuessTimerInterval){clearInterval(findballGuessTimerInterval);findballGuessTimerInterval=null;}}
+function findballStartGuessTimer(){
+  findballClearGuessTimer();
+  findballGuessTimeLeft=FINDBALL_GUESS_TIMER_SECONDS;
+  VIS.timerShow(findballGuessTimeLeft,FINDBALL_GUESS_TIMER_SECONDS);
+  findballGuessTimerInterval=setInterval(()=>{
+    if(isGamePausedForRevival('findball'))return;
+    findballGuessTimeLeft--;
+    VIS.timerTick(findballGuessTimeLeft,FINDBALL_GUESS_TIMER_SECONDS);
+    if(findballGuessTimeLeft<=0){findballClearGuessTimer();if(findballGameStatus==='guessing')findballRevealBall();}
+  },VT(1000));
+}
+function findballProcessGuess(user,text){
+  if(isGamePausedForRevival('findball'))return;
+  if(findballGameStatus!=='guessing')return;
+  if(!findballParticipants.has(user.uniqueId))return;
+  if(findballGuessedUids.has(user.uniqueId))return;
+  const numRaw=normalize(foldChatDigits(text)).trim();
+  if(!/^[123]$/.test(numRaw))return;
+  const num=parseInt(numRaw,10);
+  findballGuesses.set(user.uniqueId,num);
+  findballGuessedUids.add(user.uniqueId);
+  UI.chatCard(user,num);
+  if(findballGuessedUids.size>=findballParticipants.size)findballRevealBall();
+}
+
+/* ---------- الكشف والحسم ---------- */
+function findballRevealBall(){
+  if(findballGameStatus!=='guessing')return;
+  findballClearGuessTimer();
+  findballGameStatus='revealing';
+  findballSetGameStatus('revealing');
+  VIS.timerHide();
+  UI.guessButtons(false);
+  const winningSlot=findballBallCup;
+  const winningCupId=findballCupInSlot[winningSlot];
+  VIS.reveal(winningCupId,winningSlot);
+  const run=findballRunId;
+  later(()=>{if(run===findballRunId)findballResolveRound(winningSlot);},900);
+}
+function findballResolveRound(winningCup){
+  const correctUsers=[],eliminated=[];
+  findballParticipants.forEach((user,uid)=>{
+    const guess=findballGuesses.get(uid);
+    if(guess===winningCup){correctUsers.push(user);return;}
+    if(checkAndConsumeImmunity(uid,user.nickname)){correctUsers.push(user);return;}
+    if(checkAndConsumeRevival(uid,user.nickname,findballRevivalMap,'findball')){correctUsers.push(user);return;}
+    eliminated.push(user);
+  });
+  eliminated.forEach(user=>{findballParticipants.delete(user.uniqueId);findballEliminatedHistory.add(user.uniqueId);});UI.elimTotal+=eliminated.length;UI.stats();
+  liveRoundsMirror('findball',findballParticipants);
+
+  findballShowResultsOverlay(correctUsers,eliminated);
+
+  UI.leaveRound();
+  $('findball-p-count').textContent=findballParticipants.size;UI.stats();
+  $('findball-p-usernames').innerHTML='';
+  let n=0;
+  findballParticipants.forEach(user=>{n++;$('findball-p-usernames').appendChild(buildParticipantChip(user,n,'findballtag-'+user.uniqueId));});
+
+  findballGameStatus='finished-round';
+  findballSetGameStatus('finished-round');
+
+  if(findballParticipants.size<=1){
+    const winner=findballParticipants.size===1?[...findballParticipants.values()][0]:null;
+    findballGameStatus='finished';
+    findballSetGameStatus('finished');
+    if(winner)later(()=>findballShowWinner(winner),900);
+    return;
+  }
+  $('findball-btn-round').disabled=false;
+  $('findball-btn-round').textContent='الجولة التالية';
+}
+function findballShowResultsOverlay(correctUsers,eliminatedUsers){
+  VIS.results(correctUsers,eliminatedUsers,findballBallCup);
+}
+function findballCloseResultsOverlay(){VIS.closeResults();}
+function findballShowWinner(user){
+  recordWin(user,'اعثر على الكورة',1);
+  VIS.winner(user);
+}
+
+/* ---------- الإنعاش (نسخة طبق الأصل من findballHandleGift) ---------- */
+function findballHandleGift(user,giftName,diamondValue){
+  if(!findballRevivalEnabled)return;
+  if(findballParticipants.has(user.uniqueId))return;
+  if(!findballEliminatedHistory.has(user.uniqueId))return;
+  if(findballGameStatus==='finished'||findballGameStatus==='waiting')return;
+  if(!revivalCountAndCheck(findballRevivalCounts,user.uniqueId,findballRevivalMaxUses))return;
+  findballEliminatedHistory.delete(user.uniqueId);
+  triggerGiftRevivalFreeze('findball',user);
+  later(()=>findballJoinParticipant(Object.assign({},user,{isFollower:true})),3000);
+}
+function triggerGiftRevivalFreeze(tag,user){            // الموقع: تجميد 3 ثوانٍ + مشهد الإنعاش
+  gamePausedForRevival[tag]=true;$('pause-badge').classList.remove('hide');
+  VIS.revival(user);
+  later(()=>{gamePausedForRevival[tag]=false;$('pause-badge').classList.add('hide');},3000);
+}
+
+/* ---------- إعادة الضبط / الخروج (حماية findballRunId) ---------- */
+function findballResetGame(){
+  findballRunId++;                         // يُبطل كل المؤقتات المعلّقة من الجولة القديمة
+  findballClearGuessTimer();
+  findballShuffling=false;
+  findballGameStatus='waiting';findballRoundNum=0;findballBallCup=null;findballLastWinningSlot=null;
+  findballGuesses.clear();findballGuessedUids.clear();findballEliminatedHistory.clear();findballRevivalCounts.clear();
+  gamePausedForRevival.findball=false;$('pause-badge').classList.add('hide');
+  Bots.clear();
+  VIS.reset();
+  UI.reset();
+  findballSetGameStatus('waiting');
+}
+
+/* =====================================================================
+   3) VIS — طبقة العرض ثلاثية الأبعاد (تستقبل أحداث المحرك فقط)
+   ===================================================================== */
+const SLOT_X={1:-3.5,2:0,3:3.5};
+const CUP_H=2.4,CUP_R0=1.0,CUP_R1=0.66,CUP_T=0.075,LIFT_H=2.0,BALL_R=0.42;
+const MIN_CUP_DIST=2.1;   // قطر قاعدة الكوب (1.0 + حزام الحافة .045) × 2 ≈ 2.09
+
+/* --- renderer / scene --- */
+const canvas=$('fb3d-canvas');
+let renderer;
+try{renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance',preserveDrawingBuffer:QS.has('shot')});}
+catch(e){throw new Error('المتصفح لا يدعم WebGL');}
+renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=.82;
+renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x080816,1);
+const scene=new THREE.Scene();
+scene.fog=new THREE.Fog(0x080816,32,72);
+const camera=new THREE.PerspectiveCamera(32,16/9,.1,120);
+const camRig={pos:new THREE.Vector3(0,9.4,14.2),look:new THREE.Vector3(0,.7,.6),fov:32,
+  tPos:new THREE.Vector3(0,9.4,14.2),tLook:new THREE.Vector3(0,.7,.6),tFov:32,rate:3,shot:'A',w:6.4};
+
+/* --- بيئة انعكاسات الاستوديو (PMREM من صناديق إضاءة داخلية) --- */
+function makeEnv(size){
+  const env=new THREE.Scene();
+  const room=new THREE.Mesh(new THREE.BoxGeometry(60,40,60),new THREE.MeshBasicMaterial({color:0x0d0b22,side:THREE.BackSide}));room.position.y=14;env.add(room);
+  function box(w,h,x,y,z,col,int,rx,ry){const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({color:new THREE.Color(col).multiplyScalar(int),side:THREE.DoubleSide}));m.position.set(x,y,z);m.rotation.set(rx||0,ry||0,0);env.add(m);}
+  box(20,8,0,17,2,0xfff4e0,3.6,Math.PI/2,0);                 // سوفت بوكس علوي كبير
+  box(4,12,-17,7,9,0xffe9c8,2.8,0,Math.PI/2.6);                // جانب أمامي أيسر دافئ
+  box(3,11,18,6,3,0x6f9bff,1.1,0,-Math.PI/2.3);                // جانب أيمن أزرق (fill)
+  box(2.5,10,-19,5,-6,0x8b5cf6,1.3,0,Math.PI/2.1);              // شريط بنفسجي أيسر
+  box(2.5,10,19,5,-8,0x7C3AED,1.2,0,-Math.PI/2.1);              // شريط بنفسجي أيمن
+  box(24,2.2,0,6,-20,0xc9b8ff,2.2,0,0);                       // شريط خلفي
+  box(10,3,0,2,22,0xfff0da,1.4,0,Math.PI);                    // تعبئة أمامية خافتة
+  const pm=new THREE.PMREMGenerator(renderer);
+  const rt=pm.fromScene(env,.03);pm.dispose();
+  env.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});
+  return rt.texture;
+}
+
+/* --- نسيج بروسي/نورمال ماب إجرائي --- */
+function brushedHeight(w,h,vertical){
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');const id=x.createImageData(w,h);
+  const rows=vertical?w:h;const base=new Float32Array(rows);let v=.5;for(let i=0;i<rows;i++){v=clamp(v+(Math.random()-.5)*.18,.15,.85);base[i]=v;}
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const b=base[vertical?i:j];const n=(Math.random()-.5)*.1;const val=clamp(b+n,0,1)*255;const k=(j*w+i)*4;id.data[k]=id.data[k+1]=id.data[k+2]=val;id.data[k+3]=255;}
+  x.putImageData(id,0,0);return c;
+}
+function heightToNormal(src,strength){
+  const w=src.width,h=src.height;const sx=src.getContext('2d').getImageData(0,0,w,h).data;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');const out=x.createImageData(w,h);
+  const H=(i,j)=>sx[(((j+h)%h)*w+((i+w)%w))*4]/255;
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++){const dx=(H(i+1,j)-H(i-1,j))*strength,dy=(H(i,j+1)-H(i,j-1))*strength;const l=Math.hypot(dx,dy,1);const k=(j*w+i)*4;
+    out.data[k]=(-dx/l*.5+.5)*255;out.data[k+1]=(dy/l*.5+.5)*255;out.data[k+2]=(1/l*.5+.5)*255;out.data[k+3]=255;}
+  x.putImageData(out,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=8;return t;
+}
+function rrPath(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+function blobTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const g=x.createRadialGradient(64,64,6,64,64,64);g.addColorStop(0,'rgba(0,0,0,.85)');g.addColorStop(.55,'rgba(0,0,0,.35)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);}
+function glowTexture(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const g=x.createRadialGradient(64,64,30,64,64,64);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(.62,'rgba(255,255,255,.9)');g.addColorStop(.8,'rgba(255,255,255,.25)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);}
+
+/* --- المواد --- */
+const brushV=brushedHeight(64,512,false), brushH=brushedHeight(512,64,true);
+const nrmCup=heightToNormal(brushV,2.2); nrmCup.repeat.set(1,1);
+const nrmTable=heightToNormal(brushH,1.8); nrmTable.repeat.set(5,5);
+const MAT={
+  titanium:new THREE.MeshStandardMaterial({color:0x8e939b,metalness:1,roughness:.34,normalMap:nrmCup,normalScale:new THREE.Vector2(.1,.1),envMapIntensity:.95}),
+  graphite:new THREE.MeshStandardMaterial({color:0x1a1730,metalness:.7,roughness:.5,envMapIntensity:.7}),
+  silver:new THREE.MeshStandardMaterial({color:0xa3a8b0,metalness:1,roughness:.24,envMapIntensity:.8}),
+  tableTop:new THREE.MeshStandardMaterial({color:0x08070f,metalness:.55,roughness:.55,normalMap:nrmTable,normalScale:new THREE.Vector2(.12,.12),envMapIntensity:.2}),
+  tableEdge:new THREE.MeshStandardMaterial({color:0x80848e,metalness:1,roughness:.3,envMapIntensity:.5}),
+  dark:new THREE.MeshStandardMaterial({color:0x100e22,metalness:.85,roughness:.45}),
+  wall:new THREE.MeshStandardMaterial({color:0x16122e,metalness:.8,roughness:.55,envMapIntensity:.4}),
+  floor:new THREE.MeshStandardMaterial({color:0x0b0a1a,metalness:.55,roughness:.42,envMapIntensity:.35}),
+  ball:new THREE.MeshStandardMaterial({color:0xE2B450,metalness:1,roughness:.16,envMapIntensity:1.6,emissive:0x6b4a10,emissiveIntensity:.35})
+};
+
+/* --- الاستوديو + الطاولة --- */
+const world=new THREE.Group();scene.add(world);
+const TABLE_Y=0;
+function buildStudio(){
+  // أرضية
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(120,120),MAT.floor);floor.rotation.x=-Math.PI/2;floor.position.y=-3.2;floor.receiveShadow=true;world.add(floor);
+  // جدار خلفي بألواح معدنية رأسية + فواصل مضيئة خافتة
+  const wallZ=-15;const strips=new THREE.Group();world.add(strips);
+  const stripMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0x7C3AED).multiplyScalar(.7)});
+  for(let i=-9;i<=9;i++){
+    const p=new THREE.Mesh(new THREE.BoxGeometry(2.1,16,.4),MAT.wall);p.position.set(i*2.3,4.8,wallZ);p.receiveShadow=true;world.add(p);
+    const s=new THREE.Mesh(new THREE.BoxGeometry(.06,15,.1),stripMat);s.position.set(i*2.3+1.15,4.8,wallZ+.22);strips.add(s);
+  }
+  // لوح أفقي معدني + شريط ضوء سفلي
+  const rail=new THREE.Mesh(new THREE.BoxGeometry(46,.35,.7),MAT.tableEdge);rail.position.set(0,-1.8,wallZ+.5);world.add(rail);
+  const rail2=new THREE.Mesh(new THREE.BoxGeometry(46,.08,.12),new THREE.MeshBasicMaterial({color:new THREE.Color(0xffe0b0).multiplyScalar(1.1)}));rail2.position.set(0,-1.6,wallZ+.9);world.add(rail2);
+  // جدران جانبية مائلة
+  [-1,1].forEach(sg=>{const w=new THREE.Mesh(new THREE.BoxGeometry(.6,16,34),MAT.wall);w.position.set(sg*25,4.8,-2);w.rotation.y=sg*-.12;world.add(w);});
+  // سقف مظلم + بارات إضاءة
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(80,50),new THREE.MeshStandardMaterial({color:0x0a0b0d,roughness:.9,metalness:.2}));ceil.rotation.x=Math.PI/2;ceil.position.set(0,13.5,-4);world.add(ceil);
+  [-4,4].forEach(x=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.25,.08,16),new THREE.MeshBasicMaterial({color:new THREE.Color(0xfff2dc).multiplyScalar(1.6)}));b.position.set(x,13.3,-2);world.add(b);});
+
+  // ===== VIBRANT: خطوط ضوء بنفسجية مخفية داخل العمارة + أعمدة + شاشتان + شعار =====
+  const vioMat=new THREE.MeshBasicMaterial({color:new THREE.Color(0x7C3AED).multiplyScalar(1.5)});
+  const vioMat2=new THREE.MeshBasicMaterial({color:new THREE.Color(0x4F8CFF).multiplyScalar(1.3)});
+  VIS_REFS.lines=[vioMat,vioMat2];
+  const lineBox=(w,h,d,x,y,z,mat)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);world.add(m);return m;};
+  lineBox(46,.09,.12,0,1.6,wallZ+.9,vioMat);             // خط أفقي على الجدار الخلفي
+  lineBox(46,.07,.1,0,10.6,wallZ+.9,vioMat2);
+  lineBox(46,.1,.14,0,-3.19,-8,vioMat);                  // خط أرضي
+  [-14,-7,7,14].forEach(x=>{const pl=new THREE.Mesh(new THREE.BoxGeometry(1.5,16,1.5),MAT.dark);pl.position.set(x,4.8,wallZ+1.6);pl.receiveShadow=true;world.add(pl);
+    lineBox(.07,15,.1,x-.78,4.8,wallZ+2.4,vioMat);lineBox(.07,15,.1,x+.78,4.8,wallZ+2.4,vioMat);});
+  [-1,1].forEach(sg=>{lineBox(.1,.09,30,sg*24.6,10.2,-2,vioMat);lineBox(.1,.09,30,sg*24.6,1.2,-2,vioMat2);});
+  // شعار على الجدار الخلفي
+  {const c=document.createElement('canvas');c.width=1024;c.height=256;const x=c.getContext('2d');x.clearRect(0,0,1024,256);
+    x.textAlign='center';x.textBaseline='middle';x.font='900 150px Tajawal, Arial, sans-serif';
+    const g=x.createLinearGradient(0,40,0,220);g.addColorStop(0,'#e9dfff');g.addColorStop(1,'#8b5cf6');x.shadowColor='rgba(124,58,237,.9)';x.shadowBlur=32;x.fillStyle=g;x.fillText('احسمها',512,128);
+    const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const lg=new THREE.Mesh(new THREE.PlaneGeometry(9,2.25),new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:.95,depthWrite:false}));lg.position.set(0,7.4,wallZ+.95);world.add(lg);VIS_REFS.logo=lg;}
+  // الشاشتان الجانبيتان (حالة اللعبة) — مجرد عرض، لا تُغيّر شيئاً
+  VIS_REFS.screens=[-1,1].map(sg=>{
+    const c=document.createElement('canvas');c.width=512;c.height=768;const tex=new THREE.CanvasTexture(c);tex.encoding=THREE.sRGBEncoding;tex.anisotropy=4;
+    const grp=new THREE.Group();
+    const bezel=new THREE.Mesh(new THREE.BoxGeometry(5.6,8.2,.35),MAT.dark);grp.add(bezel);
+    const scr=new THREE.Mesh(new THREE.PlaneGeometry(5.2,7.8),new THREE.MeshBasicMaterial({map:tex}));scr.position.z=.19;grp.add(scr);
+    const edge=new THREE.Mesh(new THREE.BoxGeometry(5.75,.09,.4),vioMat);edge.position.set(0,4.17,0);grp.add(edge);
+    const edge2=edge.clone();edge2.position.y=-4.17;grp.add(edge2);
+    grp.position.set(sg*11.2,4.6,-11.5);grp.rotation.y=-sg*.34;grp.scale.setScalar(.72);world.add(grp);
+    return {c,tex,sg};});
+  // الطاولة
+  const W=16,D=9.2,R=1.0;
+  const sh=new THREE.Shape();sh.moveTo(-W/2+R,-D/2);sh.lineTo(W/2-R,-D/2);sh.quadraticCurveTo(W/2,-D/2,W/2,-D/2+R);sh.lineTo(W/2,D/2-R);sh.quadraticCurveTo(W/2,D/2,W/2-R,D/2);sh.lineTo(-W/2+R,D/2);sh.quadraticCurveTo(-W/2,D/2,-W/2,D/2-R);sh.lineTo(-W/2,-D/2+R);sh.quadraticCurveTo(-W/2,-D/2,-W/2+R,-D/2);
+  const slab=new THREE.Mesh(new THREE.ExtrudeGeometry(sh,{depth:.55,bevelEnabled:true,bevelThickness:.05,bevelSize:.05,bevelSegments:3,curveSegments:12}),MAT.tableTop);
+  slab.rotation.x=-Math.PI/2;slab.position.y=-.55;slab.receiveShadow=true;slab.castShadow=true;world.add(slab);
+  // UV planar للنسيج
+  const uv=slab.geometry.attributes.uv;const pos=slab.geometry.attributes.position;for(let i=0;i<uv.count;i++){uv.setXY(i,pos.getX(i)/W,pos.getY(i)/D);}uv.needsUpdate=true;
+  // إطار فضي رفيع
+  const outer=sh;const inner=new THREE.Path();const iw=W/2-.18,id=D/2-.18,ir=R-.15;
+  inner.moveTo(-iw+ir,-id);inner.lineTo(iw-ir,-id);inner.quadraticCurveTo(iw,-id,iw,-id+ir);inner.lineTo(iw,id-ir);inner.quadraticCurveTo(iw,id,iw-ir,id);inner.lineTo(-iw+ir,id);inner.quadraticCurveTo(-iw,id,-iw,id-ir);inner.lineTo(-iw,-id+ir);inner.quadraticCurveTo(-iw,-id,-iw+ir,-id);
+  const frameShape=new THREE.Shape(sh.getPoints(24));frameShape.holes.push(inner);
+  const frame=new THREE.Mesh(new THREE.ExtrudeGeometry(frameShape,{depth:.04,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:2}),MAT.tableEdge);
+  frame.rotation.x=-Math.PI/2;frame.position.y=.0;frame.receiveShadow=true;world.add(frame);
+  // إطار منطقة اللعب (خط تقني رفيع)
+  const zw=5.9,zd=3.4,zr=.5;const zo=new THREE.Shape();zo.moveTo(-zw+zr,-zd);zo.lineTo(zw-zr,-zd);zo.quadraticCurveTo(zw,-zd,zw,-zd+zr);zo.lineTo(zw,zd-zr);zo.quadraticCurveTo(zw,zd,zw-zr,zd);zo.lineTo(-zw+zr,zd);zo.quadraticCurveTo(-zw,zd,-zw,zd-zr);zo.lineTo(-zw,-zd+zr);zo.quadraticCurveTo(-zw,-zd,-zw+zr,-zd);
+  const zi=new THREE.Path();const a=zw-.035,b=zd-.035,r2=zr-.03;zi.moveTo(-a+r2,-b);zi.lineTo(a-r2,-b);zi.quadraticCurveTo(a,-b,a,-b+r2);zi.lineTo(a,b-r2);zi.quadraticCurveTo(a,b,a-r2,b);zi.lineTo(-a+r2,b);zi.quadraticCurveTo(-a,b,-a,b-r2);zi.lineTo(-a,-b+r2);zi.quadraticCurveTo(-a,-b,-a+r2,-b);
+  const zs=new THREE.Shape(zo.getPoints(20));zs.holes.push(zi);
+  const zl=new THREE.Mesh(new THREE.ShapeGeometry(zs),new THREE.MeshStandardMaterial({color:0x8b7cc8,metalness:1,roughness:.3,emissive:0x7C3AED,emissiveIntensity:.9}));zl.rotation.x=-Math.PI/2;zl.position.y=.008;world.add(zl);
+  // قاعدة الطاولة (ظاهرة من الأمام فقط)
+  [-5.6,5.6].forEach(x=>{const leg=new THREE.Mesh(new THREE.BoxGeometry(1.6,2.7,6.6),MAT.dark);leg.position.set(x,-1.9,0);leg.castShadow=true;world.add(leg);
+    const foot=new THREE.Mesh(new THREE.BoxGeometry(2.2,.22,7.4),MAT.tableEdge);foot.position.set(x,-3.1,0);world.add(foot);});
+  // شريط فضي أمامي (apron)
+  const ap=new THREE.Mesh(new THREE.BoxGeometry(W-1.2,.06,.04),MAT.tableEdge);ap.position.set(0,-.3,D/2+.1);world.add(ap);
+  const glowEdge=new THREE.Mesh(new THREE.BoxGeometry(W-1.0,.07,.05),vioMat);glowEdge.position.set(0,-.18,D/2+.14);world.add(glowEdge);
+  const glowEdge2=new THREE.Mesh(new THREE.BoxGeometry(W-1.0,.05,.05),vioMat2);glowEdge2.position.set(0,-.44,D/2+.14);world.add(glowEdge2);
+  {const c=document.createElement('canvas');c.width=512;c.height=96;const x=c.getContext('2d');x.textAlign='center';x.textBaseline='middle';x.font='900 66px Tajawal, Arial, sans-serif';x.fillStyle='#b9a3ff';x.shadowColor='#7C3AED';x.shadowBlur=14;x.fillText('احسمها',256,52);
+   const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;const lg=new THREE.Mesh(new THREE.PlaneGeometry(2.8,.52),new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false}));lg.position.set(0,-.3,D/2+.2);world.add(lg);}
+  // حلقات مواقع الأكواب (محفورة بخفة)
+  const ringGeo=new THREE.RingGeometry(1.14,1.2,96);
+  [1,2,3].forEach(s=>{const m=new THREE.MeshStandardMaterial({color:0xb9bfc7,metalness:1,roughness:.3,emissive:0x7C3AED,emissiveIntensity:.35,transparent:true,opacity:.8});
+    const r=new THREE.Mesh(ringGeo,m);r.rotation.x=-Math.PI/2;r.position.set(SLOT_X[s],.012,0);world.add(r);VIS_REFS.rings[s]=m;});
+}
+const VIS_REFS={rings:{},plaques:{},cups:{}};
+
+/* --- الأضواء --- */
+const L={};
+function buildLights(){
+  scene.add(new THREE.HemisphereLight(0x8b7cff,0x1a0f33,.32));
+  L.key=new THREE.SpotLight(0xffd7a0,1.5,60,.62,.55,1);L.key.position.set(-5.5,13,8);L.key.target.position.set(0,0,0);L.key.castShadow=true;
+  L.key.shadow.bias=-.0004;L.key.shadow.normalBias=.03;L.key.shadow.radius=4;scene.add(L.key,L.key.target);
+  L.top=new THREE.SpotLight(0xe8e0ff,.45,40,.5,.8,1);L.top.position.set(0,14,1.5);L.top.target.position.set(0,0,0);scene.add(L.top,L.top.target);
+  L.rim=new THREE.DirectionalLight(0x8b5cf6,1.25);L.rim.position.set(7,6,-10);scene.add(L.rim);
+  L.fill=new THREE.DirectionalLight(0x4F8CFF,.32);L.fill.position.set(10,5,9);scene.add(L.fill);
+  L.acc=new THREE.PointLight(0x7C3AED,.8,14,2);L.acc.position.set(0,.5,7.5);scene.add(L.acc);
+  L.rim2=new THREE.DirectionalLight(0x7C3AED,.85);L.rim2.position.set(-9,5,-8);scene.add(L.rim2);
+  L.focus=new THREE.SpotLight(0xffe4a8,0,30,.28,.7,1);L.focus.position.set(0,10,5);L.focus.target.position.set(0,0,0);scene.add(L.focus,L.focus.target);
+  L.good=new THREE.PointLight(0xD8B46A,0,9,2);L.good.position.set(0,1.2,1.2);scene.add(L.good);
+}
+
+/* --- الكوب: Lathe مجوّف حقيقي (جدار بسماكة + تجويف داخلي) --- */
+function cupProfile(){
+  const outerR=t=>CUP_R1+(CUP_R0-CUP_R1)*Math.pow(1-clamp(t,0,1),1.7);
+  const pts=[];const V=(r,y)=>pts.push(new THREE.Vector2(Math.max(r,.0001),y));
+  const fo=.15,fi=.085;
+  const yi=CUP_H-CUP_T;
+  const rIn=y=>outerR(y/CUP_H)-CUP_T;
+  // السقف الداخلي من المحور إلى الجدار الداخلي
+  V(0,yi);
+  const rcI=rIn(yi-fi)-fi;V(rcI,yi);
+  for(let i=1;i<=6;i++){const a=i/6*Math.PI/2;V(rcI+Math.sin(a)*fi,yi-fi+Math.cos(a)*fi);}
+  // الجدار الداخلي نزولاً
+  const N=24;for(let i=1;i<=N;i++){const y=(yi-fi)*(1-i/N);V(rIn(y),y);}
+  // حافة سفلية (شطفة) ثم الجدار الخارجي صعوداً
+  V(rIn(0)+.012,.0);V(CUP_R0-.045,.0);V(CUP_R0-.012,.006);V(CUP_R0,.03);
+  for(let i=1;i<=N;i++){const y=CUP_H-fo;const yy=.03+(y-.03)*i/N;V(outerR(yy/CUP_H),yy);}
+  const rco=outerR((CUP_H-fo)/CUP_H)-fo;
+  const cx=outerR((CUP_H-fo)/CUP_H)-fo;
+  for(let i=1;i<=8;i++){const a=i/8*Math.PI/2;V(cx+Math.cos(a)*fo,CUP_H-fo+Math.sin(a)*fo);}
+  V(cx*.55,CUP_H);V(0,CUP_H);
+  return {pts,outerR};
+}
+let CUP_GEO=null,CUP_PARTS=null;
+const VIO_IDLE=.75;
+const VIO_RING=new THREE.MeshBasicMaterial({color:new THREE.Color(0x8b5cf6).multiplyScalar(1.6)});
+function buildCupGeometries(seg){
+  const {pts,outerR}=cupProfile();
+  const body=new THREE.LatheGeometry(pts,seg);
+  // حزام الحافة اللامعة
+  const rimPts=[];[[0,0],[.05,0],[.2,0]].forEach(()=>{});
+  const rp=[new THREE.Vector2(CUP_R0-.07,0),new THREE.Vector2(CUP_R0+.03,0),new THREE.Vector2(CUP_R0+.045,.04),new THREE.Vector2(CUP_R0+.04,.15),new THREE.Vector2(CUP_R0+.02,.2),new THREE.Vector2(CUP_R0-.07,.2)];
+  const rim=new THREE.LatheGeometry(rp,seg);
+  // حزام جرافيت
+  const gp=[];for(let i=0;i<=12;i++){const y=.3+(.46)*i/12;gp.push(new THREE.Vector2(outerR(y/CUP_H)+.006,y));}
+  gp.push(new THREE.Vector2(outerR(.76/CUP_H)-.02,.76));gp.unshift(new THREE.Vector2(outerR(.3/CUP_H)-.02,.3));
+  const gband=new THREE.LatheGeometry(gp,seg);
+  const ringGeo=y=>{const t=new THREE.TorusGeometry(outerR(y/CUP_H)+.004,.009,8,seg);t.rotateX(Math.PI/2);t.translate(0,y,0);return t;};
+  const rings=[ringGeo(.9),ringGeo(.96),ringGeo(1.56)];
+  const cap=new THREE.TorusGeometry(.3,.012,8,48);cap.rotateX(Math.PI/2);cap.translate(0,CUP_H+.001,0);
+  return {body,rim,gband,rings,cap};
+}
+
+/* --- الكرة والطاولة الصغيرة للأرقام --- */
+let ball,ballShadowBlob;
+const blobTex=blobTexture(),glowTex=glowTexture();
+const blobMat=()=>new THREE.MeshBasicMaterial({map:blobTex,transparent:true,depthWrite:false,opacity:.6});
+function numberTexture(n){
+  const c=document.createElement('canvas');c.width=256;c.height=140;const x=c.getContext('2d');
+  const g=x.createLinearGradient(0,0,0,140);g.addColorStop(0,'#3a2a78');g.addColorStop(1,'#16102f');rrPath(x,4,4,248,132,22);x.fillStyle=g;x.fill();
+  x.lineWidth=4;x.strokeStyle='#A78BFA';x.stroke();
+  x.fillStyle='#F5F3FF';x.font='900 96px Tajawal, Arial, sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(String(n),128,76);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t;
+}
+
+/* --- حامل الكوب (Rig) --- */
+const RIGS={};
+class CupRig{
+  constructor(id,slot,geo){
+    this.id=id;this.slot=slot;this.targetSlot=slot;
+    this.root=new THREE.Group();this.pos={x:SLOT_X[slot],z:0};this.lift=0;this.vx=0;this.vz=0;this.px=this.pos.x;this.pz=0;
+    this.mv=null;this.segs=[];this.pulse=null;this.tiltBase=0;
+    this.rimMat=MAT.silver.clone();this.rimMat.emissive=new THREE.Color(0x7C3AED);this.rimMat.emissiveIntensity=VIO_IDLE;
+    const m=(g,mat,cast)=>{const o=new THREE.Mesh(g,mat);o.castShadow=cast!==false;o.receiveShadow=true;this.root.add(o);return o;};
+    this.body=m(geo.body,MAT.titanium);this.rim=m(geo.rim,this.rimMat);this.gband=m(geo.gband,MAT.graphite);
+    geo.rings.forEach((r,i)=>m(r,i===2?VIO_RING:MAT.silver,false));m(geo.cap,MAT.silver,false);
+    this.blob=new THREE.Mesh(new THREE.PlaneGeometry(3.6,3.6),blobMat());this.blob.rotation.x=-Math.PI/2;this.blob.position.y=.016;
+    this.glow=new THREE.Mesh(new THREE.PlaneGeometry(3.0,3.0),new THREE.MeshBasicMaterial({map:glowTex,color:0xD8B46A,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending}));this.glow.rotation.x=-Math.PI/2;this.glow.position.y=.02;
+    this.hit=new THREE.Mesh(new THREE.CylinderGeometry(1.05,1.05,CUP_H,16),new THREE.MeshBasicMaterial({visible:false}));this.hit.position.y=CUP_H/2;this.hit.userData.cupId=id;this.root.add(this.hit);
+    world.add(this.root,this.blob,this.glow);
+    this.apply(performance.now(),1/60);
+  }
+  startMove(now,x1,z1,dur,lane,slot){
+    this.sample(now);                         // الموضع الحقيقي لحظة البدء (لا قيمة الإطار السابق)
+    this.mv={t0:now,dur,x0:this.pos.x,z0:this.pos.z,x1,z1,lane};this.targetSlot=slot;
+  }
+  setLift(now,from,to,delay,dur,ease,append){const seg={t0:now+delay,dur,from,to,ease:ease||easeInOutCubic};if(append)this.segs.push(seg);else this.segs=[seg];}
+  sample(now){
+    if(this.mv){const m=this.mv;const p=clamp((now-m.t0)/m.dur,0,1);const ee=m.dur<420?easeInOutSine(p)*.35+smoother(p)*.65:smoother(p)*.45+easeInOutCubic(p)*.55;
+      this.pos.x=m.x0+(m.x1-m.x0)*ee;this.pos.z=m.z0+(m.z1-m.z0)*ee+m.lane*Math.sin(Math.PI*ee);
+      if(p>=1){this.pos.x=m.x1;this.pos.z=m.z1;this.mv=null;}}
+    if(this.segs.length){let v=this.lift;for(const g of this.segs){if(now<g.t0)break;const p=clamp((now-g.t0)/g.dur,0,1);v=g.from+(g.to-g.from)*g.ease(p);}this.lift=v;
+      while(this.segs.length&&now>=this.segs[0].t0+this.segs[0].dur&&(this.segs.length>1||true)){this.lift=this.segs[0].to;this.segs.shift();if(this.segs.length&&now<this.segs[0].t0)break;}}
+  }
+  apply(now,dt){
+    this.sample(now);
+    const ivx=dt>0?(this.pos.x-this.px)/dt:0,ivz=dt>0?(this.pos.z-this.pz)/dt:0;
+    this.vx=lerp(this.vx,ivx,.35);this.vz=lerp(this.vz,ivz,.35);this.px=this.pos.x;this.pz=this.pos.z;
+    const r=this.root;r.position.set(this.pos.x,this.lift,this.pos.z);
+    const lf=clamp(this.lift/LIFT_H,0,1);
+    const lean=clamp(this.vx*.0085,-.075,.075), lean2=clamp(this.vz*.0085,-.06,.06);
+    r.rotation.z=lean;r.rotation.x=-.2*lf-lean2;
+    let s=1;if(this.pulse){const p=clamp((now-this.pulse.t0)/this.pulse.dur,0,1);if(p>0)s=1+.04*Math.sin(Math.PI*p);if(p>=1)this.pulse=null;}
+    r.scale.set(s,s,s);
+    const h=this.lift;const sh=clamp(1-h/3.2,.15,1);
+    this.blob.position.x=this.pos.x;this.blob.position.z=this.pos.z;this.blob.material.opacity=.55*sh;this.blob.scale.setScalar(1+h*.08);
+    this.glow.position.x=this.pos.x;this.glow.position.z=this.pos.z;
+  }
+  posAt(now){const m=this.mv;if(!m)return {x:this.pos.x,z:this.pos.z};const p=clamp((now-m.t0)/m.dur,0,1);const ee=m.dur<420?easeInOutSine(p)*.35+smoother(p)*.65:smoother(p)*.45+easeInOutCubic(p)*.55;
+    return {x:m.x0+(m.x1-m.x0)*ee,z:m.z0+(m.z1-m.z0)*ee+m.lane*Math.sin(Math.PI*ee)};}
+  moving(){return !!this.mv;}
+}
+
+/* --- لوحات الأرقام (ثابتة على المواقع، لا ترتبط بكوب) --- */
+class Plaque{
+  constructor(slot){
+    this.slot=slot;this.g=new THREE.Group();this.g.position.set(SLOT_X[slot],0,3.35);
+    const base=new THREE.Mesh(new THREE.BoxGeometry(1.7,.14,.95),MAT.dark);base.position.y=.07;base.castShadow=true;base.receiveShadow=true;
+    const tex=numberTexture(slot);this.mat=new THREE.MeshStandardMaterial({map:tex,emissiveMap:tex,emissive:0xffffff,emissiveIntensity:.22,metalness:.3,roughness:.5});
+    const face=new THREE.Mesh(new THREE.PlaneGeometry(1.5,.82),this.mat);face.rotation.x=-Math.PI/2+.55;face.position.set(0,.2,0);
+    const stand=new THREE.Group();stand.add(base,face);this.g.add(stand);this.stand=stand;
+    this.vis=0;this.from=0;this.tv=0;this.t0=0;this.delay=0;this.glow=0;this.g.visible=false;this.g.scale.setScalar(.001);world.add(this.g);
+  }
+  show(now,delay){this.tv=1;this.t0=now+delay;this.from=this.vis;}
+  hide(now){this.tv=0;this.t0=now;this.from=this.vis;}
+  update(now){
+    const dur=VT(this.tv?420:120);const p=clamp((now-this.t0)/dur,0,1);
+    this.vis=this.tv?lerp(this.from,1,p<=0?0:easeOutBack(p)):lerp(this.from,0,p<=0?0:easeOutCubic(p));
+    const s=Math.max(.001,this.vis);this.g.visible=this.vis>.003||(this.tv&&p<=0&&false);this.g.scale.set(s,s,s);
+    this.mat.emissiveIntensity=.5+this.glow*.9;
+  }
+}
+
+/* =====================================================================
+   VIS controller
+   ===================================================================== */
+const VIS={
+  ready:false,quality:(['low','medium','high'].includes(QS.get('q'))?QS.get('q'):'high'),camMode:'cinematic',now:performance.now(),
+  ballCupId:null,ballActive:false,ballShown:false,
+  numbersOn:false,swapPending:null,settleAt:0,shuffleInfo:null,tensionOn:false,lastSwapSign:1,
+  revealed:null,hoverSlot:0,roundBanner:null,timerOn:false,
+  q:{high:{pr:2,shadow:4096,seg:128,env:true},medium:{pr:1.5,shadow:2048,seg:72,env:true},low:{pr:1,shadow:1024,seg:40,env:true}},
+
+  init(){
+    buildStudio();buildLights();this.applyQuality(this.quality,true);
+    ['a','b','c'].forEach((id,i)=>{RIGS[id]=new CupRig(id,i+1,CUP_GEO);VIS_REFS.cups[id]=RIGS[id];});
+    [1,2,3].forEach(s=>VIS_REFS.plaques[s]=new Plaque(s));
+    ball=new THREE.Mesh(new THREE.SphereGeometry(BALL_R,48,32),MAT.ball);ball.castShadow=true;ball.visible=false;world.add(ball);
+    ballShadowBlob=new THREE.Mesh(new THREE.PlaneGeometry(1.5,1.5),blobMat());ballShadowBlob.rotation.x=-Math.PI/2;ballShadowBlob.position.y=.02;ballShadowBlob.visible=false;world.add(ballShadowBlob);
+    this.ready=true;this.setShot('A',{rate:2,instant:true});this.layout();
+  },
+  applyQuality(q,first){
+    this.quality=q;const cfg=this.q[q];
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,cfg.pr));
+    if(L.key){L.key.shadow.mapSize.set(cfg.shadow,cfg.shadow);if(L.key.shadow.map){L.key.shadow.map.dispose();L.key.shadow.map=null;}}
+    if(!scene.environment||first||this._envQ!==q){ if(scene.environment)scene.environment.dispose&&scene.environment.dispose(); scene.environment=makeEnv(cfg.env);this._envQ=q;}
+    // هندسة الأكواب بحسب الجودة (نفس الشكل، تقسيم مختلف) — تُعاد فقط عند تغيير الجودة
+    if(!CUP_GEO||this._segQ!==q){const g=buildCupGeometries(cfg.seg);if(CUP_GEO){Object.values(CUP_GEO).flat().forEach(x=>x.dispose&&x.dispose());for(const id in RIGS){const r=RIGS[id];r.body.geometry=g.body;r.rim.geometry=g.rim;r.gband.geometry=g.gband;}}CUP_GEO=g;this._segQ=q;}
+    this.resize();
+  },
+  resize(){
+    const W=window.innerWidth,H=window.innerHeight;renderer.setSize(W,H,false);this.layout();
+  },
+  /* الإطار الحر = المساحة غير المغطاة باللوحات */
+  insets(){
+    const W=window.innerWidth,H=window.innerHeight;let l=0,r=0,t=84,b=70;
+    const panels=['panel-setup','panel-lobby'];
+    const portrait=W<=900;
+    panels.forEach(id=>{const el=$(id);if(!el||el.classList.contains('hide'))return;const bb=el.getBoundingClientRect();if(portrait){b=Math.max(b,H-bb.top+6);}else{const mid=(bb.left+bb.right)/2;if(mid<W/2)l=Math.max(l,bb.right+8);else r=Math.max(r,W-bb.left+8);}});
+    if($('findball-results-overlay').classList.contains('show')){ if(portrait)b=Math.max(b,H*.42);else{const pw=Math.min(270,W*.24)+22;l=Math.max(l,pw);r=Math.max(r,pw);b=Math.max(b,150);} }
+    return {l,r,t,b,W,H};
+  },
+  layout(){
+    const {l,r,t,b,W,H}=this.insets();const fw=Math.max(240,W-l-r),fh=Math.max(240,H-t-b);
+    camera.aspect=fw/fh;camera.setViewOffset(fw,fh,-l,-t,W,H);camera.updateProjectionMatrix();
+    this.freeAspect=fw/fh;
+  },
+  fitScale(shotW,dist,fov){const half=shotW;const tanv=Math.tan(THREE.MathUtils.degToRad(fov)/2);const need=half/(tanv*Math.max(.35,this.freeAspect||1.6));return Math.max(1,need/dist);},
+  setShot(name,o){
+    o=o||{};const s={
+      A:{p:[0,6.9,13.0],l:[0,1.0,.6],fov:31,w:5.5},
+      B:{p:[0,6.2,11.4],l:[0,1.5,.4],fov:30,w:5.2},
+      E:{p:[o.cx*.3||0,6.3,10.9],l:[o.cx*.8||0,1.3,.5],fov:29,w:4.4},
+      W:{p:[o.cx*.5||0,5.2,8.6],l:[o.cx||0,1.4,.4],fov:27,w:3.4}
+    }[name];
+    const pos=new THREE.Vector3(...s.p),look=new THREE.Vector3(...s.l);
+    const dist=pos.distanceTo(look);const sc=this.fitScale(s.w,dist,s.fov);
+    pos.sub(look).multiplyScalar(sc).add(look);
+    camRig.tPos.copy(pos);camRig.tLook.copy(look);camRig.tFov=s.fov;camRig.rate=o.rate||3;camRig.shot=name;
+    if(o.instant){camRig.pos.copy(pos);camRig.look.copy(look);camRig.fov=s.fov;}
+  },
+  cinematic(){return this.camMode==='cinematic';},
+
+  /* ----- أحداث المحرك ----- */
+  reset(){
+    this.swapPending=null;this.shuffleInfo=null;this.ballActive=false;ball.visible=false;ballShadowBlob.visible=false;this.ballCupId=null;this.revealed=null;
+    SFX.stopTension();this.tensionOn=false;this.numbersOn=false;
+    for(const id in RIGS){const r=RIGS[id];r.mv=null;r.segs=[];r.pulse=null;r.lift=0;r.slot=r.targetSlot=({a:1,b:2,c:3})[id];r.pos.x=SLOT_X[r.slot];r.pos.z=0;r.rimMat.emissive.setHex(0x7C3AED);r.rimMat.emissiveIntensity=VIO_IDLE;r.glow.material.opacity=0;}
+    [1,2,3].forEach(s=>{VIS_REFS.plaques[s].hide(performance.now());VIS_REFS.rings[s].emissiveIntensity=0;});
+    L.focus.intensity=0;L.good.intensity=0;L.focus.userData.t=0;L.good.userData.t=0;
+    UI.clearBanners();this.timerHide();this.setShot('A',{rate:2.5});
+  },
+  build(slots){
+    const now=performance.now();
+    this.swapPending=null;this.revealed=null;this.ballActive=true;this.ballShown=false;ball.visible=false;
+    for(const id in RIGS){const r=RIGS[id];r.mv=null;r.pulse=null;r.rimMat.emissive.setHex(0x7C3AED);r.rimMat.emissiveIntensity=VIO_IDLE;r.glow.material.opacity=0;
+      const s=slots[id];const needs=Math.abs(r.pos.x-SLOT_X[s])>.002||Math.abs(r.pos.z)>.002||r.lift>.002;
+      r.targetSlot=s;r.slot=s;
+      if(needs){r.mv={t0:now,dur:VT(300),x0:r.pos.x,z0:r.pos.z,x1:SLOT_X[s],z1:0,lane:0};}
+      r.segs=[];if(r.lift>.002)r.setLift(now,r.lift,0,0,VT(300),easeInOutCubic);
+    }
+    L.focus.intensity=0;L.good.intensity=0;L.focus.userData.t=0;L.good.userData.t=0;
+    [1,2,3].forEach((s,i)=>{VIS_REFS.plaques[s].show(now,VT(220+i*110));later(()=>SFX.num(i),220+i*110);});
+    this.numbersOn=true;
+    this.setShot(this.cinematic()?'B':'A',{rate:3});
+    UI.banner(`<div class="accent"></div><div><h1>الجولة ${findballRoundNum}</h1><p>${findballParticipants.size} متنافس${findballParticipants.size<=3&&findballRoundNum>1?' — الجولة الحاسمة!':''}</p></div>`,{ms:1500,cls:'big'});
+  },
+  numbers(on,slots){
+    if(on&&findballShuffling)return;   // تظهر بعد توقف الحركة فعلياً (guessOpen)
+    const now=performance.now();this.numbersOn=on;
+    // الأرقام مرتبطة بمواقع الطاولة (slot) لا بالكوب — تظهر بعد توقف الحركة فقط
+    [1,2,3].forEach((s,i)=>{VIS_REFS.plaques[s][on?'show':'hide'](now,VT(0));});
+  },
+  hideLift(cupId,run){
+    const r=RIGS[cupId];this.ballCupId=cupId;
+    // الكرة تحت الكوب المختار (مرتبطة بهوية الكوب لا بالموقع)
+    ball.position.set(SLOT_X[r.targetSlot],BALL_R,0);ball.visible=true;ballShadowBlob.visible=true;this.ballShown=false;
+    const now=performance.now();r.setLift(now,0,LIFT_H,VT(300),VT(430),easeInOutCubic,true);
+    later(()=>SFX.lift(),300);
+  },
+  ballShow(){this.ballShown=true;},
+  hideLower(cupId){const now=performance.now();RIGS[cupId].setLift(now,RIGS[cupId].lift,0,0,VT(450),easeInOutCubic);later(()=>SFX.place(),450);},
+  ballHide(){
+    this.setShot('A',{rate:2.5});
+    UI.banner(`<div class="accent"></div><div class="wordstag"><h1><span style="animation-delay:.05s">ركّز</span> <span style="animation-delay:.2s">زين...</span> <span style="animation-delay:.35s">وين</span> <span style="animation-delay:.5s">الكورة؟</span></h1></div>`,{ms:Math.min(2200,Math.max(1200,findballRoundNum<2?1900:1300)),cls:'big'});
+  },
+  shuffleStart(info){
+    this.shuffleInfo=info;const now=performance.now();
+    if(window.__fbTest&&window.__fbTest.onShuffleStart)window.__fbTest.onShuffleStart(info);
+    [1,2,3].forEach(s=>VIS_REFS.plaques[s].hide(now));this.numbersOn=false;
+    SFX.tension(Math.min(8,info.round+info.speed*2));this.tensionOn=true;
+    if(info.round>1)UI.banner(`<div class="accent"></div><div><h1 style="font-size:26px">السرعة زادت!</h1><p>سرعة ×${info.speed.toFixed(1)} · ${info.swaps} تبديلات</p></div>`,{ms:1300,cls:'speed'});
+    this.setShot('A',{rate:2});
+  },
+  swap(slots,stepMs,meta){
+    if(window.__fbTest&&window.__fbTest.onSwapCall)window.__fbTest.onSwapCall(meta);
+    this.swapPending={slots:Object.assign({},slots),stepMs};
+    if(!this._flushQ){this._flushQ=true;Promise.resolve().then(()=>{this._flushQ=false;this.flushSwap();});}
+  },
+  planMoves(fromSlots,toSlots,sign){
+    const movers=[];
+    for(const id of ['a','b','c']){if(fromSlots[id]!==toSlots[id])movers.push({id,ns:toSlots[id],d:Math.abs(toSlots[id]-fromSlots[id])});}
+    if(movers.length===2){const lane=movers[0].d===2?2.4:1.25;movers[0].lane=lane*sign;movers[1].lane=-lane*sign;}
+    else{movers.forEach(m=>{m.lane=0;});const long=movers.find(m=>m.d===2);if(long)long.lane=3.2*sign;}
+    return movers;
+  },
+  flushSwap(){
+    const p=this.swapPending;if(!p)return;this.swapPending=null;
+    const now=performance.now();const dur=clamp(VT(p.stepMs)*.88,VT(150)*0+Math.min(150,VT(p.stepMs)*.6),VT(820));
+    const cur={};for(const id in RIGS)cur[id]=RIGS[id].targetSlot;
+    this.lastSwapSign*=-1;
+    const movers=this.planMoves(cur,p.slots,this.lastSwapSign);
+    if(!movers.length){return;}
+    movers.forEach(m=>{const r=RIGS[m.id];r.startMove(now,SLOT_X[m.ns],0,dur,m.lane,m.ns);r.slot=m.ns;});
+    const sp=this.shuffleInfo?this.shuffleInfo.speed:1;
+    SFX.swap(sp*(p.stepMs<400?1.6:1));
+    this.settleAt=now+dur;
+    if(window.__fbTest&&window.__fbTest.onFlush)window.__fbTest.onFlush(now,dur,movers.length);
+  },
+  shuffleEnd(slots,ballCupId){
+    this.ballCupId=ballCupId;const fin=Object.assign({},slots);
+    Promise.resolve().then(()=>{            // بعد flushSwap (نفس الدورة) لنعرف متى تصل المجسمات
+      const now=performance.now();this.settleDelay=Math.max(0,(this.settleAt||now)-now)+20;
+      setTimeout(()=>{ // بعد وصول المجسمات: تثبيت دقيق على مواقع المحرك
+        for(const id in RIGS){const r=RIGS[id];r.mv=null;r.pos.x=SLOT_X[fin[id]];r.pos.z=0;r.slot=r.targetSlot=fin[id];}
+        SFX.place();
+      },this.settleDelay);
+    });
+  },
+  guessOpen(){
+    Promise.resolve().then(()=>Promise.resolve()).then(()=>{ const d=this.settleDelay||0; const run=findballRunId;
+    setTimeout(()=>{
+      if(findballGameStatus!=='guessing'||run!==findballRunId)return;
+      const now=performance.now();
+      [1,2,3].forEach((s,i)=>{VIS_REFS.plaques[s].show(now,VT(i*110));later(()=>SFX.num(i),i*110);});
+      ['a','b','c'].forEach((id,i)=>{RIGS[id].pulse={t0:now+VT(300+i*90),dur:VT(380)};});
+      later(()=>SFX.pulse(),300);
+      UI.guessBanner();
+      if(window.__fbTest&&window.__fbTest.onSettled)window.__fbTest.onSettled();
+    },d);});
+    this.setShot('A',{rate:2});
+    SFX.tension(2);
+  },
+  timerShow(left,total){this.timerOn=true;UI.timerSet(left,total,true);},
+  timerTick(left,total){UI.timerSet(left,total,false);if(left>0&&left<=3)SFX.tick(left===1);},
+  timerHide(){this.timerOn=false;UI.timerHide();},
+  reveal(winningCupId,winningSlot){
+    const now=performance.now();SFX.stopTension();this.tensionOn=false;
+    ball.position.set(SLOT_X[winningSlot],BALL_R,0);ball.visible=true;this.ballShown=true;
+    // الكوب الصحيح = الكوب الذي يقف الآن في موقع الفائز حسب المحرك
+    const r=RIGS[winningCupId];r.setLift(now,0,LIFT_H,VT(60),VT(560),easeInOutCubic);later(()=>SFX.lift(),60);later(()=>SFX.reveal(),150);
+    this.revealed=winningCupId;
+    later(()=>{
+      for(const id in RIGS){const c=RIGS[id];if(id===winningCupId){c.rimMat.emissive.setHex(0xD8B46A);c.rimMat.emissiveIntensity=1.1;c.glow.material.opacity=.0;c._glowT=performance.now();}
+        else{c.rimMat.emissive.setHex(0x3a1a7a);c.rimMat.emissiveIntensity=.35;}}
+      L.good.position.set(SLOT_X[winningSlot],1.4,1.6);L.good.userData.t=performance.now();
+    },VT(560));
+    L.focus.position.set(SLOT_X[winningSlot]*.5,10,6);L.focus.target.position.set(SLOT_X[winningSlot],.4,0);L.focus.userData.t=performance.now();
+    this.setShot(this.cinematic()?'E':'A',{cx:SLOT_X[winningSlot],rate:2.4});
+    UI.banner(`<div class="accent"></div><div><h1>هنا الكورة!</h1></div>`,{ms:1500,cls:'big gold sweep'});UI.sparks();
+  },
+  results(correct,elim,winSlot){UI.results(correct,elim,winSlot);},
+  closeResults(){UI.closeResults();},
+  winner(user){
+    this.setShot(this.cinematic()?'W':'A',{cx:SLOT_X[findballBallCup]||0,rate:1.6});
+    SFX.win();UI.winner(user);
+  },
+  revival(user){UI.revival(user);SFX.revive();},
+  status(s){ if(s==='waiting'||s==='finished-round'){ if(!this.tensionOn)SFX.stopTension(); } },
+
+  /* ----- كل إطار ----- */
+  drawScreens(){
+    if(!VIS_REFS.screens)return;
+    const st=findballGameStatus;const rn=findballRoundNum||0,pc=findballParticipants.size,ev=(UI&&UI.elimTotal)||0;
+    VIS_REFS.screens.forEach(sc=>{const x=sc.c.getContext('2d'),W=512,H=768;
+      const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,'#1b1440');g.addColorStop(1,'#0a0818');x.fillStyle=g;x.fillRect(0,0,W,H);
+      x.strokeStyle='rgba(167,139,250,.45)';x.lineWidth=4;x.strokeRect(14,14,W-28,H-28);
+      x.textAlign='center';x.textBaseline='middle';x.direction='rtl';
+      x.fillStyle='#A78BFA';x.font='800 34px Tajawal, Arial, sans-serif';
+      const big=(t,y,col,sz)=>{x.fillStyle=col;x.font='900 '+sz+'px Tajawal, Arial, sans-serif';x.fillText(t,W/2,y);};
+      const small=(t,y)=>{x.fillStyle='#A7A2BD';x.font='700 30px Tajawal, Arial, sans-serif';x.fillText(t,W/2,y);};
+      if(sc.sg<0){small('الجولة',110);big(String(rn||'—'),220,'#F5F3FF',170);small('المشاركون',390);big(String(pc),490,'#A78BFA',110);
+        x.fillStyle='rgba(167,139,250,.35)';x.fillRect(80,610,W-160,3);big('اعثر على الكورة',690,'#D8B46A',40);}
+      else{small('الناجون',110);big(String(st==='waiting'?pc:pc),220,'#34d399',170);small('المقصيون',390);big(String(ev),490,'#f08a7a',110);
+        x.fillStyle='rgba(167,139,250,.35)';x.fillRect(80,610,W-160,3);big('احسمها',690,'#D8B46A',46);}
+      sc.tex.needsUpdate=true;});
+  },
+  frame(now,dt){
+    this.now=now;
+    for(const id in RIGS)RIGS[id].apply(now,dt);
+    for(const s in VIS_REFS.plaques)VIS_REFS.plaques[s].update(now);
+    // الكرة تتبع كوبها الحقيقي (بالهوية) — لا مكان آخر
+    if(this.ballCupId&&ball.visible){const r=RIGS[this.ballCupId];ball.position.x=r.pos.x;ball.position.z=r.pos.z;ball.position.y=BALL_R;ballShadowBlob.position.x=r.pos.x;ballShadowBlob.position.z=r.pos.z;
+      const open=this.ballShown&&r.lift>.7;ballShadowBlob.visible=open;ballShadowBlob.material.opacity=.55*clamp(r.lift/LIFT_H,0,1);
+      if(this.revealed)ball.rotation.y+=dt*.8;}
+    // إضاءة التركيز والنجاح
+    if(L.focus.userData.t){const p=clamp((now-L.focus.userData.t)/VT(700),0,1);L.focus.intensity=lerp(0,1.25,easeOutCubic(p));}
+    else L.focus.intensity=0;
+    if(L.good.userData.t){const p=clamp((now-L.good.userData.t)/VT(500),0,1);const fade=clamp(1-(now-L.good.userData.t-VT(1800))/VT(900),0,1);L.good.intensity=lerp(0,.9,easeOutCubic(p))*fade;
+      const c=RIGS[this.revealed];if(c){c.glow.material.opacity=.7*easeOutCubic(p)*(.8+.2*Math.sin(now/260));}}
+    // بيئة حيّة: خطوط البنفسج تتنفّس في الخمول وتهدأ أثناء الخلط
+    {const st=findballGameStatus;const calm=(st==='shuffling'||st==='hiding');const amp=calm?.04:.2;const sp=calm?.0006:.0014;
+      const k=1.25+Math.sin(now*sp*3)*amp*2.2;if(VIS_REFS.lines){VIS_REFS.lines[0].color.setRGB(.486*k,.227*k,.93*k);VIS_REFS.lines[1].color.setRGB(.31*1.3,.55*1.3,1*1.3);}
+      L.acc.intensity=1.0+Math.sin(now*sp*2)*amp*1.6;
+      if(VIS_REFS.logo)VIS_REFS.logo.material.opacity=.85+Math.sin(now*sp*2.2)*amp*.5;
+      if(!this._scrT||now-this._scrT>(calm?900:400)||this.screensDirty){this._scrT=now;this.screensDirty=false;this.drawScreens();}}
+    // hover (وضع محلي)
+    for(const s in VIS_REFS.rings){const m=VIS_REFS.rings[s];const tgt=(findballGameStatus==='guessing'&&this.hoverSlot==s)?1.6:.35;m.emissiveIntensity=lerp(m.emissiveIntensity,tgt,.2);}
+    if(!this.revealed&&findballGameStatus==='guessing'){const k=.5+.5*Math.sin(now/420);[1,2,3].forEach(s=>VIS_REFS.plaques[s].glow=k*.6);}else [1,2,3].forEach(s=>VIS_REFS.plaques[s].glow*=.9);
+    // الكاميرا: تخميد أسي نحو اللقطة + تنفس خفيف جداً (سينمائي فقط، وليس أثناء الخلط/التخمين)
+    const k=1-Math.exp(-dt*camRig.rate);
+    camRig.pos.lerp(camRig.tPos,k);camRig.look.lerp(camRig.tLook,k);camRig.fov=lerp(camRig.fov,camRig.tFov,k);
+    let sx=0,sy=0;const calm=(findballGameStatus==='shuffling'||findballGameStatus==='guessing');
+    if(this.cinematic()&&!calm){const idle=(findballGameStatus==='waiting'||findballGameStatus==='finished-round'||findballGameStatus==='finished');const a=idle?.22:.05;sx=Math.sin(now/3400)*a;sy=Math.sin(now/4700)*a*.5;}
+    camera.position.set(camRig.pos.x+sx,camRig.pos.y+sy,camRig.pos.z);camera.lookAt(camRig.look);
+    if(Math.abs(camera.fov-camRig.fov)>.005){camera.fov=camRig.fov;camera.updateProjectionMatrix();}
+  }
+};
+
+/* =====================================================================
+   4) واجهة HUD (Motion graphics)
+   ===================================================================== */
+const UI={
+  sparks(){const z=$('banner-zone');if(!z)return;const w=document.createElement('div');w.className='sparks';let h='';for(let i=0;i<14;i++){const a=Math.random()*360,d=60+Math.random()*90;h+=`<i style="--dx:${Math.cos(a*Math.PI/180)*d}px;--dy:${Math.sin(a*Math.PI/180)*d*.6}px;animation-delay:${Math.random()*.2}s"></i>`;}w.innerHTML=h;z.appendChild(w);setTimeout(()=>w.remove(),1400/TS);},
+  banners:[],elimTotal:0,cq:[],
+  stats(){const e=$('bb-p');if(e)tweenNumber(e,findballParticipants.size,350);const x=$('bb-e');if(x)tweenNumber(x,this.elimTotal,500);const sv=$('findball-round-survivors');if(sv&&(findballGameStatus==='waiting'))tweenNumber(sv,findballParticipants.size,350);if(window.VIS&&VIS.screensDirty!==undefined)VIS.screensDirty=true;},
+  chatCard(user,num){if(this.cq.length>30)this.cq.shift();this.cq.push({user,num});this.pumpCards();},
+  pumpCards(){
+    if(this._pumping)return;this._pumping=true;
+    const step=()=>{const q=$('chatq');const it=this.cq.shift();if(!it){this._pumping=false;return;}
+      while(q.children.length>=4)q.lastElementChild.remove();
+      const d=document.createElement('div');d.className='ccard'+(it.num%2?'':' alt');d.innerHTML=avatarHTML(it.user)+'<span class="n">'+esc(it.user.nickname||it.user.uniqueId)+'</span><b>'+it.num+'</b>';
+      q.insertBefore(d,q.firstChild);setTimeout(()=>{d.classList.add('out');setTimeout(()=>d.remove(),360);},2300/TS);
+      setTimeout(step,(this.cq.length>8?70:170)/TS);};
+    step();
+  },
+  banner(html,o){
+    const z=$('banner-zone');o=o||{};
+    // لا نكدّس: البانر الجديد يُخرج السابق
+    this.banners.forEach(b=>this.drop(b));this.banners=[];
+    const d=document.createElement('div');d.className='banner '+(o.cls||'');d.innerHTML=html;z.appendChild(d);this.banners.push(d);
+    if(o.ms)setTimeout(()=>this.drop(d),o.ms/TS);
+    return d;
+  },
+  drop(d){if(!d||!d.parentNode)return;d.classList.add('out');setTimeout(()=>d.remove(),360);const i=this.banners.indexOf(d);if(i>=0)this.banners.splice(i,1);},
+  clearBanners(){this.banners.forEach(b=>b.remove());this.banners=[];$('banner-zone').innerHTML='';},
+  guessBanner(){
+    const d=this.banner(`<div class="accent"></div><div><h1>وين الكورة؟</h1><p>اكتب رقم الكوب في الشات!</p></div>
+      <div id="findball-timer-box" style="display:${findballGuessTimerEnabled?'flex':'none'}"><div class="ring"><svg viewBox="0 0 46 46"><circle class="bg" cx="23" cy="23" r="20"/><circle class="fg" id="ring-fg" cx="23" cy="23" r="20" stroke-dasharray="125.66" stroke-dashoffset="0"/></svg><b id="findball-timer-num">${findballGuessTimeLeft}</b></div></div>`,{cls:'guess'});
+    this.guessBannerEl=d;this.timerSet(findballGuessTimeLeft,FINDBALL_GUESS_TIMER_SECONDS,true);
+  },
+  timerSet(left,total,first){
+    const n=$('findball-timer-num'),fg=$('ring-fg'),box=$('findball-timer-box');
+    this._tl=left;this._tt=total;
+    if(n)n.textContent=Math.max(0,left);
+    if(fg){fg.style.strokeDashoffset=String(125.66*(1-clamp(left/total,0,1)));}
+    if(box){box.classList.toggle('danger',left<=2);box.classList.toggle('warn',left<=3&&left>2);}
+  },
+  timerHide(){const b=this.guessBannerEl;if(b)this.drop(b);this.guessBannerEl=null;},
+  guessButtons(on){document.querySelectorAll('.demo .num').forEach(b=>b.disabled=!on||!findballParticipants.has('me'));},
+  enterRound(){
+    $('panel-lobby').classList.add('hide');$('panel-setup').classList.add('hide');
+    $('findball-round-bar').style.display='';$('chip-survivors').style.display='';VIS.layout();
+    $('d-gift').disabled=!findballRevivalEnabled;
+  },
+  leaveRound(){},
+  results(correct,elim,winSlot){
+    const ok=$('findball-correct-list'),bad=$('findball-elim-list');
+    const row=(u,i,cls)=>`<div class="res-item ${cls}" style="animation-delay:${Math.min(i,14)*55+250}ms">${avatarHTML(u)}<span>${esc(u.nickname||u.uniqueId)}</span><span class="tick">${cls==='out'?'خرج':'نجا'}</span></div>`;
+    const cap=18;
+    ok.innerHTML=correct.length?correct.slice(0,cap).map((u,i)=>row(u,i,'in')).join('')+(correct.length>cap?`<div class="res-empty">+${correct.length-cap} آخرون</div>`:''):'<div class="res-empty">لا أحد خمّن صح هذي الجولة</div>';
+    bad.innerHTML=elim.length?elim.slice(0,cap).map((u,i)=>row(u,i,'out')).join('')+(elim.length>cap?`<div class="res-empty">+${elim.length-cap} آخرون</div>`:''):'<div class="res-empty">لا أحد خرج</div>';
+    $('res-ok-count').textContent='0';$('res-bad-count').textContent='0';
+    tweenNumber($('res-ok-count'),correct.length,700);tweenNumber($('res-bad-count'),elim.length,700);
+    tweenNumber($('findball-round-survivors'),findballParticipants.size,700);
+    $('findball-results-title').innerHTML='الكورة كانت تحت كوب <span>'+winSlot+'</span>';
+    $('findball-results-overlay').classList.add('show');
+    if(correct.length)setTimeout(()=>SFX.ok(),VT(300)*TS);if(elim.length)setTimeout(()=>SFX.elim(),500);
+    VIS.layout();
+  },
+  closeResults(){$('findball-results-overlay').classList.remove('show');
+    if(findballGameStatus==='finished-round'){$('panel-lobby').classList.remove('hide');$('lobby-sub').textContent='الجولة '+findballRoundNum+' انتهت';}
+    VIS.setShot('A',{rate:2});VIS.layout();},
+  winner(user){
+    $('findball-results-overlay').classList.remove('show');$('panel-lobby').classList.add('hide');VIS.layout();
+    $('winner').innerHTML=`<div class="win-card">${avatarHTML(user)}<div><small>الفائز بالمنافسة</small><h1>${esc(user.nickname||user.uniqueId)}</h1><p>${esc(user.nickname||'')} — آخر من عثر على الكورة!</p></div></div>`;
+    this.banner(`<div class="accent"></div><div><h1>انتهت اللعبة</h1><p>الجولة ${findballRoundNum}</p></div>`,{cls:'big',ms:2600});
+  },
+  revival(user){
+    const el=$('revival');el.innerHTML=`<div class="rev-card">${avatarHTML(user)}<div><h4>رجع للمنافسة!</h4><p>${esc(user.nickname||user.uniqueId)}</p></div></div>`;
+    setTimeout(()=>{const c=el.firstChild;if(c){c.classList.add('out');setTimeout(()=>{el.innerHTML='';},420);}},2600);
+  },
+  reset(){
+    $('findball-round-bar').style.display='none';$('chip-survivors').style.display='none';$('winner').innerHTML='';$('revival').innerHTML='';
+    $('findball-results-overlay').classList.remove('show');
+    $('findball-p-usernames').innerHTML='<span class="p-empty-placeholder">لا يوجد مشاركون بعد</span>';$('findball-p-count').textContent='0';
+    findballParticipants.clear();this.elimTotal=0;this.cq=[];$('chatq').innerHTML='';$('bb-p').textContent='0';$('bb-e').textContent='0';$('findball-round-survivors').textContent='0';
+    if($('panel-setup').classList.contains('hide')){$('panel-lobby').classList.remove('hide');}else{$('panel-lobby').classList.add('hide');}
+    $('findball-btn-round').disabled=false;
+    UI.guessButtons(false);VIS.layout();
+  }
+};
+
+/* =====================================================================
+   5) المشاركون التجريبيون (يحاكون شات البث)
+   ===================================================================== */
+const NAMES=['سلطان','نورة','ريان','لمى','فهد','هيفاء','ماجد','جود','تركي','ريم','بدر','سارة','عبدالله','منال','خالد','أمل','وليد','دانة','نايف','العنود','صالح','غادة','حسام','شهد'];
+const Bots={
+  timers:[],n:0,
+  clear(){this.timers.forEach(clearTimeout);this.timers=[];this.n=0;},
+  add(k){for(let i=0;i<k;i++){const nm=NAMES[this.n%NAMES.length]+(this.n>=NAMES.length?(' '+Math.floor(this.n/NAMES.length)+1):'');const u={uniqueId:'bot'+this.n,nickname:nm,isFollower:true,bot:true};this.n++;
+    this.timers.push(setTimeout(()=>{if(findballGameStatus==='waiting')handleChat(u,findballKeyword||$('findball-kw').value);},i*160/TS));}},
+  onGuessOpen(){
+    const run=findballRunId;
+    findballParticipants.forEach((u)=>{if(!u.bot)return;
+      if(u.cheat){this.timers.push(setTimeout(()=>{if(run===findballRunId)handleChat(u,String(findballBallCup));},(TS>1?(window.__fbTest&&window.__fbTest.cheatDelay)||150:60)));return;}   // لاعبو الاختبار الآلي فقط
+      const t=(1200+Math.random()*(Math.max(3,FINDBALL_GUESS_TIMER_SECONDS)*1000-3200))/TS;
+      this.timers.push(setTimeout(()=>{if(run!==findballRunId||findballGameStatus!=='guessing')return;handleChat(u,String(1+Math.floor(Math.random()*3)));},t));});
+  }
+};
+function handleChat(user,text){      // نسخة مصغّرة من findballHandleEvent (الشات فقط)
+  if(!text)return;
+  if(findballGameStatus==='waiting'){
+    if(joinTextMatches(text,findballKeyword))findballJoinParticipant(user);
+    return;
+  }
+  if(findballGameStatus==='guessing')findballProcessGuess(user,text);
+}
+const ME={uniqueId:'me',nickname:'أنت',isFollower:true};
+
+/* =====================================================================
+   6) ربط الواجهة (أزرار/إعدادات/ماوس)
+   ===================================================================== */
+function enterLobby(){
+  findballKeyword=$('findball-kw').value.trim()||'كوب';findballUser=$('findball-user').value.trim();
+  $('findball-kw-show').textContent=findballKeyword;$('findball-live-user').textContent=findballUser?('@'+findballUser):'وضع تجريبي';
+  $('panel-setup').classList.add('hide');$('panel-lobby').classList.remove('hide');VIS.layout();
+  SFX.resume();
+}
+$('btn-connect').onclick=enterLobby;
+$('btn-back-setup').onclick=()=>{if(findballGameStatus!=='waiting'&&findballGameStatus!=='finished')return;$('panel-lobby').classList.add('hide');$('panel-setup').classList.remove('hide');VIS.layout();};
+$('findball-btn-round').onclick=()=>{SFX.resume();if(findballGameStatus==='finished'){return;}findballStartRoundClick();};
+$('findball-results-continue-btn').onclick=()=>{findballCloseResultsOverlay();};
+$('d-add').onclick=()=>{SFX.resume();if(!findballKeyword)findballKeyword=$('findball-kw').value.trim()||'كوب';Bots.add(8);
+  if(!findballParticipants.has('me')&&findballGameStatus==='waiting'){handleChat(ME,findballKeyword);}};
+document.querySelectorAll('.demo .num').forEach(b=>b.onclick=()=>handleChat(ME,b.dataset.g));
+$('d-gift').onclick=()=>{const uid=[...findballEliminatedHistory][0];if(!uid){toast('لا يوجد مقصي لإنعاشه الآن');return;}
+  const u={uniqueId:uid,nickname:(Bots.userCache&&Bots.userCache[uid])||uid};
+  findballHandleGift(Object.assign(u,findballLastUsers[uid]||{}),'هدية',100);};
+$('d-reset').onclick=()=>findballResetGame();
+const findballLastUsers={};
+const _join=findballJoinParticipant; // نحفظ بيانات المستخدمين للإنعاش التجريبي
+findballJoinParticipant=function(u){findballLastUsers[u.uniqueId]=u;return _join(u);};
+// عند الإقصاء نبقي بياناتهم لوضع الإنعاش التجريبي
+['set-cam','set-quality'].forEach(id=>$(id).addEventListener('change',syncDisplay));
+function syncDisplay(){
+  VIS.camMode=$('set-cam').value;VIS.applyQuality($('set-quality').value);
+  $('btn-cam').textContent='كاميرا: '+(VIS.camMode==='static'?'ثابتة':'سينمائية');
+  $('btn-q').textContent='جودة: '+({high:'عالية',medium:'متوسطة',low:'منخفضة'}[VIS.quality]);
+  if(['waiting','finished-round','finished'].includes(findballGameStatus))VIS.setShot('A',{rate:2});
+}
+$('btn-cam').onclick=()=>{$('set-cam').value=VIS.camMode==='static'?'cinematic':'static';syncDisplay();};
+$('btn-q').onclick=()=>{const o=['high','medium','low'];$('set-quality').value=o[(o.indexOf(VIS.quality)+1)%3];syncDisplay();};
+$('btn-snd').onclick=()=>{SFX.setMuted(!SFX.muted);$('btn-snd').classList.toggle('on',!SFX.muted);$('btn-snd').textContent=SFX.muted?'صامت':'صوت';SFX.resume();};
+$('vol').oninput=e=>{SFX.setVolume(e.target.value/100);SFX.resume();};
+$('btn-snd').classList.add('on');
+document.querySelectorAll('.ptab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('active'));b.classList.add('active');});
+document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;if(!EMBED&&['1','2','3'].includes(e.key))handleChat(ME,e.key);if(e.key==='h'||e.key==='H')document.body.classList.toggle('clean');});
+
+/* hover + click على الأكواب (وضع محلي فقط) */
+const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+function pick(ev){
+  if(findballGameStatus!=='guessing')return 0;
+  const r=canvas.getBoundingClientRect();mouse.set(((ev.clientX-r.left)/r.width)*2-1,-((ev.clientY-r.top)/r.height)*2+1);
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(Object.values(RIGS).map(c=>c.hit),false);
+  if(hits.length){const id=hits[0].object.userData.cupId;return findballSlotOfCup[id]||0;}
+  return 0;
+}
+canvas.addEventListener('pointermove',e=>{VIS.hoverSlot=pick(e);canvas.style.cursor=VIS.hoverSlot?'pointer':'default';});
+canvas.addEventListener('click',e=>{if(EMBED)return;const s=pick(e);if(s)handleChat(ME,String(s));});   // EHSEMHA-EMBED: لا نقر محلي بالتضمين
+window.addEventListener('resize',()=>VIS.resize());
+if(window.ResizeObserver){new ResizeObserver(()=>VIS.layout()).observe($('panel-setup'));new ResizeObserver(()=>VIS.layout()).observe($('panel-lobby'));}
+
+/* =====================================================================
+   7) إقلاع
+   ===================================================================== */
+let last=performance.now(),running=true;
+function loop(t){
+  if(!running)return;
+  const dt=Math.min(.05,(t-last)/1000);last=t;
+  VIS.frame(t,dt);renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+function boot(){
+  VIS.init();
+  $('set-quality').value=VIS.quality;$('btn-q').textContent='جودة: '+({high:'عالية',medium:'متوسطة',low:'منخفضة'}[VIS.quality]);
+  UI.reset();
+  $('findball-kw-show').textContent=$('findball-kw').value;
+  findballSetGameStatus('waiting');
+  requestAnimationFrame(loop);
+  setTimeout(()=>$('boot').classList.add('gone'),250);
+  setTimeout(()=>$('boot').remove(),1000);
+}
+const fontsReady=(document.fonts&&document.fonts.load)?Promise.race([document.fonts.load('900 20px Tajawal'),new Promise(r=>setTimeout(r,1500))]):Promise.resolve();
+fontsReady.then(boot);
+
+/* التخلص من المشهد (الخروج من اللعبة): يوقف حلقة الرسم والأنيميشن والمؤقتات */
+function dispose(){running=false;findballRunId++;findballClearGuessTimer();Bots.clear();SFX.stopTension();renderer.dispose();}
+window.addEventListener('pagehide',dispose);
+
+/* واجهة عامة: (1) للدمج مع الموقع لاحقاً (2) للاختبارات الآلية */
+window.FindBall3D={
+  VIS,dispose,
+  // نقطة الدمج: في index.html تُستدعى هذه الدوال من نفس الأماكن التي كانت تعدّل DOM الأكواب.
+  bridge:{build:VIS.build.bind(VIS),hideLift:VIS.hideLift.bind(VIS),ballShow:VIS.ballShow.bind(VIS),hideLower:VIS.hideLower.bind(VIS),ballHide:VIS.ballHide.bind(VIS),
+    shuffleStart:VIS.shuffleStart.bind(VIS),swap:VIS.swap.bind(VIS),shuffleEnd:VIS.shuffleEnd.bind(VIS),guessOpen:VIS.guessOpen.bind(VIS),reveal:VIS.reveal.bind(VIS),reset:VIS.reset.bind(VIS)}
+};
+window.__fbTest={
+  TS,RIGS,SLOT_X,BALL_R,MIN_CUP_DIST,CupRig,
+  get ball(){return ball;},get state(){return {status:findballGameStatus,round:findballRoundNum,ballCup:findballBallCup,slotOfCup:findballSlotOfCup,cupInSlot:findballCupInSlot,runId:findballRunId,participants:findballParticipants.size,shuffling:findballShuffling,lastWin:findballLastWinningSlot,ballCupId:VIS.ballCupId,pending:null};},
+  startRound:findballStartRoundClick,reset:findballResetGame,join:findballJoinParticipant,process:findballProcessGuess,
+  addCheaters(n){for(let i=0;i<n;i++)findballJoinParticipant({uniqueId:'chk'+i,nickname:'اختبار'+i,isFollower:true,bot:true,cheat:true});},
+  addPlayers(n){Bots.add(n);},
+  setKeyword(k){findballKeyword=k;$('findball-kw').value=k;},
+  enterLobby,
+  plaqueVisible(){return [1,2,3].map(s=>VIS_REFS.plaques[s].g.visible&&VIS_REFS.plaques[s].vis>.5);},
+  plaqueAnyVisible(){return [1,2,3].some(s=>VIS_REFS.plaques[s].g.visible&&VIS_REFS.plaques[s].vis>.05);},
+  closeResults:findballCloseResultsOverlay,
+  sampleCups(){const n=performance.now();return ['a','b','c'].map(id=>{RIGS[id].sample(n);return {id,x:RIGS[id].pos.x,z:RIGS[id].pos.z,lift:RIGS[id].lift};});},
+  pathMinAll(){ // أقل مسافة بين أي كوبين عبر كل انتقال ممكن بين أي ترتيبين (36 حالة × منحنيين زمنيين)
+    const perms=[[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]];let worst=1e9,worstCase=null,cases=0;
+    for(const dur of [200,1000])for(const A of perms)for(const B of perms){
+      const from={a:A[0],b:A[1],c:A[2]},to={a:B[0],b:B[1],c:B[2]};
+      for(const sign of [1,-1]){
+        const mv=VIS.planMoves(from,to,sign);if(!mv.length)continue;cases++;
+        const sims=['a','b','c'].map(id=>{const m=mv.find(x=>x.id===id);return {id,mv:m?{t0:0,dur,x0:SLOT_X[from[id]],z0:0,x1:SLOT_X[to[id]],z1:0,lane:m.lane}:null,pos:{x:SLOT_X[from[id]],z:0}};});
+        for(let k=0;k<=400;k++){const t=dur*k/400;const P=sims.map(o=>CupRig.prototype.posAt.call(o,t));
+          for(let i=0;i<3;i++)for(let j=i+1;j<3;j++){const d=Math.hypot(P[i].x-P[j].x,P[i].z-P[j].z);if(d<worst){worst=d;worstCase={from:A,to:B,sign,dur,k};}}}
+      }}
+    return {worst,worstCase,cases};
+  },
+  ballPos(){return {x:ball.position.x,z:ball.position.z,y:ball.position.y,visible:ball.visible};},
+  occlusionTest(){ // الكرة المغطاة لا تُرى من أي لقطة كاميرا ولا بأقصى ميلان للكوب (اختبار أشعة من الكاميرا إلى 60 نقطة على سطح الكرة)
+    const rc=new THREE.Raycaster();const pts=[];const n=60;for(let i=0;i<n;i++){const y=1-(i/(n-1))*2,r=Math.sqrt(1-y*y),th=Math.PI*(3-Math.sqrt(5))*i;pts.push(new THREE.Vector3(Math.cos(th)*r,y,Math.sin(th)*r));}
+    const saved=VIS.ballCupId;let seen=0,total=0,detail=[];const keep={};for(const id in RIGS){keep[id]={p:RIGS[id].root.position.clone(),r:RIGS[id].root.rotation.clone()};}
+    for(const shot of ['A','B','E','W'])for(const slot of [1,2,3])for(const lean of [[0,0],[.075,.06],[-.075,-.06],[.075,-.06],[-.075,.06]]){
+      VIS.setShot(shot,{cx:SLOT_X[slot],instant:true});camera.position.copy(camRig.pos);camera.updateMatrixWorld(true);
+      const cupIds=['a','b','c'];const mesh=[];
+      cupIds.forEach((id,i)=>{const r=RIGS[id];r.root.position.set(SLOT_X[i+1],0,0);r.root.rotation.set(id===cupIds[slot-1]?-lean[1]:0,0,id===cupIds[slot-1]?lean[0]:0);r.root.scale.set(1,1,1);r.root.updateMatrixWorld(true);mesh.push(r.body,r.rim,r.gband);});
+      const c=new THREE.Vector3(SLOT_X[slot],BALL_R,0);
+      for(const q of pts){const P=c.clone().add(q.clone().multiplyScalar(BALL_R));const dir=P.clone().sub(camera.position);const dist=dir.length();dir.normalize();
+        rc.set(camera.position,dir);const h=rc.intersectObjects(mesh,false);total++;if(!(h.length&&h[0].distance<dist-1e-3)){seen++;if(detail.length<3)detail.push({shot,slot,lean});}}
+    }
+    for(const id in RIGS){RIGS[id].root.position.copy(keep[id].p);RIGS[id].root.rotation.copy(keep[id].r);}
+    VIS.setShot('A',{instant:true});
+    return {rays:total,unoccluded:seen,detail};
+  },
+  frameHook:null,
+  setImmunityAlways(){},
+  handleChat,
+  findballHandleGift:findballHandleGift,
+  eliminated(){return [...findballEliminatedHistory];}
+};
+// خطاف للإطار لاختبارات التصادم
+const _frame=VIS.frame.bind(VIS);VIS.frame=function(n,d){_frame(n,d);if(window.__fbTest.frameHook)window.__fbTest.frameHook(n);};
+
+/* =====================================================================
+   EHSEMHA-EMBED) طبقة التكامل مع موقع احسمها (تُضاف فقط — منطق اللعبة والتصميم أعلاه كما وصلا)
+   الموقع يمرّر أحداث البث الحقيقية عبر window.EhsemhaFindball ويقرأ الحالة منه.
+   ===================================================================== */
+(function(){
+  const pendingFollow=findballPendingFollowers;
+  function cleanUser(u){return {uniqueId:String(u&&u.uniqueId!=null?u.uniqueId:''),nickname:String((u&&(u.nickname||u.uniqueId))||'').slice(0,40),avatar:(u&&u.avatar)||'',isFollower:!!(u&&u.isFollower),followKnown:u&&u.followKnown};}
+  function gateOk(u){try{return EMB.hooks.followGate?!!EMB.hooks.followGate(u):true;}catch(e){return true;}}
+  // انضمام بشرط المتابعة (مثل لعبة الموقع الأصلية): غير المتابع يُعلَّق حتى يصل حدث متابعة منه
+  function tryJoin(u){
+    if(findballParticipants.has(u.uniqueId))return;
+    if(!gateOk(u)){pendingFollow.set(u.uniqueId,u);toast('⚠️ '+u.nickname+' لازم تسوي فولو للستريمر عشان تدخل اللعبة!');return;}
+    findballJoinParticipant(u);
+  }
+  function dispatch(ev){
+    if(!ev||typeof ev!=='object')return 'ignored';
+    const t=ev.type||ev.event;
+    if(t==='chat'||t==='WebcastChatMessage'||t==='comment'){
+      const u=cleanUser(ev),text=String(ev.comment||'').trim();
+      if(!u.uniqueId||!text)return 'ignored';
+      if(findballGameStatus==='waiting'){ if(joinTextMatches(text,findballKeyword))tryJoin(u); return 'ok'; }
+      if(findballGameStatus==='guessing'){ findballProcessGuess(u,text); return 'ok'; }
+      return 'ignored';
+    }
+    if(t==='WebcastSocialMessage'||t==='follow'||t==='social'){
+      const u=cleanUser(ev);u.isFollower=true;
+      if(pendingFollow.has(u.uniqueId)){pendingFollow.delete(u.uniqueId);findballJoinParticipant(u);return 'joined';}
+      return 'ignored';
+    }
+    if(t==='WebcastGiftMessage'||t==='gift'){
+      const u=cleanUser(ev);findballHandleGift(u,String(ev.giftName||'هدية'),Number(ev.diamonds)||0);return 'ok';
+    }
+    return 'ignored';
+  }
+  function removePlayer(uid){
+    uid=String(uid);const had=findballParticipants.delete(uid);pendingFollow.delete(uid);
+    if(!had)return false;
+    findballKickedDuringRound.add(uid);
+    const chip=document.getElementById('findballtag-'+uid);if(chip)chip.remove();
+    $('findball-p-count').textContent=findballParticipants.size;UI.stats();
+    if(findballGameStatus==='guessing'&&findballParticipants.size&&findballGuessedUids.size>=findballParticipants.size)findballRevealBall();
+    return true;
+  }
+  window.EhsemhaFindball={
+    version:'1.0',
+    receiveEvent:dispatch,
+    setHooks(h){Object.assign(EMB.hooks,h||{});},
+    setLinkStatus(on,txt){EMB.link=!!on;const d=$('findball-dot');if(d)d.className='dot '+(on?'':'connecting');if(txt)$('findball-live-user').textContent=txt;},
+    // إعدادات الموقع (ops/لوحة المالك): تُكتب في حقول الإعداد الأصلية للعبة فتقرأها modGetSetting كالمعتاد
+    configure(c){c=c||{};
+      const set=(id,v)=>{const el=$('set-'+id);if(!el||v==null)return;if(el.type==='checkbox')el.checked=!!v;else el.value=String(v);};
+      ['shuffleMinMs','shuffleSpeedupPercent','shuffleMinFloorMs','swapCount','guessTimerSeconds','revivalMaxUses'].forEach(k=>{ if(c[k]!=null){ const el=$('set-'+k); const mul=el&&parseFloat(el.dataset.mul)||1; set(k,c[k]/mul);} });
+      ['guessTimerEnabled','revivalEnabled'].forEach(k=>set(k,c[k]));
+      if(c.keyword!=null)$('findball-kw').value=String(c.keyword);
+      if(c.user!=null)$('findball-user').value=String(c.user);
+      return {keyword:$('findball-kw').value};},
+    enterLobby(){enterLobby();},
+    startRound(){findballStartRoundClick();},
+    reset(){findballResetGame();},
+    removePlayer,
+    join(u){const c=cleanUser(u);if(!c.uniqueId)return false;tryJoin(c);return findballParticipants.has(c.uniqueId);},   // أوامر البث الحيّة (انضم)
+    forceWin(uid){const u=findballParticipants.get(String(uid));if(!u||findballGameStatus==='finished')return false;findballGameStatus='finished';findballSetGameStatus('finished');findballShowWinner(u);return true;},   // «فوّزه»
+    getState(){return {status:findballGameStatus,round:findballRoundNum,keyword:findballKeyword,shuffling:findballShuffling,
+      players:[...findballParticipants.values()].map(u=>({uniqueId:u.uniqueId,nickname:u.nickname})),pending:pendingFollow.size,eliminated:[...findballEliminatedHistory],ballCup:findballBallCup,link:EMB.link};},
+    destroy(){try{dispose();}catch(e){}}
+  };
+  if(EMBED){
+    // في التضمين: حقول المنصة/اليوزر/المفتاح يتولاها الموقع (اتصال البث موحّد) فنخفيها من شاشة الإعداد
+    ['findball-apikey','findball-user'].forEach(id=>{const f=$(id)&&$(id).closest('.field');if(f)f.classList.add('emb-hide');});
+    $('findball-live-user').textContent='البث غير متصل';
+    $('btn-connect').addEventListener('click',()=>EMB.emit('lobby',{keyword:findballKeyword}));
+    $('findball-btn-round').addEventListener('click',()=>EMB.emit('round-click',{status:findballGameStatus}));
+    EMB.emit('ready',{version:'1.0'});
+  }
+})();
+}
+</script>
+</body>
+</html>
