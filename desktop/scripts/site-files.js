@@ -39,6 +39,7 @@ const ROOT_FILES = [
   'ehsmaha-stream-header-glue.js',
   'code-race-banner.png',
   'discord-logo.png',
+  'favicon.ico',
 ];
 
 const DIRS = [
@@ -55,6 +56,7 @@ const DIRS = [
   'about-experience/posters',
   'windows-app',
   'windows-launch-campaign',
+  'assets',
   'jam3atna',
 ];
 

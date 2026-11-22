@@ -8,7 +8,8 @@
 <title>استوديو المالك — احسمها</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNDNEI1RkQiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3QzNBRUQiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48cGF0aCBkPSJNMTggNjYgTDE4IDQwIEwzNCA1MiBMNTAgMzAgTDY2IDUyIEw4MiA0MCBMODIgNjYgWiIgZmlsbD0idXJsKCNnKSIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxyZWN0IHg9IjE4IiB5PSI2OCIgd2lkdGg9IjY0IiBoZWlnaHQ9IjExIiByeD0iNS41IiBmaWxsPSJ1cmwoI2cpIi8+PGNpcmNsZSBjeD0iNTAiIGN5PSIyNiIgcj0iNSIgZmlsbD0idXJsKCNnKSIvPjwvc3ZnPgo=" type="image/svg+xml">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/branding/icon-32.png?v=2">
 <style>
 /* EHSEMHA OWNER STUDIO — design tokens
    Charcoal-first. Violet is reserved for identity moments and primary actions. */
@@ -1155,18 +1156,8 @@ kbd{font-family:var(--f-num);background:var(--raised);border-radius:8px;padding:
 (function(){
   const {esc,icon,fmt,av,$}=UI; const P=PREVIEW;
   function crown(){
-    const path='M18 66 L18 40 L34 52 L50 30 L66 52 L82 40 L82 66 Z';
-    let layers=''; const N=14;
-    for(let i=N;i>=1;i--){
-      const t=i/N; const c=`hsl(262 ${55+t*10}% ${10+(1-t)*14}%)`;
-      layers+=`<svg viewBox="0 0 100 100" style="transform:translateZ(${-i*5}px)"><path d="${path}" fill="${c}"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="${c}"/><circle cx="50" cy="26" r="5" fill="${c}"/></svg>`;
-    }
-    layers+=`<svg viewBox="0 0 100 100" style="transform:translateZ(6px)"><defs>
-      <linearGradient id="cg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DDD0FF"/><stop offset=".45" stop-color="#8B5CF6"/><stop offset="1" stop-color="#4C1D95"/></linearGradient>
-      <linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A78BFA"/><stop offset="1" stop-color="#5B21B6"/></linearGradient></defs>
-      <path d="${path}" fill="url(#cg1)"/><rect x="18" y="68" width="64" height="11" rx="5.5" fill="url(#cg2)"/><circle cx="50" cy="26" r="5" fill="#E9E0FF"/>
-      <path d="M34 52 L50 30 L50 66 Z" fill="rgba(255,255,255,.20)"/><path d="M66 52 L50 30 L50 66 Z" fill="rgba(20,5,60,.28)"/><path d="M18 40 L34 52 L18 66 Z" fill="rgba(255,255,255,.12)"/><path d="M82 40 L66 52 L82 66 Z" fill="rgba(20,5,60,.3)"/>
-      <rect x="20" y="69.5" width="60" height="2.4" rx="1.2" fill="rgba(255,255,255,.35)"/></svg>`;
+    // شعار احسمها الرسمي (الشعار الجديد) — طبقة واحدة بدل طبقات التاج القديم
+    const layers=`<img src="/assets/branding/icon-512.png" alt="" decoding="async" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;border-radius:22%;transform:translateZ(6px)">`;
     return `<div class="crown-wrap" data-fx="scale"><div class="crown-floor"></div><div class="crown-stack" role="img" aria-label="تاج احسمها">${layers}</div></div>`;
   }
   Studio.register({id:'home',title:'الرئيسية',en:'OWNER HOME',icon:'home',chrome:false,
