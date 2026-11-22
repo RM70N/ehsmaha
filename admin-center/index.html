@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>لوحة الأدمن — احسمها</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/branding/icon-32.png?v=2">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/admin-center/admin.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <button class="btn sm burger" id="burger" aria-label="القائمة" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <a class="brand" href="https://ehsmaha.com" target="_blank" rel="noopener" aria-label="احسمها ehsmaha.com">
+      <span class="logo"><img src="/assets/branding/icon-96.png" width="42" height="42" alt=""></span>
+      <span><b>لوحة الأدمن</b><small>EHSMAHA CONTROL</small></span>
+    </a>
+    <span class="site ltr brand" style="display:none"></span>
+    <div class="grow"></div>
+    <span class="chip hide-m" id="chip-conn" title="الاتصال بخادم البيانات"><span class="d"></span><span id="chip-conn-t">…</span></span>
+    <span class="chip hide-m" id="chip-sess" title="الجلسات النشطة الآن"><span class="d"></span><span id="chip-sess-t">—</span></span>
+    <div class="me"><span class="av" id="me-av">؟</span><span><b id="me-name">…</b><small id="me-role">أدمن</small></span></div>
+    <button class="btn sm" id="back" aria-label="الرجوع إلى الموقع"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg><span>الموقع</span></button>
+  </header>
+  <nav class="side" id="side" aria-label="أقسام لوحة الأدمن"></nav>
+  <main class="main" id="main" tabindex="-1" aria-live="polite"></main>
+</div>
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+<script src="/admin-center/permissions.js"></script>
+<script src="/admin-center/admin-data.js"></script>
+<script src="/admin-center/admin-app.js"></script>
+<script src="/admin-center/admin-streams.js"></script>
+<script src="/admin-center/admin-rounds.js"></script>
+<script src="/admin-center/admin-conn.js"></script>
+<script src="/admin-center/admin-frames.js"></script>
+<script src="/admin-center/admin-boot.js"></script>
+</body>
+</html>

@@ -41,7 +41,7 @@ service cloud.firestore {
 
     // سجل إجراءات الأدمن: إضافة فقط (لا تعديل ولا حذف لأحد)، بوقت الخادم، وباسم صاحب الإجراء نفسه.
     match /adminActionLog/{id} {
-      allow create: if adminIs('admin_dashboard_view')
+      allow create: if (isOwner() || adminIs('admin_dashboard_view'))
                     && request.resource.data.keys().hasOnly(['actorId', 'actorName', 'action', 'resourceType', 'resourceId', 'targetUid', 'targetKey', 'targetName', 'result', 'reqId', 'ts', 'meta'])
                     && request.resource.data.actorId == request.auth.uid
                     && request.resource.data.ts == request.time

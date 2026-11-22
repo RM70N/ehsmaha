@@ -77,6 +77,8 @@ await no('المالك لا يحذف حدثاً أيضاً (سجل ثابت)', d
 await no('تزوير هوية الفاعل', setDoc(doc(fsA, 'adminActionLog/x1'), { ...auditDoc(fsA, 'x1'), actorId: 'adm3', action: 'view' }));
 await no('وقت من المتصفح بدل الخادم', setDoc(doc(fsA, 'adminActionLog/x2'), { ...auditDoc(fsA, 'x2'), ts: new Date() }));
 await no('مستخدم عادي لا يكتب سجلاً', setDoc(doc(fsU, 'adminActionLog/x3'), { ...auditDoc(fsA, 'x3'), actorId: 'usr1' }));
+await ok('المالك يسجّل إجراءاته الإدارية (تعيين/تعديل/إزالة) بوقت الخادم', setDoc(doc(fsO, 'adminActionLog/o1'), { actorId: 'owner1', actorName: 'owner', action: 'admin.assign', resourceType: 'admin', resourceId: 'adm1', targetUid: 'adm1', targetKey: '', targetName: 'a', result: 'success', reqId: 'o1', ts: serverTimestamp(), meta: {} }));
+await no('المالك لا يسجّل باسم أدمن آخر', setDoc(doc(fsO, 'adminActionLog/o2'), { actorId: 'adm1', actorName: 'x', action: 'admin.assign', resourceType: 'admin', resourceId: 'adm1', targetUid: '', targetKey: '', targetName: '', result: 'success', reqId: 'o2', ts: serverTimestamp(), meta: {} }));
 await no('موقوف لا يكتب سجلاً', setDoc(doc(fsA2, 'adminActionLog/x4'), { ...auditDoc(fsA2, 'x4') }));
 
 console.log('== 4) عدم كسر القواعد القديمة');
