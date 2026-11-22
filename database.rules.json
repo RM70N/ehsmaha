@@ -12,8 +12,16 @@
         }
       }
     },
-    "opsEvents": {
+    "adminAccess": {
       ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$uid": {
+        ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && auth.uid === $uid)",
+        ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+        ".validate": "newData.hasChildren(['userId','role','status','permissions']) && newData.child('userId').val() === $uid && newData.child('role').val() === 'admin' && (newData.child('status').val() === 'active' || newData.child('status').val() === 'suspended')"
+      }
+    },
+    "opsEvents": {
+      ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_streams_view').val() === true) || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_connections_view').val() === true) || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_rounds_view').val() === true)",
       "$id": {
         ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
         ".validate": "newData.hasChildren(['t','type','uid'])"
@@ -23,7 +31,7 @@
       ]
     },
     "opsSessions": {
-      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_streams_view').val() === true) || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_connections_view').val() === true)",
       "$sid": {
         ".write": "auth != null && $sid.contains(auth.uid)"
       },
@@ -189,13 +197,16 @@
           ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.val() === data.val()"
         },
         "usedCount": {
-          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (newData.val() === data.val() + 1 && !data.parent().child('usedBy').child(auth.uid).exists() && newData.parent().child('usedBy').child(auth.uid).exists()) || (newData.val() === data.val() - 1 && data.parent().child('usedBy').child(auth.uid).exists() && !newData.parent().child('usedBy').child(auth.uid).exists())"
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (newData.val() === data.val() + 1 && !data.parent().child('usedBy').child(auth.uid).exists() && newData.parent().child('usedBy').child(auth.uid).exists()) || (newData.val() === data.val() - 1 && data.parent().child('usedBy').child(auth.uid).exists() && !newData.parent().child('usedBy').child(auth.uid).exists()) || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_frames_redeem_code').val() === true && root.child('secretCodes').child($codeKey).child('active').val() !== false && (!root.child('secretCodes').child($codeKey).child('expiresAt').exists() || root.child('secretCodes').child($codeKey).child('expiresAt').val() > now) && root.child('secretCodes').child($codeKey).child('usedCount').val() < root.child('secretCodes').child($codeKey).child('maxUses').val() && root.child('adminAccess').child(auth.uid).child('frameGrantScope').child('frameIds').child(root.child('secretCodes').child($codeKey).child('frameId').val()).val() === true && newData.val() === data.val() + 1 && newData.parent().child('lastAdminRedeem').child('by').val() === auth.uid && newData.parent().child('usedBy').child(newData.parent().child('lastAdminRedeem').child('uid').val()).child('by').val() === auth.uid && !data.parent().child('usedBy').child(newData.parent().child('lastAdminRedeem').child('uid').val()).exists())"
         },
         "usedBy": {
           "$uid": {
             ".write": "auth != null && (auth.uid === $uid || auth.token.email === 'malshaifan1@gmail.com')",
-            ".validate": "auth.token.email === 'malshaifan1@gmail.com' || newData.hasChildren(['username', 'usedAt'])"
+            ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (newData.hasChildren(['username', 'usedAt']) && (!newData.hasChild('by') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_frames_redeem_code').val() === true && newData.child('by').val() === auth.uid && !data.exists() && root.child('secretCodes').child($codeKey).child('active').val() !== false && (!root.child('secretCodes').child($codeKey).child('expiresAt').exists() || root.child('secretCodes').child($codeKey).child('expiresAt').val() > now) && root.child('secretCodes').child($codeKey).child('usedCount').val() < root.child('secretCodes').child($codeKey).child('maxUses').val() && root.child('adminAccess').child(auth.uid).child('frameGrantScope').child('frameIds').child(root.child('secretCodes').child($codeKey).child('frameId').val()).val() === true && newData.parent().parent().child('usedCount').val() === data.parent().parent().child('usedCount').val() + 1)))"
           }
+        },
+        "lastAdminRedeem": {
+          ".validate": "auth.token.email === 'malshaifan1@gmail.com' || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_frames_redeem_code').val() === true && newData.hasChildren(['uid','by']) && newData.child('by').val() === auth.uid)"
         }
       }
     },
@@ -1062,6 +1073,49 @@
       "xpSeasonsArchive": {
         ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
         ".write": "auth != null && auth.token.email === 'malshaifan1@gmail.com'"
+      }
+    },
+    "adminRounds": {
+      ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_rounds_view').val() === true)",
+      "$day": {
+        "$id": {
+          ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['uid','game','ts','rid'])"
+        }
+      }
+    },
+    "adminObserve": {
+      ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_sessions_observe').val() === true)",
+      "$sid": {
+        ".write": "auth != null && $sid.contains(auth.uid)"
+      }
+    },
+    "adminObservers": {
+      ".read": "(auth != null && auth.token.email === 'malshaifan1@gmail.com') || (auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_sessions_observe').val() === true)",
+      "$sid": {
+        "$aid": {
+          ".write": "auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_sessions_observe').val() === true && $aid === auth.uid"
+        }
+      }
+    },
+    "adminConnTests": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$tid": {
+          ".write": "auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_connections_test').val() === true && auth.uid === $uid && (data.exists() || (!root.child('adminConnTestMeta').child(auth.uid).child('last').exists() || root.child('adminConnTestMeta').child(auth.uid).child('last').val() < now - 8000))",
+          ".validate": "newData.hasChildren(['platform','streamer','status','startedAt'])"
+        }
+      }
+    },
+    "adminConnTestMeta": {
+      ".read": "auth != null && auth.token.email === 'malshaifan1@gmail.com'",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "last": {
+          ".write": "auth != null && root.child('adminAccess').child(auth.uid).child('status').val() === 'active' && root.child('adminAccess').child(auth.uid).child('permissions').child('admin_connections_test').val() === true && auth.uid === $uid",
+          ".validate": "newData.val() === now"
+        }
       }
     }
   }
