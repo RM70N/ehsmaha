@@ -33,6 +33,7 @@ const IMPL = {
   setDoc: 'async () => {}', updateDoc: 'async () => {}', deleteDoc: 'async () => {}', runTransaction: 'async () => {}',
   serverTimestamp: '() => null', increment: '(n) => n', arrayUnion: '() => null', arrayRemove: '() => null', deleteField: '() => null',
   query: '(...a) => a[0]', where: '() => ({})',
+  writeBatch: '() => { const b = { set() { return b; }, update() { return b; }, delete() { return b; }, commit: async () => {} }; return b; }', orderBy: '() => ({})', limit: '() => ({})',
   getDatabase: '() => ({})', rtdbRef: '() => ({})', ref: '() => ({})', child: '() => ({})', push: '() => ({})',
   set: 'async () => {}', get: 'async () => ({ exists: () => false, val: () => null })', remove: 'async () => {}', update: 'async () => {}',
   onValue: '() => () => {}', off: '() => {}', onDisconnect: '() => ({ remove: async () => {}, set: async () => {} })',

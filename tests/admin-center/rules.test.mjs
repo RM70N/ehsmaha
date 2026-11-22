@@ -149,6 +149,8 @@ await no('مستخدم عادي يسجّل استخداماً لغيره', updat
 await no('الأدمن لا يغيّر إطار الكود', set(ref(dbA, 'secretCodes/good/frameId'), 'fx2'));
 await no('الأدمن لا يقرأ قائمة الأكواد', get(ref(dbA, 'secretCodes')));
 await ok('الأدمن يتحقق من كود معيّن (قراءة مفتاح واحد)', get(ref(dbA, 'secretCodes/good')));
+await ok('أدمن يتراجع عن استرداده (حذف + إنقاص العدّاد) إن فشل المنح', update(ref(dbA), { 'secretCodes/good/usedBy/t2': null, 'secretCodes/good/usedCount': 1, 'secretCodes/good/lastAdminRedeem': null }));
+await no('لا يمكن إنقاص العدّاد بلا سبب (بلا سجل استرداده)', update(ref(dbA), { 'secretCodes/good/usedCount': 0 }));
 await ok('استرداد اللاعب العادي لنفسه ما زال يعمل', (async () => { await set(ref(dbO, 'secretCodes/selfc'), code({ maxUses: 5 })); await update(ref(dbU), { 'secretCodes/selfc/usedBy/usr1': { username: 'u', usedAt: 1 }, 'secretCodes/selfc/usedCount': 1 }); })());
 
 await env.cleanup();
