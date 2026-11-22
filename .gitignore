@@ -10,3 +10,9 @@ Thumbs.db
 .gstack/
 .task/
 downloads/
+
+# أسرار وخلفيات (لا تُرفع أبداً)
+sa.json
+*service-account*.json
+*firebase-adminsdk*.json
+.ehsmaha-backups/
