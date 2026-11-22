@@ -27,7 +27,11 @@
   function check(user) {
     var f = fb(); if (!f || !f.db || !user) { rec = null; show(false); checkedUid = null; return Promise.resolve(false); }
     checkedUid = user.uid;
-    return f.getDoc(f.doc(f.db, 'adminAccess', user.uid)).then(function (s) { rec = s.exists() ? s.data() : null; var ok = active(rec); if (checkedUid === user.uid) show(ok); return ok; }, function () { rec = null; show(false); return false; });
+    var fin = function (r) { rec = r; var ok = active(rec); if (checkedUid === user.uid) show(ok); return ok; };
+    var viaFs = function () { return f.getDoc(f.doc(f.db, 'adminAccess', user.uid)).then(function (s) { return fin(s.exists() ? s.data() : null); }, function () { rec = null; show(false); return false; }); };
+    /* RTDB أولاً (يعمل مع حصة Firestore المنتهية)، وFirestore احتياط */
+    if (f.rtdb && f.rtdbGet) return f.rtdbGet(f.rtdbRef(f.rtdb, 'adminAccess/' + user.uid)).then(function (sn) { return sn.exists() ? fin(sn.val()) : viaFs(); }, viaFs);
+    return viaFs();
   }
   function ensureFrame() {
     if (frame) return frame;
@@ -37,6 +41,8 @@
   /* اشتراك لحظي على سجل الأدمن أثناء فتح اللوحة: أي سحب/إيقاف يُغلق اللوحة فوراً (والخادم يرفض الطلبات أصلاً). */
   function watch() {
     var f = fb(); var u = f && f.auth && f.auth.currentUser; if (!f || !u || unsub) return;
+    var onRec = function (r) { rec = r; try { var fr = frame && frame.contentWindow; if (fr && fr.AdminApp && fr.AdminApp.accessChanged) fr.AdminApp.accessChanged(rec); } catch (e) {} if (!active(rec)) { show(false); AdminCenter.close(); } };
+    if (f.rtdb && f.rtdbOnValue) { try { unsub = f.rtdbOnValue(f.rtdbRef(f.rtdb, 'adminAccess/' + u.uid), function (sn) { onRec(sn.exists() ? sn.val() : null); }, function () {}); return; } catch (e) { unsub = null; } }
     try { unsub = f.onSnapshot(f.doc(f.db, 'adminAccess', u.uid), function (s) { rec = s.exists() ? s.data() : null; try { var fr = frame && frame.contentWindow; if (fr && fr.AdminApp && fr.AdminApp.accessChanged) fr.AdminApp.accessChanged(rec); } catch (e) {} if (!active(rec)) { show(false); AdminCenter.close(); } }, function () {}); } catch (e) { unsub = null; }
   }
   var AdminCenter = w.AdminCenter = {
