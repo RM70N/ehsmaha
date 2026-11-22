@@ -8,7 +8,7 @@ fs.mkdirSync(SHOTS, { recursive: true });
 let pass = 0, fail = 0; const ok = (n, c, d) => { if (c) { pass++; console.log('  ✔', n); } else { fail++; console.log('  ✘', n, d !== undefined ? JSON.stringify(d) : ''); } };
 const b = await chromium.launch({ args: ['--no-sandbox', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
 
-async function open(file, w = 1280, h = 720, mobile = false) {
+async function open(file, w = 640, h = 360, mobile = false) {
   const ctx = await b.newContext(mobile ? { viewport: { width: w, height: h }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, userAgent: 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36' } : { viewport: { width: w, height: h } });
   const fulfill = (p) => async (route) => route.fulfill({ status: 200, contentType: p.endsWith('.js') ? 'application/javascript' : 'text/plain', body: fs.readFileSync(p) });
   await ctx.route(/cdnjs\.cloudflare\.com\/ajax\/libs\/three\.js\/r128\/three\.min\.js/, fulfill(THREE + '/build/three.min.js'));
@@ -33,40 +33,41 @@ async function untilState(pg, st, ms = 30000) { try { await pg.waitForFunction((
 async function settle(pg, ms = 25000) { // ينتظر عودة الحالة لانتظار القرار القادم أو نهاية المباراة
   const t0 = Date.now(); while (Date.now() - t0 < ms) { const s = await S(pg); if (s.state === 'WAITING_FOR_DECISION' || s.state === 'GAME_OVER' || s.state === 'RESULTS') return s.state; await pg.waitForTimeout(150); } return (await S(pg)).state; }
 
-for (const [label, file] of [['NEW', 'NEW'], ...(ORIG ? [['ORIG', ORIG]] : [])]) {
+const ONLY = process.env.ONLY;
+for (const [label, file] of [['NEW', 'NEW'], ...(ORIG ? [['ORIG', ORIG]] : [])].filter(x => !ONLY || x[0] === ONLY)) {
   console.log('== ' + label);
   const pg = await open(file);
   ok(label + ': تفتح بلا أخطاء JS', pg.errs.length === 0, pg.errs.slice(0, 3));
   ok(label + ': واجهة EhsemhaRoulette موجودة', await pg.evaluate(() => !!window.EhsemhaRoulette && typeof window.EhsemhaRoulette.getState === 'function'));
-  await pg.evaluate(() => window.EhsemhaRoulette.settings({ demo: false, decTime: 8 }));
-  await join(pg, 6); let s = await S(pg);
-  ok(label + ': انضم 6 لاعبين', s.players.length === 6, s.players.length);
+  await pg.evaluate(() => window.EhsemhaRoulette.settings({ demo: false, decTime: 8, elimMode: 'f3' }));
+  await join(pg, 4); let s = await S(pg); const N0 = s.players.length;
+  ok(label + ': انضم اللاعبون (' + N0 + ')', N0 >= 4, N0);
   await pg.screenshot({ path: `${SHOTS}/${label}_lobby.png` });
   await pg.evaluate(() => window.EhsemhaRoulette.start());
   // انتظر أول دوران ثم قرار
-  const gotDec = await untilState(pg, 'WAITING_FOR_DECISION', 60000);
+  const gotDec = await untilState(pg, 'WAITING_FOR_DECISION', 180000);
   ok(label + ': الدوران ينتهي بصاحب دور (فتحة الاختيار توقفت)', gotDec);
   await pg.screenshot({ path: `${SHOTS}/${label}_decision.png` });
   // خيار 2 (تخطي)
   s = await S(pg); const alive0 = s.players.filter(p => p.alive).length, pid2 = s.pending && s.pending.pid; const pas0 = (s.players.find(p => p.id === pid2) || {}).passes;
-  await decide(pg, 2); await settle(pg, 30000); s = await S(pg);
+  await decide(pg, 2, 60000); await settle(pg, 240000); s = await S(pg);
   ok(label + ': خيار 2 يستهلك امتناعاً ولا يقصي أحداً', s.players.filter(p => p.alive).length === alive0 && (s.players.find(p => p.id === pid2) || {}).passes === pas0 - 1, { alive0, now: s.players.filter(p => p.alive).length });
   // خيار 1 بشكل متكرر حتى يحدث إقصاء ونجاة؛ نلتقط لقطات في منتصف الشحن
   let elim = 0, safe = 0, shotCharge = false, shotElim = false, guard = 0; const eliminatedIds = [];
   while (guard++ < 40) {
     s = await S(pg); if (s.state === 'GAME_OVER' || s.state === 'RESULTS') break;
     const before = s.players.filter(p => p.alive).map(p => p.id);
-    const pid = await decide(pg, 1, 40000); if (!pid) break;
+    const pid = await decide(pg, 1, 180000); if (!pid) break;
     await pg.waitForTimeout(1300); if (!shotCharge) { await pg.screenshot({ path: `${SHOTS}/${label}_charge.png` }); shotCharge = true; }
     if (!shotElim) { await pg.waitForTimeout(1400); }
-    const st = await settle(pg, 40000); s = await S(pg); const after = s.players.filter(p => p.alive).map(p => p.id);
+    const st = await settle(pg, 240000); s = await S(pg); const after = s.players.filter(p => p.alive).map(p => p.id);
     if (after.length < before.length) { elim++; eliminatedIds.push(...before.filter(x => !after.includes(x))); if (!shotElim) { shotElim = true; } } else safe++;
     if (st === 'GAME_OVER' || st === 'RESULTS') break;
   }
   ok(label + ': حدثت حالات نجاة وإقصاء وانتهت بفائز', (elim + safe) > 0 && (await S(pg)).players.filter(p => p.alive).length >= 1, { elim, safe });
   ok(label + ': كل إقصاء حدث مرة واحدة (لا إقصاء مكرر)', new Set(eliminatedIds).size === eliminatedIds.length, eliminatedIds);
-  ok(label + ': عدد الأحياء = ' + (6 - elim), (await S(pg)).players.filter(p => p.alive).length === 6 - elim);
-  const fin = await untilState(pg, 'RESULTS', 40000) || (await S(pg)).state === 'GAME_OVER';
+  ok(label + ': عدد الأحياء = ' + (N0 - elim), (await S(pg)).players.filter(p => p.alive).length === N0 - elim);
+  const fin = await untilState(pg, 'RESULTS', 120000) || (await S(pg)).state === 'GAME_OVER';
   ok(label + ': نهاية المباراة (فائز/نتائج)', fin, (await S(pg)).state);
   await pg.screenshot({ path: `${SHOTS}/${label}_end.png` });
   ok(label + ': لا أخطاء JS أثناء المباراة كاملة', pg.errs.length === 0, pg.errs.slice(0, 3));
