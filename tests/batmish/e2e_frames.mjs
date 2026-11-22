@@ -148,15 +148,15 @@ for (const pg of pages) {
     host.appendChild(buildParticipantChip({ uniqueId: 'plain1', nickname: 'بدون إطار' }, 13, null));
     await new Promise((r) => setTimeout(r, 2500));
     const fr = [...host.querySelectorAll('.p-username-tag.p-has-full-frame')];
-    const m = fr.map((t) => { const b = t.getBoundingClientRect(), c = t.querySelector('.p-avatar-circle').getBoundingClientRect(), n = t.querySelector('.p-username-name').getBoundingClientRect(); return { h: Math.round(b.height), w: Math.round(b.width), cd: Math.round(c.width), ch: Math.round(c.height), inside: c.left >= b.left - 1 && c.right <= b.right + 1 && c.top >= b.top - 1 && c.bottom <= b.bottom + 1, nameVis: n.width > 20 && n.right <= b.right + 1 && n.left >= b.left - 1, shown: b.height > 0 }; });
+    const m = fr.map((t) => { const b = t.getBoundingClientRect(), c = t.querySelector('.p-avatar-circle').getBoundingClientRect(), n = t.querySelector('.p-username-name').getBoundingClientRect(); return { h: Math.round(b.height), w: Math.round(b.width), cd: Math.round(c.width), ch: Math.round(c.height), inside: c.left >= b.left - 1 && c.right <= b.right + 1 && c.top >= b.top - 1 && c.bottom <= b.bottom + 1, nameVis: n.width > 20 && n.right <= b.right + 1 && n.left >= b.left - 1, nameClear: n.left >= c.right - 1, shown: b.height > 0 }; });
     return { n: fr.length, m };
   }, [pg]);
   const hs = new Set(r.m.map((x) => x.h)), cds = new Set(r.m.map((x) => x.cd));
-  if (r.n !== 12 || hs.size !== 1 || cds.size !== 1 || r.m.some((x) => !x.inside || !x.nameVis || x.ch !== x.cd)) bad.push({ page: pg.page, n: r.n, hs: [...hs], cds: [...cds], inside: r.m.filter((x) => !x.inside).length, name: r.m.filter((x) => !x.nameVis).length });
+  if (r.n !== 12 || hs.size !== 1 || (Math.max(...cds) - Math.min(...cds)) > 10 || Math.min(...cds) < 22 || r.m.some((x) => !x.inside || !x.nameVis || !x.nameClear || x.ch !== x.cd)) bad.push({ page: pg.page, n: r.n, hs: [...hs], cds: [...cds], inside: r.m.filter((x) => !x.inside).length, name: r.m.filter((x) => !x.nameVis).length });
   if (pg.page === 'pg-dash') console.log('مقاسات pg-dash:', JSON.stringify(r.m[0]));
   if (pg.page === 'pg-dash' || pg.page === 'pg-cr') await Z.page.screenshot({ path: SHOTS + '/frm-chips-' + pg.page + '.png' });
 }
-ok(bad.length === 0, 'كل صفحات الانتظار: 12 إطاراً بنفس الحجم، الأفتار داخل الفتحة، والاسم ظاهر', bad);
+ok(bad.length === 0, 'كل صفحات الانتظار: 12 إطاراً بنفس الحجم، الأفتار داخل حلقاتها (قطر 22–35px)، والاسم بلوحته لا يلامس الأفتار', bad);
 const sz = await Z.page.evaluate(() => { const t = document.querySelector('.p-username-tag.p-has-full-frame'); const b = t.getBoundingClientRect(); return { h: Math.round(b.height), w: Math.round(b.width) }; });
 console.log('الحجم الفعلي للبطاقة بإطار:', JSON.stringify(sz));
 
