@@ -28,6 +28,10 @@ const NO_UID_WINDOW_MS = 15 * 60 * 1000; // جلسة Firestore بدون uid (ن�
 const MAX_AGE_MS = 6 * 60 * 60 * 1000; // أقصى عمر لصف Firestore
 const LINK_STALE_MS = 12 * 60 * 60 * 1000; // قاعدة اللوحة للصفوف المربوطة (RTDB)
 const UNVERIFIED_WINDOW_MS = 10 * 60 * 1000; // لو تعذّرت قراءة presence (الحصة): نقبل صفوف Firestore الحديثة فقط
+// قواعد "الطافي ما يظهر":
+const LINKED_NO_GAME_MS = 15 * 60 * 1000; // متصل بالبث بدون ما يختار لعبة لأكثر من 15 دقيقة ← يختفي
+const PLAYING_NO_PRESENCE_MS = 3 * 60 * 60 * 1000; // بثّ بلعبة ولا نقدر نتحقق من الحضور (الحصة): نثق فيه 3 ساعات فقط
+const GAME_ROW_NO_LINK_MS = 15 * 60 * 1000; // لعبة Firestore بدون صف ربط (RTDB سليم): نقبلها 15 دقيقة من تشغيلها فقط
 const PLATFORMS = new Set(['tiktok', 'twitch', 'kick', 'youtube']);
 const TTL_MS = 30 * 1000;
 const PRESENCE_TTL_MS = 90 * 1000;
@@ -178,7 +182,7 @@ const platformOf = (p) => (PLATFORMS.has(String(p || '').toLowerCase()) ? String
  * @param {number} p.now
  * @returns {{ streams: object[] }}
  */
-function buildStreams({ fsRows = [], rtRows = [], presence = new Map(), now = Date.now() }) {
+function buildStreams({ fsRows = [], rtRows = [], presence = new Map(), now = Date.now(), rtReady = false }) {
   const byStreamer = new Map(); // platform:username(lower) -> { t, gameName, stream }
   const consider = ({ username, platform, gameName, gameTag, uid, t, via }) => {
     const user = cleanName(username);
@@ -207,11 +211,29 @@ function buildStreams({ fsRows = [], rtRows = [], presence = new Map(), now = Da
     if (item.t > ex.t) byStreamer.set(key, item); // وإلا الأحدث
   };
 
-  // 1) بثّ مربوط (RTDB): الصف الأقدم من 12 ساعة يتجاهل (قاعدة اللوحة). يُحذف تلقائياً عند الانقطاع.
+  // 1) بثّ مربوط (RTDB link_<uid>): يُكتب لحظة الربط ويُحذف لما ينقطع البث/الصفحة/فك الربط ← هو مرجع "الستريمر أونلاين".
+  //    صفوف RTDB اللي بدون updatedAtMs (نسخ Firestore القديمة المنعكسة) ما تُعتبر أبداً حيّة.
+  const linkKeys = new Set();
+  const linkUids = new Set();
   for (const r of rtRows) {
     const t = num(r.updatedAtMs);
-    if (t && now - t > LINK_STALE_MS) continue;
-    consider({ username: r.username, platform: r.platform, gameName: r.gameName, gameTag: r.gameTag, uid: r.uid, t: t || now, via: 'link' });
+    if (!t) continue;
+    const age = now - t;
+    if (age > LINK_STALE_MS) continue; // قاعدة اللوحة
+    const hasGame = !!r.gameName;
+    if (!hasGame && age > LINKED_NO_GAME_MS) continue; // 15 دقيقة بدون لعبة ← يختفي
+    if (hasGame && r.uid && age > PRESENCE_WINDOW_MS) {
+      // بلعبة من فترة: نتأكد إن صاحبه لسا بالموقع (نبضة الحضور)، وإلا (الحصة) نثق فيه فترة محدودة
+      if (presence) {
+        if (now - (presence.get(r.uid) || 0) > PRESENCE_WINDOW_MS) continue;
+      } else if (age > PLAYING_NO_PRESENCE_MS) {
+        continue;
+      }
+    }
+    const user = cleanName(r.username);
+    if (user) linkKeys.add(`${platformOf(r.platform)}:${user.toLowerCase()}`);
+    if (r.uid) linkUids.add(r.uid);
+    consider({ username: r.username, platform: r.platform, gameName: r.gameName, gameTag: r.gameTag, uid: r.uid, t, via: 'link' });
   }
 
   // 2) لعبة شغّالة (Firestore) + تحقق الحضور
@@ -226,6 +248,11 @@ function buildStreams({ fsRows = [], rtRows = [], presence = new Map(), now = Da
       }
     } else if (now - t > NO_UID_WINDOW_MS) {
       continue;
+    }
+    // RTDB سليم: لعبة بدون صف ربط = البث انتهى/الستريمر طلع (الصف يُحذف عند الانقطاع) ← ما تظهر إلا لو تشغّلت قبل أقل من 15 دقيقة
+    if (rtReady) {
+      const key = `${platformOf(r.platform)}:${cleanName(r.username).toLowerCase()}`;
+      if (!linkKeys.has(key) && !(r.uid && linkUids.has(r.uid)) && now - t > GAME_ROW_NO_LINK_MS) continue;
     }
     consider({ username: r.username, platform: r.platform, gameName: r.gameName || r.gameTag || r.id, gameTag: r.gameTag || r.id, uid: r.uid, t, via: 'game' });
   }
@@ -243,13 +270,14 @@ async function getActiveStreams() {
     const fsRows = (fsRowsAll || []).filter((r) => r.username && ms(r.updatedAt) && now - ms(r.updatedAt) <= MAX_AGE_MS);
     let presence = null;
     try {
-      presence = await presenceFor([...new Set(fsRows.map((r) => r.uid).filter(Boolean))]);
+      const linkUidsWithGame = rtRows.filter((r) => r && r.gameName && r.uid && num(r.updatedAtMs)).map((r) => r.uid);
+      presence = await presenceFor([...new Set([...fsRows.map((r) => r.uid), ...linkUidsWithGame].filter(Boolean))]);
     } catch (_) {
       presence = null; // حصة Firestore خلصت مثلاً: RTDB يكفي، وصفوف Firestore الحديثة فقط
     }
     // لو تعذّر Firestore بالكامل وRTDB ما فيها شي، نرمي خطأ بدل ما نمسح كل البثوث بصمت (البوت يحتفظ بحالته)
     if (fsRowsAll === null && !rt.ready && !rtRows.length) throw Object.assign(new Error('تعذّر قراءة البثوث'), { code: 'STREAMS_UNAVAILABLE' });
-    const { streams } = buildStreams({ fsRows, rtRows, presence, now });
+    const { streams } = buildStreams({ fsRows, rtRows, presence, now, rtReady: rt.ready || rtRows.length > 0 });
     return { streams, generatedAt: new Date(now).toISOString(), sources: { firestore: live.ready, realtime: rt.ready } };
   });
 }

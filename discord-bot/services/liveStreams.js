@@ -26,6 +26,10 @@ const logger = require('../utils/logger');
 
 const PLATFORMS = Object.freeze(['tiktok', 'twitch', 'kick', 'youtube']);
 const NEW_SESSION_GRACE_MS = 3 * 60 * 1000;
+// "متصل بالبث" بدون ما يختار لعبة: يختفي بعد 15 دقيقة (نفس قاعدة طبقة الـAPI) — حتى لو ما وصل حدث انتهاء
+const LINKED_NO_GAME_MS = 15 * 60 * 1000;
+const SWEEP_EVERY_MS = 30 * 1000;
+let sweepTimer = null;
 
 const sessions = new Map(); // sessionId -> session
 let maxAgeMs = 6 * 60 * 60 * 1000;
@@ -89,6 +93,10 @@ function upsert(input) {
   clearTimer(prev);
   // الويب هوك دايماً معه اسم لعبة؛ جلسة المزامنة بدون لعبة = "متصل بالبث"
   const gameName = input.gameName || (input.source === 'poll' ? null : 'لعبة');
+  if (!gameName && now - Math.min(startedAt, now) >= LINKED_NO_GAME_MS) {
+    remove(input.sessionId, 'linked-no-game-timeout');
+    return { ok: false, reason: 'LINK_EXPIRED' };
+  }
   const session = {
     sessionId: input.sessionId,
     platform: input.platform,
@@ -97,6 +105,7 @@ function upsert(input) {
     status: gameName ? 'playing' : 'linked',
     gameId: input.gameId || null,
     startedAt: Math.min(startedAt, now),
+    linkedSince: gameName ? null : prev && prev.status === 'linked' && prev.linkedSince ? prev.linkedSince : Math.min(startedAt, now),
     source: input.source || 'webhook',
     receivedAt: prev ? prev.receivedAt : now,
     key,
@@ -106,6 +115,7 @@ function upsert(input) {
   session.timer = setTimeout(() => remove(session.sessionId, 'auto-expiry'), Math.min(expiresIn, 2 ** 31 - 1));
   if (session.timer && typeof session.timer.unref === 'function') session.timer.unref();
   sessions.set(session.sessionId, session);
+  if (!gameName) ensureSweeper();
   if (!prev) logger.info('بدأت جلسة بث', { sessionId: session.sessionId, streamer: session.platformUsername, platform: session.platform, game: session.gameName, status: session.status, source: session.source });
   if (!prev || prev.gameName !== session.gameName || prev.platformUsername !== session.platformUsername) notify();
   return { ok: true };
@@ -119,7 +129,7 @@ function end(sessionId) {
 function list() {
   return [...sessions.values()]
     .sort((a, b) => b.startedAt - a.startedAt)
-    .map(({ timer, key, ...rest }) => rest);
+    .map(({ timer, key, linkedSince, ...rest }) => rest);
 }
 
 /**
@@ -153,6 +163,8 @@ function reconcile(remote) {
         local.gameName = game;
         local.gameId = r.gameId || null;
         local.status = game ? 'playing' : 'linked';
+        local.linkedSince = game ? null : Date.now();
+        if (!game) ensureSweeper();
         notify();
       }
       continue;
@@ -163,7 +175,24 @@ function reconcile(remote) {
   return { removed, added, total: sessions.size };
 }
 
+/** يشيل جلسات "متصل بالبث" اللي مرّ عليها 15 دقيقة بدون لعبة. @returns {number} عدد المحذوف */
+function sweepLinked(now = Date.now()) {
+  let n = 0;
+  for (const [id, s] of sessions) {
+    if (s.status === 'linked' && s.linkedSince && now - s.linkedSince >= LINKED_NO_GAME_MS && remove(id, 'linked-no-game-timeout')) n += 1;
+  }
+  return n;
+}
+
+function ensureSweeper() {
+  if (sweepTimer) return;
+  sweepTimer = setInterval(() => sweepLinked(), SWEEP_EVERY_MS);
+  if (typeof sweepTimer.unref === 'function') sweepTimer.unref();
+}
+
 function clearAll() {
+  if (sweepTimer) clearInterval(sweepTimer);
+  sweepTimer = null;
   for (const s of sessions.values()) clearTimer(s);
   const had = sessions.size > 0;
   sessions.clear();
@@ -213,6 +242,7 @@ let realtimeDebounce = null;
  */
 function startRealtime(source, { safetyPollMs = 60 * 1000, debounceMs = 150 } = {}) {
   stopPolling();
+  safetyPollMs = Math.min(safetyPollMs, 60 * 1000); // أمان: حتى لو STREAM_POLL_SECONDS كبير، نراجع كل دقيقة على الأكثر (انتهاء/اختفاء بثّ)
   const sync = async () => {
     try {
       const data = await source.getActiveStreams();
@@ -273,6 +303,7 @@ module.exports = {
   end,
   list,
   reconcile,
+  sweepLinked,
   clearAll,
   startPolling,
   startRealtime,

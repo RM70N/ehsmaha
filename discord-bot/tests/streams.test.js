@@ -443,3 +443,62 @@ test('أزرار /بث: تحديث/صفحة/تصفية تحدّث الرسالة
   assert.ok(replied && replied.embeds[0].toJSON().description.includes('لشخص ثاني'));
   assert.equal(board._internal.views.get('msg-owner').interaction, r);
 });
+
+// ---------------- الطافي ما يظهر (مرجع الأونلاين = صف الربط، و"متصل بدون لعبة" 15 دقيقة) ----------------
+test('دمج البثوث: نسخ Firestore المنعكسة بـRTDB (بدون updatedAtMs) ما تُعتبر حيّة أبداً', () => {
+  const now = Date.now();
+  const mirror = ['almeezan', 'battery', 'bomb'].map((id) => ({ id, username: 'ghost_' + id, platform: 'tiktok', gameTag: id, gameName: 'لعبة', uid: 'g' + id, updatedAt: { __ts: now - 3 * 3600e3 } }));
+  assert.deepEqual(activeStreams.buildStreams({ now, rtRows: mirror, rtReady: true }).streams, []);
+  assert.deepEqual(activeStreams.buildStreams({ now, rtRows: mirror }).streams, []);
+});
+
+test('دمج البثوث: "متصل بالبث" بدون لعبة يختفي بعد 15 دقيقة، وبلعبة يحتاج حضور (أو 3 ساعات لو الحضور غير متاح)', () => {
+  const now = Date.now();
+  const link = (id, msAgo, game) => ({ id: 'link_' + id, username: id, platform: 'tiktok', gameTag: 'link', gameName: game || null, uid: 'u' + id, updatedAtMs: now - msAgo });
+  const rtRows = [link('fresh', 60e3), link('ten', 10 * 60e3), link('stale', 16 * 60e3), link('playing', 2 * 3600e3, 'الدول'), link('ghost', 2 * 3600e3, 'القناص'), link('justPlayed', 30e3, 'التاج')];
+  const presence = new Map([['uplaying', now - 20e3], ['ughost', now - 40 * 60e3], ['ujustPlayed', 0]]);
+  const names = (arr) => arr.map((s) => s.platformUsername).sort();
+  assert.deepEqual(names(activeStreams.buildStreams({ now, rtRows, presence, rtReady: true }).streams), ['fresh', 'justPlayed', 'playing', 'ten']);
+  // الحضور غير متاح (حصة Firestore): الألعاب الحديثة (<3 ساعات) تبقى، وبدون لعبة 15 دقيقة تبقى قاعدتها
+  assert.deepEqual(names(activeStreams.buildStreams({ now, rtRows, presence: null, rtReady: true }).streams), ['fresh', 'ghost', 'justPlayed', 'playing', 'ten']);
+  const old = [link('long', 4 * 3600e3, 'الدول')];
+  assert.deepEqual(activeStreams.buildStreams({ now, rtRows: old, presence: null, rtReady: true }).streams, [], 'أكثر من 3 ساعات بلا حضور');
+});
+
+test('دمج البثوث: لعبة Firestore بدون صف ربط (البث انتهى) تختفي بعد 15 دقيقة من تشغيلها، ومع صف الربط تبقى', () => {
+  const now = Date.now();
+  const presence = new Map([['uA', now - 20e3], ['uB', now - 20e3], ['uC', now - 20e3]]);
+  const fsRows = [
+    { id: 'cw', username: 'ended', platform: 'tiktok', gameTag: 'cw', gameName: 'الدول', uid: 'uA', updatedAt: ts(40 * 60e3) }, // ربط انحذف
+    { id: 'rou', username: 'linked', platform: 'tiktok', gameTag: 'rou', gameName: 'الروليت', uid: 'uB', updatedAt: ts(40 * 60e3) },
+    { id: 'sn', username: 'justNow', platform: 'tiktok', gameTag: 'sn', gameName: 'القناص', uid: 'uC', updatedAt: ts(2 * 60e3) } // أقل من 15 دقيقة (قد يكون الربط تأخر)
+  ];
+  const rtRows = [{ id: 'link_uB', username: 'linked', platform: 'tiktok', gameTag: 'link', gameName: null, uid: 'uB', updatedAtMs: now - 2 * 60e3 }];
+  const names = (arr) => arr.map((s) => s.platformUsername).sort();
+  assert.deepEqual(names(activeStreams.buildStreams({ now, fsRows, rtRows, presence, rtReady: true }).streams), ['justNow', 'linked']);
+  // RTDB غير متاح: القاعدة القديمة (الحضور) كما هي
+  assert.deepEqual(names(activeStreams.buildStreams({ now, fsRows, rtRows: [], presence, rtReady: false }).streams), ['ended', 'justNow', 'linked']);
+});
+
+test('/بث: جلسة "متصل بالبث" تُشال تلقائياً بعد 15 دقيقة بدون لعبة، وتظهر لحظة الربط، وما ترجع من بيانات قديمة', () => {
+  live.clearAll();
+  const now = Date.now();
+  assert.equal(live.upsert({ sessionId: 'site:tiktok:a', platform: 'tiktok', platformUsername: 'a', gameName: null, startedAt: now - 60e3, source: 'poll' }).ok, true);
+  assert.equal(live.upsert({ sessionId: 'site:tiktok:b', platform: 'tiktok', platformUsername: 'b', gameName: null, startedAt: now - 14 * 60e3, source: 'poll' }).ok, true);
+  assert.equal(live.upsert({ sessionId: 'site:tiktok:p', platform: 'tiktok', platformUsername: 'p', gameName: 'الدول', startedAt: now - 3 * 3600e3, source: 'poll' }).ok, true, 'اللي بلعبة ما ينشال بهالقاعدة');
+  assert.deepEqual(live.list().map((s) => s.platformUsername).sort(), ['a', 'b', 'p']);
+  assert.equal(live.sweepLinked(now + 30e3), 0);
+  assert.equal(live.sweepLinked(now + 2 * 60e3), 1, 'b مرّ عليه 15 دقيقة');
+  assert.deepEqual(live.list().map((s) => s.platformUsername).sort(), ['a', 'p']);
+  assert.equal(live.sweepLinked(now + 16 * 60e3), 1);
+  assert.deepEqual(live.list().map((s) => s.platformUsername), ['p']);
+  // بيانات قديمة بنفس الحالة ما ترجّعه
+  const r = live.upsert({ sessionId: 'site:tiktok:old', platform: 'tiktok', platformUsername: 'old', gameName: null, startedAt: now - 20 * 60e3, source: 'poll' });
+  assert.deepEqual(r, { ok: false, reason: 'LINK_EXPIRED' });
+  // اختار لعبة ← يوقف عدّاد الـ15 دقيقة
+  live.upsert({ sessionId: 'site:tiktok:c', platform: 'tiktok', platformUsername: 'c', gameName: null, startedAt: now - 5 * 60e3, source: 'poll' });
+  live.reconcile([{ sessionId: 'site:tiktok:c', platform: 'tiktok', platformUsername: 'c', gameName: 'القناص', startedAt: new Date(now - 5 * 60e3).toISOString() }, { sessionId: 'site:tiktok:p', platform: 'tiktok', platformUsername: 'p', gameName: 'الدول' }]);
+  assert.equal(live.sweepLinked(now + 30 * 60e3), 0);
+  assert.deepEqual(live.list().find((s) => s.platformUsername === 'c').status, 'playing');
+  live.clearAll();
+});
