@@ -191,7 +191,7 @@ details code{font:11px ui-monospace,monospace;direction:ltr;unicode-bidi:isolate
     <div id="ring"><svg viewBox="0 0 100 100"><circle class="bgc" cx="50" cy="50" r="44"/><circle class="fg" id="ringC" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div id="ringN">١٥</div></div>
     <div id="dq">توقّف المؤشر عند</div>
     <div id="dName">—</div>
-    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>أطلق</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تطلق</span><small id="passTxt">امتناعات: ٢</small></div></div><div class="op" id="op3"><b>٣</b><div><span>أطلق على شخص</span><small id="tgtTxt">مرة واحدة في اللعبة</small></div></div></div>
+    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>خاطر</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تخاطر</span><small id="passTxt">امتناعات: ٢</small></div></div><div class="op" id="op3"><b>٣</b><div><span>اختار شخص</span><small id="tgtTxt">مرة واحدة في اللعبة</small></div></div></div>
   </section>
   <section id="tgt" class="glass" aria-live="polite"><div id="tgtH"><div id="tgtT">اختر رقم من تُطلق عليه</div><div id="tgtN">١٥</div></div><div id="tgtL"></div></section>
   <div id="odds"></div>
@@ -249,12 +249,15 @@ function norm(s){
     .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
     .replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
 }
-/* قراءة القرار: 1 / اطلق / أطلق  —  2 / لا تطلق / لاتطلق */
+/* قراءة القرار: 1 / خاطر (أو اطلق القديمة)  —  2 / لا تخاطر (أو لا تطلق)  —  3 / اختار شخص */
 function parseDecision(msg){
   var n=norm(msg), c=n.replace(/\s/g,'');
   if(!c) return 0;
   if(c==='3'||(/^3(\D|$)/.test(n)&&n.length<=12)) return 3;
   if(c.indexOf('اطلقعلي')===0&&c.indexOf('شخص')>0&&c.length<=16) return 3;
+  if((c.indexOf('اختار')===0||c.indexOf('اختر')===0)&&c.indexOf('شخص')>0&&c.length<=14) return 3;
+  if(c==='لاتخاطر'||c.indexOf('لاتخاطر')===0) return 2;
+  if(c==='خاطر'||c.indexOf('خاطر')===0) return 1;
   if(c==='2'||c==='لاتطلق') return 2;
   if(c==='1'||c==='اطلق') return 1;
   if(/^2(\D|$)/.test(n)&&n.length<=12) return 2;
@@ -340,10 +343,10 @@ var SCHEMA=[
   ['demo','chk','لاعبون تجريبيون (للمعاينة فقط)','','','يضيف لاعبين وهميين يردّون تلقائيًا. أطفئه وقت البث الحقيقي.'],
   ['sec','القرار والتوازن'],
   ['decTime','num','مدة اتخاذ القرار (ثانية)',5,60],
-  ['passes','num','عدد مرات الامتناع لكل لاعب',0,9,'«لا تطلق» تستهلك امتناعًا واحدًا. عند نفادها يصبح «أطلق» الخيار الوحيد.'],
-  ['earnPass','chk','كسب امتناع جديد بالشجاعة','','','كل لاعب ينجو من «أطلق» مرتين يكسب امتناعًا إضافيًا (بحد أقصى العدد الأصلي).'],
-  ['timeoutRule','sel','عند انتهاء المهلة',[['pass','امتناع تلقائي إن توفّر، وإلا «أطلق»'],['fire','«أطلق» تلقائيًا'],['out','إقصاء مباشر']]],
-  ['elimMode','sel','احتمالية الإقصاء (محاكاة خيالية)',[['cyl6','أسطوانة ٦ خانات (الخطر يتصاعد)'],['cyl4','أسطوانة ٤ خانات (أسرع)'],['f6','ثابتة ١ من ٦ في كل مرة'],['f3','ثابتة ١ من ٣ في كل مرة']],'في الأسطوانة: خانة واحدة مشحونة بموضع عشوائي، وكل «أطلق» يتقدّم خانة، فيرتفع الخطر حتى تُفرغ ثم يُعاد الشحن.'],
+  ['passes','num','عدد مرات الامتناع لكل لاعب',0,9,'«لا تخاطر» تستهلك امتناعًا واحدًا. عند نفادها يصبح «خاطر» الخيار الوحيد.'],
+  ['earnPass','chk','كسب امتناع جديد بالشجاعة','','','كل لاعب ينجو من «خاطر» مرتين يكسب امتناعًا إضافيًا (بحد أقصى العدد الأصلي).'],
+  ['timeoutRule','sel','عند انتهاء المهلة',[['pass','امتناع تلقائي إن توفّر، وإلا «خاطر»'],['fire','«خاطر» تلقائيًا'],['out','إقصاء مباشر']]],
+  ['elimMode','sel','احتمالية الإقصاء (محاكاة خيالية)',[['cyl6','أسطوانة ٦ خانات (الخطر يتصاعد)'],['cyl4','أسطوانة ٤ خانات (أسرع)'],['f6','ثابتة ١ من ٦ في كل مرة'],['f3','ثابتة ١ من ٣ في كل مرة']],'في الأسطوانة: خانة واحدة مشحونة بموضع عشوائي، وكل «خاطر» يتقدّم خانة، فيرتفع الخطر حتى تُفرغ ثم يُعاد الشحن.'],
   ['sec','الصوت'],
   ['sfxVol','range','مستوى المؤثرات',0,100],
   ['mute.amb','chk','كتم أصوات الغرفة (المصباح والخشب)'],
@@ -377,7 +380,7 @@ function buildSettingsUI(){
     var hp=type==='sel'?s[4]:s[5]; if(hp){ var sm2=document.createElement('small'); sm2.textContent=hp; w.appendChild(sm2); }
     g.appendChild(w);
   });
-  var n=document.createElement('div'); n.className='note'; n.textContent='العدالة: اختيار اللاعب ونتيجة «أطلق» تُحسمان بمولّد عشوائي آمن (crypto) قبل بدء أي حركة، والأنيميشن يتحرك نحو نتيجة محسومة مسبقًا. قبل كل شحنة يظهر «ختم» (SHA-256) يُكشف أصله بعد النتيجة ليثبت أنها لم تتغير. ' ; g.appendChild(n);
+  var n=document.createElement('div'); n.className='note'; n.textContent='العدالة: اختيار اللاعب ونتيجة «خاطر» تُحسمان بمولّد عشوائي آمن (crypto) قبل بدء أي حركة، والأنيميشن يتحرك نحو نتيجة محسومة مسبقًا. قبل كل شحنة يظهر «ختم» (SHA-256) يُكشف أصله بعد النتيجة ليثبت أنها لم تتغير. ' ; g.appendChild(n);
 }
 
 /* ===================== هندسة الصوت (Web Audio — بدون ملفات) ===================== */
@@ -1261,8 +1264,8 @@ function chat(id,name,msg,avatarUrl,ts){
   if(ST==='WAITING_FOR_DECISION'&&M&&M.pending&&!M.pending.choice&&id===M.pending.pid){
     if(ts&&ts<M.pending.openAt) return;
     var d=parseDecision(msg), p=byId(id); if(!d||!p) return;
-    if(d===2&&p.passes<=0){ status('لا امتناعات متبقية لـ '+p.name+' — الخيار المتاح: ١ أطلق'); $('#op2').classList.add('lock'); return; }
-    if(d===3&&p.tgtUsed){ status(p.name+' استخدم «أطلق على شخص» من قبل'); $('#op3').classList.add('lock'); return; }
+    if(d===2&&p.passes<=0){ status('لا امتناعات متبقية لـ '+p.name+' — الخيار المتاح: ١ خاطر'); $('#op2').classList.add('lock'); return; }
+    if(d===3&&p.tgtUsed){ status(p.name+' استخدم «اختار شخص» من قبل'); $('#op3').classList.add('lock'); return; }
     M.pending.choice=d; M.pending.by='chat';
   }
   else if(ST==='TARGET_PICK'&&M&&M.pending&&M.pending.tgtList&&!M.pending.tgtPick&&id===M.pending.pid){
@@ -1345,7 +1348,7 @@ async function playRound(id,presetPid){
   }
   go('RESOLVING'); log('decision',{pid:pid,choice:dec.choice,by:dec.by,target:tgt?tgt.id:null});
   if(tgt){
-    /* BATMISH: «أطلق على شخصين» (اختياري، مطفأ افتراضيًا): يختار الشخص الثاني ثم يُطلق على الاثنين بالتتابع */
+    /* BATMISH: «اختار شخصين» (اختياري، مطفأ افتراضيًا): يختار الشخص الثاني ثم يُطلق على الاثنين بالتتابع */
     var tgt2=null;
     if(M.cfg.tgtTwo&&alive().filter(function(q){ return q!==p&&q!==tgt; }).length){ go('TARGET_PICK'); tgt2=await pickTarget(id,p,tgt); go('RESOLVING'); }
     await targetShot(id,p,tgt);
@@ -1395,7 +1398,7 @@ async function targetShot(id,p,t){
   await anim(dur,function(u){ var a=A0+d*eio(u), dt=Math.max(1/120,(u-last)*dur); last=u; devState.vel=(a-prev)/dt; prev=a; devState.angle=a; if(Math.random()<dt*8) AUD.play('whirr',clamp(Math.abs(devState.vel)/14,0,1),0); });
   check(id); devState.vel=0; devState.angle=A0+d;
   await selectScene(id,t);
-  /* «أطلق على شخص»: صارت حظًّا لا إصابة مضمونة — تصيب الهدف بنفس احتمال الأسطوانة/الاحتمال الثابت للوضع الحالي. إن لم تصب ينجو الهدف ويُحسب دور المُطلق منتهيًا. */
+  /* «اختار شخص»: صارت حظًّا لا إصابة مضمونة — تصيب الهدف بنفس احتمال الأسطوانة/الاحتمال الثابت للوضع الحالي. إن لم تصب ينجو الهدف ويُحسب دور المُطلق منتهيًا. */
   var hit=false;
   try{ hit=!!(await AUTH.resolveFire({pid:t.id,round:M.round,r:M.pending.r,mode:M.mode,shooter:p.id})); }catch(e){ hit=false; }
   if(M.cfg.tgtGuaranteed) hit=true; /* BATMISH: إصابة مضمونة (اختياري، مطفأ افتراضيًا) */
@@ -1415,7 +1418,7 @@ async function eliminate(p,reason){
   if(M.mode.type==='cyl'&&reason==='fire'&&!externalAuth){ log('reveal',{commit:M.cyl.commit,seed:M.cyl.seed,pos:M.cyl.pos}); await loadCylinder(); }
   if(M.mode.type==='fixed') revealFixed(true);
 }
-/* لو لم يبقَ للاعب أي خيار غير «أطلق» (انتهت الامتناعات واستُخدم «أطلق على شخص») يُطلق النظام تلقائياً بلا انتظار كتابته */
+/* لو لم يبقَ للاعب أي خيار غير «خاطر» (انتهت الامتناعات واستُخدم «اختار شخص») يُطلق النظام تلقائياً بلا انتظار كتابته */
 async function decideOrAuto(id,p){
   if(p.passes>0||!p.tgtUsed) return waitDecision(id,p);
   showDecide(p,M.cfg.decTime); $('#dq').textContent='لا خيار غير الإطلاق — يُطلق تلقائيًا · القرار بيد';
@@ -1440,7 +1443,7 @@ async function waitDecision(id,p){
     var frac=1-left/T; AUD.setIntensity(0.35+0.6*frac,60+Math.round(60*frac)); lampState.boost=left<=5?0.35:0.12;
     if(left<=0){
       var rule=M.cfg.timeoutRule, ch=rule==='out'?'out':((rule==='pass'&&p.passes>0)?2:1);
-      status('انتهت المهلة — '+(ch==='out'?'إقصاء':(ch===2?'امتناع تلقائي':'«أطلق» تلقائيًا')));
+      status('انتهت المهلة — '+(ch==='out'?'إقصاء':(ch===2?'امتناع تلقائي':'«خاطر» تلقائيًا')));
       hideDecideSoon(ch==='out'?1:ch); AUD.silence(1.4); await wait(900,id); return {choice:ch,by:'timeout'};
     }
     await sleep(50);
@@ -1701,7 +1704,7 @@ async function duelScene(id){
   alive().forEach(function(q){ if(q.C){ q.C.tension=0.5; } }); var al=alive(); if(al.length===2){ headPos(al[1],vH); al[0].C.look.copy(vH); headPos(al[0],vH); al[1].C.look.copy(vH); }
   shot('duel'); big('المواجهة الأخيرة','لاعبان… وأداة واحدة'); await wait(3600,id);
 }
-function survTxt(n){ return n===0?'لم يحتج إلى «أطلق» قط':(n===1?'نجا مرة واحدة':(n===2?'نجا مرتين':'نجا '+ar(n)+' مرات')); }
+function survTxt(n){ return n===0?'لم يحتج إلى «خاطر» قط':(n===1?'نجا مرة واحدة':(n===2?'نجا مرتين':'نجا '+ar(n)+' مرات')); }
 async function winnerScene(id){
   var w=alive()[0]; if(!w){ return; } M.endT=Date.now(); log('winner',{pid:w.id}); store(MATCH_KEY,null);
   emit('winner',{id:w.id,name:w.name,results:buildResults()});
