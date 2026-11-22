@@ -34,8 +34,12 @@ const ROOT_FILES = [
   'desktop-link.js',
   'desktop-app-ui.js',
   'ehsemha-responsive-fixes.css',
+  'ehsmaha-stream-header.css',
+  'ehsmaha-stream-header.js',
+  'ehsmaha-stream-header-glue.js',
   'code-race-banner.png',
   'discord-logo.png',
+  'favicon.ico',
 ];
 
 const DIRS = [
@@ -52,6 +56,7 @@ const DIRS = [
   'about-experience/posters',
   'windows-app',
   'windows-launch-campaign',
+  'assets',
   'jam3atna',
 ];
 
