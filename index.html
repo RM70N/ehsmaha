@@ -655,7 +655,8 @@
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
   import {
     getFirestore, initializeFirestore, doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
-    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, Timestamp
+    collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField, Timestamp,
+    writeBatch, orderBy, limit
   } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
   import {
     getDatabase, ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove,
@@ -707,6 +708,7 @@
     deleteUser, sendPasswordResetEmail,
     doc, getDoc, getDocFromServer, setDoc, updateDoc, deleteDoc, runTransaction, serverTimestamp,
     collection, onSnapshot, query, where, getDocs, getCountFromServer, increment, arrayUnion, arrayRemove, deleteField,
+    writeBatch, orderBy, limit,
     rtdb, rtdbRef, rtdbSet, rtdbGet, rtdbRemove,
     rtdbUpdate, rtdbOnValue, rtdbOff, rtdbRunTransaction, rtdbServerTimestamp, rtdbPush, rtdbChild,
     // onDisconnect: الخادم نفسه يحذف عقدة الجلسة لحظة ما ينقطع اتصال الستريمر
@@ -9544,7 +9546,7 @@ function landingCtaClick(){
   <header class="hlob-header">
     <nav class="hlob-nav" aria-label="التنقل الرئيسي">
       <a href="#top" class="hlob-brand" data-hlob="top" aria-label="احسمها، الرئيسية">
-        <img class="hlob-ic" src="/assets/branding/icon-96.png" alt="" aria-hidden="true" decoding="async" style="display:block;object-fit:contain">
+        <img class="hlob-ic" src="/assets/branding/icon-96.png" width="34" height="34" alt="" aria-hidden="true" decoding="async" style="display:block;width:34px;height:34px;object-fit:contain">
         <span class="hlob-brand-word">احسمها</span>
       </a>
       <div class="hlob-links">
@@ -86611,6 +86613,7 @@ if (D.readyState === 'loading') D.addEventListener('DOMContentLoaded', boot); el
 <script src="/som3h-10k/som3h-10k-celebration.js"></script>
 <script src="/blhh-5k/blhh-5k-celebration.js"></script>
 <script src="/owner-studio/owner-studio-bridge.js"></script>
+<script src="/admin-center/admin-center-bridge.js"></script>
 <script src="/revival-system/revival-config.js"></script>
 <script src="/revival-system/revival-effects.js"></script>
 <script src="/revival-system/revival-animation.js"></script>

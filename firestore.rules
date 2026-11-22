@@ -7,10 +7,48 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.email == 'malshaifan1@gmail.com';
     }
 
+    // ===== نظام الأدمن (admin-center) =====
+    // adminAccess/{uid} يكتبه المالك وحده. الأدمن يقرأ سجله فقط. كل فحص صلاحية هنا يتم على الخادم
+    // (القاعدة) ولا يثق بأي قيمة من المتصفح. مفاتيح الصلاحيات المخزّنة: admin_<group>_<name>.
+    function adminAccessPath(uid) { return /databases/$(database)/documents/adminAccess/$(uid); }
+    function adminIs(perm) {
+      return request.auth != null
+             && exists(adminAccessPath(request.auth.uid))
+             && get(adminAccessPath(request.auth.uid)).data.get('status', '') == 'active'
+             && get(adminAccessPath(request.auth.uid)).data.get('permissions', {}).get(perm, false) == true;
+    }
+    function adminMayGrantFrame(fid) {
+      let scope = get(adminAccessPath(request.auth.uid)).data.get('frameGrantScope', {});
+      return scope.get('mode', '') == 'allowlist' && fid in scope.get('frameIds', []);
+    }
+
     function currentUsernameLower() {
       return exists(/databases/$(database)/documents/users/$(request.auth.uid))
         ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
         : null;
+    }
+
+    match /adminAccess/{uid} {
+      // يقرأ المالك الكل، والأدمن سجله هو فقط (ليعرف صلاحياته). لا أحد غير المالك يكتب.
+      allow read: if request.auth != null && (isOwner() || request.auth.uid == uid);
+      allow create, update: if isOwner()
+                            && request.resource.data.keys().hasOnly(['userId', 'username', 'role', 'status', 'permissions', 'frameGrantScope', 'createdBy', 'createdAt', 'updatedAt', 'rev', 'note'])
+                            && request.resource.data.userId == uid
+                            && request.resource.data.role == 'admin'
+                            && request.resource.data.status in ['active', 'suspended'];
+      allow delete: if isOwner();
+    }
+
+    // سجل إجراءات الأدمن: إضافة فقط (لا تعديل ولا حذف لأحد)، بوقت الخادم، وباسم صاحب الإجراء نفسه.
+    match /adminActionLog/{id} {
+      allow create: if (isOwner() || adminIs('admin_dashboard_view'))
+                    && request.resource.data.keys().hasOnly(['actorId', 'actorName', 'action', 'resourceType', 'resourceId', 'targetUid', 'targetKey', 'targetName', 'result', 'reqId', 'ts', 'meta'])
+                    && request.resource.data.actorId == request.auth.uid
+                    && request.resource.data.ts == request.time
+                    && request.resource.data.result in ['success', 'denied', 'failed', 'unverified']
+                    && request.resource.data.action is string && request.resource.data.action.size() < 60;
+      allow read: if request.auth != null && (isOwner() || resource.data.actorId == request.auth.uid);
+      allow update, delete: if false;
     }
 
     match /users/{uid} {
@@ -342,6 +380,37 @@ service cloud.firestore {
                  .hasOnly(request.resource.data.get('levelFrames', []));
       }
 
+      // منح أدمن: يضيف إطاراً واحداً فقط من قائمته المسموحة، بلا حذف، ولا يُقبل إلا مع سجل تدقيق يُكتب بنفس الدفعة
+      // (adminActionLog/g_<uid>_<levelKey>_<frameId>) — فلا منح بلا أثر. الصلاحية تتبع نوع السجل (مباشر/بكود).
+      function adminGrantAuditOk(fid) {
+        let aid = 'g_' + request.auth.uid + '_' + levelKey + '_' + fid;
+        let ap = /databases/$(database)/documents/adminActionLog/$(aid);
+        return existsAfter(ap)
+               && getAfter(ap).data.actorId == request.auth.uid
+               && getAfter(ap).data.resourceId == fid
+               && getAfter(ap).data.targetKey == levelKey
+               && getAfter(ap).data.result == 'success'
+               && ((getAfter(ap).data.action == 'frame.grant' && adminIs('admin_frames_grant'))
+                   || (getAfter(ap).data.action == 'frame.redeem_code' && adminIs('admin_frames_redeem_code')));
+      }
+      function adminFrameUpdateOk() {
+        let before = resource.data.get('ownedFrames', []);
+        let after = request.resource.data.get('ownedFrames', []);
+        let added = after.removeAll(before);
+        return request.auth != null
+               && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownedFrames'])
+               && after.hasAll(before) && added.size() == 1 && after.size() == before.size() + 1
+               && framesCountSane()
+               && adminMayGrantFrame(added[0]) && adminGrantAuditOk(added[0]);
+      }
+      function adminFrameCreateOk() {
+        let after = request.resource.data.get('ownedFrames', []);
+        return request.auth != null
+               && request.resource.data.keys().hasOnly(['ownedFrames'])
+               && after.size() == 1
+               && adminMayGrantFrame(after[0]) && adminGrantAuditOk(after[0]);
+      }
+
       function framesSelfPickAllowed() {
         return framesNoRemovals() && framesAdditionsRecordedAsPicks() && framesCountSane();
       }
@@ -356,7 +425,7 @@ service cloud.firestore {
                          request.resource.data.get('ownedFrames', [])
                            .hasOnly(request.resource.data.get('levelFrames', []))
                          && framesCountSane()
-                       ));
+                       ) || adminFrameCreateOk());
 
       // بالتحديث نفحص **الحقول المتغيّرة فقط** (affectedKeys)، مو كل المستند
       // المدموج. هذا فرق جوهري: كتابة merge تخلي request.resource.data =
@@ -368,7 +437,7 @@ service cloud.firestore {
       allow update: if request.auth != null
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(levelsAllowedKeys())
                     && levelsChangedTypesValid()
-                    && (isOwner() || framesSelfPickAllowed());
+                    && (isOwner() || framesSelfPickAllowed() || adminFrameUpdateOk());
 
       // حتى المالك ما يحذف مستنداً يحمل إطارات (ملكية مُختارة/مُمنوحة أو إطار
       // مفعَّل) — حماية من تنظيف المستندات "الفاضية" (levelsCleanupEmptyDocs)

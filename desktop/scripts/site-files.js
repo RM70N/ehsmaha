@@ -50,6 +50,7 @@ const DIRS = [
   'c7-welcome',
   'batmish',
   'owner-studio',
+  'admin-center',
   'ops',
   'subathon',
   'about-experience/previews-sq',
