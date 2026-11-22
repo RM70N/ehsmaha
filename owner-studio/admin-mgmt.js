@@ -39,19 +39,20 @@
   .am-res{display:flex;gap:12px;align-items:center;padding:12px;border-radius:14px;background:rgba(124,58,237,.12);margin-top:10px}
   .am-tbl{width:100%;border-collapse:collapse;font-size:13.5px} .am-tbl th,.am-tbl td{text-align:right;padding:8px 10px;border-bottom:1px solid rgba(167,139,250,.12)}
   .am-tbl th{color:var(--text-3,#9a9aae);font-weight:700} .am-res-ok{color:#22C55E}.am-res-denied,.am-res-failed{color:#EF4444}.am-res-unverified{color:#F59E0B}
+  .am-bulk{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}.am-bulk .btn{padding:6px 12px;font-size:13px}
   @media(max-width:720px){.am-row{grid-template-columns:auto 1fr}.am-acts{grid-column:1/-1;justify-content:flex-start}}`;
 
   /* ---------- مكوّنات مشتركة: مصفوفة الصلاحيات + اختيار الإطارات ---------- */
   function matrixHtml(enabled) {
     const on = new Set(enabled);
-    return P.GROUPS.map((g) => `<div class="am-grp"><h4>${esc(g.title)}</h4>${g.keys.map((k) => `<div class="am-perm"><div><b>${esc(P.PERMS[k].title)}</b>${P.PERMS[k].sensitive ? '<span class="sens">حساسة</span>' : ''}<small>${esc(k)}</small></div>
+    return `<div class="am-bulk"><button type="button" class="btn btn-ghost" data-allperms>تحديد جميع الصلاحيات</button><button type="button" class="btn btn-ghost" data-noperms>إلغاء الكل</button></div>` + P.GROUPS.map((g) => `<div class="am-grp"><h4>${esc(g.title)}</h4>${g.keys.map((k) => `<div class="am-perm"><div><b>${esc(P.PERMS[k].title)}</b>${P.PERMS[k].sensitive ? '<span class="sens">حساسة</span>' : ''}<small>${esc(k)}</small></div>
       <label class="switch"><input type="checkbox" data-pk="${esc(k)}" ${on.has(k) ? 'checked' : ''} aria-label="${esc(P.PERMS[k].title)}"><i></i></label></div>`).join('')}</div>`).join('')
       + `<div class="am-grp"><h4>أساسي</h4><div class="am-perm"><div><b>${esc(P.PERMS['admin.dashboard.view'].title)}</b><small>admin.dashboard.view</small></div><label class="switch"><input type="checkbox" data-pk="admin.dashboard.view" ${on.has('admin.dashboard.view') ? 'checked' : ''} aria-label="فتح لوحة الأدمن"><i></i></label></div></div>`;
   }
   function framesHtml(sel) {
     const cat = D.catalog(); const s = new Set(sel);
     if (!cat.length) return `<div class="state"><p>تعذّر قراءة كتالوج الإطارات من الموقع.</p></div>`;
-    return `<div class="am-frames" role="group" aria-label="الإطارات المسموح بمنحها">${cat.map((f) => `<button type="button" class="am-fr" data-fid="${esc(f.id)}" aria-pressed="${s.has(f.id)}" title="${esc(f.name || f.id)}"><img src="${esc(D.frameImg(f))}" alt="" loading="lazy"><em>${esc(f.name || f.id)}</em></button>`).join('')}</div>`;
+    return `<div class="am-bulk"><button type="button" class="btn btn-ghost" data-allframes>جميع الإطارات</button><button type="button" class="btn btn-ghost" data-noframes>إلغاء الكل</button></div><div class="am-frames" role="group" aria-label="الإطارات المسموح بمنحها">${cat.map((f) => `<button type="button" class="am-fr" data-fid="${esc(f.id)}" aria-pressed="${s.has(f.id)}" title="${esc(f.name || f.id)}"><img src="${esc(D.frameImg(f))}" alt="" loading="lazy"><em>${esc(f.name || f.id)}</em></button>`).join('')}</div>`;
   }
   function bindEditor(root, state) {
     const warn = $('#am-warn', root);
@@ -68,7 +69,22 @@
         if (dependents.length) warn.textContent = 'أُوقفت أيضاً لأنها تعتمد عليها: ' + dependents.map((n) => P.PERMS[n].title).join('، ') + '.';
       }
     });
-    root.addEventListener('click', (e) => { const b = e.target.closest('[data-fid]'); if (!b) return; const id = b.dataset.fid; const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); if (on) state.frames.add(id); else state.frames.delete(id); });
+    root.addEventListener('click', (e) => {
+      const bulk = e.target.closest('[data-allperms],[data-noperms],[data-allframes],[data-noframes]');
+      if (bulk) {
+        warn.textContent = '';
+        if (bulk.hasAttribute('data-allperms') || bulk.hasAttribute('data-noperms')) {
+          const all = bulk.hasAttribute('data-allperms');
+          state.keys.clear(); if (all) P.KEYS.forEach((k) => state.keys.add(k));
+          root.querySelectorAll('[data-pk]').forEach((cb) => { cb.checked = state.keys.has(cb.dataset.pk); });
+        } else {
+          const all = bulk.hasAttribute('data-allframes');
+          state.frames.clear(); if (all) D.catalog().forEach((f) => state.frames.add(f.id));
+          root.querySelectorAll('[data-fid]').forEach((b2) => b2.setAttribute('aria-pressed', state.frames.has(b2.dataset.fid)));
+        }
+        return;
+      }
+      const b = e.target.closest('[data-fid]'); if (!b) return; const id = b.dataset.fid; const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); if (on) state.frames.add(id); else state.frames.delete(id); });
   }
   function validate(state) {
     const keys = [...state.keys];
