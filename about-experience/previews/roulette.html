@@ -6,7 +6,7 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#07040f}
 html.pv-paused *{animation-play-state:paused!important}
 </style>
-</head><body><title>الروليت الروسي</title>
+</head><body><title>الروسي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;800;900&family=Reem+Kufi:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -157,7 +157,7 @@ details code{font:11px ui-monospace,monospace;direction:ltr;unicode-bidi:isolate
   <canvas id="gl"></canvas>
   <div id="edge"></div>
   <header id="top">
-    <div id="brand"><b>الروليت الروسي</b><i></i><small>RUSSIAN ROULETTE</small></div>
+    <div id="brand"><b>الروسي</b><i></i><small>RUSSIAN</small></div>
     <div id="meta"><span id="mPlayers">اللاعبون<b id="nAlive">٠</b></span><span id="mRound" hidden>الجولة<b id="nRound">١</b></span><span id="conn">الشات متصل</span></div>
   </header>
   <section id="lobby">
@@ -175,7 +175,7 @@ details code{font:11px ui-monospace,monospace;direction:ltr;unicode-bidi:isolate
     <div id="ring"><svg viewBox="0 0 100 100"><circle class="bgc" cx="50" cy="50" r="44"/><circle class="fg" id="ringC" cx="50" cy="50" r="44" stroke-dasharray="276.5" stroke-dashoffset="0"/></svg><div id="ringN">١٥</div></div>
     <div id="dq">توقّف المؤشر عند</div>
     <div id="dName">—</div>
-    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>أطلق</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تطلق</span><small id="passTxt">امتناعات: ٢</small></div></div></div>
+    <div id="opts"><div class="op fire" id="op1"><b>١</b><div><span>خاطر</span><small>فعّل الأداة</small></div></div><div class="op" id="op2"><b>٢</b><div><span>لا تخاطر</span><small id="passTxt">امتناعات: ٢</small></div></div></div>
   </section>
   <div id="odds"></div>
   <div id="status"></div>
@@ -184,7 +184,7 @@ details code{font:11px ui-monospace,monospace;direction:ltr;unicode-bidi:isolate
   <div id="notice" hidden role="alert"></div>
   <div id="resume" class="glass ctl" hidden><p>توجد مباراة غير مكتملة. تبي تكملها؟</p><div class="btns"><button class="bt pri" id="bResume" type="button">استئناف المباراة</button><button class="bt" id="bDiscard" type="button">تجاهل</button></div></div>
   <div id="setM" class="modal ctl" hidden><div class="panel" role="dialog" aria-labelledby="setH">
-    <h2 id="setH">إعدادات الروليت الروسي</h2><div class="sub">تُحفظ تلقائيًا على هذا الجهاز وتُطبّق على المباراة القادمة.</div>
+    <h2 id="setH">إعدادات الروسي</h2><div class="sub">تُحفظ تلقائيًا على هذا الجهاز وتُطبّق على المباراة القادمة.</div>
     <div class="grid" id="setG"></div>
     <div class="btns"><button class="bt pri" id="bSetSave" type="button">حفظ وإغلاق</button><button class="bt" id="bSetReset" type="button">القيم الافتراضية</button></div>
   </div></div>
@@ -231,7 +231,7 @@ function norm(s){
     .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
     .replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
 }
-/* قراءة القرار: 1 / اطلق / أطلق  —  2 / لا تطلق / لاتطلق */
+/* قراءة القرار: 1 / خاطر (أو اطلق القديمة)  —  2 / لا تخاطر (أو لا تطلق)  —  3 / اختار شخص */
 function parseDecision(msg){
   var n=norm(msg), c=n.replace(/\s/g,'');
   if(!c) return 0;
@@ -320,10 +320,10 @@ var SCHEMA=[
   ['demo','chk','لاعبون تجريبيون (للمعاينة فقط)','','','يضيف لاعبين وهميين يردّون تلقائيًا. أطفئه وقت البث الحقيقي.'],
   ['sec','القرار والتوازن'],
   ['decTime','num','مدة اتخاذ القرار (ثانية)',5,60],
-  ['passes','num','عدد مرات الامتناع لكل لاعب',0,9,'«لا تطلق» تستهلك امتناعًا واحدًا. عند نفادها يصبح «أطلق» الخيار الوحيد.'],
-  ['earnPass','chk','كسب امتناع جديد بالشجاعة','','','كل لاعب ينجو من «أطلق» مرتين يكسب امتناعًا إضافيًا (بحد أقصى العدد الأصلي).'],
-  ['timeoutRule','sel','عند انتهاء المهلة',[['pass','امتناع تلقائي إن توفّر، وإلا «أطلق»'],['fire','«أطلق» تلقائيًا'],['out','إقصاء مباشر']]],
-  ['elimMode','sel','احتمالية الإقصاء (محاكاة خيالية)',[['cyl6','أسطوانة ٦ خانات (الخطر يتصاعد)'],['cyl4','أسطوانة ٤ خانات (أسرع)'],['f6','ثابتة ١ من ٦ في كل مرة'],['f3','ثابتة ١ من ٣ في كل مرة']],'في الأسطوانة: خانة واحدة مشحونة بموضع عشوائي، وكل «أطلق» يتقدّم خانة، فيرتفع الخطر حتى تُفرغ ثم يُعاد الشحن.'],
+  ['passes','num','عدد مرات الامتناع لكل لاعب',0,9,'«لا تخاطر» تستهلك امتناعًا واحدًا. عند نفادها يصبح «خاطر» الخيار الوحيد.'],
+  ['earnPass','chk','كسب امتناع جديد بالشجاعة','','','كل لاعب ينجو من «خاطر» مرتين يكسب امتناعًا إضافيًا (بحد أقصى العدد الأصلي).'],
+  ['timeoutRule','sel','عند انتهاء المهلة',[['pass','امتناع تلقائي إن توفّر، وإلا «خاطر»'],['fire','«خاطر» تلقائيًا'],['out','إقصاء مباشر']]],
+  ['elimMode','sel','احتمالية الإقصاء (محاكاة خيالية)',[['cyl6','أسطوانة ٦ خانات (الخطر يتصاعد)'],['cyl4','أسطوانة ٤ خانات (أسرع)'],['f6','ثابتة ١ من ٦ في كل مرة'],['f3','ثابتة ١ من ٣ في كل مرة']],'في الأسطوانة: خانة واحدة مشحونة بموضع عشوائي، وكل «خاطر» يتقدّم خانة، فيرتفع الخطر حتى تُفرغ ثم يُعاد الشحن.'],
   ['sec','الصوت'],
   ['sfxVol','range','مستوى المؤثرات',0,100],
   ['mute.amb','chk','كتم أصوات الغرفة (المصباح والخشب)'],
@@ -357,7 +357,7 @@ function buildSettingsUI(){
     var hp=type==='sel'?s[4]:s[5]; if(hp){ var sm2=document.createElement('small'); sm2.textContent=hp; w.appendChild(sm2); }
     g.appendChild(w);
   });
-  var n=document.createElement('div'); n.className='note'; n.textContent='العدالة: اختيار اللاعب ونتيجة «أطلق» تُحسمان بمولّد عشوائي آمن (crypto) قبل بدء أي حركة، والأنيميشن يتحرك نحو نتيجة محسومة مسبقًا. قبل كل شحنة يظهر «ختم» (SHA-256) يُكشف أصله بعد النتيجة ليثبت أنها لم تتغير. ' ; g.appendChild(n);
+  var n=document.createElement('div'); n.className='note'; n.textContent='العدالة: اختيار اللاعب ونتيجة «خاطر» تُحسمان بمولّد عشوائي آمن (crypto) قبل بدء أي حركة، والأنيميشن يتحرك نحو نتيجة محسومة مسبقًا. قبل كل شحنة يظهر «ختم» (SHA-256) يُكشف أصله بعد النتيجة ليثبت أنها لم تتغير. ' ; g.appendChild(n);
 }
 
 /* ===================== هندسة الصوت (Web Audio — بدون ملفات) ===================== */
@@ -762,12 +762,11 @@ function labelCanvas(p,mode){
   var c=p.labelC||(p.labelC=document.createElement('canvas')); c.width=640; c.height=150; var x=c.getContext('2d'); x.clearRect(0,0,640,150);
   var hl=mode==='sel', out=mode==='out', win=mode==='win';
   x.font='800 50px Cairo, sans-serif'; var name=p.name; while(x.measureText(name).width>420&&name.length>2) name=name.slice(0,-1); if(name!==p.name) name+='…';
-  var tw=Math.min(420,x.measureText(name).width), W=tw+150, X=(640-W)/2;
+  var tw=Math.min(420,x.measureText(name).width), W=tw+70, X=(640-W)/2;
   x.beginPath(); var r=46, y0=24, hgt=92; x.moveTo(X+r,y0); x.arcTo(X+W,y0,X+W,y0+hgt,r); x.arcTo(X+W,y0+hgt,X,y0+hgt,r); x.arcTo(X,y0+hgt,X,y0,r); x.arcTo(X,y0,X+W,y0,r); x.closePath();
   x.fillStyle=out?'rgba(20,14,30,.55)':(hl?'rgba(70,32,140,.88)':(win?'rgba(90,60,20,.9)':'rgba(14,10,22,.78)')); x.fill();
   x.lineWidth=4; x.strokeStyle=hl?'#D8C8FF':(win?'#E5B77A':'rgba(183,156,255,.35)'); x.stroke();
-  x.save(); x.beginPath(); x.arc(X+W-58,y0+hgt/2,34,0,6.3); x.clip(); x.drawImage(p.avatar,X+W-92,y0+hgt/2-34,68,68); x.restore();
-  x.fillStyle=out?'rgba(243,238,255,.4)':'#F3EEFF'; x.textAlign='right'; x.textBaseline='middle'; x.direction='rtl'; x.fillText(name,X+W-104,y0+hgt/2+3);
+  x.fillStyle=out?'rgba(243,238,255,.4)':'#F3EEFF'; x.textAlign='right'; x.textBaseline='middle'; x.direction='rtl'; x.fillText(name,X+W-36,y0+hgt/2+3);
   if(p.labelT) p.labelT.needsUpdate=true; return c;
 }
 function makeCharacter(p){
@@ -915,6 +914,7 @@ function newPlayer(id,name,avatarUrl,isBot){
   return p;
 }
 function loadAvatar(p,url){
+  return; /* لا نحمّل صور حسابات اللاعبين: أسماء الحسابات فقط على الشخصيات */
   var img=new Image(); img.crossOrigin='anonymous'; img.decoding='async';
   img.onload=function(){ try{ var x=p.avatar.getContext('2d'); x.clearRect(0,0,128,128); x.save(); x.beginPath(); x.arc(64,64,64,0,6.3); x.clip(); var s=Math.max(128/img.naturalWidth,128/img.naturalHeight); x.drawImage(img,(128-img.naturalWidth*s)/2,(128-img.naturalHeight*s)/2,img.naturalWidth*s,img.naturalHeight*s); x.restore(); x.getImageData(0,0,1,1); }catch(e){ p.avatar=makeAvatar(p.name,p.skin); return; }
     p.avatarImg=img; if(p.C){ p.headTex&&p.headTex.dispose(); var hm=p.C.headMesh.material; hm.map=p.headTex=headTexture(p); hm.needsUpdate=true; labelCanvas(p,p.labelMode||'idle'); } };
@@ -972,7 +972,7 @@ function chat(id,name,msg,avatarUrl,ts){
   if(ST==='WAITING_FOR_DECISION'&&M&&M.pending&&!M.pending.choice&&id===M.pending.pid){
     if(ts&&ts<M.pending.openAt) return;
     var d=parseDecision(msg), p=byId(id); if(!d||!p) return;
-    if(d===2&&p.passes<=0){ status('لا امتناعات متبقية لـ '+p.name+' — الخيار المتاح: ١ أطلق'); $('#op2').classList.add('lock'); return; }
+    if(d===2&&p.passes<=0){ status('لا امتناعات متبقية لـ '+p.name+' — الخيار المتاح: ١ خاطر'); $('#op2').classList.add('lock'); return; }
     M.pending.choice=d; M.pending.by='chat';
   }
 }
@@ -1082,7 +1082,7 @@ async function waitDecision(id,p){
     var frac=1-left/T; AUD.setIntensity(0.35+0.6*frac,60+Math.round(60*frac)); lampState.boost=left<=5?0.35:0.12;
     if(left<=0){
       var rule=M.cfg.timeoutRule, ch=rule==='out'?'out':((rule==='pass'&&p.passes>0)?2:1);
-      status('انتهت المهلة — '+(ch==='out'?'إقصاء':(ch===2?'امتناع تلقائي':'«أطلق» تلقائيًا')));
+      status('انتهت المهلة — '+(ch==='out'?'إقصاء':(ch===2?'امتناع تلقائي':'«خاطر» تلقائيًا')));
       hideDecideSoon(ch==='out'?1:ch); AUD.silence(1.4); await wait(900,id); return {choice:ch,by:'timeout'};
     }
     await sleep(50);
@@ -1224,7 +1224,7 @@ async function selectScene(id,p){
   shot('player',p); status('توقّف المؤشر عند '+p.name); CAM.shake=0.4; await wait(1500,id);
 }
 async function fireScene(id,p,hit){
-  shot('charge',p); status(p.name+' اختار: أطلق'); lampState.target=0.6; AUD.play('charge',1.6);
+  shot('charge',p); status(p.name+' اختار: خاطر'); lampState.target=0.6; AUD.play('charge',1.6);
   var ci=M&&M.mode.type==='cyl'&&M.cyl?Math.max(0,M.cyl.idx-1):-1;
   await anim(1.6,function(u){ devState.charge=es(u); CAM.shake=Math.max(CAM.shake,u*0.35); if(ci>=0&&chambers[ci]) chambers[ci].pulse=u; });
   check(id); AUD.silence(1.2); await wait(380,id);
@@ -1260,7 +1260,7 @@ async function duelScene(id){
   alive().forEach(function(q){ if(q.C){ q.C.tension=0.5; } }); var al=alive(); if(al.length===2){ headPos(al[1],vH); al[0].C.look.copy(vH); headPos(al[0],vH); al[1].C.look.copy(vH); }
   shot('duel'); big('المواجهة الأخيرة','لاعبان… وأداة واحدة'); await wait(3600,id);
 }
-function survTxt(n){ return n===0?'لم يحتج إلى «أطلق» قط':(n===1?'نجا مرة واحدة':(n===2?'نجا مرتين':'نجا '+ar(n)+' مرات')); }
+function survTxt(n){ return n===0?'لم يحتج إلى «خاطر» قط':(n===1?'نجا مرة واحدة':(n===2?'نجا مرتين':'نجا '+ar(n)+' مرات')); }
 async function winnerScene(id){
   var w=alive()[0]; if(!w){ return; } M.endT=Date.now(); log('winner',{pid:w.id}); store(MATCH_KEY,null);
   emit('winner',{id:w.id,name:w.name,results:buildResults()});
@@ -1395,7 +1395,7 @@ if(document.fonts&&document.fonts.ready) document.fonts.ready.then(function(){ p
 
 })();
 </script>
-<script>/* راوند توضيحي: الروليت الروسي (نسخة معاينة معزولة)
+<script>/* راوند توضيحي: الروسي (نسخة معاينة معزولة)
    المشهد والكاميرا والشخصيات والمؤثرات من المحرك الأصلي roulette3d.html كما هي.
    الذي تغيّر: مصدر الأحداث (سيناريو محلي)، وجهة النتائج (adapter محلي عبر setAuthority)، وتقصير الانتظار للعرض فقط. */
 (function () {
