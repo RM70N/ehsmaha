@@ -38,9 +38,9 @@ for (const [label, file] of [['NEW', 'NEW'], ...(ORIG ? [['ORIG', ORIG]] : [])])
   const pg = await open(file);
   ok(label + ': تفتح بلا أخطاء JS', pg.errs.length === 0, pg.errs.slice(0, 3));
   ok(label + ': واجهة EhsemhaRoulette موجودة', await pg.evaluate(() => !!window.EhsemhaRoulette && typeof window.EhsemhaRoulette.getState === 'function'));
+  await pg.evaluate(() => window.EhsemhaRoulette.settings({ demo: false, decTime: 8 }));
   await join(pg, 6); let s = await S(pg);
   ok(label + ': انضم 6 لاعبين', s.players.length === 6, s.players.length);
-  await pg.evaluate(() => window.EhsemhaRoulette.settings({ demo: false, decTime: 8 }));
   await pg.screenshot({ path: `${SHOTS}/${label}_lobby.png` });
   await pg.evaluate(() => window.EhsemhaRoulette.start());
   // انتظر أول دوران ثم قرار
