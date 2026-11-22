@@ -80,5 +80,26 @@ as(admin);
 await rejects('بعد الإزالة: المنح مرفوض', D.grantFrame({ uid: 'tuid6', username: 'Z', usernameLower: 'z', tiktok: '' }, 'fx1'), isDenied);
 ok('بعد الإزالة لا سجل للأدمن', (await D.getMine()) === null);
 
+console.log('== حصة Firestore منتهية (الكتابة تتعلّق بلا رد): الحفظ والظهور عبر RTDB');
+{
+  const hung = Object.assign({}, owner, { setDoc: () => new Promise(() => {}), getDoc: () => new Promise(() => {}), getDocs: () => new Promise(() => {}), deleteDoc: () => new Promise(() => {}) });
+  as(hung);
+  const t0 = Date.now();
+  const rq = await D.save({ userId: 'adm9', username: 'Quota Admin', status: 'active', permissions: P.toStoreMap(['admin.dashboard.view', 'admin.streams.view']), frameGrantScope: { mode: 'allowlist', frameIds: ['fx1'] } });
+  ok('الحفظ ينجح عبر RTDB ولا يعلق (أقل من 15 ث)', rq.ok && rq.rtdb && !rq.fs && Date.now() - t0 < 15000, { rq, ms: Date.now() - t0 });
+  ok('تنبيه صريح أن نسخة Firestore لم تُحفظ', rq.warnings.length === 1, rq);
+  const lst = await D.list();
+  ok('القائمة تعرضه رغم تعلّق Firestore', lst.some((x) => x.userId === 'adm9'));
+  const adm9 = mkFb('adm9', 'q@x.com'); as(adm9);
+  const mq = await D.getMine();
+  ok('الأدمن المختار يقرأ سجله وصلاحياته من RTDB', mq && mq.status === 'active' && P.has(mq, 'admin.streams.view') && P.has(mq, 'admin.dashboard.view') && !P.has(mq, 'admin.frames.grant'), mq);
+  ok('وإطاراته المسموحة', P.framesAllowed(mq).join() === 'fx1', mq);
+  as(hung);
+  const rr = await D.remove('adm9');
+  ok('الإزالة تنجح عبر RTDB', rr.ok && rr.rtdb, rr);
+  as(adm9);
+  ok('بعد الإزالة لا سجل', (await D.getMine()) === null);
+}
+
 await env.cleanup();
 console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);
