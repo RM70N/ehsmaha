@@ -20,7 +20,7 @@ let activeKey = 0;
 let override = null; // للاختبارات: async ({ systemInstruction, contents, generationConfig, model, keyIndex }) => نص
 
 // أخطاء نجرب بعدها مفتاح/نموذج ثاني بنفس الطلب
-const ROTATE_CODES = new Set(['RATE_LIMIT', 'AUTH', 'SERVER', 'MODEL_NOT_FOUND']);
+const ROTATE_CODES = new Set(['RATE_LIMIT', 'AUTH', 'BILLING', 'SERVER', 'MODEL_NOT_FOUND']);
 const MAX_ATTEMPTS = 8;
 const HOUR = 60 * 60 * 1000;
 
@@ -52,6 +52,7 @@ function classify(err) {
   if (err.code === 'TIMEOUT' || err.name === 'AbortError' || /timeout|aborted/i.test(err.message || '')) return 'TIMEOUT';
   if (err instanceof GoogleGenerativeAIResponseError || /SAFETY|blocked/i.test(err.message || '')) return 'BLOCKED';
   const status = err.status || (err instanceof GoogleGenerativeAIFetchError ? err.status : null);
+  if (status === 402 || /prepayment credits|payment required|billing/i.test(err.message || '')) return 'BILLING'; // رصيد المفتاح خلص ← نحوّل لمفتاح/نموذج ثاني
   if (status === 429 || /quota|RESOURCE_EXHAUSTED|rate limit/i.test(err.message || '')) return 'RATE_LIMIT';
   if (status === 400 && /API key/i.test(err.message || '')) return 'AUTH';
   if (status === 401 || status === 403) return 'AUTH';
@@ -65,6 +66,7 @@ function classify(err) {
 function cooldownMs(code, err) {
   const msg = String((err && err.message) || '');
   if (code === 'AUTH' || code === 'MODEL_NOT_FOUND') return 6 * HOUR;
+  if (code === 'BILLING') return HOUR;
   if (code === 'SERVER') return 20 * 1000;
   if (code === 'RATE_LIMIT') {
     // Reason: الحد اليومي يرجع بعد منتصف الليل بتوقيت جوجل — نعيد التجربة كل ساعة بدل ما نحسب المنطقة الزمنية
@@ -76,7 +78,7 @@ function cooldownMs(code, err) {
 }
 
 function cooldownKey(code, keyIndex, model) {
-  if (code === 'AUTH') return `${keyIndex}|*`;
+  if (code === 'AUTH' || code === 'BILLING') return `${keyIndex}|*`;
   if (code === 'MODEL_NOT_FOUND') return `*|${model}`;
   return `${keyIndex}|${model}`;
 }
