@@ -955,6 +955,7 @@ var ball=new THREE.Mesh(new THREE.SphereGeometry(0.02,16,12),new THREE.MeshBasic
 /* دوران البلورة والحلقات: تتأثر بسرعة الدوران الفعلية (قصور ذاتي) */
 function rotateCrystalCore(dt,D,sp,ch,calm){ var k=Math.min(1,sp/8); core.rotation.y+=dt*sp*0.11*(1-calm); coreG.position.y+=Math.sin(clock*(1.1+sp*0.12))*0.0016*k; core.material.emissiveIntensity+=sp*0.018; heart.rotation.y+=dt*sp*0.2; }
 function rotateMechanicalRings(dt,D,sp,ch,calm){ rotC.rotation.y-=dt*sp*0.09*(1-calm); frameG.rotation.y+=dt*sp*0.05*(1-calm); crownRing.rotation.y+=dt*sp*0.04; }
+var beamLight=new THREE.PointLight(0xA78BFA,0,2.4,2); beamLight.position.set(0,1,0); scene.add(beamLight);
 
 /* ---------- المقاعد ---------- */
 var chairMat=std(0x241610,0.6,0,{map:tableTex}), chairMetal=std(0x1a181c,0.4,0.7);
@@ -1509,6 +1510,8 @@ function updateCamera(dt){
   else if((n==='player'||n==='playerTight'||n==='resultP')&&P){ headPos(P,vH); seatDir(P,vA); var side=new THREE.Vector3(vA.z,0,-vA.x), d=(n==='playerTight'?0.95:(n==='resultP'?1.45:lerp(1.75,1.25,es(t/3))))*(port?1.25:1), off=n==='resultP'?0.55:0.22;
     px=vH.x-vA.x*d+side.x*off*d; pz=vH.z-vA.z*d+side.z*off*d; py=vH.y+(n==='resultP'?-0.18:0.04); lx=vH.x; ly=vH.y-0.04; lz=vH.z; ap=0.0026; fd=d; }
   else if(n==='charge'&&P){ seatDir(P,vA); var d6=port?1.5:1.12; px=-vA.x*d6+vA.z*0.15; pz=-vA.z*d6-vA.x*0.15; py=TH+0.5; lx=vA.x*0.04; lz=vA.z*0.04; ly=TH+0.33; ap=0.003; fd=d6; }
+  else if(n==='exitBeam'&&P){ seatDir(P,vA); headPos(P,vH); var pp2=new THREE.Vector3(-vA.z,0,vA.x), dd2=(port?3.7:3.15)*lerp(1.12,1.0,es(t/2.2)), chY=vH.y-0.33;
+    px=vA.x*Rc*0.3+pp2.x*dd2; pz=vA.z*Rc*0.3+pp2.z*dd2; py=chY+(port?0.75:0.5); lx=vA.x*Rc*0.52; lz=vA.z*Rc*0.52; ly=chY-(port?0.42:0.3); ap=0.0016; fd=dd2; }
   else if(n==='elimWide'&&P){ seatDir(P,vA); px=-vA.x*(Rc+2.3)*S; pz=-vA.z*(Rc+2.3)*S; py=port?3.4:2.3; lx=vA.x*Rc*0.6; lz=vA.z*Rc*0.6; ly=TH+0.2; ap=0.0005; }
   else if(n==='duel'){ var al=alive(); if(al.length===2&&al[0].C&&al[1].C){ headPos(al[0],vA); headPos(al[1],vB); var mid=vA.clone().add(vB).multiplyScalar(0.5), dir=vB.clone().sub(vA).setY(0).normalize(), perp=new THREE.Vector3(dir.z,0,-dir.x), sgn=(Math.floor(t/4.5)%2)?1:-1, dd=(Rc+0.9)*(port?1.6:1);
       px=mid.x+perp.x*dd*sgn+dir.x*Math.sin(t*0.3)*0.4; pz=mid.z+perp.z*dd*sgn+dir.z*Math.sin(t*0.3)*0.4; py=port?2.0:1.35; lx=mid.x*0.5; lz=mid.z*0.5; ly=TH+0.4; ap=0.0012; fd=dd; } else { px=0; pz=Rc+2; py=2; } }
@@ -1596,8 +1599,8 @@ function alignSelectionAperture(p){ var s0=seatOf(p), r=ensureSeatRing(); r.posi
   anim(0.5,function(u){ r.material.opacity=0.45*es(u); seatLight.intensity=0.8*es(u); }); }
 function lockSelectionAperture(){ AUD.play('apLock'); devState.setV=0.7; devState.shake=1; devState.dim=1; }
 function resetReactorAnimation(){ var D=devState; D.t=-1; D.charge=0; D.calm=0; D.apT=0; D.dim=0; D.ball=0; D.retIn=0; D.ci=-1; D.setV=0; D.settle=0; seatLight.intensity=0; clearEnergyPath(); clearSeatFx(); }
-function clearSeatFx(){ if(RX.marks){ scene.remove(RX.marks); RX.marks.children.forEach(function(m){ m.geometry.dispose(); m.material.dispose(); }); RX.marks=null; } if(RX.sym){ scene.remove(RX.sym); RX.sym.material.map.dispose(); RX.sym.material.dispose(); RX.sym=null; } if(seatRing) seatRing.material.opacity=0; }
-function clearEnergyPath(){ var P=RX.path; if(!P) return; P.objs.forEach(function(o){ scene.remove(o); if(o.geometry) o.geometry.dispose(); }); P.mats.forEach(function(m){ m.dispose(); }); RX.path=null; }
+function clearSeatFx(){ [RX.arcs].forEach(function(g){ if(g){ scene.remove(g); g.children.forEach(function(m){ m.geometry.dispose(); m.material.dispose(); }); } }); RX.arcs=null; if(RX.coil){ scene.remove(RX.coil); RX.coil.geometry.dispose(); RX.coil.material.dispose(); RX.coil=null; } if(RX.grid){ scene.remove(RX.grid); RX.grid.geometry.dispose(); RX.grid.material.dispose(); RX.grid=null; } if(RX.marks){ scene.remove(RX.marks); RX.marks.children.forEach(function(m){ m.geometry.dispose(); m.material.dispose(); }); RX.marks=null; } if(RX.sym){ scene.remove(RX.sym); RX.sym.material.map.dispose(); RX.sym.material.dispose(); RX.sym=null; } if(seatRing) seatRing.material.opacity=0; }
+function clearEnergyPath(){ beamLight.intensity=0; var P=RX.path; if(!P) return; P.objs.forEach(function(o){ scene.remove(o); if(o.geometry) o.geometry.dispose(); }); P.mats.forEach(function(m){ m.dispose(); }); RX.path=null; }
 
 async function beginReactorCharge(id,p){
   var ci=reactorCi(), act=$('#act'), actI=$('#actI'), D=devState, w1=false, w2=false, ph=-1;
@@ -1635,34 +1638,74 @@ function exitSprite(){ var t=canvasTex(128,128,function(x,w,h){ x.clearRect(0,0,
   var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,opacity:0,depthWrite:false})); sp.scale.setScalar(0.17); return sp; }
 function clearExitMarks(){ exitMarks.forEach(function(m){ scene.remove(m); m.material.map.dispose(); m.material.dispose(); }); exitMarks=[]; if(seatRing){ seatRing.material.opacity=0; } }
 
-function makeEPMat(shell){ return new THREE.ShaderMaterial({uniforms:{uTime:epU.uTime,uGrow:epU.uGrow,uTail:epU.uTail,uInt:epU.uInt,uShell:{value:shell}},transparent:true,depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,
-  vertexShader:'varying vec2 vUv; uniform float uTime,uShell; void main(){ vUv=uv; vec3 q=position+normal*(uShell*0.004*sin(uv.x*70.0-uTime*7.0+uv.y*12.566)); gl_Position=projectionMatrix*modelViewMatrix*vec4(q,1.0); }',
-  fragmentShader:'uniform float uTime,uGrow,uTail,uInt,uShell; varying vec2 vUv; float h(float x){ return fract(sin(x*127.1)*43758.5453); } void main(){ float u=vUv.x; float vis=(1.0-smoothstep(uGrow-0.05,uGrow,u))*smoothstep(uTail,uTail+0.06,u); float flow=0.5+0.5*sin(u*70.0-uTime*9.0); float n=0.6+0.4*h(floor(u*90.0-uTime*12.0)+floor(vUv.y*6.0)); float head=smoothstep(uGrow-0.14,uGrow,u)*1.4; float edge=0.35+0.65*pow(abs(sin(vUv.y*3.1416)),0.7); vec3 col=uShell>0.5?mix(vec3(0.42,0.2,0.95),vec3(0.78,0.66,1.0),flow*n):mix(vec3(0.88,0.8,1.0),vec3(1.0),flow); float a=vis*(0.55+head)*uInt*(uShell>0.5?0.34*edge*(0.5+0.5*flow):n); gl_FragColor=vec4(col*a,1.0); }'}); }
-var epU={uTime:{value:0},uGrow:{value:0},uTail:{value:0},uInt:{value:0}}, epTmp=new THREE.Object3D();
-function epUpdate(dt){ var P=RX.path; epU.uTime.value=clock; if(P){ var g=epU.uGrow.value, t0=epU.uTail.value, n=P.pn;
-    for(var k=0;k<n;k++){ var f=(k/n+clock*P.sp[k])%1, u=t0+(g-t0)*f, idx=Math.min(P.spaced.length-1,Math.max(0,Math.floor(u*(P.spaced.length-1)))), pt=P.spaced[idx], vis=(g-t0)>0.03?Math.sin(Math.PI*f):0; epTmp.position.set(pt.x+Math.sin(clock*3+k)*0.012,pt.y+Math.cos(clock*2.4+k*1.7)*0.012,pt.z+Math.sin(clock*2.1+k*2.3)*0.012); epTmp.scale.setScalar(vis*(0.7+0.5*P.sz[k])); epTmp.rotation.set(clock+k,clock*1.3,0); epTmp.updateMatrix(); P.im.setMatrixAt(k,epTmp.matrix); }
-    P.im.instanceMatrix.needsUpdate=true; }
-  if(RX.marks){ RX.marks.rotation.y+=dt*1.5; var pl=1+0.06*Math.sin(clock*5); RX.marks.scale.set(pl,1,pl); } }
+/* ===== OMEGA CINEMATIC ENERGY CONDUIT: مسار حجمي 5 طبقات عند مستوى الصدر ينتهي بحلقة المقعد ===== */
+var epU={uTime:{value:0},uGrow:{value:0},uTail:{value:0},uInt:{value:0},uDim:{value:1}}, epTmp=new THREE.Object3D(), epM4=new THREE.Matrix4(), epZero=new THREE.Vector3(), epUp=new THREE.Vector3(0,1,0), epT=new THREE.Vector3();
+function beamProf(u){ var a=0.55+0.45*omSm(u,0,0.14), b=1+0.35*Math.sin(omSm(u,0.1,0.7)*Math.PI), c=1-0.38*omSm(u,0.82,1.0); return a*b*c; }
+var BEAM_VS=`uniform float uTime,uKind,uR; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
+float prof(float u){ return mix(0.55,1.0,smoothstep(0.0,0.14,u))*(1.0+0.35*sin(smoothstep(0.1,0.7,u)*3.1416))*mix(1.0,0.62,smoothstep(0.82,1.0,u)); }
+void main(){ vUv=uv; float u=uv.x; vec3 c=position-normal*uR; float w=prof(u); float wob=1.0; if(uKind>0.5&&uKind<2.5){ wob=1.0+0.13*sin(u*38.0-uTime*5.0+uv.y*6.2831)+0.07*sin(u*91.0+uTime*7.3); }
+  vec3 p=c+normal*uR*w*wob; vec4 mv=modelViewMatrix*vec4(p,1.0); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }`;
+var BEAM_FS=`uniform float uTime,uGrow,uTail,uInt,uDim,uKind; varying vec2 vUv; varying vec3 vN; varying vec3 vV;
+float h(float x){ return fract(sin(x*127.1)*43758.5453); } float n1(float x){ float i=floor(x),f=fract(x); f=f*f*(3.0-2.0*f); return mix(h(i),h(i+1.0),f); }
+void main(){ float u=vUv.x; float vis=(1.0-smoothstep(uGrow-0.04,uGrow,u))*smoothstep(uTail,uTail+0.05,u);
+  float ndv=clamp(abs(dot(normalize(vN),normalize(vV))),0.0,1.0); float pw=uKind<0.5?1.1:(uKind<1.5?1.7:(uKind<2.5?2.6:1.0)); float fr=pow(ndv,pw);
+  float flow=0.5+0.5*sin(u*(uKind<2.5?46.0:28.0)-uTime*(uKind<0.5?10.0:6.0)+uKind*2.0); float nz=n1(u*60.0-uTime*8.0+vUv.y*5.0)*0.6+n1(u*140.0-uTime*13.0)*0.4;
+  vec3 col; float a;
+  if(uKind<0.5){ col=mix(vec3(0.867,0.839,0.996),vec3(0.961,0.953,1.0),flow); a=fr*(0.62+0.38*flow)*(0.9+0.1*sin(uTime*13.0)); }
+  else if(uKind<1.5){ col=mix(vec3(0.486,0.227,0.929),vec3(0.655,0.545,0.98),nz); a=fr*(0.3+0.6*nz)*0.62; }
+  else if(uKind<2.5){ col=vec3(0.42,0.28,0.95); a=fr*0.15*(0.7+0.3*sin(uTime*2.0+u*9.0)); }
+  else { col=mix(vec3(0.655,0.545,0.98),vec3(0.96,0.95,1.0),flow); a=fr*(0.45+0.55*flow); }
+  float head=smoothstep(uGrow-0.1,uGrow,u)*0.9; a*=vis*uInt*uDim*(0.85+head)*smoothstep(0.0,0.03,u); gl_FragColor=vec4(col*a,1.0); }`;
+function makeBeamMat(kind,R){ return new THREE.ShaderMaterial({uniforms:{uTime:epU.uTime,uGrow:epU.uGrow,uTail:epU.uTail,uInt:epU.uInt,uDim:epU.uDim,uKind:{value:kind},uR:{value:R}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,vertexShader:BEAM_VS,fragmentShader:BEAM_FS}); }
+/* بناء المسار: نقاط التحكم تُحسب بالإحداثيات العالمية من المفاعل ومقعد اللاعب وارتفاع صدره، وتُبعَد عن جسم الأفاتار */
+function buildBeam(p){
+  clearEnergyPath();
+  var s0=seatOf(p), R=Math.hypot(s0.x,s0.z)||2, d=new THREE.Vector3(s0.x/R,0,s0.z/R), pp=new THREE.Vector3(-d.z,0,d.x);
+  dev.updateMatrixWorld(true); var S=apG.localToWorld(new THREE.Vector3(0,0,0.05)); headPos(p,vH); var chest=vH.y-0.33;
+  function P(r,y,l){ return new THREE.Vector3(d.x*r+pp.x*l,y,d.z*r+pp.z*l); }
+  function keepOut(v){ var dx=v.x-s0.x, dz=v.z-s0.z, dd=Math.hypot(dx,dz); if(v.y>0.12&&dd<0.48){ var k=0.48/Math.max(dd,0.001); v.x=s0.x+dx*k; v.z=s0.z+dz*k; } return v; }
+  var rS=Math.hypot(S.x,S.z);
+  var pts=[S,P(rS+0.3,S.y+0.1,0.05),P(Math.min(0.95,R*0.45),lerp(S.y,chest,0.5)+0.08,0.2),P(R*0.72,chest+0.07,0.38),keepOut(P(R-0.62,chest+0.02,0.5)),keepOut(P(R-0.5,chest-0.38,0.54)),keepOut(P(R-0.12,0.5,0.5)),P(R,0.035,0.38)];
+  var curve=new THREE.CatmullRomCurve3(pts,false,'centripetal'), N=160, fr=curve.computeFrenetFrames(N,false), pos=[]; for(var i=0;i<=N;i++) pos.push(curve.getPoint(i/N));
+  var objs=[], mats=[], q=RQ.level;
+  function addTube(geo,mat){ var m=new THREE.Mesh(geo,mat); m.frustumCulled=false; scene.add(m); objs.push(m); mats.push(mat); return m; }
+  addTube(new THREE.TubeGeometry(curve,170,0.0105,8,false),makeBeamMat(0,0.0105));
+  addTube(new THREE.TubeGeometry(curve,170,0.034,10,false),makeBeamMat(1,0.034));
+  if(q!=='low') addTube(new THREE.TubeGeometry(curve,120,q==='high'?0.095:0.075,12,false),makeBeamMat(2,q==='high'?0.095:0.075));
+  var nF=q==='high'?4:(q==='medium'?3:1);
+  for(var k=0;k<nF;k++){ var turns=4+k*1.3, ph=k*1.7, dir=k%2?-1:1, rr=0.06+0.012*k, tr=0.0035+0.0012*k, fp=[]; for(var j=0;j<=200;j++){ var u=j/200, fi=Math.min(N,Math.round(u*N)), th=ph+dir*u*turns*Math.PI*2, w=beamProf(u)*(1-0.7*omSm(u,0.88,1.0)); fp.push(curve.getPoint(u).addScaledVector(fr.normals[fi],Math.cos(th)*rr*w).addScaledVector(fr.binormals[fi],Math.sin(th)*rr*w)); }
+    addTube(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(fp),240,tr,5,false),makeBeamMat(3,tr)); }
+  var pn=q==='high'?48:(q==='medium'?28:14), pm=new THREE.MeshBasicMaterial({color:0xE9E0FF,transparent:true,opacity:0.9,blending:THREE.AdditiveBlending,depthWrite:false}); mats.push(pm);
+  var im=new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.01,0),pm,pn); im.frustumCulled=false; scene.add(im); objs.push(im);
+  var pr=q==='low'?0:5, rm=new THREE.MeshBasicMaterial({color:0xC4B5FD,transparent:true,opacity:0.8,blending:THREE.AdditiveBlending,depthWrite:false}); mats.push(rm), rim=null;
+  var rim=null; if(pr){ rim=new THREE.InstancedMesh(new THREE.TorusGeometry(0.07,0.0035,6,28),rm,pr); rim.frustumCulled=false; scene.add(rim); objs.push(rim); }
+  var sp=[],ph2=[],spin=[],rad=[],sz=[]; for(var z=0;z<pn;z++){ sp.push(0.18+Math.random()*0.35); ph2.push(Math.random()*6.28); spin.push((Math.random()<0.5?-1:1)*(1+Math.random()*3)); rad.push(0.03+Math.random()*0.07); sz.push(0.5+Math.random()*0.9); }
+  RX.path={objs:objs,mats:mats,pos:pos,fn:fr.normals,fb:fr.binormals,N:N,im:im,pn:pn,rim:rim,pr:pr,sp:sp,ph:ph2,spin:spin,rad:rad,sz:sz,side:1};
+  return RX.path;
+}
+function epUpdate(dt){ var P=RX.path; epU.uTime.value=clock;
+  if(P){ var g=Math.min(1,epU.uGrow.value), t0=epU.uTail.value, span=g-t0, N=P.N, on=span>0.03;
+    var hi=Math.min(N,Math.max(0,Math.round(g*N))), hp=P.pos[hi]; beamLight.position.set(hp.x,hp.y+0.06,hp.z); beamLight.intensity=on?(RQ.level==='low'?0.55:1.1)*epU.uInt.value*epU.uDim.value:0;
+    for(var k=0;k<P.pn;k++){ var f=(k/P.pn+clock*P.sp[k])%1, u=t0+span*f, idx=Math.min(N,Math.max(0,Math.round(u*N))), c=P.pos[idx], th=P.ph[k]+clock*P.spin[k], rr=P.rad[k]*beamProf(u);
+      epTmp.position.copy(c).addScaledVector(P.fn[idx],Math.cos(th)*rr).addScaledVector(P.fb[idx],Math.sin(th)*rr); epTmp.scale.setScalar(on?Math.sin(Math.PI*f)*P.sz[k]:0); epTmp.rotation.set(clock*3+k,clock*2,0); epTmp.updateMatrix(); P.im.setMatrixAt(k,epTmp.matrix); }
+    P.im.instanceMatrix.needsUpdate=true;
+    if(P.rim){ for(var r=0;r<P.pr;r++){ var f2=(clock*0.33+r/P.pr)%1, u2=t0+(Math.min(g,0.82)-t0)*f2, i2=Math.min(N-2,Math.max(0,Math.round(u2*N))), pt=P.pos[i2]; epT.copy(P.pos[i2+2]).sub(pt); epM4.lookAt(epZero,epT,epUp); epTmp.quaternion.setFromRotationMatrix(epM4); epTmp.position.copy(pt); epTmp.scale.setScalar((Math.min(g,0.82)-t0>0.08?Math.sin(Math.PI*f2):0)*beamProf(u2)*1.05); epTmp.updateMatrix(); P.rim.setMatrixAt(r,epTmp.matrix); } P.rim.instanceMatrix.needsUpdate=true; } }
+  else beamLight.intensity=0;
+  if(RX.marks){ RX.marks.rotation.y+=dt*1.5; var pl=1+0.06*Math.sin(clock*5); RX.marks.scale.set(pl,1,pl); }
+  if(RX.arcs){ RX.arcs.rotation.y-=dt*0.9; }
+  if(RX.coil){ RX.coil.rotation.z+=dt*0.4; } }
 async function playEnergyTransfer(id,p){
-  var D=devState, s0=seatOf(p), R=Math.hypot(s0.x,s0.z)||2, d=new THREE.Vector3(s0.x/R,0,s0.z/R), pp=new THREE.Vector3(-d.z,0,d.x);
-  dev.updateMatrixWorld(true); var S=apG.localToWorld(new THREE.Vector3(0,0,0.05)), Er=R-0.36, r4=Math.max(1.43,Er-0.1); if(Er<r4+0.05) Er=r4+0.06;
-  function V(r,y,l){ return new THREE.Vector3(d.x*r+pp.x*(l||0),y,d.z*r+pp.z*(l||0)); }
-  var rS=Math.hypot(S.x,S.z), pts=[S,V(rS+0.3,TH+0.19,0.09),V(0.98,TH+0.13,-0.07),V(1.26,TH+0.075,0.03),V(r4,TH-0.08,0),V(Er-0.04,0.22,0),V(Er,0.03,0)];
-  var curve=new THREE.CatmullRomCurve3(pts,false,'centripetal'), spaced=curve.getSpacedPoints(160), objs=[], mats=[];
-  var mCore=makeEPMat(0), mShell=makeEPMat(1); mats.push(mCore,mShell);
-  var tc=new THREE.Mesh(new THREE.TubeGeometry(curve,150,0.0075,8,false),mCore), ts=new THREE.Mesh(new THREE.TubeGeometry(curve,150,0.03,10,false),mShell); tc.frustumCulled=false; ts.frustumCulled=false; scene.add(tc); scene.add(ts); objs.push(tc,ts);
-  var pn=Q.tier==='low'?24:40, pm=new THREE.MeshBasicMaterial({color:0xE9E0FF,transparent:true,opacity:0.85,blending:THREE.AdditiveBlending,depthWrite:false}); mats.push(pm);
-  var im=new THREE.InstancedMesh(new THREE.OctahedronGeometry(0.011,0),pm,pn); im.frustumCulled=false; scene.add(im); objs.push(im);
-  var sp=[],sz=[]; for(var i=0;i<pn;i++){ sp.push(0.35+Math.random()*0.5); sz.push(Math.random()); }
-  RX.path={objs:objs,mats:mats,spaced:spaced,im:im,pn:pn,sp:sp,sz:sz};
-  epU.uGrow.value=0; epU.uTail.value=0; epU.uInt.value=0.4;
+  var D=devState; buildBeam(p); epU.uGrow.value=0.035; epU.uTail.value=0; epU.uInt.value=0.25; epU.uDim.value=1;
   AUD.play('transfer'); reactorWave(1);
-  await anim(1.0,function(u){ epU.uGrow.value=es(u)*1.03; epU.uInt.value=0.5+0.7*u; D.charge=1+0.25*Math.sin(Math.PI*u); }); check(id);
-  anim(0.5,function(u){ epU.uInt.value=1.2+0.9*Math.sin(Math.PI*u); });
+  await anim(0.45,function(u){ epU.uInt.value=0.25+0.55*es(u); D.charge=1+0.25*Math.sin(Math.PI*u*0.45); }); check(id);   /* Formation */
+  await anim(0.55,function(u){ epU.uGrow.value=0.035+0.745*es(u); epU.uInt.value=0.8+0.4*u; D.charge=1+0.25*Math.sin(Math.PI*(0.45+u*0.55)); }); check(id);   /* Stream Expansion */
 }
 function activatePlayerSeat(p){ var s0=seatOf(p), r=ensureSeatRing(); r.position.set(s0.x,0.014,s0.z); r.material.color.setHex(0xDDD6FE); seatLight.color.setHex(0xB79CFF); seatLight.position.set(s0.x*0.92,1.0,s0.z*0.92);
-  if(!RX.marks){ var g=new THREE.Group(); var hm=new THREE.MeshBasicMaterial({color:0xDDD6FE,transparent:true,opacity:0.0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}); for(var i=0;i<6;i++){ var a=i*Math.PI/3, m=new THREE.Mesh(new THREE.RingGeometry(0.026,0.04,6),hm.clone()); m.rotation.x=-Math.PI/2; m.position.set(Math.cos(a)*0.5,0,Math.sin(a)*0.5); g.add(m); } g.position.set(s0.x,0.018,s0.z); scene.add(g); RX.marks=g; }
-  var g2=RX.marks; AUD.play('seatOn'); return anim(0.6,function(u){ r.material.opacity=0.95*es(u); seatLight.intensity=1.6*es(u); g2.children.forEach(function(m){ m.material.opacity=0.85*es(u); }); }); }
+  if(!RX.marks){ var g=new THREE.Group(), hm=new THREE.MeshBasicMaterial({color:0xDDD6FE,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}); for(var i=0;i<6;i++){ var a=i*Math.PI/3, m=new THREE.Mesh(new THREE.RingGeometry(0.026,0.04,6),hm.clone()); m.rotation.x=-Math.PI/2; m.position.set(Math.cos(a)*0.5,0,Math.sin(a)*0.5); g.add(m); } g.position.set(s0.x,0.018,s0.z); scene.add(g); RX.marks=g; hm.dispose();
+    var ag=new THREE.Group(); [[0.6,0.615,Math.PI*1.3,0],[0.72,0.732,6,0],[0.5,0.512,Math.PI*0.8,2.4]].forEach(function(c,i){ var m=new THREE.Mesh(new THREE.RingGeometry(c[0],c[1],c[2]===6?6:64,1,c[3],c[2]===6?Math.PI*2:c[2]),new THREE.MeshBasicMaterial({color:0xC4B5FD,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})); m.rotation.x=-Math.PI/2; ag.add(m); }); ag.position.set(s0.x,0.02,s0.z); scene.add(ag); RX.arcs=ag;
+    var cl=new THREE.Mesh(new THREE.TorusGeometry(0.38,0.011,8,64),new THREE.MeshBasicMaterial({color:0xE9E0FF,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false})); cl.rotation.x=Math.PI/2; cl.position.set(s0.x,0.04,s0.z); scene.add(cl); RX.coil=cl; }
+  var g2=RX.marks, ag2=RX.arcs, cl2=RX.coil; AUD.play('seatOn'); var gS=epU.uGrow.value;
+  return anim(0.6,function(u){ var e=es(u); r.material.opacity=0.95*e; seatLight.intensity=1.7*e; cl2.material.opacity=0.9*e; g2.children.forEach(function(m){ m.material.opacity=0.85*e; }); ag2.children.forEach(function(m){ m.material.opacity=0.6*e; }); epU.uGrow.value=lerp(gS,1.03,e); epU.uDim.value=1-0.3*e; }); }
 async function playPlayerDissolve(id,p){
   var long=CFG.longElim, C=p.C, dur=long?1.8:1.2; headPos(p,vH); var hx=vH.x, hy=vH.y, hz=vH.z; C.dissolving=true; AUD.play('exit');
   await anim(dur,function(u){ C.U.uDiss.value=Math.pow(u,0.85)*1.02; C.label.material.opacity=1-u;
@@ -1675,7 +1718,7 @@ async function elimScene(id,p,reason){
   lampState.flick=0.15; lampState.target=0.7; fxS.flash=0.06; fxS.red=0; if(reason==='timeout') status('انتهت مهلة '+p.name); else status('انتهت مشاركة '+p.name);
   alive().forEach(function(q){ if(q.C&&q!==p){ q.C.reactKind='flinch'; q.C.react=0.4; } });
   /* 1) Energy Release: تنفتح ألواح الفتحة وتضيء النواة */
-  AUD.play('release'); D.apT=1; D.retIn=0; D.ball=0; shot('elimWide',p); devState.rayOp=0; var r0=ensureSeatRing(); r0.position.set(s0.x,0.014,s0.z); r0.material.color.setHex(0xC4B5FD);
+  AUD.play('release'); D.apT=1; D.retIn=0; D.ball=0; shot('exitBeam',p); devState.rayOp=0; var r0=ensureSeatRing(); r0.position.set(s0.x,0.014,s0.z); r0.material.color.setHex(0xC4B5FD);
   await anim(0.5,function(u){ D.charge=1+0.35*Math.sin(Math.PI*u); D.t=3.0; r0.material.opacity=0.35*es(u); }); check(id);
   /* 2) Energy Path: مسار ضوئي فوق الطاولة إلى قاعدة المقعد */
   await playEnergyTransfer(id,p); check(id);
@@ -1689,7 +1732,7 @@ async function elimScene(id,p,reason){
   D.apT=0; D.t=-1; if(ci>=0&&chambers[ci]){ chambers[ci].spent=true; chambers[ci].pulse=0; } AUD.play('lockFinal');
   var mk=exitSprite(); mk.position.set(hx,hy+0.1,hz); scene.add(mk); exitMarks.push(mk); anim(0.6,function(u){ mk.material.opacity=0.9*es(u); });
   big('◇ خرج من الجولة',p.name+' · بقي '+ar(alive().length),'out'); camAz(); shot('elimWide',p);
-  anim(0.8,function(u){ epU.uTail.value=es(u)*1.03; D.charge=Math.max(0,1.2*(1-es(u))); seatLight.intensity=1.6*(1-es(u)); if(r0) r0.material.opacity=0.95*(1-es(u)); if(RX.marks) RX.marks.children.forEach(function(m){ m.material.opacity=0.85*(1-es(u)); }); focusSpot.intensity*=1-u; });
+  var g0=epU.uGrow.value; anim(0.8,function(u){ var e=es(u); epU.uGrow.value=g0*(1-e); epU.uInt.value=1.2*(1-0.5*e); D.charge=Math.max(0,1.2*(1-e)); seatLight.intensity=1.6*(1-e); if(r0) r0.material.opacity=0.95*(1-e); if(RX.marks) RX.marks.children.forEach(function(m){ m.material.opacity=0.85*(1-e); }); if(RX.arcs) RX.arcs.children.forEach(function(m){ m.material.opacity=0.6*(1-e); }); if(RX.coil) RX.coil.material.opacity=0.9*(1-e); focusSpot.intensity*=1-u; });
   await wait(900,id); clearEnergyPath(); clearSeatFx(); D.charge=0; D.calm=0; seatLight.intensity=0; reactorWave(0.5);
   AUD.setIntensity(0.2,60); await wait(long?1700:900,id); setLabels('idle'); shot('wide'); lampState.target=1; await wait(500,id);
 }
