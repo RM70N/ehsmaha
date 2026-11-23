@@ -953,7 +953,7 @@ window.EHS_OPS_GAMES = [
  },
  {
   "tag": "roulette3d",
-  "title": "الروليت الروسي",
+  "title": "الروسي",
   "launch": "launchRoulette3d",
   "inputs": {
    "roulette3d-join-kw": "دخول",
