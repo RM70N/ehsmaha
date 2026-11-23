@@ -63,11 +63,66 @@ test('الوضع العادي: الكتابة تذهب لـFirestore وتُنس�
   assert.equal(rget('fsMirror/levels/k1'), null);
 });
 
-test('الوضع العادي: مجموعات write-through المستثناة (presence) لا تُنسخ', async () => {
-  const { fb, rget } = setup();
+test('وضع القديم (rtdbPrimary فارغ): مجموعات write-through المستثناة (presence) لا تُنسخ', async () => {
+  const { fb, rget } = setup({ rtdbPrimary: [] });
   await fb.setDoc(fb.doc(fb.db, 'presence', 'u1'), { online: true });
   await tick();
   assert.equal(rget('fsMirror/presence/u1'), null);
+});
+
+test('توزيع الأحمال: المجموعات الثقيلة تعمل على RTDB فقط (صفر قراءة/كتابة Firestore) والباقي على Firestore', async () => {
+  const { fb, S, rget, api } = setup();
+  const r0 = S.reads, w0 = S.writes;
+  await fb.setDoc(fb.doc(fb.db, 'presence', 'u1'), { online: true, at: fb.serverTimestamp() });
+  await fb.setDoc(fb.doc(fb.db, 'activeStreamers', 'g1'), { username: 'a' });
+  await fb.setDoc(fb.doc(fb.db, 'liveCommands', 'g1', 'cmds', 'c1'), { t: 1 });
+  const g = await fb.getDoc(fb.doc(fb.db, 'presence', 'u1'));
+  const all = await fb.getDocs(fb.collection(fb.db, 'activeStreamers'));
+  await tick();
+  assert.equal(S.reads, r0, 'لا قراءة Firestore للثقيلة');
+  assert.equal(S.writes, w0, 'لا كتابة Firestore للثقيلة');
+  assert.equal(rget('fsMirror/presence/u1').online, true);
+  assert.equal(g.exists(), true);
+  assert.equal(all.size, 1);
+  assert.equal(api.pending(), 0, 'الأساسية لا تدخل طابور الترحيل');
+  await fb.setDoc(fb.doc(fb.db, 'config', 'x'), { v: 1 });
+  assert.equal(S.docs.get('config/x').v, 1, 'غير الثقيلة تبقى على Firestore');
+  assert.equal(api.mode(), 'firestore');
+});
+
+test('توزيع الأحمال: onSnapshot على مجموعة ثقيلة يقرأ من RTDB ويتحدّث حياً', async () => {
+  const { fb, S } = setup();
+  const seen = [];
+  const un = fb.onSnapshot(fb.collection(fb.db, 'activeStreamers'), (s) => seen.push(s.size));
+  await tick();
+  await fb.setDoc(fb.doc(fb.db, 'activeStreamers', 'g1'), { username: 'a' });
+  await tick();
+  assert.equal(seen[seen.length - 1], 1);
+  assert.equal(S.listeners.size, 0, 'لا مستمع Firestore');
+  un();
+});
+
+test('نفاد حصة Firestore: غير الثقيلة تتحول تلقائياً لـRTDB والثقيلة تبقى بلا انقطاع', async () => {
+  const { fb, S, rget, api } = setup();
+  await fb.setDoc(fb.doc(fb.db, 'config', 'x'), { v: 1 });
+  await tick();
+  S.quota = true;
+  const d = await fb.getDoc(fb.doc(fb.db, 'config', 'x'));
+  assert.equal(d.data().v, 1);
+  assert.equal(api.mode(), 'rtdb');
+  await fb.setDoc(fb.doc(fb.db, 'presence', 'u2'), { online: true });
+  await fb.setDoc(fb.doc(fb.db, 'levels', 'k9'), { xp: 3 });
+  await tick();
+  assert.equal(rget('fsMirror/presence/u2').online, true);
+  assert.equal(rget('fsMirror/levels/k9').xp, 3);
+  assert.equal(api.pending(), 1, 'غير الثقيلة تُرحَّل لاحقاً، الثقيلة لا');
+});
+
+test('مفتاح إيقاف التوزيع: ehs_rt_primary_off=1 يرجع كل شيء لـFirestore', async () => {
+  const st = makeStorage(); st.setItem('ehs_rt_primary_off', '1');
+  const { fb, S } = setup({ storage: st });
+  await fb.setDoc(fb.doc(fb.db, 'presence', 'u1'), { online: true });
+  assert.ok(S.docs.get('presence/u1'));
 });
 
 test('زرع النسخة (seed) عند القراءة لمستند موجود فقط بـFirestore', async () => {

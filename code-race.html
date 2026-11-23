@@ -848,6 +848,7 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
 html[data-motion="reduce"] .flow-signal{display:none}
 html[data-motion="reduce"] .cer-scene{transition:opacity .3s!important}
 </style>
+<link rel="icon" type="image/x-icon" href="/favicon.ico?v=2"><link rel="icon" type="image/png" sizes="32x32" href="/assets/branding/icon-32.png?v=2"><link rel="apple-touch-icon" sizes="180x180" href="/assets/branding/apple-touch-icon-180.png?v=2">
 </head>
 <body>
 <a class="skip" href="#view">تخطَّ إلى المحتوى</a>
@@ -2073,7 +2074,15 @@ const Live = {
     const f = this.fb;
     this.unsub.friends = f.onSnapshot(f.query(f.collection(f.db, 'friendships'), f.where('uids', 'array-contains', u.uid)), async (snap) => {
       this.friends = snap.docs.map(x => { const dd = x.data(); const other = dd.uids.find(v => v !== u.uid); return { id: other, name: (dd.usernames && dd.usernames[other]) || 'صديق' }; });
-      await Promise.all(this.friends.map(async fr => { try { this.presence[fr.id] = (await f.getDoc(this.P.presence(fr.id))).exists(); } catch (e) { } }));
+      await Promise.all(this.friends.map(async fr => {
+        /* الحضور يعمل الآن على RTDB (fsMirror/presence) لتخفيف حصة Firestore؛ نرجع لـ Firestore للنسخ القديمة */
+        try {
+          const rm = await import(Live.fbBase + 'firebase-database.js');
+          const sn = await rm.get(rm.ref(rm.getDatabase(Live.app), 'fsMirror/presence/' + fr.id));
+          if (sn.exists()) { this.presence[fr.id] = true; return; }
+        } catch (e) { }
+        try { this.presence[fr.id] = (await f.getDoc(this.P.presence(fr.id))).exists(); } catch (e) { }
+      }));
       this.sync();
     }, () => { });
   },

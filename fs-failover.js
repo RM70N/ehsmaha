@@ -212,6 +212,10 @@ const DEFAULTS = {
   replayEveryMs: 60 * 1000,
   // مجموعات ما نكتبها بنسخة write-through (عالية التكرار أو لها مسار RTDB خاص بها)
   skipWriteThrough: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds'],
+  // توزيع الأحمال: هذه المجموعات عالية التكرار (قراءة/كتابة) تعمل على RTDB مباشرة (fsMirror/<مجموعة>) حتى لو
+  // Firestore سليم، فيتوزع الاستهلاك بين الحصتين. باقي المجموعات تبقى على Firestore مع التحويل التلقائي الكامل
+  // إلى RTDB عند نفاد الحصة. تعطيلها: rtdbPrimary: [] أو localStorage ehs_rt_primary_off=1
+  rtdbPrimary: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds'],
   // مجموعات صغيرة مشتركة تُزرع بالنسخة الاحتياطية عند القراءة إذا ناقصة
   seedCollections: ['config', 'levels', 'shopProducts', 'siteUpdates', 'framesCatalogExtra', 'storeSales',
     'storeNewAnnouncements', 'ahsemhaCategories', 'ahsemhaSettings', 'eventAccess', 'ghnamSpecial', 'devSpecial',
@@ -249,6 +253,10 @@ export function installFsFailover(fb, userOpts) {
   });
 
   const hasRtdb = () => !!fb.rtdb;
+  let primaryOff = false;
+  try { primaryOff = !!(O.storage && O.storage.getItem('ehs_rt_primary_off') === '1'); } catch (e) {}
+  const isPrimary = (path) => !primaryOff && !!path && Array.isArray(O.rtdbPrimary) && O.rtdbPrimary.indexOf(String(path).split('/')[0]) >= 0;
+  const useRt = (path) => hasRtdb() && (mode === 'rtdb' || isPrimary(path));
   /* لو النسخة الاحتياطية نفسها ما ردّت: نرجّع خطأ حصة (يعرضه الموقع كـ«الخادم مزدحم» بدل خطأ غامض) */
   const viaRt = async (fn, origErr) => {
     try { return await fn(); } catch (e) {
@@ -493,7 +501,7 @@ export function installFsFailover(fb, userOpts) {
   }
 
   async function getDocGeneric(realFn, ref) {
-    if (mode === 'rtdb' && hasRtdb()) return viaRt(() => rtGetDoc(ref));
+    if (useRt(pathOf(ref))) return viaRt(() => rtGetDoc(ref));
     try {
       const s = await realFn(ref);
       try { if (s && s.exists && s.exists()) seedDoc(pathOf(ref), s.data()); } catch (e) {}
@@ -508,7 +516,7 @@ export function installFsFailover(fb, userOpts) {
   fb.getDocFromServer = (ref) => getDocGeneric(real.getDocFromServer, ref);
 
   fb.getDocs = async (target) => {
-    if (mode === 'rtdb' && hasRtdb()) return viaRt(() => rtGetDocs(target));
+    if (useRt(queryInfo(target).path)) return viaRt(() => rtGetDocs(target));
     try {
       const s = await real.getDocs(target);
       try { const p = queryInfo(target).path; if (!(target.__fo && target.__fo.wheres.length)) s.forEach((d) => seedDoc(p + '/' + d.id, d.data())); } catch (e) {}
@@ -520,7 +528,7 @@ export function installFsFailover(fb, userOpts) {
   };
 
   fb.getCountFromServer = async (target) => {
-    if (mode === 'rtdb' && hasRtdb()) { const s = await viaRt(() => rtGetDocs(target)); return { data: () => ({ count: s.size }) }; }
+    if (useRt(queryInfo(target).path)) { const s = await viaRt(() => rtGetDocs(target)); return { data: () => ({ count: s.size }) }; }
     try { return await real.getCountFromServer(target); } catch (e) {
       if (hasRtdb() && (isQuotaError(e) || isSoftError(e))) { trip(e, !isQuotaError(e)); const s = await viaRt(() => rtGetDocs(target), e); return { data: () => ({ count: s.size }) }; }
       throw e;
@@ -544,7 +552,7 @@ export function installFsFailover(fb, userOpts) {
 
   /* ---------- الكتابات ---------- */
   async function write(op, realCall) {
-    if (mode === 'rtdb' && hasRtdb()) return viaRt(() => rtWrite(op));
+    if (useRt(op.p)) return viaRt(() => rtWrite(op));
     try {
       const res = await realCall();
       mirrorWrite(op);
@@ -556,7 +564,7 @@ export function installFsFailover(fb, userOpts) {
   }
   async function rtWrite(op) {
     await applyToMirror(op.p, op);   // أخطاء الصلاحيات تظهر للمستدعي كما بـ Firestore
-    enqueue(op);
+    if (!isPrimary(op.p)) enqueue(op);   // الأساسية في RTDB لا تُرحَّل لـ Firestore (نوفّر حصته)
   }
 
   fb.setDoc = (ref, data, options) => {
@@ -678,7 +686,7 @@ export function installFsFailover(fb, userOpts) {
     function start() {
       if (stopped) return;
       stopAll();
-      if (mode === 'rtdb' && hasRtdb()) startRt(); else startFs();
+      if (useRt(isDoc ? pathOf(target) : queryInfo(target).path)) startRt(); else startFs();
     }
     const onMode = () => start();
     listeners.add(onMode);

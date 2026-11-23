@@ -751,4 +751,12 @@ function _reset() {
   state.gemini = null;
 }
 
-module.exports = { init, stop, crawl, refreshNow, search, promptFor, updatesBlock, status, extractChunks, mergeItems, discoverPages, parseGames, extractAssets, _reset, _internal: { state, tokens, buildIndex, NEWS_Q, INSPECT_Q } };
+/** للمالك فقط: قائمة ملفات الموقع اللي يتابعها البوت (صفحات + سكربتات/تنسيقات) وآخر تغيير. ما تنعرض لغير المالك أبداً. */
+function filesBlock() {
+  const pages = [...state.pages.keys()].slice(0, 40).map((u) => fileName(u) || u);
+  const assets = [...state.assets].slice(0, 60).map(([u, a]) => `${fileName(u)} (${Math.round((a.size || 0) / 1024)}KB${a.changedAt ? `، تغيّر${ago(a.changedAt).replace(' — ', ' ')}` : ''})`);
+  if (!pages.length && !assets.length) return '';
+  return `## ملفات الموقع التي يتابعها البوت (للمالك فقط)\nالصفحات: ${pages.join('، ') || '—'}\nالملفات: ${assets.join('، ') || '—'}`.slice(0, 3500);
+}
+
+module.exports = { filesBlock, init, stop, crawl, refreshNow, search, promptFor, updatesBlock, status, extractChunks, mergeItems, discoverPages, parseGames, extractAssets, _reset, _internal: { state, tokens, buildIndex, NEWS_Q, INSPECT_Q } };

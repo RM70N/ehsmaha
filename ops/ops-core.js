@@ -145,8 +145,10 @@
 
   /* ---------- جلسات الستريمر ---------- */
   var sess = null; var hbTimer = null; var HB_MS = 20000;
-  function activeTags() { try { return Object.keys(window.homeGameListeners || {}); } catch (e) { return []; } }
-  function platforms() { try { return Object.keys(window.homeConnections || {}).filter(function (p) { return window.homeConnections[p]; }); } catch (e) { return []; } }
+  /* homeGameListeners/homeConnections معرّفان بـlet في سكربت الموقع (ليسا خاصية على window) فنقرأهما بالتقييم العام */
+  function globalVar(name) { try { var w = window[name]; if (w) return w; return (0, eval)('typeof ' + name + '!=="undefined"?' + name + ':null'); } catch (e) { return null; } }
+  function activeTags() { try { return Object.keys(globalVar('homeGameListeners') || {}); } catch (e) { return []; } }
+  function platforms() { try { var c = globalVar('homeConnections') || {}; return Object.keys(c).filter(function (p) { return c[p]; }); } catch (e) { return []; } }
   function currentStreamerName(fallback) { try { return fallback || (window.scoreCurrentStreamer) || (window.currentUsername) || ''; } catch (e) { return fallback || ''; } }
   function ensureSession(streamer, platform) {
     var u = uid(); if (!u) return null;
@@ -158,6 +160,7 @@
       s.set('opsSessions/' + sid, { uid: u, streamer: sess.streamer, platform: sess.platform, state: 'live', start: SV, last: SV, game: '', nRounds: 0, nDone: 0, parts: 0, dev: deviceKind() });
       var od = s.onDisconnect('opsSessions/' + sid);
       if (od && od.update) od.update({ state: 'lost', ended: SV });
+      var od2 = s.onDisconnect('adminObserve/' + sid); if (od2 && od2.remove) od2.remove();
     });
     O.emit('session_start', { sid: sid, streamer: sess.streamer, platform: sess.platform, k: sid, dedupeMs: 1000 });
     if (!hbTimer) hbTimer = setInterval(heartbeat, HB_MS);
@@ -168,11 +171,29 @@
     if (!sess || OFF || LAB) return; var s = O.store(); if (!s) return;
     var tags = activeTags(); var parts = 0; tags.forEach(function (t) { parts += partCount(t); });
     safe(function () { s.update('opsSessions/' + sess.sid, { last: SV, game: tags[0] || '', parts: parts, nRounds: sess.rounds, nDone: sess.done, state: 'live', plat: platforms().join(',') }); });
+    safe(function () { publishObserve(s, tags[0] || '', parts); });
+  }
+  /* لقطة المراقبة (للأدمن فقط تُقرأ): أسماء المشاركين الظاهرة للجمهور أصلاً + حالة الراوند. لا إجابات ولا بيانات خفية. */
+  function partList(tag, max) {
+    try {
+      var spec = (window.EHS_OPS_GAMES || []).find(function (g) { return g.tag === tag || g.reg === tag; }); if (!spec || !spec.pmap) return null;
+      var m = (0, eval)(spec.pmap); var out = [];
+      if (m && typeof m.forEach === 'function') m.forEach(function (v, k) { if (out.length >= max) return; var nm = (v && typeof v === 'object') ? (v.nickname || v.name || v.uniqueId || k) : k; out.push({ u: clip(typeof k === 'string' ? k : (v && v.uniqueId) || '', 40), n: clip(nm, 40) }); });
+      return out;
+    } catch (e) { return null; }
+  }
+  O.partList = partList;
+  function publishObserve(s, tag, parts) {
+    if (!sess) return; var r = tag ? rounds[tag] : null; var pl = tag ? partList(tag, 60) : [];
+    var spec = (window.EHS_OPS_GAMES || []).find(function (g) { return g.tag === tag || g.reg === tag; });
+    s.set('adminObserve/' + sess.sid, { uid: sess.uid, streamer: sess.streamer, platform: sess.platform, game: tag, gameName: clip((spec && (spec.title || spec.name)) || (r && r.name) || tag, 60), state: tag ? (r ? 'live' : 'lobby') : 'idle',
+      parts: parts, list: pl || [], listSupported: pl !== null, round: sess.rounds, rstart: r ? r.start : 0, ts: SV });
   }
   O._heartbeat = heartbeat;
   O.sessionEnd = function (reason) {
     if (!sess) return; var s = O.store(); var cur = sess;
     if (s && !LAB && !OFF) safe(function () { s.update('opsSessions/' + cur.sid, { state: 'ended', ended: SV, last: SV, endReason: clip(reason || 'end', 30) }); });
+    if (s && !LAB && !OFF) safe(function () { s.remove('adminObserve/' + cur.sid).catch(function () {}); });
     O.emit('session_end', { sid: cur.sid, streamer: cur.streamer, k: cur.sid, dedupeMs: 1000 });
     sess = null; if (hbTimer) { clearInterval(hbTimer); hbTimer = null; }
   };
@@ -213,6 +234,16 @@
     if (r.done) return; r.done = true; sess.done++;
     O.emit('round_complete', { sid: sess.sid, rid: r.rid, game: tag, streamer: sess.streamer, k: r.rid, dedupeMs: 500 });
     O.journey('complete', tag);
+  };
+  /* نتيجة رسمية لراوند: تُسجَّل لحظة recordWin (نفس نقطة احتساب الفوز في اللعبة). تُكتب من متصفح الستريمر وتُقرأ من لوحة الأدمن؛ لا تعدّل شيئاً في اللعبة. */
+  O.roundResult = function (user, gameName, pts) {
+    if (OFF || LAB || !user || !user.uniqueId) return null; var s = O.store(); if (!s || !uid()) return null;
+    var tag = Object.keys(rounds)[0] || ''; var r = tag ? rounds[tag] : null; var ss = sess;
+    if (dedupe('win|' + (r ? r.rid : '') + '|' + user.uniqueId, 4000)) return null;
+    var ev = { uid: uid(), sid: ss ? ss.sid : '', rid: r ? r.rid : '', game: tag, gameName: clip(gameName || (r && r.name) || tag, 60), streamer: ss ? ss.streamer : '', platform: ss ? ss.platform : '', ts: SV, rstart: r ? r.start : 0,
+      w: { u: clip(user.uniqueId, 60), n: clip(user.nickname || user.uniqueId, 60) }, pts: +pts || 1, src: 'recordWin' };
+    safe(function () { s.push('adminRounds/' + day(), ev).catch(function () {}); });
+    return ev;
   };
   O.connEvent = function (platform, from, to) {
     if (OFF || LAB) return;
@@ -327,7 +358,7 @@
       Object.keys(rounds).forEach(function (t) { if (t !== tag && t !== 'bridge-fate' && rounds[t] && rounds[t] !== rounds[tag]) O.roundEnd(t, 'replaced'); }); });
     wrap('homeUnregisterGameListener', function (tag) { O.roundEnd(tag, 'unregister'); });
     wrap('homeConnSetState', null, function (platform, state) { var prev = null; try { prev = window.homeConnGet(platform).state; } catch (e) {} if (prev !== state) O.connEvent(platform, prev, state); });
-    wrap('recordWin', function (user) { var t = Object.keys(rounds)[0]; if (t) O.roundComplete(t); O.suggestFromWin(user); });
+    wrap('recordWin', function (user, gameName, count) { var t = Object.keys(rounds)[0]; if (t) O.roundComplete(t); O.suggestFromWin(user); O.roundResult(user, gameName, count); });
     wrap('levelsAwardRoundTo', function (user, tag) { O.roundComplete(tag); });
     wrap('ownerRegisterActiveStreamer', function (tag, username, platform, gameName) { O.roundStart(tag, username, platform, gameName); }, function (tag, username, platform, gameName) { ensureSession(username, platform); });
     wrap('goHome', function () { O.journey('games'); }, function () { Object.keys(rounds).forEach(function (t) { O.roundEnd(t, 'home'); }); });

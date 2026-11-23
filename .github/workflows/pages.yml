@@ -47,6 +47,7 @@ on:
       - c7-welcome/**
       - batmish/**
       - owner-studio/**
+      - admin-center/**
       - ops/**
       - subathon/**
       - about-experience/previews-sq/**
@@ -88,6 +89,7 @@ jobs:
           cp -r c7-welcome _site/c7-welcome
           cp -r batmish _site/batmish
           cp -r owner-studio _site/owner-studio
+          cp -r admin-center _site/admin-center
           cp -r ops _site/ops
           cp -r subathon _site/subathon
           cp -r windows-app _site/windows-app

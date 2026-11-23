@@ -175,6 +175,8 @@ function buildConfig() {
     apiKey: process.env.API_KEY.trim(),
     adminIds: Object.freeze(adminIds),
     ownerDiscordId,
+    // رومات مساعد الأدمن بالذكاء الاصطناعي (أوامر الأدمن + شات الأدمن) — الرد على كل رسالة، بأسلوب رسمي مع الأدمن
+    aiAdminChannelIds: Object.freeze((readList('AI_ADMIN_CHANNEL_IDS').length ? readList('AI_ADMIN_CHANNEL_IDS') : ['1552256457578254387', '1552256265877454888']).filter(isSnowflake)),
     // الإعلان التلقائي عن الستريمرز المسجلين (services/streamerAnnouncer): الروم الرسمي ثابت بالـID (ما نبحث بالاسم)
     streamAnnounceChannelId,
     // قناة التحكم الإدارية /admin-control (لوحة EHSEMHA Admin Control Center): بدون ADMIN_CONTROL_KEY (32+ حرف) = مغلقة (503)
