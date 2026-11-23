@@ -655,6 +655,7 @@ const ADMIN_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime',
 const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
 const VIDEO_MARK = '[🎬 أرفق مقطع فيديو]';
 const MAX_ADMIN_CONTEXT = 20;
+const ADMIN_RETRY_MS = process.env.NODE_ENV === 'test' ? 0 : 6000;
 const adminConvs = new Map(); // channelId -> { transcript[], queue }
 
 function adminMedia(message) {
@@ -729,11 +730,18 @@ async function handleAdminChannel(message, botUser) {
     ].filter(Boolean).join('\n\n');
     let r;
     try {
-      r = await gemini.generate({
+      const req = {
         systemInstruction: await systemPromptFor(message.guild.id, extra, { style: false }),
         messages: msgs,
         meta: { context: 'admin_channel', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
-      });
+      };
+      r = await gemini.generate(req);
+      if (!r.ok && ['SERVER', 'RATE_LIMIT', 'TIMEOUT', 'NETWORK'].includes(r.code)) {
+        // ضغط مؤقت على Gemini: ننتظر قليلاً ونعيد المحاولة مرة وحدة بدل ما نرجّع خطأ للأدمن
+        typing(message.channel);
+        await new Promise((res) => setTimeout(res, ADMIN_RETRY_MS));
+        r = await gemini.generate(req);
+      }
     } finally {
       delete entry.images;
     }
