@@ -173,7 +173,7 @@ test('التكت: ترحيب المساعد بعد فتح التكت (مع رس�
   reply = () => 'تقدر تسجل دخول بجوجل أو بالإيميل 👌';
   await say(channel, w.member, 'ما أقدر أسجل دخول');
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].systemInstruction, knowledge.buildSystemPrompt(), 'نفس البرومبت الكامل');
+  assert.equal(calls[0].systemInstruction, `${knowledge.buildSystemPrompt()}\n\n${require('../config/aiModes').TICKET}`, 'البرومبت الكامل + نمط التكت الرسمي');
   assert.deepEqual(calls[0].contents, [{ role: 'user', parts: [{ text: 'ما أقدر أسجل دخول' }] }]);
   const answer = sendsIn(w, channel.id).pop()[2];
   assert.equal(answer.content, 'تقدر تسجل دخول بجوجل أو بالإيميل 👌');

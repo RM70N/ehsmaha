@@ -20,7 +20,7 @@ let activeKey = 0;
 let override = null; // للاختبارات: async ({ systemInstruction, contents, generationConfig, model, keyIndex }) => نص
 
 // أخطاء نجرب بعدها مفتاح/نموذج ثاني بنفس الطلب
-const ROTATE_CODES = new Set(['RATE_LIMIT', 'AUTH', 'SERVER', 'MODEL_NOT_FOUND']);
+const ROTATE_CODES = new Set(['RATE_LIMIT', 'AUTH', 'BILLING', 'SERVER', 'MODEL_NOT_FOUND']);
 const MAX_ATTEMPTS = 8;
 const HOUR = 60 * 60 * 1000;
 
@@ -52,6 +52,7 @@ function classify(err) {
   if (err.code === 'TIMEOUT' || err.name === 'AbortError' || /timeout|aborted/i.test(err.message || '')) return 'TIMEOUT';
   if (err instanceof GoogleGenerativeAIResponseError || /SAFETY|blocked/i.test(err.message || '')) return 'BLOCKED';
   const status = err.status || (err instanceof GoogleGenerativeAIFetchError ? err.status : null);
+  if (status === 402 || /prepayment credits|payment required|billing/i.test(err.message || '')) return 'BILLING'; // رصيد المفتاح خلص ← نحوّل لمفتاح/نموذج ثاني
   if (status === 429 || /quota|RESOURCE_EXHAUSTED|rate limit/i.test(err.message || '')) return 'RATE_LIMIT';
   if (status === 400 && /API key/i.test(err.message || '')) return 'AUTH';
   if (status === 401 || status === 403) return 'AUTH';
@@ -65,6 +66,7 @@ function classify(err) {
 function cooldownMs(code, err) {
   const msg = String((err && err.message) || '');
   if (code === 'AUTH' || code === 'MODEL_NOT_FOUND') return 6 * HOUR;
+  if (code === 'BILLING') return HOUR;
   if (code === 'SERVER') return 20 * 1000;
   if (code === 'RATE_LIMIT') {
     // Reason: الحد اليومي يرجع بعد منتصف الليل بتوقيت جوجل — نعيد التجربة كل ساعة بدل ما نحسب المنطقة الزمنية
@@ -75,8 +77,10 @@ function cooldownMs(code, err) {
   return 0;
 }
 
-function cooldownKey(code, keyIndex, model) {
-  if (code === 'AUTH') return `${keyIndex}|*`;
+function cooldownKey(code, keyIndex, model, err = null) {
+  // 503 "high demand" = ضغط على النموذج نفسه (مو المفتاح) ← نتخطى النموذج بكل المفاتيح وننتقل لنموذج ثاني فوراً
+  if (code === 'SERVER' && err && err.status === 503) return `*|${model}`;
+  if (code === 'AUTH' || code === 'BILLING') return `${keyIndex}|*`;
   if (code === 'MODEL_NOT_FOUND') return `*|${model}`;
   return `${keyIndex}|${model}`;
 }
@@ -187,7 +191,7 @@ async function generate({ systemInstruction, messages, maxOutputTokens = 1024, t
       logger.warn('🤖 Gemini: فشل الطلب', { ...meta, key: a.keyIndex + 1, model: a.model, code, status: err.status, error: String(err.message || err).slice(0, 600) });
       if (!ROTATE_CODES.has(code)) break;
       const ms = cooldownMs(code, err);
-      if (ms > 0) cooldowns.set(cooldownKey(code, a.keyIndex, a.model), { until: Date.now() + ms, code });
+      if (ms > 0) cooldowns.set(cooldownKey(code, a.keyIndex, a.model, err), { until: Date.now() + ms, code });
     }
   }
 
@@ -226,4 +230,4 @@ function _reset() {
   activeKey = 0;
 }
 
-module.exports = { generate, setGenerator, classify, status, _internal: { generationConfigFor, toContent, cooldownMs, cooldowns, plan, reset: _reset } };
+module.exports = { generate, setGenerator, classify, status, _internal: { cooldownKey, generationConfigFor, toContent, cooldownMs, cooldowns, plan, reset: _reset } };

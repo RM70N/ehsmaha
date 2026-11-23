@@ -49,6 +49,14 @@ module.exports = {
     if (punished) return;
 
     try {
+      // رومات الأدمن (أوامر الأدمن / شات الأدمن): مساعد أدمن رسمي بدل السوالف
+      if (await aiAssistant.handleAdminChannel(message, message.client && message.client.user)) return;
+    } catch (err) {
+      logger.error('🤖 خطأ بمساعد رومات الأدمن', { channelId: message.channel && message.channel.id, error: err });
+      return;
+    }
+
+    try {
       // قناة تكت: المساعد (أو تجاهل لرسائل الدعم) — والمنشن داخلها ما ينعالج مرتين
       const inTicket = await aiAssistant.handleTicketMessage(message);
       if (inTicket === true) return;
