@@ -25,6 +25,7 @@ const knowledge = require('../config/ehsmahaKnowledge');
 const gemini = require('./gemini');
 const aiStyle = require('./aiStyle');
 const aiPersona = require('../config/aiPersona');
+const aiModes = require('../config/aiModes');
 const siteKnowledge = require('./siteKnowledge');
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
@@ -98,9 +99,9 @@ const typing = (channel) => (channel && typeof channel.sendTyping === 'function'
 const cleanInput = (text) => String(text || '').trim().slice(0, MAX_INPUT_CHARS);
 
 // البرومبت = قاعدة المعرفة (مخزّنة) + أسلوب صاحب السيرفر (لكل سيرفر)
-async function systemPromptFor(guildId, extra = '') {
+async function systemPromptFor(guildId, extra = '', { style: withStyle = true } = {}) {
   const base = knowledge.buildSystemPrompt();
-  const style = await aiStyle.styleBlock(guildId);
+  const style = withStyle ? await aiStyle.styleBlock(guildId) : '';
   return [base, extra, style].filter(Boolean).join('\n\n');
 }
 
@@ -218,14 +219,14 @@ function imageAttachments(message) {
   }).slice(0, MAX_IMAGES);
 }
 
-async function downloadImages(attachments) {
+async function downloadImages(attachments, maxBytes = MAX_IMAGE_BYTES) {
   const out = [];
   for (const a of attachments) {
     try {
       const res = await fetchImpl(a.url, { signal: AbortSignal.timeout(15000) });
       if (!res || !res.ok) continue;
       const buf = Buffer.from(await res.arrayBuffer());
-      if (!buf.length || buf.length > MAX_IMAGE_BYTES) continue;
+      if (!buf.length || buf.length > maxBytes) continue;
       out.push({ mimeType: String(a.contentType).split(';')[0].trim().toLowerCase(), data: buf.toString('base64') });
     } catch (err) {
       logger.warn('📷 تعذّر تحميل صورة للمساعد', { error: String(err.message || err).slice(0, 200) });
@@ -359,6 +360,12 @@ async function handleTicketMessage(message) {
     return true;
   }
 
+  // أسئلة ملفات الموقع/الأكواد/الأسرار: خاصة بالمالك فقط (رد ثابت بدون المرور على النموذج)
+  if (aiModes.asksAboutFiles(text) && message.author.id !== loadConfig().ownerDiscordId) {
+    await message.reply({ content: aiModes.FILE_REFUSAL, allowedMentions: { repliedUser: false } }).catch(() => null);
+    return true;
+  }
+
   // رسالة وحدة بكل مرة لكل تكت (بالترتيب) — السياق يبقى صحيح
   const run = c.queue.then(async () => {
     if (!conversations.has(message.channel.id) || c.aiPaused) return false;
@@ -376,7 +383,7 @@ async function handleTicketMessage(message) {
     try {
       r = await generateGuarded({
         guildId: c.guildId,
-        systemInstruction: await systemPromptFor(c.guildId, await siteKnowledge.promptFor(text)),
+        systemInstruction: await systemPromptFor(c.guildId, [aiModes.TICKET, await siteKnowledge.promptFor(text)].filter(Boolean).join('\n\n'), { style: false }),
         messages: chatMessages(c),
         meta: { context: 'ticket', guildId: c.guildId, channelId: message.channel.id, userId: message.author.id, ticketId: c.ticketId, images: loaded.length || undefined }
       });
@@ -590,6 +597,10 @@ async function handleMention(message, botUser) {
   if (await activeTicketFor(message.channel)) return false;
 
   const cfg = loadConfig();
+  if (aiModes.asksAboutFiles(message.content) && message.author.id !== cfg.ownerDiscordId) {
+    await message.reply({ content: aiModes.FILE_REFUSAL, allowedMentions: { repliedUser: false } }).catch(() => null);
+    return true;
+  }
   const now = Date.now();
   const windowMs = cfg.aiMentionCooldownSeconds * 1000;
   const cd = mentionCooldowns.get(message.author.id);
@@ -638,6 +649,114 @@ async function handleMention(message, botUser) {
   return true;
 }
 
+// ---------------- 5) رومات مساعد الأدمن ----------------
+// روم أوامر الأدمن + شات الأدمن: المساعد يرد على كل رسالة (نص/صورة/مقطع) كزميل مهني للأدمن.
+const ADMIN_VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska']);
+const MAX_VIDEO_BYTES = 15 * 1024 * 1024;
+const VIDEO_MARK = '[🎬 أرفق مقطع فيديو]';
+const MAX_ADMIN_CONTEXT = 20;
+const adminConvs = new Map(); // channelId -> { transcript[], queue }
+
+function adminMedia(message) {
+  const images = imageAttachments(message);
+  const list = message && message.attachments ? [...message.attachments.values()] : [];
+  const videos = list
+    .filter((a) => ADMIN_VIDEO_TYPES.has(String(a.contentType || '').split(';')[0].trim().toLowerCase()) && (!a.size || a.size <= MAX_VIDEO_BYTES) && IMAGE_HOSTS.test(String(a.url || '')))
+    .slice(0, 1);
+  return { images, videos };
+}
+
+async function isReplyToBot(message, botUser) {
+  try {
+    if (!message.reference || !message.reference.messageId || typeof message.fetchReference !== 'function') return false;
+    const ref = await message.fetchReference().catch(() => null);
+    return !!(ref && ref.author && ref.author.id === botUser.id);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * رسالة بروم من رومات الأدمن ← رد مساعد الأدمن.
+ * @returns {Promise<boolean>} true لو الروم من رومات الأدمن (انعالجت أو تُجوهلت عمداً) فيوقف باقي المسار
+ */
+async function handleAdminChannel(message, botUser) {
+  const cfg = loadConfig();
+  const ids = cfg.aiAdminChannelIds || [];
+  if (!message.channel || !ids.includes(message.channel.id) || !botUser) return false;
+  if (message.system) return true;
+
+  const mentionedBot = mentionsBot(message, botUser);
+  const others = message.mentions && message.mentions.users ? [...message.mentions.users.values()].filter((u) => u.id !== botUser.id && !u.bot) : [];
+  // أدمن يكلّم أدمن ثاني بالمنشن (بدون ما يوجّه الكلام للبوت) ← ما نتدخل
+  if (others.length && !mentionedBot && !(await isReplyToBot(message, botUser))) return true;
+
+  const text = cleanInput(humanizeMentions(message, stripMention(message.content, botUser.id)));
+  const { images, videos } = adminMedia(message);
+  if (!text && !images.length && !videos.length) return true;
+  const isOwner = message.author.id === cfg.ownerDiscordId;
+
+  if (!isOwner && aiModes.asksAboutFiles(text)) {
+    await message.reply({ content: aiModes.FILE_REFUSAL, allowedMentions: { repliedUser: false } }).catch(() => null);
+    return true;
+  }
+
+  let c = adminConvs.get(message.channel.id);
+  if (!c) {
+    c = { transcript: [], queue: Promise.resolve() };
+    adminConvs.set(message.channel.id, c);
+  }
+  const run = c.queue.then(async () => {
+    typing(message.channel);
+    const loaded = [...(images.length ? await downloadImages(images) : []), ...(videos.length ? await downloadImages(videos, MAX_VIDEO_BYTES) : [])];
+    if (!text && !loaded.length) {
+      await message.reply({ content: 'ما قدرت أفتح المرفق 😕 أعد إرساله (صورة png/jpg أو مقطع mp4 أقل من 15MB) أو اكتب لي وش فيه.', allowedMentions: { repliedUser: false } }).catch(() => null);
+      return true;
+    }
+    const who = nameOf(message, message.author);
+    const marks = [images.length ? (images.length > 1 ? `${IMAGE_MARK} ×${images.length}` : IMAGE_MARK) : '', videos.length ? VIDEO_MARK : ''].filter(Boolean).join(' ');
+    const entry = { role: 'user', text: `[الأدمن ${who}${isOwner ? ' — المالك' : ''}]: ${[text, marks].filter(Boolean).join('\n')}`, at: Date.now() };
+    if (loaded.length) entry.images = loaded;
+    c.transcript.push(entry);
+    if (c.transcript.length > MAX_ADMIN_CONTEXT) c.transcript.splice(0, c.transcript.length - MAX_ADMIN_CONTEXT);
+    const msgs = c.transcript.map((m, i, a) => (m.images && i === a.length - 1 ? { role: m.role, text: m.text, images: m.images } : { role: m.role, text: m.text }));
+    while (msgs.length && msgs[0].role !== 'user') msgs.shift();
+    const extra = [
+      aiModes.ADMIN_BASE,
+      isOwner ? aiModes.ADMIN_OWNER : aiModes.ADMIN_NOT_OWNER,
+      isOwner ? siteKnowledge.filesBlock() : '',
+      await siteKnowledge.promptFor(text)
+    ].filter(Boolean).join('\n\n');
+    let r;
+    try {
+      r = await gemini.generate({
+        systemInstruction: await systemPromptFor(message.guild.id, extra, { style: false }),
+        messages: msgs,
+        meta: { context: 'admin_channel', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
+      });
+    } finally {
+      delete entry.images;
+    }
+    if (!r.ok) {
+      c.transcript.pop();
+      await message.reply({ content: FRIENDLY_ERROR, allowedMentions: { repliedUser: false } }).catch(() => null);
+      return true;
+    }
+    const { clean } = extractSuggestions(r.text);
+    const reply = clean || FRIENDLY_ERROR;
+    c.transcript.push({ role: 'model', text: reply, at: Date.now() });
+    try {
+      await sendChunks(message, reply, { reply: true });
+    } catch (err) {
+      logger.warn('🤖 تعذّر إرسال رد مساعد الأدمن', { channelId: message.channel.id, code: err.code });
+    }
+    return true;
+  });
+  c.queue = run.catch(() => null);
+  await run;
+  return true;
+}
+
 function sweepCooldowns(now, windowMs) {
   if (mentionCooldowns.size < 500) return;
   for (const [id, v] of mentionCooldowns) if (now - v.at > windowMs) mentionCooldowns.delete(id);
@@ -651,6 +770,7 @@ module.exports = {
   greetingPayload,
   handleTicketMessage,
   handleMention,
+  handleAdminChannel,
   onHumanButton,
   reportTicketClosed,
   forget,
