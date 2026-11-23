@@ -142,18 +142,15 @@ test('التكت: ردود مالك السيرفر فقط تنحفظ (مع رس�
   assert.equal(rows[0].source, 'ticket');
   assert.equal(calls.length, 1, 'رسالة المالك بالتكت ما تنرسل لـGemini');
 
-  // تكت ثاني ← البرومبت فيه قسم الأسلوب بأمثلة المالك
+  // تكت ثاني ← التكت رسمي: أسلوب السوالف (أمثلة المالك) ما يدخل برومبت التكتات أبداً
   const other = makeMember(w.guild, { username: 'لاعب2' });
   const ch2 = await openTicket(w, other);
   await say(ch2, other, 'كيف أربط تيك توك؟');
   const sys = calls.pop().systemInstruction;
   assert.ok(sys.startsWith(knowledge.buildSystemPrompt()), 'قاعدة المعرفة كاملة أولاً');
-  assert.match(sys, /## أسلوب الرد/);
-  assert.match(sys, /هلا والله يالغالي 🌹 ابشر بعزك/);
-  assert.match(sys, /عيّنات للنبرة فقط/);
-  assert.doesNotMatch(sys, /تمام نتابع/);
-  assert.match(sys, /ممنوع تكرار أي جملة أو عبارة أو تعبير كامل من العيّنات/);
-  assert.match(sys, /المعلومات والخطوات من قاعدة المعرفة فقط/);
+  assert.match(sys, /أسلوبك بالتكتات \(رسمي فقط\)/);
+  assert.doesNotMatch(sys, /## أسلوب الرد/);
+  assert.doesNotMatch(sys, /هلا والله يالغالي/);
 });
 
 test('خارج التكت: Reply من المالك على لاعب ينحفظ — Reply على بوت، أو من غير المالك، أو بدون Reply لا', async () => {
