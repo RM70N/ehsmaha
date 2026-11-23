@@ -99,6 +99,8 @@ async function pipeline({ message, text, replyRef, taskId }) {
     const e = toErr(err);
     await audit.save(taskId, { status: 'failed', error_code: e.code });
     audit.log('فشل فهم الطلب', { taskId, code: e.code });
+    // رومات مساعد الأدمن: فشل فهم الطلب ما يطلع ❌ — نكمل لمساعد الأدمن (يرد بنفسه ويعيد المحاولة)
+    if ((loadConfig().aiAdminChannelIds || []).includes(message.channel.id)) return false;
     await say(message, failText(e));
     return true;
   }

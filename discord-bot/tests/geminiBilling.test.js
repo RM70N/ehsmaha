@@ -9,3 +9,10 @@ test('402 (رصيد المفتاح خلص) يتصنّف BILLING ويرتاح ا�
   assert.equal(gemini.classify(Object.assign(new Error('high demand'), { status: 503 })), 'SERVER');
   assert.equal(gemini._internal.cooldownMs('BILLING', new Error('x')), 60 * 60 * 1000);
 });
+
+test('503 "high demand" يحظر النموذج بكل المفاتيح (ينتقل لنموذج ثاني فوراً)، وبقية الأخطاء تبقى لكل مفتاح', () => {
+  const k = gemini._internal.cooldownKey;
+  assert.equal(k('SERVER', 2, 'm1', Object.assign(new Error('x'), { status: 503 })), '*|m1');
+  assert.equal(k('SERVER', 2, 'm1', Object.assign(new Error('x'), { status: 500 })), '2|m1');
+  assert.equal(k('BILLING', 1, 'm1'), '1|*');
+});
