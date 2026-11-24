@@ -279,9 +279,7 @@ async function forwardSuggestions(guild, { userId, suggestions, source, channelI
   if (!suggestions.length) return 0;
   logger.info('💡 اقتراح جديد من المساعد الذكي', { guildId: guild.id, userId, source, ticketId, count: suggestions.length });
   try {
-    const settings = await store.guildSettings.get(guild.id);
-    const id = settings.admin_news_channel_id;
-    const ch = id && (guild.channels.cache.get(id) || (await guild.channels.fetch(id).catch(() => null)));
+    const ch = await require('../utils/adminLog').newsChannel(guild);
     if (!ch) return 0;
     const embed = eb.brand({
       tone: 'gold',
@@ -528,11 +526,10 @@ async function reportTicketClosed({ guild, channel, ticket, closedById }) {
       c.transcript = await transcriptFromChannel(channel, ticket);
       c.staffMessages = c.transcript.filter((m) => m.role === 'staff').length;
     }
-    const settings = await store.guildSettings.get(guild.id);
-    const newsId = settings.admin_news_channel_id;
-    const newsChannel = newsId && (guild.channels.cache.get(newsId) || (await guild.channels.fetch(newsId).catch(() => null)));
+    const newsChannel = await require('../utils/adminLog').newsChannel(guild);
     if (!newsChannel) {
-      out.reason = newsId ? 'NEWS_CHANNEL_MISSING' : 'NO_NEWS_CHANNEL';
+      const configured = await store.guildSettings.get(guild.id).then((s) => s.admin_news_channel_id).catch(() => null);
+      out.reason = configured ? 'NEWS_CHANNEL_MISSING' : 'NO_NEWS_CHANNEL';
       logger.info('🤖 ملخص التكت ما انرسل — قناة أخبار الأدمن غير محددة', { ticketId: ticket.id, guildId: guild.id });
       return out;
     }

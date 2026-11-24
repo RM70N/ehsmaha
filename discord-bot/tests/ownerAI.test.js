@@ -108,6 +108,10 @@ function baseWorld(opts) {
   const w = makeWorld(opts);
   w.general = w.addChannel({ name: 'العام' });
   w.updates = w.addChannel({ name: 'التحديثات' });
+  // رتب الإنذار الموجودة بالسيرفر (البوت ما ينشئ رتب)
+  w.addRole({ name: '⚠️ انـذار اول⛔', position: 3 });
+  w.addRole({ name: '⚠️ انـذار ثاني⛔', position: 2 });
+  w.addRole({ name: '⚠️ انـذار ثالث⛔', position: 1 });
   return w;
 }
 
@@ -430,12 +434,12 @@ test('تحذير عضو عبر نظام التحذيرات الأصلي: يسج�
   const member = w.addMember({ username: 'سعود' });
   on('حذره', plan([null, 'warn_member', { member: 'سعود', reason: 'سبام بالعام' }]));
   const m1 = await send(w, w.general, w.owner, 'حذره');
-  assert.match(w.replyTo(m1), /تم تحذير <@\d+> — الرتبة "تحذير1" \(عدد تحذيراته 1\)/);
-  assert.ok([...member.roles.cache.values()].some((r) => r.name === 'تحذير1'));
+  assert.match(w.replyTo(m1), /تم تحذير <@\d+> — الرتبة "⚠️ انـذار اول⛔" \(عدد تحذيراته 1\)/);
+  assert.ok([...member.roles.cache.values()].some((r) => r.name === '⚠️ انـذار اول⛔'));
   assert.equal(w.log('dm').length, 1, 'إشعار خاص');
   await send(w, w.general, w.owner, 'حذره');
-  assert.ok([...member.roles.cache.values()].some((r) => r.name === 'تحذير2'));
-  assert.ok(![...member.roles.cache.values()].some((r) => r.name === 'تحذير1'), 'رتبة التحذير القديمة انشالت');
+  assert.ok([...member.roles.cache.values()].some((r) => r.name === '⚠️ انـذار ثاني⛔'));
+  assert.ok(![...member.roles.cache.values()].some((r) => r.name === '⚠️ انـذار اول⛔'), 'رتبة الإنذار القديمة انشالت');
   assert.equal(await store.warnings.count(w.guild.id, member.id), 2);
   assert.equal((await store.moderationLog.recent(w.guild.id, 5)).filter((r) => r.action === 'warn').length, 2);
   on('تحذيراته', plan([null, 'list_member_warnings', { member: 'سعود' }]));

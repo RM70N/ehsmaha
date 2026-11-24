@@ -212,6 +212,13 @@ function buildConfig() {
     ticketArchiveCategoryName: (process.env.TICKET_ARCHIVE_CATEGORY_NAME || 'تكتات مغلقة').trim(),
     ticketCategoryId: (process.env.TICKET_CATEGORY_ID || '').trim() || null,
     // رتب التحذير الثلاث (بالترتيب) — تنشأ تلقائياً لو ناقصة
+    // معرّفات رتب الإنذار الثلاث (اختياري — لو فاضي نبحث بالاسم: «انذار اول/ثاني/ثالث»)
+    warningRoleIds: Object.freeze(readList('WARNING_ROLE_IDS').filter(isSnowflake).slice(0, 3)),
+    // رتب إضافية (بالمعرّف) يسمح لها باستخدام /تحذير فقط — رتبة «إداري» تنلقط تلقائياً بالاسم
+    warnStaffRoleIds: Object.freeze(readList('WARN_STAFF_ROLE_IDS').filter(isSnowflake)),
+    // روم أخبار الأدمن: سجل أفعال الإدارة (تحذير/كتم/طرد/إغلاق تكت…) + تنبيهات التكتات القديمة + ملخصات التكتات
+    adminNewsChannelId: (process.env.ADMIN_NEWS_CHANNEL_ID || '1552255917427531776').trim(),
+    ticketStaleHours: readInt('TICKET_STALE_HOURS', 24, { min: 1, max: 720 }),
     warningRoleNames: Object.freeze(warningRoleNames.length ? warningRoleNames : ['تحذير1', 'تحذير2', 'تحذير3']),
     // Intent أعضاء السيرفر (لعدّ أعضاء كل رتبة بـ/عرض_الرتب): auto = يجرّبه ويرجع بدونه لو مو مفعّل
     membersIntent,
