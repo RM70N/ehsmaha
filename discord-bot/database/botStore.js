@@ -452,6 +452,22 @@ const aiMemory = {
   }
 };
 
+// ---------------- تقرير واحد لكل تكت ----------------
+const ticketReports = {
+  /** يحجز التقرير للتكت: true لو أول مرة، false لو انكتب له تقرير قبل (ذرّي) */
+  async claim(ticketId, guildId, kind) {
+    const r = await db.run('INSERT INTO ticket_reports (ticket_id, guild_id, kind, reported_at) VALUES (?, ?, ?, ?) ON CONFLICT (ticket_id) DO NOTHING', [ticketId, guildId, kind, now()]);
+    return (r.changes ?? r.rowCount ?? 0) > 0;
+  },
+  async release(ticketId) {
+    await db.run('DELETE FROM ticket_reports WHERE ticket_id = ?', [ticketId]);
+  },
+  async has(ticketId) {
+    const rows = await db.query('SELECT 1 AS x FROM ticket_reports WHERE ticket_id = ?', [ticketId]);
+    return rows.length > 0;
+  }
+};
+
 // ---------------- جنس الأعضاء (يصرّحون به بأنفسهم) ----------------
 const userGender = {
   async get(guildId, userId) {
@@ -512,4 +528,4 @@ const ownerAiTasks = {
   }
 };
 
-module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory, userGender };
+module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory, userGender, ticketReports };
