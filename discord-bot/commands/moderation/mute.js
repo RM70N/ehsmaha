@@ -8,7 +8,7 @@ const { SlashCommandBuilder, InteractionContextType } = require('discord.js');
 const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
-const { guardAdmin } = require('../../utils/adminPermissions');
+const { guardAdmin, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
 const { toDurationMs, formatDurationAr, hierarchyProblem, tryDm, dmEmbed, logModeration, DURATION_UNITS, MAX_TIMEOUT_MS } = require('../../utils/moderation');
 
@@ -35,7 +35,7 @@ module.exports = {
   async execute(interaction) {
     if (!interaction.inGuild()) return;
     if (!(await respond.defer(interaction, { ephemeral: true }))) return;
-    if (!(await guardAdmin(interaction))) return;
+    if (!(await guardAdmin(interaction, { roleNameRe: STAFF_ROLE_RE }))) return;
 
     const guild = interaction.guild;
     const target = interaction.options.getMember('عضو');

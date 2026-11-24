@@ -103,6 +103,8 @@ async function logModeration(entry) {
   logger.info('moderation', { action: entry.action, guildId: entry.guildId, targetId: entry.targetId, moderatorId: entry.moderatorId, channelId: entry.channelId });
   try {
     await store.moderationLog.add(entry);
+    // سجل لروم أخبار الأدمن (بالخلفية — ما يعطّل الأمر)
+    require('./adminLog').notify(entry).catch(() => null);
     return true;
   } catch (err) {
     logger.error('تعذّر حفظ سجل الإشراف', { action: entry.action, error: err });

@@ -136,31 +136,28 @@ test('الشات العام: المنشن والريبلاي يردان فورا
   assert.equal(replies(guild, r2).length, 1);
 });
 
-test('الشات العام: مشاركة تلقائية (احتمال + فاصل)، [[SKIP]] يسكّت، والفاصل يمنع الإغراق', async () => {
+test('الشات العام: ما يرد أبداً على رسالة بدون منشن أو ريبلاي على البوت (حتى لو الاحتمال/الفاصل يسمح)', async () => {
   const guild = makeGuild();
   const ch = makeChannel(guild, { id: CHAT_CH });
   const m = makeMember(guild, { username: 'خالد' });
-  ai._internal.chatState.clear();
-  gemini.setGenerator(async (req) => { calls.push(req); return 'ههههه صدق والله'; });
-  const msg = { content: 'والله اليوم فاز فريقي' };
-  const a = makeUserMessage(ch, m, msg.content);
-  assert.equal(await ai.handleGeneralChat(a, botUserOf(guild), { rand: () => 0.1 }), true);
-  assert.equal(replies(guild, a).length, 1);
-  const b = makeUserMessage(ch, m, 'وش رايكم بالفريق');
-  assert.equal(await ai.handleGeneralChat(b, botUserOf(guild), { rand: () => 0.1 }), false, 'داخل فاصل 12 ثانية');
-  // [[SKIP]] ما ينرسل
-  ai._internal.chatState.clear();
-  gemini.setGenerator(async () => '[[SKIP]]');
-  const c = makeUserMessage(ch, m, 'كلام بين اثنين');
-  assert.equal(await ai.handleGeneralChat(c, botUserOf(guild), { rand: () => 0.1 }), true);
-  assert.equal(replies(guild, c).length, 0);
-  // احتمال عالي ← يتجاهل
-  ai._internal.chatState.clear();
-  const d = makeUserMessage(ch, m, 'رسالة عادية');
-  assert.equal(await ai.handleGeneralChat(d, botUserOf(guild), { rand: () => 0.99 }), false);
+  const other = makeMember(guild, { username: 'سعد' });
+  calls.length = 0;
+  for (const text of ['والله اليوم فاز فريقي', 'وش رايكم بالفريق', 'هههههه صدق', 'مشكلة بحسابي ما يفتح']) {
+    const msg = makeUserMessage(ch, m, text);
+    assert.equal(await ai.handleGeneralChat(msg, botUserOf(guild)), false);
+    assert.equal(replies(guild, msg).length, 0);
+  }
+  // منشن شخص ثاني (مو البوت) ← ما يتدخل
+  const x = makeUserMessage(ch, m, `<@${other.user.id}> وينك`, { mentions: [other.user] });
+  assert.equal(await ai.handleGeneralChat(x, botUserOf(guild)), false);
+  // ريبلاي على رسالة شخص ثاني ← ما يتدخل
+  const otherMsg = makeUserMessage(ch, other, 'السلام عليكم');
+  const y = makeUserMessage(ch, m, 'وعليكم السلام', { reference: otherMsg });
+  assert.equal(await ai.handleGeneralChat(y, botUserOf(guild)), false);
+  assert.equal(calls.length, 0, 'ما استدعى Gemini');
   // روم غير الشات العام ما يتأثر
-  const other = makeChannel(guild, { name: 'عام2' });
-  assert.equal(await ai.handleGeneralChat(makeUserMessage(other, m, 'هلا'), botUserOf(guild)), false);
+  const elsewhere = makeChannel(guild, { name: 'عام2' });
+  assert.equal(await ai.handleGeneralChat(makeUserMessage(elsewhere, m, 'هلا'), botUserOf(guild)), false);
 });
 
 // ---------------- ذاكرة المساعد (تعلم:/تعليمة:) مع المنشن ----------------
@@ -202,4 +199,53 @@ test('ذاكرة المساعد: لو Gemini فشل يرد بأقرب جواب �
   ai._internal.mentionCooldowns.clear();
   const b = await say(ch, m, `<@${bot.id}> يا شباب متى المسابقة الجاية`, { mentions: [bot] });
   assert.equal(replies(guild, b)[0][3].content, 'يوم الجمعة 🏆');
+});
+
+// ---------------- الجنس + طبيعية الرد بالشات العام ----------------
+const aiGender = require('../services/aiGender');
+
+test('الجنس: التقاط التصريح (مع النفي والتصحيح وطلب الصيغة) وما يلتقط كلام عادي', () => {
+  const d = aiGender.detect;
+  assert.equal(d('أنا بنت'), 'female');
+  assert.equal(d('انا بنوتة وعمري 20'), 'female');
+  assert.equal(d('انا ولد'), 'male');
+  assert.equal(d('أنا شاب من حائل'), 'male');
+  assert.equal(d('انا مو بنت انا ولد'), 'male');
+  assert.equal(d('ماني بنت'), 'male');
+  assert.equal(d('كلمني بصيغة المؤنث'), 'female');
+  assert.equal(d('ناديني ولد'), 'male');
+  assert.equal(d('وش اخبارك يا بنت الحلال'), null);
+  assert.equal(d('هذي بنت عمي'), null);
+});
+
+test('الشات العام: يحفظ جنس العضو ويخاطبه بالصيغة الصحيحة (حتى بعد مسح الذاكرة المؤقتة)، وغير المعروف محايد', async () => {
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH });
+  const girl = makeMember(guild, { username: 'نوف' });
+  const boy = makeMember(guild, { username: 'فهد' });
+  const stranger = makeMember(guild, { username: 'سالم' });
+  const bot = botUserOf(guild);
+  aiGender._reset();
+  // تصريح بدون منشن ← يتحفظ بدون رد
+  const decl = await say(ch, girl, 'انا بنت');
+  assert.equal(replies(guild, decl).length, 0);
+  await say(ch, boy, `<@${bot.id}> انا ولد وش الاخبار`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /فهد[^"]*\*\*ولد\*\*/);
+  ai._internal.chatUserGap.clear();
+  aiGender._reset(); // يقرأ من قاعدة البيانات
+  await say(ch, girl, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /نوف[^"]*\*\*بنت\*\*/);
+  assert.match(sysText(calls.at(-1)), /المؤنث/);
+  ai._internal.chatUserGap.clear();
+  await say(ch, stranger, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /جنسه غير معروف/);
+  assert.match(sysText(calls.at(-1)), /الضحك والإيموجي/);
+});
+
+test('الشات العام: الضحك والإيموجي بوقتهم فقط (لا ضحك مع المشاكل، وإيموجي واحد كحد أقصى)', () => {
+  const c = aiGender.cleanReply;
+  assert.equal(c('هههههه ابشر 😂😂 يا بعدي 🔥', 'عندي مشكلة بحسابي'), 'ابشر يا بعدي');
+  assert.equal(c('ههههه صدقت 😂🔥', 'والله ضحكتني ههههه'), 'ههههه صدقت 😂');
+  assert.equal(c('هههههه وش هالسالفة', 'كيف احسب نقاطي'), 'وش هالسالفة');
+  assert.equal(c('تمام 👍🔥✨', 'ابي اعرف الموعد'), 'تمام 👍');
 });

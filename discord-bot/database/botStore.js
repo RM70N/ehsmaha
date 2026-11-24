@@ -191,6 +191,16 @@ const warnings = {
     );
     return rows.map((r, i) => ({ ...mapWarning(r), seq: i + 1 }));
   },
+  // يحذف آخر تحذير مسجّل بنفس الرتبة (مثل «⚠️ انـذار اول⛔») — يرجّع السجل المحذوف أو null
+  async removeLatestByRole(guildId, discordId, roleName) {
+    const rows = await db.query(
+      'SELECT * FROM warnings WHERE guild_id = ? AND discord_id = ? AND warning_role_given = ? ORDER BY issued_at DESC, id DESC LIMIT 1',
+      [guildId, discordId, roleName]
+    );
+    if (!rows[0]) return null;
+    await db.run('DELETE FROM warnings WHERE id = ? AND guild_id = ?', [rows[0].id, guildId]);
+    return rows[0];
+  },
   async removeBySeq(guildId, discordId, seq) {
     const all = await warnings.list(guildId, discordId);
     const target = all.find((w) => w.seq === seq);
@@ -442,6 +452,37 @@ const aiMemory = {
   }
 };
 
+// ---------------- تقرير واحد لكل تكت ----------------
+const ticketReports = {
+  /** يحجز التقرير للتكت: true لو أول مرة، false لو انكتب له تقرير قبل (ذرّي) */
+  async claim(ticketId, guildId, kind) {
+    const r = await db.run('INSERT INTO ticket_reports (ticket_id, guild_id, kind, reported_at) VALUES (?, ?, ?, ?) ON CONFLICT (ticket_id) DO NOTHING', [ticketId, guildId, kind, now()]);
+    return (r.changes ?? r.rowCount ?? 0) > 0;
+  },
+  async release(ticketId) {
+    await db.run('DELETE FROM ticket_reports WHERE ticket_id = ?', [ticketId]);
+  },
+  async has(ticketId) {
+    const rows = await db.query('SELECT 1 AS x FROM ticket_reports WHERE ticket_id = ?', [ticketId]);
+    return rows.length > 0;
+  }
+};
+
+// ---------------- جنس الأعضاء (يصرّحون به بأنفسهم) ----------------
+const userGender = {
+  async get(guildId, userId) {
+    const rows = await db.query('SELECT gender FROM ai_user_gender WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+    return rows[0] ? rows[0].gender : null;
+  },
+  async set(guildId, userId, gender) {
+    await db.run(
+      `INSERT INTO ai_user_gender (guild_id, user_id, gender, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT (guild_id, user_id) DO UPDATE SET gender = excluded.gender, updated_at = excluded.updated_at`,
+      [guildId, userId, gender, now()]
+    );
+  }
+};
+
 // ---------------- نظام تنفيذ أوامر المالك (services/ownerAI) ----------------
 // سجل كل مهمة: يمنع تكرار تنفيذ نفس الرسالة (message_id فريد)، ويحفظ خطة التأكيد
 // الثابتة (plan_json + hash)، ونتائج الخطوات، وحالة المهمة (تنجو من إعادة التشغيل).
@@ -487,4 +528,4 @@ const ownerAiTasks = {
   }
 };
 
-module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory };
+module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory, userGender, ticketReports };

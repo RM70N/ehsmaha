@@ -374,7 +374,7 @@ test('الإغلاق: ملخص Gemini يوصل قناة أخبار الأدمن 
   reply = () => 'جرّب تسجل بجوجل';
   await say(channel, w.member, 'ما أقدر أدخل حسابي');
   await say(channel, w.supporter, 'تمام نشيك');
-  reply = (req) => (/لخّص/.test(req.systemInstruction) ? '**1) المشكلة:** دخول\n**2) كيف تعامل معها المساعد:** نصحه بجوجل\n**3) الحالة:** انحلت ✅' : 'x');
+  reply = (req) => (/لخّص/.test(req.systemInstruction) ? '**المشكلة:** ما يقدر يدخل حسابه\n**الحالة:** انحلت ✅' : 'x');
   const i = await closeTicket(w, channel, ticket);
   assert.match(lastPayload(i).text, /تم إغلاق التكت/);
 
@@ -390,13 +390,14 @@ test('الإغلاق: ملخص Gemini يوصل قناة أخبار الأدمن 
   const archiveIdx = w.guild.log.findIndex(([t, id]) => t === 'setParent' && id === channel.id);
   assert.ok(newsIdx > 0 && archiveIdx > newsIdx, 'الملخص قبل الأرشفة');
   const e = w.guild.log[newsIdx][2].embeds[0].toJSON();
-  assert.equal(e.title, `📋 ملخص تكت #${ticket.id}`);
-  assert.match(e.description, /1\) المشكلة/);
+  assert.equal(e.title, `📋 تكت #${ticket.id}`);
+  assert.match(e.description, /المشكلة/);
+  assert.match(e.description, /انحلت/);
   const f = Object.fromEntries(e.fields.map((x) => [x.name, x.value]));
   assert.equal(f['👤 صاحب التكت'], `<@${w.member.id}>`);
-  assert.equal(f['📌 سبب الفتح'], '👤 مشكلة بالحساب');
-  assert.equal(f['🔒 أغلقه'], `<@${w.supporter.id}>`);
-  assert.ok(f['⏱️ المدة']);
+  assert.equal(f['📌 سبب التكت'], '👤 مشكلة بالحساب');
+  assert.deepEqual(Object.keys(f).sort(), ['📌 سبب التكت', '👤 صاحب التكت'].sort(), 'صاحب التكت والسبب فقط');
+  assert.equal(w.guild.log.filter(([t, id]) => t === 'send' && id === w.newsChannel.id).length, 1, 'رسالة وحدة فقط للتكت');
   assert.equal(ai._internal.conversations.has(channel.id), false, 'الذاكرة انمسحت');
   assert.equal((await store.tickets.get(ticket.id)).status, 'closed');
 });
