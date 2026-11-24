@@ -200,3 +200,52 @@ test('ذاكرة المساعد: لو Gemini فشل يرد بأقرب جواب �
   const b = await say(ch, m, `<@${bot.id}> يا شباب متى المسابقة الجاية`, { mentions: [bot] });
   assert.equal(replies(guild, b)[0][3].content, 'يوم الجمعة 🏆');
 });
+
+// ---------------- الجنس + طبيعية الرد بالشات العام ----------------
+const aiGender = require('../services/aiGender');
+
+test('الجنس: التقاط التصريح (مع النفي والتصحيح وطلب الصيغة) وما يلتقط كلام عادي', () => {
+  const d = aiGender.detect;
+  assert.equal(d('أنا بنت'), 'female');
+  assert.equal(d('انا بنوتة وعمري 20'), 'female');
+  assert.equal(d('انا ولد'), 'male');
+  assert.equal(d('أنا شاب من حائل'), 'male');
+  assert.equal(d('انا مو بنت انا ولد'), 'male');
+  assert.equal(d('ماني بنت'), 'male');
+  assert.equal(d('كلمني بصيغة المؤنث'), 'female');
+  assert.equal(d('ناديني ولد'), 'male');
+  assert.equal(d('وش اخبارك يا بنت الحلال'), null);
+  assert.equal(d('هذي بنت عمي'), null);
+});
+
+test('الشات العام: يحفظ جنس العضو ويخاطبه بالصيغة الصحيحة (حتى بعد مسح الذاكرة المؤقتة)، وغير المعروف محايد', async () => {
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH });
+  const girl = makeMember(guild, { username: 'نوف' });
+  const boy = makeMember(guild, { username: 'فهد' });
+  const stranger = makeMember(guild, { username: 'سالم' });
+  const bot = botUserOf(guild);
+  aiGender._reset();
+  // تصريح بدون منشن ← يتحفظ بدون رد
+  const decl = await say(ch, girl, 'انا بنت');
+  assert.equal(replies(guild, decl).length, 0);
+  await say(ch, boy, `<@${bot.id}> انا ولد وش الاخبار`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /فهد[^"]*\*\*ولد\*\*/);
+  ai._internal.chatUserGap.clear();
+  aiGender._reset(); // يقرأ من قاعدة البيانات
+  await say(ch, girl, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /نوف[^"]*\*\*بنت\*\*/);
+  assert.match(sysText(calls.at(-1)), /المؤنث/);
+  ai._internal.chatUserGap.clear();
+  await say(ch, stranger, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /جنسه غير معروف/);
+  assert.match(sysText(calls.at(-1)), /الضحك والإيموجي/);
+});
+
+test('الشات العام: الضحك والإيموجي بوقتهم فقط (لا ضحك مع المشاكل، وإيموجي واحد كحد أقصى)', () => {
+  const c = aiGender.cleanReply;
+  assert.equal(c('هههههه ابشر 😂😂 يا بعدي 🔥', 'عندي مشكلة بحسابي'), 'ابشر يا بعدي');
+  assert.equal(c('ههههه صدقت 😂🔥', 'والله ضحكتني ههههه'), 'ههههه صدقت 😂');
+  assert.equal(c('هههههه وش هالسالفة', 'كيف احسب نقاطي'), 'وش هالسالفة');
+  assert.equal(c('تمام 👍🔥✨', 'ابي اعرف الموعد'), 'تمام 👍');
+});
