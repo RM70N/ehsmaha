@@ -52,6 +52,10 @@ function world(opts) {
   const mod = makeMember(guild, { username: 'mod', roles: [modRole] });
   const regular = makeMember(guild, { username: 'regular' });
   const target = makeMember(guild, { username: 'target' });
+  // رتب الإنذار موجودة مسبقاً بالسيرفر بأسماء مزخرفة (البوت ما ينشئ رتب)
+  makeRole(guild, { name: '⚠️ انـذار اول⛔', position: 3 });
+  makeRole(guild, { name: '⚠️ انـذار ثاني⛔', position: 2 });
+  makeRole(guild, { name: '⚠️ انـذار ثالث⛔', position: 1 });
   return { guild, modRole, mod, regular, target, owner: guild.owner };
 }
 
@@ -238,16 +242,17 @@ test('/طرد: DM قبل الطرد، فحوصات الرتب وkickable، وا�
 
 // =================== 4) /تحذير + السجل + الحذف ===================
 
-test('/تحذير: إنشاء الرتب تلقائياً، إزالة القديمة قبل منح الجديدة، والعدّ الفعلي', async () => {
+test('/تحذير: يستخدم رتب الإنذار الموجودة (بدون إنشاء)، إزالة القديمة قبل منح الجديدة، والعدّ الفعلي', async () => {
   const w = await makeAdminWorld();
   let i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'ألفاظ', 'رتبة_التحذير': 'w1' });
   await dispatch(i);
   let out = lastPayload(i);
-  assert.match(out.text, /تحذير1/);
+  assert.match(out.text, /انـذار اول/);
   assert.match(out.text, /\*\*1\*\* تحذير/);
-  assert.match(out.text, /أُنشئت تلقائياً رتب: تحذير1، تحذير2، تحذير3/);
-  const names = () => [...w.target.roles.cache.values()].map((r) => r.name).filter((n) => n.startsWith('تحذير'));
-  assert.deepEqual(names(), ['تحذير1']);
+  assert.doesNotMatch(out.text, /أُنشئت تلقائياً/);
+  assert.equal(w.guild.log.filter(([t]) => t === 'createRole' || t === 'roles.create').length, 0, 'ما ينشئ رتب');
+  const names = () => [...w.target.roles.cache.values()].map((r) => r.name).filter((n) => n.includes('انـذار'));
+  assert.deepEqual(names(), ['⚠️ انـذار اول⛔']);
 
   // المشرف يختار تحذير3 (مع إن الفعلي 2) → تنشال تحذير1 أولاً ثم تنعطى تحذير3
   w.guild.log.length = 0;
@@ -255,12 +260,12 @@ test('/تحذير: إنشاء الرتب تلقائياً، إزالة القد�
   await dispatch(i);
   out = lastPayload(i);
   const ops = w.guild.log.filter(([t]) => t.startsWith('roles.')).map(([t, , r]) => `${t}:${r.join(',')}`);
-  assert.deepEqual(ops, ['roles.remove:تحذير1', 'roles.add:تحذير3']);
-  assert.deepEqual(names(), ['تحذير3']);
+  assert.deepEqual(ops, ['roles.remove:⚠️ انـذار اول⛔', 'roles.add:⚠️ انـذار ثالث⛔']);
+  assert.deepEqual(names(), ['⚠️ انـذار ثالث⛔']);
   assert.match(out.text, /\*\*2\*\* تحذير/);
   assert.match(out.text, /لا تطابق العدد الفعلي/);
   // ولا لحظة كان عنده رتبتا تحذير سوا
-  for (const [, roles] of w.guild.roleSnapshots) assert.ok(roles.filter((n) => n.startsWith('تحذير')).length <= 1);
+  for (const [, roles] of w.guild.roleSnapshots) assert.ok(roles.filter((n) => n.includes('انـذار')).length <= 1);
 
   // نفس الرتبة مرة ثانية: ما فيه إزالة ولا إضافة، والعدد 3
   w.guild.log.length = 0;
@@ -643,4 +648,71 @@ test('قاعدة البيانات طايحة: رسالة ودّية بدون Cra
   } finally {
     await botDb.init(process.env.TEST_DATABASE_URL ? { databaseUrl: process.env.TEST_DATABASE_URL } : { sqlitePath: ':memory:' });
   }
+});
+
+// =================== رتب الإنذار الموجودة + رتبة إداري + سجل الإدارة ===================
+
+test('/تحذير: رتب الإنذار ناقصة ← خطأ يسمّيها بدون إنشاء أي رتبة', async () => {
+  const w = await makeAdminWorld();
+  for (const r of [...w.guild.roles.cache.values()]) if (/انـذار/.test(r.name)) w.guild.roles.cache.delete(r.id);
+  const i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'x', 'رتبة_التحذير': 'w1' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /ما لقيت رتبة/);
+  assert.equal(w.guild.log.filter(([t]) => t === 'createRole').length, 0);
+  assert.equal(await store.warnings.count(w.guild.id, w.target.id), 0);
+});
+
+test('/تحذير: صاحب رتبة «إداري» يقدر يستخدمه (وبس هو)، وعضو عادي مرفوض', async () => {
+  const w = await makeAdminWorld();
+  const staffRole = makeRole(w.guild, { name: '☆ ˹ إداري 🧑‍💻꙳.˼', position: 15 });
+  const staff = makeMember(w.guild, { username: 'staff', roles: [staffRole] });
+  let i = cmd(w.guild, staff, 'تحذير', { 'عضو': w.target, 'سبب': 'ألفاظ', 'رتبة_التحذير': 'w1' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /تم التحذير/);
+  assert.equal(await store.warnings.count(w.guild.id, w.target.id), 1);
+  // رتبة «إداري» ما تعطيه أوامر إشراف ثانية (طرد)
+  i = cmd(w.guild, staff, 'طرد', { 'عضو': w.target, 'سبب': 'x' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /غير مصرّح/);
+  i = cmd(w.guild, w.regular, 'تحذير', { 'عضو': w.target, 'سبب': 'x', 'رتبة_التحذير': 'w1' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /غير مصرّح/);
+});
+
+test('سجل الإدارة: التحذير يوصل لروم أخبار الأدمن (الشخص، رقم الإنذار، الإداري، السبب)', async () => {
+  const w = await makeAdminWorld();
+  const news = makeChannel(w.guild, { id: loadConfig().adminNewsChannelId, name: 'اخبار-الادمن' });
+  require('../services/adminControl').runtime.setContext({ client: { guilds: { cache: new Map([[w.guild.id, w.guild]]), fetch: async () => w.guild } } });
+  try {
+    const i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'سبام بالعام', 'رتبة_التحذير': 'w1' });
+    await dispatch(i);
+    await new Promise((r) => setTimeout(r, 30));
+    const sent = w.guild.log.filter(([t, id]) => t === 'send' && id === news.id).map(([, , p]) => p);
+    assert.equal(sent.length, 1);
+    const e = JSON.stringify(sent[0].embeds.map((x) => (x.toJSON ? x.toJSON() : x)));
+    assert.match(e, /إنذار الأول/);
+    assert.ok(e.includes(`<@${w.target.id}>`) && e.includes(`<@${w.mod.id}>`), 'الشخص والإداري');
+    assert.match(e, /سبام بالعام/);
+  } finally {
+    require('../services/adminControl').runtime.setContext(null);
+  }
+});
+
+test('تكت قديم: تنبيه مفصّل لروم أخبار الأدمن مرة وحدة كل 24 ساعة', async () => {
+  const w = await makeAdminWorld();
+  const news = makeChannel(w.guild, { id: loadConfig().adminNewsChannelId, name: 'اخبار-الادمن' });
+  const tk = makeChannel(w.guild, { name: 'تكت-1' });
+  const panelId = await store.tickets.createPanel({ guildId: w.guild.id, channelId: tk.id, content: 'x', createdBy: w.mod.id });
+  const r = await store.tickets.reserve({ guildId: w.guild.id, panelId, originChannelId: tk.id, discordId: w.regular.id, reason: 'account' });
+  await store.tickets.attachChannel(r, tk.id);
+  const watch = require('../services/ticketWatch');
+  watch._internal.alerted.clear();
+  const client = { guilds: { cache: new Map([[w.guild.id, w.guild]]) } };
+  assert.equal(await watch.check(client, { now: Date.now() }), 0, 'تكت جديد ما ينبّه');
+  const later = Date.now() + 25 * 3600 * 1000;
+  assert.equal(await watch.check(client, { now: later }), 1);
+  const sent = w.guild.log.filter(([t, id]) => t === 'send' && id === news.id);
+  assert.equal(sent.length, 1);
+  assert.match(JSON.stringify(sent[0][2].embeds.map((x) => (x.toJSON ? x.toJSON() : x))), /مفتوح من 25 ساعة/);
+  assert.equal(await watch.check(client, { now: later + 1000 }), 0, 'ما يكرر');
 });
