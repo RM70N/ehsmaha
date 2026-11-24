@@ -21170,7 +21170,11 @@ function whatsNewKey(data) {
 function whatsNewLocalSeen() { try { return localStorage.getItem(WHATSNEW_LS_KEY) || ''; } catch (e) { return ''; } }
 function whatsNewLocalMark(k) { try { localStorage.setItem(WHATSNEW_LS_KEY, k); } catch (e) {} }
 
+// تعطيل كامل: طلب المالك إيقاف كل رسائل «تحديثات جديدة». لا تُعرض أي رسالة مهما كان
+// محتوى siteUpdates/current. (أمر «تحديث الصفحة» forceReload مستقل ولا يتأثر.)
+const WHATSNEW_DISABLED = true;
 function whatsNewCheck(lastSeenUpdateAt) {
+  if (WHATSNEW_DISABLED) { const o = document.getElementById('whatsnew-overlay'); if (o) o.classList.remove('visible'); return; }
   whatsNewSeenMs = lastSeenUpdateAt && lastSeenUpdateAt.toMillis ? lastSeenUpdateAt.toMillis() : 0;
   if (!fb || whatsNewListenerStarted) return;
   whatsNewListenerStarted = true;
