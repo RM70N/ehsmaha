@@ -204,7 +204,9 @@ export function matchesWhere(data, w) {
 const DEFAULTS = {
   root: 'fsMirror',
   tripMs: 5 * 60 * 1000,          // مدة بقاء الوضع rtdb بعد خطأ حصة قبل أول فحص
-  softTripMs: 30 * 1000,          // بعد خطأ "unavailable"
+  softTripMs: 30 * 1000,
+  // كتابة Firestore التي لا تردّ (حصة منتهية تعلّق الطابور بلا خطأ): بعد هذه المهلة نكتبها على RTDB ونحوّل الوضع. 0 = تعطيل
+  writeTimeoutMs: 8000,          // بعد خطأ "unavailable"
   probePath: ['config', '__failover_probe'],
   storageKey: 'ehs_fs_failover',  // localStorage
   maxPending: 300,
@@ -551,10 +553,24 @@ export function installFsFailover(fb, userOpts) {
   fb.deleteField = () => { const s = real.deleteField(); SENT.set(s, { t: 'del' }); return s; };
 
   /* ---------- الكتابات ---------- */
+  function hasIncrement(v, depth) {
+    if (!v || typeof v !== 'object' || (depth || 0) > 6) return false;
+    const si = sentinelInfo(v); if (si) return si.t === 'inc';
+    return Object.keys(v).some((k) => hasIncrement(v[k], (depth || 0) + 1));
+  }
+  /* مهلة للكتابة: لو Firestore ما ردّ (لا نجاح ولا خطأ) نعامله كأنه غير متاح فنكتب على RTDB.
+     الكتابات التي فيها increment لا تُسقَط بالمهلة (لأن الكتابة المعلّقة قد تُطبَّق لاحقاً فتتضاعف). */
+  function withWriteTimeout(op, p) {
+    if (!(O.writeTimeoutMs > 0) || !hasRtdb() || hasIncrement(op.d)) return p;
+    return new Promise((resolve, reject) => {
+      const t = O.setTimeout(() => reject(Object.assign(new Error('Firestore write timeout'), { code: 'unavailable', fsTimeout: true })), O.writeTimeoutMs);
+      Promise.resolve(p).then((v) => { O.clearTimeout(t); resolve(v); }, (e) => { O.clearTimeout(t); reject(e); });
+    });
+  }
   async function write(op, realCall) {
     if (useRt(op.p)) return viaRt(() => rtWrite(op));
     try {
-      const res = await realCall();
+      const res = await withWriteTimeout(op, realCall());
       mirrorWrite(op);
       return res;
     } catch (e) {

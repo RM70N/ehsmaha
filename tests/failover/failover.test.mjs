@@ -385,3 +385,21 @@ test('الطابور: كل مستخدم يرحّل عملياته فقط، وع�
   assert.equal(S.docs.has('users/u1'), true);
   assert.equal(api.pending(), 0);
 });
+
+test('كتابة Firestore معلّقة بلا رد (حصة منتهية): بعد المهلة تُكتب على RTDB ويتحوّل الوضع', async () => {
+  const { fb, S, rget, api, timers } = setup();
+  const realSet = api._real.setDoc; api._real.setDoc = () => new Promise(() => {});   // لا يردّ أبداً
+  const p = fb.setDoc(fb.doc(fb.db, 'gameBadges', 'cr'), { badge: 'update' }, { merge: true });
+  const wt = timers.find((x) => x.ms === 8000); assert.ok(wt, 'مؤقّت المهلة مُسجَّل');
+  wt.fn(); await p; await tick();
+  assert.equal(rget('fsMirror/gameBadges/cr').badge, 'update');
+  assert.equal(api.mode(), 'rtdb');
+  api._real.setDoc = realSet;
+});
+
+test('كتابة فيها increment لا تُسقَط بالمهلة (تفادي المضاعفة)', async () => {
+  const { fb, api, timers } = setup();
+  api._real.setDoc = () => new Promise(() => {});
+  fb.setDoc(fb.doc(fb.db, 'config', 'homeStats'), { visitors: fb.increment(1) }, { merge: true });
+  assert.ok(!timers.find((x) => x.ms === 8000), 'لا مؤقّت مهلة لكتابات increment');
+});
