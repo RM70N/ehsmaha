@@ -191,6 +191,16 @@ const warnings = {
     );
     return rows.map((r, i) => ({ ...mapWarning(r), seq: i + 1 }));
   },
+  // يحذف آخر تحذير مسجّل بنفس الرتبة (مثل «⚠️ انـذار اول⛔») — يرجّع السجل المحذوف أو null
+  async removeLatestByRole(guildId, discordId, roleName) {
+    const rows = await db.query(
+      'SELECT * FROM warnings WHERE guild_id = ? AND discord_id = ? AND warning_role_given = ? ORDER BY issued_at DESC, id DESC LIMIT 1',
+      [guildId, discordId, roleName]
+    );
+    if (!rows[0]) return null;
+    await db.run('DELETE FROM warnings WHERE id = ? AND guild_id = ?', [rows[0].id, guildId]);
+    return rows[0];
+  },
   async removeBySeq(guildId, discordId, seq) {
     const all = await warnings.list(guildId, discordId);
     const target = all.find((w) => w.seq === seq);
