@@ -21156,31 +21156,55 @@ let whatsNewLatest = null; // cached doc from siteUpdates/current, kept fresh fo
 let whatsNewSeenMs = 0; // آخر publishedAt شافه هذا المستخدم (من مستند حسابه)
 let whatsNewListenerStarted = false;
 
+// «مرة وحدة فقط»: نخزّن آخر تحديث شافه الجهاز محلياً (localStorage) بالإضافة لمستند الحساب.
+// قبل كان الحفظ بـFirestore فقط — لو الحصة خلصت أو الكتابة علّقت ما ينحفظ شي
+// فكانت الرسالة ترجع مع كل لقطة/زيارة. الآن المحلي هو المرجع الأساسي.
+const WHATSNEW_LS_KEY = 'ehsmaha_whatsnew_seen_v2';
+let whatsNewShownKey = null; // المفتاح اللي عرضناه/أغلقناه في هذه الجلسة
+function whatsNewKey(data) {
+  const ms = data.publishedAt && data.publishedAt.toMillis ? data.publishedAt.toMillis() : 0;
+  let h = 0; const t = String(data.text || '');
+  for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0;
+  return ms + ':' + h;
+}
+function whatsNewLocalSeen() { try { return localStorage.getItem(WHATSNEW_LS_KEY) || ''; } catch (e) { return ''; } }
+function whatsNewLocalMark(k) { try { localStorage.setItem(WHATSNEW_LS_KEY, k); } catch (e) {} }
+
 function whatsNewCheck(lastSeenUpdateAt) {
   whatsNewSeenMs = lastSeenUpdateAt && lastSeenUpdateAt.toMillis ? lastSeenUpdateAt.toMillis() : 0;
   if (!fb || whatsNewListenerStarted) return;
   whatsNewListenerStarted = true;
+  const overlay = () => document.getElementById('whatsnew-overlay');
   fb.onSnapshot(fb.doc(fb.db, 'siteUpdates', 'current'), (snap) => {
     if (!snap.exists()) return;
     const data = snap.data();
     whatsNewLatest = data;
-    if (!data.published || !data.text) return;
+    // أُلغي النشر (أو حُذف النص) → نخفي النافذة لو كانت ظاهرة ولا نعرض شيء
+    if (!data.published || !data.text) { const o = overlay(); if (o) o.classList.remove('visible'); return; }
     const publishedMs = data.publishedAt && data.publishedAt.toMillis ? data.publishedAt.toMillis() : 0;
-    if (publishedMs > whatsNewSeenMs) {
-      document.getElementById('whatsnew-body').textContent = data.text;
-      document.getElementById('whatsnew-overlay').classList.add('visible');
-    }
+    if (!publishedMs) return; // الطابع لسا ما وصل من السيرفر
+    const key = whatsNewKey(data);
+    if (key === whatsNewShownKey || key === whatsNewLocalSeen()) return; // شافها من قبل
+    if (publishedMs <= whatsNewSeenMs) { whatsNewLocalMark(key); return; }
+    whatsNewShownKey = key;
+    document.getElementById('whatsnew-body').textContent = data.text;
+    overlay().classList.add('visible');
   }, (err) => { /* best-effort */ });
 }
 
 async function whatsNewDismiss() {
   document.getElementById('whatsnew-overlay').classList.remove('visible');
+  if (whatsNewLatest) {
+    whatsNewLocalMark(whatsNewKey(whatsNewLatest));
+    const ms = whatsNewLatest.publishedAt && whatsNewLatest.publishedAt.toMillis ? whatsNewLatest.publishedAt.toMillis() : 0;
+    if (ms > whatsNewSeenMs) whatsNewSeenMs = ms;
+  }
   if (!fb || !currentUser || !whatsNewLatest) return;
   try {
     await fb.setDoc(fb.doc(fb.db, 'users', currentUser.uid), {
       lastSeenUpdateAt: whatsNewLatest.publishedAt || fb.serverTimestamp()
     }, { merge: true });
-  } catch (err) { /* best-effort — worst case they see it again next visit */ }
+  } catch (err) { /* best-effort — المحلي كافٍ */ }
 }
 
 // ==================== OWNER PANEL ====================
