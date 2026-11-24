@@ -716,3 +716,42 @@ test('تكت قديم: تنبيه مفصّل لروم أخبار الأدمن م
   assert.match(JSON.stringify(sent[0][2].embeds.map((x) => (x.toJSON ? x.toJSON() : x))), /مفتوح من 25 ساعة/);
   assert.equal(await watch.check(client, { now: later + 1000 }), 0, 'ما يكرر');
 });
+
+// =================== إداري: كتم وفك كتم + كل شي إداري يوصل لروم الأخبار ===================
+
+test('رتبة «إداري»: كتم وفك كتم ويوصلون لروم أخبار الأدمن، وكل فعل إداري ثاني يوصل (عدا الحماية الآلية)', async () => {
+  const w = await makeAdminWorld();
+  const news = makeChannel(w.guild, { id: loadConfig().adminNewsChannelId, name: 'اخبار-الادمن' });
+  const staffRole = makeRole(w.guild, { name: '☆ ˹ إداري 🧑‍💻꙳.˼', position: 15 });
+  const staff = makeMember(w.guild, { username: 'staff', roles: [staffRole] });
+  const rt = require('../services/adminControl').runtime;
+  rt.setContext({ client: { guilds: { cache: new Map([[w.guild.id, w.guild]]), fetch: async () => w.guild } } });
+  const newsText = () => JSON.stringify(w.guild.log.filter(([t, id]) => t === 'send' && id === news.id).map(([, , p]) => p.embeds.map((x) => (x.toJSON ? x.toJSON() : x))));
+  try {
+    let i = cmd(w.guild, staff, 'كتم', { 'عضو': w.target, 'المدة': 10, 'الوحدة': 'minutes', 'السبب': 'سبام' });
+    await dispatch(i);
+    assert.match(lastPayload(i).text, /تم الكتم/);
+    i = cmd(w.guild, staff, 'فك_كتم', { 'عضو': w.target, 'السبب': 'صلحنا' });
+    await dispatch(i);
+    assert.match(lastPayload(i).text, /تم فك الكتم/);
+    // عضو عادي مرفوض بالاثنين
+    for (const name of ['كتم', 'فك_كتم']) {
+      i = cmd(w.guild, w.regular, name, { 'عضو': w.target, 'المدة': 5, 'الوحدة': 'minutes' });
+      await dispatch(i);
+      assert.match(lastPayload(i).text, /غير مصرّح/);
+    }
+    // فعل إداري عام (إعداد) + فعل آلي
+    const { logModeration } = require('../utils/moderation');
+    await logModeration({ guildId: w.guild.id, action: 'welcome_message', moderatorId: w.mod.id, reason: 'تعديل' });
+    await logModeration({ guildId: w.guild.id, action: 'auto_timeout', targetId: w.target.id, moderatorId: 'bot', reason: 'spam' });
+    await new Promise((r) => setTimeout(r, 50));
+    const t = newsText();
+    assert.match(t, /كتم عضو/);
+    assert.match(t, /فك كتم/);
+    assert.match(t, /تعديل رسالة الترحيب/);
+    assert.doesNotMatch(t, /auto_timeout/);
+    assert.ok(t.includes(`<@${staff.user.id}>`), 'الإداري');
+  } finally {
+    rt.setContext(null);
+  }
+});

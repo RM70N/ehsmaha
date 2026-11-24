@@ -99,6 +99,9 @@ function denyPayload(level = 'admin') {
 }
 
 // حارس جاهز للأوامر: يرجّع true لو مسموح، وإلا يرد برسالة الرفض ويرجّع false
+// رتبة «إداري» (بعد تنظيف الزخرفة من اسمها) — تسمح باستخدام /تحذير و/كتم و/فك_كتم فقط
+const STAFF_ROLE_RE = /(^|\s)اداري(\s|$)/;
+
 /**
  * رتبة بالاسم (بعد التنظيف من الزخرفة) — مثل «☆ ˹ إداري 🧑‍💻꙳.˼» ← "اداري".
  */
@@ -163,4 +166,5 @@ function invalidateAll() {
 }
 
 module.exports = {
+  STAFF_ROLE_RE,
   hasRoleNamed, checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, reloadAll, loadGuild, denyPayload, withStorageNotice };

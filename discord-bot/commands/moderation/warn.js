@@ -15,13 +15,11 @@ const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
-const { guardAdmin, withStorageNotice } = require('../../utils/adminPermissions');
+const { guardAdmin, withStorageNotice, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
 const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
 const { ensureWarningRoles } = require('../../utils/warningRoles');
 
-// أي شخص معه رتبة «إداري» يقدر يستخدم /تحذير (بدون صلاحيات أدمن كاملة)
-const STAFF_ROLE_RE = /(^|\s)اداري(\s|$)/;
 
 const LEVELS = ['w1', 'w2', 'w3'];
 
