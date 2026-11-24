@@ -23149,7 +23149,12 @@ async function ownerSetBadge(tag, badge) {
   badgesRecompute();
 
   try {
-    await fb.setDoc(fb.doc(fb.db, 'gameBadges', tag), { badge }, { merge: true });
+    /* الحالة تُحفظ على Realtime Database (rtdbPrimary بطبقة fs-failover) فلا تتأثر بحصة Firestore؛ مهلة 15ث حتى لا يبقى الحفظ معلّقاً بصمت */
+    await Promise.race([
+      fb.setDoc(fb.doc(fb.db, 'gameBadges', tag), { badge }, { merge: true }),
+      new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('لم يصل تأكيد الحفظ من الخادم خلال 15 ثانية'), { code: 'save-timeout' })), 15000))
+    ]);
+    toast('✅ حُفظت الحالة');
     // وعد setDoc ينحلّ بعد تأكيد السيرفر، فلو ما زالت نفس القيمة هي المعلّقة
     // (يعني ما ضغط المالك زر ثاني بعدها) نشيلها ونعتمد على حالة السيرفر.
     if (ownerBadgePending.get(tag) === badge) {
@@ -23158,10 +23163,21 @@ async function ownerSetBadge(tag, badge) {
       badgesRecompute();
     }
   } catch (err) {
+    /* احتياط أخير: كتابة مباشرة على نسخة RTDB (بلا معاملة) قبل إعلان الفشل */
+    try {
+      if (fb.rtdb && fb.rtdbSet && fb.rtdbRef) {
+        await Promise.race([
+          fb.rtdbSet(fb.rtdbRef(fb.rtdb, 'fsMirror/gameBadges/' + tag), { badge }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('rtdb-timeout')), 8000))
+        ]);
+        if (ownerBadgePending.get(tag) === badge) { ownerBadgePending.delete(tag); badgesServerState[tag] = badge; badgesRecompute(); }
+        toast('✅ حُفظت الحالة (عبر النسخة الاحتياطية)');
+        return;
+      }
+    } catch (err2) { err = err2 && (err2.code || err2.message) ? err2 : err; }
     ownerBadgePending.delete(tag);
     badgesRecompute();
-    // نعرض السبب الحقيقي (مثلاً permission-denied من قواعد أمان Firestore)
-    // بدل رسالة عامة تخلي الرفض يبان وكأنه "الحالة انقلبت لوحدها".
+    // نعرض السبب الحقيقي (مثلاً permission-denied من قواعد الأمان) بدل رسالة عامة
     toast('⚠️ تعذّر حفظ حالة الشارة: ' + (err.code || err.message || err));
   }
 }

@@ -864,9 +864,6 @@ async function handleAdminChannel(message, botUser) {
 // يرد فوراً على المنشن/الريبلاي، ويشارك بالسوالف من نفسه أحياناً. الرد السريع: طلب Gemini مختصر بمهلة قصيرة وعدد محاولات محدود.
 const CHAT_TIMEOUT_MS = 9000;
 const CHAT_MAX_ATTEMPTS = 4;
-const CHAT_MIN_GAP_MS = 12 * 1000; // أقل فاصل بين مشاركتين تلقائيتين بنفس الروم
-const CHAT_PROBABILITY = 0.55;
-const chatState = new Map(); // channelId -> { lastAutoAt, busy }
 const chatUserGap = new Map(); // userId -> at (حماية من السبام بالمنشن)
 
 function supportChannelMention(guild) {
@@ -878,40 +875,33 @@ function supportChannelMention(guild) {
   }
 }
 
-async function handleGeneralChat(message, botUser, { rand = Math.random } = {}) {
+async function handleGeneralChat(message, botUser) {
   const cfg = loadConfig();
   if (!message.channel || !(cfg.aiChatChannelIds || []).includes(message.channel.id) || !botUser) return false;
   if (message.system) return true;
   const mentioned = mentionsBot(message, botUser);
   const toBot = mentioned || (await isReplyToBot(message, botUser));
+  if (!toBot) return false;
   const text = cleanInput(humanizeMentions(message, stripMention(message.content, botUser.id)));
   const images = imageAttachments(message);
   if (!text && !images.length) return false;
   if (/^\s*[/!.]/.test(text)) return false; // أوامر
-  const st = chatState.get(message.channel.id) || { lastAutoAt: 0, busy: false };
-  chatState.set(message.channel.id, st);
+  // الرد فقط لو منشن للبوت أو Reply على رسالته — غير كذا ما نتدخل أبداً
   const now = Date.now();
-  if (!toBot) {
-    // مشاركة تلقائية: نادراً ما نرد على كل شي، وبفاصل، ومو أكثر من رد وحد بنفس الوقت
-    if (text.length < 3 || st.busy || now - st.lastAutoAt < CHAT_MIN_GAP_MS || rand() > CHAT_PROBABILITY) return false;
-    st.lastAutoAt = now;
-  } else {
-    const last = chatUserGap.get(message.author.id) || 0;
-    if (now - last < 2000) return true;
-    chatUserGap.set(message.author.id, now);
-    if (chatUserGap.size > 500) for (const [id, at] of chatUserGap) if (now - at > 60000) chatUserGap.delete(id);
-  }
+  const last = chatUserGap.get(message.author.id) || 0;
+  if (now - last < 2000) return true;
+  chatUserGap.set(message.author.id, now);
+  if (chatUserGap.size > 500) for (const [id, at] of chatUserGap) if (now - at > 60000) chatUserGap.delete(id);
   if (aiModes.asksAboutFiles(text) && message.author.id !== cfg.ownerDiscordId) {
-    if (toBot) await message.reply({ content: aiModes.FILE_REFUSAL, allowedMentions: { repliedUser: false } }).catch(() => null);
+    await message.reply({ content: aiModes.FILE_REFUSAL, allowedMentions: { repliedUser: false } }).catch(() => null);
     return true;
   }
-  st.busy = !toBot ? true : st.busy;
   try {
     typing(message.channel);
     const loaded = images.length ? await downloadImages(images) : [];
     const ctx = await channelContext(message, botUser);
     const who = nameOf(message, message.author);
-    const hint = toBot ? '[هذي الرسالة موجّهة لك مباشرة — لازم ترد]' : '[رسالة عامة بالشات — لو ما تخصك اكتب ' + aiModes.SKIP + ']';
+    const hint = '[هذي الرسالة موجّهة لك مباشرة — لازم ترد]';
     const r = await generateGuarded({
       guildId: message.guild.id,
       persona: true,
@@ -921,21 +911,17 @@ async function handleGeneralChat(message, botUser, { rand = Math.random } = {}) 
       temperature: 0.9,
       timeoutMs: CHAT_TIMEOUT_MS,
       maxAttempts: CHAT_MAX_ATTEMPTS,
-      meta: { context: 'general_chat', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, direct: toBot, images: loaded.length || undefined }
+      meta: { context: 'general_chat', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, direct: true, images: loaded.length || undefined }
     });
     if (!r.ok) {
-      if (toBot) await message.reply({ content: FRIENDLY_ERROR, allowedMentions: { repliedUser: false } }).catch(() => null);
+      await message.reply({ content: await failureReply(message.guild.id, text, r.code), allowedMentions: { repliedUser: false } }).catch(() => null);
       return true;
     }
     const { clean } = extractSuggestions(r.text);
-    if (!clean || (!toBot && clean.includes(aiModes.SKIP))) return true;
-    const out = clean.split(aiModes.SKIP).join('').trim() || (toBot ? FRIENDLY_ERROR : '');
-    if (!out) return true;
-    await sendChunks(message, out.slice(0, 600), { reply: true });
+    const out = (clean || FRIENDLY_ERROR).split(aiModes.SKIP).join('').trim();
+    if (out) await sendChunks(message, out.slice(0, 600), { reply: true });
   } catch (err) {
     logger.warn('🤖 تعذّر رد الشات العام', { channelId: message.channel.id, code: err && err.code });
-  } finally {
-    st.busy = false;
   }
   return true;
 }
@@ -963,5 +949,5 @@ module.exports = {
   extractSuggestions,
   systemPromptFor,
   setImageFetcher,
-  _internal: { BUSY_ERROR, mentionHistory, repliesToBot, chatState, chatUserGap, imageAttachments, IMAGE_MARK, TEXT_ONLY_REPLY, IMAGE_FAILED_REPLY, MAX_IMAGE_BYTES, conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
+  _internal: { BUSY_ERROR, mentionHistory, repliesToBot, chatUserGap, imageAttachments, IMAGE_MARK, TEXT_ONLY_REPLY, IMAGE_FAILED_REPLY, MAX_IMAGE_BYTES, conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
 };

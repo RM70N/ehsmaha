@@ -213,11 +213,11 @@ const DEFAULTS = {
   pendingMaxAgeMs: 7 * 24 * 3600 * 1000,
   replayEveryMs: 60 * 1000,
   // مجموعات ما نكتبها بنسخة write-through (عالية التكرار أو لها مسار RTDB خاص بها)
-  skipWriteThrough: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds'],
+  skipWriteThrough: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds', 'gameBadges'],
   // توزيع الأحمال: هذه المجموعات عالية التكرار (قراءة/كتابة) تعمل على RTDB مباشرة (fsMirror/<مجموعة>) حتى لو
   // Firestore سليم، فيتوزع الاستهلاك بين الحصتين. باقي المجموعات تبقى على Firestore مع التحويل التلقائي الكامل
   // إلى RTDB عند نفاد الحصة. تعطيلها: rtdbPrimary: [] أو localStorage ehs_rt_primary_off=1
-  rtdbPrimary: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds'],
+  rtdbPrimary: ['activeStreamers', 'presence', 'giftShareLog', 'playEvents', 'liveCommands', 'liveRounds', 'gameBadges'],
   // مجموعات صغيرة مشتركة تُزرع بالنسخة الاحتياطية عند القراءة إذا ناقصة
   seedCollections: ['config', 'levels', 'shopProducts', 'siteUpdates', 'framesCatalogExtra', 'storeSales',
     'storeNewAnnouncements', 'ahsemhaCategories', 'ahsemhaSettings', 'eventAccess', 'ghnamSpecial', 'devSpecial',

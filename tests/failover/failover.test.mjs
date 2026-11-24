@@ -389,10 +389,10 @@ test('الطابور: كل مستخدم يرحّل عملياته فقط، وع�
 test('كتابة Firestore معلّقة بلا رد (حصة منتهية): بعد المهلة تُكتب على RTDB ويتحوّل الوضع', async () => {
   const { fb, S, rget, api, timers } = setup();
   const realSet = api._real.setDoc; api._real.setDoc = () => new Promise(() => {});   // لا يردّ أبداً
-  const p = fb.setDoc(fb.doc(fb.db, 'gameBadges', 'cr'), { badge: 'update' }, { merge: true });
+  const p = fb.setDoc(fb.doc(fb.db, 'siteUpdates', 'cr'), { badge: 'update' }, { merge: true });
   const wt = timers.find((x) => x.ms === 8000); assert.ok(wt, 'مؤقّت المهلة مُسجَّل');
   wt.fn(); await p; await tick();
-  assert.equal(rget('fsMirror/gameBadges/cr').badge, 'update');
+  assert.equal(rget('fsMirror/siteUpdates/cr').badge, 'update');
   assert.equal(api.mode(), 'rtdb');
   api._real.setDoc = realSet;
 });
@@ -402,4 +402,15 @@ test('كتابة فيها increment لا تُسقَط بالمهلة (تفادي
   api._real.setDoc = () => new Promise(() => {});
   fb.setDoc(fb.doc(fb.db, 'config', 'homeStats'), { visitors: fb.increment(1) }, { merge: true });
   assert.ok(!timers.find((x) => x.ms === 8000), 'لا مؤقّت مهلة لكتابات increment');
+});
+
+test('gameBadges على RTDB مباشرة: لا قراءة ولا كتابة Firestore ولا طابور ترحيل', async () => {
+  const { fb, S, rget, api } = setup();
+  const r0 = S.reads, w0 = S.writes;
+  await fb.setDoc(fb.doc(fb.db, 'gameBadges', 'cr'), { badge: 'update' }, { merge: true });
+  const s = await fb.getDoc(fb.doc(fb.db, 'gameBadges', 'cr'));
+  await tick();
+  assert.equal(rget('fsMirror/gameBadges/cr').badge, 'update');
+  assert.equal(s.data().badge, 'update');
+  assert.equal(S.reads, r0); assert.equal(S.writes, w0); assert.equal(api.pending(), 0);
 });
