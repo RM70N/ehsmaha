@@ -310,9 +310,9 @@ test('/سجل_تحذيرات: الأحدث أولاً + صفحات، و/حذف_�
   out = lastPayload(click);
   assert.deepEqual(out.embeds[0].fields.map((f) => f.name.split(' ')[0]), ['#2', '#1']);
 
-  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'رقم_التحذير': 2 });
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'رقم_التحذير': 5 });
   await dispatch(i);
-  assert.match(lastPayload(i).text, /سبب 2/);
+  assert.match(lastPayload(i).text, /سبب 5/);
   assert.match(lastPayload(i).text, /\*\*11\*\* تحذير/);
   assert.equal(await store.warnings.count(w.guild.id, w.target.id), 11);
 
@@ -754,4 +754,39 @@ test('رتبة «إداري»: كتم وفك كتم ويوصلون لروم أخ
   } finally {
     rt.setContext(null);
   }
+});
+
+test('/حذف_تحذير: اختيار الإنذار أو رقم 1/2/3 يشيل رتبة الإنذار المقابلة ويحذف تحذيرها من السجل، وبدون اختيار يعرض الثلاث', async () => {
+  const w = await makeAdminWorld();
+  const give = async (level, reason) => dispatch(cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': reason, 'رتبة_التحذير': level }));
+  const has = (re) => [...w.target.roles.cache.values()].some((r) => re.test(r.name));
+  await give('w1', 'أول');
+  assert.ok(has(/اول/));
+  assert.equal(await store.warnings.count(w.guild.id, w.target.id), 1);
+
+  // رقم 1 ← يشيل «إنذار أول» ويحذف تحذيره
+  let i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'رقم_التحذير': 1 });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /تم حذف \*\*إنذار أول\*\*/);
+  assert.ok(!has(/اول/), 'الرتبة انشالت');
+  assert.equal(await store.warnings.count(w.guild.id, w.target.id), 0);
+
+  // اختيار «إنذار ثالث» من القائمة
+  await give('w3', 'ثالث');
+  assert.ok(has(/ثالث/));
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'الإنذار': 'w3' });
+  await dispatch(i);
+  assert.ok(!has(/ثالث/));
+  assert.equal(await store.warnings.count(w.guild.id, w.target.id), 0);
+
+  // ما عنده شي من هالإنذار
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'الإنذار': 'w2' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /ما فيه شي يتحذف/);
+
+  // بدون اختيار ← يعرض الثلاث رتب
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target });
+  await dispatch(i);
+  const t = lastPayload(i).text;
+  assert.ok(/إنذار أول/.test(t) && /إنذار ثاني/.test(t) && /إنذار ثالث/.test(t));
 });
