@@ -274,7 +274,7 @@ test('التكت: أخطاء Gemini (حد جوجل، شبكة، فلاتر ال�
       throw err;
     });
     await say(channel, w.member, `سؤال ${err.message}`);
-    assert.equal(sendsIn(w, channel.id).pop()[2].content, ai.FRIENDLY_ERROR);
+    assert.equal(sendsIn(w, channel.id).pop()[2].content, err.status === 429 ? ai.BUSY_ERROR : ai.FRIENDLY_ERROR);
   }
   gemini.setGenerator(async () => '   ');
   await say(channel, w.member, 'سؤال أخير');
@@ -533,7 +533,7 @@ test('/مساعدة: فيها قسم المساعد الذكي وأمر قناة
   await dispatch(i);
   const all = JSON.stringify(i.log);
   assert.match(all, /مساعد احسمها الذكي/);
-  assert.match(all, /@احسمها \+ سؤالك/);
+  assert.match(all, /@احسمها \+ كلامك/);
   assert.match(all, /قناة_اخبار_الادمن/);
   assert.ok(help._internal.CATEGORIES.some((c) => c.title.includes('مساعد احسمها الذكي')));
 });

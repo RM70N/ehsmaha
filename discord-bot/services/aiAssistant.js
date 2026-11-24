@@ -26,6 +26,8 @@ const gemini = require('./gemini');
 const aiStyle = require('./aiStyle');
 const aiPersona = require('../config/aiPersona');
 const aiModes = require('../config/aiModes');
+const aiMemory = require('./aiMemory');
+const { checkAdminPermission } = require('../utils/adminPermissions');
 const siteKnowledge = require('./siteKnowledge');
 const eb = require('../utils/embedBuilder');
 const logger = require('../utils/logger');
@@ -36,6 +38,11 @@ const { loadConfig } = require('../config');
 const GREETING = 'أهلاً 👋 معك مساعد احسمها، كيف أقدر أخدمك؟';
 const FRIENDLY_ERROR = 'عذراً، حصل خلل مؤقت 🙏 حاول مرة أخرى أو اطلب التحدث مع فريق الدعم.';
 const MENTION_WAIT = 'الرجاء الانتظار قليلاً قبل سؤال آخر ⏳';
+const BUSY_ERROR = 'ضغطتوني شوي 😅 جرّب بعد دقيقة وأرد عليك.';
+const MENTION_HISTORY_TURNS = 12;
+const MENTION_HISTORY_TTL_MS = 30 * 60 * 1000;
+// `${channelId}:${userId}` -> { turns: [{role,text}], at } — ذاكرة السوالف القصيرة
+const mentionHistory = new Map();
 const MAX_CONTEXT_MESSAGES = 30; // آخر 30 رسالة تنرسل لـGemini (تكفي للسياق وتحد التكلفة)
 const MAX_TRANSCRIPT = 400; // حد سجل التكت بالذاكرة
 const MAX_INPUT_CHARS = 2000;
@@ -101,8 +108,16 @@ const cleanInput = (text) => String(text || '').trim().slice(0, MAX_INPUT_CHARS)
 // البرومبت = قاعدة المعرفة (مخزّنة) + أسلوب صاحب السيرفر (لكل سيرفر)
 async function systemPromptFor(guildId, extra = '', { style: withStyle = true } = {}) {
   const base = knowledge.buildSystemPrompt();
+  const memory = await aiMemory.promptBlock(guildId).catch(() => '');
   const style = withStyle ? await aiStyle.styleBlock(guildId) : '';
-  return [base, extra, style].filter(Boolean).join('\n\n');
+  return [base, memory, extra, style].filter(Boolean).join('\n\n');
+}
+
+// الرد لما يفشل Gemini: أقرب جواب معتمد من الإدارة، وإلا رسالة ودّية
+async function failureReply(guildId, text, code) {
+  const taught = text ? await aiMemory.closestAnswer(guildId, text).catch(() => null) : null;
+  if (taught) return taught;
+  return code === 'RATE_LIMIT' ? BUSY_ERROR : FRIENDLY_ERROR;
 }
 
 
@@ -392,7 +407,8 @@ async function handleTicketMessage(message) {
     }
     if (!conversations.has(message.channel.id)) return false; // انقفل التكت أثناء الانتظار
     if (!r.ok) {
-      await message.channel.send({ content: FRIENDLY_ERROR, allowedMentions: { parse: [] } }).catch(() => null);
+      const fallback = await failureReply(c.guildId, text, r.code);
+      await sendChunks(message.channel, fallback).catch(() => null);
       return true;
     }
     const { clean, suggestions } = extractSuggestions(r.text);
@@ -580,6 +596,71 @@ function mentionsBot(message, botUser) {
   return message.mentions.has(botUser, { ignoreEveryone: true, ignoreRoles: true, ignoreRepliedUser: true });
 }
 
+// Reply على رسالة البوت (حتى لو المنشن مطفي بالرد) = كلام موجّه له — عشان السوالف تكمل طبيعي
+async function repliesToBot(message, botUser) {
+  if (!botUser || !message.reference || !message.reference.messageId) return false;
+  if (message.mentions && message.mentions.repliedUser) return message.mentions.repliedUser.id === botUser.id;
+  const cached = message.channel && message.channel.messages && message.channel.messages.cache && message.channel.messages.cache.get(message.reference.messageId);
+  if (cached) return !!cached.author && cached.author.id === botUser.id;
+  if (typeof message.fetchReference !== 'function') return false;
+  const ref = await message.fetchReference().catch(() => null);
+  return !!(ref && ref.author && ref.author.id === botUser.id);
+}
+
+async function isAddressedToBot(message, botUser) {
+  return mentionsBot(message, botUser) || (await repliesToBot(message, botUser));
+}
+
+// ---------------- ذاكرة السوالف (منشن) ----------------
+const historyKey = (message) => `${message.channel.id}:${message.author.id}`;
+
+function historyFor(key, now = Date.now()) {
+  const h = mentionHistory.get(key);
+  if (!h) return [];
+  if (now - h.at > MENTION_HISTORY_TTL_MS) {
+    mentionHistory.delete(key);
+    return [];
+  }
+  return h.turns;
+}
+
+function remember(key, userText, modelText) {
+  const now = Date.now();
+  const turns = [...historyFor(key, now), { role: 'user', text: userText }, { role: 'model', text: modelText }].slice(-MENTION_HISTORY_TURNS);
+  mentionHistory.set(key, { turns, at: now });
+  if (mentionHistory.size > 2000) {
+    for (const [k, v] of mentionHistory) if (now - v.at > MENTION_HISTORY_TTL_MS) mentionHistory.delete(k);
+  }
+}
+
+// ---------------- تعليم الإدارة بالمنشن ----------------
+const TEACH_USAGE =
+  'الصيغة:\n• `@احسمها تعلم: السؤال = الجواب`\n• `@احسمها تعليمة: اللي تبيني أمشي عليه`\n(وللعرض والحذف: `/ذاكرة_المساعد`)';
+
+/** @returns {Promise<boolean>} true لو كانت رسالة تعليم من الإدارة وتعاملنا معها */
+async function handleTeach(message, text) {
+  const teach = aiMemory.parseTeach(text);
+  if (!teach) return false;
+  const { allowed } = await checkAdminPermission(message.member).catch(() => ({ allowed: false }));
+  if (!allowed) return false; // مو إدارة ← سوالف عادية
+  let content;
+  try {
+    if (teach.kind === 'invalid') content = `⚠️ ما فهمت وش السؤال ووش الجواب.\n${TEACH_USAGE}`;
+    else if (teach.kind === 'qa') {
+      const r = await aiMemory.addQa(message.guild.id, teach.question, teach.answer, message.author.id);
+      content = `✅ ${r.updated ? 'حدّثت الجواب' : 'حفظتها'} (#${r.id})! لو أحد سأل «${eb.clip(teach.question, 120)}» بجاوبه:\n> ${eb.clip(teach.answer, 400)}`;
+    } else {
+      const r = await aiMemory.addInstruction(message.guild.id, teach.content, message.author.id);
+      content = `✅ تمام، التعليمة انحفظت (#${r.id}) وبمشي عليها من الحين 🫡`;
+    }
+  } catch (err) {
+    if (!err.userFacing) logger.warn('🧠 تعذّر حفظ تعليم الإدارة', { guildId: message.guild.id, error: err });
+    content = `⚠️ ${err.userFacing ? err.message : 'ما قدرت أحفظها الحين، جرّب مرة ثانية.'}`;
+  }
+  await message.reply({ content, allowedMentions: { parse: [], repliedUser: false } }).catch(() => null);
+  return true;
+}
+
 function stripMention(content, botId) {
   return String(content || '')
     .replace(new RegExp(`<@!?${botId}>`, 'g'), ' ')
@@ -592,7 +673,7 @@ function stripMention(content, botId) {
  * @returns {Promise<boolean>} true لو تعاملنا مع الرسالة
  */
 async function handleMention(message, botUser) {
-  if (!mentionsBot(message, botUser)) return false;
+  if (!(await isAddressedToBot(message, botUser))) return false;
   // قناة تكت نشط ← نظام التكتات يتعامل معها (ما نعالج الرسالة مرتين)
   if (await activeTicketFor(message.channel)) return false;
 
@@ -617,10 +698,22 @@ async function handleMention(message, botUser) {
   sweepCooldowns(now, windowMs);
 
   const question = cleanInput(humanizeMentions(message, stripMention(message.content, botUser.id)));
+  if (question && (await handleTeach(message, question))) return true;
   const images = imageAttachments(message);
   if (!question && !images.length) {
     await message.reply({ content: 'أهلاً 👋 أنا مساعد احسمها — منشنّي واكتب سؤالك عن احسمها وأبشر!', allowedMentions: { repliedUser: false } }).catch(() => null);
     return true;
+  }
+  const key = historyKey(message);
+  // سؤال علّمته الإدارة بنفس الصيغة ← الجواب المعتمد مباشرة (بدون Gemini)
+  if (question && !images.length) {
+    const direct = await aiMemory.directAnswer(message.guild.id, question).catch(() => null);
+    if (direct) {
+      await sendChunks(message, direct, { reply: true }).catch((err) => logger.warn('🤖 تعذّر إرسال رد المنشن', { guildId: message.guild.id, code: err.code }));
+      remember(key, question, direct);
+      logger.info('🧠 رد من ذاكرة الإدارة (مطابق)', { guildId: message.guild.id, userId: message.author.id });
+      return true;
+    }
   }
   typing(message.channel);
   const loaded = images.length ? await downloadImages(images) : [];
@@ -633,14 +726,16 @@ async function handleMention(message, botUser) {
     guildId: message.guild.id,
     persona: true,
     systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), await siteKnowledge.promptFor(question)].filter(Boolean).join('\n\n')),
-    messages: [{ role: 'user', text: withContext(question || IMAGE_MARK, nameOf(message, message.author), ctx), images: loaded.length ? loaded : undefined }],
+    messages: [...historyFor(key), { role: 'user', text: withContext(question || IMAGE_MARK, nameOf(message, message.author), ctx), images: loaded.length ? loaded : undefined }],
     meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
   });
   try {
-    if (!r.ok) await message.reply({ content: FRIENDLY_ERROR, allowedMentions: { repliedUser: false } });
+    if (!r.ok) await sendChunks(message, await failureReply(message.guild.id, question, r.code), { reply: true });
     else {
       const { clean, suggestions } = extractSuggestions(r.text);
-      await sendChunks(message, clean || (suggestions.length ? SUGGESTION_THANKS : FRIENDLY_ERROR), { reply: true });
+      const replyText = clean || (suggestions.length ? SUGGESTION_THANKS : FRIENDLY_ERROR);
+      await sendChunks(message, replyText, { reply: true });
+      remember(key, withImageMark(question, loaded.length) || IMAGE_MARK, replyText);
       await forwardSuggestions(message.guild, { userId: message.author.id, suggestions, source: 'mention', channelId: message.channel.id });
     }
   } catch (err) {
@@ -853,6 +948,7 @@ function sweepCooldowns(now, windowMs) {
 module.exports = {
   GREETING,
   FRIENDLY_ERROR,
+  BUSY_ERROR,
   MENTION_WAIT,
   startTicket,
   greetingPayload,
@@ -867,5 +963,5 @@ module.exports = {
   extractSuggestions,
   systemPromptFor,
   setImageFetcher,
-  _internal: { chatState, chatUserGap, imageAttachments, IMAGE_MARK, TEXT_ONLY_REPLY, IMAGE_FAILED_REPLY, MAX_IMAGE_BYTES, conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
+  _internal: { BUSY_ERROR, mentionHistory, repliesToBot, chatState, chatUserGap, imageAttachments, IMAGE_MARK, TEXT_ONLY_REPLY, IMAGE_FAILED_REPLY, MAX_IMAGE_BYTES, conversations, mentionCooldowns, stripMention, mentionsBot, chatMessages, transcriptText, SUMMARY_INSTRUCTION }
 };
