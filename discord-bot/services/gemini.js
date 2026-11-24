@@ -156,11 +156,11 @@ async function callOnce({ apiKey, keyIndex, model, systemInstruction, contents, 
  * @param {object} [p.meta]  { context, guildId, userId, channelId } — للسجل فقط
  * @returns {Promise<{ok:true,text:string}|{ok:false,code:string}>}
  */
-async function generate({ systemInstruction, messages, maxOutputTokens = 1024, temperature = 0.6, json = false, meta = {} }) {
+async function generate({ systemInstruction, messages, maxOutputTokens = 1024, temperature = 0.6, json = false, meta = {}, timeoutMs = null, maxAttempts = null }) {
   const cfg = loadConfig();
   const started = Date.now();
   const contents = messages.map(toContent);
-  const attempts = plan(cfg, started);
+  const attempts = plan(cfg, started).slice(0, maxAttempts || MAX_ATTEMPTS);
   let result = { ok: false, code: attempts.length ? 'UNKNOWN' : 'RATE_LIMIT' };
   let used = null;
   let tries = 0;
@@ -176,7 +176,7 @@ async function generate({ systemInstruction, messages, maxOutputTokens = 1024, t
           systemInstruction,
           contents,
           generationConfig: generationConfigFor(a.model, { maxOutputTokens, temperature, json }),
-          timeoutMs: cfg.geminiTimeoutMs
+          timeoutMs: timeoutMs || cfg.geminiTimeoutMs
         })) || ''
       ).trim();
       result = text ? { ok: true, text } : { ok: false, code: 'EMPTY' };
