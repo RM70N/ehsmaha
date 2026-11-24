@@ -7,7 +7,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { PermissionFlagsBits, ChannelType } = require('discord.js');
-const { makeGuild, makeRole, makeMember, makeChannel, makeMessage, makeInteraction, lastPayload } = require('./helpers/discordMock');
+const { makeGuild, makeRole, makeMember, makeChannel, makeMessage, makeUserMessage, makeInteraction, lastPayload } = require('./helpers/discordMock');
 
 Object.assign(process.env, {
   DISCORD_TOKEN: 'test-token',
@@ -698,23 +698,39 @@ test('سجل الإدارة: التحذير يوصل لروم أخبار الأ�
   }
 });
 
-test('تكت قديم: تنبيه مفصّل لروم أخبار الأدمن مرة وحدة كل 24 ساعة', async () => {
+test('تكت قديم: تقرير واحد فقط (صاحب التكت + السبب + المشكلة وهل انحلت) ما يتكرر حتى بعد إعادة التشغيل، ولا يتكرر عند الإغلاق', async () => {
   const w = await makeAdminWorld();
   const news = makeChannel(w.guild, { id: loadConfig().adminNewsChannelId, name: 'اخبار-الادمن' });
   const tk = makeChannel(w.guild, { name: 'تكت-1' });
   const panelId = await store.tickets.createPanel({ guildId: w.guild.id, channelId: tk.id, content: 'x', createdBy: w.mod.id });
-  const r = await store.tickets.reserve({ guildId: w.guild.id, panelId, originChannelId: tk.id, discordId: w.regular.id, reason: 'account' });
-  await store.tickets.attachChannel(r, tk.id);
-  const watch = require('../services/ticketWatch');
-  watch._internal.alerted.clear();
-  const client = { guilds: { cache: new Map([[w.guild.id, w.guild]]) } };
-  assert.equal(await watch.check(client, { now: Date.now() }), 0, 'تكت جديد ما ينبّه');
-  const later = Date.now() + 25 * 3600 * 1000;
-  assert.equal(await watch.check(client, { now: later }), 1);
-  const sent = w.guild.log.filter(([t, id]) => t === 'send' && id === news.id);
-  assert.equal(sent.length, 1);
-  assert.match(JSON.stringify(sent[0][2].embeds.map((x) => (x.toJSON ? x.toJSON() : x))), /مفتوح من 25 ساعة/);
-  assert.equal(await watch.check(client, { now: later + 1000 }), 0, 'ما يكرر');
+  const id = await store.tickets.reserve({ guildId: w.guild.id, panelId, originChannelId: tk.id, discordId: w.regular.id, reason: 'account' });
+  await store.tickets.attachChannel(id, tk.id);
+  makeUserMessage(tk, w.regular, 'ما أقدر أدخل حسابي');
+  const gemini = require('../services/gemini');
+  gemini.setGenerator(async () => '**المشكلة:** ما يقدر يدخل حسابه\n**الحالة:** ما انحلت ❌');
+  try {
+    const watch = require('../services/ticketWatch');
+    const client = { guilds: { cache: new Map([[w.guild.id, w.guild]]) } };
+    assert.equal(await watch.check(client, { now: Date.now() }), 0, 'تكت جديد ما ينبّه');
+    const later = Date.now() + 25 * 3600 * 1000;
+    assert.equal(await watch.check(client, { now: later }), 1);
+    const sent = w.guild.log.filter(([t, cid]) => t === 'send' && cid === news.id);
+    assert.equal(sent.length, 1);
+    const e = sent[0][2].embeds[0].toJSON();
+    assert.match(e.description, /المشكلة/);
+    assert.match(e.description, /ما انحلت/);
+    assert.deepEqual(e.fields.map((f) => f.name).sort(), ['📌 سبب التكت', '👤 صاحب التكت'].sort());
+    // فحوصات ثانية (وكأن البوت انعاد تشغيله) ما تكرر
+    assert.equal(await watch.check(client, { now: later + 3600e3 }), 0);
+    assert.equal(await watch.check(client, { now: later + 48 * 3600e3 }), 0);
+    assert.equal(w.guild.log.filter(([t, cid]) => t === 'send' && cid === news.id).length, 1);
+    // ولو انقفل بعدها ما ينرسل له ملخص ثاني
+    const r = await require('../services/aiAssistant').reportTicketClosed({ guild: w.guild, channel: tk, ticket: await store.tickets.get(id), closedById: w.mod.id });
+    assert.equal(r.reason, 'ALREADY_REPORTED');
+    assert.equal(w.guild.log.filter(([t, cid]) => t === 'send' && cid === news.id).length, 1);
+  } finally {
+    gemini.setGenerator(null);
+  }
 });
 
 // =================== إداري: كتم وفك كتم + كل شي إداري يوصل لروم الأخبار ===================

@@ -13,7 +13,8 @@ const { formatDurationAr } = require('./moderation');
 const ORDINAL = { 1: 'الأول', 2: 'الثاني', 3: 'الثالث' };
 
 // كل فعل إداري يتسجّل (أي شي يمر بـlogModeration) — عدا الأفعال الآلية للحماية (auto_*) لأنها مو من إداري
-const isWatched = (action) => !!action && !/^auto_/.test(action);
+// ticket_close مستثنى: لكل تكت رسالة وحدة فقط (تقرير المساعد بالمشكلة وهل انحلت) بدل رسالتين
+const isWatched = (action) => !!action && action !== 'ticket_close' && !/^auto_/.test(action);
 const WATCHED = { has: isWatched };
 
 const LABELS = {
@@ -85,13 +86,6 @@ function embedFor(entry) {
       add('📍 الروم', entry.channelId ? `<#${entry.channelId}>` : '');
       add('🔢 العدد', d.deleted ?? d.count ?? d.amount ?? '');
       add('📝 السبب', entry.reason || '', false);
-      break;
-    case 'ticket_close':
-      e.setTitle(`🎫 إغلاق تكت${d.ticketId ? ` #${d.ticketId}` : ''}`);
-      add('👤 صاحب التكت', who(entry.targetId));
-      add('🛡️ أغلقه', who(entry.moderatorId));
-      add('📌 السبب', entry.reason || '');
-      add('📍 الروم', entry.channelId ? `<#${entry.channelId}>` : '');
       break;
     default:
       e.setTitle(`🛠️ ${LABELS[entry.action] || entry.action}`);
