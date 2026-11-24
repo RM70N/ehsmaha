@@ -132,6 +132,11 @@ module.exports = {
         .catch((err) => logger.error('تعذّر تشغيل إعلانات الستريمرز', { error: err }));
     }
 
+    // تنبيه الإدارة بالتكتات المفتوحة من زمان (روم أخبار الأدمن)
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => ok !== false && require('../services/ticketWatch').start(client))
+      .catch((err) => logger.warn('تعذّر تشغيل مراقبة التكتات القديمة', { error: err }));
+
     // مهام المالك (services/ownerAI) اللي انقطعت بإعادة التشغيل: نعلّمها ونبلّغ المالك بالنتيجة الجزئية
     Promise.resolve(ctx.dbReady)
       .then((ok) => ok !== false && require('../services/ownerAI').recoverInterrupted(client))

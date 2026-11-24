@@ -442,6 +442,21 @@ const aiMemory = {
   }
 };
 
+// ---------------- جنس الأعضاء (يصرّحون به بأنفسهم) ----------------
+const userGender = {
+  async get(guildId, userId) {
+    const rows = await db.query('SELECT gender FROM ai_user_gender WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+    return rows[0] ? rows[0].gender : null;
+  },
+  async set(guildId, userId, gender) {
+    await db.run(
+      `INSERT INTO ai_user_gender (guild_id, user_id, gender, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT (guild_id, user_id) DO UPDATE SET gender = excluded.gender, updated_at = excluded.updated_at`,
+      [guildId, userId, gender, now()]
+    );
+  }
+};
+
 // ---------------- نظام تنفيذ أوامر المالك (services/ownerAI) ----------------
 // سجل كل مهمة: يمنع تكرار تنفيذ نفس الرسالة (message_id فريد)، ويحفظ خطة التأكيد
 // الثابتة (plan_json + hash)، ونتائج الخطوات، وحالة المهمة (تنجو من إعادة التشغيل).
@@ -487,4 +502,4 @@ const ownerAiTasks = {
   }
 };
 
-module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory };
+module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory, userGender };

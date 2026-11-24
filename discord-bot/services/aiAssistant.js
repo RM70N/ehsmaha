@@ -27,6 +27,7 @@ const aiStyle = require('./aiStyle');
 const aiPersona = require('../config/aiPersona');
 const aiModes = require('../config/aiModes');
 const aiMemory = require('./aiMemory');
+const aiGender = require('./aiGender');
 const { checkAdminPermission } = require('../utils/adminPermissions');
 const siteKnowledge = require('./siteKnowledge');
 const eb = require('../utils/embedBuilder');
@@ -166,7 +167,7 @@ const CONTEXT_MESSAGES = 6;
 const CONTEXT_CHARS = 200;
 
 /** آخر رسائل القناة + الرسالة اللي يرد عليها (للفهم فقط). ما يرمي. */
-async function channelContext(message, botUser) {
+async function channelContext(message, botUser, { tagFor = null } = {}) {
   const lines = [];
   try {
     const col = message.channel && message.channel.messages && typeof message.channel.messages.fetch === 'function'
@@ -176,7 +177,9 @@ async function channelContext(message, botUser) {
     for (const m of list) {
       const t = humanizeMentions(m, m.content).slice(0, CONTEXT_CHARS);
       if (!t || !m.author) continue;
-      lines.push(`${botUser && m.author.id === botUser.id ? 'احسمها (أنت)' : nameOf(message, m.author)}: ${t}`);
+      const isBot = botUser && m.author.id === botUser.id;
+      const tag = !isBot && tagFor ? await tagFor(m).catch(() => '') : '';
+      lines.push(`${isBot ? 'احسمها (أنت)' : nameOf(message, m.author)}${tag}: ${t}`);
     }
   } catch {
     /* بدون صلاحية قراءة السجل — نكمل بدون سياق */
@@ -276,9 +279,7 @@ async function forwardSuggestions(guild, { userId, suggestions, source, channelI
   if (!suggestions.length) return 0;
   logger.info('💡 اقتراح جديد من المساعد الذكي', { guildId: guild.id, userId, source, ticketId, count: suggestions.length });
   try {
-    const settings = await store.guildSettings.get(guild.id);
-    const id = settings.admin_news_channel_id;
-    const ch = id && (guild.channels.cache.get(id) || (await guild.channels.fetch(id).catch(() => null)));
+    const ch = await require('../utils/adminLog').newsChannel(guild);
     if (!ch) return 0;
     const embed = eb.brand({
       tone: 'gold',
@@ -525,11 +526,10 @@ async function reportTicketClosed({ guild, channel, ticket, closedById }) {
       c.transcript = await transcriptFromChannel(channel, ticket);
       c.staffMessages = c.transcript.filter((m) => m.role === 'staff').length;
     }
-    const settings = await store.guildSettings.get(guild.id);
-    const newsId = settings.admin_news_channel_id;
-    const newsChannel = newsId && (guild.channels.cache.get(newsId) || (await guild.channels.fetch(newsId).catch(() => null)));
+    const newsChannel = await require('../utils/adminLog').newsChannel(guild);
     if (!newsChannel) {
-      out.reason = newsId ? 'NEWS_CHANNEL_MISSING' : 'NO_NEWS_CHANNEL';
+      const configured = await store.guildSettings.get(guild.id).then((s) => s.admin_news_channel_id).catch(() => null);
+      out.reason = configured ? 'NEWS_CHANNEL_MISSING' : 'NO_NEWS_CHANNEL';
       logger.info('🤖 ملخص التكت ما انرسل — قناة أخبار الأدمن غير محددة', { ticketId: ticket.id, guildId: guild.id });
       return out;
     }
@@ -879,6 +879,9 @@ async function handleGeneralChat(message, botUser) {
   const cfg = loadConfig();
   if (!message.channel || !(cfg.aiChatChannelIds || []).includes(message.channel.id) || !botUser) return false;
   if (message.system) return true;
+  // تصريح العضو بجنسه ("أنا بنت" / "أنا ولد") يتحفظ حتى لو الرسالة مو موجّهة للبوت
+  const declared = message.author && !message.author.bot ? aiGender.detect(message.content) : null;
+  if (declared) await aiGender.remember(message.guild.id, message.author.id, declared);
   const mentioned = mentionsBot(message, botUser);
   const toBot = mentioned || (await isReplyToBot(message, botUser));
   if (!toBot) return false;
@@ -899,13 +902,15 @@ async function handleGeneralChat(message, botUser) {
   try {
     typing(message.channel);
     const loaded = images.length ? await downloadImages(images) : [];
-    const ctx = await channelContext(message, botUser);
+    const tagFor = async (m) => aiGender.tagOf(await aiGender.resolve(message.guild.id, m.member, m.author.id));
+    const ctx = await channelContext(message, botUser, { tagFor });
     const who = nameOf(message, message.author);
+    const gender = await aiGender.resolve(message.guild.id, message.member, message.author.id);
     const hint = '[هذي الرسالة موجّهة لك مباشرة — لازم ترد]';
     const r = await generateGuarded({
       guildId: message.guild.id,
       persona: true,
-      systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), aiModes.CHAT, `روم الدعم للإحالة: ${supportChannelMention(message.guild)}`].join('\n\n')),
+      systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), aiModes.CHAT, aiGender.promptLine(who, gender, { justSet: !!declared }), `روم الدعم للإحالة: ${supportChannelMention(message.guild)}`].join('\n\n')),
       messages: [{ role: 'user', text: withContext(`${hint}\n${text || IMAGE_MARK}`, who, ctx), images: loaded.length ? loaded : undefined }],
       maxOutputTokens: 220,
       temperature: 0.9,
@@ -918,7 +923,7 @@ async function handleGeneralChat(message, botUser) {
       return true;
     }
     const { clean } = extractSuggestions(r.text);
-    const out = (clean || FRIENDLY_ERROR).split(aiModes.SKIP).join('').trim();
+    const out = aiGender.cleanReply((clean || FRIENDLY_ERROR).split(aiModes.SKIP).join('').trim(), text);
     if (out) await sendChunks(message, out.slice(0, 600), { reply: true });
   } catch (err) {
     logger.warn('🤖 تعذّر رد الشات العام', { channelId: message.channel.id, code: err && err.code });

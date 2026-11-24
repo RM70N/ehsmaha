@@ -15,10 +15,11 @@ const eb = require('../../utils/embedBuilder');
 const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
-const { guardAdmin, withStorageNotice } = require('../../utils/adminPermissions');
+const { guardAdmin, withStorageNotice, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
 const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
 const { ensureWarningRoles } = require('../../utils/warningRoles');
+
 
 const LEVELS = ['w1', 'w2', 'w3'];
 
@@ -41,22 +42,22 @@ module.exports = {
   // الخيارات تمثّل مستوى التحذير (1/2/3)؛ الرتبة الفعلية بالسيرفر حسب WARNING_ROLE_NAMES
   data: new SlashCommandBuilder()
     .setName('تحذير')
-    .setDescription('🛡️ (للإدارة) تحذير عضو ومنحه رتبة تحذير')
+    .setDescription('🛡️ (للإدارة/الإداريين) إنذار عضو ومنحه رتبة الإنذار (أول/ثاني/ثالث)')
     .setContexts(InteractionContextType.Guild)
     .addUserOption((o) => o.setName('عضو').setDescription('العضو المراد تحذيره').setRequired(true))
     .addStringOption((o) => o.setName('سبب').setDescription('سبب التحذير').setRequired(true).setMaxLength(400))
     .addStringOption((o) =>
       o
         .setName('رتبة_التحذير')
-        .setDescription('رتبة التحذير اللي تبي تعطيها للعضو')
+        .setDescription('رتبة الإنذار اللي تبي تعطيها للعضو')
         .setRequired(true)
-        .addChoices({ name: 'تحذير1', value: 'w1' }, { name: 'تحذير2', value: 'w2' }, { name: 'تحذير3', value: 'w3' })
+        .addChoices({ name: 'إنذار أول', value: 'w1' }, { name: 'إنذار ثاني', value: 'w2' }, { name: 'إنذار ثالث', value: 'w3' })
     ),
 
   async execute(interaction) {
     if (!interaction.inGuild()) return;
     if (!(await respond.defer(interaction, { ephemeral: true }))) return;
-    if (!(await guardAdmin(interaction))) return;
+    if (!(await guardAdmin(interaction, { roleNameRe: STAFF_ROLE_RE }))) return;
 
     const guild = interaction.guild;
     const target = interaction.options.getMember('عضو');
@@ -118,7 +119,6 @@ module.exports = {
     }
     if (switched && switched.removed.length) notes.push(`أُزيلت رتبة ${switched.removed.join('، ')} قبل منح الرتبة الجديدة.`);
     if (roleError) notes.push('⚠️ التحذير انسجل، لكن تعذّر تعديل رتب العضو — تحقق من ترتيب رتبة البوت.');
-    if (ensured.created.length) notes.push(`أُنشئت تلقائياً رتب: ${ensured.created.join('، ')}.`);
     if (!dmOk) notes.push('تعذر إرسال إشعار خاص للعضو.');
     if (notes.length) embed.addFields(eb.field('ℹ️ ملاحظات', notes.join('\n'), false));
     return respond.send(interaction, withStorageNotice({ embeds: [embed] }));

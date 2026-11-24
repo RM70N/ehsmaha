@@ -99,8 +99,30 @@ function denyPayload(level = 'admin') {
 }
 
 // حارس جاهز للأوامر: يرجّع true لو مسموح، وإلا يرد برسالة الرفض ويرجّع false
-async function guardAdmin(interaction) {
-  const { allowed } = await checkAdminPermission(interaction.member);
+// رتبة «إداري» (بعد تنظيف الزخرفة من اسمها) — تسمح باستخدام /تحذير و/كتم و/فك_كتم فقط
+const STAFF_ROLE_RE = /(^|\s)اداري(\s|$)/;
+
+/**
+ * رتبة بالاسم (بعد التنظيف من الزخرفة) — مثل «☆ ˹ إداري 🧑‍💻꙳.˼» ← "اداري".
+ */
+function hasRoleNamed(member, re) {
+  try {
+    const { normName } = require('./warningRoles');
+    return [...member.roles.cache.values()].some((r) => re.test(normName(r.name)));
+  } catch {
+    return false;
+  }
+}
+
+// guardAdmin(interaction, { roleNameRe }) — بالإضافة للصلاحيات المعتادة، يسمح لمن يملك رتبة اسمها يطابق roleNameRe
+// (أو معرّفها بـWARN_STAFF_ROLE_IDS) — يُستخدم لـ/تحذير فقط.
+async function guardAdmin(interaction, { roleNameRe = null } = {}) {
+  let { allowed } = await checkAdminPermission(interaction.member);
+  if (!allowed && roleNameRe) {
+    const ids = require('../config').loadConfig().warnStaffRoleIds || [];
+    const m = interaction.member;
+    allowed = hasRoleNamed(m, roleNameRe) || ids.some((id) => m && m.roles && m.roles.cache && m.roles.cache.has(id));
+  }
   if (!allowed) {
     logger.warn('رفض أمر إداري لعدم الصلاحية', { command: interaction.commandName, userId: interaction.user.id, guildId: interaction.guildId });
     await respond.send(interaction, denyPayload('admin'), { ephemeral: true });
@@ -143,4 +165,6 @@ function invalidateAll() {
   cache.clear();
 }
 
-module.exports = { checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, reloadAll, loadGuild, denyPayload, withStorageNotice };
+module.exports = {
+  STAFF_ROLE_RE,
+  hasRoleNamed, checkAdminPermission, isServerManager, guardAdmin, guardManager, invalidate, invalidateAll, reloadAll, loadGuild, denyPayload, withStorageNotice };
