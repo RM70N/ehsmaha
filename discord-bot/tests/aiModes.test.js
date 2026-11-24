@@ -162,3 +162,44 @@ test('الشات العام: مشاركة تلقائية (احتمال + فاص�
   const other = makeChannel(guild, { name: 'عام2' });
   assert.equal(await ai.handleGeneralChat(makeUserMessage(other, m, 'هلا'), botUserOf(guild)), false);
 });
+
+// ---------------- ذاكرة المساعد (تعلم:/تعليمة:) مع المنشن ----------------
+const aiMemory = require('../services/aiMemory');
+
+test('ذاكرة المساعد: سؤال معلَّم يرد عليه مباشرة بدون Gemini، والتعليمات تدخل البرومبت، وريبلاي على البوت يكمّل السوالف', async () => {
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { name: 'سوالف' });
+  const m = makeMember(guild, { username: 'عبود' });
+  const bot = botUserOf(guild);
+  await aiMemory.addQa(guild.id, 'من الذي صنع لعبة احسمها؟', 'فريق احسمها 💜', 'admin');
+  await aiMemory.addInstruction(guild.id, 'نادِ الناس يا بطل', 'admin');
+  ai._internal.mentionCooldowns.clear();
+  const a = await say(ch, m, `<@${bot.id}> من الذي صنع لعبه احسمها`, { mentions: [bot] });
+  assert.equal(calls.length, 0, 'ما استدعى Gemini');
+  assert.equal(replies(guild, a)[0][3].content, 'فريق احسمها 💜');
+  ai._internal.mentionCooldowns.clear();
+  await say(ch, m, `<@${bot.id}> كيف حالك`, { mentions: [bot] });
+  assert.equal(calls.length, 1);
+  assert.match(sysText(calls[0]), /نادِ الناس يا بطل/);
+  // ريبلاي بدون منشن ← يكمّل بنفس الذاكرة (الدور القديم محفوظ)
+  ai._internal.mentionCooldowns.clear();
+  const botMsg = makeUserMessage(ch, guild.members.me, 'تمام');
+  await say(ch, m, 'وانت؟', { reference: botMsg });
+  assert.equal(calls.length, 2);
+  assert.ok(calls[1].contents.length >= 3, 'سجل السوالف القصير');
+});
+
+test('ذاكرة المساعد: لو Gemini فشل يرد بأقرب جواب معلَّم، وإلا رسالة "ضغطتوني" عند RATE_LIMIT', async () => {
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { name: 'سوالف2' });
+  const m = makeMember(guild, { username: 'عبود' });
+  const bot = botUserOf(guild);
+  await aiMemory.addQa(guild.id, 'متى المسابقة الجاية', 'يوم الجمعة 🏆', 'admin');
+  gemini.setGenerator(async () => { throw Object.assign(new Error('quota'), { status: 429 }); });
+  ai._internal.mentionCooldowns.clear();
+  const a = await say(ch, m, `<@${bot.id}> وش الجديد`, { mentions: [bot] });
+  assert.equal(replies(guild, a)[0][3].content, ai.BUSY_ERROR);
+  ai._internal.mentionCooldowns.clear();
+  const b = await say(ch, m, `<@${bot.id}> يا شباب متى المسابقة الجاية`, { mentions: [bot] });
+  assert.equal(replies(guild, b)[0][3].content, 'يوم الجمعة 🏆');
+});

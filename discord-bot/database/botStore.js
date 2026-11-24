@@ -396,6 +396,52 @@ const aiStyle = {
   }
 };
 
+// ---------------- ذاكرة المساعد (تعليمات + أسئلة وأجوبة من الإدارة) ----------------
+const mapMemory = (r) => (r ? { ...r, id: toNum(r.id), created_at: toNum(r.created_at) } : null);
+
+const aiMemory = {
+  async list(guildId, kind = null) {
+    const rows = kind
+      ? await db.query('SELECT * FROM ai_memory WHERE guild_id = ? AND kind = ? ORDER BY created_at ASC, id ASC', [guildId, kind])
+      : await db.query('SELECT * FROM ai_memory WHERE guild_id = ? ORDER BY created_at ASC, id ASC', [guildId]);
+    return rows.map(mapMemory);
+  },
+  async count(guildId, kind) {
+    const rows = await db.query('SELECT COUNT(*) AS n FROM ai_memory WHERE guild_id = ? AND kind = ?', [guildId, kind]);
+    return toNum(rows[0].n);
+  },
+  // سؤال موجود بنفس الصيغة ← يتحدّث جوابه بدل التكرار. يرجّع { id, updated }
+  async add({ guildId, kind, question = null, questionNorm = null, content, createdBy }) {
+    if (kind === 'qa' && questionNorm) {
+      const rows = await db.query('SELECT id FROM ai_memory WHERE guild_id = ? AND kind = ? AND question_norm = ?', [guildId, 'qa', questionNorm]);
+      if (rows[0]) {
+        await db.run('UPDATE ai_memory SET question = ?, content = ?, created_by = ?, created_at = ? WHERE id = ?', [question, content, createdBy, now(), rows[0].id]);
+        return { id: toNum(rows[0].id), updated: true };
+      }
+    }
+    const r = await db.run(
+      'INSERT INTO ai_memory (guild_id, kind, question, question_norm, content, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id',
+      [guildId, kind, question, questionNorm, content, createdBy, now()]
+    );
+    return { id: toNum(r.rows[0].id), updated: false };
+  },
+  // يرجّع السجل المحذوف أو null
+  async remove(guildId, id) {
+    const rows = await db.query('SELECT * FROM ai_memory WHERE guild_id = ? AND id = ?', [guildId, id]);
+    if (!rows[0]) return null;
+    await db.run('DELETE FROM ai_memory WHERE guild_id = ? AND id = ?', [guildId, id]);
+    return mapMemory(rows[0]);
+  },
+  async clear(guildId, kind = null) {
+    const rows = kind
+      ? await db.query('SELECT COUNT(*) AS n FROM ai_memory WHERE guild_id = ? AND kind = ?', [guildId, kind])
+      : await db.query('SELECT COUNT(*) AS n FROM ai_memory WHERE guild_id = ?', [guildId]);
+    if (kind) await db.run('DELETE FROM ai_memory WHERE guild_id = ? AND kind = ?', [guildId, kind]);
+    else await db.run('DELETE FROM ai_memory WHERE guild_id = ?', [guildId]);
+    return toNum(rows[0].n);
+  }
+};
+
 // ---------------- نظام تنفيذ أوامر المالك (services/ownerAI) ----------------
 // سجل كل مهمة: يمنع تكرار تنفيذ نفس الرسالة (message_id فريد)، ويحفظ خطة التأكيد
 // الثابتة (plan_json + hash)، ونتائج الخطوات، وحالة المهمة (تنجو من إعادة التشغيل).
@@ -441,4 +487,4 @@ const ownerAiTasks = {
   }
 };
 
-module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle };
+module.exports = { ownerAiTasks, adminConfig, guildConfig, tickets, warnings, moderationLog, guildSettings, autoMod, autoReplies, aiStyle, aiMemory };
