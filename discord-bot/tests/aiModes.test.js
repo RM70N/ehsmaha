@@ -111,3 +111,54 @@ test('رومات ثانية ما تتأثر، وبرومبت التكت رسمي
   assert.equal(aiModes.asksAboutFiles('كيف أربط البث؟'), false);
   assert.equal(aiModes.asksAboutFiles('ابي سورس كود البوت'), true);
 });
+
+// ---------------- الشات العام ----------------
+const CHAT_CH = '1552252006368944188';
+const botUserOf = (guild) => guild.members.me.user;
+
+test('الشات العام: المنشن والريبلاي يردان فوراً (طلب سريع: مهلة قصيرة ومحاولات محدودة) وبوضع السوالف + الإحالة لروم الدعم', async () => {
+  assert.deepEqual([...loadConfig().aiChatChannelIds], [CHAT_CH]);
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH, name: 'الشات-العام' });
+  makeChannel(guild, { name: 'الدعم' });
+  const m = makeMember(guild, { username: 'سعود' });
+  let seen;
+  gemini.setGenerator(async (req) => { seen = req; calls.push(req); return 'ههههه ابشر يا ذيب'; });
+  const msg = await say(ch, m, `<@${botUserOf(guild).id}> وش أخبارك`, { mentions: [botUserOf(guild)] });
+  assert.equal(replies(guild, msg).length, 1);
+  assert.match(sysText(seen), /وضع الشات العام/);
+  assert.match(sysText(seen), /تفضل لروم الدعم وافتح تكت/);
+  assert.match(sysText(seen), /<#\d+>/, 'منشن روم الدعم');
+  // ريبلاي على رسالة البوت
+  ai._internal.chatUserGap.clear();
+  const botMsg = makeUserMessage(ch, guild.members.me, 'هلا');
+  const r2 = await say(ch, m, 'تمام وانت', { reference: botMsg });
+  assert.equal(replies(guild, r2).length, 1);
+});
+
+test('الشات العام: مشاركة تلقائية (احتمال + فاصل)، [[SKIP]] يسكّت، والفاصل يمنع الإغراق', async () => {
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH });
+  const m = makeMember(guild, { username: 'خالد' });
+  ai._internal.chatState.clear();
+  gemini.setGenerator(async (req) => { calls.push(req); return 'ههههه صدق والله'; });
+  const msg = { content: 'والله اليوم فاز فريقي' };
+  const a = makeUserMessage(ch, m, msg.content);
+  assert.equal(await ai.handleGeneralChat(a, botUserOf(guild), { rand: () => 0.1 }), true);
+  assert.equal(replies(guild, a).length, 1);
+  const b = makeUserMessage(ch, m, 'وش رايكم بالفريق');
+  assert.equal(await ai.handleGeneralChat(b, botUserOf(guild), { rand: () => 0.1 }), false, 'داخل فاصل 12 ثانية');
+  // [[SKIP]] ما ينرسل
+  ai._internal.chatState.clear();
+  gemini.setGenerator(async () => '[[SKIP]]');
+  const c = makeUserMessage(ch, m, 'كلام بين اثنين');
+  assert.equal(await ai.handleGeneralChat(c, botUserOf(guild), { rand: () => 0.1 }), true);
+  assert.equal(replies(guild, c).length, 0);
+  // احتمال عالي ← يتجاهل
+  ai._internal.chatState.clear();
+  const d = makeUserMessage(ch, m, 'رسالة عادية');
+  assert.equal(await ai.handleGeneralChat(d, botUserOf(guild), { rand: () => 0.99 }), false);
+  // روم غير الشات العام ما يتأثر
+  const other = makeChannel(guild, { name: 'عام2' });
+  assert.equal(await ai.handleGeneralChat(makeUserMessage(other, m, 'هلا'), botUserOf(guild)), false);
+});

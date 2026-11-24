@@ -57,6 +57,13 @@ module.exports = {
     }
 
     try {
+      // الشات العام: سوالف سريعة + رد فوري على المنشن/الريبلاي (والمشاكل تُحال لروم الدعم)
+      if (await aiAssistant.handleGeneralChat(message, message.client && message.client.user)) return;
+    } catch (err) {
+      logger.error('🤖 خطأ بالشات العام للمساعد', { channelId: message.channel && message.channel.id, error: err });
+    }
+
+    try {
       // قناة تكت: المساعد (أو تجاهل لرسائل الدعم) — والمنشن داخلها ما ينعالج مرتين
       const inTicket = await aiAssistant.handleTicketMessage(message);
       if (inTicket === true) return;
