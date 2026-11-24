@@ -9,14 +9,20 @@ const store = require('../database/botStore');
 const eb = require('./embedBuilder');
 const logger = require('./logger');
 
+const { formatDurationAr } = require('./moderation');
 const ORDINAL = { 1: 'الأول', 2: 'الثاني', 3: 'الثالث' };
 
-// أفعال تُسجَّل (غير هذي — إعدادات داخلية — ما تزعج الروم)
-const WATCHED = new Set([
-  'warn', 'warn_delete', 'mute', 'unmute', 'kick', 'purge',
-  'admin_role_add', 'admin_role_remove', 'admin_user_add', 'admin_user_remove', 'support_roles_set', 'ticket_panel'
-]);
+// كل فعل إداري يتسجّل (أي شي يمر بـlogModeration) — عدا الأفعال الآلية للحماية (auto_*) لأنها مو من إداري
+const isWatched = (action) => !!action && !/^auto_/.test(action);
+const WATCHED = { has: isWatched };
 
+const LABELS = {
+  admin_role_add: 'إضافة رتبة إدارية', admin_role_remove: 'إزالة رتبة إدارية', admin_user_add: 'إضافة أدمن', admin_user_remove: 'إزالة أدمن',
+  support_roles_set: 'تحديث رتب الدعم', ticket_panel: 'نشر لوحة التكتات', welcome_message: 'تعديل رسالة الترحيب', welcome_channel: 'تحديد قناة الترحيب',
+  welcome_disabled: 'تعطيل الترحيب', autoreply_add: 'إضافة رد تلقائي', autoreply_remove: 'حذف رد تلقائي', automod_reset: 'تصفير مخالفات',
+  ai_style_owner: 'تغيير صاحب أسلوب المساعد', ai_style_clear: 'مسح أسلوب المساعد', ai_memory_qa: 'تعليم المساعد سؤال/جواب',
+  ai_memory_instruction: 'تعليم المساعد تعليمة', ai_memory_remove: 'حذف من ذاكرة المساعد', admin_news_channel: 'تحديد روم الأخبار', admin_news_disabled: 'تعطيل روم الأخبار'
+};
 const who = (id) => (!id ? '—' : id === 'admin-center' ? '🖥️ لوحة الإدارة' : `<@${id}>`);
 
 /** روم أخبار الأدمن للسيرفر: إعداد السيرفر أولاً ثم الافتراضي. */
@@ -64,7 +70,7 @@ function embedFor(entry) {
       e.setTitle(entry.action === 'mute' ? '🔇 كتم عضو' : '🔊 فك كتم');
       add('👤 الشخص', who(entry.targetId));
       add('🛡️ الإداري', who(entry.moderatorId));
-      add('⏱️ المدة', d.duration || d.until || '');
+      add('⏱️ المدة', d.durationMs ? formatDurationAr(d.durationMs) : d.duration || d.until || '');
       add('📝 السبب', entry.reason || '—', false);
       break;
     case 'kick':
@@ -77,11 +83,18 @@ function embedFor(entry) {
       e.setTitle('🧹 مسح رسائل');
       add('🛡️ الإداري', who(entry.moderatorId));
       add('📍 الروم', entry.channelId ? `<#${entry.channelId}>` : '');
-      add('🔢 العدد', d.deleted ?? d.count ?? '');
+      add('🔢 العدد', d.deleted ?? d.count ?? d.amount ?? '');
       add('📝 السبب', entry.reason || '', false);
       break;
+    case 'ticket_close':
+      e.setTitle(`🎫 إغلاق تكت${d.ticketId ? ` #${d.ticketId}` : ''}`);
+      add('👤 صاحب التكت', who(entry.targetId));
+      add('🛡️ أغلقه', who(entry.moderatorId));
+      add('📌 السبب', entry.reason || '');
+      add('📍 الروم', entry.channelId ? `<#${entry.channelId}>` : '');
+      break;
     default:
-      e.setTitle(`🛠️ ${entry.action}`);
+      e.setTitle(`🛠️ ${LABELS[entry.action] || entry.action}`);
       add('🛡️ الإداري', who(entry.moderatorId));
       add('👤 الهدف', entry.targetId ? who(entry.targetId) : '');
       add('📝 التفاصيل', entry.reason || '', false);
@@ -93,7 +106,7 @@ function embedFor(entry) {
 /** يرسل سجل الفعل لروم أخبار الأدمن. ما يرمي. @returns {Promise<boolean>} */
 async function notify(entry) {
   try {
-    if (!entry || !WATCHED.has(entry.action) || !entry.guildId) return false;
+    if (!entry || !isWatched(entry.action) || !entry.guildId) return false;
     const ctx = require('../services/adminControl').runtime.getContext();
     const client = ctx && ctx.client;
     const guild = client && client.guilds && (client.guilds.cache.get(entry.guildId) || (await client.guilds.fetch(entry.guildId).catch(() => null)));
