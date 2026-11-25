@@ -8,7 +8,7 @@ const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const { guardAdmin, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
-const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
+const { hierarchyProblem, dmUnmuted, logModeration } = require('../../utils/moderation');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -46,7 +46,7 @@ module.exports = {
       return respond.send(interaction, { embeds: [eb.error(err.code === 50013 ? 'ديسكورد رفض العملية — تحقق من ترتيب رتبة البوت وصلاحية **كتم الأعضاء**.' : 'تعذّر فك الكتم، جرّب بعد قليل.')] });
     }
 
-    const dmOk = await tryDm(target.user, { embeds: [dmEmbed({ title: '🔊 انفك كتمك', guild, lines: [`**السيرفر:** ${guild.name}`, `**السبب:** ${reason}`] })] });
+    const dmOk = await dmUnmuted(target.user, guild, { reason, by: interaction.user.tag || interaction.user.username });
     await logModeration({ guildId: guild.id, action: 'unmute', targetId: target.id, moderatorId: interaction.user.id, channelId: interaction.channelId, reason });
 
     const embed = eb

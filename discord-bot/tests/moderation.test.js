@@ -806,3 +806,44 @@ test('/حذف_تحذير: اختيار الإنذار أو رقم 1/2/3 يشيل
   const t = lastPayload(i).text;
   assert.ok(/إنذار أول/.test(t) && /إنذار ثاني/.test(t) && /إنذار ثالث/.test(t));
 });
+
+// =================== إشعار خاص للعضو بكل أمر عليه ===================
+
+test('كل أمر على عضو يوصله إشعار خاص: كتم (المدة والسبب)، فك كتم، تحذير، حذف إنذار، طرد', async () => {
+  const w = await makeAdminWorld();
+  const dms = () => w.guild.log.filter(([t, id]) => t === 'dm' && id === w.target.id).map(([, , p]) => JSON.stringify(p.embeds.map((e) => (e.toJSON ? e.toJSON() : e))));
+  let i = cmd(w.guild, w.mod, 'كتم', { 'عضو': w.target, 'المدة': 15, 'الوحدة': 'minutes', 'السبب': 'سبام بالعام' });
+  await dispatch(i);
+  let d = dms();
+  assert.equal(d.length, 1);
+  assert.match(d[0], /تم كتمك/);
+  assert.match(d[0], /15 دقيقة/);
+  assert.match(d[0], /سبام بالعام/);
+
+  i = cmd(w.guild, w.mod, 'فك_كتم', { 'عضو': w.target, 'السبب': 'صلحنا' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 2);
+  assert.match(d[1], /انفك كتمك/);
+  assert.match(d[1], /صلحنا/);
+
+  i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'ألفاظ', 'رتبة_التحذير': 'w1' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 3);
+  assert.match(d[2], /وصلك تحذير/);
+  assert.match(d[2], /ألفاظ/);
+
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'رقم_التحذير': 1 });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 4);
+  assert.match(d[3], /انحذف عنك إنذار/);
+  assert.match(d[3], /ألفاظ/);
+
+  i = cmd(w.guild, w.mod, 'طرد', { 'عضو': w.target, 'سبب': 'تكرار' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 5);
+  assert.match(d[4], /تكرار/);
+});
