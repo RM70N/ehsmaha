@@ -868,3 +868,53 @@ test('لو الخاص مغلق: الإشعار يُرسل بمنشن العضو 
   assert.equal(sent().length, 2);
   assert.match(JSON.stringify(sent()[1].embeds.map((x) => (x.toJSON ? x.toJSON() : x))), /ألفاظ/);
 });
+
+// =================== /رسالة_خاصة (للمالك فقط) ===================
+
+test('/رسالة_خاصة: المالك فقط — يرسل لأي عضو أو لنفسه (بدون اختيار)، وغيره مرفوض بدون إرسال شي', async () => {
+  const w = await makeAdminWorld();
+  const ownerId = loadConfig().ownerDiscordId;
+  const owner = makeMember(w.guild, { id: ownerId, username: 'owner' });
+  const dmTo = (id) => w.guild.log.filter(([t, uid]) => t === 'dm' && uid === id).map(([, , p]) => p);
+
+  // غير المالك (حتى لو أدمن) مرفوض
+  let i = cmd(w.guild, w.mod, 'رسالة_خاصة', { 'الرسالة': 'مرحبا', 'الى': w.target });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /لمالك البوت فقط/);
+  assert.equal(dmTo(w.target.id).length, 0);
+
+  // المالك ← عضو
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'السلام عليكم، وصلتك رسالة من الإدارة', 'الى': w.target });
+  await dispatch(i);
+  assert.equal(dmTo(w.target.id).length, 1);
+  assert.equal(dmTo(w.target.id)[0].content, 'السلام عليكم، وصلتك رسالة من الإدارة');
+  assert.match(lastPayload(i).text, /وصلت الرسالة/);
+
+  // المالك ← نفسه (بدون اختيار)، وبإطار
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'تجربة لنفسي', 'بإطار': true });
+  await dispatch(i);
+  assert.equal(dmTo(ownerId).length, 1);
+  assert.match(JSON.stringify(dmTo(ownerId)[0].embeds.map((e) => (e.toJSON ? e.toJSON() : e))), /تجربة لنفسي/);
+  assert.match(lastPayload(i).text, /نفسك/);
+
+  // معرّف غلط، وخاص مغلق، وبوت
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'المعرف': 'abc' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /أرقام فقط/);
+  const closed = makeMember(w.guild, { username: 'closed', dmOpen: false });
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'الى': closed });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /مغلقة/);
+  const bot = makeMember(w.guild, { username: 'otherbot', bot: true });
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'الى': bot });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /لبوت/);
+  // الرسالة ما تنسجل بأي سجل إدارة
+  assert.ok(!(await store.moderationLog.recent(w.guild.id, 50)).some((r) => /owner_dm|رسالة_خاصة/.test(r.action)));
+});
+
+test('/رسالة_خاصة: مخفي عن الأعضاء العاديين (Administrator فقط للظهور) ويشتغل بخاص البوت', () => {
+  const j = require('../commands/owner/dm').data.toJSON();
+  assert.equal(j.default_member_permissions, '0');
+  assert.ok(j.contexts.includes(0) && j.contexts.includes(1), 'سيرفر + خاص البوت');
+});
