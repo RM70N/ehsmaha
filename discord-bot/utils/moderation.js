@@ -112,4 +112,31 @@ async function logModeration(entry) {
   }
 }
 
-module.exports = { MAX_TIMEOUT_MS, DURATION_UNITS, toDurationMs, formatDurationAr, hierarchyProblem, tryDm, dmEmbed, logModeration };
+/** إشعار خاص للعضو بالكتم (المدة + وقت الانتهاء + السبب). يرجّع true لو وصل. */
+async function dmMuted(user, guild, { durationMs, reason, by = 'الإدارة' }) {
+  const endsAt = Date.now() + durationMs;
+  return tryDm(user, {
+    embeds: [
+      dmEmbed({
+        title: '🔇 تم كتمك مؤقتاً',
+        guild,
+        lines: [`**السيرفر:** ${guild.name}`, `**المدة:** ${formatDurationAr(durationMs)}`, `**ينتهي:** ${eb.discordDate(endsAt, 'f')} (${eb.discordDate(endsAt, 'R')})`, `**السبب:** ${reason || 'بدون سبب محدد'}`, `**بواسطة:** ${by}`]
+      })
+    ]
+  });
+}
+
+/** إشعار خاص للعضو بفك الكتم. */
+async function dmUnmuted(user, guild, { reason, by = 'الإدارة' }) {
+  return tryDm(user, { embeds: [dmEmbed({ title: '🔊 انفك كتمك', guild, lines: [`**السيرفر:** ${guild.name}`, `**السبب:** ${reason || 'بدون سبب محدد'}`, `**بواسطة:** ${by}`] })] });
+}
+
+/** إشعار خاص للعضو بحذف إنذار عنه. */
+async function dmWarningRemoved(user, guild, { label, reason, by = 'الإدارة' }) {
+  return tryDm(user, { embeds: [dmEmbed({ title: '✅ انحذف عنك إنذار', guild, lines: [`**السيرفر:** ${guild.name}`, `**الإنذار:** ${label}`, reason ? `**كان بسبب:** ${reason}` : null, `**بواسطة:** ${by}`] })] });
+}
+
+module.exports = {
+  dmMuted,
+  dmUnmuted,
+  dmWarningRemoved, MAX_TIMEOUT_MS, DURATION_UNITS, toDurationMs, formatDurationAr, hierarchyProblem, tryDm, dmEmbed, logModeration };

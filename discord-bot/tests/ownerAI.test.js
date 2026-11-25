@@ -422,9 +422,13 @@ test('الأعضاء: بحث ومعلومات وكتم مؤقت وإزالته �
   assert.match(w.replyTo(m), /تم كتم <@\d+> لمدة 10 دقائق/);
   assert.equal(member.isCommunicationDisabled(), true);
   assert.equal((await store.moderationLog.recent(w.guild.id, 5))[0].action, 'mute');
+  assert.equal(w.log('dm').length, 1, 'إشعار خاص بالكتم');
+  assert.match(JSON.stringify(w.log('dm')[0]), /10 دقائق/);
+  assert.match(JSON.stringify(w.log('dm')[0]), /سبام/);
   on('فك', plan([null, 'remove_timeout', { member: 'سعود' }]));
   await send(w, w.general, w.owner, 'فك الكتم');
   assert.equal(member.isCommunicationDisabled(), false);
+  assert.equal(w.log('dm').length, 2, 'إشعار خاص بفك الكتم');
   on('اكتم مالك', plan([null, 'timeout_member', { member: w.guildOwner.id, minutes: 5 }]));
   assert.match(w.replyTo(await send(w, w.general, w.owner, 'اكتم مالك السيرفر')), /ما أقدر أنفذ هذا/);
 });
