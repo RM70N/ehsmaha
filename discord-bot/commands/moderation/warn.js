@@ -17,7 +17,7 @@ const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
 const { guardAdmin, withStorageNotice, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
-const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
+const { hierarchyProblem, notifyUser, dmEmbed, logModeration } = require('../../utils/moderation');
 const { ensureWarningRoles } = require('../../utils/warningRoles');
 
 
@@ -92,9 +92,9 @@ module.exports = {
     // 3) العدد الفعلي من الجدول
     const total = await store.warnings.count(guild.id, target.id);
 
-    const dmOk = await tryDm(target.user, {
+    const dmOk = await notifyUser(target.user, {
       embeds: [dmEmbed({ title: '⚠️ وصلك تحذير', guild, lines: [`**السيرفر:** ${guild.name}`, `**الرتبة:** ${chosen.name}`, `**السبب:** ${reason}`, `**عدد تحذيراتك:** ${total}`] })]
-    });
+    }, { channel: interaction.channel });
 
     await logModeration({
       guildId: guild.id,
@@ -119,7 +119,8 @@ module.exports = {
     }
     if (switched && switched.removed.length) notes.push(`أُزيلت رتبة ${switched.removed.join('، ')} قبل منح الرتبة الجديدة.`);
     if (roleError) notes.push('⚠️ التحذير انسجل، لكن تعذّر تعديل رتب العضو — تحقق من ترتيب رتبة البوت.');
-    if (!dmOk) notes.push('تعذر إرسال إشعار خاص للعضو.');
+    if (dmOk === 'channel') notes.push('رسائله الخاصة مغلقة — أُرسل الإشعار بمنشنه بنفس الروم.');
+    else if (!dmOk) notes.push('تعذر إرسال إشعار للعضو (رسائله الخاصة مغلقة وما قدرت أرسل بالروم).');
     if (notes.length) embed.addFields(eb.field('ℹ️ ملاحظات', notes.join('\n'), false));
     return respond.send(interaction, withStorageNotice({ embeds: [embed] }));
   },

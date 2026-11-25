@@ -108,7 +108,7 @@ module.exports = {
 
     // إشعار خاص للعضو بحذف الإنذار
     let dmOk = false;
-    if (hadRole || record) dmOk = await dmWarningRemoved(user, guild, { label: LABELS[level], reason: record && record.reason, by: interaction.user.tag || interaction.user.username });
+    if (hadRole || record) dmOk = await dmWarningRemoved(user, guild, { label: LABELS[level], reason: record && record.reason, by: interaction.user.tag || interaction.user.username, channel: interaction.channel });
 
     if (!hadRole && !record) {
       return respond.send(interaction, { embeds: [eb.warning(`${user} ما عنده رتبة **${role.name}** ولا تحذير مسجّل بها.`, '🔎 ما فيه شي يتحذف')] });
@@ -120,7 +120,8 @@ module.exports = {
         eb.field('📋 السجل', record ? `انحذف: ${eb.clip(record.reason, 200)}` : 'ما فيه تحذير مسجّل بهذي الرتبة'),
         eb.field('🔢 العدد الفعلي الآن', `**${total}** تحذير`)
       );
-    if (!dmOk) embed.addFields(eb.field('ℹ️ ملاحظة', 'تعذر إرسال إشعار خاص للعضو (رسائله الخاصة مغلقة).', false));
+    if (dmOk === 'channel') embed.addFields(eb.field('ℹ️ ملاحظة', 'رسائله الخاصة مغلقة — أُرسل الإشعار بمنشنه بنفس الروم.', false));
+    else if (!dmOk) embed.addFields(eb.field('ℹ️ ملاحظة', 'تعذر إرسال إشعار للعضو (رسائله الخاصة مغلقة).', false));
     return respond.send(interaction, { embeds: [embed] });
   }
 };
