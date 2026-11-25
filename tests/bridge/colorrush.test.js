@@ -216,10 +216,12 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   await waitFor(page, () => window.EhsemhaColorRush3D.getState().players >= 3, null, 20000);
   await F(page, () => window.EhsemhaColorRush3D.start());
   await waitSelect(page, 0, 120000);
+  await H.ctl(H.PRIMARY, { cmd: 'mode', user: STREAMER, mode: 'fail' }); // إعادة الاتصال تفشل ← انقطاع مستمر (لا ارتجاج لحظي)
   await H.ctl(H.PRIMARY, { cmd: 'dropUpstream', user: STREAMER }); // انقطاع البث الأصلي عن السيرفر
   const down = await waitFor(page, () => homeConnOverall() !== 'connected', null, 30000);
   const paused = await fwait(page, () => window.EhsemhaColorRush3D.getState().paused === true, null, 30000);
   check('انقطاع الاتصال: الموقع يكتشفه واللعبة تتوقف بأمان (إيقاف تلقائي)', down && paused, { down, paused });
+  await H.ctl(H.PRIMARY, { cmd: 'mode', user: STREAMER, mode: 'live' }); // عودة البث
   const back = await waitFor(page, () => homeConnOverall() === 'connected', null, 120000);
   const resumed = await fwait(page, () => window.EhsemhaColorRush3D.getState().paused === false, null, 60000);
   check('إعادة الاتصال: الحالة تتزامن وتستأنف المباراة تلقائياً', back && resumed, { back, resumed });
