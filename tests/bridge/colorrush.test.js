@@ -131,7 +131,7 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   await say('cr_e', 'انضم', 'عمر'); await say('cr_f', 'انضم', 'فهد'); await say('cr_g', 'انضم', 'غادة');
   await say('cr_other', 'مرحبا'); await say('cr_x', 'انضمام'); // ليست كلمة الانضمام
   for (let i = 0; i < 4; i++) await say('cr_a', 'انضم'); // تكرار
-  await waitFor(page, () => window.EhsemhaColorRush3D.getState().players >= 7, null, 40000); await sleep(1000);
+  await fwait(page, () => window.EhsemhaColorRush3D.getState().players >= 7, null, 40000); await sleep(1000);
   let s = await state(page), pl = await players(page);
   check('الانضمام بكلمة «انضم»: ٧ لاعبين بلا تكرار، وغير الكلمة لا ينضم', s.players === 7 && Object.keys(pl).length === 7 && !pl[id('cr_other')] && !pl[id('cr_x')] && Object.keys(pl).every((k) => /^tiktok:cr_[a-g]$/.test(k)), { s, keys: Object.keys(pl) });
   check('اسم المتابع الحقيقي (nickname) وافتاره الحقيقي (من الحدث) وصلا للعبة', pl[id('cr_a')] && pl[id('cr_a')].name === 'أحمد' && /cr_a/.test(pl[id('cr_a')].avatar || ''), pl[id('cr_a')]);
@@ -142,7 +142,7 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   await say('cr_nf', 'انضم', 'cr_nf', false); await sleep(2500);
   pl = await players(page);
   check('شرط الفولو مفعّل: غير المتابع لا ينضم', !pl[id('cr_nf')], Object.keys(pl).length);
-  await say('cr_fol', 'انضم', 'cr_fol', true); await waitFor(page, () => window.EhsemhaColorRush3D.getState().players >= 8, null, 15000);
+  await say('cr_fol', 'انضم', 'cr_fol', true); await fwait(page, () => window.EhsemhaColorRush3D.getState().players >= 8, null, 15000);
   pl = await players(page);
   check('شرط الفولو مفعّل: المتابع ينضم', !!pl[id('cr_fol')], Object.keys(pl).length);
   await page.evaluate(() => followGateSetRequired(false));
@@ -150,7 +150,7 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   // دفعة كبيرة
   const before = (await state(page)).players;
   await H.ctl(H.PRIMARY, { cmd: 'burst', user: STREAMER, count: 24, prefix: 'cr_p', text: 'انضم', identity: { isFollowerOfAnchor: true }, perMs: 30 });
-  await waitFor(page, (b) => window.EhsemhaColorRush3D.getState().players >= b + 24, before, 60000);
+  await fwait(page, (b) => window.EhsemhaColorRush3D.getState().players >= b + 24, before, 60000);
   s = await state(page);
   check('دفعة ٢٤ متابعاً بالكلمة: دخلوا كلهم دون تكرار', s.players === before + 24, { before, now: s.players });
 
@@ -212,8 +212,10 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   check('ريست: يفرّغ اللاعبين ويرجع للوبي دون إعادة تحميل الإطار ولا اتصال جديد بالبث', s.state === 'lobby' && s.players === 0 && JSON.stringify(connsBefore.connectCalls) === JSON.stringify(connsAfter.connectCalls) && (await page.evaluate(() => document.querySelector('.page.active').id)) === 'pg-colorrush', { s, a: connsBefore.connectCalls, b: connsAfter.connectCalls });
 
   // ===== 8) انقطاع الاتصال وعودته =====
+  await fwait(page, () => window.EhsemhaColorRush3D._debug.FL.exp.state === 'lobby', null, 30000); // اللعبة تنتظر اكتمال عودة الساحة للوبي بعد الريست قبل قبول الانضمام
+  await sleep(1500);
   await say('cr_h', 'انضم', 'هدى'); await say('cr_i', 'انضم', 'ياسر'); await say('cr_j', 'انضم', 'جود');
-  await waitFor(page, () => window.EhsemhaColorRush3D.getState().players >= 3, null, 20000);
+  await fwait(page, () => window.EhsemhaColorRush3D.getState().players >= 3, null, 40000);
   const startedOk = await F(page, () => window.EhsemhaColorRush3D.start());
   const sel3 = await waitSelect(page, 0, 120000);
   check('مباراة جديدة بثلاثة لاعبين وصلت مرحلة الاختيار قبل اختبار الانقطاع', !!sel3 && sel3.state === 'select' && sel3.players === 3, { startedOk, sel3 });
