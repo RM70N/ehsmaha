@@ -112,10 +112,27 @@ async function logModeration(entry) {
   }
 }
 
-/** إشعار خاص للعضو بالكتم (المدة + وقت الانتهاء + السبب). يرجّع true لو وصل. */
-async function dmMuted(user, guild, { durationMs, reason, by = 'الإدارة' }) {
+/**
+ * يبلّغ العضو: رسالة خاصة أولاً، ولو خاصه مغلق نرسل الإشعار نفسه بمنشنه في الروم اللي انكتب فيه الأمر (عشان يوصله بكل حال).
+ * @returns {Promise<'dm'|'channel'|false>}
+ */
+async function notifyUser(user, payload, { channel = null } = {}) {
+  if (await tryDm(user, payload)) return 'dm';
+  if (channel && typeof channel.send === 'function') {
+    try {
+      await channel.send({ content: `<@${user.id}>`, embeds: payload.embeds, allowedMentions: { users: [user.id], parse: [] } });
+      return 'channel';
+    } catch (err) {
+      logger.debug('تعذّر إرسال الإشعار بالروم', { userId: user && user.id, code: err && err.code });
+    }
+  }
+  return false;
+}
+
+/** إشعار للعضو بالكتم (المدة + وقت الانتهاء + السبب). */
+async function dmMuted(user, guild, { durationMs, reason, by = 'الإدارة', channel = null }) {
   const endsAt = Date.now() + durationMs;
-  return tryDm(user, {
+  return notifyUser(user, {
     embeds: [
       dmEmbed({
         title: '🔇 تم كتمك مؤقتاً',
@@ -123,20 +140,21 @@ async function dmMuted(user, guild, { durationMs, reason, by = 'الإدارة' 
         lines: [`**السيرفر:** ${guild.name}`, `**المدة:** ${formatDurationAr(durationMs)}`, `**ينتهي:** ${eb.discordDate(endsAt, 'f')} (${eb.discordDate(endsAt, 'R')})`, `**السبب:** ${reason || 'بدون سبب محدد'}`, `**بواسطة:** ${by}`]
       })
     ]
-  });
+  }, { channel });
 }
 
 /** إشعار خاص للعضو بفك الكتم. */
-async function dmUnmuted(user, guild, { reason, by = 'الإدارة' }) {
-  return tryDm(user, { embeds: [dmEmbed({ title: '🔊 انفك كتمك', guild, lines: [`**السيرفر:** ${guild.name}`, `**السبب:** ${reason || 'بدون سبب محدد'}`, `**بواسطة:** ${by}`] })] });
+async function dmUnmuted(user, guild, { reason, by = 'الإدارة', channel = null }) {
+  return notifyUser(user, { embeds: [dmEmbed({ title: '🔊 انفك كتمك', guild, lines: [`**السيرفر:** ${guild.name}`, `**السبب:** ${reason || 'بدون سبب محدد'}`, `**بواسطة:** ${by}`] })] }, { channel });
 }
 
 /** إشعار خاص للعضو بحذف إنذار عنه. */
-async function dmWarningRemoved(user, guild, { label, reason, by = 'الإدارة' }) {
-  return tryDm(user, { embeds: [dmEmbed({ title: '✅ انحذف عنك إنذار', guild, lines: [`**السيرفر:** ${guild.name}`, `**الإنذار:** ${label}`, reason ? `**كان بسبب:** ${reason}` : null, `**بواسطة:** ${by}`] })] });
+async function dmWarningRemoved(user, guild, { label, reason, by = 'الإدارة', channel = null }) {
+  return notifyUser(user, { embeds: [dmEmbed({ title: '✅ انحذف عنك إنذار', guild, lines: [`**السيرفر:** ${guild.name}`, `**الإنذار:** ${label}`, reason ? `**كان بسبب:** ${reason}` : null, `**بواسطة:** ${by}`] })] }, { channel });
 }
 
 module.exports = {
+  notifyUser,
   dmMuted,
   dmUnmuted,
   dmWarningRemoved, MAX_TIMEOUT_MS, DURATION_UNITS, toDurationMs, formatDurationAr, hierarchyProblem, tryDm, dmEmbed, logModeration };

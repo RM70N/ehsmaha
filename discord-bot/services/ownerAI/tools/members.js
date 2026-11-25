@@ -83,7 +83,7 @@ const timeoutMember = defineTool({
     const d = toDurationMs(a.minutes, 'minutes');
     if (d.error) throw new OwnerAIError('INVALID_ARGS', { detail: 'مدة الكتم غير صالحة' });
     await withRetry(() => a.member.timeout(d.ms, a.reason || reason(ctx)));
-    await dmMuted(a.member.user, ctx.guild, { durationMs: d.ms, reason: a.reason || 'بدون سبب محدد' });
+    await dmMuted(a.member.user, ctx.guild, { durationMs: d.ms, reason: a.reason || 'بدون سبب محدد', channel: ctx.guild.channels.cache.get(ctx.actor.channelId) });
     await logModeration({ guildId: ctx.guild.id, action: 'mute', targetId: a.member.id, moderatorId: ctx.actor.userId, channelId: ctx.actor.channelId, reason: a.reason || 'أمر المالك (Owner AI)', details: { durationMs: d.ms } });
     return { outputs: { memberId: a.member.id }, done: `تم كتم ${label(a.member)} لمدة ${formatDurationAr(d.ms)}.`, doneVerb: `كتمت ${label(a.member)} لمدة ${formatDurationAr(d.ms)}` };
   },
@@ -106,7 +106,7 @@ const removeTimeout = defineTool({
   async run(ctx, a) {
     if (!a.member.moderatable) throw new OwnerAIError('HIERARCHY', { detail: 'ما أقدر أعدّل كتم هذا العضو (رتبته أعلى مني).' });
     await withRetry(() => a.member.timeout(null, reason(ctx)));
-    await dmUnmuted(a.member.user, ctx.guild, { reason: 'فك الكتم بقرار الإدارة' });
+    await dmUnmuted(a.member.user, ctx.guild, { reason: 'فك الكتم بقرار الإدارة', channel: ctx.guild.channels.cache.get(ctx.actor.channelId) });
     await logModeration({ guildId: ctx.guild.id, action: 'unmute', targetId: a.member.id, moderatorId: ctx.actor.userId, channelId: ctx.actor.channelId, reason: 'أمر المالك (Owner AI)' });
     return { outputs: { memberId: a.member.id }, done: `تم إزالة الكتم عن ${label(a.member)}.`, doneVerb: `أزلت الكتم عن ${label(a.member)}` };
   },
