@@ -214,13 +214,14 @@ async function waitSelect(page, afterRound, timeout = 120000) {
   // ===== 8) انقطاع الاتصال وعودته =====
   await say('cr_h', 'انضم', 'هدى'); await say('cr_i', 'انضم', 'ياسر'); await say('cr_j', 'انضم', 'جود');
   await waitFor(page, () => window.EhsemhaColorRush3D.getState().players >= 3, null, 20000);
-  await F(page, () => window.EhsemhaColorRush3D.start());
-  await waitSelect(page, 0, 120000);
+  const startedOk = await F(page, () => window.EhsemhaColorRush3D.start());
+  const sel3 = await waitSelect(page, 0, 120000);
+  check('مباراة جديدة بثلاثة لاعبين وصلت مرحلة الاختيار قبل اختبار الانقطاع', !!sel3 && sel3.state === 'select' && sel3.players === 3, { startedOk, sel3 });
   await H.ctl(H.PRIMARY, { cmd: 'mode', user: STREAMER, mode: 'fail' }); // إعادة الاتصال تفشل ← انقطاع مستمر (لا ارتجاج لحظي)
   await H.ctl(H.PRIMARY, { cmd: 'dropUpstream', user: STREAMER }); // انقطاع البث الأصلي عن السيرفر
   const down = await waitFor(page, () => homeConnOverall() !== 'connected', null, 30000);
   const paused = await fwait(page, () => window.EhsemhaColorRush3D.getState().paused === true, null, 30000);
-  check('انقطاع الاتصال: الموقع يكتشفه واللعبة تتوقف بأمان (إيقاف تلقائي)', down && paused, { down, paused });
+  check('انقطاع الاتصال: الموقع يكتشفه واللعبة تتوقف بأمان (إيقاف تلقائي)', down && paused, { down, paused, st: await state(page) });
   await H.ctl(H.PRIMARY, { cmd: 'mode', user: STREAMER, mode: 'live' }); // عودة البث
   const back = await waitFor(page, () => homeConnOverall() === 'connected', null, 120000);
   const resumed = await fwait(page, () => window.EhsemhaColorRush3D.getState().paused === false, null, 60000);
