@@ -129,7 +129,7 @@ window.EHS_OPS_GAMES = [
  },
  {
   "tag": "hz",
-  "title": "ضربة الحظ",
+  "title": "مين بالصندوق؟",
   "launch": "launchHz",
   "inputs": {
    "hz-kw": "ادخل"
@@ -953,7 +953,7 @@ window.EHS_OPS_GAMES = [
  },
  {
   "tag": "roulette3d",
-  "title": "الروسي",
+  "title": "الغرفة المظلمة",
   "launch": "launchRoulette3d",
   "inputs": {
    "roulette3d-join-kw": "دخول",
