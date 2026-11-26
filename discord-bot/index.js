@@ -73,7 +73,7 @@ function createClient({ members, content }) {
   if (content) intents.push(GatewayIntentBits.MessageContent);
   return new Client({
     intents,
-    partials: [Partials.Channel],
+    partials: [Partials.Channel, Partials.Message], // Message: عشان أحداث حذف الرسائل القديمة (سجل الحذف) توصل حتى لو الرسالة مو بذاكرة البوت
     allowedMentions: { parse: [], repliedUser: false } // ما نمنشن أحد بالغلط أبداً
   });
 }
