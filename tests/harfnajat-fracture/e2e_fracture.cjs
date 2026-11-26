@@ -62,7 +62,7 @@ async function drive(browser, url, label, shots) {
       const st = await page.evaluate((id) => ({ phase: window.HarfAlNajat.getState().phase, card: document.querySelectorAll('.vf-card').length, cardOn: !!document.querySelector('.vf-card.on'), done: window.__ev.some((e) => e.t === 'eliminated' && e.id === id) }), turn.userId);
       if (st.phase !== lastPhase) { lastPhase = st.phase; rec.phases.push(st.phase); rec.t.push(Date.now() - t0); }
       if (st.card) rec.cardSeen = true;
-      if (shots && round === 0 && st.phase === 'eliminating' && rec.t.length && (Date.now() - t0 - (rec._ls || 0)) > 1100) { rec._ls = Date.now() - t0; const n = (rec.shots = rec.shots || []).length; if (n < 8) { const f = path.join(OUT, label + '_' + String(n).padStart(2, '0') + '.png'); await page.screenshot({ path: f }); rec.shots.push(f); } }
+      if (shots && round === 0 && st.phase === 'eliminating' && rec.t.length && (Date.now() - t0 - (rec._ls || 0)) > 1100) { rec._ls = Date.now() - t0; const n = (rec.shots = rec.shots || []).length; if (n < 8) { const f = path.join(OUT, label + '_' + String(n).padStart(2, '0') + '.png'); try { await page.screenshot({ path: f, timeout: 180000 }); } catch (e) { rec.shotErr = String(e.message).slice(0, 80); } rec.shots.push(f); } }
       if (st.done) { await sleep(900); break; }
       await sleep(250);
     }
