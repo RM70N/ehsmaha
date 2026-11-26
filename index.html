@@ -24090,7 +24090,7 @@ function twitchEventShape(displayName, uniqueId, message) {
 // مخطط بروتوكول تيك توك الثنائي. القديم (tiktok-server/Euler) باقٍ كاحتياطي
 // بالفشل التلقائي بالأسفل — لم يُحذف ولم يُعدَّل.
 const TIKTOK_BRIDGE_SERVERS = [
-  'wss://ehsmaha-piratetok-bridge-6e47.onrender.com/ws'
+  'wss://ehsmaha-zuao.onrender.com/ws'
 ];
 let tiktokActiveBridgeIndex = 0;
 
@@ -24100,7 +24100,8 @@ const TIKTOK_BRIDGE_SERVER_URL = TIKTOK_BRIDGE_SERVERS[0];
 
 // تسخين: Render المجاني ينام بعد فترة خمول وأول اتصال بعده يتأخر. نرسل نبضة خفيفة لـ /healthz
 // أول ما تُفتح الصفحة حتى يكون سيرفر الجسر صاحي وقت ما المستخدم يضغط ربط.
-try { fetch(TIKTOK_BRIDGE_SERVER_URL.replace(/^ws/, 'http').replace(/\/ws$/, '') + '/healthz', { mode: 'no-cors', cache: 'no-store' }).catch(function () {}); } catch (e) {}
+// توفير ساعات Render المجانية: لا نوقظ السيرفر لكل زائر — فقط لمن عنده يوزر ستريمر محفوظ (الباقي يُوقظه فتح نافذة الربط عبر tiktokBridgeWarmUp)
+try { if (localStorage.getItem('streamerSavedUsername')) fetch(TIKTOK_BRIDGE_SERVER_URL.replace(/^ws/, 'http').replace(/\/ws$/, '') + '/healthz', { mode: 'no-cors', cache: 'no-store' }).catch(function () {}); } catch (e) {}
 
 // توحيد يوزر تيك توك (نفس منطق tiktok-server/lib/tiktok-id.js): رابط البروفايل/@/حروف كبيرة/رموز الاتجاه الخفية
 // (تظهر بكيبورد الجوال العربي واللصق) كلها تنتهي لنفس اليوزر. يرجّع '' لو الصيغة مستحيلة كيوزر تيك توك.
