@@ -187,6 +187,7 @@ async function deleteMessages(message, extra = []) {
     return 0;
   }
   let deleted = 0;
+  require('./deleteLog').markBotAction(channel.id, 'الحماية التلقائية (روابط/سبام)');
   try {
     await message.delete();
     deleted += 1;

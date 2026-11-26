@@ -177,6 +177,9 @@ function buildConfig() {
     ownerDiscordId,
     // رومات السوالف العامة: المساعد يسولف ويمون بسرعة (بدون منشن) ويوجّه أصحاب المشاكل لروم الدعم
     aiChatChannelIds: Object.freeze((readList('AI_CHAT_CHANNEL_IDS').length ? readList('AI_CHAT_CHANNEL_IDS') : ['1552252006368944188']).filter(isSnowflake)),
+    // سجل الرسائل المحذوفة: تقرير بالخاص (المالك + أي معرّفات إضافية بـDELETE_LOG_USER_IDS). MESSAGE_DELETE_LOG=off للإيقاف
+    deleteLogEnabled: !/^(false|0|no|off)$/i.test(String(process.env.MESSAGE_DELETE_LOG || 'on').trim()),
+    deleteLogRecipients: Object.freeze([...new Set([ownerDiscordId, ...readList('DELETE_LOG_USER_IDS')])].filter(isSnowflake)),
     // رومات مساعد الأدمن بالذكاء الاصطناعي (أوامر الأدمن + شات الأدمن) — الرد على كل رسالة، بأسلوب رسمي مع الأدمن
     aiAdminChannelIds: Object.freeze((readList('AI_ADMIN_CHANNEL_IDS').length ? readList('AI_ADMIN_CHANNEL_IDS') : ['1552256457578254387', '1552256265877454888']).filter(isSnowflake)),
     // الإعلان التلقائي عن الستريمرز المسجلين (services/streamerAnnouncer): الروم الرسمي ثابت بالـID (ما نبحث بالاسم)
