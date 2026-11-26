@@ -72,7 +72,7 @@ test('بدون قيد بسجل التدقيق ← صاحب الرسالة نفس
   let w = world();
   await deleteLog.onDelete(w.client, w.msg());
   await wait(FLUSH);
-  assert.match(text(w.dms[0]), /صاحب الرسالة نفسه/);
+  assert.match(text(w.dms[0]), /صاحب الرسالة نفسه \(حذف ذاتي\)/);
 
   deleteLog._reset();
   w = world({ auditError: Object.assign(new Error('Missing Permissions'), { code: 50013 }) });
@@ -129,4 +129,16 @@ test('حذف البوت للحماية التلقائية: السبب يظهر،
   } finally {
     delete process.env.MESSAGE_DELETE_LOG;
   }
+});
+
+test('الحالتان توصلان: صاحب الرسالة يحذف رسالته (حذف ذاتي)، وإداري يحذف رسالة شخص ثاني (باسم الإداري) — وكلاهما بدفعة وحدة', async () => {
+  const w = world({ audit: [{ id: 'a9', executor: { id: 'mod9', tag: 'مشرف' }, target: { id: 'u2' }, extra: { channel: { id: 'c1' }, count: 1 }, createdTimestamp: Date.now() }] });
+  await deleteLog.onDelete(w.client, w.msg({ content: 'رسالتي أنا' })); // u1 ما له قيد ← ذاتي
+  await deleteLog.onDelete(w.client, w.msg({ author: { id: 'u2', tag: 'نايف' }, content: 'رسالة نايف' })); // u2 له قيد ← الإداري
+  await wait(FLUSH);
+  const all = w.dms.map(text).join('');
+  assert.match(all, /رسالتي أنا/);
+  assert.match(all, /حذف ذاتي/);
+  assert.match(all, /رسالة نايف/);
+  assert.ok(all.includes('<@mod9>'), 'اسم الإداري');
 });

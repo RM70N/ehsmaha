@@ -16,6 +16,7 @@ const FLUSH_MS = 2500;
 const MAX_QUEUE = 400;
 const FILE_THRESHOLD = 12; // أكثر من هذا بالدفعة ← ملف نصي + ملخص
 const AUDIT_DELAY_MS = 1200;
+const AUDIT_RETRY_MS = 1500;
 const BOT_MARK_TTL_MS = 30_000;
 const KNOWN_TTL_MS = 60_000;
 
@@ -65,22 +66,26 @@ async function resolveExecutor(guild, channelId, authorId) {
   const mark = botLabel(channelId);
   if (mark) return { label: mark, by: null };
   try {
-    await sleep(AUDIT_DELAY_MS);
-    const logs = await guild.fetchAuditLogs({ type: AuditLogEvent.MessageDelete, limit: 8 });
-    const now = Date.now();
-    for (const e of logs.entries.values()) {
-      const count = (e.extra && e.extra.count) || 1;
-      const seen = auditSeen.get(e.id);
-      const chOk = e.extra && e.extra.channel && e.extra.channel.id === channelId;
-      const targetOk = !authorId || (e.target && e.target.id === authorId);
-      const fresh = seen === undefined ? now - e.createdTimestamp < 15_000 : count > seen;
-      if (chOk && targetOk && fresh) {
-        auditSeen.set(e.id, count);
-        if (auditSeen.size > 200) auditSeen.delete(auditSeen.keys().next().value);
-        return { label: null, by: e.executor ? e.executor.id : null, byTag: e.executor ? e.executor.tag || e.executor.username : null };
+    // ديسكورد يتأخر أحياناً بكتابة قيد سجل التدقيق ← نجرّب مرتين قبل ما نحكم إنها حذف ذاتي
+    for (let attempt = 0; attempt < 2; attempt++) {
+      await sleep(attempt === 0 ? AUDIT_DELAY_MS : AUDIT_RETRY_MS);
+      const logs = await guild.fetchAuditLogs({ type: AuditLogEvent.MessageDelete, limit: 10 });
+      const now = Date.now();
+      for (const e of logs.entries.values()) {
+        const count = (e.extra && e.extra.count) || 1;
+        const seen = auditSeen.get(e.id);
+        const chOk = e.extra && e.extra.channel && e.extra.channel.id === channelId;
+        const targetOk = !authorId || (e.target && e.target.id === authorId);
+        const fresh = seen === undefined ? now - e.createdTimestamp < 20_000 : count > seen;
+        if (chOk && targetOk && fresh) {
+          auditSeen.set(e.id, count);
+          if (auditSeen.size > 200) auditSeen.delete(auditSeen.keys().next().value);
+          return { label: null, by: e.executor ? e.executor.id : null, byTag: e.executor ? e.executor.tag || e.executor.username : null };
+        }
       }
     }
-    return { label: 'غالباً صاحب الرسالة نفسه (ما فيه قيد بسجل التدقيق)', by: null };
+    // ما فيه قيد: ديسكورد ما يسجّل بسجل التدقيق حذف الشخص لرسالته هو → حذف ذاتي
+    return { label: 'صاحب الرسالة نفسه (حذف ذاتي)', by: authorId, byTag: null, self: !!authorId };
   } catch (err) {
     const noPerm = err && (err.code === 50013 || /Missing Permissions/i.test(err.message || ''));
     return { label: noPerm ? 'غير معروف (البوت ما عنده صلاحية «عرض سجل التدقيق»)' : 'غير معروف', by: null };
@@ -92,7 +97,7 @@ function embedFor(item) {
   const f = [];
   const add = (n, v, inline = true) => v && f.push(eb.field(n, clip(v, 1000), inline));
   add('👤 صاحب الرسالة', item.authorId ? `<@${item.authorId}>${item.authorTag ? ` (${item.authorTag})` : ''}` : 'غير معروف (الرسالة قديمة وما كانت محفوظة)');
-  add('🛡️ حذفها', item.by ? `<@${item.by}>${item.byTag ? ` (${item.byTag})` : ''}` : item.label || 'غير معروف');
+  add(item.self ? '🙋 حذفها' : '🛡️ حذفها', item.self ? 'صاحب الرسالة نفسه (حذف ذاتي)' : item.by ? `<@${item.by}>${item.byTag ? ` (${item.byTag})` : ''}` : item.label || 'غير معروف');
   add('📍 الروم', item.channelId ? `<#${item.channelId}>${item.guildName ? ` — ${item.guildName}` : ''}` : '');
   if (item.createdAt) add('🕒 كُتبت', `<t:${Math.floor(item.createdAt / 1000)}:R>`);
   if (item.partial) add('📝 المحتوى', 'غير محفوظ — الرسالة أقدم من تشغيل البوت.', false);
