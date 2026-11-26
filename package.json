@@ -1,0 +1,13 @@
+{
+  "name": "ehsmaha-render-launcher",
+  "version": "1.0.0",
+  "private": true,
+  "description": "مُشغِّل لخدمة Render (جذر المستودع): يثبّت ويشغّل خادم الجسر المختار بمتغير البيئة BRIDGE_APP (relay = tiktok-relay الافتراضي، أو server = tiktok-server). لا علاقة له بالموقع الثابت (GitHub Pages).",
+  "scripts": {
+    "postinstall": "node render-launcher.js install",
+    "start": "node render-launcher.js start"
+  },
+  "engines": {
+    "node": ">=22.19"
+  }
+}
