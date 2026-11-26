@@ -10,8 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const H = require('./harness');
 const STREAMER = 'streamer1';
-const ORIGINAL_SHA256 = 'ac90f0bde8e218bc'; // بصمة الملف بعد تقصير مدة الإجابة من 30 إلى 20 ثانية (قبلها: 4d5ae0657de89239) وبعد إضافة فئة «إنسان» وحذف «لوحة التجربة المحلية» (الأصلي: 652318c06b212c43، 838112 بايت؛ قبل حذف اللوحة: 0fcce1ec937e3b6c، 841905 بايت)
-const ORIGINAL_SIZE = 829405;
+const ORIGINAL_SHA256 = '358d0c2571937339'; // بصمة الملف بعد نقل مشهد الإقصاء «الشقوق البركانية» (VolcanicFractureFX) وحذف الإقصاء القديم (قبلها: 93ee3f12c5eb6d16)
+const ORIGINAL_SIZE = 858776;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const check = (name, ok, detail) => { results.push(!!ok); console.log((ok ? 'PASS ' : 'FAIL ') + name + (!ok && detail !== undefined ? '  ' + JSON.stringify(detail).slice(0, 600) : '')); };
