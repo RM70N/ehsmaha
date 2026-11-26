@@ -6,7 +6,7 @@
  */
 (function () {
   if (window.__ehsDesktopLink) return;
-  var WS_URL = (window.EHS_DESKTOP_LINK_API || 'wss://ehsmaha-piratetok-bridge-6e47.onrender.com') + '/desktop-auth/ws';
+  var WS_URL = (window.EHS_DESKTOP_LINK_API || 'wss://ehsmaha-zuao.onrender.com') + '/desktop-auth/ws';
   var ws = null, retry = 0, timer = null, currentUser = null, modal = null, tick = null;
 
   function css() {
@@ -75,7 +75,7 @@
   var D = window.ehsmahaDesktop;
   if (!D || !D.isDesktopApp || window.__ehsAppPresence) return;
   window.__ehsAppPresence = true;
-  var API = (window.EHS_APP_LINK_API || 'wss://ehsmaha-piratetok-bridge-6e47.onrender.com') + '/desktop-app/ws';
+  var API = (window.EHS_APP_LINK_API || 'wss://ehsmaha-zuao.onrender.com') + '/desktop-app/ws';
   var ws = null, retry = 0, timer = null, version = '', seen = {};
 
   function installId() {
