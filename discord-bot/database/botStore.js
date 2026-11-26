@@ -470,15 +470,29 @@ const ticketReports = {
 
 // ---------------- جنس الأعضاء (يصرّحون به بأنفسهم) ----------------
 const userGender = {
-  async get(guildId, userId) {
-    const rows = await db.query('SELECT gender FROM ai_user_gender WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
-    return rows[0] ? rows[0].gender : null;
+  /** صف الملف: { gender, source, nickname, nickname_name } أو null */
+  async getProfile(guildId, userId) {
+    const rows = await db.query('SELECT gender, source, nickname, nickname_name FROM ai_user_gender WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+    return rows[0] || null;
   },
-  async set(guildId, userId, gender) {
+  async get(guildId, userId) {
+    const r = await userGender.getProfile(guildId, userId);
+    return r && r.gender !== 'unknown' ? r.gender : null;
+  },
+  /** يحفظ الجنس ومصدره (explicit | inferred) بدون ما يلمس اللقب */
+  async set(guildId, userId, gender, source = 'explicit') {
     await db.run(
-      `INSERT INTO ai_user_gender (guild_id, user_id, gender, updated_at) VALUES (?, ?, ?, ?)
-       ON CONFLICT (guild_id, user_id) DO UPDATE SET gender = excluded.gender, updated_at = excluded.updated_at`,
-      [guildId, userId, gender, now()]
+      `INSERT INTO ai_user_gender (guild_id, user_id, gender, source, updated_at) VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT (guild_id, user_id) DO UPDATE SET gender = excluded.gender, source = excluded.source, updated_at = excluded.updated_at`,
+      [guildId, userId, gender, source, now()]
+    );
+  },
+  /** يحفظ اللقب (null = حذفه) مع اسم العرض وقت الطلب بدون ما يلمس الجنس */
+  async setNickname(guildId, userId, nickname, forName) {
+    await db.run(
+      `INSERT INTO ai_user_gender (guild_id, user_id, gender, source, nickname, nickname_name, updated_at) VALUES (?, ?, 'unknown', 'inferred', ?, ?, ?)
+       ON CONFLICT (guild_id, user_id) DO UPDATE SET nickname = excluded.nickname, nickname_name = excluded.nickname_name, updated_at = excluded.updated_at`,
+      [guildId, userId, nickname, nickname ? forName : null, now()]
     );
   }
 };

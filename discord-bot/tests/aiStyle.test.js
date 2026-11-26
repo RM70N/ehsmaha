@@ -181,7 +181,9 @@ test('/اسلوب_المساعد: الحالة، إيقاف (ما يتعلم و�
   await say(w.general, w.owner, 'رد وقت الإيقاف', { reference: q });
   assert.equal(await store.aiStyle.count(w.guild.id), 1, 'ما يتعلم وهو متوقف');
   await say(w.general, w.member, `<@${w.guild.members.me.id}> سؤال`, { mentions: [w.guild.members.me.user] });
-  assert.equal(calls.pop().systemInstruction, `${knowledge.buildSystemPrompt()}\n\n${require('../config/aiPersona').block()}`, 'بدون قسم الأسلوب (الشخصية فقط)');
+  const sysNoStyle = calls.pop().systemInstruction;
+  assert.ok(sysNoStyle.startsWith(`${knowledge.buildSystemPrompt()}\n\n${require('../config/aiPersona').block()}`), 'الشخصية بعد قاعدة المعرفة');
+  assert.doesNotMatch(sysNoStyle, /## أسلوب الرد/, 'بدون قسم الأسلوب (الشخصية فقط)');
 
   await cmd(w, w.owner, { 'إجراء': 'on' });
   ai._internal.mentionCooldowns.clear();
