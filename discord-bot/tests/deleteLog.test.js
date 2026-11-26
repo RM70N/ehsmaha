@@ -142,3 +142,36 @@ test('الحالتان توصلان: صاحب الرسالة يحذف رسالت
   assert.match(all, /رسالة نايف/);
   assert.ok(all.includes('<@mod9>'), 'اسم الإداري');
 });
+
+test('الشعار: رابط الشعار بالإمبدات فيه بصمة الملف (يكسر كاش ديسكورد)، وصورة البوت تتزامن مرة وحدة لكل تغيير', async () => {
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  assert.match(loadConfig().logoUrl, /^https:\/\/ehsmaha\.com\/discord-logo\.png\?v=[0-9a-f]{8}$/);
+
+  const botAvatar = require('../services/botAvatar');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'avatar-'));
+  process.env.BOT_DATA_DIR = dir;
+  const file = path.join(dir, 'a.png');
+  fs.writeFileSync(file, Buffer.from('png-v1'));
+  const calls = [];
+  const client = { user: { setAvatar: async (b) => calls.push(b.toString()) } };
+  try {
+    assert.equal(await botAvatar.sync(client, { file }), 'updated');
+    assert.equal(await botAvatar.sync(client, { file }), 'unchanged', 'نفس الملف ما يُعاد رفعه');
+    fs.writeFileSync(file, Buffer.from('png-v2'));
+    assert.equal(await botAvatar.sync(client, { file }), 'updated');
+    assert.deepEqual(calls, ['png-v1', 'png-v2']);
+    // فشل (حد التغيير) ← يرجّع failed وما يحفظ الحالة، والمحاولة الجاية تنجح
+    fs.writeFileSync(file, Buffer.from('png-v3'));
+    const bad = { user: { setAvatar: async () => { throw Object.assign(new Error('rate limited'), { code: 30008 }); } } };
+    assert.equal(await botAvatar.sync(bad, { file }), 'failed');
+    assert.equal(await botAvatar.sync(client, { file }), 'updated');
+    assert.equal(await botAvatar.sync(client, { file: path.join(dir, 'nope.png') }), 'missing');
+    process.env.BOT_AVATAR_SYNC = 'off';
+    assert.equal(await botAvatar.sync(client, { file }), 'disabled');
+  } finally {
+    delete process.env.BOT_DATA_DIR;
+    delete process.env.BOT_AVATAR_SYNC;
+  }
+});
