@@ -10,7 +10,7 @@ const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const { guardAdmin, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
-const { toDurationMs, formatDurationAr, hierarchyProblem, tryDm, dmEmbed, logModeration, DURATION_UNITS, MAX_TIMEOUT_MS } = require('../../utils/moderation');
+const { toDurationMs, formatDurationAr, hierarchyProblem, dmEmbed, notifyUser, logModeration, DURATION_UNITS, MAX_TIMEOUT_MS } = require('../../utils/moderation');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -84,7 +84,7 @@ module.exports = {
 
     const endsAt = Date.now() + d.ms;
     const duration = formatDurationAr(d.ms);
-    const dmOk = await tryDm(target.user, {
+    const dmOk = await notifyUser(target.user, {
       embeds: [
         dmEmbed({
           title: '🔇 تم كتمك مؤقتاً',
@@ -92,7 +92,7 @@ module.exports = {
           lines: [`**السيرفر:** ${guild.name}`, `**المدة:** ${duration}`, `**ينتهي:** ${eb.discordDate(endsAt, 'f')} (${eb.discordDate(endsAt, 'R')})`, `**السبب:** ${reason}`, `**بواسطة:** ${interaction.user.tag || interaction.user.username}`]
         })
       ]
-    });
+    }, { channel: interaction.channel });
 
     await logModeration({
       guildId: guild.id,
@@ -114,7 +114,8 @@ module.exports = {
       );
     const notes = [];
     if (wasMuted) notes.push('كان مكتوم مسبقاً — تم استبدال المدة بالجديدة.');
-    if (!dmOk) notes.push('تعذر إرسال إشعار خاص للعضو (رسائله الخاصة مغلقة).');
+    if (dmOk === 'channel') notes.push('رسائله الخاصة مغلقة — أُرسل الإشعار بمنشنه بنفس الروم.');
+    else if (!dmOk) notes.push('تعذر إرسال إشعار للعضو (رسائله الخاصة مغلقة وما قدرت أرسل بالروم).');
     if (notes.length) embed.addFields(eb.field('ℹ️ ملاحظة', notes.join('\n'), false));
     return respond.send(interaction, { embeds: [embed] });
   }

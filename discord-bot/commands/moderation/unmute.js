@@ -8,7 +8,7 @@ const respond = require('../../utils/respond');
 const logger = require('../../utils/logger');
 const { guardAdmin, STAFF_ROLE_RE } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
-const { hierarchyProblem, tryDm, dmEmbed, logModeration } = require('../../utils/moderation');
+const { hierarchyProblem, dmUnmuted, logModeration } = require('../../utils/moderation');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -46,13 +46,14 @@ module.exports = {
       return respond.send(interaction, { embeds: [eb.error(err.code === 50013 ? 'ديسكورد رفض العملية — تحقق من ترتيب رتبة البوت وصلاحية **كتم الأعضاء**.' : 'تعذّر فك الكتم، جرّب بعد قليل.')] });
     }
 
-    const dmOk = await tryDm(target.user, { embeds: [dmEmbed({ title: '🔊 انفك كتمك', guild, lines: [`**السيرفر:** ${guild.name}`, `**السبب:** ${reason}`] })] });
+    const dmOk = await dmUnmuted(target.user, guild, { reason, by: interaction.user.tag || interaction.user.username, channel: interaction.channel });
     await logModeration({ guildId: guild.id, action: 'unmute', targetId: target.id, moderatorId: interaction.user.id, channelId: interaction.channelId, reason });
 
     const embed = eb
       .brand({ tone: 'gold', title: '🔊 تم فك الكتم', description: `${target} يقدر يتكلم الحين.` })
       .addFields(eb.field('👤 العضو', `${target.user.tag || target.user.username}\n\`${target.id}\``), eb.field('📝 السبب', reason, false));
-    if (!dmOk) embed.addFields(eb.field('ℹ️ ملاحظة', 'تعذر إرسال إشعار خاص للعضو (رسائله الخاصة مغلقة).', false));
+    if (dmOk === 'channel') embed.addFields(eb.field('ℹ️ ملاحظة', 'رسائله الخاصة مغلقة — أُرسل الإشعار بمنشنه بنفس الروم.', false));
+    else if (!dmOk) embed.addFields(eb.field('ℹ️ ملاحظة', 'تعذر إرسال إشعار للعضو (رسائله الخاصة مغلقة).', false));
     return respond.send(interaction, { embeds: [embed] });
   }
 };

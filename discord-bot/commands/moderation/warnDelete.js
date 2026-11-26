@@ -13,7 +13,7 @@ const logger = require('../../utils/logger');
 const store = require('../../database/botStore');
 const { guardAdmin } = require('../../utils/adminPermissions');
 const { missingBotPermissions, botPermissionsPayload } = require('../../utils/permissions');
-const { logModeration } = require('../../utils/moderation');
+const { logModeration, dmWarningRemoved } = require('../../utils/moderation');
 const { ensureWarningRoles, LABELS } = require('../../utils/warningRoles');
 
 const LEVELS = ['w1', 'w2', 'w3'];
@@ -59,6 +59,7 @@ module.exports = {
         });
       }
       await logModeration({ guildId: guild.id, action: 'warn_delete', targetId: user.id, moderatorId: interaction.user.id, channelId: interaction.channelId, reason: removed.reason, details: { seq: num, warningId: removed.id, role: removed.warning_role_given } });
+      await dmWarningRemoved(user, guild, { label: `التحذير #${num}`, reason: removed.reason, by: interaction.user.tag || interaction.user.username });
       return respond.send(interaction, {
         embeds: [eb.success(`تم حذف التحذير **#${num}** من سجل ${user}.`, '🗑️ تم حذف التحذير').addFields(eb.field('📝 سببه', eb.clip(removed.reason, 300), false), eb.field('🔢 العدد الفعلي الآن', `**${total}** تحذير`))]
       });
@@ -105,6 +106,10 @@ module.exports = {
       details: { level: level + 1, role: role.name, roleRemoved: hadRole && !roleError, recordRemoved: !!record }
     });
 
+    // إشعار خاص للعضو بحذف الإنذار
+    let dmOk = false;
+    if (hadRole || record) dmOk = await dmWarningRemoved(user, guild, { label: LABELS[level], reason: record && record.reason, by: interaction.user.tag || interaction.user.username, channel: interaction.channel });
+
     if (!hadRole && !record) {
       return respond.send(interaction, { embeds: [eb.warning(`${user} ما عنده رتبة **${role.name}** ولا تحذير مسجّل بها.`, '🔎 ما فيه شي يتحذف')] });
     }
@@ -115,6 +120,8 @@ module.exports = {
         eb.field('📋 السجل', record ? `انحذف: ${eb.clip(record.reason, 200)}` : 'ما فيه تحذير مسجّل بهذي الرتبة'),
         eb.field('🔢 العدد الفعلي الآن', `**${total}** تحذير`)
       );
+    if (dmOk === 'channel') embed.addFields(eb.field('ℹ️ ملاحظة', 'رسائله الخاصة مغلقة — أُرسل الإشعار بمنشنه بنفس الروم.', false));
+    else if (!dmOk) embed.addFields(eb.field('ℹ️ ملاحظة', 'تعذر إرسال إشعار للعضو (رسائله الخاصة مغلقة).', false));
     return respond.send(interaction, { embeds: [embed] });
   }
 };

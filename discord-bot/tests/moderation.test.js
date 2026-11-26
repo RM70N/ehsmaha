@@ -189,7 +189,7 @@ test('/كتم: رتبة البوت أقل، عضو Administrator، صلاحية 
   const closed = makeMember(w.guild, { dmOpen: false });
   i = cmd(w.guild, w.mod, 'كتم', { 'عضو': closed, 'المدة': 1, 'الوحدة': 'minutes' });
   await dispatch(i);
-  assert.match(lastPayload(i).text, /تعذر إرسال إشعار خاص للعضو/);
+  assert.match(lastPayload(i).text, /تعذر إرسال إشعار للعضو/);
   assert.match(lastPayload(i).text, /تم الكتم/);
 
   w.guild.failNext = 'timeout';
@@ -805,4 +805,116 @@ test('/حذف_تحذير: اختيار الإنذار أو رقم 1/2/3 يشيل
   await dispatch(i);
   const t = lastPayload(i).text;
   assert.ok(/إنذار أول/.test(t) && /إنذار ثاني/.test(t) && /إنذار ثالث/.test(t));
+});
+
+// =================== إشعار خاص للعضو بكل أمر عليه ===================
+
+test('كل أمر على عضو يوصله إشعار خاص: كتم (المدة والسبب)، فك كتم، تحذير، حذف إنذار، طرد', async () => {
+  const w = await makeAdminWorld();
+  const dms = () => w.guild.log.filter(([t, id]) => t === 'dm' && id === w.target.id).map(([, , p]) => JSON.stringify(p.embeds.map((e) => (e.toJSON ? e.toJSON() : e))));
+  let i = cmd(w.guild, w.mod, 'كتم', { 'عضو': w.target, 'المدة': 15, 'الوحدة': 'minutes', 'السبب': 'سبام بالعام' });
+  await dispatch(i);
+  let d = dms();
+  assert.equal(d.length, 1);
+  assert.match(d[0], /تم كتمك/);
+  assert.match(d[0], /15 دقيقة/);
+  assert.match(d[0], /سبام بالعام/);
+
+  i = cmd(w.guild, w.mod, 'فك_كتم', { 'عضو': w.target, 'السبب': 'صلحنا' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 2);
+  assert.match(d[1], /انفك كتمك/);
+  assert.match(d[1], /صلحنا/);
+
+  i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'ألفاظ', 'رتبة_التحذير': 'w1' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 3);
+  assert.match(d[2], /وصلك تحذير/);
+  assert.match(d[2], /ألفاظ/);
+
+  i = cmd(w.guild, w.mod, 'حذف_تحذير', { 'عضو': w.target, 'رقم_التحذير': 1 });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 4);
+  assert.match(d[3], /انحذف عنك إنذار/);
+  assert.match(d[3], /ألفاظ/);
+
+  i = cmd(w.guild, w.mod, 'طرد', { 'عضو': w.target, 'سبب': 'تكرار' });
+  await dispatch(i);
+  d = dms();
+  assert.equal(d.length, 5);
+  assert.match(d[4], /تكرار/);
+});
+
+test('لو الخاص مغلق: الإشعار يُرسل بمنشن العضو في نفس الروم (كتم وتحذير) مع ملاحظة للإداري', async () => {
+  const w = await makeAdminWorld();
+  const ch = makeChannel(w.guild, { name: 'العام' });
+  w.target.user.send = async () => { throw Object.assign(new Error('Cannot send messages to this user'), { code: 50007 }); };
+  let i = cmd(w.guild, w.mod, 'كتم', { 'عضو': w.target, 'المدة': 20, 'الوحدة': 'minutes', 'السبب': 'سبام', __channelId: ch.id });
+  await dispatch(i);
+  const sent = () => w.guild.log.filter(([t, id]) => t === 'send' && id === ch.id).map(([, , p]) => p);
+  assert.equal(sent().length, 1);
+  assert.equal(sent()[0].content, `<@${w.target.id}>`);
+  const e = JSON.stringify(sent()[0].embeds.map((x) => (x.toJSON ? x.toJSON() : x)));
+  assert.match(e, /تم كتمك/);
+  assert.match(e, /20 دقيقة/);
+  assert.match(e, /سبام/);
+  assert.match(lastPayload(i).text, /أُرسل الإشعار بمنشنه بنفس الروم/);
+
+  i = cmd(w.guild, w.mod, 'تحذير', { 'عضو': w.target, 'سبب': 'ألفاظ', 'رتبة_التحذير': 'w1', __channelId: ch.id });
+  await dispatch(i);
+  assert.equal(sent().length, 2);
+  assert.match(JSON.stringify(sent()[1].embeds.map((x) => (x.toJSON ? x.toJSON() : x))), /ألفاظ/);
+});
+
+// =================== /رسالة_خاصة (للمالك فقط) ===================
+
+test('/رسالة_خاصة: المالك فقط — يرسل لأي عضو أو لنفسه (بدون اختيار)، وغيره مرفوض بدون إرسال شي', async () => {
+  const w = await makeAdminWorld();
+  const ownerId = loadConfig().ownerDiscordId;
+  const owner = makeMember(w.guild, { id: ownerId, username: 'owner' });
+  const dmTo = (id) => w.guild.log.filter(([t, uid]) => t === 'dm' && uid === id).map(([, , p]) => p);
+
+  // غير المالك (حتى لو أدمن) مرفوض
+  let i = cmd(w.guild, w.mod, 'رسالة_خاصة', { 'الرسالة': 'مرحبا', 'الى': w.target });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /لمالك البوت فقط/);
+  assert.equal(dmTo(w.target.id).length, 0);
+
+  // المالك ← عضو
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'السلام عليكم، وصلتك رسالة من الإدارة', 'الى': w.target });
+  await dispatch(i);
+  assert.equal(dmTo(w.target.id).length, 1);
+  assert.equal(dmTo(w.target.id)[0].content, 'السلام عليكم، وصلتك رسالة من الإدارة');
+  assert.match(lastPayload(i).text, /وصلت الرسالة/);
+
+  // المالك ← نفسه (بدون اختيار)، وبإطار
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'تجربة لنفسي', 'بإطار': true });
+  await dispatch(i);
+  assert.equal(dmTo(ownerId).length, 1);
+  assert.match(JSON.stringify(dmTo(ownerId)[0].embeds.map((e) => (e.toJSON ? e.toJSON() : e))), /تجربة لنفسي/);
+  assert.match(lastPayload(i).text, /نفسك/);
+
+  // معرّف غلط، وخاص مغلق، وبوت
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'المعرف': 'abc' });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /أرقام فقط/);
+  const closed = makeMember(w.guild, { username: 'closed', dmOpen: false });
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'الى': closed });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /مغلقة/);
+  const bot = makeMember(w.guild, { username: 'otherbot', bot: true });
+  i = cmd(w.guild, owner, 'رسالة_خاصة', { 'الرسالة': 'x', 'الى': bot });
+  await dispatch(i);
+  assert.match(lastPayload(i).text, /لبوت/);
+  // الرسالة ما تنسجل بأي سجل إدارة
+  assert.ok(!(await store.moderationLog.recent(w.guild.id, 50)).some((r) => /owner_dm|رسالة_خاصة/.test(r.action)));
+});
+
+test('/رسالة_خاصة: مخفي عن الأعضاء العاديين (Administrator فقط للظهور) ويشتغل بخاص البوت', () => {
+  const j = require('../commands/owner/dm').data.toJSON();
+  assert.equal(j.default_member_permissions, '0');
+  assert.ok(j.contexts.includes(0) && j.contexts.includes(1), 'سيرفر + خاص البوت');
 });
