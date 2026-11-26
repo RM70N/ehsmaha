@@ -168,7 +168,7 @@ test('/بروفايل بيوزر موجود: Embed كامل + زرين', async (
   assert.equal(e.footer.text, 'احسمها | ehsmaha.com');
   assert.ok(e.timestamp);
   assert.equal(e.color, 0x1a0d33);
-  assert.equal(e.thumbnail.url, 'https://ehsmaha.com/discord-logo.png'); // بدون أفتار → الشعار
+  assert.match(e.thumbnail.url, /^https:\/\/ehsmaha\.com\/discord-logo\.png\?v=[0-9a-f]{8}$/); // بدون أفتار → الشعار
   const names = e.fields.map((f) => f.name);
   for (const n of ['⭐ اللفل', '💎 النقاط', '🎮 الألعاب الملعوبة', '📅 تاريخ الانضمام']) assert.ok(names.includes(n), n);
   const buttons = m.components[0].components;
