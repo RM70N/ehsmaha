@@ -32,7 +32,7 @@ const GAME_NAMES = Object.freeze({
   "tt10": "توب 10",
   "glz": "الطريق الزجاجي",
   "volcanic-lands": "الأراضي البركانية",
-  "hz": "ضربة الحظ",
+  "hz": "مين بالصندوق؟",
   "ig": "خمن الصورة",
   "oneletter": "تحدي الحرف الواحد",
   "guesscountry": "توقع الدولة",
