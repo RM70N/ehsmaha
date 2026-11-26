@@ -19,7 +19,7 @@ window.WINDOWS_LAUNCH_CAMPAIGN = Object.freeze({
 
   // صفحات الألعاب/البث/الجلسات: لا يظهر فيها الإعلان ويُغلق تلقائياً إن انتقل إليها اللاعب والإعلان مفتوح.
   excludePaths: [
-    '/(roulette3d|bomb3d|tug3d|xo|ektheb-alay|almeezan3d|wesh-taghayar|hallaha-qabli|code-race|callcenter3d|la-tatayeh3d|harf-alnajat3d|ws-diag|desktop-auth|windows-app|link-device)(\\.html)?/?$',
+    '/(roulette3d|bomb3d|tug3d|xo|ektheb-alay|almeezan3d|wesh-taghayar|hallaha-qabli|code-race|callcenter3d|la-tatayeh3d|harf-alnajat3d|color-rush3d|ws-diag|desktop-auth|windows-app|link-device)(\\.html)?/?$',
     '^/games/',
     '^/(revival-system|dhmx-welcome|som3h-10k|blhh-5k|c7-welcome|owner-studio|ops|subathon)/'
   ],
