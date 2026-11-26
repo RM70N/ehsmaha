@@ -727,10 +727,14 @@ async function handleMention(message, botUser) {
     return true;
   }
   const ctx = await channelContext(message, botUser);
+  // نفس مراقبة الجنس/اللقب بالمنشن (سوالف شخصية بالقنوات العامة — مو التكتات ولا رومات الأدمن)
+  const mNames = { displayName: nameOf(message, message.author), username: message.author.username };
+  const mSeen = await aiGender.observe({ guildId: message.guild.id, userId: message.author.id, text: message.content, displayName: mNames.displayName }).catch(() => ({ declared: null }));
+  const mProf = await aiGender.profile(message.guild.id, message.member, message.author.id, mNames).catch(() => ({ gender: null, source: null, nickname: null }));
   const r = await generateGuarded({
     guildId: message.guild.id,
     persona: true,
-    systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), await siteKnowledge.promptFor(question)].filter(Boolean).join('\n\n')),
+    systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), aiGender.promptLine(mNames.displayName, mProf.gender, { justSet: !!mSeen.declared, source: mProf.source, nickname: mProf.nickname }), await siteKnowledge.promptFor(question)].filter(Boolean).join('\n\n')),
     messages: [...historyFor(key), { role: 'user', text: withContext(question || IMAGE_MARK, nameOf(message, message.author), ctx), images: loaded.length ? loaded : undefined }],
     meta: { context: 'mention', guildId: message.guild.id, channelId: message.channel.id, userId: message.author.id, images: loaded.length || undefined }
   });
@@ -884,9 +888,12 @@ async function handleGeneralChat(message, botUser) {
   const cfg = loadConfig();
   if (!message.channel || !(cfg.aiChatChannelIds || []).includes(message.channel.id) || !botUser) return false;
   if (message.system) return true;
-  // تصريح العضو بجنسه ("أنا بنت" / "أنا ولد") يتحفظ حتى لو الرسالة مو موجّهة للبوت
-  const declared = message.author && !message.author.bot ? aiGender.detect(message.content) : null;
-  if (declared) await aiGender.remember(message.guild.id, message.author.id, declared);
+  // نراقب كل رسائل الروم (حتى لو مو موجّهة للبوت): تصريح بالجنس، دليل بأسلوبه، أو طلب لقب ("نادني الملكة فطيم")
+  const names = { displayName: nameOf(message, message.author), username: message.author && message.author.username };
+  const seen = message.author && !message.author.bot
+    ? await aiGender.observe({ guildId: message.guild.id, userId: message.author.id, text: message.content, displayName: names.displayName })
+    : { declared: null, nickname: null };
+  const declared = seen.declared;
   const mentioned = mentionsBot(message, botUser);
   const toBot = mentioned || (await isReplyToBot(message, botUser));
   if (!toBot) return false;
@@ -907,15 +914,15 @@ async function handleGeneralChat(message, botUser) {
   try {
     typing(message.channel);
     const loaded = images.length ? await downloadImages(images) : [];
-    const tagFor = async (m) => aiGender.tagOf(await aiGender.resolve(message.guild.id, m.member, m.author.id));
+    const tagFor = async (m) => aiGender.tagOf(await aiGender.resolve(message.guild.id, m.member, m.author.id, { displayName: nameOf(message, m.author), username: m.author.username }));
     const ctx = await channelContext(message, botUser, { tagFor });
     const who = nameOf(message, message.author);
-    const gender = await aiGender.resolve(message.guild.id, message.member, message.author.id);
+    const prof = await aiGender.profile(message.guild.id, message.member, message.author.id, names);
     const hint = '[هذي الرسالة موجّهة لك مباشرة — لازم ترد]';
     const r = await generateGuarded({
       guildId: message.guild.id,
       persona: true,
-      systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), aiModes.CHAT, aiGender.promptLine(who, gender, { justSet: !!declared }), `روم الدعم للإحالة: ${supportChannelMention(message.guild)}`].join('\n\n')),
+      systemInstruction: await systemPromptFor(message.guild.id, [aiPersona.block(), aiModes.CHAT, aiGender.promptLine(who, prof.gender, { justSet: !!declared, source: prof.source, nickname: prof.nickname }), `روم الدعم للإحالة: ${supportChannelMention(message.guild)}`].join('\n\n')),
       messages: [{ role: 'user', text: withContext(`${hint}\n${text || IMAGE_MARK}`, who, ctx), images: loaded.length ? loaded : undefined }],
       maxOutputTokens: 220,
       temperature: 0.9,

@@ -223,7 +223,7 @@ test('الشات العام: يحفظ جنس العضو ويخاطبه بالص�
   const ch = makeChannel(guild, { id: CHAT_CH });
   const girl = makeMember(guild, { username: 'نوف' });
   const boy = makeMember(guild, { username: 'فهد' });
-  const stranger = makeMember(guild, { username: 'سالم' });
+  const stranger = makeMember(guild, { username: 'x7q_gamer' });
   const bot = botUserOf(guild);
   aiGender._reset();
   // تصريح بدون منشن ← يتحفظ بدون رد
@@ -248,4 +248,108 @@ test('الشات العام: الضحك والإيموجي بوقتهم فقط (
   assert.equal(c('ههههه صدقت 😂🔥', 'والله ضحكتني ههههه'), 'ههههه صدقت 😂');
   assert.equal(c('هههههه وش هالسالفة', 'كيف احسب نقاطي'), 'وش هالسالفة');
   assert.equal(c('تمام 👍🔥✨', 'ابي اعرف الموعد'), 'تمام 👍');
+});
+
+test('الجنس: استنتاج من الاسم ومن أسلوب الكلام، والتصريح يغلب الاستنتاج (ولا يُكتب فوقه)', async () => {
+  const g = require('../services/aiGender');
+  assert.equal(g.inferFromName('فطيم'), 'female');
+  assert.equal(g.inferFromName('الملكة فطيم'), 'female');
+  assert.equal(g.inferFromName('Sara_xx'), 'female');
+  assert.equal(g.inferFromName('محمد'), 'male');
+  assert.equal(g.inferFromName('ابو خالد'), 'male');
+  assert.equal(g.inferFromName('7ssg'), null);
+  assert.equal(g.inferFromName('ام سعود'), null, 'دلائل متعارضة ← ما نخمّن');
+  assert.equal(g.inferFromStyle('انا تعبانه اليوم'), 'female');
+  assert.equal(g.inferFromStyle('انا مو مبسوطه'), 'female');
+  assert.equal(g.inferFromStyle('انا مشغول شوي'), 'male');
+  assert.equal(g.inferFromStyle('وش اخبارك'), null);
+
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH });
+  const bot = botUserOf(guild);
+  g._reset();
+  // اسم أنثوي واضح بدون أي تصريح ← البوت يخاطبها بالمؤنث (ويذكر إنه استنتاج)
+  const a = makeMember(guild, { username: 'فطيم' });
+  await say(ch, a, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /\*\*بنت\*\*/);
+  assert.match(sysText(calls.at(-1)), /استنتاج من الاسم/);
+  // أسلوب: اسم غير معروف لكن تتكلم بصيغة المؤنث ← يتحفظ كاستنتاج
+  ai._internal.chatUserGap.clear();
+  const b = makeMember(guild, { username: 'x9z_player' });
+  await say(ch, b, `<@${bot.id}> انا تعبانه اليوم`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /\*\*بنت\*\*/);
+  g._reset(); // يقرأ من القاعدة
+  ai._internal.chatUserGap.clear();
+  await say(ch, b, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /\*\*بنت\*\*/, 'محفوظ');
+  // التصريح يغلب: تقول إنها ولد صراحة ← ولد؛ والاستنتاج بعدها ما يرجّعها
+  ai._internal.chatUserGap.clear();
+  await say(ch, b, `<@${bot.id}> انا ولد`, { mentions: [bot] });
+  ai._internal.chatUserGap.clear();
+  await say(ch, b, `<@${bot.id}> انا تعبانه`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /\*\*ولد\*\*/);
+});
+
+test('اللقب: "نادني الملكة فطيم" يتحفظ ويُستخدم، ويسقط لما يتغيّر اسم العرض، و"رجّعني اسمي" يلغيه', async () => {
+  const g = require('../services/aiGender');
+  const guild = makeGuild();
+  const ch = makeChannel(guild, { id: CHAT_CH });
+  const bot = botUserOf(guild);
+  g._reset();
+  const m = makeMember(guild, { username: 'user_f1' });
+  // طلب اللقب بدون منشن (يتحفظ بصمت)
+  await say(ch, m, 'نادني الملكة فطيم من اليوم');
+  g._reset(); // نتأكد إنه محفوظ بالقاعدة
+  ai._internal.chatUserGap.clear();
+  await say(ch, m, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /«الملكة فطيم»/);
+  assert.match(sysText(calls.at(-1)), /\*\*بنت\*\*/, 'اللقب "الملكة" يدل على مؤنث');
+  // تغيّر اسم العرض ← ينتهي اللقب
+  m.displayName = 'اسم جديد';
+  ai._internal.chatUserGap.clear();
+  await say(ch, m, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.doesNotMatch(sysText(calls.at(-1)), /«الملكة فطيم»/);
+  // لقب جديد ثم إلغاؤه
+  await say(ch, m, 'ناديني سلطان');
+  ai._internal.chatUserGap.clear();
+  await say(ch, m, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.match(sysText(calls.at(-1)), /«سلطان»/);
+  await say(ch, m, 'رجعني اسمي');
+  ai._internal.chatUserGap.clear();
+  await say(ch, m, `<@${bot.id}> هلا`, { mentions: [bot] });
+  assert.doesNotMatch(sysText(calls.at(-1)), /«سلطان»/);
+});
+
+test('اللقب: يفهم صيغ كثيرة لطلب تغيير الاسم (نادني/قولي/قول لي/سمني/غيّر اسمي…) ولا يلتقط الأسئلة والكلام العادي', () => {
+  const g = require('../services/aiGender');
+  const nick = (t) => (g.detectNickname(t) || {}).nickname || null;
+  const asks = {
+    'نادني الملكة فطيم': 'الملكة فطيم',
+    'ناديني الملكة فطيم من اليوم': 'الملكة فطيم',
+    'نادني بسلطان لو سمحت': 'سلطان',
+    'قولي الملكة فطيم': 'الملكة فطيم',
+    'قول لي يا سلطان': 'سلطان',
+    'قل لي سلطان من الحين': 'سلطان',
+    'تقولي ملكة القروب': 'ملكة القروب',
+    'ابيك تقولي ملكة': 'ملكة',
+    'تناديني الأمير': 'الأمير',
+    'ودي تناديني الملكة': 'الملكة',
+    'خليك تناديني سيدي': 'سيدي',
+    'سمني وحش': 'وحش',
+    'سميني فطيم الغالية': 'فطيم الغالية',
+    'غيّر اسمي الى الملكة فطيم': 'الملكة فطيم',
+    'غير اسمي ل سلطان': 'سلطان',
+    'خلي اسمي بدر': 'بدر',
+    'ابي اسمي القائد': 'القائد',
+    'اسمي الجديد الاسطورة': 'الاسطورة',
+    'لقبي الزعيم': 'الزعيم',
+    'نادني «الغالية»': 'الغالية'
+  };
+  for (const [text, want] of Object.entries(asks)) assert.equal(nick(text), want, text);
+  for (const text of ['قولي وش اسمك', 'قل لي كيف احسب النقاط', 'قولي سلطان؟', 'قولي ان الجو حلو', 'قولي ايش الجديد', 'اسمي مو مهم', 'قل لي ان كل شي تمام', 'نادني بنت', 'نادني ولد', 'هلا وش اخبارك']) {
+    assert.equal(g.detectNickname(text), null, text);
+  }
+  for (const text of ['رجعني اسمي', 'نادني باسمي', 'ارجع نادني اسمي الاصلي', 'الغي لقبي', 'شيل اللقب']) {
+    assert.deepEqual(g.detectNickname(text), { reset: true }, text);
+  }
 });

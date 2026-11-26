@@ -23,6 +23,8 @@ const ROOT_FILES = [
   'callcenter3d.html',
   'la-tatayeh3d.html',
   'harf-alnajat3d.html',
+  'color-rush3d.html',
+  'color-rush3d-cover.webp',
   'space-odyssey.html',
   'space-odyssey-integration.js',
   'findball3d.html',
