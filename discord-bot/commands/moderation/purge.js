@@ -26,7 +26,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * ينفّذ المسح ويرجّع ملخص دقيق.
  * @returns {Promise<{ requested, scanned, deleted, tooOld, undeletable, failed }>}
  */
-async function purgeChannel(channel, requested) {
+async function purgeChannel(channel, requested, moderatorId = null) {
   const result = { requested, scanned: 0, deleted: 0, tooOld: 0, undeletable: 0, failed: 0 };
   let before;
   while (result.scanned < requested) {
@@ -46,6 +46,7 @@ async function purgeChannel(channel, requested) {
 
     if (fresh.length) {
       try {
+        require('../../services/deleteLog').reportPurge(channel.client, { channel, messages: fresh, moderatorId });
         const deleted = await channel.bulkDelete(fresh, true);
         result.deleted += deleted.size;
         result.failed += fresh.length - deleted.size;
@@ -116,7 +117,7 @@ module.exports = {
 
     let result;
     try {
-      result = await purgeChannel(channel, count);
+      result = await purgeChannel(channel, count, interaction.user.id);
     } catch (err) {
       logger.error('فشل المسح', { guildId: guild.id, channelId: channel.id, code: err.code, error: err });
       const msg = err.code === 50013

@@ -1,5 +1,5 @@
 // جمعتنا — مدير الاتصال: WebSocket واحد مع إعادة اتصال تلقائية واستعادة المقعد بالرمز السري ومزامنة وقت الخادم.
-const DEFAULT_SERVERS = ['wss://ehsmaha-piratetok-bridge-6e47.onrender.com/jam3atna/ws'];
+const DEFAULT_SERVERS = ['wss://ehsmaha-zuao.onrender.com/jam3atna/ws'];
 
 function serverList() {
   // للتجربة المحلية فقط: ?srv=ws://127.0.0.1:PORT/jam3atna/ws (يُقبل على localhost حصراً)

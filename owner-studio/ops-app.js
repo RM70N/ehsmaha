@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const { esc, icon, fmt, $, $$ } = UI; const O = window.Ops;
-  const API = () => (window.EHS_APP_API || 'https://ehsmaha-piratetok-bridge.onrender.com') + '/desktop-app/admin';
+  const API = () => (window.EHS_APP_API || 'https://ehsmaha-zuao.onrender.com') + '/desktop-app/admin';
   const REFRESH_MS = 15000;
   const TARGETS = [['home', 'الصفحة الرئيسية'], ['store', 'المتجر'], ['profile', 'الملف الشخصي'], ['levels', 'المستويات'], ['leaderboard', 'الترتيب'], ['frames', 'الإطارات']];
   const S = { st: null, cfg: null, err: null, busy: false, loadedAt: 0 };
@@ -74,7 +74,7 @@
   const BM = { pins: undefined, sel: '_zvd4', msg: '' };
   const BM_STREAMERS = ['_zvd4'];
   const bmStText = () => BM.pins === undefined ? 'جارِ التحميل…' : BM_STREAMERS.map((s) => '@' + s + ': ' + (BM.pins[s] ? 'مثبَّت على الحساب ' + BM.pins[s] : 'غير مثبَّت')).join(' — ');
-  const bmApi = () => (window.EHS_APP_API || 'https://ehsmaha-piratetok-bridge.onrender.com') + '/batmish/admin';
+  const bmApi = () => (window.EHS_APP_API || 'https://ehsmaha-zuao.onrender.com') + '/batmish/admin';
   async function bmCall(path, body) {
     const u = O.host && O.host.__fb && O.host.__fb.auth && O.host.__fb.auth.currentUser; if (!u) throw new Error('لا توجد جلسة مالك');
     const r = await fetch(bmApi() + path, { method: body ? 'POST' : 'GET', headers: { Authorization: 'Bearer ' + await u.getIdToken(), 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });

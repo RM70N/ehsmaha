@@ -6,6 +6,22 @@
 
 require('dotenv').config({ quiet: true });
 
+// بصمة ملف الشعار: نضيفها لرابط الشعار (?v=…) عشان ديسكورد (يخزّن الصور بالـCDN مدة طويلة) يجيب الشعار الجديد دائماً
+// أي ما تغيّر ملف discord-logo.png تتغيّر البصمة تلقائياً. ما يحتاج أحد يعدّل الكود أو يمسح كاش.
+function logoVersion() {
+  try {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const crypto = require('node:crypto');
+    for (const p of [path.join(__dirname, 'discord-logo.png'), path.join(__dirname, '..', 'discord-logo.png')]) {
+      if (fs.existsSync(p)) return crypto.createHash('sha1').update(fs.readFileSync(p)).digest('hex').slice(0, 8);
+    }
+  } catch {
+    /* بدون ملف: نستخدم رقم ثابت */
+  }
+  return '20261126';
+}
+
 const REQUIRED = {
   DISCORD_TOKEN: 'توكن البوت من Discord Developer Portal → Bot → Token',
   CLIENT_ID: 'Application ID للبوت (1552260327008247879)',
@@ -177,6 +193,9 @@ function buildConfig() {
     ownerDiscordId,
     // رومات السوالف العامة: المساعد يسولف ويمون بسرعة (بدون منشن) ويوجّه أصحاب المشاكل لروم الدعم
     aiChatChannelIds: Object.freeze((readList('AI_CHAT_CHANNEL_IDS').length ? readList('AI_CHAT_CHANNEL_IDS') : ['1552252006368944188']).filter(isSnowflake)),
+    // سجل الرسائل المحذوفة: تقرير بالخاص (المالك + أي معرّفات إضافية بـDELETE_LOG_USER_IDS). MESSAGE_DELETE_LOG=off للإيقاف
+    deleteLogEnabled: !/^(false|0|no|off)$/i.test(String(process.env.MESSAGE_DELETE_LOG || 'on').trim()),
+    deleteLogRecipients: Object.freeze([...new Set([ownerDiscordId, ...readList('DELETE_LOG_USER_IDS')])].filter(isSnowflake)),
     // رومات مساعد الأدمن بالذكاء الاصطناعي (أوامر الأدمن + شات الأدمن) — الرد على كل رسالة، بأسلوب رسمي مع الأدمن
     aiAdminChannelIds: Object.freeze((readList('AI_ADMIN_CHANNEL_IDS').length ? readList('AI_ADMIN_CHANNEL_IDS') : ['1552256457578254387', '1552256265877454888']).filter(isSnowflake)),
     // الإعلان التلقائي عن الستريمرز المسجلين (services/streamerAnnouncer): الروم الرسمي ثابت بالـID (ما نبحث بالاسم)
@@ -197,7 +216,7 @@ function buildConfig() {
     }),
     autoRegisterCommands: autoRegister,
     profileUrl: siteUrl + '/profile',
-    logoUrl: process.env.LOGO_URL || siteUrl + '/discord-logo.png',
+    logoUrl: process.env.LOGO_URL || `${siteUrl}/discord-logo.png?v=${logoVersion()}`,
     ...numeric,
     // قاعدة بيانات البوت: PostgreSQL لو DATABASE_URL موجود، وإلا SQLite محلي
     databaseUrl: (process.env.DATABASE_URL || '').trim() || null,

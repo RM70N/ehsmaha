@@ -132,6 +132,9 @@ module.exports = {
         .catch((err) => logger.error('تعذّر تشغيل إعلانات الستريمرز', { error: err }));
     }
 
+    // صورة البوت بديسكورد = الشعار الحالي دائماً (تتحدّث تلقائياً لو تغيّر ملف assets/bot-avatar.png)
+    require('../services/botAvatar').sync(client).catch(() => null);
+
     // تنبيه الإدارة بالتكتات المفتوحة من زمان (روم أخبار الأدمن)
     Promise.resolve(ctx.dbReady)
       .then((ok) => ok !== false && require('../services/ticketWatch').start(client))
