@@ -42,7 +42,6 @@
     var oc = (el.getAttribute('onclick') || '') + ' ' + (el.id || '') + ' ' + (el.className && el.className.baseVal === undefined ? el.className : '') + ' ' + (el.getAttribute('href') || '') + ' ' + (el.getAttribute('data-act') || '');
     if (C.BLOCK_RE.test(oc)) return true;
     var lb = labelOf(el); if (C.BLOCK_RE.test(lb)) return true;
-    if (/(تجربه سريعه|^اختبار|وضع التجربه|تجربه الان)/.test(C.normalize(lb))) return true;   // أزرار اللاعبين الوهميين/الاختبار: لا تُشغَّل في بث حيّ
     if (el.tagName === 'A' && el.href && !/^javascript:|^#/.test(el.getAttribute('href') || '') && el.origin && el.origin !== location.origin) return true;
     return false;
   }
@@ -63,8 +62,8 @@
   E.pageId = function () { var pg = document.querySelector('.page.active'); return pg ? pg.id.replace(/^pg-/, '') : ''; };
 
   /* ---------- سجل الأهداف (Target Registry) ---------- */
-  function buildRegistry() {
-    var ctx = contextRoot(); var root = ctx.el; var out = [];
+  function buildRegistry(globalScope) {
+    var ctx = contextRoot(); var root = (globalScope && !ctx.modal) ? document.body : ctx.el; var out = [];   // globalScope: كل الموقع (الشريط العلوي/القوائم/الأزرار العائمة) وليس الصفحة الحالية فقط
     var SEL = 'button, a, [onclick], [role="button"], [role="tab"], input[type=button], input[type=submit], input[type=checkbox], input[type=radio], summary, .gcard';
     var nodes = Array.prototype.slice.call(root.querySelectorAll(SEL));
     // أي عنصر يُظهر مؤشر اليد (cursor:pointer) ويحمل نصاً = زر عملياً حتى لو بلا onclick/role (مستمع JS مباشر)
@@ -101,7 +100,7 @@
     });
     lastCandidates = out; return out;
   }
-  E.registry = function () { return buildRegistry().map(function (t) { return { label: t.label, page: t.page, modal: t.modal }; }); };
+  E.registry = function (g) { return buildRegistry(!!g).map(function (t) { return { label: t.label, page: t.page, modal: t.modal }; }); };
 
   /* ---------- المؤشر الافتراضي ---------- */
   function ensureOverlay() {
@@ -241,20 +240,20 @@
 
   X.name = function (cmd, ctx) {
     var name = cmd.args.name; var q = C.normalize(name);
-    // أثناء وجود لعبة تستقبل الشات: الاسم المجرد يُتجاهل فقط لو كان كلمة قصيرة/كلمة انضمام شائعة (مثل «انا»/«ادخل»)
-    // لتفادي ضغط زر بالغلط. أي اسم زر كامل (كلمتان فأكثر أو ٧ حروف فأكثر) يُضغط حرفياً حتى مع وجود لعبة.
+    // أثناء وجود لعبة تستقبل الشات: الاسم المجرد يُتجاهل لو كان كلمة انضمام شائعة (مثل «انا»/«ادخل»)، أو لا يطابق حرفياً اسم زر ظاهر.
+    // أي اسم زر ظاهر بالضبط يُضغط حرفياً حتى مع وجود لعبة.
     if (cmd.args.bareOnly) {
       var listening = false; try { listening = Object.keys(homeGameListeners || {}).length > 0; } catch (e) {}
       if (listening) {
-        var qn = q.split(' ').filter(Boolean);
         var joinish = /^(ادخل|دخول|انا|انضم|العب|اشحن|انضمام|ايوه|نعم|لا|تم|ok|join|go|play)$/.test(q);
-        if (joinish || (qn.length < 2 && q.length < 7)) return { ok: false, silent: true, reason: 'game-chat' };
-        var regChk = buildRegistry().filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+        if (joinish) return { ok: false, silent: true, reason: 'game-chat' };
+        var regChk = buildRegistry(true).filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
         if (!regChk.length) return { ok: false, silent: true, reason: 'game-chat' };   // كلام عادي بالشات مو اسم زر
       }
     }
     // 1) أهداف السياق الحالي بالاسم (أزرار الشاشة)
     var reg = buildRegistry(); var exact = reg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+    if (!exact.length) { var greg = buildRegistry(true).filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); }); if (greg.length) { reg = greg; exact = greg; } }   // زر خارج الصفحة الحالية (شريط علوي/قائمة/زر عائم): بالاسم أيضاً
     var part = exact.length ? exact : (cmd.args.bareOnly ? [] : reg).filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; });
     // 2) لعبة بالاسم (من الرئيسية، أو من أي مكان) — إن لم يطابق زر على الشاشة بدقة
     var onHome = E.pageId() === 'home';
