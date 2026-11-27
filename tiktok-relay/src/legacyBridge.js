@@ -70,6 +70,8 @@ export function extractUser(user, identity) {
   const following = byIdentity || byStatus;
   return {
     uniqueId: String(uniqueId),
+    // معرّف تيك توك الرقمي الثابت — لا يتغيّر لو غيّر المستخدم اسم حسابه (يعتمد عليه عدّاد الفوزات)
+    userId: (/^\d{5,}$/.test(String(user.userId || user.id || '')) ? String(user.userId || user.id) : ''),
     nickname: String(nickname),
     profilePictureUrl: avatar,
     avatar,

@@ -294,6 +294,8 @@ function extractTikTokUser(user, identity) {
 
   return {
     uniqueId: String(uniqueId),
+    // معرّف تيك توك الرقمي الثابت — لا يتغيّر لو غيّر المستخدم اسم حسابه (يعتمد عليه عدّاد الفوزات)
+    userId: (/^\d{5,}$/.test(String(user.userId || user.id || '')) ? String(user.userId || user.id) : ''),
     nickname: String(nickname),
     // profilePictureUrl هو ما تقرأه extractUser() أولاً؛ avatar/avatarUrl نسختان
     // مطابقتان للتوافق مع أي مستهلك قديم.

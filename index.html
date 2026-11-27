@@ -27737,6 +27737,7 @@ function extractUser(msg) {
     // followKnown من السيرفر: true = حالة المتابعة مؤكدة (متابع أو لا). غيابها = غير معروف.
     followKnown: u.followKnown === true,
     rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
+    sid: (u.userId && /^\d{5,}$/.test(String(u.userId))) ? ((sourcePlatform || 'tiktok') + '#' + u.userId) : '',
     nickname: override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
     isFollower: !!(
@@ -27761,6 +27762,7 @@ function extractUser(msg) {
   // نيكنيم<->uniqueId تستخدمها أوامر الأدمن لاحقاً لحل "@اسم_الحساب" ولعرض
   // الاسم الصحيح عند الإنعاش/الدخول بمنشن (راجع adminObserveUserIdentity).
   adminObserveUserIdentity(extracted);
+  if (extracted.sid && extracted.uniqueId && extracted.uniqueId !== '?') scoreSidByUid[extracted.uniqueId] = extracted.sid;
   return extracted;
 }
 
@@ -29114,6 +29116,7 @@ function scoreMergeBoards(localDb, remoteDb) {
       } else {
         merged[streamer][uid] = {
           nickname: remoteEntry.nickname || localEntry.nickname,
+          sid: remoteEntry.sid || localEntry.sid || undefined,
           wins: Math.max(localEntry.wins || 0, remoteEntry.wins || 0),
           games: { ...(remoteEntry.games || {}), ...(localEntry.games || {}) }
         };
@@ -29187,6 +29190,14 @@ function scoreApplyRemoteSnap(snap) {
   if (lbPage && lbPage.classList.contains('active')) renderScorePanel(scoreFilterStreamer);
 }
 
+// معرّف ثابت (رقمي) لكل مستخدم شفناه بالبث: uniqueId -> sid. يخلّي الفوزات تتبع الشخص نفسه حتى لو غيّر اسم حسابه.
+const scoreSidByUid = {};
+function scoreFindEntryBySid(bucket, sid) {
+  if (!sid) return null;
+  for (const k of Object.keys(bucket)) { if (bucket[k] && bucket[k].sid === sid && !bucket[k].mergedInto) return k; }
+  return null;
+}
+
 function recordWin(user, gameName, count) {
   if (!user || !user.uniqueId) return;
   showDeveloperVictoryOverlayIfApplicable(user, gameName); // شاشة فوز خاصة إضافية فقط إذا الستريمر فعّلها — لا تُبدّل شاشة الفوز العادية لهذه اللعبة
@@ -29224,8 +29235,13 @@ function recordWin(user, gameName, count) {
 
   const db = scoreLoad();
   if (!db[streamer]) db[streamer] = {};
-  const uid = user.uniqueId;
-  if (!db[streamer][uid]) db[streamer][uid] = { nickname: user.nickname || uid, wins: 0, games: {} };
+  let uid = user.uniqueId;
+  const sid = user.sid || scoreSidByUid[uid] || '';
+  // لو الشخص غيّر اسم حسابه: نكمّل على نفس سجله القديم (نفس المعرّف الثابت) بدل بدء عدّاد جديد
+  const prevKey = scoreFindEntryBySid(db[streamer], sid);
+  if (prevKey) uid = prevKey;
+  if (!db[streamer][uid] || db[streamer][uid].mergedInto) db[streamer][uid] = { nickname: user.nickname || uid, wins: 0, games: {} };
+  if (sid) db[streamer][uid].sid = sid;
   db[streamer][uid].nickname = user.nickname || uid; // تحديث الاسم دايمًا
   db[streamer][uid].wins = (db[streamer][uid].wins || 0) + n;
   if (gameName) {
@@ -29251,14 +29267,19 @@ function scoreBuildRanking(filterStreamer) {
     const bucket = db[filterStreamer] || {};
     Object.entries(bucket).forEach(([uid, v]) => {
       if (v && v.mergedInto) return; // سجل قديم مدموج
-      combined[uid] = { nickname: v.nickname, wins: v.wins || 0 };
+      const k = v.sid || uid; // نفس المعرّف الثابت = نفس الشخص حتى لو تغيّر اسم حسابه
+      if (!combined[k]) combined[k] = { nickname: v.nickname, wins: 0 };
+      combined[k].wins += (v.wins || 0);
+      combined[k].nickname = v.nickname || combined[k].nickname;
     });
   } else {
     Object.values(db).forEach(bucket => {
       Object.entries(bucket).forEach(([uid, v]) => {
         if (v && v.mergedInto) return; // سجل قديم مدموج
-        if (!combined[uid]) combined[uid] = { nickname: v.nickname, wins: 0 };
-        combined[uid].wins += (v.wins || 0);
+        const k = v.sid || uid;
+        if (!combined[k]) combined[k] = { nickname: v.nickname, wins: 0 };
+        combined[k].wins += (v.wins || 0);
+        combined[k].nickname = v.nickname || combined[k].nickname;
       });
     });
   }
