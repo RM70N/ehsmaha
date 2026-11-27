@@ -7549,6 +7549,7 @@ setTimeout(function () {
     <div class="lb-filters">
       <button type="button" class="lb-filter-btn active" id="lb-filter-all" onclick="showAllScores()">كل الستريمرز</button>
       <button type="button" class="lb-filter-btn" id="lb-filter-streamer" onclick="filterScoreByCurrentStreamer()">الستريمر الحالي</button>
+      <button type="button" class="lb-filter-btn" id="lb-merge-btn" style="display:none" onclick="lbMergeOpen()">🔀 دمج فوزات</button>
     </div>
     <div class="lb-podium" id="lb-podium"></div>
     <div class="lb-list" id="lb-list"></div>
@@ -27736,6 +27737,7 @@ function extractUser(msg) {
     // followKnown من السيرفر: true = حالة المتابعة مؤكدة (متابع أو لا). غيابها = غير معروف.
     followKnown: u.followKnown === true,
     rawUniqueId: u.rawUniqueId || platformStripPrefix(uniqueId),
+    sid: (u.userId && /^\d{5,}$/.test(String(u.userId))) ? ((sourcePlatform || 'tiktok') + '#' + u.userId) : '',
     nickname: override || u.nickname || u.displayName || platformStripPrefix(u.uniqueId) || '?',
     avatar: u.profilePictureUrl || u.avatarUrl || u.avatar || '',
     isFollower: !!(
@@ -27760,6 +27762,7 @@ function extractUser(msg) {
   // نيكنيم<->uniqueId تستخدمها أوامر الأدمن لاحقاً لحل "@اسم_الحساب" ولعرض
   // الاسم الصحيح عند الإنعاش/الدخول بمنشن (راجع adminObserveUserIdentity).
   adminObserveUserIdentity(extracted);
+  if (extracted.sid && extracted.uniqueId && extracted.uniqueId !== '?') scoreSidByUid[extracted.uniqueId] = extracted.sid;
   return extracted;
 }
 
@@ -29107,9 +29110,13 @@ function scoreMergeBoards(localDb, remoteDb) {
       const localEntry = merged[streamer][uid];
       if (!localEntry) {
         merged[streamer][uid] = remoteEntry;
+      } else if (localEntry.mergedInto || (remoteEntry && remoteEntry.mergedInto)) {
+        // سجل مدموج يدوياً (زر «دمج فوزات»): يبقى مدموجاً ولا ترجعه نسخة قديمة من جهاز ثاني
+        merged[streamer][uid] = localEntry.mergedInto ? localEntry : remoteEntry;
       } else {
         merged[streamer][uid] = {
           nickname: remoteEntry.nickname || localEntry.nickname,
+          sid: remoteEntry.sid || localEntry.sid || undefined,
           wins: Math.max(localEntry.wins || 0, remoteEntry.wins || 0),
           games: { ...(remoteEntry.games || {}), ...(localEntry.games || {}) }
         };
@@ -29183,6 +29190,14 @@ function scoreApplyRemoteSnap(snap) {
   if (lbPage && lbPage.classList.contains('active')) renderScorePanel(scoreFilterStreamer);
 }
 
+// معرّف ثابت (رقمي) لكل مستخدم شفناه بالبث: uniqueId -> sid. يخلّي الفوزات تتبع الشخص نفسه حتى لو غيّر اسم حسابه.
+const scoreSidByUid = {};
+function scoreFindEntryBySid(bucket, sid) {
+  if (!sid) return null;
+  for (const k of Object.keys(bucket)) { if (bucket[k] && bucket[k].sid === sid && !bucket[k].mergedInto) return k; }
+  return null;
+}
+
 function recordWin(user, gameName, count) {
   if (!user || !user.uniqueId) return;
   showDeveloperVictoryOverlayIfApplicable(user, gameName); // شاشة فوز خاصة إضافية فقط إذا الستريمر فعّلها — لا تُبدّل شاشة الفوز العادية لهذه اللعبة
@@ -29220,8 +29235,13 @@ function recordWin(user, gameName, count) {
 
   const db = scoreLoad();
   if (!db[streamer]) db[streamer] = {};
-  const uid = user.uniqueId;
-  if (!db[streamer][uid]) db[streamer][uid] = { nickname: user.nickname || uid, wins: 0, games: {} };
+  let uid = user.uniqueId;
+  const sid = user.sid || scoreSidByUid[uid] || '';
+  // لو الشخص غيّر اسم حسابه: نكمّل على نفس سجله القديم (نفس المعرّف الثابت) بدل بدء عدّاد جديد
+  const prevKey = scoreFindEntryBySid(db[streamer], sid);
+  if (prevKey) uid = prevKey;
+  if (!db[streamer][uid] || db[streamer][uid].mergedInto) db[streamer][uid] = { nickname: user.nickname || uid, wins: 0, games: {} };
+  if (sid) db[streamer][uid].sid = sid;
   db[streamer][uid].nickname = user.nickname || uid; // تحديث الاسم دايمًا
   db[streamer][uid].wins = (db[streamer][uid].wins || 0) + n;
   if (gameName) {
@@ -29246,13 +29266,20 @@ function scoreBuildRanking(filterStreamer) {
   if (filterStreamer) {
     const bucket = db[filterStreamer] || {};
     Object.entries(bucket).forEach(([uid, v]) => {
-      combined[uid] = { nickname: v.nickname, wins: v.wins || 0 };
+      if (v && v.mergedInto) return; // سجل قديم مدموج
+      const k = v.sid || uid; // نفس المعرّف الثابت = نفس الشخص حتى لو تغيّر اسم حسابه
+      if (!combined[k]) combined[k] = { nickname: v.nickname, wins: 0 };
+      combined[k].wins += (v.wins || 0);
+      combined[k].nickname = v.nickname || combined[k].nickname;
     });
   } else {
     Object.values(db).forEach(bucket => {
       Object.entries(bucket).forEach(([uid, v]) => {
-        if (!combined[uid]) combined[uid] = { nickname: v.nickname, wins: 0 };
-        combined[uid].wins += (v.wins || 0);
+        if (v && v.mergedInto) return; // سجل قديم مدموج
+        const k = v.sid || uid;
+        if (!combined[k]) combined[k] = { nickname: v.nickname, wins: 0 };
+        combined[k].wins += (v.wins || 0);
+        combined[k].nickname = v.nickname || combined[k].nickname;
       });
     });
   }
@@ -29317,9 +29344,100 @@ function toggleScoreBody() { /* اللوح المصغّر انحذف — لا ش
 function scoreBodyApplyInitialState() { /* اللوح المصغّر انحذف */ }
 
 function leaderboardOpen() {
+  const mb = document.getElementById('lb-merge-btn');
+  if (mb) mb.style.display = isOwnerAccount() ? '' : 'none'; // زر دمج الفوزات: للمالك فقط
   renderScorePanel(scoreFilterStreamer);
   show('leaderboard');
   window.scrollTo(0, 0);
+}
+
+
+// ==================== دمج فوزات (للمالك فقط) ====================
+// لو لاعب غيّر اسم حسابه، فوزاته القديمة تبقى تحت حسابه القديم. المالك يدخل
+// الحساب القديم والجديد، فتنضم الفوزات (وفوزات كل لعبة) لسجل الحساب الجديد
+// بكل الستريمرز، ويُعلَّم السجل القديم «مدموج» (mergedInto) بدل حذفه، حتى لا
+// تعيده نسخة قديمة محفوظة بجهاز ثاني عند المزامنة.
+function lbNormHandle(v) {
+  return String(v || '').trim().replace(/^@/, '').replace(/^(tiktok|twitch|kick|youtube):/i, '').toLowerCase();
+}
+function lbMergePlan(oldH, newH) {
+  const o = lbNormHandle(oldH), n = lbNormHandle(newH);
+  const db = scoreLoad();
+  const plan = [];
+  let oldWins = 0, newWins = 0;
+  Object.keys(db).forEach(streamer => {
+    const bucket = db[streamer] || {};
+    const oKeys = Object.keys(bucket).filter(k => lbNormHandle(k) === o && !(bucket[k] && bucket[k].mergedInto));
+    const nKeys = Object.keys(bucket).filter(k => lbNormHandle(k) === n && !(bucket[k] && bucket[k].mergedInto));
+    if (!oKeys.length) { nKeys.forEach(k => { newWins += (bucket[k].wins || 0); }); return; }
+    oKeys.forEach(k => { oldWins += (bucket[k].wins || 0); });
+    nKeys.forEach(k => { newWins += (bucket[k].wins || 0); });
+    plan.push({ streamer, oKeys, nKey: nKeys[0] || null });
+  });
+  return { plan, oldWins, newWins, o, n };
+}
+function lbMergeApply(oldH, newH) {
+  const info = lbMergePlan(oldH, newH);
+  if (!info.plan.length) return { ok: false, msg: 'ما لقيت فوزات للحساب القديم' };
+  const db = scoreLoad();
+  info.plan.forEach(({ streamer, oKeys, nKey }) => {
+    const bucket = db[streamer];
+    const first = bucket[oKeys[0]];
+    const targetKey = nKey || ((first && String(oKeys[0]).match(/^(tiktok|twitch|kick|youtube):/i) ? String(oKeys[0]).match(/^(tiktok|twitch|kick|youtube):/i)[0] : '') + info.n);
+    const target = bucket[targetKey] || (bucket[targetKey] = { nickname: (first && first.nickname) || info.n, wins: 0, games: {} });
+    target.games = target.games || {};
+    oKeys.forEach(k => {
+      const e = bucket[k];
+      target.wins = (target.wins || 0) + (e.wins || 0);
+      Object.entries(e.games || {}).forEach(([g, c]) => { target.games[g] = (target.games[g] || 0) + (c || 0); });
+      bucket[k] = { nickname: e.nickname || k, wins: 0, games: {}, mergedInto: targetKey };
+    });
+  });
+  scoreSave(db);
+  renderScorePanel(scoreFilterStreamer);
+  return { ok: true, total: info.oldWins + info.newWins, moved: info.oldWins };
+}
+function lbMergeOpen() {
+  if (!isOwnerAccount()) { toast('⚠️ هذا الزر للمالك فقط'); return; }
+  let ov = document.getElementById('lb-merge-ov');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'lb-merge-ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:16px;';
+  ov.innerHTML = '<div dir="rtl" style="background:var(--surface,#1b1530);border:1px solid var(--border,#3a2f66);border-radius:16px;padding:20px;max-width:380px;width:100%;font-family:var(--font);color:var(--text,#fff)">' +
+    '<div style="font-weight:900;font-size:16px;margin-bottom:12px">🔀 دمج فوزات</div>' +
+    '<label style="font-size:12px;font-weight:800">اسم الحساب القديم</label>' +
+    '<input id="lb-merge-old" type="text" autocomplete="off" placeholder="مثال: old_name" style="width:100%;box-sizing:border-box;margin:4px 0 10px;padding:10px;border-radius:10px;border:1px solid var(--border,#3a2f66);background:transparent;color:inherit;font-family:inherit">' +
+    '<label style="font-size:12px;font-weight:800">اسم الحساب الجديد</label>' +
+    '<input id="lb-merge-new" type="text" autocomplete="off" placeholder="مثال: new_name" style="width:100%;box-sizing:border-box;margin:4px 0 10px;padding:10px;border-radius:10px;border:1px solid var(--border,#3a2f66);background:transparent;color:inherit;font-family:inherit">' +
+    '<div id="lb-merge-info" style="font-size:12.5px;min-height:34px;margin-bottom:10px;opacity:.9"></div>' +
+    '<div style="display:flex;gap:8px"><button type="button" class="lb-filter-btn active" id="lb-merge-go" style="flex:1">دمج</button>' +
+    '<button type="button" class="lb-filter-btn" id="lb-merge-x" style="flex:1">إلغاء</button></div></div>';
+  document.body.appendChild(ov);
+  const $ = id => document.getElementById(id);
+  const upd = () => {
+    const o = $('lb-merge-old').value, n = $('lb-merge-new').value;
+    if (!lbNormHandle(o) || !lbNormHandle(n)) { $('lb-merge-info').textContent = ''; return; }
+    if (lbNormHandle(o) === lbNormHandle(n)) { $('lb-merge-info').textContent = '⚠️ الحسابان متطابقان'; return; }
+    const i = lbMergePlan(o, n);
+    $('lb-merge-info').textContent = i.plan.length
+      ? ('فوزات القديم: ' + i.oldWins + ' + الجديد: ' + i.newWins + ' = ' + (i.oldWins + i.newWins) + ' 🏆 (تُحسب على الحساب الجديد)')
+      : '⚠️ ما لقيت فوزات لهذا الحساب القديم';
+  };
+  $('lb-merge-old').addEventListener('input', upd);
+  $('lb-merge-new').addEventListener('input', upd);
+  $('lb-merge-x').onclick = () => ov.remove();
+  ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
+  $('lb-merge-go').onclick = () => {
+    const o = $('lb-merge-old').value, n = $('lb-merge-new').value;
+    if (!lbNormHandle(o) || !lbNormHandle(n)) { toast('⚠️ اكتب الحسابين'); return; }
+    if (lbNormHandle(o) === lbNormHandle(n)) { toast('⚠️ الحسابان متطابقان'); return; }
+    const r = lbMergeApply(o, n);
+    if (!r.ok) { toast('⚠️ ' + r.msg); return; }
+    toast('✅ تم دمج الفوزات: صار المجموع ' + r.total + ' 🏆');
+    ov.remove();
+  };
+  setTimeout(() => { try { $('lb-merge-old').focus(); } catch (e) {} }, 50);
 }
 
 function leaderboardBack() {
