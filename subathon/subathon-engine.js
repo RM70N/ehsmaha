@@ -42,7 +42,6 @@
     var oc = (el.getAttribute('onclick') || '') + ' ' + (el.id || '') + ' ' + (el.className && el.className.baseVal === undefined ? el.className : '') + ' ' + (el.getAttribute('href') || '') + ' ' + (el.getAttribute('data-act') || '');
     if (C.BLOCK_RE.test(oc)) return true;
     var lb = labelOf(el); if (C.BLOCK_RE.test(lb)) return true;
-    if (/(تجربه سريعه|^اختبار|وضع التجربه|تجربه الان)/.test(C.normalize(lb))) return true;   // أزرار اللاعبين الوهميين/الاختبار: لا تُشغَّل في بث حيّ
     if (el.tagName === 'A' && el.href && !/^javascript:|^#/.test(el.getAttribute('href') || '') && el.origin && el.origin !== location.origin) return true;
     return false;
   }
@@ -50,6 +49,7 @@
     if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
     var tag = el.tagName;
     if (tag === 'INPUT') { var ty = (el.type || '').toLowerCase(); return ty === 'button' || ty === 'submit' || ty === 'checkbox' || ty === 'radio'; }
+    if (el.getAttribute('data-sbp') === '1') return true;     // علّمناه كعنصر مؤشر (cursor:pointer)
     return tag === 'BUTTON' || tag === 'SUMMARY' || (tag === 'A' && (el.getAttribute('onclick') || el.getAttribute('href'))) || el.hasAttribute('onclick') || el.getAttribute('role') === 'button' || el.getAttribute('role') === 'tab' || el.classList.contains('gcard') || el.classList.contains('btn') || el.hasAttribute('tabindex') && el.hasAttribute('data-tag');
   }
   /** سياق النافذة: أعلى نافذة/مودال ظاهر وإلا الصفحة النشطة */
@@ -62,13 +62,33 @@
   E.pageId = function () { var pg = document.querySelector('.page.active'); return pg ? pg.id.replace(/^pg-/, '') : ''; };
 
   /* ---------- سجل الأهداف (Target Registry) ---------- */
-  function buildRegistry() {
-    var ctx = contextRoot(); var root = ctx.el; var out = [];
+  function buildRegistry(globalScope) {
+    var ctx = contextRoot(); var root = (globalScope && !ctx.modal) ? document.body : ctx.el; var out = [];   // globalScope: كل الموقع (الشريط العلوي/القوائم/الأزرار العائمة) وليس الصفحة الحالية فقط
     var SEL = 'button, a, [onclick], [role="button"], [role="tab"], input[type=button], input[type=submit], input[type=checkbox], input[type=radio], summary, .gcard';
     var nodes = Array.prototype.slice.call(root.querySelectorAll(SEL));
-    Array.prototype.forEach.call(root.querySelectorAll('iframe'), function (fr) {      // ألعاب الـiframe (3D/مستقلة): أزرارها جزء من الشاشة
-      try { if (!vis(fr)) return; var d = fr.contentDocument; if (d && d.body) nodes = nodes.concat(Array.prototype.slice.call(d.querySelectorAll(SEL))); } catch (e) { /* خارج الأصل: لا وصول */ }
-    });
+    // أي عنصر يُظهر مؤشر اليد (cursor:pointer) ويحمل نصاً = زر عملياً حتى لو بلا onclick/role (مستمع JS مباشر)
+    var PTR_SEL = 'div, span, li, label, td, img, svg, p, h1, h2, h3, h4, [tabindex], [data-action], [data-act], [data-tag]';
+    function collectDoc(doc, rootEl, depth) {
+      var list = Array.prototype.slice.call(rootEl.querySelectorAll(SEL));
+      var win = doc.defaultView || window;
+      var ptr = [];
+      Array.prototype.forEach.call(rootEl.querySelectorAll(PTR_SEL), function (n) {
+        try {
+          if (list.indexOf(n) >= 0 || n.closest('button,a,[onclick]')) return;
+          if (win.getComputedStyle(n).cursor !== 'pointer') return;
+          if (!(n.innerText || n.textContent || n.getAttribute('aria-label') || n.getAttribute('title') || '').trim()) return;
+          n.setAttribute('data-sbp', '1'); ptr.push(n);
+        } catch (e) {}
+      });
+      // نفضّل الأعمق: لو داخل عنصر المؤشر عنصر مؤشر آخر نأخذ الداخلي فقط
+      ptr = ptr.filter(function (n) { return !ptr.some(function (m) { return m !== n && n.contains(m); }); });
+      list = list.concat(ptr);
+      if (depth < 3) Array.prototype.forEach.call(rootEl.querySelectorAll('iframe'), function (fr) {     // ألعاب الـiframe (3D/مستقلة) وما بداخلها
+        try { if (!vis(fr)) return; var d = fr.contentDocument; if (d && d.body) list = list.concat(collectDoc(d, d.body, depth + 1)); } catch (e) { /* خارج الأصل: لا وصول */ }
+      });
+      return list;
+    }
+    nodes = collectDoc(document, root, 0);
     var seen = new Set();
     nodes.forEach(function (el) {
       if (seen.has(el) || !clickable(el) || !vis(el) || isBlocked(el)) return;
@@ -80,7 +100,7 @@
     });
     lastCandidates = out; return out;
   }
-  E.registry = function () { return buildRegistry().map(function (t) { return { label: t.label, page: t.page, modal: t.modal }; }); };
+  E.registry = function (g) { return buildRegistry(!!g).map(function (t) { return { label: t.label, page: t.page, modal: t.modal }; }); };
 
   /* ---------- المؤشر الافتراضي ---------- */
   function ensureOverlay() {
@@ -220,15 +240,31 @@
 
   X.name = function (cmd, ctx) {
     var name = cmd.args.name; var q = C.normalize(name);
-    if (cmd.args.bareOnly) { try { if (Object.keys(homeGameListeners || {}).length) return { ok: false, silent: true, reason: 'game-chat' }; } catch (e) {} }
+    // أثناء وجود لعبة تستقبل الشات: الاسم المجرد يُتجاهل لو كان كلمة انضمام شائعة (مثل «انا»/«ادخل»)، أو لا يطابق حرفياً اسم زر ظاهر.
+    // أي اسم زر ظاهر بالضبط يُضغط حرفياً حتى مع وجود لعبة.
+    if (cmd.args.bareOnly) {
+      var listening = false; try { listening = Object.keys(homeGameListeners || {}).length > 0; } catch (e) {}
+      if (listening) {
+        var joinish = /^(ادخل|دخول|انا|انضم|العب|اشحن|انضمام|ايوه|نعم|لا|تم|ok|join|go|play)$/.test(q);
+        if (joinish) return { ok: false, silent: true, reason: 'game-chat' };
+        var regChk = buildRegistry(true).filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+        if (!regChk.length) return { ok: false, silent: true, reason: 'game-chat' };   // كلام عادي بالشات مو اسم زر
+      }
+    }
     // 1) أهداف السياق الحالي بالاسم (أزرار الشاشة)
     var reg = buildRegistry(); var exact = reg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+    var partOf = function (arr) { return arr.filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; }); };
+    if (!exact.length && !(cmd.args.bareOnly ? [] : partOf(reg)).length) {
+      var greg = buildRegistry(true), gexact = greg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+      if (gexact.length) { reg = greg; exact = gexact; } else if (!cmd.args.bareOnly && partOf(greg).length) { reg = greg; }
+    }   // زر خارج الصفحة الحالية (شريط علوي/قائمة/زر عائم): بالاسم أيضاً
     var part = exact.length ? exact : (cmd.args.bareOnly ? [] : reg).filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; });
     // 2) لعبة بالاسم (من الرئيسية، أو من أي مكان) — إن لم يطابق زر على الشاشة بدقة
     var onHome = E.pageId() === 'home';
     var games = (onHome || !exact.length) ? (cmd.args.bareOnly ? C.matchGames(name, gameCards()) : homeCardsFor(name)) : [];
     if (games.length === 1 && (onHome || !exact.length)) { if (!(exact.length === 1 && !onHome)) return openGameByTag(games[0].tag); }
     if (games.length > 1) { numberTargets(games.map(function (g) { return { r: g.el.getBoundingClientRect() }; })); E._choices = games.map(function (g) { return { game: g.tag }; }); return { ok: false, reason: 'ambiguous', detail: 'أكثر من لعبة بهذا الاسم — اكتب رقماً', choices: E._choices }; }
+    if (cmd.args.bareOnly && !exact.length && cmd.args.silentIfMissing) return { ok: false, silent: true, reason: 'not-a-button' };
     if (cmd.args.bareOnly && !exact.length && part.length !== 1) return { ok: false, reason: 'not-found', detail: 'لا هدف بهذا الاسم' };
     var list = exact.length ? exact : part;
     if (list.length === 1) { setCur(list[0].el); return pressOnce(list[0].el); }
