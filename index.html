@@ -29343,9 +29343,13 @@ function renderScorePanel(filterStreamer) {
 function toggleScoreBody() { /* اللوح المصغّر انحذف — لا شيء يُطوى */ }
 function scoreBodyApplyInitialState() { /* اللوح المصغّر انحذف */ }
 
-function leaderboardOpen() {
+function lbSyncMergeBtn() {
   const mb = document.getElementById('lb-merge-btn');
   if (mb) mb.style.display = isOwnerAccount() ? '' : 'none'; // زر دمج الفوزات: للمالك فقط
+}
+
+function leaderboardOpen() {
+  lbSyncMergeBtn();
   renderScorePanel(scoreFilterStreamer);
   show('leaderboard');
   window.scrollTo(0, 0);
@@ -29456,7 +29460,7 @@ function showAllScores() {
 // صارت لوحة الفائزين صفحة مستقلة تُفتح من القائمة الجانبية — فما عاد فيه
 // لوح ثابت نُظهره/نخفيه حسب الصفحة. نكتفي بتحديث محتوى الصفحة وقت فتحها.
 function updateScorePanelVisibility(page) {
-  if (page === 'leaderboard') renderScorePanel(scoreFilterStreamer);
+  if (page === 'leaderboard') { lbSyncMergeBtn(); renderScorePanel(scoreFilterStreamer); }
 }
 
 // كانت تخفي اللوح المصغّر أثناء الراوند لتفسح مساحة للعبة — اللوح انحذف
