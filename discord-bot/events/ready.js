@@ -132,6 +132,11 @@ module.exports = {
         .catch((err) => logger.error('تعذّر تشغيل إعلانات الستريمرز', { error: err }));
     }
 
+    // الكتم الكتابي (الحماية التلقائية): فك اللي انتهى وقته (حتى لو انتهى والبوت مطفي) ومتابعة دورية
+    Promise.resolve(ctx.dbReady)
+      .then((ok) => ok !== false && require('../services/textMute').start(client))
+      .catch((err) => logger.warn('تعذّر تشغيل متابعة الكتم الكتابي', { error: err }));
+
     // صورة البوت بديسكورد = الشعار الحالي دائماً (تتحدّث تلقائياً لو تغيّر ملف assets/bot-avatar.png)
     require('../services/botAvatar').sync(client).catch(() => null);
 

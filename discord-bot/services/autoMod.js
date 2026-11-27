@@ -20,6 +20,7 @@ const logger = require('../utils/logger');
 const eb = require('../utils/embedBuilder');
 const { checkAdminPermission } = require('../utils/adminPermissions');
 const discordRelay = require('./discordRelay');
+const textMute = require('./textMute');
 const { formatDurationAr, tryDm, dmEmbed, logModeration } = require('../utils/moderation');
 
 const TYPE_AR = { link: 'نشر روابط', spam: 'السبام (رسائل متكررة/سريعة)' };
@@ -93,6 +94,23 @@ function normalizeDomain(input) {
 // guildId:userId → { hits: [{ at, id, channelId }], last, dup, lastAt }
 const tracker = new Collection();
 
+// رسالة "خفيفة": ضحك طبيعي (ههههه / 😂)، إيموجي، ملصق، صورة/GIF بدون نص، أو تكرار حروف — ما تنحسب سبام عادي
+const EMOJI_STRIP = /<a?:\w+:\d+>|[\p{Extended_Pictographic}\u200d\ufe0f]|:[a-z0-9_]+:/giu;
+function isLight(message) {
+  try {
+    if (message.stickers && message.stickers.size) return true;
+    const raw = String(message.content || '');
+    const text = raw.replace(EMOJI_STRIP, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/[^\p{L}\p{N}]+/gu, '');
+    if (!text) return true; // فاضي: ملصق/إيموجي/رابط جيف/صورة/علامات فقط
+    if (text.length < 3) return true; // "اي" "اه" "👍"
+    // تكرار حروف قليلة (ههههههه / ااااااا / ههه444): أقل من 4 حروف مختلفة
+    if (new Set(text.toLowerCase()).size <= 3) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
 function trackSpam(message, now = Date.now()) {
   const key = `${message.guild.id}:${message.author.id}`;
   let t = tracker.get(key);
@@ -103,18 +121,21 @@ function trackSpam(message, now = Date.now()) {
   const content = String(message.content || '').trim().toLowerCase();
   const lim = limits.effective(message.guild.id); // قاعدة البيانات ← البيئة ← الافتراضي
   t.hits = t.hits.filter((h) => now - h.at <= Math.max(lim.windowMs, cfg.spam.duplicateWindowMs));
-  t.hits.push({ at: now, id: message.id, channelId: message.channel.id });
+  const light = isLight(message);
+  t.hits.push({ at: now, id: message.id, channelId: message.channel.id, light });
   if (t.hits.length > 50) t.hits.splice(0, t.hits.length - 50);
 
-  // تكرار نفس الرسالة (نص فعلي فقط — رسائل الصور بدون نص ما تنحسب تكرار)
-  if (content && content === t.last && now - t.lastAt <= cfg.spam.duplicateWindowMs) t.dup += 1;
-  else t.dup = content ? 1 : 0;
-  t.last = content || null;
+  // تكرار نفس الرسالة (نص فعلي فقط — الضحك/الإيموجي/الملصقات/الصور ما تنحسب تكرار)
+  if (!light && content && content === t.last && now - t.lastAt <= cfg.spam.duplicateWindowMs) t.dup += 1;
+  else t.dup = !light && content ? 1 : 0;
+  t.last = !light && content ? content : null;
   t.lastAt = now;
 
   const inWindow = t.hits.filter((h) => now - h.at <= lim.windowMs);
+  const heavy = inWindow.filter((h) => !h.light).length;
   let reason = null;
-  if (inWindow.length >= lim.maxMessages) reason = 'rate';
+  // سرعة: رسائل نصية فعلية فقط؛ والخفيفة (ضحك/ملصقات) تحتاج إغراق أشد بكثير
+  if (heavy >= lim.maxMessages || inWindow.length >= lim.maxMessages * cfg.spam.lightFloodMultiplier) reason = 'rate';
   else if (t.dup >= lim.duplicateCount) reason = 'duplicate';
   if (!reason) return { spam: false };
 
@@ -207,10 +228,11 @@ async function deleteMessages(message, extra = []) {
   return deleted;
 }
 
-async function sendNotice(channel, member, type, durationMs, count, timedOut) {
+async function sendNotice(channel, member, type, durationMs, count, timedOut, mode = 'timeout') {
   try {
+    const how = mode === 'textmute' ? 'منع الكتابة هنا' : 'كتمه';
     const text = timedOut
-      ? `${member} تم كتمه **${formatDurationAr(durationMs)}** بسبب **${TYPE_AR[type]}** (المخالفة رقم ${count}).`
+      ? `${member} تم ${how} **${formatDurationAr(durationMs)}** بسبب **${TYPE_AR[type]}** (المخالفة رقم ${count}).`
       : `${member} رسالتك انحذفت بسبب **${TYPE_AR[type]}** (المخالفة رقم ${count}).`;
     const msg = await channel.send({ embeds: [eb.warning(text, '🛡️ الحماية التلقائية')], allowedMentions: { parse: [] } });
     const t = setTimeout(() => msg.delete().catch(() => {}), cfg.noticeTtlMs);
@@ -248,10 +270,13 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
   // AUTO-BAN: نقطة توسعة معلّقة — لو cfg.autoBanAfter رقم وcount >= cfg.autoBanAfter
   // تقدر تضيف هنا: await member.ban({ reason: ... }) مع نفس الفحوصات والسجل.
 
-  // 3) الكتم
+  // 3) العقوبة: كتم كتابي بالروم (افتراضي) أو Timeout السيرفر (AUTOMOD_ACTION=timeout)
   let timedOut = false;
   const me = guild.members.me;
-  if (!me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+  const mode = cfg.action();
+  if (mode === 'textmute') {
+    timedOut = await textMute.apply(member, message.channel, durationMs, `حماية تلقائية: ${TYPE_AR[type]} — المخالفة ${count}`);
+  } else if (!me.permissions.has(PermissionFlagsBits.ModerateMembers)) {
     warnPermOnce(guild.id, 'ModerateMembers');
   } else if (!member.moderatable) {
     logger.warn('الحماية التلقائية: ما يمكن كتم العضو (رتبته أعلى من البوت)', { guildId: guild.id, userId: member.id });
@@ -265,7 +290,7 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
   }
 
   // 4) إشعار قصير بالقناة (ينحذف بعد 5 ثوانٍ)
-  await sendNotice(message.channel, member, type, durationMs, count, timedOut);
+  await sendNotice(message.channel, member, type, durationMs, count, timedOut, mode);
 
   // 5) DM للعضو (تجاهل الفشل)
   await tryDm(member.user, {
@@ -274,9 +299,9 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
       guild,
       lines: [
         `**السبب:** ${TYPE_AR[type]}`,
-        timedOut ? `**مدة الكتم:** ${formatDurationAr(durationMs)}` : '**الإجراء:** حذف الرسالة',
+        timedOut ? `**الإجراء:** ${mode === 'textmute' ? `منع الكتابة بالروم ${formatDurationAr(durationMs)} (تقدر تتكلم صوت وتشوف باقي الرومات)` : `كتم ${formatDurationAr(durationMs)}`}` : '**الإجراء:** حذف الرسالة',
         `**رقم المخالفة (${type === 'link' ? 'روابط' : 'سبام'}):** ${count}`,
-        count < limits.effective(guild.id).escalationMs.length ? `⚠️ المخالفة الجاية مدتها ${formatDurationAr(durationFor(count + 1, guild.id))}.` : '⚠️ وصلت الحد الأقصى — كل مخالفة جاية كتم 24 ساعة.',
+        count < limits.effective(guild.id).escalationMs.length ? `⚠️ المخالفة الجاية مدتها ${formatDurationAr(durationFor(count + 1, guild.id))}.` : `⚠️ وصلت الحد الأقصى — كل مخالفة جاية ${formatDurationAr(durationFor(count, guild.id))}.`,
         'ehsmaha.com'
       ]
     })]
@@ -290,7 +315,7 @@ async function punish(message, type, { extraMessages = [], detail = null } = {})
     moderatorId: (message.client && message.client.user && message.client.user.id) || me.id,
     channelId: message.channel.id,
     reason: `حماية تلقائية: ${TYPE_AR[type]}`,
-    details: { auto: true, type, count, durationMs, timedOut, deleted, detail }
+    details: { auto: true, type, count, durationMs, timedOut, deleted, detail, mode }
   });
 
   logger.info('حماية تلقائية', { guildId: guild.id, userId: member.id, type, count, durationMs, timedOut, deleted });

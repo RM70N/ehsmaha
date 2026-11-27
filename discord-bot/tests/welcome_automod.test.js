@@ -9,6 +9,7 @@ const { createCanvas, loadImage } = require('@napi-rs/canvas');
 const { makeGuild, makeRole, makeMember, makeChannel, makeUserMessage, makeInteraction, lastPayload } = require('./helpers/discordMock');
 
 Object.assign(process.env, {
+  AUTOMOD_ACTION: 'timeout', // الاختبارات القديمة تغطي مسار Timeout؛ الكتم الكتابي (الافتراضي) له اختبارات بملف automodSoft.test.js
   DISCORD_TOKEN: 'test-token',
   GEMINI_API_KEY: 'test-gemini-key',
   CLIENT_ID: '1552260327008247879',
@@ -202,9 +203,10 @@ const timeouts = (w, id) => w.guild.log.filter(([t, uid]) => t === 'timeout' && 
 const deletions = (w) => w.guild.log.filter(([t]) => t === 'deleteMessage').length;
 const later = () => autoMod._internal.recentPunish.clear(); // "جلسة لاحقة" بعد مهلة منع التصعيد
 
-test('الروابط: تصعيد 10 دقائق ← 30 دقيقة ← 24 ساعة ← يبقى 24، والحذف مع كل مرة', async () => {
+test('الروابط (وضع Timeout): تصعيد حسب سلّم الإعدادات والحذف مع كل مرة', async () => {
   const w = world();
-  const expected = [10 * MIN, 30 * MIN, 24 * 60 * MIN, 24 * 60 * MIN];
+  const E = cfg.escalationMs;
+  const expected = [E[0], E[1], E[2], E[2]];
   for (let n = 1; n <= 4; n++) {
     later();
     const r = await send(w, w.member, `شوفوا https://spam-site${n}.com/free`);
@@ -248,15 +250,15 @@ test('السبام: تصعيد مستقل تماماً عن الروابط (سر
   for (let k = 1; k <= cfg.spam.maxMessages; k++) r = await send(w, w.member, `رسالة ${k}`);
   assert.equal(r.type, 'spam');
   assert.equal(r.result.count, 1);
-  assert.equal(r.result.durationMs, 10 * MIN, 'السبام بدأ من المستوى الأول رغم مخالفة الروابط');
+  assert.equal(r.result.durationMs, cfg.escalationMs[0], 'السبام بدأ من المستوى الأول رغم مخالفة الروابط');
   assert.ok(w.guild.log.some(([tp]) => tp === 'bulkDelete'), 'رسائل السبام السابقة انحذفت');
 
-  // سبام تكرار: نفس الرسالة 3 مرات
+  // سبام تكرار: نفس الرسالة بالعدد المطلوب
   later();
   for (let k = 1; k <= cfg.spam.duplicateCount; k++) r = await send(w, w.member, 'نفس الكلام');
   assert.equal(r.type, 'spam');
   assert.equal(r.result.count, 2);
-  assert.equal(r.result.durationMs, 30 * MIN);
+  assert.equal(r.result.durationMs, cfg.escalationMs[1]);
 
   v = await store.autoMod.get(w.guild.id, w.member.id);
   assert.deepEqual([v.link.count, v.spam.count], [1, 2], 'كل عدّاد لحاله');
@@ -273,7 +275,7 @@ test('منع القفز: روابط متلاحقة بنفس اللحظة تنح�
   assert.equal(r2.result.counted, false);
   assert.equal(r2.result.deleted, 1, 'انحذفت');
   assert.equal((await store.autoMod.get(w.guild.id, w.member.id)).link.count, 1);
-  assert.deepEqual(timeouts(w, w.member.id), [10 * MIN]);
+  assert.deepEqual(timeouts(w, w.member.id), [cfg.escalationMs[0]]);
 });
 
 test('الاستثناءات: الأدمن، الرتب الإدارية، الرتب والقنوات المستثناة، والنطاقات المسموحة', async () => {

@@ -209,9 +209,14 @@ function makeChannel(guild, { id = nextId(), name = 'general', type = ChannelTyp
       return out;
     },
     permissionOverwrites: {
+      cache: { get: (target) => channel.overwrites.get(target) },
       async edit(target, perms) {
         channel.overwrites.set(target, { id: target, ...(channel.overwrites.get(target) || {}), edit: perms });
         guild.log.push(['overwrite', id, target, perms]);
+      },
+      async delete(target) {
+        channel.overwrites.delete(target);
+        guild.log.push(['overwriteDelete', id, target]);
       }
     },
     async setParent(parent) {
