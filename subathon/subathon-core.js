@@ -69,6 +69,8 @@
     if (m && m[1]) return { type: 'name', args: { name: m[1].replace(/^(لعبه|لعبة|زر)\s+/, '') }, raw: raw, norm: n };
     // اسم بلا فعل: زر أو لعبة (قصير فقط، لتفادي تنفيذ كلام عادي)
     if (n.split(' ').length <= 4 && n.length <= 36) return { type: 'name', args: { name: n, bareOnly: true }, raw: raw, norm: n };
+    // اسم زر طويل (٥–١٠ كلمات): يُنفَّذ فقط لو طابق زراً ظاهراً حرفياً، وإلا يُتجاهل بصمت (كلام عادي بالشات)
+    if (n.split(' ').length <= 10 && n.length <= 90) return { type: 'name', args: { name: n, bareOnly: true, silentIfMissing: true }, raw: raw, norm: n };
     return null;
   }
 
