@@ -20,7 +20,8 @@ const H = require('../bridge/harness'); const sleep = (ms) => new Promise((r) =>
   await page.evaluate(() => { const d = document.querySelector('.page.active iframe').contentDocument; window.__c = { redo: 0, cancel: 0, dv: 0, other: 0 };
     d.getElementById('to-redo').addEventListener('click', () => window.__c.redo++); d.getElementById('to-cancel').addEventListener('click', () => window.__c.cancel++);
     const dv = d.createElement('div'); dv.textContent = 'تحدي الليلة الأخيرة'; dv.style.cssText = 'position:fixed;left:10px;top:10px;width:160px;height:40px;cursor:pointer;z-index:99999;background:#333;color:#fff'; dv.addEventListener('click', () => window.__c.dv++); d.body.appendChild(dv); });
-  await say('viewer1', 'إعادة الدور بسبب مشكلة تقنية'); await say('viewer1', 'إلغاء الدور بسبب خلل (بدون إقصاء)'); await say('viewer1', 'تحدي الليلة الأخيرة'); await say('viewer1', 'السلام عليكم يا جماعة كيف الحال'); await sleep(500);
+  const showDlg = () => page.evaluate(() => { document.querySelector('.page.active iframe').contentDocument.getElementById('ov-timeout').classList.add('on'); });
+  await showDlg(); console.log('reg2', await page.evaluate(() => JSON.stringify(SubathonEngine.registry(true).map((t) => t.label)))); await say('viewer1', 'إعادة الدور بسبب مشكلة تقنية'); console.log('audit2', JSON.stringify(await page.evaluate(() => Subathon._session().audit.slice(-2).map((e) => [e.status, e.reason, e.text, e.detail])))); await showDlg(); await say('viewer1', 'إلغاء الدور بسبب خلل (بدون إقصاء)'); await showDlg(); await say('viewer1', 'تحدي الليلة الأخيرة'); await say('viewer1', 'السلام عليكم يا جماعة كيف الحال'); await sleep(500);
   const c = await page.evaluate(() => JSON.stringify(window.__c)); console.log('counts', c);
   const ok = JSON.parse(c); console.log(ok.redo === 1 && ok.cancel === 1 && ok.dv === 1 ? 'PASS all buttons by name' : 'FAIL');
   await b.close(); process.exit(0);

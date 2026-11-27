@@ -253,13 +253,18 @@
     }
     // 1) أهداف السياق الحالي بالاسم (أزرار الشاشة)
     var reg = buildRegistry(); var exact = reg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
-    if (!exact.length) { var greg = buildRegistry(true).filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); }); if (greg.length) { reg = greg; exact = greg; } }   // زر خارج الصفحة الحالية (شريط علوي/قائمة/زر عائم): بالاسم أيضاً
+    var partOf = function (arr) { return arr.filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; }); };
+    if (!exact.length && !(cmd.args.bareOnly ? [] : partOf(reg)).length) {
+      var greg = buildRegistry(true), gexact = greg.filter(function (t) { return t.norm === q || C.bare(t.label) === C.bare(name); });
+      if (gexact.length) { reg = greg; exact = gexact; } else if (!cmd.args.bareOnly && partOf(greg).length) { reg = greg; }
+    }   // زر خارج الصفحة الحالية (شريط علوي/قائمة/زر عائم): بالاسم أيضاً
     var part = exact.length ? exact : (cmd.args.bareOnly ? [] : reg).filter(function (t) { var n = t.norm; return n && (n.indexOf(q) >= 0 || (q.indexOf(n) >= 0 && n.length >= 4)) && q.length >= 2; });
     // 2) لعبة بالاسم (من الرئيسية، أو من أي مكان) — إن لم يطابق زر على الشاشة بدقة
     var onHome = E.pageId() === 'home';
     var games = (onHome || !exact.length) ? (cmd.args.bareOnly ? C.matchGames(name, gameCards()) : homeCardsFor(name)) : [];
     if (games.length === 1 && (onHome || !exact.length)) { if (!(exact.length === 1 && !onHome)) return openGameByTag(games[0].tag); }
     if (games.length > 1) { numberTargets(games.map(function (g) { return { r: g.el.getBoundingClientRect() }; })); E._choices = games.map(function (g) { return { game: g.tag }; }); return { ok: false, reason: 'ambiguous', detail: 'أكثر من لعبة بهذا الاسم — اكتب رقماً', choices: E._choices }; }
+    if (cmd.args.bareOnly && !exact.length && cmd.args.silentIfMissing) return { ok: false, silent: true, reason: 'not-a-button' };
     if (cmd.args.bareOnly && !exact.length && part.length !== 1) return { ok: false, reason: 'not-found', detail: 'لا هدف بهذا الاسم' };
     var list = exact.length ? exact : part;
     if (list.length === 1) { setCur(list[0].el); return pressOnce(list[0].el); }
