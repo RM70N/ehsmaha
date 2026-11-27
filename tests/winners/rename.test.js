@@ -1,0 +1,13 @@
+const fs=require('fs'),assert=require('assert');
+const src=fs.readFileSync(__dirname+'/../../index.html','utf8');
+const g=(a,b)=>{const i=src.indexOf(a),j=src.indexOf(b,i);assert(i>0&&j>i,a);return src.slice(i,j)};
+const helpers=g('const scoreSidByUid = {};','function recordWin('),ranking=g('function scoreBuildRanking','const LB_MEDALS'),core=g('  let uid = user.uniqueId;','  scoreSave(db);');
+let DB={};const scoreLoad=()=>JSON.parse(JSON.stringify(DB)),scoreSave=d=>{DB=d},scoreCurrentStreamer='A';
+eval(helpers+ranking+'globalThis.W=function(user,gameName,n){const streamer=scoreCurrentStreamer;const db=scoreLoad();if(!db[streamer])db[streamer]={};'+core+'scoreSave(db);};globalThis.R=scoreBuildRanking;');
+W({uniqueId:'tiktok:old',nickname:'Ali',sid:'tiktok#1234567'},'g',1);
+W({uniqueId:'tiktok:old',nickname:'Ali',sid:'tiktok#1234567'},'g',2);
+W({uniqueId:'tiktok:new',nickname:'Ali2',sid:'tiktok#1234567'},'g',1);
+let r=R('A');assert.strictEqual(r.length,1);assert.strictEqual(r[0][1].wins,4);assert.strictEqual(r[0][1].nickname,'Ali2');
+W({uniqueId:'tiktok:other',nickname:'Z'},'g',1);assert.strictEqual(R('A').length,2);
+DB.B={'tiktok:alias':{nickname:'A3',wins:5,games:{},sid:'tiktok#1234567'}};assert.strictEqual(R(null)[0][1].wins,9);
+console.log('rename OK');

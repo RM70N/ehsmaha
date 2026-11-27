@@ -551,7 +551,7 @@ test('reload: خدمة غير معروفة ← 400، و"all" يعيد حالة �
 
 test('حدود الحماية: تُحفظ وتُطبَّق فوراً بكشف السبام، تحقق النطاقات، وreload يلتقط تعديل القاعدة', async () => {
   const before = (await api('GET', '/automod/limits')).json.detail.effective;
-  assert.equal(before.maxMessages, 5);
+  assert.equal(before.maxMessages, 7);
   const r = await api('PUT', '/automod/limits', { spamMaxMessages: 3, spamWindowSeconds: 10, spamDuplicates: 2, escalationMinutes: [5, 15, 60] });
   assert.equal(r.status, 200);
   assert.equal(r.json.verified, true);
@@ -559,7 +559,7 @@ test('حدود الحماية: تُحفظ وتُطبَّق فوراً بكشف �
   assert.deepEqual([eff.maxMessages, eff.windowMs, eff.duplicateCount, eff.escalationMs], [3, 10000, 2, [300000, 900000, 3600000]]);
 
   // يطبّق على كشف السبام الفعلي (3 رسائل = سبام بدل 5)
-  const message = (id) => ({ id, guild: { id: guild.id }, author: { id: '800000000000000099' }, channel: { id: '1' }, content: `m${id}` });
+  const message = (id) => ({ id, guild: { id: guild.id }, author: { id: '800000000000000099' }, channel: { id: '1' }, content: `رسالة فعلية رقم ${id} يا جماعة` });
   autoMod._internal.tracker.clear();
   const now = Date.now();
   assert.equal(autoMod._internal.trackSpam(message('a'), now).spam, false);
@@ -568,7 +568,7 @@ test('حدود الحماية: تُحفظ وتُطبَّق فوراً بكشف �
   assert.equal(autoMod._internal.durationFor(1, guild.id), 300000);
   assert.equal(autoMod._internal.durationFor(9, guild.id), 3600000);
   // سيرفر ثاني بدون صف = الافتراضي القديم بالضبط
-  assert.equal(autoModLimits.effective('555555555555555555').maxMessages, 5);
+  assert.equal(autoModLimits.effective('555555555555555555').maxMessages, 7);
 
   for (const body of [{ spamMaxMessages: 1 }, { spamMaxMessages: 31 }, { spamWindowSeconds: 2 }, { spamWindowSeconds: 61 }, { spamDuplicates: 11 }, { spamDuplicates: 1 }, { escalationMinutes: [] }, { escalationMinutes: [0] }, { escalationMinutes: 'x' }, {}]) {
     const bad = await api('PUT', '/automod/limits', body);
@@ -702,6 +702,6 @@ test('بدون تفعيل القناة السلوك القديم كما هو: م
   commandControl._internal.cache.clear();
   const i = await invoke(asMember('800000000000000001'));
   assert.match(texts(i), /تم/);
-  assert.equal(autoModLimits.effective(guild.id).maxMessages, 5, 'الافتراضي القديم');
+  assert.equal(autoModLimits.effective(guild.id).maxMessages, 7, 'الافتراضي');
   assert.equal(tickets.reasonsFor(guild.id).length, 7);
 });
