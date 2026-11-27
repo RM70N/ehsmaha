@@ -27762,7 +27762,7 @@ function extractUser(msg) {
   // نيكنيم<->uniqueId تستخدمها أوامر الأدمن لاحقاً لحل "@اسم_الحساب" ولعرض
   // الاسم الصحيح عند الإنعاش/الدخول بمنشن (راجع adminObserveUserIdentity).
   adminObserveUserIdentity(extracted);
-  if (extracted.sid && extracted.uniqueId && extracted.uniqueId !== '?') scoreSidByUid[extracted.uniqueId] = extracted.sid;
+  if (extracted.sid && extracted.uniqueId && extracted.uniqueId !== '?') { scoreSidByUid[extracted.uniqueId] = extracted.sid; scoreQueueSidLink(extracted.uniqueId, extracted.sid); }
   return extracted;
 }
 
@@ -29196,6 +29196,40 @@ function scoreFindEntryBySid(bucket, sid) {
   if (!sid) return null;
   for (const k of Object.keys(bucket)) { if (bucket[k] && bucket[k].sid === sid && !bucket[k].mergedInto) return k; }
   return null;
+}
+
+// ربط هادئ: أي لاعب نشوفه بالبث وعنده سجل فوزات بلوحة الفائزين (باسم حسابه الحالي) نحفظ معرّفه
+// الثابت على سجله الموجود. لا يغيّر ولا يحذف أي فوزة — يضيف حقل sid فقط، وبعدها لو غيّر اسم حسابه
+// تكمل فوزاته على نفس السجل. يُحفظ مع لوحة الفائزين نفسها بفايرستور (مزامنة السيرفر).
+const scoreSidLinkQueue = new Map();
+const scoreSidLinkDone = new Set();
+let scoreSidLinkTimer = null;
+function scoreQueueSidLink(uid, sid) {
+  if (!uid || !sid || scoreSidLinkDone.has(uid + '|' + sid)) return;
+  scoreSidLinkQueue.set(uid, sid);
+  if (scoreSidLinkTimer) return;
+  scoreSidLinkTimer = setTimeout(scoreFlushSidLinks, 2500); // دفعة وحدة بدل كتابة لكل رسالة
+}
+function scoreFlushSidLinks() {
+  scoreSidLinkTimer = null;
+  if (!scoreSidLinkQueue.size) return;
+  const batch = Array.from(scoreSidLinkQueue.entries());
+  scoreSidLinkQueue.clear();
+  let db;
+  try { db = scoreLoad(); } catch (e) { return; }
+  let changed = false;
+  batch.forEach(([uid, sid]) => {
+    scoreSidLinkDone.add(uid + '|' + sid);
+    Object.keys(db).forEach(streamer => {
+      const bucket = db[streamer];
+      const e = bucket && bucket[uid];
+      if (!e || e.mergedInto || e.sid) return; // ما نلمس السجل إلا لو بلا معرّف
+      if (scoreFindEntryBySid(bucket, sid)) return; // المعرّف مربوط أصلاً بسجل ثاني بنفس الستريمر
+      e.sid = sid;
+      changed = true;
+    });
+  });
+  if (changed) scoreSave(db);
 }
 
 function recordWin(user, gameName, count) {
